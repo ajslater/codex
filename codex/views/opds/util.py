@@ -38,10 +38,10 @@ def update_href_query_params(href, old_query_params, new_query_params=None):
     return href
 
 
-def get_contributor_people(comic_pk, roles, exclude=False):
+def get_contributor_people(comic_pks, roles, exclude=False):
     """Get contributors that are not authors."""
     people = ContributorPerson.objects.filter(
-        contributor__comic=comic_pk,
+        contributor__comic__in=comic_pks,
     )
     if exclude:
         people = people.exclude(contributor__role__name__in=roles)
@@ -50,9 +50,9 @@ def get_contributor_people(comic_pk, roles, exclude=False):
     return people.distinct().only("name")
 
 
-def get_contributors(comic_pk, roles, exclude=False):
+def get_contributors(comic_pks, roles, exclude=False):
     """Get credits that are not part of other roles."""
-    contributors = Contributor.objects.filter(comic=comic_pk)
+    contributors = Contributor.objects.filter(comic__in=comic_pks)
     if exclude:
         contributors = contributors.exclude(role__name__in=roles)
     else:
@@ -60,7 +60,7 @@ def get_contributors(comic_pk, roles, exclude=False):
     return contributors.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
-def get_m2m_objects(pk) -> dict:
+def get_m2m_objects(pks) -> dict:
     """Get Category labels."""
     cats = {}
     for model in OPDS_M2M_MODELS:
@@ -68,7 +68,7 @@ def get_m2m_objects(pk) -> dict:
         rel = "comic"
         if model == StoryArc:
             rel = "storyarcnumber__" + rel
-        comic_filter = {rel: pk}
+        comic_filter = {rel + "__in": pks}
         qs = model.objects.filter(**comic_filter).order_by("name").only("name")
         cats[table] = qs
 

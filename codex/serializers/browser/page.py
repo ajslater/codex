@@ -39,7 +39,7 @@ class BrowserRouteSerializer(Serializer):
     """A vue route for the browser."""
 
     group = CharField(read_only=True)
-    pk = IntegerField(read_only=True)
+    pks = CharField(read_only=True)
     page = IntegerField(read_only=True)
 
 

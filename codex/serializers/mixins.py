@@ -9,11 +9,14 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.serializers.browser.filters import IntListField
+
 
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser, opds & metadata serializers."""
 
     group = CharField(read_only=True, max_length=1)
+    ids = IntListField(read_only=True)
 
     # Aggregate Annotations
     child_count = IntegerField(read_only=True)

@@ -147,7 +147,7 @@
     },
     "route": {
       "group": "r",
-      "pk": 0,
+      "pks": "0",
       "page": 1
     },
     "identifierTypes": {

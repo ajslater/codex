@@ -10,18 +10,19 @@ class GroupFilterMixin(GroupACLMixin):
 
     def get_group_filter(self, choices):
         """Get filter for the displayed group."""
-        pk = self.kwargs.get("pk")  # type: ignore
-        group = self.kwargs.get("group")  # type: ignore
-        if pk:
+        group = self.kwargs["group"]  # type: ignore
+        pks = self.kwargs["pks"]  # type: ignore
+        if pks:  # type: ignore
             group_relation = "comic__" if choices else ""
             if choices and group == self.FOLDER_GROUP:
                 group_relation += "folders"
             else:
                 group_relation += self.GROUP_RELATION[group]
-            group_filter = Q(**{group_relation: pk})
+            group_relation += "__in"
+            group_filter_dict = {group_relation: pks}  # type: ignore
         elif group == self.FOLDER_GROUP:
-            group_filter = Q(parent_folder=None)
+            group_filter_dict = {"parent_folder": None}
         else:
-            group_filter = Q()
+            group_filter_dict = {}
 
-        return group_filter
+        return Q(**group_filter_dict)

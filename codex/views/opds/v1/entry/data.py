@@ -9,7 +9,7 @@ class OPDS1EntryObject:
     """Fake entry db object for top link & facet entries."""
 
     group: str = ""
-    pk: int = 0
+    ids: frozenset[int] = frozenset()
     name: str = ""
     summary: str = ""
     fake: bool = True

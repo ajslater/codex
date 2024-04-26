@@ -76,6 +76,7 @@ class MetadataView(BrowserAnnotationsView):
                 .order_by()  # just in case
                 .annotate(count=Count(full_field, distinct=True))
                 .filter(count=1)
+                # .group_by("name")
                 .values_list(full_field + related_suffix, flat=True)
             )
 
@@ -228,8 +229,8 @@ class MetadataView(BrowserAnnotationsView):
 
     def _raise_not_found(self, exc=None):
         """Raise an exception if the object is not found."""
-        pk = self.kwargs["pk"]
-        detail = f"Filtered metadata for {self.group}/{pk} not found"
+        pks = self.kwargs["pks"]
+        detail = f"Filtered metadata for {self.group}/{pks} not found"
         raise NotFound(detail=detail) from exc
 
     def get_object(self):
@@ -242,18 +243,20 @@ class MetadataView(BrowserAnnotationsView):
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
         object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
-        pk = self.kwargs["pk"]
-        qs = self.model.objects.filter(object_filter, pk=pk)
-
+        pks = self.kwargs["pks"]
+        qs = self.model.objects.filter(object_filter, pk__in=pks)
         if self.model != Comic:
             qs = self.apply_search_filter(qs, self.model, binary=True)
-        qs = self._annotate_aggregates(qs)
+        qs, cover_qs = self._annotate_aggregates(qs)
+        # TODO fewer annations for simple qs, no covers.
         simple_qs = qs
-
+        qs = qs.group_by("name")
         qs = self._annotate_values_and_fks(qs, simple_qs)
 
+        qs_list = self.recover_multi_groups(qs, cover_qs)  # type: ignore
+
         try:
-            obj = qs.first()
+            obj = qs_list[0]
             if not obj:
                 reason = "Empty obj"
                 raise ValueError(reason)  # noqa TRY301
@@ -286,6 +289,7 @@ class MetadataView(BrowserAnnotationsView):
             self._efv_flag = None
             self.parse_params()
             self.group = self.kwargs["group"]
+            self.valid_nav_groups = (self.group,)
             self._validate()
             self.set_rel_prefix(self.model)
             self.set_order_key()

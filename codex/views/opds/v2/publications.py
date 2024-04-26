@@ -82,9 +82,9 @@ class PublicationMixin(LinksMixin):
         ]
 
     @staticmethod
-    def _add_contributors(md, pk, key, roles):
+    def _add_contributors(md, pks, key, roles):
         """Add contributors to metadata."""
-        if contributors := get_contributors(pk, roles):
+        if contributors := get_contributors(pks, roles):
             md[key] = contributors
 
     def _publication_optional_metadata(self, md, obj):
@@ -107,11 +107,11 @@ class PublicationMixin(LinksMixin):
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
         for key, roles in self._MD_CONTRIBUTOR_MAP.items():
-            self._add_contributors(md, obj.pk, key, roles)
-        if contributors := get_contributors(obj.pk, self._CONTRIBUTOR_ROLES, True):
+            self._add_contributors(md, obj.ids, key, roles)
+        if contributors := get_contributors(obj.ids, self._CONTRIBUTOR_ROLES, True):
             md["contributor"] = contributors
 
-        if m2m_objs := get_m2m_objects(obj.pk):
+        if m2m_objs := get_m2m_objects(obj.ids):
             # XXX Subjects can also have links
             # https://readium.org/webpub-manifest/schema/subject-object.schema.json
             subjects = []
@@ -147,7 +147,7 @@ class PublicationMixin(LinksMixin):
         fn = quote_plus(fn)
 
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
-        self_kwargs = {"group": "c", "pk": obj.pk, "page": 1}
+        self_kwargs = {"pk": obj.pk, "page": 1}
 
         # This would be for comic streaming which is not supported by OPDS 2 yet?
         # self_href_data = HrefData(self_kwargs, absolute_query_params=True)
@@ -155,7 +155,10 @@ class PublicationMixin(LinksMixin):
 
         alt_kwargs = self_kwargs
         alt_href_data = HrefData(
-            alt_kwargs, {"opdsMetadata": 1}, absolute_query_params=True
+            alt_kwargs,
+            {"opdsMetadata": 1},
+            absolute_query_params=True,
+            url_name="opds:v2:acq",
         )
         alt_link_data = LinkData(
             Rel.ALTERNATE, alt_href_data, mime_type=MimeType.OPDS_PUB

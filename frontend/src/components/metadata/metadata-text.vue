@@ -111,15 +111,17 @@ export default {
       ) {
         return;
       }
-      const pk = this.obj?.group == this.group ? this.obj.pk : this.value.pk;
-      if (!pk) {
+      const pks =
+        this.obj?.group == this.group ? this.obj.ids : [this.value.pk];
+      if (!pks) {
         return;
       }
       const params = this.$router.currentRoute.value.params;
-      if (params.group === this.group && +params.pk === pk) {
+      if (params.group === this.group && +params.pks === pks) {
         return;
       }
-      return { name: "browser", params: { group: this.group, pk } };
+      const pkList = pks.join(",");
+      return { name: "browser", params: { group: this.group, pks: pkList } };
     },
   },
 };

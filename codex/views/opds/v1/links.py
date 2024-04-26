@@ -22,11 +22,11 @@ LOG = get_logger(__name__)
 class TopRoutes:
     """Routes for top groups."""
 
-    PUBLISHER = MappingProxyType({"group": "p", "pk": 0, "page": 1})
-    SERIES = MappingProxyType({"group": "s", "pk": 0, "page": 1})
-    FOLDER = MappingProxyType({"group": "f", "pk": 0, "page": 1})
-    ROOT = MappingProxyType({"group": "r", "pk": 0, "page": 1})
-    STORY_ARC = MappingProxyType({"group": "a", "pk": 0, "page": 1})
+    PUBLISHER = MappingProxyType({"group": "p", "pks": {}, "page": 1})
+    SERIES = MappingProxyType({"group": "s", "pks": {}, "page": 1})
+    FOLDER = MappingProxyType({"group": "f", "pks": {}, "page": 1})
+    ROOT = MappingProxyType({"group": "r", "pks": {}, "page": 1})
+    STORY_ARC = MappingProxyType({"group": "a", "pks": {}, "page": 1})
 
 
 @dataclass
@@ -186,7 +186,7 @@ class LinksMixin(FacetsMixin):
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
         entry_obj = OPDS1EntryObject(
             group=top_link.kwargs["group"],
-            pk=top_link.kwargs["pk"],
+            ids=top_link.kwargs["pks"],
             name=name,
             summary=top_link.desc,
         )

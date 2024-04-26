@@ -56,7 +56,7 @@ export default {
     },
     longBrowseTitleMain: function () {
       let browserTitle;
-      if (Number(this.$route.params.pk) === 0) {
+      if (Number(this.$route.params.pks) === 0) {
         browserTitle = "All";
       } else {
         let names = [];

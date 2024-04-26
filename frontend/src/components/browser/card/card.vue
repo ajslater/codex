@@ -1,5 +1,5 @@
 <template>
-  <v-lazy :id="`card-${item.pk}`" transition="scale-transition">
+  <v-lazy :id="`card-${ids}`" transition="scale-transition">
     <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
       <div class="browserCardTop">
         <BookCover
@@ -79,6 +79,9 @@ export default {
       label += " " + this.item.headerName;
       return label;
     },
+    ids() {
+      return this.item.ids.join(",");
+    },
     toRoute() {
       if (!this.doubleTapHovered) {
         return {};
@@ -87,7 +90,7 @@ export default {
         ? getReaderRoute(this.item, this.importMetadata)
         : {
             name: "browser",
-            params: { group: this.item.group, pk: this.item.pk, page: 1 },
+            params: { group: this.item.group, pks: this.ids, page: 1 },
           };
     },
     progressBackgroundColor() {
@@ -103,7 +106,7 @@ export default {
     scrollToMe: function () {
       if (
         !this.$route.hash ||
-        this.$route.hash.split("-")[1] !== String(this.item.pk)
+        this.$route.hash.split("-")[1] !== String(this.ids)
       ) {
         return;
       }

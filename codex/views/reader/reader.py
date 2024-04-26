@@ -52,7 +52,7 @@ class ReaderView(BookmarkBaseView):
             arc_pk_rel = "story_arc_numbers__story_arc__pk"
             prefetch_related = (*prefetch_related, "story_arc_numbers__story_arc")
             arc_index = F("story_arc_numbers__number")
-            ordering = ("arc_index", "date", *Comic.ORDERING)
+            ordering = ("arc_index", "date", *Comic.get_order_by(("c"), "c"))
             arc_pk_select_related = ()
             arc_pk_only = ("pk",)
         elif arc_group == self.FOLDER_GROUP:
@@ -73,7 +73,7 @@ class ReaderView(BookmarkBaseView):
             arc_pk_rel = "series__pk"
             arc_name_rel = "series__name"
             arc_index = Value(None, IntegerField())
-            ordering = Comic.ORDERING
+            ordering = Comic.get_order_by(("c"), browser_group="c")
             arc_pk_select_related = ("series",)
             arc_pk_only = arc_pk_select_related
 
@@ -298,7 +298,7 @@ class ReaderView(BookmarkBaseView):
             arc_pk = int(arc_pk)
         elif top_group == "a":
             last_route = session.get("route", {})
-            arc_pk = last_route.get("pk")
+            arc_pk = last_route.get("pks")
 
         params = {
             "arc_group": arc_group,

@@ -3,7 +3,7 @@
     <div v-if="showBrowseItems" id="browsePaneContainer">
       <BrowserCard
         v-for="item in cards"
-        :key="`${item.group}${item.pk}`"
+        :key="`${item.group}${item.ids}`"
         :item="item"
       />
     </div>

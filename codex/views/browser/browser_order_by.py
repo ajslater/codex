@@ -32,7 +32,6 @@ class BrowserOrderByView(BrowserBaseView):
     _ANNOTATED_ORDER_FIELDS = frozenset(
         ("sort_name", "search_score", "bookmark_updated_at")
     )
-    _COMIC_COVER_ORDERING = ("comic__" + field for field in Comic.ORDERING)
 
     def set_order_key(self):
         """Get the default order key for the view."""
@@ -83,25 +82,33 @@ class BrowserOrderByView(BrowserBaseView):
             func = self.get_aggregate_func(model, self.order_key)
         return func
 
-    def add_order_by(self, queryset, model, cover=False):
+    def add_order_by(self, queryset, model):
         """Create the order_by list."""
+        # order_fields_head
+        if self.order_key == "sort_name":
+            order_fields_head = ()
+        elif self.order_key == "bookmark_updated_at":
+            order_fields_head = ("order_value", "updated_at", "created_at")
+        elif self.order_key == "story_arc_number" and model == Comic:
+            order_fields_head = ("order_value", "date")
+        else:
+            order_fields_head = ("order_value",)
+
+        # order_fields_tail
+        group = self.kwargs.get("group")
+        valid_nav_groups = self.valid_nav_groups  # type: ignore
+        rel_prefix = "" if model == Comic else self.rel_prefix
+        order_fields_tail = model.get_order_by(
+            valid_nav_groups, browser_group=group, rel_prefix=rel_prefix
+        )
+
+        order_fields = order_fields_head + order_fields_tail
+
+        order_by = []
         prefix = ""
         if self.params.get("order_reverse"):
             prefix += "-"
 
-        if self.order_key == "sort_name":
-            if cover and model != Comic:
-                order_fields = self._COMIC_COVER_ORDERING
-            else:
-                order_fields = model.ORDERING
-        elif self.order_key == "bookmark_updated_at":
-            order_fields = ("order_value", "updated_at", "created_at", "pk")
-        elif self.order_key == "story_arc_number" and model == Comic:
-            order_fields = ("order_value", "date", *model.ORDERING)
-        else:
-            order_fields = ("order_value", *model.ORDERING)
-
-        order_by = []
         for field in order_fields:
             order_by.append(prefix + field)
 

@@ -23,6 +23,7 @@ from django.db.models.fields import PositiveSmallIntegerField
 from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, Substr
 
 from codex.models import Comic
+from codex.models.functions import JsonGroupArray
 from codex.views.browser.browser_order_by import BrowserOrderByView
 
 
@@ -60,13 +61,18 @@ class BrowserAnnotationsView(BrowserOrderByView):
         else:
             # I wish I could figure out how to get a cover for each group
             # without a subquery.
-            cover_qs = qs.filter(pk=OuterRef("pk"))
-            cover_qs = self.add_order_by(cover_qs, model, True)
+            cover_qs = qs
+            cover_qs = cover_qs.filter(pk=OuterRef("pk"))
+            cover_qs = self.add_order_by(cover_qs, model)
             cover_qs = cover_qs.values(self.rel_prefix + "pk")
             cover_qs = cover_qs[:1]
             cover_pk = Subquery(cover_qs)
 
-        return qs.annotate(cover_pk=cover_pk)
+        # The covers_pk annotation is sorted again for the final cover later in
+        # browser.py after pagination.
+        return qs.annotate(
+            cover_pk=cover_pk, cover_pks=JsonGroupArray("cover_pk", distinct=True)
+        )
 
     def _annotate_page_count(self, qs, model):
         """Hoist up total page_count of children."""
@@ -89,23 +95,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
             qs = qs.filter(child_count__gt=0)
         return qs
 
-    def _annotate_bookmark_updated_at(self, qs, model):
-        """Annotate bookmark_updated_at."""
-        bm_rel = self.get_bm_rel(model)
-        bm_filter = self._get_my_bookmark_filter(bm_rel)
-
-        if self.is_opds_1_acquisition or self.order_key == "bookmark_updated_at":
-            updated_at_rel = f"{bm_rel}__updated_at"
-            bookmark_updated_at_aggregate = Min(
-                updated_at_rel,
-                default=self._NONE_DATETIMEFIELD,
-                filter=bm_filter,
-            )
-            qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
-
-        bm_annotation_data = bm_rel, bm_filter
-        return qs, bm_annotation_data
-
     def _annotate_sort_name(self, queryset, model):
         """Sort groups by name ignoring articles."""
         # TODO move this into the database on import.
@@ -127,7 +116,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         ##################################################
 
         # first_space_index
-        first_field = model.ORDERING[0]
+        first_field = "name"
         queryset = queryset.annotate(
             first_space_index=StrIndex(first_field, Value(" "))
         )
@@ -163,21 +152,19 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
         # Get story_arc__pk
         group = self.kwargs["group"]
-        pk = self.kwargs["pk"]
-        if group == self.STORY_ARC_GROUP and pk:
-            story_arc_pk = pk
-        elif story_arc_pks := self.params.get("filters", {}).get(  # type: ignore
-            "story_arcs", []
-        ):
-            story_arc_pk = story_arc_pks[0]
+        pks = self.kwargs["pks"]
+        if group == self.STORY_ARC_GROUP and pks:
+            story_arc_pks = pks
         else:
-            story_arc_pk = None
+            story_arc_pks = self.params.get("filters", {}).get(  # type: ignore
+                "story_arcs", ()
+            )
 
         # If we have one annotate it.
-        if story_arc_pk:
+        if story_arc_pks:
             san_rel = self.rel_prefix + "story_arc_numbers"
             rel = f"{san_rel}"
-            condition = Q(**{f"{san_rel}__story_arc": story_arc_pk})
+            condition = Q(**{f"{san_rel}__story_arc__in": story_arc_pks})
             qs = qs.annotate(
                 selected_story_arc_number=FilteredRelation(rel, condition=condition),
                 story_arc_number=F("selected_story_arc_number__number"),
@@ -190,6 +177,21 @@ class BrowserAnnotationsView(BrowserOrderByView):
         """Annotate a main key for sorting."""
         order_func = self.get_order_value(model)
         return qs.annotate(order_value=order_func)
+
+    def _annotate_bookmark_updated_at(self, qs, model):
+        bm_rel = self.get_bm_rel(model)
+        bm_filter = self._get_my_bookmark_filter(bm_rel)
+
+        if self.is_opds_1_acquisition or self.order_key == "bookmark_updated_at":
+            updated_at_rel = f"{bm_rel}__updated_at"
+            bookmark_updated_at_aggregate = Min(
+                updated_at_rel,
+                default=self._NONE_DATETIMEFIELD,
+                filter=bm_filter,
+            )
+            qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
+        bm_annotation_data = bm_rel, bm_filter
+        return qs, bm_annotation_data
 
     def _annotate_bookmarks(self, qs, model, bm_annotation_data):
         """Hoist up bookmark annotations."""
@@ -265,6 +267,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     def annotate_common_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
+        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
@@ -272,7 +275,44 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_story_arc_number(qs)
         # cover annotation depends on order_value, in metadata too.
         qs = self._annotate_order_value(qs, model)
+        cover_qs = qs
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_annotation_data)
         qs = self._annotate_mtime(qs)
-        return self._annotate_progress(qs)
+        qs = self._annotate_progress(qs)
+        return qs, cover_qs
+
+    def recover_multi_groups(self, group_qs, cover_qs):
+        """Python hack to re-cover groups collapsed with group_by."""
+        # This would be better in the main query but OuterRef can't access annotations.
+        # Most of the time this spins through the page and as a noop.
+        # But only for groups more than one cover_pks it will run extra queries to
+        # resolve the proper cover pk.
+        recovered_group_list = []
+        for group in group_qs:
+            cover_pks = group.cover_pks
+            if len(cover_pks) > 1:
+                # TODO use cover_qs when stripped down
+                covers_filter = {self.rel_prefix + "pk__in": cover_pks}
+                group_cover_qs = cover_qs.filter(**covers_filter)
+                group_cover_qs = self.add_order_by(group_cover_qs, self.model)  # type: ignore
+                group_cover_qs = group_cover_qs.values_list(
+                    self.rel_prefix + "pk", flat=True
+                ).first()
+                cover_pk = group_cover_qs
+                group.cover_pk = cover_pk
+            recovered_group_list.append(group)
+        return recovered_group_list
+
+
+#    def recover_multi_group_in_query(self, group_qs, cover_qs):
+#        #
+#        # This does not work because OuterRef can't see annotations.
+#        #
+#        group_qs = group_qs.annotate(cover_pks_len=Func(F('cover_pks'), function='json_array_length', output_field=IntegerField()))
+#        covers_filter = {self.rel_prefix + "pk__in": OuterRef("cover_pks")}
+#        subquery = cover_qs.filter(**covers_filter)
+#        subquery = self.add_order_by(subquery, self.model)  # type: ignore
+#        subquery = subquery.values(self.rel_prefix + "pk")
+#        test_group_qs = group_qs.annotate(final_cover_pk=Case(When(cover_pks_len__gt=1, then=Subquery(subquery[:1])), default=F("cover_pk")))
+#        # print(test_group_qs.values("cover_pk", "cover_pks", "cover_pks_len", "final_cover_pk"))

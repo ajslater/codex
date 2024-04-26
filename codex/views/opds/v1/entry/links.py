@@ -5,11 +5,14 @@ from urllib.parse import quote_plus
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
+from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+
+LOG = get_logger(__name__)
 
 
 class OPDS1EntryLinksMixin:
@@ -35,7 +38,7 @@ class OPDS1EntryLinksMixin:
         if cover_pk:
             kwargs = {"pk": cover_pk}
             href = reverse("opds:bin:cover", kwargs=kwargs)
-        elif cover_pk == 0:
+        elif not cover_pk:
             href = staticfiles_storage.url("img/missing_cover.webp")
         else:
             return None
@@ -49,7 +52,7 @@ class OPDS1EntryLinksMixin:
             kwargs = {"pk": cover_pk, "page": 0}
             href = reverse("opds:bin:page", kwargs=kwargs)
             mime_type = "image/jpeg"
-        elif cover_pk == 0:
+        elif not cover_pk:
             href = staticfiles_storage.url("img/missing_cover.webp")
             mime_type = "image/webp"
         else:
@@ -57,29 +60,36 @@ class OPDS1EntryLinksMixin:
         return OPDS1Link(Rel.IMAGE, href, mime_type)
 
     def _nav_href(self, metadata=False):
-        kwargs = {"group": self.obj.group, "pk": self.obj.pk, "page": 1}
-        href = reverse("opds:v1:feed", kwargs=kwargs)
-        qps = {}
-        if (
-            self.obj.group == "a"
-            and self.obj.pk
-            and not self.query_params.get("orderBy")
-        ):
-            # story arcs get ordered by story_arc_number by default
-            qps.update({"orderBy": "story_arc_number"})
-        if metadata:
-            qps.update({"opdsMetadata": 1})
-        return update_href_query_params(href, self.query_params, qps)
+        try:
+            pks = ",".join(str(pk) for pk in sorted(self.obj.ids))
+            kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
+            href = reverse("opds:v1:feed", kwargs=kwargs)
+            qps = {}
+            if (
+                self.obj.group == "a"
+                and self.obj.ids
+                and 0 not in self.obj.ids
+                and not self.query_params.get("orderBy")
+            ):
+                # story arcs get ordered by story_arc_number by default
+                qps.update({"orderBy": "story_arc_number"})
+            if metadata:
+                qps.update({"opdsMetadata": 1})
+            return update_href_query_params(href, self.query_params, qps)
+        except Exception:
+            msg = f"creating nav href for entry {self.obj}"
+            LOG.exception(msg)
+            raise
 
     def _nav_link(self, metadata=False):
-        group = self.obj.group
+        href = self._nav_href(metadata)
 
+        group = self.obj.group
         if group in self.acquision_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
-        href = self._nav_href(metadata)
         thr_count = 0 if self.fake else self.obj.child_count
         rel = Rel.ALTERNATE if metadata else "subsection"
 

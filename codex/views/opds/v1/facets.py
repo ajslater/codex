@@ -115,7 +115,7 @@ class FacetsMixin(BrowserView):
         ).strip()
         entry_obj = OPDS1EntryObject(
             group=item.get("group"),
-            pk=item.get("pk"),
+            ids=item.get("pks"),
             name=name,
         )
         qps = {**self.request.query_params}
@@ -156,7 +156,7 @@ class FacetsMixin(BrowserView):
         if facet_group.query_param == "topGroup" and self._did_special_group_change(
             group, facet.value
         ):
-            kwargs = {"group": facet.value, "pk": 0, "page": 1}
+            kwargs = {"group": facet.value, "pks": {}, "page": 1}
         else:
             kwargs = self.kwargs
 

@@ -12,6 +12,10 @@ border-radius: 128px;
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
   - Metadata tags can click to browse filtered on that tag.
+- Fixes
+  - OPDS http basic authorization fixed.
+  - Groups with the same name collapsed in the browser.
+  - Order By respects browser show groups settings.
 
 ## v1.5.17
 

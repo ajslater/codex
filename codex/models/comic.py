@@ -66,9 +66,7 @@ class Comic(WatchedPath):
         CBT = "CBT"
         PDF = "PDF"
 
-    ORDERING = (
-        "series__name",
-        "volume__name",
+    _ORDERING = (
         "issue_number",
         "issue_suffix",
         "name",
@@ -290,3 +288,18 @@ class Comic(WatchedPath):
     def search_path(self) -> str:
         """Relative path for search index."""
         return self.path.removeprefix(self.library.path)
+
+    @classmethod
+    def get_order_by(
+        cls,
+        valid_nav_groups,
+        browser_group="",
+        rel_prefix="",  # noqa: ARG003
+        suffix=True,  # noqa: ARG003
+    ):
+        """Get ordering by browser show settings."""
+        order_by = Volume.get_order_by(
+            valid_nav_groups, browser_group=browser_group, suffix=False
+        )
+        order_by += cls._ORDERING
+        return tuple(order_by)

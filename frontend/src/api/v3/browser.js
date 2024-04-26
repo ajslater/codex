@@ -43,24 +43,25 @@ const preSerialize = (data) => {
   return params;
 };
 
-const getAvailableFilterChoices = ({ group, pk }, data) => {
+const getAvailableFilterChoices = ({ group, pks }, data) => {
   const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/choices_available`, { params });
+  return HTTP.get(`/${group}/${pks}/choices_available`, { params });
 };
 
-const getFilterChoices = ({ group, pk }, fieldName, data) => {
+const getFilterChoices = ({ group, pks }, fieldName, data) => {
   const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/choices/${fieldName}`, { params });
+  return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, { params });
 };
 
-const loadBrowserPage = ({ group, pk, page }, data) => {
+const loadBrowserPage = ({ group, pks, page }, data) => {
   const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/${page}`, { params });
+  return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
-const getMetadata = ({ group, pk }, data) => {
+const getMetadata = ({ group, pks }, data) => {
+  const pkList = pks.join(",");
   const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/metadata`, { params });
+  return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
 const getSettings = () => {
@@ -68,11 +69,12 @@ const getSettings = () => {
   return HTTP.get("/r/settings", { params });
 };
 
-const setGroupBookmarks = ({ group, pk }, data) => {
+const setGroupBookmarks = ({ group, ids }, data) => {
   if (data.fitTo === null) {
     data.fitTo = "";
   }
-  return HTTP.patch(`${group}/${pk}/bookmark`, data);
+  const pks = ids.join(",");
+  return HTTP.patch(`${group}/${pks}/bookmark`, data);
 };
 
 export default {

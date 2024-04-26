@@ -17,9 +17,39 @@ class BrowserGroupModel(BaseModel):
     """Browser groups."""
 
     DEFAULT_NAME = ""
-    ORDERING = ("name", "pk")
+    PARENT = ""
+    _ORDERING = ("name", "pk")
+    _NAV_GROUPS = "rpisv"
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
+
+    @classmethod
+    def get_order_by(
+        cls, valid_nav_groups, browser_group="", rel_prefix="", suffix=True
+    ):
+        """Get ordering by show settings."""
+        order_by = []
+        if cls.PARENT:
+            group = cls.PARENT[0]
+            if group in valid_nav_groups:
+                group_index = valid_nav_groups.index(group)
+                if browser_group in valid_nav_groups:
+                    browser_group_index = valid_nav_groups.index(browser_group)
+                    if group_index > browser_group_index:
+                        rel = rel_prefix + cls.PARENT + "__name"
+                        order_by.append(rel)
+            base = cls.__bases__[0]
+            order_by += base.get_order_by(
+                valid_nav_groups,
+                browser_group=browser_group,
+                rel_prefix=rel_prefix,
+                suffix=suffix,
+            )
+        elif suffix:
+            for field in ("name", "pk"):
+                rel = rel_prefix + field
+                order_by.append(rel)
+        return tuple(order_by)
 
     class Meta(BaseModel.Meta):
         """Without this a real table is created and joined to."""
@@ -39,7 +69,7 @@ class Publisher(BrowserGroupModel):
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
-    ORDERING = ("publisher__name", "name", "pk")
+    PARENT = "publisher"
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
@@ -51,6 +81,8 @@ class Imprint(BrowserGroupModel):
 
 class Series(BrowserGroupModel):
     """The series the comic belongs to."""
+
+    PARENT = "imprint"
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
@@ -67,7 +99,7 @@ class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
     DEFAULT_NAME = None
-    ORDERING = ("series__name", "name", "pk")
+    PARENT = "series"
     YEAR_LEN = 4
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
