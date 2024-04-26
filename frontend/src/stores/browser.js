@@ -234,27 +234,36 @@ export const useBrowserStore = defineStore("browser", {
       }
       return { params: { group: this.lowestShownGroup, pks: "0", page: 1 } };
     },
-    _validateNewTopGroupIsParent(data, redirect) {
+    _validateTopGroup(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group
-      const referenceRoute = redirect || router.currentRoute.value;
-      const params = referenceRoute.params;
-      const topGroupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
-      if (
-        params.group !== "r" ||
-        !this.settings.topGroup ||
-        topGroupIndex >= GROUPS_REVERSED.indexOf(data.topGroup)
-      ) {
+      const oldTopGroupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
+      const newTopGroupIndex = GROUPS_REVERSED.indexOf(data.topGroup);
+      const newTopGroupIsBrowse = newTopGroupIndex >= 0;
+      const oldAndNewBothBrowseGroups =
+        oldTopGroupIndex >= 0 && newTopGroupIsBrowse;
+
+      const noTopGroupChange = data.topGroup === this.settings.topGroup;
+      const browseGroupChangeToParent =
+        oldAndNewBothBrowseGroups && oldTopGroupIndex <= newTopGroupIndex;
+
+      if (noTopGroupChange || browseGroupChangeToParent) {
         // All is well, validated.
         return redirect;
       }
 
       // Construct and return new redirect
-      const parentGroups = GROUPS_REVERSED.slice(topGroupIndex + 1);
+      const referenceRoute = redirect || router.currentRoute.value;
+      const params = referenceRoute.params;
       let group;
-      for (group of parentGroups) {
-        if (this.settings.show[group]) {
-          break;
+      if (newTopGroupIsBrowse) {
+        const parentGroups = GROUPS_REVERSED.slice(newTopGroupIndex + 1);
+        for (group of parentGroups) {
+          if (this.settings.show[group]) {
+            break;
+          }
         }
+      } else {
+        group = data.topGroup;
       }
       return { params: { ...params, group } };
     },
@@ -272,7 +281,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
-      redirect = this._validateNewTopGroupIsParent(data, redirect);
+      redirect = this._validateTopGroup(data, redirect);
 
       // Add settings
       if (data) {

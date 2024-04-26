@@ -22,7 +22,6 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
-const FOLDER_ROUTE = { params: { group: "f", pks: "0", page: 1 } };
 const DIVIDED_VALUES = new Set(["a", "f"]);
 
 export default {
@@ -33,7 +32,6 @@ export default {
   extends: ToolbarSelect,
   data() {
     return {
-      FOLDER_ROUTE,
       DIVIDED_VALUES,
     };
   },
@@ -50,17 +48,8 @@ export default {
         return this.topGroupSetting;
       },
       set(value) {
-        const group = DIVIDED_VALUES.has(value) ? value : "r";
-        const topRoute = {
-          params: { group, pks: "0", page: 1 },
-        };
         const settings = { topGroup: value };
-        this.$router
-          .push(topRoute)
-          .then(() => {
-            return this.setSettings(settings);
-          })
-          .catch(console.error);
+        this.setSettings(settings);
       },
     },
   },
