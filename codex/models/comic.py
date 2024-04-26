@@ -69,8 +69,7 @@ class Comic(WatchedPath):
     _ORDERING = (
         "issue_number",
         "issue_suffix",
-        "name",
-        "pk",
+        "sort_name",
     )
     _RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 
@@ -197,6 +196,7 @@ class Comic(WatchedPath):
 
     def presave(self):
         """Set computed values."""
+        super().presave()
         self._set_date()
         self._set_decade()
         self.size = Path(self.path).stat().st_size
@@ -206,11 +206,6 @@ class Comic(WatchedPath):
         """Calculate max page from page_count."""
         return max(self.page_count - 1, 0)
 
-    def save(self, *args, **kwargs):
-        """Save computed fields."""
-        self.presave()
-        super().save(*args, **kwargs)
-
     @staticmethod
     def _compute_zero_pad(issue_number_max):
         """Compute zero padding for issues."""
@@ -219,6 +214,10 @@ class Comic(WatchedPath):
         if issue_number_max < 1:
             return 1
         return math.floor(math.log10(issue_number_max)) + 1
+
+    def get_filename(self):
+        """Return filename from path as a property."""
+        return Path(self.path).name
 
     @classmethod
     def get_title(  # noqa: PLR0913
@@ -259,18 +258,8 @@ class Comic(WatchedPath):
         title = " ".join(filter(None, names)).strip(" .")
         title = cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
         if filename_fallback and not title:
-            title = cls.get_filename(obj)
+            title = obj.get_filename()
         return title
-
-    @classmethod
-    def get_filename(cls, obj):
-        """Get the fileaname from dict."""
-        path = Path(obj.path)
-        return path.stem + path.suffix
-
-    def filename(self):
-        """Create a filename for download."""
-        return self.get_filename(self)
 
     def __str__(self):
         """Most common text representation for logging."""

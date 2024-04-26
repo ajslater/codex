@@ -25,7 +25,7 @@ _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     }
 )
 _DISABLED_VALUE_FIELD_NAMES = frozenset(
-    {"id", "pk", "stat"} | _COMIC_VALUE_FIELDS_CONFLICTING
+    {"id", "pk", "stat", "stored_sort_name"} | _COMIC_VALUE_FIELDS_CONFLICTING
 )
 _COMIC_VALUE_FIELD_NAMES = frozenset(
     # contains path
@@ -220,10 +220,6 @@ class MetadataView(BrowserAnnotationsView):
         self._copy_m2m_intersections(obj, m2m_intersections)
         if not self.is_model_comic:
             self._copy_conflicting_simple_fields(obj)
-
-        # filename
-        if self.model == Comic:
-            obj.filename = obj.filename()
 
         return obj
 

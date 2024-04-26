@@ -48,4 +48,4 @@ class SeeOtherRedirectError(APIException):
         url = reverse(url_name, kwargs=params)
         url = self._add_query_params(url)
 
-        return redirect(url)
+        return redirect(url, permanent=False)

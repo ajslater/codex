@@ -181,6 +181,7 @@ exclude = """\
   *~,.git/*,.mypy_cache/*,.pytest_cache/*,.venv*,__pycache__/*\
   ,cache/*,codex/_vendor/*,codex/static_build/*,codex/static_root/*\
   ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*\
+  ,codex/search/backend_search.py\
   """
 
 [tool.ruff]

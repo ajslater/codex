@@ -61,7 +61,9 @@ class CreateForeignKeysMixin(QueuedThread):
             )
             defaults[ISSUE_COUNT] = group_count
 
-        return group_class(**defaults)
+        obj = group_class(**defaults)
+        obj.presave()
+        return obj
 
     @staticmethod
     def _update_group_obj(group_class, group_param_tuple, group_count):
@@ -204,8 +206,11 @@ class CreateForeignKeysMixin(QueuedThread):
         if not count:
             return count
         create_named_objs = []
+        is_story_arc = named_class == StoryArc
         for name in names:
             named_obj = named_class(name=name)
+            if is_story_arc:
+                named_obj.presave()
             create_named_objs.append(named_obj)
 
         named_class.objects.bulk_create(

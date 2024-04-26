@@ -143,8 +143,7 @@ class PublicationMixin(LinksMixin):
         pub = {}
         pub["metadata"] = self._publication_metadata(obj, issue_number_max)
 
-        fn = Comic.get_filename(obj)
-        fn = quote_plus(fn)
+        fn = quote_plus(obj.get_filename())
 
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
         self_kwargs = {"pk": obj.pk, "page": 1}

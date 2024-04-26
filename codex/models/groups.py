@@ -9,6 +9,7 @@ from django.db.models import (
 )
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
+from codex.models.const import ARTICLES
 
 __all__ = ("BrowserGroupModel", "Publisher", "Imprint", "Series", "Volume")
 
@@ -18,10 +19,59 @@ class BrowserGroupModel(BaseModel):
 
     DEFAULT_NAME = ""
     PARENT = ""
-    _ORDERING = ("name", "pk")
+    _ORDERING = ("pk",)
     _NAV_GROUPS = "rpisv"
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
+    stored_sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")
+
+    @classmethod
+    def get_order_by(
+        cls, valid_nav_groups, browser_group="", rel_prefix="", suffix=True
+    ):
+        """Get ordering by show settings."""
+        order_by = []
+        if cls.PARENT:
+            group = cls.PARENT[0]
+            if group in valid_nav_groups:
+                group_index = valid_nav_groups.index(group)
+                if browser_group in valid_nav_groups:
+                    browser_group_index = valid_nav_groups.index(browser_group)
+                    if group_index > browser_group_index:
+                        rel = rel_prefix + cls.PARENT + "__sort_name"
+                        order_by.append(rel)
+            base = cls.__bases__[0]
+            order_by += base.get_order_by(
+                valid_nav_groups,
+                browser_group=browser_group,
+                rel_prefix=rel_prefix,
+                suffix=suffix,
+            )
+        elif suffix:
+            for field in cls._ORDERING:
+                rel = field  # rel_prefix + field
+                order_by.append(rel)
+        return tuple(order_by)
+
+    def set_stored_sort_name(self):
+        """Create sort_name for model."""
+        sort_name = ""
+        name_parts = str(self.name).split()
+        if len(name_parts) > 1:
+            first_word = name_parts[0]
+            if first_word.lower() in ARTICLES:
+                sort_name = " ".join(name_parts[1:])
+                sort_name += ", " + first_word
+                self.stored_sort_name = sort_name
+
+    def presave(self):
+        """Set computed values."""
+        self.set_stored_sort_name()
+
+    def save(self, *args, **kwargs):
+        """Save computed fields."""
+        self.presave()
+        super().save(*args, **kwargs)
 
     @classmethod
     def get_order_by(
@@ -107,6 +157,9 @@ class Volume(BrowserGroupModel):
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = PositiveSmallIntegerField(null=True)
     name = SmallIntegerField(db_index=True, null=True, default=DEFAULT_NAME)
+
+    def set_stored_sort_name(self):
+        """Noop."""
 
     class Meta(BrowserGroupModel.Meta):
         """Constraints."""

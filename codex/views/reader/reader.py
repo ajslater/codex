@@ -16,6 +16,7 @@ from codex.serializers.reader import ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.session import BrowserSessionViewBase
+from codex.views.util import annotate_sort_name
 
 LOG = get_logger(__name__)
 
@@ -110,6 +111,7 @@ class ReaderView(BookmarkBaseView):
             )
             .annotate(mtime=F("updated_at"))
         )
+        qs = annotate_sort_name(qs)
 
         return qs.order_by(*ordering)
 
@@ -150,7 +152,7 @@ class ReaderView(BookmarkBaseView):
                 # create extra current book attrs:
                 if book.arc_index is None:  # type: ignore
                     book.arc_index = index + 1  # type: ignore
-                book.filename = book.filename()  # type: ignore
+                book.filename = book.get_filename()  # type: ignore
 
                 books["current"] = self._append_with_settings(book, bookmark_filter)
             else:

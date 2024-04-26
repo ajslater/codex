@@ -18,15 +18,6 @@ class DownloadView(APIView, GroupACLMixin):
     permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     content_type = "application/vnd.comicbook+zip"
 
-    _DOWNLOAD_SELECT_RELATED = ("series", "volume")
-    _DOWNLOAD_FIELDS = (
-        "path",
-        "series",
-        "volume",
-        "issue_number",
-        "issue_suffix",
-        "name",
-    )
     AS_ATTACHMENT = True
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
@@ -37,8 +28,7 @@ class DownloadView(APIView, GroupACLMixin):
             group_acl_filter = self.get_group_acl_filter(Comic)
             comic = (
                 Comic.objects.filter(group_acl_filter)
-                .select_related(*self._DOWNLOAD_SELECT_RELATED)
-                .only(*self._DOWNLOAD_FIELDS)
+                .only("path", "file_type")
                 .get(pk=pk)
             )
         except Comic.DoesNotExist as err:
@@ -55,11 +45,12 @@ class DownloadView(APIView, GroupACLMixin):
         else:
             content_type += "octet-stream"
 
+        filename = comic.get_filename()
         return FileResponse(
             comic_file,
             as_attachment=self.AS_ATTACHMENT,
             content_type=content_type,
-            filename=comic.filename(),
+            filename=filename,
         )
 
 

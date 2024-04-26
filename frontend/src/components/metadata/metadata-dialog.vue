@@ -315,8 +315,8 @@ export default {
       md: (state) => state.md,
       downloadFileName: (state) => {
         const md = state.md;
-        return state.md?.path
-          ? md.path.split("/").at(-1)
+        return state.md?.filename
+          ? md.filename
           : getFullComicName({
               seriesName: md.series.name,
               volumeName: md.volume.name,

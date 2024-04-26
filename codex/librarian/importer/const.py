@@ -142,10 +142,10 @@ ISSUE_COUNT = "issue_count"
 COUNT_FIELDS = {Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
 GROUP_UPDATE_FIELDS = MappingProxyType(
     {
-        Publisher: ("name",),
-        Imprint: ("name", "publisher"),
-        Series: ("name", "imprint"),
-        Volume: ("name", "publisher", "imprint", "series"),
+        Publisher: ("name", "stored_sort_name"),
+        Imprint: ("name", "stored_sort_name", "publisher"),
+        Series: ("name", "stored_sort_name", "imprint"),
+        Volume: ("name", "stored_sort_name", "publisher", "imprint", "series"),
     }
 )
 NAMED_MODEL_UPDATE_FIELDS = ("name",)

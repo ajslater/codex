@@ -2,6 +2,8 @@
 
 from copy import deepcopy
 from math import ceil
+from os import sep
+from pathlib import Path
 from types import MappingProxyType
 from typing import ClassVar
 
@@ -213,7 +215,7 @@ class BrowserView(BrowserAnnotationsView):
                 else:
                     reason = f"{group}__in={pks} does not exist!"
                     self._raise_redirect(
-                        {"group": group, "pks": (0,), "page": 1}, reason
+                        {"group": group, "pks": "0", "page": 1}, reason
                     )
         elif self.group_class:
             self.group_query = self.group_class.objects.none()
@@ -260,19 +262,23 @@ class BrowserView(BrowserAnnotationsView):
     def _get_folder_parent_name(self):
         """Get title for a folder browser page."""
         group_instance: Folder = self.group_instance  # type: ignore
-        folder_path = group_instance.path
-        if not folder_path:
+        if not group_instance.path:
             return ""
 
-        parent_name = folder_path
-        prefix = group_instance.library.path
-        if prefix[-1] != "/":
-            prefix += "/"
+        parent_path = Path(group_instance.path).parent
         if not self.is_admin():
-            # remove library path for not admins
-            parent_name = parent_name.removeprefix(prefix)
-        suffix = "/" + group_instance.name
-        return parent_name.removesuffix(suffix)
+            try:
+                # remove library path for not admins
+                library_path_parent = Path(group_instance.library.path).parent
+                parent_path = parent_path.relative_to(library_path_parent)
+            except ValueError:
+                parent_path = ""
+
+        parent_path_str = str(parent_path)
+        parent_path_str = parent_path_str.removeprefix(".")
+        if parent_path_str and parent_path_str[0] != sep:
+            parent_path_str = sep + parent_path_str
+        return parent_path_str
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
@@ -296,6 +302,10 @@ class BrowserView(BrowserAnnotationsView):
                     parent_name = self._get_folder_parent_name()
                 group_name = group_instance.name
 
+        group = self.kwargs.get("group")
+        if group == "f" and group_name and str(group_name)[0] != sep:
+            group_name = sep + str(group_name)
+
         return {
             "parent_name": parent_name,
             "group_name": group_name,
@@ -307,17 +317,18 @@ class BrowserView(BrowserAnnotationsView):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
-        if group == "r" and not pks and page == 1:
-            # Don't redirect if on the root page.
+        if not pks and page == 1:
+            # Don't redirect if on the root page for the group.
             return
 
-        if num_pages:
-            new_page = num_pages if page > num_pages else 1
-            pks = pks if pks else {}
+        if num_pages and page > 1:
+            # Try page 1 first.
+            new_page = num_pages if num_pages and page > num_pages else 1
+            pks = pks if pks else "0"
         else:
-            # Redirect to root.
-            group = "r"
-            pks = {}
+            # Redirect to root for the group.
+            # group = "r"
+            pks = "0"
             new_page = 1
         route_changes = {"group": group, "pks": pks, "page": new_page}
         reason = f"{page=} does not exist!"
@@ -502,6 +513,10 @@ class BrowserView(BrowserAnnotationsView):
         """Redirect the client to a valid group url."""
         route = deepcopy(dict(self.DEFAULT_ROUTE))
         route["params"].update(route_mask)  # type: ignore
+        pks = route["params"]["pks"]  # type: ignore
+        if not isinstance(pks, str):
+            pks = ",".join(str(pk) for pk in pks)
+            route["params"]["pks"] = pks  # type: ignore
         settings = deepcopy(self.params)
         if settings_mask:
             settings.update(settings_mask)

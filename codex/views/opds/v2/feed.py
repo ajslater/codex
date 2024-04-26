@@ -81,14 +81,13 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Create link kwargs."""
         if data.group_kwarg:
             # Nav Groups
-            ids = getattr(link_spec, "ids", [0])
-            pks = ",".join(str(pk) for pk in ids)
+            pks = getattr(link_spec, "ids", (0,))
             kwargs = {"group": link_spec.group, "pks": pks, "page": 1}
         elif link_spec.query_param_value in ("f", "a"):
             # Special Facets
             kwargs = {
                 "group": link_spec.query_param_value,
-                "pks": {0},
+                "pks": (0,),
                 "page": 1,
             }
         else:
@@ -200,6 +199,10 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         title = self._title(browser_page.get("browser_title"))
         number_of_items = browser_page["total_count"]
         current_page = self.kwargs.get("page")
+        up_route: dict[str, str | int | tuple[int, ...]] = browser_page["up_route"]  # type: ignore
+        up_pks = up_route.get("pks", "0")
+        if isinstance(up_pks, str):
+            up_route["pks"] = tuple(int(pk) for pk in up_pks.split(","))
         links = self.get_links(browser_page["up_route"])
         facets = self._get_facets()
 

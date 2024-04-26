@@ -1,11 +1,8 @@
 """Base view for metadata annotations."""
 
-from os.path import sep
-
 from django.db.models import (
     BooleanField,
     Case,
-    CharField,
     Count,
     DateTimeField,
     F,
@@ -20,11 +17,12 @@ from django.db.models import (
     When,
 )
 from django.db.models.fields import PositiveSmallIntegerField
-from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, Substr
+from django.db.models.functions import Least
 
 from codex.models import Comic
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.browser_order_by import BrowserOrderByView
+from codex.views.util import annotate_sort_name
 
 
 class BrowserAnnotationsView(BrowserOrderByView):
@@ -33,22 +31,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
     _ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
     _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
     _NONE_DATETIMEFIELD = Value(None, DateTimeField())
-    _ARTICLES = frozenset(
-        ("a", "an", "the")  # en    # noqa RUF005
-        + ("un", "unos", "unas", "el", "los", "la", "las")  # es
-        + ("un", "une", "le", "les", "la", "les", "l'")  # fr
-        + ("o", "a", "os")  # pt
-        # pt "as" conflicts with English
-        + ("der", "dem", "des", "das")  # de
-        # de: "den & die conflict with English
-        + ("il", "lo", "gli", "la", "le", "l'")  # it
-        # it: "i" conflicts with English
-        + ("de", "het", "een")  # nl
-        + ("en", "ett")  # sw
-        + ("en", "ei", "et")  # no
-        + ("en", "et")  # da
-        + ("el", "la", "els", "les", "un", "una", "uns", "unes", "na")  # ct
-    )
 
     is_opds_1_acquisition = False
 
@@ -94,57 +76,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
             # XXX Extra filter for empty groups
             qs = qs.filter(child_count__gt=0)
         return qs
-
-    def _annotate_sort_name(self, queryset, model):
-        """Sort groups by name ignoring articles."""
-        # TODO move this into the database on import.
-        if self.order_key != "sort_name":
-            return queryset
-
-        if self.kwargs.get("group") == self.FOLDER_GROUP and model == Comic:
-            # File View Filename
-            return queryset.annotate(
-                sort_name=Right(
-                    "path",
-                    StrIndex(Reverse(F("path")), Value(sep)) - 1,  # type: ignore
-                    output_field=CharField(),
-                )
-            )
-
-        ##################################################
-        # Otherwise Remove articles from the browse name #
-        ##################################################
-
-        # first_space_index
-        first_field = "name"
-        queryset = queryset.annotate(
-            first_space_index=StrIndex(first_field, Value(" "))
-        )
-
-        # lowercase_first_word
-        lowercase_first_word = Lower(
-            Substr(first_field, 1, length=(F("first_space_index") - 1))  # type: ignore
-        )
-        queryset = queryset.annotate(
-            lowercase_first_word=Case(
-                When(Q(first_space_index__gt=0), then=lowercase_first_word)
-            ),
-            default=Value(""),
-        )
-
-        # sort_name
-        return queryset.annotate(
-            sort_name=Case(
-                When(
-                    lowercase_first_word__in=self._ARTICLES,
-                    then=Substr(
-                        first_field,
-                        F("first_space_index") + 1,  # type: ignore
-                    ),
-                ),
-                default=first_field,
-            )
-        )
 
     def _annotate_story_arc_number(self, qs):
         if self.order_key != "story_arc_number":
@@ -271,7 +202,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
-        qs = self._annotate_sort_name(qs, model)
+        qs = annotate_sort_name(qs)
         qs = self._annotate_story_arc_number(qs)
         # cover annotation depends on order_value, in metadata too.
         qs = self._annotate_order_value(qs, model)
