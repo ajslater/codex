@@ -235,7 +235,7 @@ export const useBrowserStore = defineStore("browser", {
       return { params: { group: this.lowestShownGroup, pks: "0", page: 1 } };
     },
     _validateTopGroup(data, redirect) {
-      // If the top group changed and we're at the root group and the new top group is above the proper nav group
+      // If the top group changed supergroups or we're at the root group and the new top group is above the proper nav group
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
       const newTopGroupIndex = GROUPS_REVERSED.indexOf(data.topGroup);
       const newTopGroupIsBrowse = newTopGroupIndex >= 0;
