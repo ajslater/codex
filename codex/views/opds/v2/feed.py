@@ -35,6 +35,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         {**TopLinksMixin.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
     TARGET = "opds2"
+    throttle_scope = "opds"
 
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     serializer_class = OPDS2FeedSerializer

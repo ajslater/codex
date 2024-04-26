@@ -8,6 +8,7 @@ from comicbox.box import Comicbox
 from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -59,6 +60,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "opds"
     TARGET = "opds1"
 
     @property

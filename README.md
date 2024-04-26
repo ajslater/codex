@@ -260,10 +260,10 @@ index, a Django cache and comic book cover thumbnails.
 
 ### Environment Variables
 
-### Codex
+#### Codex
 
-- `LOGLEVEL` will change how verbose codex's logging is. Valid values are
-  `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
+##### General
+
 - `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
@@ -273,10 +273,26 @@ index, a Django cache and comic book cover thumbnails.
   when codex starts.
 - `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that
   runs when codex starts.
+
+##### Logging
+
+- `LOGLEVEL` will change how verbose codex's logging is. Valid values are
+  `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
 - `CODEX_LOG_DIR` sets a custom directory for saving logfiles. Defaults to
   `$CODEX_CONFIG_DIR/logs`
 - `CODEX_LOG_TO_FILE=0` will not log to files.
 - `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
+
+##### Throttling
+
+Codex contains some experimental throttling controls. The value supplied to
+these vairables will be interpreted as the maximum number of allowed requests
+per minute.
+
+- `CODEX_THROTTLE_ANON=60` Anonymous users
+- `CODEX_THROTTLE_USER=60` Authenticated users
+- `CODEX_THROTTLE_OPDS=60` The OPDS v1 & v2 APIs
+- `CODEX_THROTTLE_OPENSEARCH=60` The OPDS v1 Opensearch API
 
 #### Comicbox
 

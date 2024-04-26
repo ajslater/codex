@@ -14,6 +14,7 @@ from logging import WARN, getLogger
 from os import environ
 from pathlib import Path
 from sys import maxsize
+from types import MappingProxyType
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_loglevel
@@ -21,32 +22,16 @@ from codex.settings.secret_key import get_secret_key
 from codex.settings.timezone import get_time_zone
 from codex.settings.whitenoise import immutable_file_test
 
-# Base paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
-CONFIG_PATH.mkdir(exist_ok=True, parents=True)
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = get_secret_key(CONFIG_PATH)
-
+######################################
+# Undocumented Environment Variables #
+######################################
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get("DEBUG", "").lower() not in ("0", "false", ""))
-
-RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
-SKIP_INTEGRITY_CHECK = bool(environ.get("CODEX_SKIP_INTEGRITY_CHECK"))
-
-# Logging
-LOGLEVEL = get_loglevel(DEBUG)
-LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
-LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
-LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
 BUILD = environ.get("BUILD", False)
 # Slow query middleware
 # limit in seconds
 SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
 LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
-TZ = environ.get("TIMEZONE", environ.get("TZ"))
 # Search indexing memory controls
 MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
 WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
@@ -58,6 +43,31 @@ MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
 VITE_HOST = environ.get("VITE_HOST", socket.gethostname())
+
+####################################
+# Documented Environment Variables #
+####################################
+LOGLEVEL = get_loglevel(DEBUG)
+TZ = environ.get("TIMEZONE", environ.get("TZ"))
+CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
+RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
+SKIP_INTEGRITY_CHECK = bool(environ.get("CODEX_SKIP_INTEGRITY_CHECK"))
+LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
+LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
+LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
+THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", 0))
+THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", 0))
+THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", 0))
+THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
+
+# Base paths
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+CODEX_PATH = BASE_DIR / "codex"
+CONFIG_PATH.mkdir(exist_ok=True, parents=True)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = get_secret_key(CONFIG_PATH)
+
 
 if not DEBUG:
     LOGGING = {
@@ -247,6 +257,26 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+_THROTTLE_MAP = MappingProxyType(
+    {
+        "anon": ("rest_framework.throttling.AnonRateThrottle", THROTTLE_ANON),
+        "user": ("rest_framework.throttling.UserRateThrottle", THROTTLE_USER),
+        "opds": ("rest_framework.throttling.ScopedRateThrottle", THROTTLE_OPDS),
+        "opensearch": (
+            "rest_framework.throttling.ScopedRateThrottle",
+            THROTTLE_OPENSEARCH,
+        ),
+    }
+)
+_THROTTLE_CLASSES = set()
+_THROTTLE_RATES = {}
+for scope, value in _THROTTLE_MAP.items():
+    classname, rate_value = value
+    if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
+        _THROTTLE_CLASSES.add(classname)
+        rate = f"{rate_value}/min" if value[1] else None
+        _THROTTLE_RATES[scope] = rate
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
@@ -262,6 +292,8 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
+    "DEFAULT_THROTTLE_CLASSES": tuple(_THROTTLE_CLASSES),
+    "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
 
 REST_REGISTRATION = {
