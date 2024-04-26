@@ -22,6 +22,7 @@ class SeeOtherRedirectError(APIException):
 
     def _coerce_pks_to_string(self, detail):
         """Coerce pks to valid string."""
+        # TODO move to serializer
         params = detail.get("route", {}).get("params", DEFAULTS["route"])
         pks = params.get("pks")
         if not pks:
@@ -35,12 +36,12 @@ class SeeOtherRedirectError(APIException):
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""
         self._coerce_pks_to_string(detail)
-
-        LOG.debug(f"redirect {detail.get('reason')}")
         serializer = BrowserRedirectSerializer(detail)
         self.detail: dict = serializer.data  # type: ignore
-        # super().__init__ converts every type into strings!
-        # do not use it.
+        LOG.debug(
+            f"redirect {self.detail.get('reason')} to {self.detail.get('route')} {self.detail.get('settings')}"
+        )
+        # super().__init__ converts every type into strings! do not use it.
 
     def _add_query_params(self, url):
         """Change OPDS settings like the frontend does with error.detail."""

@@ -3,6 +3,7 @@
 import json
 from copy import deepcopy
 from types import MappingProxyType
+from typing import Any
 from urllib.parse import unquote_plus
 
 from django.contrib.auth.models import User
@@ -63,7 +64,7 @@ class BrowserBaseView(
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self._is_admin: bool = False
-        self.params = {}
+        self.params: MappingProxyType[str, Any] = MappingProxyType({})
         self.bm_annotation_data = {}
         self.rel_prefix: str = ""
         self.model: type[BrowserGroupModel] | None = None
@@ -148,18 +149,19 @@ class BrowserBaseView(
 
     def parse_params(self):
         """Validate sbmitted settings and apply them over the session settings."""
-        self.params = deepcopy(dict(self.SESSION_DEFAULTS))
         if self.request.method == "GET":
             data = self._parse_query_params(self.request.GET)
         elif hasattr(self.request, "data"):
             data = self._parse_query_params(self.request.data)
         else:
-            return
+            data = {}
 
         serializer = self.input_serializer_class(data=data)
 
         serializer.is_valid(raise_exception=True)
-        self.params.update(serializer.validated_data)
+        params = deepcopy(dict(self.SESSION_DEFAULTS))
+        params.update(serializer.validated_data)
+        self.params = MappingProxyType(params)
 
     def set_rel_prefix(self, model):
         """Set the relation prefix for most fields."""
