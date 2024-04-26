@@ -177,17 +177,6 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
 
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
-        group = self.kwargs.get("group")
-        if group in ("f", "a"):
-            pks = self.kwargs["pks"]
-            self.is_opds_2_acquisition = bool(pks)
-        else:
-            acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-            self.is_opds_2_acquisition = group in acquisition_groups
-        self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
-        )
-
         browser_page = super().get_object()
 
         # convert browser_page into opds page
@@ -224,16 +213,32 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             }
         )
 
+    def set_opds_request_type(self):
+        """Set opds request type variables."""
+        group = self.kwargs.get("group")
+        if group in {"f", "a"}:
+            pks = self.kwargs["pks"]
+            self.is_opds_2_acquisition = bool(pks)
+        else:
+            acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+            self.is_opds_2_acquisition = group in acquisition_groups
+        self.is_opds_metadata = (
+            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+        )
+
+    def init_request(self):
+        """Initialize request."""
+        super().init_request()
+        self.set_opds_request_type()
+        # self._detect_user_agent()
+
     @extend_schema(
         request=BrowserView.input_serializer_class,
         parameters=[BrowserView.input_serializer_class],
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""
-        self.parse_params()
-        self.validate_settings()
-        # self._detect_user_agent()
-
+        self.init_request()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

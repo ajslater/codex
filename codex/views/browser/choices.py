@@ -11,7 +11,6 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import (
-    BrowserGroupModel,
     Comic,
     ContributorPerson,
     Folder,
@@ -81,6 +80,7 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
             IdentifierType: "identifiers__identifier_type",
         }
     )
+    _SERIALIZER_MANY = False
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -132,12 +132,13 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
         qs = self.model.objects.filter(object_filter)  # type: ignore
         return self.filter_by_annotations(qs, self.model, binary=True)
 
-    def _set_model(self):
-        """Set the model to query."""
-        group = self.kwargs["group"]
-        if group == self.ROOT_GROUP:
-            group = self.params.get("top_group", "p")
-        self.model: BrowserGroupModel | None = self.GROUP_MODEL_MAP[group]  # type: ignore
+    @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
+    def get(self, *_args, **_kwargs):
+        """Return choices."""
+        self.init_request()
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, many=self._SERIALIZER_MANY)
+        return Response(serializer.data)
 
 
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
@@ -166,14 +167,9 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         return count
 
-    @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
-    def get(self, *_args, **_kwargs):
-        """Return all choices with more than one choice."""
-        self.parse_params()
-        self._set_model()
-        self.set_rel_prefix(self.model)
-        comic_qs = self.get_object()
-
+    def get_object(self):
+        """Get choice counts."""
+        qs = super().get_object()
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
             if field_name == "story_arcs" and self.model == StoryArc:
@@ -182,9 +178,9 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             rel, m2m_model = self.get_rel_and_model(field_name)
 
             if m2m_model:
-                count = self._get_m2m_field_choices_count(m2m_model, comic_qs, rel)
+                count = self._get_m2m_field_choices_count(m2m_model, qs, rel)
             else:
-                count = self._get_field_choices_count(comic_qs, rel)
+                count = self._get_field_choices_count(qs, rel)
 
             filters = self.params.get("filters", {})
             try:
@@ -192,15 +188,14 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             except TypeError:
                 flag = False
             data[field_name] = flag
-
-        serializer = self.get_serializer(data)
-        return Response(serializer.data)
+        return data
 
 
 class BrowserChoicesView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
     # serializer_class = Dynamic class determined in get()
+    _SERIALIZER_MANY = True
 
     def _get_field_choices(self, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""
@@ -244,21 +239,14 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self._get_field_name()
         return CHOICES_SERIALIZER_CLASS_MAP.get(field_name, CharListField)
 
-    @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
-    def get(self, *_args, **_kwargs):
-        """Return all choices with more than one choice."""
-        self.parse_params()
-        self._set_model()
-        self.set_rel_prefix(self.model)
-
+    def get_object(self):
+        """Return choices with more than one choice."""
+        qs = super().get_object()
         field_name = self._get_field_name()
         rel, m2m_model = self.get_rel_and_model(field_name)
 
-        comic_qs = self.get_object()
         if m2m_model:
-            choices = self._get_m2m_field_choices(m2m_model, comic_qs, rel)
+            choices = self._get_m2m_field_choices(m2m_model, qs, rel)
         else:
-            choices = self._get_field_choices(comic_qs, rel)
-
-        serializer = self.get_serializer(choices, many=True)
-        return Response(serializer.data)
+            choices = self._get_field_choices(qs, rel)
+        return choices

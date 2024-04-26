@@ -94,18 +94,10 @@ class BrowserBaseView(
 
     def get_model_group(self):
         """Determine model group for set_browse_model()."""
-        return self.kwargs["group"]
-
-    def set_browse_model(self):
-        """Set the model for the browse list."""
         group = self.kwargs["group"]
-        self.group_class = self.GROUP_MODEL_MAP[group]
-
-        self.model_group = self.get_model_group()
-        self.model = self.GROUP_MODEL_MAP.get(self.model_group)
-        if self.model is None:
-            raise NotFound(detail=f"Cannot browse {group=}")
-        self.is_model_comic = self.model == Comic
+        if group == self.ROOT_GROUP:
+            group = self.params["top_group"]
+        return group
 
     def get_query_filters_without_group(self, model, cover=False):
         """Return all the filters except the group filter."""
@@ -163,6 +155,34 @@ class BrowserBaseView(
         params.update(serializer.validated_data)
         self.params = MappingProxyType(params)
 
-    def set_rel_prefix(self, model):
+    def set_order_key(self):
+        """Unused until browser."""
+
+    def validate_settings(self):
+        """Unused until browser."""
+
+    def set_model(self):
+        """Set the model for the browse list."""
+        group = self.kwargs["group"]
+        self.group_class = self.GROUP_MODEL_MAP[group]
+
+        self.model_group = self.get_model_group()
+        self.model = self.GROUP_MODEL_MAP.get(self.model_group)
+        if self.model is None:
+            detail = f"Cannot browse {group=}"
+            LOG.debug(detail)
+            raise NotFound(detail=detail)
+        self.is_model_comic = self.model == Comic
+
+    def set_rel_prefix(self):
         """Set the relation prefix for most fields."""
-        self.rel_prefix = self.get_rel_prefix(model)
+        self.rel_prefix = self.get_rel_prefix(self.model)
+
+    def init_request(self):
+        """Initialize request."""
+        self.set_admin_flags()
+        self.parse_params()
+        self.set_order_key()
+        self.validate_settings()
+        self.set_model()
+        self.set_rel_prefix()

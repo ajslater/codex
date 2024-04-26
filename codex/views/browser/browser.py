@@ -420,10 +420,6 @@ class BrowserView(BrowserAnnotationsView):
 
     def get_object(self):
         """Validate settings and get the querysets."""
-        self.set_browse_model()
-        self.set_rel_prefix(self.model)
-        self._set_group_query_and_instance()  # Placed up here to invalidate earlier
-
         group_list, book_qs, num_pages, total_count = self._get_group_and_books()
 
         # get additional context
@@ -492,7 +488,7 @@ class BrowserView(BrowserAnnotationsView):
             settings_mask = {"top_group": valid_top_group}
             self._raise_redirect(reason, route, settings_mask)
 
-    def _set_valid_browse_nav_groups(self, valid_top_groups):
+    def set_valid_browse_nav_groups(self, valid_top_groups):
         """Get valid nav groups for the current settings.
 
         Valid nav groups are the top group and below that are also
@@ -550,7 +546,7 @@ class BrowserView(BrowserAnnotationsView):
 
         # Validate Browser nav_group
         # Redirect if nav group is wrong
-        self._set_valid_browse_nav_groups(valid_top_groups)
+        self.set_valid_browse_nav_groups(valid_top_groups)
 
     def _validate_story_arc_settings(self):
         """Validate story arc settings."""
@@ -560,9 +556,6 @@ class BrowserView(BrowserAnnotationsView):
 
     def validate_settings(self):
         """Validate group and top group settings."""
-        self.set_order_key()
-        self.set_admin_flags()
-
         group = self.kwargs["group"]
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings()
@@ -580,11 +573,15 @@ class BrowserView(BrowserAnnotationsView):
             settings_mask = {"order_by": "sort_name"}
             self._raise_redirect(reason, route_changes, settings_mask)
 
+    def init_request(self):
+        """Initialize request."""
+        super().init_request()
+        self._set_group_query_and_instance()
+
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
-        self.parse_params()
-        self.validate_settings()
+        self.init_request()
         data = self.get_object()
         serializer = self.get_serializer(data)
         self.save_params_to_session(self.params)

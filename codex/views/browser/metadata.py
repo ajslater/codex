@@ -233,6 +233,7 @@ class MetadataView(BrowserAnnotationsView):
         # dict is necessary because of the folders view union in browser.py.
 
         if self.model is None:
+            # TODO this looks redundant after set_browse_model
             group = self.kwargs["group"]
             raise NotFound(detail=f"Cannot get metadata for {group=}")
 
@@ -260,22 +261,18 @@ class MetadataView(BrowserAnnotationsView):
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
 
+    def set_valid_browse_nav_groups(self, _valid_top_groups):
+        """Limited allowed nav groups for metadata."""
+        group = self.kwargs["group"]
+        self.valid_nav_groups = (group,)
+
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Get metadata for a filtered browse group."""
         # Init
         try:
-            self._efv_flag = None
-            self.parse_params()
-            group = self.kwargs["group"]
-            self.valid_nav_groups = (group,)
-            self.set_browse_model()
-            self.set_rel_prefix(self.model)
-            self.set_order_key()
-            self.set_admin_flags()
-
+            self.init_request()
             obj = self.get_object()
-
             serializer = self.get_serializer(obj)
             return Response(serializer.data)
         except Exception:
