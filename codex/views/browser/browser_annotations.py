@@ -310,7 +310,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
         comic_qs = comic_qs.group_by("id")
         comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
-        return comic_qs.values_list("pk", flat=True)
+        return comic_qs.only("pk", "updated_at")
 
     def re_cover_multi_groups(self, group_qs):
         """Python hack to re-cover groups collapsed with group_by."""
@@ -323,11 +323,15 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             cover_pks = group.cover_pks
             if len(cover_pks) == 1:
                 cover_pk = cover_pks[0]
+                cover_updated_at = group.updated_at
             else:
                 comic_qs = self._get_cover_pk_query(cover_pks)
                 # print(comic_qs.explain())
                 # print(comic_qs.query)
-                cover_pk = comic_qs[0]
+                cover = comic_qs[0]
+                cover_pk = cover.pk
+                cover_updated_at = cover.updated_at
             group.cover_pk = cover_pk
+            group.cover_mtime = cover_updated_at
             recovered_group_list.append(group)
         return recovered_group_list

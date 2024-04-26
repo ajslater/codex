@@ -12,6 +12,7 @@ border-radius: 128px;
   - Browser, Search, and Cover query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
   - Metadata tags can click to browse filtered on that tag.
+  - Granular caching for covers in the browser.
 - Fixes
   - OPDS http basic authorization fixed.
   - Groups with the same name collapsed in the browser.

@@ -12,10 +12,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
-
 import { getCoverSource } from "@/api/v3/cover.js";
-import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BookCover",
@@ -35,6 +32,10 @@ export default {
       type: Number,
       required: true,
     },
+    coverMtime: {
+      type: Number,
+      required: true,
+    },
     multiGroup: {
       type: Boolean,
       required: true,
@@ -46,11 +47,9 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      coverSrc: function (state) {
-        return getCoverSource(this.coverPk, state.page.coversTimestamp);
-      },
-    }),
+    coverSrc() {
+      return getCoverSource(this.coverPk, this.coverMtime);
+    },
     childCountClasses() {
       return {
         childCount: true,

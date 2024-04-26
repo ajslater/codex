@@ -9,7 +9,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.mixins import (
+from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
 

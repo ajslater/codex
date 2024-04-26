@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
-from codex.serializers.metadata import MetadataSerializer
+from codex.serializers.browser.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 

@@ -34,6 +34,7 @@
           <BookCover
             id="bookCover"
             :cover-pk="md.coverPk"
+            :cover-mtime="md.coverMtime"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"

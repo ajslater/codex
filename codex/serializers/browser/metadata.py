@@ -2,7 +2,7 @@
 
 from rest_framework.serializers import CharField, IntegerField
 
-from codex.serializers.mixins import BrowserAggregateSerializerMixin
+from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
 
 
