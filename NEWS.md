@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.18
+
+- Fixes
+  - Ignore comic pages from dotfiles and macOS resource forks.
+
 ## v1.5.17
 
 - Fixes
