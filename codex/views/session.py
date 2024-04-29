@@ -99,6 +99,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
     FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
     SESSION_DEFAULTS = MappingProxyType(
         {
+            "breadcrumbs": DEFAULTS["breadcrumbs"],
             "filters": {
                 "bookmark": DEFAULTS["bookmarkFilter"],
                 **_DYNAMIC_FILTER_DEFAULTS,

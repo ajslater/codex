@@ -42,6 +42,7 @@ class BrowserRouteSerializer(Serializer):
     group = CharField(read_only=True)
     pks = CharField(read_only=True)
     page = IntegerField(read_only=True)
+    name = CharField(read_only=True)
 
     def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""

@@ -1,7 +1,7 @@
 <template>
   <v-btn
     v-if="show"
-    :key="to"
+    :key="upRoute"
     icon
     size="x-large"
     :title="title"
@@ -30,9 +30,24 @@ export default {
       groupNames: (state) => state.choices.static.groupNames,
     }),
     title() {
-      const group = this.top ? this.topGroup : this.parentModelGroup;
-      const name = this.groupNames[group] || "All";
-      return `Up to ${name}`;
+      if (!this.upRoute) {
+        return "";
+      }
+      let text = "Up to ";
+      const nameGroup =
+        this.top || this.upRoute.group === "r"
+          ? this.topGroup
+          : this.upRoute.group;
+      let groupName = this.groupNames[nameGroup] || "";
+      if (!this.top && this.upRoute.name && this.upRoute.pks != "0") {
+        if (groupName && groupName !== "Series") {
+          groupName = groupName.slice(0, -1);
+        }
+        text += groupName + " " + this.upRoute.name;
+      } else {
+        text += "All " + groupName;
+      }
+      return text;
     },
     show() {
       return this.upRoute && "group" in this.upRoute;

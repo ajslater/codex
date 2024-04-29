@@ -218,41 +218,109 @@ class BrowserView(BrowserAnnotationsView):
             parent_path_str = sep + parent_path_str
         return parent_path_str
 
+    def is_breadcrumbs_child(self, breadcrumbs) -> bool:
+        """Is the current route a child of the stored breadcrumbs."""
+        is_child = False
+        if not breadcrumbs:
+            return is_child
+        group = self.kwargs["group"]
+        pks = self.kwargs["pks"]
+        up_route = breadcrumbs[-1]
+        up_group = up_route["group"]
+        up_pks = up_route["pks"]
+        if group == self.STORY_ARC_GROUP:
+            is_child = group == up_group and pks
+        elif group == self.FOLDER_GROUP:
+            if group == up_group and self.group_instance:
+                parent_folder: Folder | None = self.group_instance.parent_folder  # type: ignore
+                parent_pk = (
+                    parent_folder.pk if parent_folder and parent_folder.pk else 0
+                )
+                is_child = parent_pk in up_pks or not (up_pks and parent_pk)
+        else:
+            show = self.params["show"]
+            test_parent = False
+            for show_group, enabled in reversed(show.items()):
+                if not test_parent:
+                    if show_group == group:
+                        test_parent = True
+                    continue
+                if not enabled:
+                    continue
+                group_name = GROUP_NAME_MAP[show_group]
+                parent_group = getattr(self.group_instance, group_name, None)
+                is_child = bool(parent_group) and (parent_group.pk in up_pks)
+                break
+        return is_child
+
     def get_breadcrumbs(
         self,
     ) -> list[dict[str, str | tuple[int, ...] | int]]:
         """Create parent breadcrumbs if none exist."""
-        breadcrumbs: list[dict[str, str | tuple[int, ...] | int]] = []
-        pks = self.kwargs["pks"]
-        if not pks:
-            return breadcrumbs
-        group = self.kwargs["group"]
-        if group == self.STORY_ARC_GROUP:
-            # Create the only story_arc parent
-            group_root_route = {"group": group, "pks": (), "page": 1}
-            breadcrumbs = [group_root_route]
-        elif group == self.FOLDER_GROUP:
-            # Create folder parents
-            breadcrumbs = []
-            folder: Folder | None = self.group_instance  # type: ignore
-            while folder:
-                folder = folder.parent_folder  # type: ignore
-                pks = (folder.pk,) if folder else ()
-                parent_route = {"group": self.FOLDER_GROUP, "pks": pks, "page": 1}
-                breadcrumbs = [parent_route, *breadcrumbs]
-        else:
-            # Create group parents
-            browser_root_route = {"group": self.ROOT_GROUP, "pks": (), "page": 1}
-            breadcrumbs = [browser_root_route]
-            show = self.params["show"]
-            for show_group, enabled in show.items():
-                if not enabled or show_group not in self.valid_nav_groups:  # type: ignore
-                    continue
-                attr = GROUP_NAME_MAP[show_group] + "_id"
-                pk = getattr(self.group_instance, attr, None)  # type: ignore
-                if pk:
-                    parent_group_route = {"group": show_group, "pks": (pk,), "page": 1}
-                    breadcrumbs += [parent_group_route]
+        breadcrumbs: list[dict[str, str | tuple[int, ...] | int]] = (
+            self.get_from_session("breadcrumbs")
+        )
+        is_child = self.is_breadcrumbs_child(breadcrumbs)
+        if not is_child:
+            pks = self.kwargs["pks"]
+            if not pks:
+                breadcrumbs = []
+            else:
+                group = self.kwargs["group"]
+                if group == self.STORY_ARC_GROUP:
+                    # Create the only story_arc parent
+                    group_root_route = {
+                        "group": group,
+                        "pks": (),
+                        "page": 1,
+                        "name": "",
+                    }
+                    breadcrumbs = [group_root_route]
+                elif group == self.FOLDER_GROUP:
+                    # Create folder parents
+                    breadcrumbs = []
+                    folder: Folder | None = self.group_instance  # type: ignore
+                    while folder:
+                        folder = folder.parent_folder  # type: ignore
+                        pks = (folder.pk,) if folder else ()
+                        name = folder.name if folder else ""
+                        parent_route = {
+                            "group": self.FOLDER_GROUP,
+                            "pks": pks,
+                            "page": 1,
+                            "name": name,
+                        }
+                        breadcrumbs = [parent_route, *breadcrumbs]
+                else:
+                    # Create group parents
+                    browser_root_route = {
+                        "group": self.ROOT_GROUP,
+                        "pks": (),
+                        "page": 1,
+                    }
+                    breadcrumbs = [browser_root_route]
+                    show = self.params["show"]
+                    for show_group, enabled in show.items():
+                        if not enabled or show_group not in self.valid_nav_groups:  # type: ignore
+                            continue
+                        attr = GROUP_NAME_MAP[show_group]  # + "_id"
+                        parent_group = getattr(self.group_instance, attr, None)  # type: ignore
+                        if parent_group:
+                            pks = (parent_group.pk,)
+                            name = parent_group.name
+                            parent_group_route = {
+                                "group": show_group,
+                                "pks": pks,
+                                "page": 1,
+                                "name": name,
+                            }
+                            breadcrumbs += [parent_group_route]
+
+        # Save params
+        params = dict(self.params)
+        params["breadcrumbs"] = breadcrumbs
+        self.params = MappingProxyType(params)
+
         return breadcrumbs
 
     def _get_browser_page_title(self):
