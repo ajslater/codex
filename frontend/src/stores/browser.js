@@ -262,21 +262,9 @@ export const useBrowserStore = defineStore("browser", {
         return redirect;
       }
 
-      // Construct and return new redirect
-      const referenceRoute = redirect || router.currentRoute.value;
-      const params = referenceRoute.params;
-      let group;
-      if (newTopGroupIsBrowse) {
-        const parentGroups = GROUPS_REVERSED.slice(newTopGroupIndex + 1);
-        for (group of parentGroups) {
-          if (this.settings.show[group]) {
-            break;
-          }
-        }
-      } else {
-        group = data.topGroup;
-      }
-      return { params: { ...params, group } };
+      // Construct and return new redirect 
+      const group = newTopGroupIsBrowse ? "r" : newTopGroup;
+      return { params: { group, pks: "0", page: 1 } };
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
