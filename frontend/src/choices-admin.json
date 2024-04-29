@@ -117,7 +117,7 @@
         {
           "value": "db_vacuum",
           "title": "Optimize & Compact Database",
-          "desc": "Run the sqlite3 optimize & vacuum and pragmas. Runs nightly"
+          "desc": "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly"
         },
         {
           "value": "db_backup",
