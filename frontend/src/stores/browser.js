@@ -240,21 +240,24 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateTopGroup(data, redirect) {
       // If the top group changed supergroups or we're at the root group and the new top group is above the proper nav group
-      if (!this.settings.topGroup && data.topGroup) {
+      const oldTopGroup = this.settings.topGroup;
+      const newTopGroup = data.topGroup;
+      if (
+        !newTopGroup ||
+        (!oldTopGroup && newTopGroup) ||
+        oldTopGroup === newTopGroup
+      ) {
         // First url, initializing settings.
+        // or
+        // topGroup didn't change.
         return redirect;
       }
-      const oldTopGroupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
-      const newTopGroupIndex = GROUPS_REVERSED.indexOf(data.topGroup);
+      const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
+      const newTopGroupIndex = GROUPS_REVERSED.indexOf(newTopGroup);
       const newTopGroupIsBrowse = newTopGroupIndex >= 0;
       const oldAndNewBothBrowseGroups =
         oldTopGroupIndex >= 0 && newTopGroupIsBrowse;
-
-      const noTopGroupChange = data.topGroup === this.settings.topGroup;
-      const browseGroupChangeToParent =
-        oldAndNewBothBrowseGroups && oldTopGroupIndex <= newTopGroupIndex;
-
-      if (noTopGroupChange || browseGroupChangeToParent) {
+      if (oldAndNewBothBrowseGroups && oldTopGroupIndex <= newTopGroupIndex) {
         // All is well, validated.
         return redirect;
       }
