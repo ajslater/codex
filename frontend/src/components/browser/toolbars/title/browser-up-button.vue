@@ -24,11 +24,10 @@ export default {
     top: { type: Boolean, default: false },
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["parentModelGroup"]),
+    ...mapGetters(useBrowserStore, ["parentModelGroup", "upRoute"]),
     ...mapState(useBrowserStore, {
       topGroup: (state) => state.settings.topGroup,
       groupNames: (state) => state.choices.static.groupNames,
-      upRoute: (state) => state.page.routes.up,
     }),
     title() {
       const group = this.top ? this.topGroup : this.parentModelGroup;

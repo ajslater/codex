@@ -16,6 +16,7 @@ from codex.models import AdminFlag, Comic, Folder, StoryArc, UserActive
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
 from codex.serializers.choices import CHOICES
 from codex.serializers.mixins import OKSerializer
+from codex.views.const import GROUP_NAME_MAP
 
 LOG = get_logger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}
@@ -93,10 +94,7 @@ class GroupACLMixin:
     COMIC_GROUP = "c"
     GROUP_RELATION = MappingProxyType(
         {
-            "p": "publisher",
-            "i": "imprint",
-            "s": "series",
-            "v": "volume",
+            **GROUP_NAME_MAP,
             COMIC_GROUP: "pk",
             FOLDER_GROUP: "parent_folder",
             STORY_ARC_GROUP: "story_arc_numbers__story_arc",

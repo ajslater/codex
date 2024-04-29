@@ -11,6 +11,7 @@ from rest_framework.serializers import (
 )
 
 from codex.models import Bookmark
+from codex.serializers.browser.page import BrowserRouteSerializer
 
 
 class ReaderSettingsSerializer(Serializer):
@@ -90,3 +91,4 @@ class ReaderComicsSerializer(Serializer):
     books = ReaderBooksSerializer(read_only=True)
     arcs = ReaderArcSerializer(many=True, read_only=True)
     arc = ReaderCurrentArcSerializer(read_only=True)
+    close_route = BrowserRouteSerializer(read_only=True)

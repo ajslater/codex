@@ -4,7 +4,7 @@
       <div class="browserCardTop">
         <BookCover
           :cover-pk="item.coverPk"
-          :cover-mtime="item.coverMtime"
+          :cover-mtime="item.coverMtime || ''"
           :group="item.group"
           :child-count="item.childCount"
           :finished="item.finished"

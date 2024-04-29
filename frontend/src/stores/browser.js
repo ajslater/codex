@@ -179,6 +179,10 @@ export const useBrowserStore = defineStore("browser", {
         Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
       );
     },
+    upRoute(state) {
+      const bc = state.page.breadcrumbs;
+      return bc ? bc[bc.length - 1] : {};
+    },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
@@ -236,6 +240,10 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateTopGroup(data, redirect) {
       // If the top group changed supergroups or we're at the root group and the new top group is above the proper nav group
+      if (!this.settings.topGroup && data.topGroup) {
+        // First url, initializing settings.
+        return redirect;
+      }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
       const newTopGroupIndex = GROUPS_REVERSED.indexOf(data.topGroup);
       const newTopGroupIsBrowse = newTopGroupIndex >= 0;
@@ -375,13 +383,11 @@ export const useBrowserStore = defineStore("browser", {
         .then((response) => {
           const data = response.data;
           const page = { ...response.data };
-          delete page.upRoute;
-          delete page.issueNumberMax;
           page.routes = {
-            up: data.upRoute,
             last: params,
           };
           page.zeroPad = getZeroPad(data.issueNumberMax);
+          delete page.issueNumberMax;
           this.$patch((state) => {
             state.page = Object.freeze(page);
             state.choices.dynamic = undefined;

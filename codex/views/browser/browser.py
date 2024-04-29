@@ -32,6 +32,7 @@ from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
+from codex.views.const import GROUP_NAME_MAP
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
@@ -161,29 +162,6 @@ class BrowserView(BrowserAnnotationsView):
             count = 0
         return qs, count
 
-    def _get_folder_up_route(self):
-        """Get out parent's pk."""
-        up_group = self.FOLDER_GROUP
-        up_pk = None
-
-        # Recall root id & relative path from way back in
-        # object creation
-        if self.group_class == Folder:
-            group_instance: Folder | None = self.group_instance  # type: ignore
-            if group_instance:
-                if group_instance.parent_folder:
-                    up_pk = group_instance.parent_folder.pk
-                else:
-                    up_pk = 0
-
-        return up_group, up_pk
-
-    def _get_story_arc_up_route(self):
-        """Get one level hierarchy."""
-        up_group = self.STORY_ARC_GROUP
-        up_group = 0 if self.group_instance else None
-        return self.STORY_ARC_GROUP, up_group
-
     def _set_group_query_and_instance(self):
         """Create group_class instance."""
         pks = self.kwargs.get("pks")
@@ -208,32 +186,6 @@ class BrowserView(BrowserAnnotationsView):
         else:
             self.group_query = Comic.objects.none()
         self.group_instance = self.group_query.first()
-
-    def _get_browse_up_route(self):
-        """Get the up route from the first valid ancestor."""
-        # Ancestor group
-        group = self.kwargs.get("group")
-        if self.valid_nav_groups.index(group) > 0:
-            ancestor_group = self.valid_nav_groups[
-                self.valid_nav_groups.index(group) - 1
-            ]
-        else:
-            ancestor_group = None
-
-        up_group = ancestor_group
-        up_pk = None
-
-        pks = self.kwargs.get("pks")
-
-        # Ancestor pk
-        if up_group == self.ROOT_GROUP or not pks:
-            up_pk = 0
-        elif up_group:
-            # get the ancestor pk from the current group
-            up_relation = self.GROUP_RELATION[up_group]
-            up_pk = getattr(self.group_instance, up_relation).pk
-
-        return up_group, up_pk
 
     def _get_root_group_name(self):
         if not self.model:
@@ -265,6 +217,43 @@ class BrowserView(BrowserAnnotationsView):
         if parent_path_str and parent_path_str[0] != sep:
             parent_path_str = sep + parent_path_str
         return parent_path_str
+
+    def get_breadcrumbs(
+        self,
+    ) -> list[dict[str, str | tuple[int, ...] | int]]:
+        """Create parent breadcrumbs if none exist."""
+        breadcrumbs: list[dict[str, str | tuple[int, ...] | int]] = []
+        pks = self.kwargs["pks"]
+        if not pks:
+            return breadcrumbs
+        group = self.kwargs["group"]
+        if group == self.STORY_ARC_GROUP:
+            # Create the only story_arc parent
+            group_root_route = {"group": group, "pks": (), "page": 1}
+            breadcrumbs = [group_root_route]
+        elif group == self.FOLDER_GROUP:
+            # Create folder parents
+            breadcrumbs = []
+            folder: Folder | None = self.group_instance  # type: ignore
+            while folder:
+                folder = folder.parent_folder  # type: ignore
+                pks = (folder.pk,) if folder else ()
+                parent_route = {"group": self.FOLDER_GROUP, "pks": pks, "page": 1}
+                breadcrumbs = [parent_route, *breadcrumbs]
+        else:
+            # Create group parents
+            browser_root_route = {"group": self.ROOT_GROUP, "pks": (), "page": 1}
+            breadcrumbs = [browser_root_route]
+            show = self.params["show"]
+            for show_group, enabled in show.items():
+                if not enabled or show_group not in self.valid_nav_groups:  # type: ignore
+                    continue
+                attr = GROUP_NAME_MAP[show_group] + "_id"
+                pk = getattr(self.group_instance, attr, None)  # type: ignore
+                if pk:
+                    parent_group_route = {"group": show_group, "pks": (pk,), "page": 1}
+                    breadcrumbs += [parent_group_route]
+        return breadcrumbs
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
@@ -403,27 +392,12 @@ class BrowserView(BrowserAnnotationsView):
         total_count = page_group_count + page_book_count
         return recovered_group_list, book_qs, num_pages, total_count
 
-    def _get_up_route(self):
-        group = self.kwargs.get("group")
-        if group == self.FOLDER_GROUP:
-            up_group, up_pk = self._get_folder_up_route()
-        elif group == self.STORY_ARC_GROUP:
-            up_group, up_pk = self._get_story_arc_up_route()
-        else:
-            up_group, up_pk = self._get_browse_up_route()
-
-        if up_group is not None and up_pk is not None:
-            up_route = {"group": up_group, "pks": str(up_pk), "page": 1}
-        else:
-            up_route = {}
-        return up_route
-
     def get_object(self):
         """Validate settings and get the querysets."""
         group_list, book_qs, num_pages, total_count = self._get_group_and_books()
 
         # get additional context
-        up_route = self._get_up_route()
+        breadcrumbs = self.get_breadcrumbs()
         browser_page_title = self._get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
@@ -440,7 +414,7 @@ class BrowserView(BrowserAnnotationsView):
         # construct final data structure
         return MappingProxyType(
             {
-                "up_route": up_route,
+                "breadcrumbs": breadcrumbs,
                 "browser_title": browser_page_title,
                 "model_group": self.model_group,
                 "groups": group_list,

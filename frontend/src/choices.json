@@ -135,6 +135,7 @@
         "value": "story_arc_number"
       }
     ],
+    "orderReverse": false,
     "vuetifyNullCode": -1,
     "groupNames": {
       "p": "Publishers",

@@ -1,16 +1,12 @@
 """Cross view annotation methods."""
 
-from types import MappingProxyType
-
 from django.db.models.expressions import Case, F, When
 from django.db.models.fields import CharField
 
 from codex.models.comic import Comic, Imprint, Volume
+from codex.views.const import GROUP_NAME_MAP
 
-_SHOW_GROUP_NAME_MAP = MappingProxyType(
-    {"p": "publisher", "i": "imprint", "s": "series", "v": "volume"}
-)
-_SHOW_GROUPS = tuple(_SHOW_GROUP_NAME_MAP.keys())
+_SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
 
 
 class SharedAnnotationsMixin:
@@ -53,7 +49,7 @@ class SharedAnnotationsMixin:
             for order_group in order_groups:
                 if show and not show[order_group]:
                     continue
-                group_name = _SHOW_GROUP_NAME_MAP[order_group]
+                group_name = GROUP_NAME_MAP[order_group]
                 sort_name = cls._get_sort_name_func(group_name)
                 ann_name = f"{group_name}_sort_name"
                 sort_name_annotations[ann_name] = sort_name

@@ -51,6 +51,8 @@ class SessionViewBaseBase(GenericAPIView, ABC):
     def save_params_to_session(self, params):  # reader session & browser final
         """Save the session from params with defaults for missing values."""
         try:
+            # Deepcopy this so serializing the values later later for http response doesn't alter them
+            params = deepcopy(dict(params))
             data = self._get_source_values_or_set_defaults(
                 self.SESSION_DEFAULTS, params, {}
             )
@@ -102,7 +104,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
                 **_DYNAMIC_FILTER_DEFAULTS,
             },
             "order_by": DEFAULTS["orderBy"],
-            "order_reverse": False,
+            "order_reverse": DEFAULTS["orderReverse"],
             "q": DEFAULTS["q"],
             "route": DEFAULTS["route"],
             "search_results_limit": DEFAULTS["searchResultsLimit"],

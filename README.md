@@ -286,7 +286,7 @@ index, a Django cache and comic book cover thumbnails.
 ##### Throttling
 
 Codex contains some experimental throttling controls. The value supplied to
-these vairables will be interpreted as the maximum number of allowed requests
+these variables will be interpreted as the maximum number of allowed requests
 per minute.
 
 - `CODEX_THROTTLE_ANON=60` Anonymous users

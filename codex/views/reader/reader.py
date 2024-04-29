@@ -277,11 +277,9 @@ class ReaderView(BookmarkBaseView, SharedAnnotationsMixin):
             "count": arc_count,
         }
 
-        return {
-            "books": books,
-            "arcs": arcs,
-            "arc": arc,
-        }
+        session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
+        last_route = session.get("route")
+        return {"books": books, "arcs": arcs, "arc": arc, "close_route": last_route}
 
     def _parse_params(self):
         data = self.request.GET

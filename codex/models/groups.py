@@ -19,8 +19,6 @@ class BrowserGroupModel(BaseModel):
 
     DEFAULT_NAME = ""
     PARENT = ""
-    _ORDERING = ("pk",)
-    _NAV_GROUPS = "rpisv"
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
     stored_sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")

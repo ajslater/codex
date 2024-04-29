@@ -38,7 +38,6 @@ import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
-import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
@@ -71,16 +70,14 @@ export default {
     ...mapGetters(useReaderStore, ["activeTitle"]),
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current || {},
-    }),
-    ...mapState(useBrowserStore, {
-      lastRoute: (state) => state.page.routes.last,
+      closeRoute: (state) => state.routes.close,
     }),
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
         name: "browser",
-        params: this.lastRoute,
+        params: this.closeRoute,
       };
       if (route.params) {
         route.hash = `#card-${this.currentBook?.pk}`;

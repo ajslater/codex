@@ -100,6 +100,7 @@ export const useReaderStore = defineStore("reader", {
         prev: false,
         next: false,
       },
+      close: CHOICES.browser.route,
     },
     bookChange: undefined,
     reactWithScroll: false,
@@ -412,6 +413,7 @@ export const useReaderStore = defineStore("reader", {
               "next",
             );
             state.routes.books = routesBooks;
+            state.routes.close = data.closeRoute;
           });
           return true;
         })

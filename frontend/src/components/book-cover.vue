@@ -33,7 +33,7 @@ export default {
       required: true,
     },
     coverMtime: {
-      type: Number,
+      type: String,
       required: true,
     },
     multiGroup: {

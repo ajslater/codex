@@ -6,6 +6,7 @@ from rest_framework.serializers import (
     DateTimeField,
     DecimalField,
     IntegerField,
+    ListSerializer,
     Serializer,
 )
 
@@ -42,6 +43,31 @@ class BrowserRouteSerializer(Serializer):
     pks = CharField(read_only=True)
     page = IntegerField(read_only=True)
 
+    def to_representation(self, instance):
+        """Allow submission of sequences instead of strings for pks."""
+        pks = instance.get("pks")
+        if not pks:
+            instance["pks"] = "0"
+        elif not isinstance(pks, str):
+            instance["pks"] = ",".join(str(pk) for pk in sorted(pks))
+        return super().to_representation(instance)
+
+    def to_internal_value(self, data):
+        """Convert pk strings to tuples."""
+        instance = super().to_internal_value(data)
+        try:
+            pks = instance.get("pks")
+            if not pks:
+                instance["pks"] = ()
+            elif isinstance(pks, str):
+                pks = tuple(sorted(int(pk) for pk in pks.split(",")))
+                if 0 in pks:
+                    pks = ()
+                instance["pks"] = pks
+        except ValueError:
+            instance["pks"] = ()
+        return instance
+
 
 class BrowserAdminFlagsSerializer(Serializer):
     """These choices change with browse context."""
@@ -62,6 +88,7 @@ class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
+    breadcrumbs = ListSerializer(child=BrowserRouteSerializer())
     browser_title = BrowserTitleSerializer(read_only=True)
     covers_timestamp = IntegerField(read_only=True)
     issue_number_max = DecimalField(
@@ -75,4 +102,3 @@ class BrowserPageSerializer(Serializer):
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
-    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
