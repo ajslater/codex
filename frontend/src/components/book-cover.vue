@@ -97,7 +97,7 @@ export default {
   color: rbg(var(--v-theme-textPrimary));
 }
 .multiGroup {
-  border: thin dahsed white;
+  border: thin dashed white;
 }
 /* Flags */
 $bookCoverShadow: rgba(0, 0, 0, 0.75);
