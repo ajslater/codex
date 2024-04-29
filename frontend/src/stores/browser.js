@@ -262,7 +262,7 @@ export const useBrowserStore = defineStore("browser", {
         return redirect;
       }
 
-      // Construct and return new redirect 
+      // Construct and return new redirect
       const group = newTopGroupIsBrowse ? "r" : newTopGroup;
       return { params: { group, pks: "0", page: 1 } };
     },
