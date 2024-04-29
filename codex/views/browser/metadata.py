@@ -39,6 +39,7 @@ _COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_
 _PATH_GROUPS = ("c", "f")
 _CONTRIBUTOR_RELATIONS = ("role", "person")
 _SUM_FIELDS = frozenset({"page_count", "size"})
+_GROUP_RELS = frozenset({"publisher", "imprint", "series", "volume"})
 
 
 class MetadataView(BrowserAnnotationsView):
@@ -62,7 +63,7 @@ class MetadataView(BrowserAnnotationsView):
             or group not in _PATH_GROUPS
         ):
             fields -= _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
-        return fields
+        return tuple(fields)
 
     def _intersection_annotate(
         self,
@@ -101,7 +102,6 @@ class MetadataView(BrowserAnnotationsView):
                 else:
                     output_field = Comic._meta.get_field(field).__class__()
                 val = Value(val, output_field)
-
             qs = qs.annotate(**{ann_field: val})
 
         return filtered_qs, qs
@@ -135,11 +135,14 @@ class MetadataView(BrowserAnnotationsView):
         pk_field = self.rel_prefix + "pk"
         comic_pks = filtered_qs.values_list(pk_field, flat=True)
         comic_pks_count = comic_pks.count()
-        for field_name in COMIC_M2M_FIELD_NAMES:
+        for field_name in COMIC_M2M_FIELD_NAMES | _GROUP_RELS:
             model = Comic._meta.get_field(field_name).related_model
             if not model:
                 reason = f"No model found for comic field: {field_name}"
                 raise ValueError(reason)
+
+            if field_name in _GROUP_RELS and not model._meta.get_field(field_name):
+                continue
 
             intersection_qs = (
                 model.objects.filter(comic__pk__in=comic_pks)
@@ -193,12 +196,14 @@ class MetadataView(BrowserAnnotationsView):
         """Copy the m2m intersections into the object."""
         for key, value in m2m_intersections.items():
             optimized_qs = cls._get_optimized_m2m_query(key, value)
-            if hasattr(obj, key):
+            if hasattr(obj, key) and key not in _GROUP_RELS:
                 # real db fields need to use their special set method.
                 field = getattr(obj, key)
                 field.set(optimized_qs)
             else:
                 # fake db field is just a queryset attached.
+                if key in _GROUP_RELS:
+                    optimized_qs = optimized_qs[0] if len(optimized_qs) else None
                 setattr(obj, key, optimized_qs)
 
     @staticmethod
