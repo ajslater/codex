@@ -1,9 +1,8 @@
 <template>
   <div id="tabContainer">
     <v-tabs
-      id="tabs"
       :class="{ rightMargin: !$vuetify.display.mdAndDown }"
-      centered
+      class="adminTabs"
       grow
       show-arrows
     >
@@ -64,10 +63,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#tabs {
+#tabContainer {
+  padding-top: 48px;
+}
+.adminTabs{
   position: fixed;
   width: 100%;
-  top: 48px;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
 }
@@ -76,7 +77,6 @@ export default {
 }
 $task-width: 256px;
 #tabItems {
-  margin-top: 96px;
   padding-top: 15px;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
