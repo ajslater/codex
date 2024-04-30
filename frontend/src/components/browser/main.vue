@@ -7,44 +7,8 @@
         :item="item"
       />
     </div>
-    <div v-else-if="showPlaceHolder" id="announce">
-      <PlaceholderLoading class="placeholder" />
-    </div>
-    <div v-else-if="!isCodexViewable" id="announce">
-      <h1>
-        You may log in
-        <span v-if="adminFlags.registration">or register</span> with the top
-        right&emsp;<v-icon>{{ mdiMenu }}</v-icon
-        >&emsp;menu
-      </h1>
-      <h1 v-if="!adminFlags.registration">Registration is disabled</h1>
-    </div>
-    <div v-else-if="librariesExist" id="announce">
-      <div id="noComicsFound">No comics found for these filters</div>
-    </div>
-    <div v-else id="announce">
-      <h1>No libraries have been added to Codex yet</h1>
-      <h2 v-if="isUserAdmin">
-        Use the top right <v-icon>{{ mdiMenu }}</v-icon> menu to navigate to the
-        admin panel and add a comic library.
-      </h2>
-      <div v-else>
-        <h2>
-          An administrator must login to add some libraries that contain comics
-        </h2>
-        <h3>
-          You may log in or register with the top right
-          <v-icon>{{ mdiMenu }}</v-icon
-          >menu
-        </h3>
-      </div>
-      <a
-        href="https://github.com/ajslater/codex#-administration"
-        target="_blank"
-        >See the README <v-icon>{{ mdiOpenInNew }}</v-icon></a
-      >
-      for detailed instructions.
-    </div>
+    <PlaceholderLoading v-else-if="showPlaceHolder" class="placeholder" />
+    <BrowserEmptyState v-else />
     <div
       v-if="searchLimitMessage"
       id="searchLimitMessage"
@@ -56,10 +20,10 @@
 </template>
 
 <script>
-import { mdiMenu, mdiOpenInNew } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
+import BrowserEmptyState from "@/components/browser/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -68,25 +32,20 @@ export default {
   name: "BrowserMain",
   components: {
     BrowserCard,
+    BrowserEmptyState,
     PlaceholderLoading,
-  },
-  data() {
-    return {
-      mdiMenu,
-      mdiOpenInNew,
-    };
   },
   computed: {
     ...mapState(useAuthStore, {
-      adminFlags: (state) => state.adminFlags,
+      nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapGetters(useBrowserStore, ["isSearchMode", "isSearchLimitedMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
         return (
-          this.adminFlags.nonUsers === undefined ||
+          this.nonUsers === undefined ||
           (this.isCodexViewable &&
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
@@ -127,6 +86,12 @@ export default {
       return res;
     },
   },
+  methods: {
+    ...mapActions(useBrowserStore, ["loadBrowserPage"]),
+    refresh() {
+      this.loadBrowserPage();
+    },
+  },
 };
 </script>
 
@@ -147,14 +112,6 @@ $card-margin: 32px;
   grid-template-columns: repeat(auto-fit, $cover-width);
   grid-gap: $card-margin;
   align-content: flex-start;
-}
-#announce {
-  text-align: center;
-}
-#noComicsFound {
-  font-size: x-large;
-  padding: 1em;
-  color: rbg(var(--v-theme-textDisabled));
 }
 .padFooter {
   padding-bottom: 45px !important;
@@ -185,9 +142,6 @@ $card-margin: 32px;
     grid-template-columns: repeat(auto-fit, $small-cover-width);
     grid-gap: $small-card-margin;
     justify-content: space-evenly;
-  }
-  #noComicsFound {
-    font-size: large;
   }
 }
 </style>
