@@ -197,9 +197,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         if model == Comic:
             qs = qs.annotate(cover_pk=F("pk"))
         else:
-            qs = qs.annotate(
-                cover_pks=JsonGroupArray(self.rel_prefix + "pk", distinct=True)
-            )
+            # At this point it's only been filtered.
+            qs = qs.annotate(cover_pk=F(self.rel_prefix + "pk"))
+            qs = qs.annotate(cover_pks=JsonGroupArray("cover_pk", distinct=True))
         return qs
 
     def _annotate_group(self, qs, model):
@@ -304,12 +304,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def _get_cover_pk_query(self, cover_pks):
         """Get Cover Pk queryset for comic queryset."""
         comic_qs = Comic.objects.filter(pk__in=cover_pks)
-        object_filter = self.get_query_filters_without_group(Comic, True)
-        comic_qs = comic_qs.filter(object_filter)
-        comic_qs = self.filter_by_annotations(comic_qs, Comic)
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
-        comic_qs = comic_qs.group_by("id")
         comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
+        comic_qs = comic_qs.group_by("id")
         return comic_qs.only("pk", "updated_at")
 
     def re_cover_multi_groups(self, group_qs):
