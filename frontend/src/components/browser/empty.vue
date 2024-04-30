@@ -48,7 +48,7 @@ export default {
     empty() {
       let res = {};
       if (!this.isCodexViewable) {
-        res.headline = "Unauthorize";
+        res.headline = "Unauthorized";
         res.title = "You may log in ";
         if (this.registration) {
           res.title += "or register ";
