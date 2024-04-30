@@ -3,6 +3,7 @@
 from types import MappingProxyType
 from typing import ClassVar
 
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, IntegerField, Sum, Value
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
@@ -136,13 +137,16 @@ class MetadataView(BrowserAnnotationsView):
         comic_pks = filtered_qs.values_list(pk_field, flat=True)
         comic_pks_count = comic_pks.count()
         for field_name in COMIC_M2M_FIELD_NAMES | _GROUP_RELS:
+            try:
+                if field_name in _GROUP_RELS and self.model and not self.model._meta.get_field(field_name):
+                    continue
+            except FieldDoesNotExist:
+                continue
+
             model = Comic._meta.get_field(field_name).related_model
             if not model:
                 reason = f"No model found for comic field: {field_name}"
                 raise ValueError(reason)
-
-            if field_name in _GROUP_RELS and not model._meta.get_field(field_name):
-                continue
 
             intersection_qs = (
                 model.objects.filter(comic__pk__in=comic_pks)
