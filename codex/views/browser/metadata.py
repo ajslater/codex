@@ -138,7 +138,11 @@ class MetadataView(BrowserAnnotationsView):
         comic_pks_count = comic_pks.count()
         for field_name in COMIC_M2M_FIELD_NAMES | _GROUP_RELS:
             try:
-                if field_name in _GROUP_RELS and self.model and not self.model._meta.get_field(field_name):
+                if (
+                    field_name in _GROUP_RELS
+                    and self.model
+                    and not self.model._meta.get_field(field_name)
+                ):
                     continue
             except FieldDoesNotExist:
                 continue
