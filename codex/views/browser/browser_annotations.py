@@ -196,6 +196,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Order the descendant comics by the sort argumentst
         if model == Comic:
             qs = qs.annotate(cover_pk=F("pk"))
+            qs = qs.annotate(cover_mtime=F("updated_at"))
         else:
             # At this point it's only been filtered.
             qs = qs.annotate(cover_pk=F(self.rel_prefix + "pk"))
