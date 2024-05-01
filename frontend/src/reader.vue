@@ -16,7 +16,7 @@
     <ReaderEmpty v-else />
   </v-main>
   <Unauthorized v-else />
-  <SettingsDrawer title="Reader" :panel="ReaderSettingSuperPanel" temporary />
+  <SettingsDrawer title="Reader" :panel="ReaderSettingsSuperPanel" temporary />
 </template>
 
 <script>
