@@ -8,7 +8,6 @@ import API, { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
-import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -92,6 +91,7 @@ export const useReaderStore = defineStore("reader", {
     arc: {},
 
     // local reader
+    empty: false,
     page: undefined,
     routes: {
       prev: false,
@@ -370,6 +370,7 @@ export const useReaderStore = defineStore("reader", {
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
+          this.empty = false;
           return true;
         })
         .catch(console.error);
@@ -414,15 +415,13 @@ export const useReaderStore = defineStore("reader", {
             );
             state.routes.books = routesBooks;
             state.routes.close = data.closeRoute;
+            state.empty = false;
           });
           return true;
         })
         .catch((error) => {
           console.debug(error);
-          const page = useBrowserStore().page;
-          const route =
-            page && page.routes ? page.routes.last : { name: "home" };
-          return router.push(route);
+          this.empty = true;
         });
     },
     async _setBookmarkPage(page) {

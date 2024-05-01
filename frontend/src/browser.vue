@@ -1,5 +1,5 @@
 <template>
-  <v-main id="browser">
+  <v-main v-if="isCodexViewable" id="browser">
     <header class="codexToolbar">
       <BrowserTopToolbar />
       <BrowserTitleToolbar />
@@ -7,11 +7,8 @@
     <BrowserMain />
     <BrowserNavToolbar />
   </v-main>
-  <SettingsDrawer
-    title="Browser Settings"
-    :panel="BrowserSettingsPanel"
-    temporary
-  />
+  <Unauthorized />
+  <SettingsDrawer title="Browser" :panel="BrowserSettingsPanel" temporary />
 </template>
 
 <script>
@@ -24,6 +21,7 @@ import BrowserNavToolbar from "@/components/browser/toolbars/nav/browser-nav-too
 import BrowserTitleToolbar from "@/components/browser/toolbars/title/browser-title-toolbar.vue";
 import BrowserTopToolbar from "@/components/browser/toolbars/top/browser-top-toolbar.vue";
 import SettingsDrawer from "@/components/settings/settings-drawer.vue";
+import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -36,6 +34,7 @@ export default {
     BrowserNavToolbar,
     BrowserTitleToolbar,
     SettingsDrawer,
+    Unauthorized,
   },
   data() {
     return {

@@ -52,8 +52,8 @@ export default {
       required: true,
     },
     panel: {
-      type: Object,
-      required: true,
+      type: [Object, String],
+      default: "span",
     },
     admin: {
       type: Boolean,
@@ -68,6 +68,9 @@ export default {
     }),
     adminAndNotSmall() {
       return this.admin && !this.$vuetify.display.smAndDown;
+    },
+    showPanel() {
+      return Boolean(this.panel) && this.isCodexViewable;
     },
   },
   mounted() {

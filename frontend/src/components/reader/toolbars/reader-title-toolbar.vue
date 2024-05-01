@@ -17,11 +17,13 @@
     <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
-    <v-toolbar-items>
+    <v-toolbar-items v-if="!empty">
       <ReaderArcSelect />
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog ref="metadataDialog" group="c" :book="currentBook" />
       </v-btn>
+    </v-toolbar-items>
+    <v-toolbar-items>
       <SettingsDrawerButton
         id="settingsButton"
         @click.stop="isSettingsDrawerOpen = true"
@@ -71,6 +73,7 @@ export default {
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current || {},
       closeRoute: (state) => state.routes.close,
+      empty: (state) => state.empty,
     }),
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     closeBookRoute: function () {
@@ -123,7 +126,9 @@ export default {
           this.$refs.closeBook.$el.click();
           break;
         case "m":
-          this.openMetadata();
+          if (!this.empty) {
+            this.openMetadata();
+          }
           break;
         // No default
       }

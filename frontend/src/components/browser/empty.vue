@@ -3,7 +3,6 @@
     class="empty"
     :headline="empty.headline"
     :title="empty.title"
-    :text="empty.text"
     :icon="empty.icon"
   >
     <div v-if="showLinkToReadmeAdmin">
@@ -21,7 +20,6 @@
 <script>
 import {
   mdiBookSearchOutline,
-  mdiLogin,
   mdiOpenInNew,
   mdiShieldCrownOutline,
 } from "@mdi/js";
@@ -31,7 +29,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "BrowserEmpty",
+  name: "EmptyState",
   data() {
     return {
       mdiOpenInNew,
@@ -47,23 +45,9 @@ export default {
     }),
     empty() {
       let res = {};
-      if (!this.isCodexViewable) {
-        res.headline = "Unauthorized";
-        res.title = "You may log in ";
-        if (this.registration) {
-          res.title += "or register ";
-        }
-        res.title += "with the top right ☰ menu";
-        if (this.registration) {
-          res.text = "";
-        } else {
-          res.text = "Registration is disabled";
-        }
-        res.icon = mdiLogin;
-      } else if (this.librariesExist) {
+      if (this.librariesExist) {
         res.headline = "No Comics Found";
         res.title = "For these filter and search settings";
-        res.text = "";
         res.icon = mdiBookSearchOutline;
       } else {
         res.headline = "No Libraries Exist";
@@ -73,8 +57,6 @@ export default {
         } else {
           res.title = "An administrator must add some comics libraries";
         }
-        res.text = "";
-
         res.icon = mdiShieldCrownOutline;
       }
 
