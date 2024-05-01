@@ -1,6 +1,6 @@
 <template>
   <PaginationToolbar v-if="maxPage">
-    <ReaderBookChangeNavButton :direction="bookPrev" />
+    <ReaderBookChangeNavButton :direction="bookPrev" :narrow="false" />
     <ReaderNavButton :value="min" :two-pages="twoPages" />
     <PaginationSlider
       :key="key"
@@ -13,7 +13,7 @@
       @update:model-value="onSliderUpdate($event)"
     />
     <ReaderNavButton :value="max" :two-pages="twoPages" />
-    <ReaderBookChangeNavButton :direction="bookNext" />
+    <ReaderBookChangeNavButton :direction="bookNext" :narrow="false" />
   </PaginationToolbar>
 </template>
 
