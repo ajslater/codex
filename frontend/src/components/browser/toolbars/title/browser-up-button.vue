@@ -58,7 +58,7 @@ export default {
     to() {
       let params;
       if (this.top) {
-        let group = this.upRoute.group;
+        let group = this.upRoute?.group;
         if (!SPECIAL_GROUPS.has(group)) {
           group = "r";
         }
