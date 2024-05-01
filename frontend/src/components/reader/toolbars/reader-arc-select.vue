@@ -1,4 +1,5 @@
 <template>
+  <span v-if="arcPosition" id="arcPosition">{{ arcPosition }}</span>
   <v-select
     v-if="arcItems.length > 1"
     v-model="arc"
@@ -30,7 +31,6 @@
   <v-icon v-else id="onlyArc" :title="arcName">
     {{ arcIcon(arcGroup) }}
   </v-icon>
-  <span v-if="arcPosition" id="arcPosition">{{ arcPosition }}</span>
 </template>
 <script>
 import { mdiBookMultiple, mdiCheck, mdiFolderOutline, mdiRedo } from "@mdi/js";
