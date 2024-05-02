@@ -1,5 +1,5 @@
 <template>
-  <v-btn v-bind="$attrs" icon title="Settings">
+  <v-btn icon title="Settings" @click.prevent="onClick">
     <v-icon>
       {{ mdiMenu }}
     </v-icon>
@@ -9,10 +9,11 @@
 
 <script>
 import { mdiMenu } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 const AdminSettingsButtonProgress = markRaw(
   defineAsyncComponent(
@@ -34,6 +35,12 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),
+  },
+  methods: {
+    ...mapActions(useCommonStore, ["setSettingsDrawerOpen"]),
+    onClick() {
+      this.setSettingsDrawerOpen(true);
+    },
   },
 };
 </script>

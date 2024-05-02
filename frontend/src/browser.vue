@@ -7,24 +7,21 @@
     <BrowserMain />
     <BrowserNavToolbar />
   </v-main>
-  <Unauthorized />
-  <SettingsDrawer title="Browser" :panel="BrowserSettingsPanel" temporary />
+  <Unauthorized v-else />
+  <BrowserSettingsDrawer />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
-import { markRaw } from "vue";
 
-import BrowserSettingsPanel from "@/components/browser/drawer/browser-settings-panel.vue";
+import BrowserSettingsDrawer from "@/components/browser/drawer/browser-settings-drawer.vue";
 import BrowserMain from "@/components/browser/main.vue";
 import BrowserNavToolbar from "@/components/browser/toolbars/nav/browser-nav-toolbar.vue";
 import BrowserTitleToolbar from "@/components/browser/toolbars/title/browser-title-toolbar.vue";
 import BrowserTopToolbar from "@/components/browser/toolbars/top/browser-top-toolbar.vue";
-import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "MainBrowser",
@@ -33,13 +30,8 @@ export default {
     BrowserMain,
     BrowserNavToolbar,
     BrowserTitleToolbar,
-    SettingsDrawer,
+    BrowserSettingsDrawer,
     Unauthorized,
-  },
-  data() {
-    return {
-      BrowserSettingsPanel: markRaw(BrowserSettingsPanel),
-    };
   },
   computed: {
     ...mapState(useAuthStore, {
@@ -60,8 +52,6 @@ export default {
     },
   },
   created() {
-    // mapWritableState does not work.
-    useCommonStore().isSettingsDrawerOpen = false;
     this.loadSettings();
   },
   methods: {

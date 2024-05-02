@@ -90,5 +90,8 @@ export const useCommonStore = defineStore("common", {
     setTimestamp() {
       this.timestamp = Date.now();
     },
+    setSettingsDrawerOpen(value) {
+      this.isSettingsDrawerOpen = value;
+    },
   },
 });

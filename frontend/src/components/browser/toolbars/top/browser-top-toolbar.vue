@@ -13,7 +13,7 @@
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items>
-      <SettingsDrawerButton @click="isSettingsDrawerOpen = true" />
+      <SettingsDrawerButton />
     </v-toolbar-items>
     <template #extension>
       <v-toolbar-items v-if="isCodexViewable" id="searchToolbarItems">
@@ -26,7 +26,7 @@
 
 <script>
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
-import { mapGetters, mapWritableState } from "pinia";
+import { mapGetters } from "pinia";
 
 import BrowserFilterBySelect from "@/components/browser/toolbars/top/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/toolbars/top/order-by-select.vue";
@@ -35,7 +35,6 @@ import BrowserSearchCombobox from "@/components/browser/toolbars/top/search-comb
 import BrowserTopGroupSelect from "@/components/browser/toolbars/top/top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "BrowserTopToolbar",
@@ -56,7 +55,6 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
-    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
 };
 </script>

@@ -1,12 +1,13 @@
 <template>
   <div v-if="isUserAdmin">
+    <v-divider />
     <v-list-item @click="librarianTask('poll')">
       <v-list-item-title id="poll" title="for updated comics">
         <v-icon>{{ mdiDatabaseClockOutline }}</v-icon
         >Poll All Libraries
       </v-list-item-title>
     </v-list-item>
-    <div v-if="menu">
+    <div v-if="showAdminPanelLink">
       <v-list-item :to="{ name: 'admin' }">
         <v-list-item-title>
           <v-icon>{{ mdiCogOutline }}</v-icon
@@ -43,9 +44,6 @@ export default {
   components: {
     AdminStatusList,
   },
-  props: {
-    menu: { type: Boolean, default: true },
-  },
   data() {
     return {
       mdiBookAlert,
@@ -57,6 +55,9 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useAdminStore, ["unseenFailedImports"]),
+    showAdminPanelLink() {
+      return !this.$router.currentRoute?.value?.name?.startsWith("admin");
+    },
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFailedImports", "librarianTask"]),

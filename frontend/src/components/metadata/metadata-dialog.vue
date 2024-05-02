@@ -4,18 +4,19 @@
       <v-btn
         aria-label="tags"
         class="tagButton cardControlButton"
-        icon
+        :density="buttonDensity"
+        :variant="buttonVariant"
+        :icon="mdiTagOutline"
         title="Tags"
-        variant="text"
         v-bind="props"
         @click.prevent
-      >
-        <v-icon>
-          {{ mdiTagOutline }}
-        </v-icon>
-      </v-btn>
+      />
     </template>
-    <div v-if="md" id="metadataContainer" @keyup.esc="dialog = false">
+    <div
+      v-if="showContainer"
+      id="metadataContainer"
+      @keyup.esc="dialog = false"
+    >
       <header id="metadataHeader">
         <CloseButton
           class="closeButton"
@@ -296,6 +297,10 @@ export default {
       type: Number,
       default: 1,
     },
+    toolbar: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -308,46 +313,69 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useBrowserStore, {
-      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
       identifierTypes: (state) => state.choices.static.identifierType,
-      importMetadata: (state) => state.page.adminFlags.importMetadata,
+      importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
-      downloadFileName: (state) => {
-        const md = state.md;
-        return state.md?.filename
-          ? md.filename
-          : getFullComicName({
-              seriesName: md.series.name,
-              volumeName: md.volume.name,
-              issueNumber: md.issueNumber,
-              issueSuffix: md.issueSuffix,
-            }) +
-              "." +
-              this.fileType.toLowerCase();
-      },
     }),
     ...mapState(useBrowserStore, {
       q: (state) => state.settings.q,
     }),
+    showContainer() {
+      return this.md?.loaded || false;
+    },
+    downloadFileName() {
+      const md = this.md;
+      if (!md) {
+        return "Unknown.cbz";
+      }
+      return this.md?.filename
+        ? md.filename
+        : getFullComicName({
+            seriesName: md.series.name || "",
+            volumeName: md.volume.name || "",
+            issueNumber: md.issueNumber,
+            issueSuffix: md.issueSuffix,
+          }) +
+            "." +
+            this.fileType.toLowerCase();
+    },
+    buttonDensity() {
+      return this.toolbar ? "compact" : "default";
+    },
+    buttonVariant() {
+      return this.toolbar ? "plain" : "text";
+    },
     downloadURL() {
-      return getDownloadURL(this.book);
+      if (this.book) {
+        return getDownloadURL(this.book);
+      } else {
+        return "";
+      }
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
     },
     isReadButtonEnabled() {
-      return this.$route.name === "browser" && Boolean(this.readerRoute);
+      return Boolean(this.readerRoute);
     },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
-      return getReaderRoute(this.md, this.importMetadata);
+      if (this.md?.ids) {
+        return getReaderRoute(this.md, this.importMetadata);
+      } else {
+        return {};
+      }
     },
     formattedIssue() {
+      if (!this.md) {
+        return "Unknown";
+      }
       if (
         (this.md.issueNumber === null || this.md.issueNumber === undefined) &&
         !this.md.issueSuffix
@@ -358,10 +386,16 @@ export default {
       return formattedIssue(this.md);
     },
     readingDirectionText() {
+      if (!this.md) {
+        return "Unknown";
+      }
       return this.readingDirectionTitles[this.md.readingDirection];
     },
     pages() {
       let pages = "";
+      if (!this.md) {
+        return pages;
+      }
       if (this.md.page) {
         const humanBookmark = NUMBER_FORMAT.format(this.md.page);
         pages += `Read ${humanBookmark} of `;
@@ -374,16 +408,16 @@ export default {
       return pages;
     },
     size() {
-      return this.md.size > 0 ? prettyBytes(this.md.size) : 0;
+      return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
     },
     fileType() {
-      return this.md.fileType || "Unknown";
+      return this?.md?.fileType || "Unknown";
     },
     titledIdentifiers() {
-      if (!this.md.identifiers) {
-        return this.md.identifiers;
-      }
       const titledIdentifiers = [];
+      if (!this?.md?.identifiers) {
+        return titledIdentifiers;
+      }
       for (const identifier of this.md.identifiers) {
         const parts = identifier.name.split(":");
         const idType = parts[0];
@@ -400,7 +434,7 @@ export default {
       return titledIdentifiers;
     },
     multiGroup() {
-      return this.md.ids.length > 1;
+      return this?.md?.ids.length > 1;
     },
   },
   watch: {

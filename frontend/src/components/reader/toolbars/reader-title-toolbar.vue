@@ -6,6 +6,8 @@
         ref="closeBook"
         :to="closeBookRoute"
         size="large"
+        density="compact"
+        variant="plain"
         @click="onCloseBook"
       >
         <span v-if="!$vuetify.display.smAndDown">close book</span>
@@ -19,22 +21,23 @@
     </v-toolbar-title>
     <v-toolbar-items v-if="!empty">
       <ReaderArcSelect />
-      <v-btn id="tagButton" @click.stop="openMetadata">
-        <MetadataDialog ref="metadataDialog" group="c" :book="currentBook" />
-      </v-btn>
+      <MetadataDialog
+        id="tagButton"
+        ref="metadataDialog"
+        group="c"
+        :toolbar="true"
+        :book="currentBook"
+      />
     </v-toolbar-items>
     <v-toolbar-items>
-      <SettingsDrawerButton
-        id="settingsButton"
-        @click.stop="isSettingsDrawerOpen = true"
-      />
+      <SettingsDrawerButton />
     </v-toolbar-items>
   </v-toolbar>
 </template>
 
 <script>
 import { mdiClose } from "@mdi/js";
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
@@ -75,7 +78,6 @@ export default {
       closeRoute: (state) => state.routes.close,
       empty: (state) => state.empty,
     }),
-    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
@@ -163,27 +165,9 @@ export default {
   white-space: normal;
 }
 
-#tagButton {
-  min-width: 24px;
-  height: 24px;
-  width: 24px;
-  margin: 0px;
-}
-
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
-  }
-
-  #tagButton {
-    padding-left: 2px;
-    padding-right: 2px;
-    min-width: 16px;
-  }
-
-  #settingsButton {
-    padding-left: 2px;
-    padding-right: 2px;
   }
 }
 </style>

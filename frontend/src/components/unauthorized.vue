@@ -5,16 +5,14 @@
     :title="empty.title"
     :text="empty.text"
     :icon="empty.icon"
-    @click="isSettingsDrawerOpen = true"
   />
 </template>
 
 <script>
 import { mdiLogin } from "@mdi/js";
-import { mapGetters, mapState, mapWritableState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "UnauthorizedEmptyState",
@@ -28,9 +26,7 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
-      user: (state) => state.user,
     }),
-    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     empty() {
       const res = {
         headline: "Unauthorized",
@@ -51,17 +47,6 @@ export default {
       }
       return res;
     },
-  },
-  watch: {
-    isSettingsDrawerOpen(value) {
-      // Hack the drawer permanently open.
-      if (!value) {
-        this.isSettingsDrawerOpen = true;
-      }
-    },
-  },
-  mounted() {
-    this.isSettingsDrawerOpen = true;
   },
 };
 </script>

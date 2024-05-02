@@ -1,12 +1,8 @@
 <template>
   <v-navigation-drawer
-    v-bind="$attrs"
-    v-model="isSettingsDrawerOpen"
-    disable-resize-watcher
+    v-model="open"
     disable-route-watcher
     location="right"
-    :scrim="!adminAndNotSmall"
-    :temporary="!adminAndNotSmall"
     touchless
   >
     <div class="settingsDrawerContainer">
@@ -14,36 +10,48 @@
         <header class="settingsHeader">
           <h3>{{ title }}</h3>
         </header>
-        <component :is="panel" v-if="isCodexViewable" />
+        <v-divider />
+        <slot v-if="isCodexViewable" name="panel" />
         <v-divider v-if="isCodexViewable" />
-        <SettingsCommonPanel :admin-menu="!admin" />
+        <AuthMenu />
+        <component :is="AdminMenu" v-if="isUserAdmin" />
         <v-divider />
       </div>
-      <div id="footerGroup">
-        <SettingsFooter />
+      <div id="scrollFooter" class="footer">
+        <OPDSDialog v-if="isCodexViewable" />
+        <RepoFooter />
       </div>
     </div>
     <template #append>
-      <VersionFooter />
+      <v-footer id="bottomFooter" class="footer">
+        <VersionFooter />
+      </v-footer>
     </template>
   </v-navigation-drawer>
 </template>
 
 <script>
-import { mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
+import { defineAsyncComponent, markRaw } from "vue";
 
-import SettingsCommonPanel from "@/components/settings/panel.vue";
-import SettingsFooter from "@/components/settings/settings-footer.vue";
+import AuthMenu from "@/components/auth/auth-menu.vue";
+import OPDSDialog from "@/components/settings/opds-dialog.vue";
+import RepoFooter from "@/components/settings/repo-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
-import { useReaderStore } from "@/stores/reader";
+const AdminMenu = markRaw(
+  defineAsyncComponent(
+    () => import("@/components/admin/drawer/admin-menu.vue"),
+  ),
+);
 
 export default {
   name: "SettingsDrawer",
   components: {
-    SettingsCommonPanel,
-    SettingsFooter,
+    AuthMenu,
+    OPDSDialog,
+    RepoFooter,
     VersionFooter,
   },
   props: {
@@ -51,30 +59,28 @@ export default {
       type: String,
       required: true,
     },
-    panel: {
-      type: [Object, String],
-      default: "span",
-    },
-    admin: {
-      type: Boolean,
-      default: false,
-    },
+  },
+  data() {
+    return {
+      AdminMenu,
+    };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
-    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
-    ...mapState(useReaderStore, {
-      invisibleHack: (state) => state.bookChange === "next",
+    ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
+    ...mapState(useCommonStore, {
+      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),
-    adminAndNotSmall() {
-      return this.admin && !this.$vuetify.display.smAndDown;
-    },
-    showPanel() {
-      return Boolean(this.panel) && this.isCodexViewable;
+    open: {
+      get() {
+        return this.isSettingsDrawerOpen || !this.isCodexViewable;
+      },
+      set(value) {
+        this.setSettingsDrawerOpen(value);
+      },
     },
   },
-  mounted() {
-    this.isSettingsDrawerOpen = this.adminAndNotSmall;
+  methods: {
+    ...mapActions(useCommonStore, ["setSettingsDrawerOpen"]),
   },
 };
 </script>
@@ -93,11 +99,25 @@ export default {
   padding-left: 15px;
   background-color: rgb(var(--v-theme-surface-light));
 }
+#topBlock {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
 :deep(.v-list-item .v-icon) {
   color: rgb(var(--v-theme-iconsInactive)) !important;
   margin-right: 0.33em;
 }
-#footerGroup {
+.footer {
+  display: block;
+  font-size: small;
+  text-align: center;
+  padding-top: 0px;
   background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-textDisabled));
+}
+#scrollFooter {
+  padding-bottom: 0px;
+}
+#bottomFooter {
+  padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
 }
 </style>

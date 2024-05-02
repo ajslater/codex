@@ -46,6 +46,8 @@ export default {
   padding: 20px;
 }
 #opdsButton {
+  display: block;
+  width: 100%;
   color: rgb(var(--v-theme-textSecondary));
 }
 .inline {

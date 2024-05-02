@@ -1,5 +1,5 @@
 <template>
-  <div id="downloadPanel">
+  <div v-if="currentBook" id="downloadPanel">
     <v-list-item @click="downloadPage">
       <v-list-item-title>
         <v-icon>{{ mdiFileImage }}</v-icon

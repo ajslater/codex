@@ -57,12 +57,13 @@ export default {
       isUserAuthorized: (state) => Boolean(state.user),
     }),
     ...mapState(useBrowserStore, {
-      groupChoices: (state) => state.choices.static.settingsGroup,
-      searchResultsLimit: (state) => state.settings.searchResultsLimit,
-      showSettings: (state) => state.settings.show,
-      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      groupChoices: (state) => state.choices?.static?.settingsGroup || {},
+      searchResultsLimit: (state) => state.settings?.searchResultsLimit || 100,
+      showSettings: (state) => state.settings?.show || {},
+      twentyFourHourTime: (state) =>
+        state.settings?.twentyFourHourTime || false,
       twentyFourHourTimeTitle: (state) =>
-        state.choices.static.twentyFourHourTime.title,
+        state.choices?.static?.twentyFourHourTime?.title || "",
     }),
   },
   methods: {

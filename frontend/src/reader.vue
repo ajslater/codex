@@ -16,23 +16,20 @@
     <ReaderEmpty v-else />
   </v-main>
   <Unauthorized v-else />
-  <SettingsDrawer title="Reader" :panel="ReaderSettingsSuperPanel" temporary />
+  <ReaderSettingsDrawer />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
-import { markRaw } from "vue";
 
 import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import BooksWindow from "@/components/reader/books-window.vue";
-import ReaderSettingsSuperPanel from "@/components/reader/drawer/reader-settings-super-panel.vue";
+import ReaderSettingsDrawer from "@/components/reader/drawer/reader-settings-drawer.vue";
 import ReaderEmpty from "@/components/reader/empty.vue";
 import ReaderNavToolbar from "@/components/reader/toolbars/reader-nav-toolbar.vue";
 import ReaderTitleToolbar from "@/components/reader/toolbars/reader-title-toolbar.vue";
-import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -43,13 +40,12 @@ export default {
     ReaderEmpty,
     ReaderNavToolbar,
     ReaderTitleToolbar,
-    SettingsDrawer,
+    ReaderSettingsDrawer,
     Unauthorized,
   },
   data() {
     return {
       showToolbars: false,
-      ReaderSettingsSuperPanel: markRaw(ReaderSettingsSuperPanel),
     };
   },
   computed: {
@@ -68,9 +64,6 @@ export default {
     isCodexViewable() {
       this.loadReaderSettings();
     },
-  },
-  created() {
-    useCommonStore().isSettingsDrawerOpen = false;
   },
   beforeMount() {
     useReaderStore().$reset;

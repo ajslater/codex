@@ -10,15 +10,14 @@
       Codex Administration
     </v-toolbar-title>
     <SettingsDrawerButton
-      :class="{ invisible: isSettingsDrawerOpen }"
-      :disabled="isSettingsDrawerOpen"
-      :plain="isSettingsDrawerOpen"
-      @click="isSettingsDrawerOpen = true"
+      :key="mobile"
+      :class="{ invisible: !mobile }"
+      :disabled="!mobile"
     />
   </v-toolbar>
 </template>
 <script>
-import { mapWritableState } from "pinia";
+import { mapActions } from "pinia";
 
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useCommonStore } from "@/stores/common";
@@ -28,7 +27,19 @@ export default {
     SettingsDrawerButton,
   },
   computed: {
-    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
+    mobile() {
+      return this.$vuetify.display.mobile;
+    },
+  },
+  watch: {
+    mobile(to) {
+      if (!to) {
+        this.setSettingsDrawerOpen(true);
+      }
+    },
+  },
+  methods: {
+    ...mapActions(useCommonStore, ["setSettingsDrawerOpen"]),
   },
 };
 </script>

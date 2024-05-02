@@ -1,5 +1,5 @@
 <template>
-  <div id="readerSettings">
+  <div v-if="validBook" id="readerSettings">
     <v-radio-group
       v-model="isGlobalScope"
       density="compact"
@@ -116,6 +116,7 @@ export default {
     ...mapGetters(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
     ...mapState(useReaderStore, {
       choices: (state) => state.choices,
+      validBook: (state) => Boolean(state.books?.current),
       selectedSettings(state) {
         return this.isGlobalScope || !state.books?.current
           ? state.readerSettings
@@ -134,7 +135,11 @@ export default {
         return true;
       },
       bookInBrowserURL(state) {
-        return getBookInBrowserURL(state.books?.current);
+        if (state.books?.current) {
+          return getBookInBrowserURL(state.books?.current);
+        } else {
+          return "";
+        }
       },
     }),
     ...mapWritableState(useReaderStore, ["readRtlInReverse"]),

@@ -5,9 +5,10 @@ export const getReaderRoute = (
   importMetadata,
 ) => {
   // Get the route to a comic with the correct entry page.
-  if (importMetadata && !pageCount) {
+  if (ids.length < 1 || (importMetadata && !pageCount)) {
     return;
   }
+  const pk = ids[0];
   if (page) {
     page = Number(page);
   } else if (REVERSE_READING_DIRECTIONS.has(readingDirection)) {
@@ -18,7 +19,7 @@ export const getReaderRoute = (
   }
   return {
     name: "reader",
-    params: { pk: ids[0], page },
+    params: { pk, page },
   };
 };
 
