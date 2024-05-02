@@ -10,7 +10,7 @@
     <div v-if="showAdminPanelLink">
       <v-list-item :to="{ name: 'admin' }">
         <v-list-item-title>
-          <v-icon>{{ mdiCogOutline }}</v-icon
+          <v-icon>{{ mdiCrownOutline }}</v-icon
           >Admin Panel
           <v-icon
             v-if="unseenFailedImports"
@@ -29,7 +29,7 @@
 <script>
 import {
   mdiBookAlert,
-  mdiCogOutline,
+  mdiCrownOutline,
   mdiDatabaseClockOutline,
   mdiOpenInNew,
 } from "@mdi/js";
@@ -49,7 +49,7 @@ export default {
       mdiBookAlert,
       mdiOpenInNew,
       mdiDatabaseClockOutline,
-      mdiCogOutline,
+      mdiCrownOutline,
     };
   },
   computed: {
