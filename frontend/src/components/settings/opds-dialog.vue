@@ -17,7 +17,7 @@
       <OPDSUrl
         title="v2.0"
         :url="opdsV2URL"
-        subtitle="OPDS v2 is experimental and not widely or well supported by clients"
+        subtitle="Experimental and not widely or well supported by clients"
       />
     </div>
   </v-dialog>
