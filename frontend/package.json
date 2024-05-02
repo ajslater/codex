@@ -48,7 +48,6 @@
     "sass": "^1.55.0",
     "sass-loader": "^14.0",
     "typeface-roboto": "^1.1.13",
-    "unplugin-vue-components": "^0.26.0",
     "vite": "^5.0.10",
     "vite-plugin-checker": "^0.6.0",
     "vite-plugin-dynamic-base": "^1.0.0",
