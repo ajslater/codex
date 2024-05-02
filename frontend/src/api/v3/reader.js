@@ -11,8 +11,7 @@ const getReaderInfo = (params) => {
 };
 
 const getReaderSettings = () => {
-  const params = getTSParams();
-  return HTTP.get(`c/settings`, { params });
+  return HTTP.get(`c/settings`);
 };
 
 const setReaderSettings = (data) => {
