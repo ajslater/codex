@@ -46,7 +46,7 @@ const createLibrary = (data) => {
   return HTTP.post("/admin/library", data);
 };
 const getLibraries = () => {
-  return HTTP.get("/admin/library") ;
+  return HTTP.get("/admin/library");
 };
 
 const updateLibrary = (pk, data) => {
