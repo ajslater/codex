@@ -49,10 +49,9 @@ export default {
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
     longBrowserTitlePrefix: function () {
-      if (this.$route.params.group === "f") {
-        return this.browserTitle.parentName;
-      }
-      return "";
+      return this.$route.params.group === "f"
+        ? this.browserTitle.parentName
+        : "";
     },
     longBrowseTitleMain: function () {
       let browserTitle;
@@ -74,17 +73,15 @@ export default {
           const formattedGroupCount = `of ${groupCount}`;
           names.push(formattedGroupCount);
         }
-        const delimiter = group === "f" ? "/" : " ";
+        const delimiter = group === "f" ? "" : " ";
         browserTitle = names.join(delimiter);
       }
       return browserTitle;
     },
     longBrowseTitleSuffix: function () {
-      const group = this.$route.params.group;
-      if (group === "f") {
-        return "";
-      }
-      return this.groupNames[this.modelGroup];
+      return this.$route.params.group === "f"
+        ? ""
+        : this.groupNames[this.modelGroup];
     },
   },
 };
