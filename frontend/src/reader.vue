@@ -1,7 +1,6 @@
 <template>
   <v-main v-if="isCodexViewable" id="readerWrapper">
     <div v-if="!empty">
-      <BookChangeDrawer direction="prev" />
       <div id="readerContainer">
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
@@ -11,7 +10,6 @@
           <ReaderNavToolbar v-show="showToolbars" />
         </v-slide-y-reverse-transition>
       </div>
-      <BookChangeDrawer direction="next" />
     </div>
     <ReaderEmpty v-else />
   </v-main>
@@ -22,7 +20,6 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import BooksWindow from "@/components/reader/books-window.vue";
 import ReaderSettingsDrawer from "@/components/reader/drawer/reader-settings-drawer.vue";
 import ReaderEmpty from "@/components/reader/empty.vue";
@@ -35,7 +32,6 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
-    BookChangeDrawer,
     BooksWindow,
     ReaderEmpty,
     ReaderNavToolbar,
