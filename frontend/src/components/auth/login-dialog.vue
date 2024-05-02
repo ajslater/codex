@@ -9,7 +9,7 @@
       <v-list-item v-bind="props">
         <v-list-item-title>
           <v-icon>{{ mdiLogin }}</v-icon>
-          Login
+          {{ loginLabel }}
         </v-list-item-title>
       </v-list-item>
     </template>
@@ -123,8 +123,15 @@ export default {
       adminFlags: (state) => state.adminFlags,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
-    submitButtonLabel: function () {
+    submitButtonLabel() {
       return this.registerMode ? "Register" : "Login";
+    },
+    loginLabel() {
+      let label = "Login";
+      if (this.adminFlags.registration) {
+        label += " or Register";
+      }
+      return label;
     },
   },
   watch: {
