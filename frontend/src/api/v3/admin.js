@@ -9,8 +9,7 @@ const createUser = (data) => {
 };
 
 const getUsers = () => {
-  const params = getTSParams();
-  return HTTP.get("/admin/user", { params });
+  return HTTP.get("/admin/user");
 };
 
 const updateUser = (pk, data) => {
@@ -31,8 +30,7 @@ const createGroup = (data) => {
 };
 
 const getGroups = () => {
-  const params = getTSParams();
-  return HTTP.get("/admin/group", { params });
+  return HTTP.get("/admin/group");
 };
 
 const updateGroup = (pk, data) => {
@@ -48,8 +46,7 @@ const createLibrary = (data) => {
   return HTTP.post("/admin/library", data);
 };
 const getLibraries = () => {
-  const params = getTSParams();
-  return HTTP.get("/admin/library", { params });
+  return HTTP.get("/admin/library") ;
 };
 
 const updateLibrary = (pk, data) => {
@@ -63,7 +60,7 @@ const deleteLibrary = (pk) => {
 // LIBRARIES MISC
 
 const getFolders = (path, showHidden) => {
-  const params = { ...getTSParams(), path, showHidden };
+  const params = { path, showHidden };
   return HTTP.get("/admin/folders", { params });
 };
 
@@ -75,8 +72,7 @@ const getFailedImports = () => {
 // FLAGS
 
 const getFlags = () => {
-  const params = getTSParams();
-  return HTTP.get("/admin/flag", { params });
+  return HTTP.get("/admin/flag");
 };
 
 const updateFlag = (key, data) => {
