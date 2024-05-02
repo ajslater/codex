@@ -134,7 +134,7 @@ export default {
   border-radius: 5px;
   background-color: rgb(var(--v-theme-surface));
 }
-:deep(.showHidden .v-label) {
+.showHidden :deep(.v-label) {
   color: rgb(var(--v-theme-textSecondary));
 }
 </style>

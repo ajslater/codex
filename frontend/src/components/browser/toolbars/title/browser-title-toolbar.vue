@@ -101,7 +101,7 @@ $upButtonWidth: 64px;
 :deep(#upButton.v-btn) {
   width: $upButtonWidth;
 }
-:deep(.codexToolbarTitle) {
+.codexToolbarTitle {
   margin: auto;
   padding-top: 4px;
   text-align: center;
@@ -120,7 +120,7 @@ $upButtonWidth: 64px;
     padding-left: 5px;
     padding-right: 5px;
   }
-  :deep(.codexToolbarTitle) {
+  .codexToolbarTitle {
     font-size: 1rem;
   }
 }

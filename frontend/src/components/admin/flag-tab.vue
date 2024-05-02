@@ -89,9 +89,6 @@ export default {
   max-width: 100vw !important;
   margin-bottom: 24px;
 }
-:deep(.tableCheckbox) {
-  height: 40px;
-}
 .nameCol {
   padding-top: 0.5em !important;
 }

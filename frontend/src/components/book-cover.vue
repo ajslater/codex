@@ -80,7 +80,7 @@ export default {
 .coverImg {
   border-radius: 5px;
 }
-:deep(.coverImg .v-img__img) {
+.coverImg :deep(.v-img__img) {
   object-position: top;
 }
 

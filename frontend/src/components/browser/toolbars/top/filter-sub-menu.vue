@@ -180,7 +180,7 @@ export default {
 .filterGroup {
   max-height: 80vh; /* has to be less than the menu height */
 }
-:deep(.noneItem .v-item-title) {
+.noneItem :deep(.v-item-title) {
   color: rbg(var(--v-theme-textDisabled)) !important;
 }
 .filterValuesProgress {

@@ -40,7 +40,7 @@ export default {
 #repoIcon {
   margin-right: 0px;
 }
-:deep(#repo:hover > #repoIcon) {
+#repo:hover > #repoIcon {
   color: rgb(var(--v-theme-textPrimary)) !important;
 }
 </style>

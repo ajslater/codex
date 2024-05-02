@@ -121,23 +121,23 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 // Lower label from out of bounds
-::v-deep(.v-label.v-field-label) {
+:deep(.v-label.v-field-label) {
   top: 13px;
 }
 // Compact input spacing
-::v-deep(.v-field__input) {
+:deep(.v-field__input) {
   padding-right: 0;
 }
 // Compact list item spacing
-::v-deep(.v-list-item) {
+:deep(.v-list-item) {
   padding: 0;
 }
-::v-deep(.v-list-item__prepend) {
+:deep(.v-list-item__prepend) {
   display: block;
   width: 24px !important;
   margin-right: 5px;
 }
-::v-deep(.v-select__menu-icon) {
+:deep(.v-select__menu-icon) {
   margin: 0;
 }
 #onlyArc {
