@@ -17,7 +17,8 @@
       </v-btn>
     </v-toolbar-items>
     <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
-      {{ activeTitle }}
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span v-html="title"></span>
     </v-toolbar-title>
     <v-toolbar-items v-if="!empty">
       <ReaderArcSelect />
@@ -78,7 +79,7 @@ export default {
       closeRoute: (state) => state.routes.close,
       empty: (state) => state.empty,
     }),
-    closeBookRoute: function () {
+    closeBookRoute() {
       // Choose the best route
       const route = {
         name: "browser",
@@ -90,6 +91,9 @@ export default {
         route.params = window.CODEX.LAST_ROUTE || CHOICES.browser.route;
       }
       return route;
+    },
+    title() {
+      return this.activeTitle.replaceAll(" ", " <wrb/>");
     },
   },
   watch: {
