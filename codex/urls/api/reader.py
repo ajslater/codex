@@ -1,9 +1,9 @@
 """codex:api:v3:reader URL Configuration."""
 
 from django.urls import path
-from django.views.decorators.cache import cache_control, cache_page
+from django.views.decorators.cache import cache_control
 
-from codex.urls.const import COMMON_TIMEOUT, COVER_MAX_AGE, PAGE_MAX_AGE
+from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE
 from codex.views.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.reader.page import ReaderPageView
@@ -24,7 +24,7 @@ urlpatterns = [
     #
     #
     # Reader
-    path("<int:pk>", cache_page(COMMON_TIMEOUT)(ReaderView.as_view()), name="reader"),
+    path("<int:pk>", ReaderView.as_view(), name="reader"),
     path(
         "<int:pk>/<int:page>/page.jpg",
         cache_control(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
