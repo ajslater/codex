@@ -35,7 +35,7 @@ export default {
     },
     iconClasses() {
       return {
-        inverted: this.orderReverseSetting,
+        inverted: !this.orderReverseSetting,
       };
     },
   },
