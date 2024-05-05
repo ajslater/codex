@@ -72,7 +72,7 @@ export default {
       let res = "";
       if (this.isSearchLimitedMode) {
         const page = +this.$route.params.page;
-        if (this.showPlaceholder) {
+        if (this.showPlaceHolder) {
           const limit = this.searchResultsLimit * page;
           res += `Searching for ${limit} entries...`;
         } else if (this.numPages > page) {
