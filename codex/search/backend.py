@@ -267,7 +267,6 @@ class CodexSearchBackend(CodexBackendSearchMixin, WhooshSearchBackend, WorkerBas
                     stored=True,
                     analyzer=TEXT_ANALYZER,
                     field_boost=field_class.boost,
-                    spelling=field_class.document is True,
                 )
                 if field_class.document:
                     content_field_name = index_fieldname
