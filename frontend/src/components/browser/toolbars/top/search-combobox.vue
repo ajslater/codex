@@ -76,16 +76,17 @@ export default {
     doSearch(clear = false) {
       this.menu = false;
       const q = this.query ? this.query.trim() : "";
-      const newSettings = { q };
+      const settings = { q };
       if (clear) {
-        newSettings.orderBy = "sort_name";
-        newSettings.orderReverse = false;
+        settings.orderBy = "sort_name";
+        settings.orderReverse = false;
       }
-      this.setSettings(newSettings);
+      this.setSettings(settings);
       if (q) {
         this.addToMenu(q);
+      } else {
+        this.startHideTimer();
       }
-      this.startHideTimer();
     },
     doEscape() {
       this.menu = false;
