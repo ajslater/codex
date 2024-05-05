@@ -1,5 +1,5 @@
 <template>
-  <v-list-item ref="browserLink" :to="browserRoute">
+  <v-list-item ref="browserLink" :to="lastRoute">
     <v-list-item-title>
       <v-icon>{{ mdiBookshelf }}</v-icon
       >Browser
@@ -8,7 +8,7 @@
 </template>
 <script>
 import { mdiBookshelf } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapGetters } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 
@@ -20,12 +20,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      browserRoute: (state) =>
-        state.page.routes.last
-          ? { name: "browser", params: state.page.routes.last }
-          : { name: "home" },
-    }),
+    ...mapGetters(useBrowserStore, ["lastRoute"]),
   },
 };
 </script>

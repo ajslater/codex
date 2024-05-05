@@ -88,7 +88,8 @@ export default {
       if (route.params) {
         route.hash = `#card-${this.currentBook?.pk}`;
       } else {
-        route.params = window.CODEX.LAST_ROUTE || CHOICES.browser.route;
+        route.params =
+          window.CODEX.LAST_ROUTE || CHOICES.browser.breadcrumbs[0];
       }
       return route;
     },

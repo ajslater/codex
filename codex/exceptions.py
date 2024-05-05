@@ -7,6 +7,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.logger.logging import get_logger
+from codex.serializers.browser.page import BrowserRouteSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.redirect import BrowserRedirectSerializer
 
@@ -23,15 +24,9 @@ class SeeOtherRedirectError(APIException):
     def _coerce_pks_to_string(self, detail):
         """Coerce pks to valid string."""
         # TODO move to serializer
-        params = detail.get("route", {}).get("params", DEFAULTS["route"])
-        pks = params.get("pks")
-        if not pks:
-            params["pks"] = "0"
-            detail["route"]["params"] = params
-        elif not isinstance(pks, str):
-            pks = ",".join(str(pk) for pk in pks)
-            params["pks"] = pks
-            detail["route"]["params"] = params
+        params = detail.get("route", {}).get("params", DEFAULTS["breadcrumbs"][0])
+        serializer = BrowserRouteSerializer(params)
+        detail["route"]["params"] = serializer.data
 
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""

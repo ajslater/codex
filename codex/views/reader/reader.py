@@ -21,7 +21,11 @@ from codex.views.session import BrowserSessionViewBase
 LOG = get_logger(__name__)
 
 
-class ReaderView(BookmarkBaseView, SharedAnnotationsMixin):
+class ReaderView(
+    BookmarkBaseView,
+    BrowserSessionViewBase,
+    SharedAnnotationsMixin,
+):
     """Get info for displaying comic pages."""
 
     serializer_class = ReaderComicsSerializer
@@ -276,10 +280,9 @@ class ReaderView(BookmarkBaseView, SharedAnnotationsMixin):
             "index": current.arc_index,  # type: ignore
             "count": arc_count,
         }
+        close_route = self.get_last_route()
 
-        session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
-        last_route = session.get("route")
-        return {"books": books, "arcs": arcs, "arc": arc, "close_route": last_route}
+        return {"books": books, "arcs": arcs, "arc": arc, "close_route": close_route}
 
     def _parse_params(self):
         data = self.request.GET
@@ -297,9 +300,10 @@ class ReaderView(BookmarkBaseView, SharedAnnotationsMixin):
         arc_pk = data.get("arcPk")
         if arc_pk is not None:
             arc_pk = int(arc_pk)
-        elif top_group == "a":
-            last_route = session.get("route", {})
-            arc_pk = last_route.get("pks")
+        elif arc_group == "a":
+            last_route = self.get_last_route()
+            if last_route.get("group") == "a":
+                arc_pk = last_route.get("pks")
 
         params = {
             "arc_group": arc_group,

@@ -3,12 +3,14 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from types import MappingProxyType
+from typing import ClassVar
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
+from codex.serializers.browser.page import BrowserRouteSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
@@ -107,13 +109,23 @@ class BrowserSessionViewBase(SessionViewBaseBase):
             "order_by": DEFAULTS["orderBy"],
             "order_reverse": DEFAULTS["orderReverse"],
             "q": DEFAULTS["q"],
-            "route": DEFAULTS["route"],
             "search_results_limit": DEFAULTS["searchResultsLimit"],
             "show": DEFAULTS["show"],
             "twenty_four_hour_time": False,
             "top_group": DEFAULTS["topGroup"],
         }
     )
+
+    def get_last_route(self, serialize=False):
+        """Get the last route from the breadcrumbs."""
+        breadcrumbs = self.get_from_session("breadcrumbs")
+        if not breadcrumbs:
+            breadcrumbs = DEFAULTS["breadcrumbs"]
+        last_route = breadcrumbs[-1]
+        if serialize:
+            serializer = BrowserRouteSerializer(last_route)
+            last_route = serializer.data
+        return last_route
 
 
 class ReaderSessionViewBase(SessionViewBaseBase):
@@ -129,10 +141,10 @@ class ReaderSessionViewBase(SessionViewBaseBase):
     )
 
 
-class SessionViewBase(SessionViewBaseBase, ABC):
+class SessionViewBase(SessionViewBaseBase, GenericAPIView, ABC):
     """Session view for retrieving stored settings."""
 
-    permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
 
     def load_params_from_session(self):
         """Set the params from view session, creating missing values from defaults."""

@@ -21,7 +21,6 @@ VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type:ignore
     _BOOKMARK_UPDATE_FIELDS = (
         "page",
         "finished",
@@ -161,6 +160,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
 class BookmarkView(BookmarkBaseView):
     """User Bookmark View."""
 
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type:ignore
     serializer_class = BookmarkSerializer
 
     def _validate(self, serializer_class):

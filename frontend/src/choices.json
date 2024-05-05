@@ -19,7 +19,7 @@
         "value": "READ"
       }
     ],
-    "breadcrumbs": [],
+    "breadcrumbs": [{ "group": "r", "pks": "0", "page": 1 }],
     "q": "",
     "topGroup": [
       {
@@ -146,11 +146,6 @@
       "c": "Issues",
       "f": "Folders",
       "a": "Story Arcs"
-    },
-    "route": {
-      "group": "r",
-      "pks": "0",
-      "page": 1
     },
     "identifierTypes": {
       "comicvine": "Comic Vine",

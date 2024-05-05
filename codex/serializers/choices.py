@@ -48,9 +48,7 @@ _CHOICES_FN_RE = {
     _CHOICES_MODULE_NAME: create_choices_fn_regexes(_CHOICES_MODULE_NAME),
     _ADMIN_CHOICES_MODULE_NAME: create_choices_fn_regexes(_ADMIN_CHOICES_MODULE_NAME),
 }
-_SINGLE_VALUE_KEYS = frozenset(
-    {"breadcrumbs", "orderReverse", "q", "route", "searchResultsLimit"}
-)
+_SINGLE_VALUE_KEYS = frozenset({"orderReverse", "q", "searchResultsLimit"})
 
 # Exports
 CHOICES = {}
@@ -124,17 +122,22 @@ def _build_choices_and_defaults(data_dict):
     """Transform the vuetify choice formatted data to key:value dicts."""
     global VUETIFY_NULL_CODE  # noqa PLW0603
     for vuetify_key, value in data_dict.items():
-        if vuetify_key in ("identifierTypes", "groupNames"):
-            continue
-        if vuetify_key in _SINGLE_VALUE_KEYS:
-            DEFAULTS[vuetify_key] = value
-            continue
-        if vuetify_key == "settingsGroup":
-            DEFAULTS["show"] = _build_show_defaults(value)
-            continue
-        if vuetify_key == "vuetifyNullCode":
-            VUETIFY_NULL_CODE = value
-            continue
+        match vuetify_key:
+            case x if x in ("identifierTypes", "groupNames"):
+                continue
+            case x if x in _SINGLE_VALUE_KEYS:
+                DEFAULTS[vuetify_key] = value
+                continue
+            case "settingsGroup":
+                DEFAULTS["show"] = _build_show_defaults(value)
+                continue
+            case "vuetifyNullCode":
+                VUETIFY_NULL_CODE = value
+                continue
+            case "breadcrumbs":
+                value[0]["pks"] = ()
+                DEFAULTS[vuetify_key] = value
+                continue
 
         CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, value)
 

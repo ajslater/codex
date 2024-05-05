@@ -1,7 +1,7 @@
 """Views for browsing comic library."""
 
 from copy import deepcopy
-from math import ceil
+from math import ceil, floor, log10
 from os import sep
 from pathlib import Path
 from types import MappingProxyType
@@ -70,7 +70,7 @@ class BrowserView(BrowserAnnotationsView):
     DEFAULT_ROUTE = MappingProxyType(
         {
             "name": "browser",
-            "params": deepcopy(DEFAULTS["route"]),
+            "params": deepcopy(DEFAULTS["breadcrumbs"][0]),
         }
     )
     _OPDS_M2M_RELS = (
@@ -233,10 +233,8 @@ class BrowserView(BrowserAnnotationsView):
         elif group == self.FOLDER_GROUP:
             if group == up_group and self.group_instance:
                 parent_folder: Folder | None = self.group_instance.parent_folder  # type: ignore
-                parent_pk = (
-                    parent_folder.pk if parent_folder and parent_folder.pk else 0
-                )
-                is_child = parent_pk in up_pks or not (up_pks and parent_pk)
+                parent_pk = parent_folder.pk if parent_folder else 0
+                is_child = parent_pk in up_pks or (not up_pks and not parent_pk)
         else:  # Browse Groups
             show = self.params["show"]
             test_parent = False
@@ -357,7 +355,6 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
-        parent_name = ""
         group_count = 0
         group_name = ""
         pks = self.kwargs.get("pks")
@@ -366,23 +363,13 @@ class BrowserView(BrowserAnnotationsView):
         else:
             group_instance = self.group_instance
             if group_instance:
-                if isinstance(group_instance, Imprint):
-                    parent_name = group_instance.publisher.name
-                elif isinstance(group_instance, Volume):
-                    parent_name = group_instance.series.name
+                if isinstance(group_instance, Volume):
                     group_count = group_instance.series.volume_count
                 elif isinstance(group_instance, Comic):
                     group_count = group_instance.volume.issue_count
-                elif isinstance(group_instance, Folder):
-                    parent_name = self._get_folder_parent_name()
                 group_name = group_instance.name
 
-        group = self.kwargs.get("group")
-        if group == "f" and group_name and str(group_name)[0] != sep:
-            group_name = sep + str(group_name)
-
         return {
-            "parent_name": parent_name,
             "group_name": group_name,
             "group_count": group_count,
         }
@@ -472,6 +459,17 @@ class BrowserView(BrowserAnnotationsView):
 
         return page_group_qs, page_book_qs, num_pages, page_group_count, page_book_count
 
+    @staticmethod
+    def _get_zero_pad(book_qs):
+        """Get the zero padding for the display."""
+        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
+            "issue_number__max"
+        ]
+        zero_pad = 1
+        if issue_number_max:
+            zero_pad += floor(log10(issue_number_max))
+        return zero_pad
+
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
@@ -483,27 +481,29 @@ class BrowserView(BrowserAnnotationsView):
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
         if page_book_count:
+            zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs, Comic)
+        else:
+            zero_pad = 1
 
         # print(group_qs.explain())
         # print(group_qs.query)
 
         recovered_group_list = self.re_cover_multi_groups(group_qs)
         total_count = page_group_count + page_book_count
-        return recovered_group_list, book_qs, num_pages, total_count
+        return recovered_group_list, book_qs, num_pages, total_count, zero_pad
 
     def get_object(self):
         """Validate settings and get the querysets."""
-        group_list, book_qs, num_pages, total_count = self._get_group_and_books()
+        group_list, book_qs, num_pages, total_count, zero_pad = (
+            self._get_group_and_books()
+        )
 
         # get additional context
         parent_breadcrumbs = self.get_parent_breadcrumbs()
-        browser_page_title = self._get_browser_page_title()
+        title = self._get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
-        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
-            "issue_number__max"
-        ]
         libraries_exist = Library.objects.exists()
         covers_timestamp = int(
             Timestamp.objects.get(
@@ -515,11 +515,11 @@ class BrowserView(BrowserAnnotationsView):
         return MappingProxyType(
             {
                 "breadcrumbs": parent_breadcrumbs,
-                "browser_title": browser_page_title,
+                "title": title,
                 "model_group": self.model_group,
                 "groups": group_list,
                 "books": book_qs,
-                "issue_number_max": issue_number_max,
+                "zero_pad": zero_pad,
                 "num_pages": num_pages,
                 "total_count": total_count,
                 "admin_flags": self.admin_flags,

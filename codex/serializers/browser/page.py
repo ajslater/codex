@@ -80,7 +80,6 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    parent_name = CharField(read_only=True)
     group_name = CharField(read_only=True)
     group_count = IntegerField(read_only=True, allow_null=True)
 
@@ -90,14 +89,9 @@ class BrowserPageSerializer(Serializer):
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     breadcrumbs = ListSerializer(child=BrowserRouteSerializer())
-    browser_title = BrowserTitleSerializer(read_only=True)
+    title = BrowserTitleSerializer(read_only=True)
     covers_timestamp = IntegerField(read_only=True)
-    issue_number_max = DecimalField(
-        max_digits=16,
-        decimal_places=3,
-        read_only=True,
-        coerce_to_string=False,
-    )
+    zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)
     model_group = CharField(read_only=True)
     num_pages = IntegerField(read_only=True)

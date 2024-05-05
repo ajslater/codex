@@ -1,5 +1,7 @@
 """Views for reading comic books."""
 
+from typing import ClassVar
+
 from comicbox.box import Comicbox
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
@@ -9,6 +11,7 @@ from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FALSY
 
@@ -40,6 +43,7 @@ class ReaderPageView(BookmarkBaseView):
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
     content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type:ignore
 
     def _update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""

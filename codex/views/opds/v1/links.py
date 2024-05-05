@@ -142,15 +142,15 @@ class LinksMixin(FacetsMixin):
     def _root_links(self):
         """Navigation Root Links."""
         links = []
-        if route := self.obj.get("up_route"):
-            links += [self._link(route, Rel.UP)]
+        if up_route := self.get_last_route():
+            links += [self._link(up_route, Rel.UP)]
         page = self.kwargs.get("page", 1)
         if page > 1:
-            route = {**self.kwargs, "page": page - 1}
-            links += [self._link(route, Rel.PREV)]
+            prev_route = {**self.kwargs, "page": page - 1}
+            links += [self._link(prev_route, Rel.PREV)]
         if page < self.obj.get("num_pages", 1):
-            route = {**self.kwargs, "page": page + 1}
-            links += [self._link(route, Rel.NEXT)]
+            next_route = {**self.kwargs, "page": page + 1}
+            links += [self._link(next_route, Rel.NEXT)]
         return links
 
     @property

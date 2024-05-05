@@ -1,20 +1,18 @@
 <template>
-  <v-toolbar v-if="isCodexViewable" id="titleToolbar" elevation="8">
-    <BrowserUpButton />
+  <v-toolbar
+    id="titleToolbar"
+    :height="24"
+    :extension-height="24"
+    elevation="8"
+  >
     <v-toolbar-title class="codexToolbarTitle">
-      <span v-if="longBrowserTitlePrefix" id="titleToolbarPrefix">
-        {{ longBrowserTitlePrefix }}
-        <br />
-      </span>
-      <span id="titleToolbarMain">
-        {{ longBrowseTitleMain }}
-      </span>
-      <span v-if="longBrowseTitleSuffix" id="titleToolbarSuffix">
-        <br />
-        {{ longBrowseTitleSuffix }}
-      </span>
+      {{ title }}
     </v-toolbar-title>
-    <BrowserUpButton top />
+    <template v-if="subtitle" #extension>
+      <v-toolbar-title class="codexToolbarTitle codexToolbarSubtitle">
+        {{ subtitle }}
+      </v-toolbar-title>
+    </template>
   </v-toolbar>
 </template>
 
@@ -22,15 +20,11 @@
 import { mapGetters, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
-import BrowserUpButton from "@/components/browser/toolbars/title/browser-up-button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserHeader",
-  components: {
-    BrowserUpButton,
-  },
   head() {
     const names = [
       "browse comics",
@@ -43,26 +37,18 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
+      browserTitle: (state) => state.page.title,
       groupNames: (state) => state.choices.static.groupNames,
-      browserTitle: (state) => state.page.browserTitle,
       modelGroup: (state) => state.page.modelGroup,
     }),
-    ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
-    longBrowserTitlePrefix: function () {
-      return this.$route.params.group === "f"
-        ? this.browserTitle.parentName
-        : "";
-    },
-    longBrowseTitleMain: function () {
-      let browserTitle;
+    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    title() {
+      let title;
       if (Number(this.$route.params.pks) === 0) {
-        browserTitle = "All";
+        title = "All";
       } else {
         let names = [];
-        const { parentName, groupName, groupCount } = this.browserTitle;
-        if (parentName) {
-          names.push(parentName);
-        }
+        const { groupName, groupCount } = this.browserTitle;
         const group = this.$route.params.group;
         const formattedGroupName =
           group === "v" ? formattedVolumeName(groupName) : groupName;
@@ -73,12 +59,12 @@ export default {
           const formattedGroupCount = `of ${groupCount}`;
           names.push(formattedGroupCount);
         }
-        const delimiter = group === "f" ? "" : " ";
-        browserTitle = names.join(delimiter);
+        //const delimiter = group === "f" ? "" : " ";
+        title = names.join(" ");
       }
-      return browserTitle;
+      return title;
     },
-    longBrowseTitleSuffix: function () {
+    subtitle() {
       return this.$route.params.group === "f"
         ? ""
         : this.groupNames[this.modelGroup];
@@ -90,33 +76,18 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 #titleToolbar {
-  width: 100vw;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-$upButtonWidth: 64px;
-:deep(#upButton.v-btn) {
-  width: $upButtonWidth;
+  padding-bottom: 6px;
 }
 .codexToolbarTitle {
-  margin: auto;
-  padding-top: 4px;
   text-align: center;
-  line-height: 120%;
-  text-overflow: clip;
 }
-
-#titleToolbarPrefix,
-#titleToolbarSuffix {
+.codexToolbarSubtitle {
   color: rgb(var(--v-theme-textDisabled));
-  font-size: smaller;
+  font-size: 15px;
+  padding-top: 2px;
 }
 
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  #titleToolbar {
-    padding-left: 5px;
-    padding-right: 5px;
-  }
   .codexToolbarTitle {
     font-size: 1rem;
   }

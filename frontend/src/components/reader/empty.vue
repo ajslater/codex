@@ -11,7 +11,7 @@
 <script>
 import { mdiBookRemoveOutline } from "@mdi/js";
 
-import ReaderTitleToolbar from "@/components/reader/toolbars/reader-title-toolbar.vue";
+import ReaderTitleToolbar from "@/components/reader/toolbars/reader-toolbar-title.vue";
 
 export default {
   name: "ReaderEmpty",

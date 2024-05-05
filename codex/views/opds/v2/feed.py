@@ -190,7 +190,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         title = self._title(browser_page.get("browser_title"))
         number_of_items = browser_page["total_count"]
         current_page = self.kwargs.get("page")
-        up_route = browser_page["up_route"]
+        up_route = self.get_last_route()
         links = self.get_links(up_route)
         facets = self._get_facets()
 

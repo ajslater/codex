@@ -27,11 +27,6 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 
-const getZeroPad = function (issueNumberMax) {
-  return !issueNumberMax || issueNumberMax < 1
-    ? 1
-    : Math.floor(Math.log10(issueNumberMax)) + 1;
-};
 const redirectRoute = function (route) {
   if (route && route.params) {
     router.push(route).catch(console.warn);
@@ -75,8 +70,8 @@ export const useBrowserStore = defineStore("browser", {
         folderView: undefined,
         importMetadata: undefined,
       },
-      browserTitle: {
-        parentName: undefined,
+      breadcrumbs: CHOICES.browser.breadcrumbs,
+      title: {
         groupName: undefined,
         groupCount: undefined,
       },
@@ -86,10 +81,6 @@ export const useBrowserStore = defineStore("browser", {
       numPages: 1,
       groups: [],
       books: [],
-      routes: {
-        up: undefined,
-        last: undefined,
-      },
     },
     // LOCAL UI
     filterMode: "base",
@@ -155,22 +146,6 @@ export const useBrowserStore = defineStore("browser", {
       }
       return lowestGroup;
     },
-    parentModelGroup(state) {
-      let group = "";
-      if (!state.page || !state.page.routes || !state.page.routes.up) {
-        return group;
-      }
-      const upGroup = state.page.routes.up.group;
-      const index = GROUPS.indexOf(upGroup) + 1;
-      const childGroups = GROUPS.slice(index);
-      for (group of childGroups) {
-        const show = state.settings.show[group];
-        if (show) {
-          break;
-        }
-      }
-      return group;
-    },
     isSearchMode(state) {
       return Boolean(state.settings.q);
     },
@@ -179,9 +154,16 @@ export const useBrowserStore = defineStore("browser", {
         Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
       );
     },
-    upRoute(state) {
+    lastRoute(state) {
       const bc = state.page.breadcrumbs;
-      return bc ? bc[bc.length - 1] : {};
+      const route = {};
+      if (bc) {
+        route.name = "browser";
+        route.params = bc[bc.length - 1];
+      } else {
+        route.name = "home";
+      }
+      return route;
     },
   },
   actions: {
@@ -372,15 +354,9 @@ export const useBrowserStore = defineStore("browser", {
       const params = router.currentRoute.value.params;
       await API.loadBrowserPage(params, this.settings)
         .then((response) => {
-          const data = response.data;
-          const page = { ...response.data };
-          page.routes = {
-            last: params,
-          };
-          page.zeroPad = getZeroPad(data.issueNumberMax);
-          delete page.issueNumberMax;
+          const page = Object.freeze({ ...response.data });
           this.$patch((state) => {
-            state.page = Object.freeze(page);
+            state.page = page;
             state.choices.dynamic = undefined;
             state.browserPageLoaded = true;
           });

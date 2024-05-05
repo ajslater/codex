@@ -100,7 +100,7 @@ export const useReaderStore = defineStore("reader", {
         prev: false,
         next: false,
       },
-      close: CHOICES.browser.route,
+      close: CHOICES.browser.breadcrumbs[0],
     },
     bookChange: undefined,
     reactWithScroll: false,
