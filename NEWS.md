@@ -9,8 +9,10 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
-  - Browser, Search, and Cover query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
+  - Browser, Search, and Cover query optimizations.
+  - Breadcrumbs in the browser
+  - Smaller Browser controls.
   - Metadata tags can click to browse filtered on that tag.
   - Granular caching for covers in the browser.
   - Experimental API throttling support. See README.
