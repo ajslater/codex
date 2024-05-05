@@ -30,14 +30,8 @@ export default {
     ...mapState(useBrowserStore, {
       orderReverseSetting: (state) => state.settings.orderReverse,
     }),
-    density() {
-      return this.$vuetify.display.smAndDown ? "compact" : "default";
-    },
     title() {
       return this.orderReverseSetting ? "order descending" : "order ascending";
-    },
-    size() {
-      return this.$vuetify.display.smAndDown ? "small" : "default";
     },
     iconClasses() {
       return {
