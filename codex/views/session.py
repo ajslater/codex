@@ -1,6 +1,6 @@
 """Manage user sessions with appropriate defaults."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
 from typing import ClassVar
@@ -21,13 +21,7 @@ class SessionViewBaseBase(GenericAPIView, ABC):
     """Generic Session View."""
 
     # Must override both of these
-    @property
-    @classmethod
-    @abstractmethod
-    def SESSION_KEY(cls):  # noqa: N802, type: ignore
-        """Implement the session key string."""
-        raise NotImplementedError
-
+    SESSION_KEY = ""
     SESSION_DEFAULTS = MappingProxyType({})
 
     @classmethod

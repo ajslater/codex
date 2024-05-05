@@ -1,9 +1,10 @@
 """Browser Settings Filter Serializers."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import Field
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -88,13 +89,7 @@ def validate_str_null(values):
 class FilterListField(ListField, ABC):
     """Filter List field with custom arguments."""
 
-    @property
-    @classmethod
-    @abstractmethod
-    def CHILD_CLASS(cls):  # noqa: N802
-        """Child field class."""
-        raise NotImplementedError
-
+    CHILD_CLASS = Field
     VALIDATORS = ()
 
     def __init__(self, *args, **kwargs):
