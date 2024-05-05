@@ -123,10 +123,11 @@ class GroupACLMixin:
 
         if user and not isinstance(user, AnonymousUser):
             # Include groups are visible to users in the group
-            user_query = Q(**{f"{groups_rel}__user": user})
+            user_filter = {f"{groups_rel}__user": user}
             exclude_rel = f"{groups_rel}__groupauth__exclude"
-            auth_groups_query = Q(**{exclude_rel: False}) | ~Q(**{exclude_rel: True})
-            auth_query = auth_groups_query & user_query
+            exclude_query = ~Q(**user_filter, **{exclude_rel: True})
+            include_query = Q(**user_filter, **{exclude_rel: False}) | ~Q(**{exclude_rel: False})
+            auth_query = exclude_query & include_query
             query |= auth_query
 
         return query
