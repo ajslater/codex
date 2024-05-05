@@ -21,9 +21,9 @@
       <span v-html="title"></span>
     </v-toolbar-title>
     <v-toolbar-items v-if="!empty">
+      <ReaderArcPosition />
       <ReaderArcSelect />
       <MetadataDialog
-        id="tagButton"
         ref="metadataDialog"
         group="c"
         :toolbar="true"
@@ -42,7 +42,8 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
-import ReaderArcSelect from "@/components/reader/toolbars/reader-arc-select.vue";
+import ReaderArcPosition from "@/components/reader/toolbars/title/arc-position.vue";
+import ReaderArcSelect from "@/components/reader/toolbars/title/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
@@ -52,6 +53,7 @@ export default {
   components: {
     MetadataDialog,
     ReaderArcSelect,
+    ReaderArcPosition,
     SettingsDrawerButton,
   },
   data() {
@@ -161,7 +163,7 @@ export default {
 }
 
 #toolbarTitle {
-  font-size: clamp(8pt, 2.5vw, 18pt);
+  font-size: clamp(10pt, 2.75vw, 18pt);
   line-height: normal;
 }
 

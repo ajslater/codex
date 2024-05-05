@@ -86,6 +86,7 @@ export const useBrowserStore = defineStore("browser", {
     filterMode: "base",
     zeroPad: 0,
     browserPageLoaded: false,
+    isSearchOpen: false,
   }),
   getters: {
     topGroupChoices() {
@@ -129,8 +130,19 @@ export const useBrowserStore = defineStore("browser", {
     isCodexViewable() {
       return useAuthStore().isCodexViewable;
     },
-    isDefaultBookmarkValueSelected(state) {
-      return DEFAULT_BOOKMARK_VALUES.has(state.settings.filters.bookmark);
+    isDynamicFiltersSelected(state) {
+      for (const [name, array] of Object.entries(state.settings.filters)) {
+        if (name !== "bookmark" && array && array.length > 0) {
+          return true;
+        }
+      }
+      return false;
+    },
+    isFiltersClearable(state) {
+      const isDefaultBookmarkValueSelected = DEFAULT_BOOKMARK_VALUES.has(
+        state.settings.filters.bookmark,
+      );
+      return !isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected;
     },
     lowestShownGroup(state) {
       let lowestGroup = "r";
@@ -185,6 +197,9 @@ export const useBrowserStore = defineStore("browser", {
       const lowerIdType = idType.toLowerCase();
       const longName = this.choices.static.identifierType[lowerIdType];
       return longName || idType;
+    },
+    setIsSearchOpen(value) {
+      this.isSearchOpen = value;
     },
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
@@ -279,9 +294,17 @@ export const useBrowserStore = defineStore("browser", {
       this.browserPageLoaded = true;
       await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
     },
-    async clearFilters() {
-      this.settings.filters = { bookmark: "ALL" };
-      await this.setSettings({});
+    async clearFilters(clearSearch = false) {
+      this.$patch((state) => {
+        state.settings.filters = { bookmark: "ALL" };
+        state.filterMode = "base";
+        if (clearSearch) {
+          state.settings.q = "";
+        }
+        state.browserPageLoaded = true;
+      });
+      useCommonStore().setTimestamp();
+      await this.loadBrowserPage();
     },
     async setBookmarkFinished(params, finished) {
       if (!this.isCodexViewable) {

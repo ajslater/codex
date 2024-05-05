@@ -1,17 +1,21 @@
 <template>
   <ToolbarSelect
-    v-bind="$attrs"
     v-model="topGroup"
     class="topGroupSelect"
     select-label="top group"
     :items="topGroupChoices"
-    :max-select-len="topGroupChoicesMaxLen - 2"
-    :mobile-len-adj="-1"
+    :max-select-len="topGroupChoicesMaxLen - 2.25"
   >
     <template #item="{ item, props }">
       <!-- Divider in items not implemented yet in Vuetify 3 -->
       <v-divider v-if="DIVIDED_VALUES.has(item.value)" />
-      <v-list-item v-bind="props" :title="item.title" :value="item.value" />
+      <v-list-item
+        v-bind="props"
+        density="compact"
+        variant="plain"
+        :title="item.title"
+        :value="item.value"
+      />
     </template>
   </ToolbarSelect>
 </template>
@@ -58,9 +62,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-:deep(.v-field-label--floating) {
-  padding-left: calc(env(safe-area-inset-left) / 3);
-}
-</style>

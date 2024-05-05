@@ -22,9 +22,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.link {
-/*  display: inline-block; */
-}
 .crumb {
   display: inline-flex;
 }

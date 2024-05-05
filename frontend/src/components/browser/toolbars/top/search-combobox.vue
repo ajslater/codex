@@ -1,5 +1,6 @@
 <template>
   <v-combobox
+    id="searchbox"
     ref="searchbox"
     v-model="query"
     v-model:menu="menu"
@@ -18,7 +19,7 @@
     @click:clear="doSearch"
     @click:prepend-inner="doSearch"
     @keydown.enter="doSearch"
-    @keydown.esc="menu = false"
+    @keydown.esc="doEscape"
   />
 </template>
 
@@ -52,7 +53,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserStore, ["setSettings", "setIsSearchOpen"]),
     addToMenu(q) {
       if (!q || this.items.includes(q)) {
         return;
@@ -61,12 +62,36 @@ export default {
       updateditems.unshift(q);
       this.items = updateditems.slice(0, MAX_ITEMS);
     },
+    startHideTimer() {
+      const q = this.query ? this.query.trim() : "";
+      if (!q) {
+        setTimeout(() => {
+          const q = this.query ? this.query.trim() : "";
+          if (!q) {
+            this.setIsSearchOpen(false);
+          }
+        }, 5000);
+      }
+    },
     doSearch() {
       this.menu = false;
       const q = this.query ? this.query.trim() : "";
       this.setSettings({ q });
       this.addToMenu(q);
+      this.startHideTimer();
+    },
+    doEscape() {
+      this.menu = false;
+      this.startHideTimer();
     },
   },
 };
 </script>
+
+<style lang="scss" scoped>
+/*
+#searchbox{
+  font-size: small;
+}
+*/
+</style>

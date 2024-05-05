@@ -9,10 +9,19 @@
     :menu-props="{ maxHeight: undefined }"
     hide-details="auto"
     :style="style"
-    :variant="variant"
+    variant="plain"
   >
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />
+    </template>
+    <template #item="{ item, props }">
+      <v-list-item
+        v-bind="props"
+        density="compact"
+        variant="plain"
+        :title="item.title"
+        :value="item.value"
+      />
     </template>
   </v-select>
 </template>
@@ -29,30 +38,22 @@ export default {
       type: Number,
       default: 0,
     },
-    mobileLenAdj: {
-      type: Number,
-      default: 0,
-    },
-    variant: {
-      type: String,
-      default: "plain",
-    },
   },
   computed: {
     style() {
-      const adj = this.$vuetify.display.smAndDown ? this.mobileLenAdj : 0;
-      const val = this.maxSelectLen + adj;
-      const len = val + "em";
-      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
+      if (this.maxSelectLen) {
+        const len = this.maxSelectLen * 0.7 + "em";
+        return `width: ${len}`;
+      }
+      return "";
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-@use "vuetify/styles/settings/variables" as vuetify;
-:deep(.v-field-label) {
-  top: 12px;
+:deep(.v-label.v-field-label) {  
+  top: 13px;
 }
 :deep(.v-label.v-field-label--floating) {
   opacity: var(--v-disabled-opacity) !important;
@@ -61,16 +62,13 @@ export default {
 :deep(.v-field--focused .v-label.v-field-label--floating) {
   opacity: var(--v-medium-emphasis-opacity) !important;
 }
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  :deep(.v-field) {
-    --v-field-padding-start: 4px;
-    --v-field-padding-end: 0px;
-  }
-  :deep(.v-field--appended) {
-    padding-inline-end: 0px;
-  }
-  :deep(.v-icon) {
-    margin-left: 0px;
-  }
+:deep(.v-field__input) {
+  padding-right: 0px;
+}
+:deep(.v-select__menu-icon) {
+  margin-left: 0px !important;
+}
+:deep(.v-select__selection){
+  font-size: small;
 }
 </style>

@@ -4,8 +4,7 @@
     class="orderBySelect"
     select-label="order by"
     :items="orderByChoices"
-    :max-select-len="orderByChoicesMaxLen - 3.5"
-    :mobile-len-adj="-2"
+    :max-select-len="orderByChoicesMaxLen - 4"
     v-bind="$attrs"
   />
 </template>

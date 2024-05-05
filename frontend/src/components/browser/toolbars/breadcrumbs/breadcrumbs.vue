@@ -141,4 +141,7 @@ export default {
 #crumbs :deep(a:hover) {
   color: white;
 }
+#headCrumbs:first-child :deep(.v-icon) {
+  font-size: xx-large;
+}
 </style>

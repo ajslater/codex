@@ -3,46 +3,68 @@
     v-model:menu="menu"
     class="filterBySelect"
     select-label="filter by"
-    :clearable="isFiltersClearable"
     :items="bookmarkChoices"
     :menu-props="{
       contentClass: filterMenuClass,
       maxHeight: undefined,
     }"
     :model-value="bookmarkFilter"
-    :max-select-len="filterByChoicesMaxLen + 1.5"
-    :mobile-len-adj="-1.5"
-    variant="solo"
-    @click:clear="onClear"
+    :max-select-len="filterByChoicesMaxLen - 1"
     @update:model-value="onUpdateModelValue"
     @update:menu="onMenu"
   >
+    <!--
+    :clearable="isFiltersClearable"
+    @click:clear="onClear"
+    -->
     <template #selection="{ item }">
-      {{ item.title }}
-      <v-icon v-if="isDynamicFiltersSelected" class="filterSuffix">
+      <span class="codexSelection"> {{ item.title }} </span>
+      <v-icon
+        v-if="isDynamicFiltersSelected"
+        class="filterSuffix"
+        size="x-small"
+      >
         {{ mdiFilterMultipleOutline }}
       </v-icon>
     </template>
+    <template #prepend-item>
+      <v-list-item
+        v-if="isFiltersClearable"
+        density="compact"
+        variant="plain"
+        class="clearFilter"
+        @click="onClear"
+      >
+        Clear Filter<v-icon class="clearIcon">{{
+          mdiCloseCircleOutline
+        }}</v-icon>
+      </v-list-item>
+    </template>
     <template #append-item>
       <v-divider />
-      <v-list-item v-if="dynamicChoiceNames === undefined">
+      <v-list-item
+        v-if="dynamicChoiceNames === undefined"
+        density="compact"
+        variant="plain"
+      >
         <v-progress-linear indeterminate rounded />
       </v-list-item>
-      <div v-else-if="dynamicChoiceNames.length > 0">
-        <BrowserFilterSubMenu
-          v-for="filterName of dynamicChoiceNames"
-          :key="filterName"
-          :name="filterName"
-          @selected="onSubMenuSelected"
-        />
-      </div>
-      <v-list-item v-else class="noChoices"> No filters available </v-list-item>
+      <BrowserFilterSubMenu
+        v-for="filterName of dynamicChoiceNames"
+        v-else-if="dynamicChoiceNames.length > 0"
+        :key="filterName"
+        :name="filterName"
+        @selected="onSubMenuSelected"
+      />
+      <v-list-item v-else class="noChoices" density="compact" variant="plain">
+        No filters available
+      </v-list-item>
     </template>
   </ToolbarSelect>
 </template>
 
 <script>
-import { mdiCloseCircle, mdiFilterMultipleOutline } from "@mdi/js";
+import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
@@ -58,6 +80,7 @@ export default {
   extends: ToolbarSelect,
   data() {
     return {
+      mdiCloseCircleOutline,
       mdiFilterMultipleOutline,
       menu: false,
     };
@@ -66,26 +89,14 @@ export default {
     ...mapGetters(useBrowserStore, [
       // eslint-disable-next-line no-secrets/no-secrets
       "filterByChoicesMaxLen",
-      "isDefaultBookmarkValueSelected",
+      "isDynamicFiltersSelected",
+      "isFiltersClearable",
     ]),
     ...mapState(useBrowserStore, {
       bookmarkChoices: (state) => state.choices.static.bookmark,
       bookmarkFilter: (state) =>
         state.settings.filters.bookmark || state.choices.static.bookmark[0],
       filters: (state) => state.settings.filters,
-      isDynamicFiltersSelected: function (state) {
-        for (const [name, array] of Object.entries(state.settings.filters)) {
-          if (name !== "bookmark" && array && array.length > 0) {
-            return true;
-          }
-        }
-        return false;
-      },
-      isFiltersClearable: function () {
-        return (
-          !this.isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected
-        );
-      },
       filterMenuClass: function (state) {
         // Lets me hide bookmark menu items with css when the filterMode
         //   changes.
@@ -109,9 +120,6 @@ export default {
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
-    filterInnerIcon: function () {
-      return this.isFiltersClearable ? mdiCloseCircle : "";
-    },
   },
   methods: {
     ...mapActions(useBrowserStore, [
@@ -142,32 +150,17 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@use "vuetify/styles/settings/variables" as vuetify;
-:deep(.v-field-label) {
-  margin-left: 8px;
-}
-:deep(.v-field__input) {
-  padding-left: 8px;
-}
 .filterSuffix {
   margin-left: 0.25em;
-}
-:deep(.v-field__clearable) {
-  margin-inline-start: 0;
-  margin-inline-end: 0;
 }
 .noChoices {
   color: rgb(var(--v-theme-textDisabled));
 }
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  :deep(.v-field-label) {
-    margin-left: 0;
-  }
-  :deep(.v-field__input) {
-    padding-left: 0px;
-  }
-  :deep(.v-field__input) {
-    padding-left: 4px;
-  }
+.clearFilter {
+  color: black;
+  background-color: rgb(var(--v-theme-primary))
+}
+.clearIcon {
+  float: right;
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
   <v-progress-circular
     v-if="progressEnabled"
+    class="progress"
     :indeterminate="progress == null"
     :model-value="progress"
-    class="progress"
-    size="36"
+    :size="size"
     aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
   />
 </template>
@@ -42,6 +42,9 @@ export default {
         return;
       }
       return (100 * complete) / total;
+    },
+    size() {
+      return this.$vuetify.display.smAndDown ? "small" : "default";
     },
   },
   created() {

@@ -1,14 +1,10 @@
 <template>
-  <span v-if="arcPosition" id="arcPosition">{{ arcPosition }}</span>
-  <v-select
-    v-if="arcItems.length > 1"
+  <ToolbarSelect
     v-model="arc"
     class="arcSelect"
-    density="compact"
-    hide-details="auto"
-    label="Order"
-    variant="plain"
+    select-label="order"
     :items="arcItems"
+    :disabled="!arcItems || arcItems.length <= 1"
   >
     <template #item="{ item, props }">
       <v-list-item
@@ -21,21 +17,17 @@
       />
     </template>
     <template #selection="{ item, props }">
-      <v-list-item v-bind="props" density="compact" variant="plain">
-        <v-icon>
-          {{ arcIcon(item.raw.group) }}
-        </v-icon>
-      </v-list-item>
+      <v-icon size="large" v-bind="props" class="arcSelectIcon">
+        {{ arcIcon(item.raw.group) }}
+      </v-icon>
     </template>
-  </v-select>
-  <v-icon v-else id="onlyArc" :title="arcName">
-    {{ arcIcon(arcGroup) }}
-  </v-icon>
+  </ToolbarSelect>
 </template>
 <script>
 import { mdiBookMultiple, mdiCheck, mdiFolderOutline, mdiRedo } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const ARC_ICONS = {
@@ -52,6 +44,9 @@ const LABELS = {
 
 export default {
   name: "ReaderArcSelect",
+  components: {
+    ToolbarSelect,
+  },
   computed: {
     ...mapState(useReaderStore, {
       arcGroup: (state) => state.arc?.group || "s",
@@ -75,13 +70,6 @@ export default {
           items.push(item);
         }
         return items;
-      },
-      arcPosition: function (state) {
-        const arc = state.arc;
-        if (arc && arc.index && arc.count) {
-          return `${arc.index}/${arc.count}`;
-        }
-        return "";
       },
     }),
     arc: {
@@ -119,43 +107,17 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@use "vuetify/styles/settings/variables" as vuetify;
-// Lower label from out of bounds
-:deep(.v-label.v-field-label) {
-  top: 13px;
+:deep(.v-select__selection) {
+  color: rgb(var(--v-theme-textSecondary)) !important;
 }
-// Compact input spacing
-:deep(.v-field__input) {
-  padding-right: 0;
-}
-// Compact list item spacing
-:deep(.v-list-item) {
-  padding: 0;
-}
-:deep(.v-list-item__prepend) {
-  display: block;
-  width: 24px !important;
-  margin-right: 5px;
-}
-:deep(.v-select__menu-icon) {
-  margin: 0;
-}
-#onlyArc {
-  margin-top: 13px;
+:deep(.v-select__selection .arcSelectIcon) {
+  top: 4px;
   color: rgb(var(--v-theme-textSecondary));
 }
-// Arc Position
-#arcPosition {
-  padding-top: 13px;
-  padding-left: 10px;
-  padding-right: 10px;
-  color: rgb(var(--v-theme-textSecondary));
-  text-align: center;
+:deep(.v-select__selection:hover) .arcSelectIcon {
+  color: white;
 }
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  #arcPosition {
-    padding-left: 0px;
-    padding-right: 0px;
-  }
+:deep(.v-list-item__spacer) {
+  max-width: 12px; 
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
-  <v-btn icon title="Settings" @click.prevent="onClick">
+  <ScaleButton variant="plain" icon title="Settings" @click.prevent="onClick">
     <v-icon>
       {{ mdiMenu }}
     </v-icon>
     <component :is="AdminSettingsButtonProgress" v-if="isUserAdmin" />
-  </v-btn>
+  </ScaleButton>
 </template>
 
 <script>
@@ -12,6 +12,7 @@ import { mdiMenu } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
+import ScaleButton from "@/components/scale-button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
@@ -26,6 +27,7 @@ export default {
   name: "SettingsDrawerButton",
   components: {
     AdminSettingsButtonProgress,
+    ScaleButton,
   },
   data() {
     return {

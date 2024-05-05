@@ -1,7 +1,12 @@
 <template>
   <div>
     <v-slide-x-transition hide-on-leave>
-      <v-list-item v-if="filterMode === 'base'" @click="setUIFilterMode(name)">
+      <v-list-item
+        v-if="filterMode === 'base'"
+        density="compact"
+        variant="plain"
+        @click="setUIFilterMode(name)"
+      >
         <v-list-item-title class="filterMenu">
           {{ title }}
           <v-icon v-if="filter && filter.length > 0" class="nameChevron">
@@ -55,6 +60,8 @@
             title="None"
             :value="-1"
             class="noneItem"
+            density="compact"
+            variant="plain"
           />
           <v-list-item
             v-for="item of vuetifyItems"
@@ -62,6 +69,8 @@
             :title="itemTitle(item)"
             :value="item.value"
             :class="{ noneItem: +item.value == nullCode }"
+            density="compact"
+            variant="plain"
           />
         </v-list>
       </div>

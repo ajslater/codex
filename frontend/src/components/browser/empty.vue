@@ -14,16 +14,24 @@
       >
       for help
     </div>
+    <v-btn
+      v-if="isFiltersClearable"
+      class="clearFilter"
+      @click="clearFilters(true)"
+    >
+      Clear Filters and Search<v-icon :icon="mdiCloseCircleOutline" />
+    </v-btn>
   </v-empty-state>
 </template>
 
 <script>
 import {
   mdiBookSearchOutline,
+  mdiCloseCircleOutline,
   mdiOpenInNew,
   mdiShieldCrownOutline,
 } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -33,6 +41,7 @@ export default {
   data() {
     return {
       mdiOpenInNew,
+      mdiCloseCircleOutline,
     };
   },
   computed: {
@@ -40,6 +49,7 @@ export default {
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
     }),
+    ...mapGetters(useBrowserStore, ["isFiltersClearable"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
     }),
@@ -66,11 +76,18 @@ export default {
       return !this.librariesExist && this.isUserAdmin;
     },
   },
+  methods: {
+    ...mapActions(useBrowserStore, ["clearFilters"]),
+  },
 };
 </script>
 
 <style scoped lang="scss">
 .empty {
   color: rgb(var(--v-theme-textDisabled));
+}
+.clearFilter {
+  color: black;
+  background-color: rgb(var(--v-theme-primary))
 }
 </style>
