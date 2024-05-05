@@ -6,10 +6,7 @@
         :inputs="AdminLibraryCreateUpdateInputs"
       />
     </header>
-    <v-data-table-virtual
-      class="adminTable"
-      fixed-header
-      item-value="pk"
+    <AdminTable
       :headers="headers"
       :items="libraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"
@@ -76,7 +73,7 @@
           density="compact"
         />
       </template>
-    </v-data-table-virtual>
+    </AdminTable>
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
@@ -92,6 +89,7 @@ import {
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -106,6 +104,7 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "AdminLibrariesTab",
   components: {
+    AdminTable,
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
     AdminCreateUpdateDialog,

@@ -7,14 +7,7 @@
         max-width="20em"
       />
     </header>
-    <v-data-table-virtual
-      fixed-header
-      item-value="pk"
-      item-title="username"
-      :headers="headers"
-      :items="users"
-      class="adminTable"
-    >
+    <AdminTable item-title="username" :headers="headers" :items="users">
       <template #no-data>
         <td class="adminNoData" colspan="100%">
           No Users.
@@ -80,7 +73,7 @@
           density="compact"
         />
       </template>
-    </v-data-table-virtual>
+    </AdminTable>
   </div>
 </template>
 
@@ -88,6 +81,7 @@
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -100,6 +94,7 @@ import { useAuthStore } from "@/stores/auth";
 export default {
   name: "AdminUsersTab",
   components: {
+    AdminTable,
     AdminDeleteRowDialog,
     ChangePasswordDialog,
     AdminCreateUpdateDialog,

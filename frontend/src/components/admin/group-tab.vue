@@ -7,14 +7,7 @@
         :inputs="AdminGroupCreateUpdateInputs"
       />
     </header>
-    <v-data-table-virtual
-      class="adminTable"
-      fixed-header
-      item-value="pk"
-      item-title="name"
-      :headers="headers"
-      :items="groups"
-    >
+    <AdminTable item-title="name" :headers="headers" :items="groups">
       <template #no-data>
         <td class="adminNoData" colspan="100%">No groups</td>
       </template>
@@ -48,7 +41,7 @@
           density="compact"
         />
       </template>
-    </v-data-table-virtual>
+    </AdminTable>
     <div id="groupHelp">
       <h3>Group Logic</h3>
       <p>
@@ -118,6 +111,7 @@
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import GroupChip from "@/components/admin/group-chip.vue";
@@ -130,6 +124,7 @@ const GROUP_HELP_HEIGHT = 180;
 export default {
   name: "AdminGroupsTab",
   components: {
+    AdminTable,
     AdminDeleteRowDialog,
     AdminCreateUpdateDialog,
     RelationChips,

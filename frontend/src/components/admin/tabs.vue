@@ -94,15 +94,4 @@ $task-width: 256px;
 .rightMargin {
   width: calc(100% - 256px) !important;
 }
-:deep(.adminTable) {
-  /* Lets data table contents overflow scroll */
-  max-width: 100vw;
-}
-:deep(.adminTable thead > tr > th, .adminTable tbody > tr:nth-child(even)) {
-  background-color: rgb(var(--v-theme-background)) !important;
-}
-:deep(.adminNoData) {
-  padding: 1em;
-  text-align: center;
-}
 </style>
