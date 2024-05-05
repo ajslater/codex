@@ -12,9 +12,9 @@
       </div>
     </div>
     <ReaderEmpty v-else />
+    <ReaderSettingsDrawer />
   </v-main>
   <Unauthorized v-else />
-  <ReaderSettingsDrawer />
 </template>
 
 <script>

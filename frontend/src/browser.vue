@@ -3,9 +3,9 @@
     <BrowserHeadToolbars />
     <BrowserMain />
     <BrowserNavToolbar />
+    <BrowserSettingsDrawer />
   </v-main>
   <Unauthorized v-else />
-  <BrowserSettingsDrawer />
 </template>
 
 <script>

@@ -2,9 +2,9 @@
   <v-main v-if="isUserAdmin">
     <AdminTitleToolbar />
     <AdminTabs />
+    <AdminSettingsDrawer />
   </v-main>
-  <Unauthorized v-else :admin="true" />
-  <AdminSettingsDrawer />
+  <Unauthorized v-else />
 </template>
 
 <script>

@@ -1,5 +1,5 @@
 <template>
-  <v-main id="main">
+  <v-main v-if="isCodexViewable" id="main">
     <h1 id="httpCode">
       {{ code }}
     </h1>
@@ -10,9 +10,15 @@
       <h2>Codex Home</h2>
     </router-link>
   </v-main>
+  <Unauthorized v-else />
 </template>
 
 <script>
+import { mapGetters } from "pinia";
+
+import Unauthorized from "@/components/unauthorized.vue";
+import { useAuthStore } from "@/stores/auth";
+
 const TITLES = {
   400: "Bad Request",
   403: "Forbidden",
@@ -23,10 +29,14 @@ Object.freeze(TITLES);
 
 export default {
   name: "HttpError",
+  components: {
+    Unauthorized,
+  },
   data() {
     return {};
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     code: function () {
       return +this.$route.params.code;
     },

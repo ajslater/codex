@@ -1,51 +1,48 @@
 <template>
-  <v-empty-state
-    class="empty"
-    headline="Unauthorized"
-    :title="empty.title"
-    :text="empty.text"
-    :icon="empty.icon"
-  />
+  <v-main>
+    <v-empty-state
+      class="empty"
+      headline="Unauthorized"
+      :text="text"
+      :icon="mdiLockOutline"
+    >
+      <div class="login">
+        <AuthMenu />
+      </div>
+    </v-empty-state>
+  </v-main>
 </template>
 
 <script>
-import { mdiLogin } from "@mdi/js";
+import { mdiLockOutline } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
+import AuthMenu from "@/components/auth/auth-menu.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "UnauthorizedEmptyState",
+  components: {
+    AuthMenu,
+  },
   props: {
     admin: {
       type: Boolean,
       default: false,
     },
   },
+  data() {
+    return {
+      mdiLockOutline,
+    };
+  },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
     }),
-    empty() {
-      const res = {
-        headline: "Unauthorized",
-        icon: mdiLogin,
-      };
-      res.title = "Log in ";
-      if (this.registration) {
-        res.title += "or register ";
-      }
-      if (this.admin && !this.isUserAdmin) {
-        res.title += "as an administrator ";
-      }
-      res.title += "to view this page";
-      if (!this.registration) {
-        res.text = "Registration is disabled";
-      } else {
-        res.text = "";
-      }
-      return res;
+    text() {
+      return this.registration ? "" : "Registration is disabled";
     },
   },
 };
@@ -54,5 +51,8 @@ export default {
 <style scoped lang="scss">
 .empty {
   color: rgb(var(--v-theme-textDisabled));
+}
+.login {
+  color: rgb(var(--v-theme-primary));
 }
 </style>
