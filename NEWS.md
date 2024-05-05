@@ -9,7 +9,7 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
-  - Opt-out search truncating optimizations in browser settings drawer.
+  - Search one page of results at a time for speed.
   - Browser, Search, and Cover query optimizations.
   - Breadcrumbs in the browser
   - Smaller Browser controls.
