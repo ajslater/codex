@@ -164,6 +164,7 @@ export default {
   border-color: rbg(var(--v-theme-primary));
 }
 .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
+  background-color: transparent;
   opacity: 1;
 }
 .bookCoverProgress {
