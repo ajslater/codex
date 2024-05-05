@@ -87,7 +87,7 @@ $buttonColorHover: rgb(var(--v-theme-linkHover));
 :deep(.cardControlButton:hover) {
   color: $buttonColorHover !important;
 }
-:deep(.v-btn--variant-text .v-btn__overlay) {
+:deep(.v-btn__overlay) {
   background-color: transparent !important;
 }
 </style>
