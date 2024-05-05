@@ -300,6 +300,8 @@ export const useBrowserStore = defineStore("browser", {
         state.filterMode = "base";
         if (clearSearch) {
           state.settings.q = "";
+          state.settings.orderBy = "sort_name";
+          state.settings.orderReverse = false;
         }
         state.browserPageLoaded = true;
       });
