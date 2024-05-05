@@ -55,6 +55,7 @@ import _ from "lodash";
 import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
+import GroupChip from "@/components/admin/group-chip.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["name", "userSet", "librarySet", "exclude"];
@@ -71,6 +72,7 @@ export default {
   name: "AdminGroupCreateUpdateInputs",
   components: {
     AdminRelationPicker,
+    GroupChip,
   },
   props: {
     oldRow: {
