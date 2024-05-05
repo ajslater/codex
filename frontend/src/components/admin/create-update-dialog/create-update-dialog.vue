@@ -28,7 +28,7 @@
 import _ from "lodash";
 import { mapActions } from "pinia";
 
-import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
+import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/create-update-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 

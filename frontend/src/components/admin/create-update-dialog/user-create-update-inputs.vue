@@ -46,7 +46,7 @@
 import _ from "lodash";
 import { mapActions, mapState } from "pinia";
 
-import AdminRelationPicker from "@/components/admin/relation-picker.vue";
+import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["username", "isStaff", "isActive", "groups"];

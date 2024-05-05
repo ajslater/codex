@@ -13,7 +13,7 @@ import { mapGetters } from "pinia";
 
 import AdminTitleToolbar from "@/components/admin/admin-title-toolbar.vue";
 import AdminSettingsDrawer from "@/components/admin/drawer/admin-settings-drawer.vue";
-import AdminTabs from "@/components/admin/tabs.vue";
+import AdminTabs from "@/components/admin/tabs/tabs.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 

@@ -111,12 +111,12 @@
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
-import AdminTable from "@/components/admin/admin-table.vue";
-import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
-import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
+import AdminGroupCreateUpdateInputs from "@/components/admin/create-update-dialog/group-create-update-inputs.vue";
 import GroupChip from "@/components/admin/group-chip.vue";
-import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
-import RelationChips from "@/components/admin/relation-chips.vue";
+import AdminTable from "@/components/admin/tabs/admin-table.vue";
+import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
+import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const GROUP_HELP_HEIGHT = 180;

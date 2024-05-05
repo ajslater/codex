@@ -41,9 +41,9 @@
 import _ from "lodash";
 import { mapActions, mapState } from "pinia";
 
-import AdminRelationPicker from "@/components/admin/relation-picker.vue";
-import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
-import TimeTextField from "@/components/admin/time-text-field.vue";
+import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
+import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
+import TimeTextField from "@/components/admin/create-update-dialog/time-text-field.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];

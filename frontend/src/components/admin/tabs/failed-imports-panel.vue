@@ -91,7 +91,7 @@
 import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
 import { mapState, mapWritableState } from "pinia";
 
-import DateTimeColumn from "@/components/admin/datetime-column.vue";
+import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
@@ -133,5 +133,5 @@ export default {
 h4 {
   padding-top: 0.5em;
 }
-@import "../anchors.scss";
+@import "../../anchors.scss";
 </style>

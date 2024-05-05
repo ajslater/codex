@@ -89,13 +89,13 @@ import {
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
-import AdminTable from "@/components/admin/admin-table.vue";
-import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
-import DateTimeColumn from "@/components/admin/datetime-column.vue";
-import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
-import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue";
-import AdminLibraryCreateUpdateInputs from "@/components/admin/library-create-update-inputs.vue";
-import RelationChips from "@/components/admin/relation-chips.vue";
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
+import AdminLibraryCreateUpdateInputs from "@/components/admin/create-update-dialog/library-create-update-inputs.vue";
+import AdminTable from "@/components/admin/tabs/admin-table.vue";
+import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
+import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
+import AdminFailedImportsPanel from "@/components/admin/tabs/failed-imports-panel.vue";
+import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
