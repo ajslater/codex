@@ -168,10 +168,11 @@ export const useBrowserStore = defineStore("browser", {
     },
     lastRoute(state) {
       const bc = state.page.breadcrumbs;
+      const params = bc[bc.length - 1];
       const route = {};
-      if (bc) {
+      if (params) {
         route.name = "browser";
-        route.params = bc[bc.length - 1];
+        route.params = params;
       } else {
         route.name = "home";
       }
