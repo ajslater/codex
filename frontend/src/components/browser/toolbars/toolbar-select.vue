@@ -42,8 +42,9 @@ export default {
   computed: {
     style() {
       if (this.maxSelectLen) {
+        const attr = this.$vuetify.display.xs ? "max-width" : "width";
         const len = this.maxSelectLen * 0.7 + "em";
-        return `width: ${len}`;
+        return `${attr}: ${len}`;
       }
       return "";
     },
