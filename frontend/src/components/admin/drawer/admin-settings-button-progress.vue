@@ -44,7 +44,7 @@ export default {
       return (100 * complete) / total;
     },
     size() {
-      return this.$vuetify.display.smAndDown ? "small" : "default";
+      return this.$vuetify.display.xs ? "small" : "default";
     },
   },
   created() {
