@@ -40,7 +40,7 @@ export default {
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
-    ...mapGetters(useBrowserStore, ["isSearchMode", "isSearchLimitedMode"]),
+    ...mapGetters(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
@@ -50,7 +50,7 @@ export default {
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
-      searchResultsLimit: (state) => state.settings.searchResultsLimit,
+      //searchResultsLimit: (state) => state.settings.searchResultsLimit,
       cards: (state) => [
         ...(state.page.groups ?? []),
         ...(state.page.books ?? []),
@@ -70,19 +70,21 @@ export default {
     },
     searchLimitMessage() {
       let res = "";
-      if (this.isSearchLimitedMode) {
-        const page = +this.$route.params.page;
-        if (this.showPlaceHolder) {
-          const limit = this.searchResultsLimit * page;
-          res += `Searching for ${limit} entries...`;
-        } else if (this.numPages > page) {
-          const limit = this.searchResultsLimit * page;
-          res += `Search results truncated to ${limit} entries.`;
-          res += " Advance the page to look for more.";
-        }
+      // if (this.isSearchLimitedMode) {
+      const page = +this.$route.params.page;
+      // const limit = this.searchResultsLimit * page;
+      const limit = 100 * page;
+      if (this.showPlaceHolder) {
+        res += `Searching for ${limit} entries...`;
+      } else if (this.numPages > page) {
+        res += `Search results truncated to ${limit} entries.`;
+        res += " Advance the page to look for more.";
+      }
+      /*
       } else if (this.isSearchMode) {
         res = "Select incremental search in the side bar to search faster";
       }
+      */
       return res;
     },
   },

@@ -42,7 +42,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["isSearchMode", "isSearchLimitedMode"]),
+    ...mapGetters(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       numPages: (state) => state.page.numPages,
     }),
@@ -67,9 +67,8 @@ export default {
       );
     },
     showMore() {
-      return (
-        this.more && this.isSearchLimitedMode && this.toPage === this.numPages
-      );
+      return this.more && this.toPage === this.numPages;
+      // && this.isSearchLimitedMode
     },
   },
   watch: {

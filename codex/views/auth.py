@@ -126,7 +126,9 @@ class GroupACLMixin:
             user_filter = {f"{groups_rel}__user": user}
             exclude_rel = f"{groups_rel}__groupauth__exclude"
             exclude_query = ~Q(**user_filter, **{exclude_rel: True})
-            include_query = Q(**user_filter, **{exclude_rel: False}) | ~Q(**{exclude_rel: False})
+            include_query = Q(**user_filter, **{exclude_rel: False}) | ~Q(
+                **{exclude_rel: False}
+            )
             auth_query = exclude_query & include_query
             query |= auth_query
 

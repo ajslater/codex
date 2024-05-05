@@ -36,7 +36,7 @@ class BrowserSettingsSerializer(Serializer):
     q = CharField(allow_blank=True, required=False)
     query = CharField(allow_blank=True, required=False)  # OPDS 2.0
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
-    search_results_limit = IntegerField(required=False)
+    # search_results_limit = IntegerField(required=False)
     twenty_four_hour_time = BooleanField(required=False)
     top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
     opds_metadata = BooleanField(required=False)

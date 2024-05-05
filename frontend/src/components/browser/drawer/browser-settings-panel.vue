@@ -14,6 +14,7 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
+  <!--
   <v-checkbox
     v-tooltip="{
       openDelay: 1000,
@@ -26,6 +27,7 @@
     :model-value="Boolean(searchResultsLimit)"
     @update:model-value="setSearchResultsLimit($event)"
   />
+  -->
   <SearchHelp />
   <v-divider />
   <v-checkbox
@@ -58,7 +60,7 @@ export default {
     }),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices?.static?.settingsGroup || {},
-      searchResultsLimit: (state) => state.settings?.searchResultsLimit || 100,
+      // searchResultsLimit: (state) => state.settings?.searchResultsLimit || 100,
       showSettings: (state) => state.settings?.show || {},
       twentyFourHourTime: (state) =>
         state.settings?.twentyFourHourTime || false,
@@ -76,18 +78,20 @@ export default {
       const data = { twentyFourHourTime: value === true };
       this.setSettings(data);
     },
+    /*
     setSearchResultsLimit(value) {
       const searchResultsLimit = value ? 100 : 0;
       const data = { searchResultsLimit };
       this.setSettings(data);
     },
+    */
   },
 };
 </script>
 <style scoped lang="scss">
 #groupCaption,
 .browserGroupCheckbox,
-.searchResultsCheckbox
+// .searchResultsCheckbox
 {
   padding-right: 10px;
   padding-left: 15px;

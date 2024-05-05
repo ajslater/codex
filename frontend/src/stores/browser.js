@@ -61,7 +61,8 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
-      searchResultsLimit: CHOICES.browser.searchResultsLimit,
+      /* eslint-disable-next-line no-secrets/no-secrets */
+      // searchResultsLimit: CHOICES.browser.searchResultsLimit,
       twentyFourHourTime: undefined,
     },
     page: {
@@ -161,11 +162,13 @@ export const useBrowserStore = defineStore("browser", {
     isSearchMode(state) {
       return Boolean(state.settings.q);
     },
+    /*
     isSearchLimitedMode(state) {
       return (
         Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
       );
     },
+    */
     lastRoute(state) {
       const bc = state.page.breadcrumbs;
       const params = bc[bc.length - 1];

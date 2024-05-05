@@ -32,17 +32,18 @@ class SearchFilterMixin:
 
     def _is_search_results_limited(self) -> bool:
         """Get search result limit from params."""
-        user = self.request.user  # type: ignore
-        if user and user.is_authenticated:
-            limited = bool(
-                self.params.get(  # type: ignore
-                    "search_results_limit",
-                    MAX_OBJ_PER_PAGE,
-                )
-            )
-        else:
-            limited = True
-        return limited
+        # user = self.request.user  # type: ignore
+        # if user and user.is_authenticated:
+        #    limited = bool(
+        #        self.params.get(  # type: ignore
+        #            "search_results_limit",
+        #            MAX_OBJ_PER_PAGE,
+        #        )
+        #    )
+        # else:
+        #    limited = True
+        # return limited
+        return True
 
     def _get_binary_search_scores(self, sqs):
         """Get search scores for choices and metadata."""
