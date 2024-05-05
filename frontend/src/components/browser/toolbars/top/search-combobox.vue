@@ -16,7 +16,7 @@
     no-filter
     :prepend-inner-icon="mdiMagnify"
     variant="solo"
-    @click:clear="doSearch"
+    @click:clear="doSearch(true)"
     @click:prepend-inner="doSearch"
     @keydown.enter="doSearch"
     @keydown.esc="doEscape"
@@ -73,11 +73,18 @@ export default {
         }, 5000);
       }
     },
-    doSearch() {
+    doSearch(clear = false) {
       this.menu = false;
       const q = this.query ? this.query.trim() : "";
-      this.setSettings({ q });
-      this.addToMenu(q);
+      const newSettings = { q };
+      if (clear) {
+        newSettings.orderBy = "sort_name";
+        newSettings.orderReverse = false;
+      }
+      this.setSettings(newSettings);
+      if (q) {
+        this.addToMenu(q);
+      }
       this.startHideTimer();
     },
     doEscape() {
@@ -87,11 +94,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-/*
-#searchbox{
-  font-size: small;
-}
-*/
-</style>
