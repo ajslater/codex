@@ -18,7 +18,7 @@ border-radius: 128px;
   - Experimental API throttling support. See README.
 - Fixes
   - OPDS http basic authorization fixed.
-  - Groups with the same name collapsed in the browser.
+  - Groups with the same name case insensitively collapsed in the browser.
   - Order By respects browser show groups settings.
 
 ## v1.5.17

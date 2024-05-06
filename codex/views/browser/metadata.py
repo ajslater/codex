@@ -27,7 +27,8 @@ _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     }
 )
 _DISABLED_VALUE_FIELD_NAMES = frozenset(
-    {"id", "pk", "stat", "stored_sort_name"} | _COMIC_VALUE_FIELDS_CONFLICTING
+    {"id", "lower_name", "pk", "stat", "stored_sort_name"}
+    | _COMIC_VALUE_FIELDS_CONFLICTING
 )
 _COMIC_VALUE_FIELD_NAMES = frozenset(
     # contains path
@@ -87,7 +88,7 @@ class MetadataView(BrowserAnnotationsView):
             else:
                 # group_by makes the filter work, but prevents its
                 # use as a subquery in the big query.
-                group_by_field = "id" if self.is_model_comic else "name"
+                group_by_field = "id" if self.is_model_comic else "lower_name"
                 sq = (
                     filtered_qs.alias(filter_count=Count(full_field, distinct=True))
                     .filter(filter_count=1)
@@ -152,10 +153,11 @@ class MetadataView(BrowserAnnotationsView):
                 reason = f"No model found for comic field: {field_name}"
                 raise ValueError(reason)
 
-            intersection_qs = (
-                model.objects.filter(comic__pk__in=comic_pks)
-                .alias(count=Count("comic"))
-                .filter(count=comic_pks_count)
+            intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
+            if field_name in _GROUP_RELS:
+                intersection_qs = intersection_qs.group_by("lower_name")
+            intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
+                count=comic_pks_count
             )
 
             m2m_intersections[field_name] = intersection_qs
@@ -258,7 +260,7 @@ class MetadataView(BrowserAnnotationsView):
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
         qs = self.annotate_for_metadata(qs, self.model)
-        qs = qs.group_by("name")
+        qs = qs.group_by("lower_name")
         qs = self._annotate_values_and_fks(qs, filtered_qs)
 
         qs_list = self.re_cover_multi_groups(qs)

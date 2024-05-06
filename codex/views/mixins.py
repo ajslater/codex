@@ -34,7 +34,7 @@ class SharedAnnotationsMixin:
         rel = field + "__" if field else ""
         stored_sort_name_rel = rel + "stored_sort_name"
         return Case(
-            When(**{stored_sort_name_rel: ""}, then=F(rel + "name")),
+            When(**{stored_sort_name_rel: ""}, then=F(rel + "lower_name")),
             default=F(stored_sort_name_rel),
             output_field=CharField(),
         )

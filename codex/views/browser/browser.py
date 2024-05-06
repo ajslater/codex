@@ -128,7 +128,7 @@ class BrowserView(BrowserAnnotationsView):
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
         qs = self.filter_by_annotations(qs, model)
-        count_group_by = "id" if model == Comic else "name"
+        count_group_by = "id" if model == Comic else "lower_name"
         count = qs.group_by(count_group_by).count()
         if count:
             qs = self.annotate_order_aggregates(qs, model)
@@ -150,7 +150,7 @@ class BrowserView(BrowserAnnotationsView):
             count = 0
         else:
             qs, count = self._get_common_queryset(self.model)
-            qs = qs.group_by("name")
+            qs = qs.group_by("lower_name")
         return qs, count
 
     def _get_book_queryset(self):
