@@ -29,9 +29,11 @@ class SharedAnnotationsMixin:
         return order_groups
 
     @staticmethod
-    def _get_sort_name_func(field):
+    def _get_sort_name_func(field, model):
         """Get a sort_name annotation for a relation."""
         rel = field + "__" if field else ""
+        if field == "volume" or model == Volume:
+            return F(rel + "name")
         stored_sort_name_rel = rel + "stored_sort_name"
         return Case(
             When(**{stored_sort_name_rel: ""}, then=F(rel + "lower_name")),
@@ -50,12 +52,12 @@ class SharedAnnotationsMixin:
                 if show and not show[order_group]:
                     continue
                 group_name = GROUP_NAME_MAP[order_group]
-                sort_name = cls._get_sort_name_func(group_name)
+                sort_name = cls._get_sort_name_func(group_name, Comic)
                 ann_name = f"{group_name}_sort_name"
                 sort_name_annotations[ann_name] = sort_name
                 comic_sort_names.append(ann_name)
 
-        sort_name_annotations["sort_name"] = cls._get_sort_name_func("")
+        sort_name_annotations["sort_name"] = cls._get_sort_name_func("", model)
 
         qs = qs.alias(**sort_name_annotations)
         return qs, comic_sort_names
