@@ -2,26 +2,35 @@
 
 import logging
 from time import time
+from types import MappingProxyType
 
 from django.contrib.sessions.models import Session
 from django.utils.timezone import now
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import (
+    AgeRating,
     Character,
     Contributor,
     ContributorPerson,
     ContributorRole,
+    Country,
     Folder,
     Genre,
+    Identifier,
+    IdentifierType,
     Imprint,
+    Language,
     Location,
+    OriginalFormat,
     Publisher,
+    ScanInfo,
     Series,
     SeriesGroup,
     StoryArc,
     StoryArcNumber,
     Tag,
+    Tagger,
     Team,
     Volume,
 )
@@ -29,33 +38,43 @@ from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
 _COMIC_FK_CLASSES = (
-    Volume,
-    Series,
-    Imprint,
-    Publisher,
-    Folder,
+    AgeRating,
+    Country,
     Contributor,
+    Character,
+    Genre,
+    Folder,
+    Language,
+    Location,
+    Identifier,
+    Imprint,
+    OriginalFormat,
+    Publisher,
+    Series,
+    SeriesGroup,
+    ScanInfo,
+    StoryArcNumber,
+    Tagger,
     Tag,
     Team,
-    Character,
-    Location,
-    SeriesGroup,
-    StoryArcNumber,
-    Genre,
+    Volume,
 )
 _CONTRIBUTOR_FK_CLASSES = (ContributorRole, ContributorPerson)
 _STORY_ARC_NUMBER_FK_CLASSES = (StoryArc,)
+_IDENTIFIER_FK_CLASSES = (IdentifierType,)
 TOTAL_NUM_FK_CLASSES = (
     len(_COMIC_FK_CLASSES)
     + len(_CONTRIBUTOR_FK_CLASSES)
     + len(_STORY_ARC_NUMBER_FK_CLASSES)
+    + len(_IDENTIFIER_FK_CLASSES)
 )
 
-CLEANUP_MAP = [
-    (_COMIC_FK_CLASSES, "comic"),
-    (_CONTRIBUTOR_FK_CLASSES, "contributor"),
-    (_STORY_ARC_NUMBER_FK_CLASSES, "storyarcnumber"),
-]
+CLEANUP_MAP = MappingProxyType({
+    "comic": _COMIC_FK_CLASSES,
+    "contributor": _CONTRIBUTOR_FK_CLASSES,
+    "storyarcnumber": _STORY_ARC_NUMBER_FK_CLASSES,
+    "identifier": _IDENTIFIER_FK_CLASSES
+})
 
 
 class CleanupMixin(WorkerBaseMixin):
@@ -79,7 +98,7 @@ class CleanupMixin(WorkerBaseMixin):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up unused foreign keys...")
-            for classes, field_name in CLEANUP_MAP:
+            for field_name, classes in CLEANUP_MAP.items():
                 self._bulk_cleanup_fks(classes, field_name, status)
             level = logging.INFO if status.complete else logging.DEBUG
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
