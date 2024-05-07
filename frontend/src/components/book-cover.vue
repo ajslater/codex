@@ -30,7 +30,7 @@ export default {
     },
     coverPk: {
       type: Number,
-      required: true,
+      default: 0,
     },
     coverMtime: {
       type: String,
@@ -48,7 +48,7 @@ export default {
   },
   computed: {
     coverSrc() {
-      return getCoverSource(this.coverPk, this.coverMtime);
+      return getCoverSource(this.coverPk, this.coverMtime, this.group);
     },
     childCountClasses() {
       return {

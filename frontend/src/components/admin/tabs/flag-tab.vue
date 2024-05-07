@@ -42,6 +42,7 @@ const DESC = {
   FV: 'By default, codex provides a "Folder View" which mimics the directory hierarchy of the libraries that you\'ve added to Codex. You may disable this feature. The database style browser view is always available. This flag also enables and disables the "Filename" sort option and the path from search indexing.',
   SO: "Fully optimize the search index each night. Disabling this flag will instead run a partial optimization which only merges small files. You should only disable this if the nightly optimization stresses your system too much.",
   IM: "If disabled, Codex will not bulk import metadata from comic libraries when they are scanned and only import folders and filenames. Instead, metadata will be loaded lazily as comics are read. This makes importing comics fast, but disables most of the metadata browser functionality, making codex mostly a file tree browser.",
+  DC: "When enabled Codex dynaimcally generates browser covers for groups and folders using the order by option. This can be slow for larger libraries.",
 };
 Object.freeze(DESC);
 

@@ -12,6 +12,7 @@ border-radius: 128px;
   - Search one page of results at a time for speed.
   - Browser, Search, and Cover query optimizations.
   - Breadcrumbs in the browser
+  - Admin Flag to disable dynamic group covers in the browser.
   - Smaller Browser controls.
   - Metadata tags can click to browse filtered on that tag.
   - Granular caching for covers in the browser.

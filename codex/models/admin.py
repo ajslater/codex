@@ -39,6 +39,7 @@ class AdminFlag(BaseModel):
         AUTO_UPDATE = "AU"
         SEARCH_INDEX_OPTIMIZE = "SO"
         IMPORT_METADATA = "IM"
+        DYNAMIC_GROUP_COVERS = "DC"
 
     FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
 

@@ -56,6 +56,7 @@ export default {
         ...(state.page.books ?? []),
       ],
       numPages: (state) => state.page.numPages,
+      query: (state) => state.settings.q,
     }),
     padFooter() {
       return this.numPages > 1;
@@ -70,6 +71,9 @@ export default {
     },
     searchLimitMessage() {
       let res = "";
+      if (!this.query) {
+        return res;
+      }
       // if (this.isSearchLimitedMode) {
       const page = +this.$route.params.page;
       // const limit = this.searchResultsLimit * page;

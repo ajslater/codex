@@ -1372,6 +1372,40 @@ files = [
 ]
 
 [[package]]
+name = "picopt"
+version = "4.0.1"
+description = "A multi format lossless image optimizer that uses external tools"
+optional = false
+python-versions = ">=3.10,<4.0"
+files = [
+    {file = "picopt-4.0.1-py3-none-any.whl", hash = "sha256:afff591bc50de77c7bb54af1c053740f2c76ea20fb34ba4124c14e94c79cdbea"},
+    {file = "picopt-4.0.1.tar.gz", hash = "sha256:cd935f0964e8c3cb107f9a10b652d4629d1df7cf6a1660935c5ec3105db9d928"},
+]
+
+[package.dependencies]
+confuse = ">=2.0.0,<3.0.0"
+humanize = ">=4.0.0,<5.0.0"
+piexif = ">=1.1.3,<2.0.0"
+Pillow = ">=9.5,<11.0"
+pyoxipng = ">=9.0.0,<10.0.0"
+python-dateutil = ">=2.8,<3.0"
+rarfile = ">=4.0,<5.0"
+"ruamel.yaml" = ">=0.18.5,<0.19.0"
+termcolor = ">=2.0.1,<3.0.0"
+treestamps = ">=1.0.1,<2.0.0"
+
+[[package]]
+name = "piexif"
+version = "1.1.3"
+description = "To simplify exif manipulations with python. Writing, reading, and more..."
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+files = [
+    {file = "piexif-1.1.3-py2.py3-none-any.whl", hash = "sha256:3bc435d171720150b81b15d27e05e54b8abbde7b4242cddd81ef160d283108b6"},
+    {file = "piexif-1.1.3.zip", hash = "sha256:83cb35c606bf3a1ea1a8f0a25cb42cf17e24353fd82e87ae3884e74a302a5f1b"},
+]
+
+[[package]]
 name = "pillow"
 version = "10.3.0"
 description = "Python Imaging Library (Fork)"
@@ -1678,6 +1712,84 @@ cryptography = ">=41.0.5,<43"
 [package.extras]
 docs = ["sphinx (!=5.2.0,!=5.2.0.post0,!=7.2.5)", "sphinx-rtd-theme"]
 test = ["pretend", "pytest (>=3.0.1)", "pytest-rerunfailures"]
+
+[[package]]
+name = "pyoxipng"
+version = "9.0.0"
+description = "Python wrapper for multithreaded .png image file optimizer oxipng"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pyoxipng-9.0.0-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:6390c9ca861eecdd2392075a5427e5f778af3df4b6bcd76db68f039fb6eb7077"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ea488551d8ac73084ff38642bfe170282bc151e963d382e170cefbe6a82eedd2"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:2e959ec92d6776ee7e1564fbf0ac1d82e7a2503eaf4ab5fa4214989a793b565e"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:aa43dcab2856066675532fa9827f271e34859c66f18835b6ad497b1c6dcc910e"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:4df410adc15b12555be5ecd96b413e7c93255ea54493f3a2f961e54d5226e1d4"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:1faa7b25ba8e2268c42e00c2a06d36c225ffe5aa7bfe471ca5240d3f39af2c08"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:38a71bfb8e845133f149728ef51b2902c78a215dea18ebd212134163ae480f23"},
+    {file = "pyoxipng-9.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9f847f79ba09c0c184dab0f533fc64edbc4ec67a0a7433684dcd00860c2a96fc"},
+    {file = "pyoxipng-9.0.0-cp310-none-win32.whl", hash = "sha256:6b4c48add03c2a4c71225dea75d64cbe7384eae60c65eace30435d76e2dad99b"},
+    {file = "pyoxipng-9.0.0-cp310-none-win_amd64.whl", hash = "sha256:7392f64b93152df6a8738dded154441c5140b17f622d82e00a22129d22dece6f"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-macosx_10_7_x86_64.whl", hash = "sha256:fdfb392a01f6a7e319a6b45e77b72e213a20ea2d661fd2a8261e22b23f599d86"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:72fe5559815a08ea80d887e6017433bb8da9c7cdcb578553e1591b7d6fb58000"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:ae21122c7500088f8e009c821e71ca2788df52de769e1475c25bafdc16c10e53"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8ddce80d1950704f794ef819a221e67ce2445f3bc5c1961ecb97b3610595bed2"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:273a5e4bb8a49e7be77ecce841cb7ff11eda413833a0403c788902af52a8a94c"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:cc6c05a09a1e366121a002c9f75e4ff30d557139fd397ba755ddf46423d78af5"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:596a1727c2ffa9880ec45b23c44a7940e70a6d29a8e8a57b5faa58da099e3ed3"},
+    {file = "pyoxipng-9.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:935439f538729660b0fcc2f5ca6321bc77e04140f3d2ad88627a9288c469bd49"},
+    {file = "pyoxipng-9.0.0-cp311-none-win32.whl", hash = "sha256:a65d4379b11bdbee3ad020f3005c0f7458933b802d00abb79724ac4cf9b83ab5"},
+    {file = "pyoxipng-9.0.0-cp311-none-win_amd64.whl", hash = "sha256:973ee04a0a55a5ae4104e17cbc7f03be1cca412c1ceb2dc2520316d5db524ca4"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-macosx_10_7_x86_64.whl", hash = "sha256:b3d811b6d8574cc273dc2d65727afa787e768a3c8ded1283894499211bf5f59d"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0182e6ded60659a6b41aa6641fac6e405cd8decb638ebf54e28aa595ebda8bd1"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:b41eed6202126575f140ec73421380965146e528466dd9b68556124da1660b5f"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:917d05340a06726d403bb385258fe4a18c492af984e214f0ca2a9b86798c34bc"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:fc13a2d9929b10e4dca7d1104192d2dbd45e871188f76711bb0174aa5ab91036"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:6df8f223fd4c3efeb5caa68c41adf88f18c2e496b2f982fdc2087e39638601ad"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:7a75a68729eaf622c91a1258518bdee807347c587756d4c4882f6559681288f2"},
+    {file = "pyoxipng-9.0.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e404378b908549f76cc1fe54cb9a393249881a98f47fecd87b66856e88627eba"},
+    {file = "pyoxipng-9.0.0-cp312-none-win32.whl", hash = "sha256:dd4f2bb01081dddecec443e553ff41b3e11a9957e64c058b8fbbab8f77224d7b"},
+    {file = "pyoxipng-9.0.0-cp312-none-win_amd64.whl", hash = "sha256:f767ee827841e6cd0780132a85fccec42e2fd2029657ccb2e188af85f0d02f47"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-macosx_10_7_x86_64.whl", hash = "sha256:6436bc48933e6d63d6c97eaac83581630eab75fca6e8fa02507502beeddc15ef"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:f9c2491b085189c943fbd36e80c59fc24ed1cb8a8839ae41db0f6d6d86a00296"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:f20e54c2811398046ff51d58a2b137716f87bf20bbe77b516167522b0e604b8e"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:26df39584a2cada1e73ac697f9026aba174ab223b9ed925fe381e46044f647dd"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:93d466ddd87443d474b1ba7cf7016b9cf5629890fac70e8769c7a31c69487579"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c008de8a3e052ab4040058d5ca093d8ef646bc19f8ef6f3f111123219feffe27"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:a271a65c8451e56c38a0e1463b6324e27597e5d6b666c791776616c5c7f8fe5c"},
+    {file = "pyoxipng-9.0.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:93c2db5e2c62444f014a33172db8a71524d435379ee611fbdbdbd773b95cc5dd"},
+    {file = "pyoxipng-9.0.0-cp38-none-win32.whl", hash = "sha256:4c2c0cc420cf3cea4f5871de20775de61f2a87b70c32fe0a7cc9010e20260d37"},
+    {file = "pyoxipng-9.0.0-cp38-none-win_amd64.whl", hash = "sha256:32d29bba4ed08e6002009c447f51d54de10acb545766d158062d313c418f931c"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:83c29410b8df4e5901c0dd28c81d30efa38344106bb261187341e0d1ae2cf5cc"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:6df95f740c73e7477fb1ebd67f0713e4f45572d4ee28fd8bc21c51a0ecd8d9c6"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:11868fd380f5ddbdf7b6729302016e0ae1a0eca2820c91a2250dfd17f557a749"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2e22d01633d95c89d292e0dd5a0ee0a2745b2d152e6dd4b924852890796b27f1"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:7dd84d794fb63bb95ebcfcdb309f5f408d6a22a22a4b1d8238f2a886b1d0f5ed"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:40b4dc92a65bfe40e038ca691bfa5d87695d3f8bd86e6593afb3ed3f5cb87f3d"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:61186ef09eb6d4cd0fe1407da192fbf3bfd337ecbd784dbfa71636118e1f2847"},
+    {file = "pyoxipng-9.0.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a00672b46e0f3d67e6fc1f2dbbc840e932cc3e75932e1c10cffe8e92f4c9e6b2"},
+    {file = "pyoxipng-9.0.0-cp39-none-win32.whl", hash = "sha256:95b9eb590da5ba3a4196518b9c3e4aa4939bf51bcd70191a686072c81a66b19f"},
+    {file = "pyoxipng-9.0.0-cp39-none-win_amd64.whl", hash = "sha256:e465bdbadd4c76eff3b6bfb580ed3c84b2a71c6a70e4469adf30e63a847a58f4"},
+    {file = "pyoxipng-9.0.0-pp310-pypy310_pp73-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:b8e5c285f3e8cbe0a74f243e66ccc0df5be9772389fac0ce60dc020da8005f09"},
+    {file = "pyoxipng-9.0.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b26e312822d3bff17ccd5cd7322135b3684874526db880424a7357403f8e4bec"},
+    {file = "pyoxipng-9.0.0-pp310-pypy310_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:a23043e196343a5a6b6a99324b6c528ab2240d39393066aa36c2014e0762bfc9"},
+    {file = "pyoxipng-9.0.0-pp310-pypy310_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c5a2c6a37f2175bffa9c02321e33fca3bd81928f7d60c9afe204ea40d1bb5ab8"},
+    {file = "pyoxipng-9.0.0-pp310-pypy310_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:f4a4c28342d07239ecdfca5157d102432d063b2dd42d39f5639abda8140e0d08"},
+    {file = "pyoxipng-9.0.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8144d161bcc5ce7fb1855b17a8d401d2d789672983a8093b9581dbe4c2fa99dd"},
+    {file = "pyoxipng-9.0.0-pp38-pypy38_pp73-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:5065fafc4ca7e9b773a383c302d56240ce2fe29f49796d042d5c8450045593f3"},
+    {file = "pyoxipng-9.0.0-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fa97e8f596a9b0e371838ec5774b1bba7dc4ec59f45ee079cd839ec27b278535"},
+    {file = "pyoxipng-9.0.0-pp38-pypy38_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:9406f10d5bf09d7c9bdae506b1a3812bf80cbcf8d1d86fff71b57ef9b61b808f"},
+    {file = "pyoxipng-9.0.0-pp38-pypy38_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:690b78a57d47da8b4fffbab1c0cd3873a3db07d7a0aa35bb8a4ad81a33bd765f"},
+    {file = "pyoxipng-9.0.0-pp38-pypy38_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:2ac674560a9ce14eada6bdad3208559c36453cc3a75cb9c09c981b763f1bc146"},
+    {file = "pyoxipng-9.0.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7955f617b5f3abf2492f6577547e17708c5027a4a68678acc1716ff72127fac"},
+    {file = "pyoxipng-9.0.0-pp39-pypy39_pp73-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:435d7b7a6329569835b9e13c0eb424f39218811a7c6bff369b214b98e780b51e"},
+    {file = "pyoxipng-9.0.0-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2b4e5db38c5582ef6856a89eccbf3c606011ed5aa4594854d4ec531e556c4b23"},
+    {file = "pyoxipng-9.0.0-pp39-pypy39_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:75568c861d043b1b7186c6617a684bea66a0844cf4fbd3f9dccc90bbacfe9a32"},
+    {file = "pyoxipng-9.0.0-pp39-pypy39_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c4ea7af8b3587b35c84ea2faaff95f8d348babc5ce52ada63d7f4532c344eb06"},
+    {file = "pyoxipng-9.0.0-pp39-pypy39_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:059e22e00c37f74d0740d9dd0a7c09a33791438f839047ada85c017df321d4e2"},
+    {file = "pyoxipng-9.0.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8809b7d4c4c77febfd0858f45bbbe993b74c5463a26a4526328e98d4bb61af9a"},
+    {file = "pyoxipng-9.0.0.tar.gz", hash = "sha256:acbcda3f696957e84ddb421b95e23a1f9cf0f37418ef891793efaf2973c82863"},
+]
 
 [[package]]
 name = "pyreadline3"
@@ -2449,6 +2561,20 @@ files = [
 exceptiongroup = "*"
 
 [[package]]
+name = "termcolor"
+version = "2.4.0"
+description = "ANSI color formatting for output in terminal"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "termcolor-2.4.0-py3-none-any.whl", hash = "sha256:9297c0df9c99445c2412e832e882a7884038a25617c60cea2ad69488d4040d63"},
+    {file = "termcolor-2.4.0.tar.gz", hash = "sha256:aab9e56047c8ac41ed798fa36d892a37aca6b3e9159f3e0c24bc64a9b3ac7b7a"},
+]
+
+[package.extras]
+tests = ["pytest", "pytest-cov"]
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -2478,6 +2604,21 @@ dev = ["pytest (>=6)", "pytest-cov", "pytest-timeout", "pytest-xdist"]
 notebook = ["ipywidgets (>=6)"]
 slack = ["slack-sdk"]
 telegram = ["requests"]
+
+[[package]]
+name = "treestamps"
+version = "1.0.1"
+description = "Create timestamp records for recursive operations on directory trees."
+optional = false
+python-versions = ">=3.10,<4.0"
+files = [
+    {file = "treestamps-1.0.1-py3-none-any.whl", hash = "sha256:d837fdb039470430c424a9e734acdebc0f93723968b96f3f6de4f54b2928897f"},
+    {file = "treestamps-1.0.1.tar.gz", hash = "sha256:6541202b3b750bd24c0266b4dd6d149528b7bb0a82678b15ed8635dc626d0054"},
+]
+
+[package.dependencies]
+"ruamel.yaml" = ">=0.18.5,<0.19.0"
+termcolor = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "types-psycopg2"
@@ -2723,4 +2864,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ac9098673cc6baa7ff44c80781ef5dc08a02c448f1e25e1aabc00b1c815186e4"
+content-hash = "7cfa6d1bbb0ddbac70a638cd499367d4cfe7a068841bc1e02cd206f529aeb180"

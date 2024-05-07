@@ -154,7 +154,7 @@ build-frontend: clean-frontend
 ## Build all icons from source
 ## @category Build
 icons:
-	bin/create-icons.sh
+	bin/icons_transform.py
 
 .PHONY: collectstatic
 ## Collect static files for django

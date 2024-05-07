@@ -197,7 +197,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         if model == Comic:
             qs = qs.annotate(cover_pk=F("pk"))
             qs = qs.annotate(cover_mtime=F("updated_at"))
-        else:
+        elif self.admin_flags["dynamic_group_covers"]:
             # At this point it's only been filtered.
             qs = qs.annotate(cover_pk=F(self.rel_prefix + "pk"))
             qs = qs.annotate(cover_pks=JsonGroupArray("cover_pk", distinct=True))
@@ -314,7 +314,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Python hack to re-cover groups collapsed with group_by."""
         # This would be better in the main query but OuterRef can't access annotations.
         # So cover_pks aggregates all covers from multi groups like ids does.
-        if self.is_model_comic:  # type: ignore
+        if self.is_model_comic or not self.admin_flags["dynamic_group_covers"]:  # type: ignore
             return group_qs
         recovered_group_list = []
         for group in group_qs:
