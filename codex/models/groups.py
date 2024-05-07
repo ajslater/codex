@@ -106,6 +106,10 @@ class Volume(BrowserGroupModel):
     issue_count = PositiveSmallIntegerField(null=True)
     name = SmallIntegerField(db_index=True, null=True, default=DEFAULT_NAME)
 
+    # Unused
+    lower_name = None
+    stored_sort_name = None
+
     def set_lower_name(self):
         """Noop."""
 

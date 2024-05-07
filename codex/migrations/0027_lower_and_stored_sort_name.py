@@ -92,11 +92,6 @@ class Migration(migrations.Migration):
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
-            model_name="volume",
-            name="lower_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
             model_name="comic",
             name="stored_sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
@@ -131,11 +126,6 @@ class Migration(migrations.Migration):
             name="stored_sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
-        migrations.AddField(
-            model_name="volume",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
         migrations.AlterField(
             model_name="adminflag",
             name="key",
@@ -151,6 +141,11 @@ class Migration(migrations.Migration):
                 db_index=True,
                 max_length=2,
             ),
+        ),
+        migrations.AlterField(
+            model_name='adminflag',
+            name='key',
+            field=models.CharField(choices=[('FV', 'Folder View'), ('RG', 'Registration'), ('NU', 'Non Users'), ('AU', 'Auto Update'), ('SO', 'Search Index Optimize'), ('IM', 'Import Metadata'), ('DC', 'Dynamic Group Covers')], db_index=True, max_length=2),
         ),
         migrations.RunPython(_generate_lower_and_stored_sort_name),
     ]
