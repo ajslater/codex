@@ -1,13 +1,19 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import arrayFunc from "eslint-plugin-array-func";
-import markdown from "eslint-plugin-markdown";
 // import plugin broken for flag config
 // https://github.com/import-js/eslint-plugin-import/issues/2556
 // import importPlugin from "eslint-plugin-import";
-import pluginSecurity from "eslint-plugin-security";
+import eslintPluginJsonc from "eslint-plugin-jsonc";
+import markdown from "eslint-plugin-markdown";
+//import prettier from "eslint-plugin-prettier";
+//import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import eslintPluginSecurity from "eslint-plugin-security";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
+import sonarjs from "eslint-plugin-sonarjs";
 import eslintPluginToml from "eslint-plugin-toml";
-import eslintPluginUnicorn from "eslint-plugin-unicorn";
+import unicorn from "eslint-plugin-unicorn";
+import eslintPluginYml from "eslint-plugin-yml";
 import globals from "globals";
 
 const compat = new FlatCompat();
@@ -24,10 +30,16 @@ export default [
       reportUnusedDisableDirectives: "warn",
     },
     plugins: {
+      arrayFunc,
       // import: importPlugin,
-      security: pluginSecurity,
-      unicorn: eslintPluginUnicorn,
-      markdown: markdown,
+      markdown,
+      // prettier,
+      security: eslintPluginSecurity,
+      "simple-import-sort": simpleImportSort,
+      // sonarjs,
+      toml: eslintPluginToml,
+      unicorn,
+      yml: eslintPluginYml,
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
@@ -36,8 +48,10 @@ export default [
       "no-debugger": "warn",
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
-      "no-secrets/no-secrets": "error",
+      "prettier-vue/prettier": "warn",
       "security/detect-object-injection": "off",
+      "simple-import-sort/imports": "warn",
+      "simple-import-sort/exports": "warn",
       "space-before-function-paren": "off",
       "unicorn/switch-case-braces": ["warn", "avoid"],
       "unicorn/prefer-node-protocol": 0,
@@ -69,10 +83,22 @@ export default [
     },
      */
   },
-  ...markdown.configs.recommended,
-  ...eslintPluginToml.configs["flat/recommended"],
+  {
+    files: ["docker-compose*.yaml"],
+    rules: {
+      "yml/no-empty-mapping-value": "off",
+    },
+  },
   js.configs.recommended,
   arrayFunc.configs.all,
+  ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
+  ...markdown.configs.recommended,
+  //eslintPluginPrettierRecommended,
+  //eslintPluginSecurity.configs.recommended,
+  sonarjs.configs.recommended,
+  ...eslintPluginToml.configs["flat/recommended"],
+  ...eslintPluginYml.configs["flat/standard"],
+  ...eslintPluginYml.configs["flat/prettier"],
   {
     files: ["**/*.md"],
     processor: "markdown/markdown",
@@ -101,13 +127,6 @@ export default [
       node: true,
     },
     extends: [
-      // LANGS
-      "plugin:jsonc/recommended-with-json",
-      "plugin:jsonc/prettier",
-      "plugin:yml/standard",
-      "plugin:yml/prettier",
-      // CODE QUALITY
-      "plugin:sonarjs/recommended",
       // PRACTICES
       "plugin:eslint-comments/recommended",
       // "plugin:import/recommended",
@@ -122,13 +141,6 @@ export default [
     ],
     overrides: [
       {
-        files: ["*.yaml", "*.yml"],
-        //parser: "yaml-eslint-parser",
-        rules: {
-          "unicorn/filename-case": "off",
-        },
-      },
-      {
         files: ["*.toml"],
         // parser: "toml-eslint-parser",
         rules: {
@@ -142,12 +154,6 @@ export default [
         //  "prettier-vue/prettier": ["error", { parser: "json" }],
         //},
       },
-      {
-        files: ["docker-compose*.yaml"],
-        rules: {
-          "yml/no-empty-mapping-value": "off",
-        },
-      },
     ],
     parserOptions: {
       ecmaFeatures: {
@@ -158,7 +164,6 @@ export default [
     plugins: [
       "eslint-comments",
       //"import",
-      "markdown",
       "no-constructor-bind",
       "no-secrets",
       "no-unsanitized",
@@ -166,10 +171,7 @@ export default [
       "optimize-regex",
       "prettier-vue",
       "promise",
-      "simple-import-sort",
-      "sonarjs",
       "switch-case",
-      "unicorn",
     ],
     rules: {
       "no-constructor-bind/no-constructor-bind": "error",
@@ -182,8 +184,6 @@ export default [
           trailingComma: "all",
         },
       ],
-      "simple-import-sort/exports": "warn",
-      "simple-import-sort/imports": "warn",
       "switch-case/newline-between-switch-case": "off", // Malfunctioning
     },
     ignorePatterns: [
