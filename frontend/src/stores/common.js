@@ -46,6 +46,7 @@ export const useCommonStore = defineStore("common", {
     },
     timestamp: Date.now(),
     isSettingsDrawerOpen: false,
+    opdsURLs: undefined,
   }),
   getters: {
     isMobile: function () {
@@ -92,6 +93,17 @@ export const useCommonStore = defineStore("common", {
     },
     setSettingsDrawerOpen(value) {
       this.isSettingsDrawerOpen = value;
+    },
+    async loadOPDSURLs() {
+      if (this.opdsURLs) {
+        return;
+      }
+      await API.getOPDSURLs()
+        .then((response) => {
+          console.log(response.data);
+          return (this.opdsURLs = Object.freeze({ ...response.data }));
+        })
+        .catch(console.error);
     },
   },
 });

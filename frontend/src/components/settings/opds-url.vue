@@ -37,7 +37,7 @@ export default {
       type: String,
       default: undefined,
     },
-    url: {
+    urlPath: {
       type: String,
       required: true,
     },
@@ -59,6 +59,9 @@ export default {
     },
     tooltip() {
       return TOOLTIP ? this.clipBoardEnabled : undefined;
+    },
+    url() {
+      return window.origin + this.urlPath;
     },
   },
   methods: {

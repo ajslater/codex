@@ -44,6 +44,10 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
+const getOPDSURLs = () => {
+  return HTTP.get("/opds-urls");
+};
+
 export default {
   downloadIOSPWAFix,
   getBookInBrowserURL,
@@ -51,4 +55,5 @@ export default {
   getReaderPath,
   getTSParams,
   getVersions,
+  getOPDSURLs,
 };

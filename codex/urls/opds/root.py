@@ -8,7 +8,7 @@ app_name = "opds"
 
 opds_v1_start_view = full_redirect_view("opds:v1:feed")
 
-urlpatterns = [
+urlpatterns = (
     path(
         "authentication/",
         include("codex.urls.opds.authentication"),
@@ -19,6 +19,5 @@ urlpatterns = [
     path("v1/", opds_v1_start_view, name="v1_start"),
     path("v2.0/", include("codex.urls.opds.v2")),
     path("v2/", full_redirect_view("opds:v2:feed"), name="v2_start"),
-    path("", opds_v1_start_view, name="start"),
-    re_path(".*", opds_v1_start_view, name="not_found"),
-]
+    re_path(".*", opds_v1_start_view, name="catchall"),
+)
