@@ -106,7 +106,7 @@ class Volume(BrowserGroupModel):
     issue_count = PositiveSmallIntegerField(null=True)
     name = SmallIntegerField(db_index=True, null=True, default=DEFAULT_NAME)
 
-    # Unused
+    # Harmful because name is numeric
     lower_name = None
     stored_sort_name = None
 
@@ -124,11 +124,12 @@ class Volume(BrowserGroupModel):
     @classmethod
     def to_str(cls, name):
         """Represent volume as a string."""
-        if name in (None, ""):
-            return ""
-
-        name = str(name)
-        return f"({name})" if len(name) == cls.YEAR_LEN else "v" + name
+        if name is None:
+            rep = ""
+        else:
+            name = str(name)
+            rep = f"({name})" if len(name) == cls.YEAR_LEN else "v" + name
+        return rep
 
     def __str__(self):
         """Represent volume as a string."""
