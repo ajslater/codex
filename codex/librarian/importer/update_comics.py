@@ -33,7 +33,6 @@ class UpdateComicsMixin(LinkComicsMixin):
                         value = default_value
                 setattr(comic, field_name, value)
             comic.presave()
-            comic.set_stat()
             comic.updated_at = now
             update_comics, comic_pks, comic_update_paths = results
             update_comics.append(comic)

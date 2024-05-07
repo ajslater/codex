@@ -29,7 +29,6 @@ class CreateComicsMixin(LinkComicsMixin):
                 self.get_comic_fk_links(md, library, path)
                 comic = Comic(**md)
                 comic.presave()
-                comic.set_stat()
                 create_comics.append(comic)
             except KeyError:
                 self.log.warning(f"No comic metadata for {path}")

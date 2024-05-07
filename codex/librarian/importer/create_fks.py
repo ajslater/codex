@@ -7,9 +7,10 @@ from itertools import chain
 from pathlib import Path
 
 from codex.librarian.importer.const import (
-    BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
+    BULK_UPDATE_FOLDER_FIELDS,
     COUNT_FIELDS,
     CREATE_DICT_UPDATE_FIELDS,
+    GROUP_BASE_FIELDS,
     GROUP_UPDATE_FIELDS,
     IMPRINT,
     ISSUE_COUNT,
@@ -155,7 +156,7 @@ class CreateForeignKeysMixin(QueuedThread):
             name=path.name,
             parent_folder=parent,
         )
-        folder.set_stat()
+        folder.presave()
         create_folders.append(folder)
 
     def _bulk_folders_create_depth_level(self, library, paths, status):
@@ -166,7 +167,7 @@ class CreateForeignKeysMixin(QueuedThread):
         Folder.objects.bulk_create(
             create_folders,
             update_conflicts=True,
-            update_fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
+            update_fields=BULK_UPDATE_FOLDER_FIELDS,
             unique_fields=Folder._meta.unique_together[0],  # type: ignore
         )
         count = len(create_folders)
@@ -213,10 +214,14 @@ class CreateForeignKeysMixin(QueuedThread):
                 named_obj.presave()
             create_named_objs.append(named_obj)
 
+        update_fields = NAMED_MODEL_UPDATE_FIELDS
+        if is_story_arc:
+            update_fields += GROUP_BASE_FIELDS
+
         named_class.objects.bulk_create(
             create_named_objs,
             update_conflicts=True,
-            update_fields=NAMED_MODEL_UPDATE_FIELDS,
+            update_fields=update_fields,
             unique_fields=named_class._meta.unique_together[0],
         )
         if count:

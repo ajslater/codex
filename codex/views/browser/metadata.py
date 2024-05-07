@@ -88,11 +88,11 @@ class MetadataView(BrowserAnnotationsView):
             else:
                 # group_by makes the filter work, but prevents its
                 # use as a subquery in the big query.
-                group_by_field = "id" if self.is_model_comic else "lower_name"
+                group_by = self.get_group_by()
                 sq = (
                     filtered_qs.alias(filter_count=Count(full_field, distinct=True))
                     .filter(filter_count=1)
-                    .group_by(group_by_field)
+                    .group_by(group_by)
                     .values_list(full_field + related_suffix, flat=True)
                 )
                 try:
@@ -155,7 +155,8 @@ class MetadataView(BrowserAnnotationsView):
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
             if field_name in _GROUP_RELS:
-                intersection_qs = intersection_qs.group_by("lower_name")
+                group_by = "name" if field_name == "volume" else "lower_name"
+                intersection_qs = intersection_qs.group_by(group_by)
             intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
                 count=comic_pks_count
             )
@@ -260,7 +261,8 @@ class MetadataView(BrowserAnnotationsView):
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
         qs = self.annotate_for_metadata(qs, self.model)
-        qs = qs.group_by("lower_name")
+        group_by = self.get_group_by("lower_name")
+        qs = qs.group_by(group_by)
         qs = self._annotate_values_and_fks(qs, filtered_qs)
 
         qs_list = self.re_cover_multi_groups(qs)

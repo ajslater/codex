@@ -20,7 +20,7 @@ from django.db.models import (
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 
-from codex.models import BrowserGroupModel, Comic, Folder, StoryArc
+from codex.models import BrowserGroupModel, Comic, Folder, StoryArc, Volume
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.browser_order_by import (
     BrowserOrderByView,
@@ -56,6 +56,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             "story_arc_number",
         }
     )
+    _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = (
+        MappingProxyType({Comic: "id", Volume: "name"})
+    )
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -63,6 +66,12 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
+
+    def get_group_by(self, model=None):
+        """Get the group by for the model."""
+        if model is None:
+            model = self.model
+        return self._ALTERNATE_GROUP_BY.get(model, "lower_name")  # type: ignore
 
     def _alias_sort_names(self, qs, model):
         """Annotate sort_name."""

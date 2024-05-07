@@ -94,7 +94,7 @@ class FailedImportsMixin(QueuedThread):
             try:
                 exc = update_failed_imports.pop(fi.path)
                 fi.set_reason(exc)
-                fi.set_stat()
+                fi.presave()
                 fi.updated_at = now
             except Exception as exc:
                 self.log.exception(
@@ -119,7 +119,7 @@ class FailedImportsMixin(QueuedThread):
             try:
                 fi = FailedImport(library=library, path=path, parent_folder=None)
                 fi.set_reason(exc)
-                fi.set_stat()
+                fi.presave()
                 create_objs.append(fi)
             except Exception as exc:
                 self.log.exception(f"Error preparing failed import create for {path}")

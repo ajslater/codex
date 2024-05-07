@@ -69,12 +69,14 @@ TOTAL_NUM_FK_CLASSES = (
     + len(_IDENTIFIER_FK_CLASSES)
 )
 
-CLEANUP_MAP = MappingProxyType({
-    "comic": _COMIC_FK_CLASSES,
-    "contributor": _CONTRIBUTOR_FK_CLASSES,
-    "storyarcnumber": _STORY_ARC_NUMBER_FK_CLASSES,
-    "identifier": _IDENTIFIER_FK_CLASSES
-})
+CLEANUP_MAP = MappingProxyType(
+    {
+        "comic": _COMIC_FK_CLASSES,
+        "contributor": _CONTRIBUTOR_FK_CLASSES,
+        "storyarcnumber": _STORY_ARC_NUMBER_FK_CLASSES,
+        "identifier": _IDENTIFIER_FK_CLASSES,
+    }
+)
 
 
 class CleanupMixin(WorkerBaseMixin):

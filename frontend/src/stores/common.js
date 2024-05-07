@@ -100,7 +100,6 @@ export const useCommonStore = defineStore("common", {
       }
       await API.getOPDSURLs()
         .then((response) => {
-          console.log(response.data);
           return (this.opdsURLs = Object.freeze({ ...response.data }));
         })
         .catch(console.error);

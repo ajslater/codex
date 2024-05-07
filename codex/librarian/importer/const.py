@@ -118,6 +118,7 @@ _EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
     "id",
     "bookmark",
 }
+GROUP_BASE_FIELDS = ("name", "lower_name", "stored_sort_name")
 BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(
         field.name
@@ -126,6 +127,13 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )
 )
+BULK_UPDATE_FOLDER_FIELDS = (
+    *GROUP_BASE_FIELDS,
+    "stat",
+    "updated_at",
+    "path",
+    "parent_folder",
+)
 BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
     sorted(
@@ -133,6 +141,9 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
         - frozenset(BULK_UPDATE_FOLDER_MODIFIED_FIELDS)
     )
 )
+MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
+MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", *GROUP_BASE_FIELDS)
+
 
 #########
 # OTHER #
@@ -140,14 +151,19 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
 VOLUME_COUNT = "volume_count"
 ISSUE_COUNT = "issue_count"
 COUNT_FIELDS = {Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
-GROUP_UPDATE_FIELDS = MappingProxyType(
-    {
-        Publisher: ("name", "stored_sort_name"),
-        Imprint: ("name", "stored_sort_name", "publisher"),
-        Series: ("name", "stored_sort_name", "imprint"),
-        Volume: ("name", "stored_sort_name", "publisher", "imprint", "series"),
-    }
-)
+_GROUP_CLASSES = (Publisher, Imprint, Series, Volume)
+
+
+def _create_group_update_fields():
+    guf = {}
+    fields = GROUP_BASE_FIELDS
+    for cls in _GROUP_CLASSES:
+        guf[cls] = fields
+        fields = (*fields, cls.__name__.lower())
+    return MappingProxyType(guf)
+
+
+GROUP_UPDATE_FIELDS = _create_group_update_fields()
 NAMED_MODEL_UPDATE_FIELDS = ("name",)
 FOLDERS_FIELD = "folders"
 GROUP_TREES = "group_trees"

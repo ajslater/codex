@@ -41,6 +41,11 @@ class WatchedPath(BrowserGroupModel):
         st[8] = st_record.st_mtime
         self.stat = st
 
+    def presave(self):
+        """Save stat."""
+        super().presave()
+        self.set_stat()
+
     def __str__(self):
         """Return the full path."""
         return self.path
