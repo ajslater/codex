@@ -143,9 +143,21 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterField(
-            model_name='adminflag',
-            name='key',
-            field=models.CharField(choices=[('FV', 'Folder View'), ('RG', 'Registration'), ('NU', 'Non Users'), ('AU', 'Auto Update'), ('SO', 'Search Index Optimize'), ('IM', 'Import Metadata'), ('DC', 'Dynamic Group Covers')], db_index=True, max_length=2),
+            model_name="adminflag",
+            name="key",
+            field=models.CharField(
+                choices=[
+                    ("FV", "Folder View"),
+                    ("RG", "Registration"),
+                    ("NU", "Non Users"),
+                    ("AU", "Auto Update"),
+                    ("SO", "Search Index Optimize"),
+                    ("IM", "Import Metadata"),
+                    ("DC", "Dynamic Group Covers"),
+                ],
+                db_index=True,
+                max_length=2,
+            ),
         ),
         migrations.RunPython(_generate_lower_and_stored_sort_name),
     ]
