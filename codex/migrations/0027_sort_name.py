@@ -15,37 +15,35 @@ _GROUP_MODEL_NAMES = (
 )
 
 
-def _set_lower_and_stored_sort_name(obj):
+def _set_sort_name(obj):
     """Create sort_name for model."""
     # Duplicate code from BaseGroupModel
-    obj.lower_name = obj.name.lower()
     sort_name = ""
-    name_parts = str(obj.lower_name).split()
+    lower_name = obj.name.lower()
+    sort_name = lower_name
+    name_parts = lower_name.split()
     if len(name_parts) > 1:
         first_word = name_parts[0]
         if first_word in ARTICLES:
             sort_name = " ".join(name_parts[1:])
             sort_name += ", " + first_word
-            obj.stored_sort_name = sort_name
+    obj.sort_name = sort_name
 
 
-def _generate_lower_and_stored_sort_name(apps, _schema_editor):
-    """Update new stored_sort_name field."""
+def _generate_sort_name(apps, _schema_editor):
+    """Update new sort_name field."""
     for model_name in _GROUP_MODEL_NAMES:
         model = apps.get_model("codex", model_name)
-        update_fields = ["lower_name", "stored_sort_name"]
-        only_fields = ["name", *update_fields]
+        update_fields = ("sort_name",)
+        only_fields = ("name", *update_fields)
         update_groups = []
         objs = model.objects.only(*only_fields)
         for obj in objs:
-            _set_lower_and_stored_sort_name(obj)
-            if obj.stored_sort_name:
-                update_groups.append(obj)
+            _set_sort_name(obj)
+            update_groups.append(obj)
         if update_groups:
             model.objects.bulk_update(update_groups, update_fields)
-            print(
-                f"\tUpdated lower_name and stored_sort_name for {len(update_groups)} {model_name}s"
-            )
+            print(f"\tUpdated sort_name for {len(update_groups)} {model_name}s")
 
 
 class Migration(migrations.Migration):
@@ -58,72 +56,37 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="comic",
-            name="lower_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
             model_name="failedimport",
-            name="lower_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
             model_name="folder",
-            name="lower_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
             model_name="imprint",
-            name="lower_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
             model_name="publisher",
-            name="lower_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
             model_name="series",
-            name="lower_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AddField(
             model_name="storyarc",
-            name="lower_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="comic",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="failedimport",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="folder",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="imprint",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="publisher",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="series",
-            name="stored_sort_name",
-            field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="storyarc",
-            name="stored_sort_name",
+            name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
         ),
         migrations.AlterField(
@@ -159,5 +122,5 @@ class Migration(migrations.Migration):
                 max_length=2,
             ),
         ),
-        migrations.RunPython(_generate_lower_and_stored_sort_name),
+        migrations.RunPython(_generate_sort_name),
     ]

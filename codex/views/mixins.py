@@ -1,7 +1,6 @@
 """Cross view annotation methods."""
 
-from django.db.models.expressions import Case, F, When
-from django.db.models.fields import CharField
+from django.db.models.expressions import F
 
 from codex.models.comic import Comic, Imprint, Volume
 from codex.views.const import GROUP_NAME_MAP
@@ -28,19 +27,6 @@ class SharedAnnotationsMixin:
                 order_groups = _SHOW_GROUPS
         return order_groups
 
-    @staticmethod
-    def _get_sort_name_func(field, model):
-        """Get a sort_name annotation for a relation."""
-        rel = field + "__" if field else ""
-        if field == "volume" or model == Volume:
-            return F(rel + "name")
-        stored_sort_name_rel = rel + "stored_sort_name"
-        return Case(
-            When(**{stored_sort_name_rel: ""}, then=F(rel + "lower_name")),
-            default=F(stored_sort_name_rel),
-            output_field=CharField(),
-        )
-
     @classmethod
     def alias_sort_names(cls, qs, model, pks, model_group, show=None):  # noqa PLR0193
         """Annotate sort names for browser subclasses and reader."""
@@ -52,14 +38,16 @@ class SharedAnnotationsMixin:
                 if show and not show[order_group]:
                     continue
                 group_name = GROUP_NAME_MAP[order_group]
-                sort_name = cls._get_sort_name_func(group_name, Comic)
                 ann_name = f"{group_name}_sort_name"
+                name_field = "name" if group_name == "volume" else "sort_name"
+                sort_name = F(f"{group_name}__{name_field}")
                 sort_name_annotations[ann_name] = sort_name
                 comic_sort_names.append(ann_name)
+        elif model == Volume:
+            sort_name_annotations["sort_name"] = F("name")
 
-        sort_name_annotations["sort_name"] = cls._get_sort_name_func("", model)
-
-        qs = qs.alias(**sort_name_annotations)
+        if sort_name_annotations:
+            qs = qs.alias(**sort_name_annotations)
         return qs, comic_sort_names
 
     @classmethod

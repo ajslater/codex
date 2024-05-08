@@ -71,7 +71,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Get the group by for the model."""
         if model is None:
             model = self.model
-        return self._ALTERNATE_GROUP_BY.get(model, "lower_name")  # type: ignore
+        return self._ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
 
     def _alias_sort_names(self, qs, model):
         """Annotate sort_name."""

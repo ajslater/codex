@@ -27,8 +27,7 @@ _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     }
 )
 _DISABLED_VALUE_FIELD_NAMES = frozenset(
-    {"id", "lower_name", "pk", "stat", "stored_sort_name"}
-    | _COMIC_VALUE_FIELDS_CONFLICTING
+    {"id", "pk", "sort_name", "stat"} | _COMIC_VALUE_FIELDS_CONFLICTING
 )
 _COMIC_VALUE_FIELD_NAMES = frozenset(
     # contains path
@@ -156,7 +155,7 @@ class MetadataView(BrowserAnnotationsView):
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
             if field_name in _GROUP_RELS:
-                group_by = "name" if field_name == "volume" else "lower_name"
+                group_by = "name" if field_name == "volume" else "sort_name"
                 intersection_qs = intersection_qs.group_by(group_by)
             intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
                 count=comic_pks_count
@@ -262,7 +261,7 @@ class MetadataView(BrowserAnnotationsView):
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
         qs = self.annotate_for_metadata(qs, self.model)
-        group_by = self.get_group_by("lower_name")
+        group_by = self.get_group_by("sort_name")
         qs = qs.group_by(group_by)
         qs = self._annotate_values_and_fks(qs, filtered_qs)
 

@@ -21,28 +21,23 @@ class BrowserGroupModel(BaseModel):
     PARENT = ""
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
-    lower_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
-    stored_sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")
+    sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
 
-    def set_lower_name(self):
-        """Store lowercase name for grouping & sorting."""
-        self.lower_name = self.name.lower()
-
-    def set_stored_sort_name(self):
+    def set_sort_name(self):
         """Create sort_name for model."""
-        sort_name = ""
-        name_parts = str(self.lower_name).split()
+        lower_name = self.name.lower()
+        sort_name = lower_name
+        name_parts = lower_name.split()
         if len(name_parts) > 1:
             first_word = name_parts[0]
             if first_word in ARTICLES:
                 sort_name = " ".join(name_parts[1:])
                 sort_name += ", " + first_word
-                self.stored_sort_name = sort_name
+        self.sort_name = sort_name
 
     def presave(self):
         """Set computed values."""
-        self.set_lower_name()
-        self.set_stored_sort_name()
+        self.set_sort_name()
 
     def save(self, *args, **kwargs):
         """Save computed fields."""
@@ -107,13 +102,9 @@ class Volume(BrowserGroupModel):
     name = SmallIntegerField(db_index=True, null=True, default=DEFAULT_NAME)
 
     # Harmful because name is numeric
-    lower_name = None
-    stored_sort_name = None
+    sort_name = None
 
-    def set_lower_name(self):
-        """Noop."""
-
-    def set_stored_sort_name(self):
+    def set_sort_name(self):
         """Noop."""
 
     class Meta(BrowserGroupModel.Meta):

@@ -27,7 +27,6 @@ _NUMBER_FIELD_NAME = "number"
 IDENTIFIERS_FIELD_NAME = "identifiers"
 _IDENTIFIER_TYPE_FIELD_NAME = "identifier_type"
 _IDENTIFIER_CODE_FIELD_NAME = "nss"
-_IDENTIFIER_URL_FIELD_NAME = "url"
 
 # AGGREGATE
 DICT_MODEL_AGG_MAP = MappingProxyType(
@@ -71,7 +70,6 @@ IDENTIFIERS_MODEL_REL_MAP = MappingProxyType(
             f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
             {
                 "nss": _IDENTIFIER_CODE_FIELD_NAME,
-                # "url": _IDENTIFIER_URL_FIELD_NAME,
             },
         ),
     }
@@ -118,7 +116,7 @@ _EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
     "id",
     "bookmark",
 }
-GROUP_BASE_FIELDS = ("name", "lower_name", "stored_sort_name")
+GROUP_BASE_FIELDS = ("name", "sort_name")
 BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(
         field.name
@@ -158,7 +156,10 @@ def _create_group_update_fields():
     guf = {}
     fields = GROUP_BASE_FIELDS
     for cls in _GROUP_CLASSES:
-        guf[cls] = fields
+        if cls == Volume:
+            guf[cls] = tuple({*fields} - {"sort_name"})
+        else:
+            guf[cls] = fields
         fields = (*fields, cls.__name__.lower())
     return MappingProxyType(guf)
 
