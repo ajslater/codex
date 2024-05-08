@@ -2,6 +2,7 @@
   <ToolbarSelect
     v-model:menu="menu"
     class="filterBySelect"
+    :class="{ filterBySelectXSmall: padRight }"
     select-label="filter by"
     :items="bookmarkChoices"
     :menu-props="{
@@ -120,6 +121,9 @@ export default {
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
+    padRight() {
+      return this.$vuetify.display.xs && this.bookmarkFilter == "ALL";
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, [
@@ -150,6 +154,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.filterBySelectXSmall {
+  padding-right: 0.4em;
+}
 .filterSuffix {
   margin-left: 0.25em;
 }
