@@ -221,7 +221,7 @@ class Comic(WatchedPath):
 
     @classmethod
     def get_title(  # noqa: PLR0913
-        cls, obj, volume=True, issue_number_max=None, name=True, filename_fallback=False
+        cls, obj, volume=True, zero_pad=None, name=True, filename_fallback=False
     ):
         """Create the comic title for display."""
         names = []
@@ -239,7 +239,8 @@ class Comic(WatchedPath):
         issue_str = ""
         if obj.issue_number is not None:
             issue_number = obj.issue_number.normalize()
-            zero_pad = cls._compute_zero_pad(issue_number_max)
+            if not zero_pad:
+                zero_pad = 3
             if issue_number % 1 == 0:
                 precision = 0
             else:

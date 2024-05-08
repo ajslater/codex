@@ -63,10 +63,12 @@ class SharedAnnotationsMixin:
                 group_names["publisher_name"] = F("publisher__name")
                 if target == "opds2":
                     group_names["imprint_name"] = F("imprint__name")
-            group_names.update({
-                "series_name": F("series__name"),
-                "volume_name": F("volume__name"),
-            })
+            group_names.update(
+                {
+                    "series_name": F("series__name"),
+                    "volume_name": F("volume__name"),
+                }
+            )
         elif model == Volume:
             group_names["series_name"] = F("series__name")
         elif model == Imprint:

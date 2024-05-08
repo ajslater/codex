@@ -14,15 +14,17 @@ from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 
 LOG = get_logger(__name__)
 MISSING_COVER = "img/missing_cover.svg"
-COVER_MAP = MappingProxyType({
-  "p": "publisher",
-  "i": "imprint",
-  "s": "series",
-  "v": "volume",
-  "a": "story-arc",
-  "f": "folder",
-  "c": "missing-cover",
-})
+COVER_MAP = MappingProxyType(
+    {
+        "p": "publisher",
+        "i": "imprint",
+        "s": "series",
+        "v": "volume",
+        "a": "story-arc",
+        "f": "folder",
+        "c": "missing-cover",
+    }
+)
 
 
 class OPDS1EntryLinksMixin:
@@ -36,7 +38,7 @@ class OPDS1EntryLinksMixin:
         self.fake = isinstance(self.obj, OPDS1EntryObject)
         self.query_params = query_params
         self.acquision_groups = data.acquisition_groups
-        self.issue_number_max = data.issue_number_max
+        self.zero_pad = data.zero_pad
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
@@ -59,7 +61,7 @@ class OPDS1EntryLinksMixin:
     def _image_link(self):
         if self.fake:
             return None
-        cover_pk = getattr(self.obj,"cover_pk", None)
+        cover_pk = getattr(self.obj, "cover_pk", None)
         if cover_pk:
             kwargs = {"pk": cover_pk, "page": 0}
             href = reverse("opds:bin:page", kwargs=kwargs)

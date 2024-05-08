@@ -20,6 +20,6 @@ class OPDS1EntryData:
     """Entry Data class to avoid to many args."""
 
     acquisition_groups: frozenset
-    issue_number_max: int
+    zero_pad: int
     metadata: bool
     mime_type_map: Mapping[str, str]

@@ -157,7 +157,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
                 groups.append(group)
         return groups
 
-    def _get_groups(self, group_qs, book_qs, title, issue_number_max):
+    def _get_groups(self, group_qs, book_qs, title, zero_pad):
         groups = []
 
         # Top Nav Groups
@@ -169,7 +169,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         groups += self._create_links_section(tup, GROUPS_SECTION_DATA)
 
         # Publications
-        groups += self.get_publications(book_qs, issue_number_max, title)
+        groups += self.get_publications(book_qs, zero_pad, title)
 
         return groups
 
@@ -197,8 +197,8 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         # opds groups
         page_groups = browser_page.get("groups")
         page_books = browser_page.get("books")
-        issue_number_max = browser_page["issue_number_max"]
-        groups = self._get_groups(page_groups, page_books, title, issue_number_max)
+        zero_pad = browser_page["zero_pad"]
+        groups = self._get_groups(page_groups, page_books, title, zero_pad)
 
         return MappingProxyType(
             {

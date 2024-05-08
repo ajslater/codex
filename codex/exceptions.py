@@ -54,7 +54,7 @@ class SeeOtherRedirectError(APIException):
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
         route = self.detail.get("route", {})
-        params = route.get("params", DEFAULTS["route"])
+        params = route.get("params", DEFAULTS["breadcrumbs"][0])
         url = reverse(url_name, kwargs=params)
         url = self._add_query_params(url)
 

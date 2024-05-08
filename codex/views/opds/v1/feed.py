@@ -136,9 +136,9 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Get entries by key section."""
         entries = []
         if objs := self.obj.get(key):
-            issue_number_max: int = self.obj.get("issue_number_max", 0)  # type: ignore
+            zero_pad: int = self.obj["zero_pad"]  # type: ignore
             data = OPDS1EntryData(
-                self.acquisition_groups, issue_number_max, metadata, self.mime_type_map
+                self.acquisition_groups, zero_pad, metadata, self.mime_type_map
             )
             fallback = bool(self.admin_flags.get("folder_view"))
             for obj in objs:  # type: ignore

@@ -190,9 +190,9 @@ class LinksMixin(FacetsMixin):
             name=name,
             summary=top_link.desc,
         )
-        issue_number_max = self.obj.get("issue_number_max", 0)
+        zero_pad = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.acquisition_groups, issue_number_max, False, self.mime_type_map
+            self.acquisition_groups, zero_pad, False, self.mime_type_map
         )
         return OPDS1Entry(entry_obj, top_link.query_params, data)
 
