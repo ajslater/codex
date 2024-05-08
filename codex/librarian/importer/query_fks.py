@@ -41,16 +41,21 @@ from codex.threads import QueuedThread
 
 _CREATE_GROUPS = "create_groups"
 _UPDATE_GROUPS = "update_groups"
-_CLASS_QUERY_FIELDS_MAP = {
-    Contributor: ("role__name", "person__name"),
-    StoryArcNumber: ("story_arc__name", "number"),
-    Folder: ("path",),
-    Imprint: ("publisher__name", "name"),
-    Series: ("publisher__name", "imprint__name", "name"),
-    Volume: ("publisher__name", "imprint__name", "series__name", "name"),
-    Identifier: ("identifier_type__name", "nss"),
-}
+_CLASS_QUERY_FIELDS_MAP = MappingProxyType(
+    {
+        Contributor: ("role__name", "person__name"),
+        StoryArcNumber: ("story_arc__name", "number"),
+        Folder: ("path",),
+        Imprint: ("publisher__name", "name"),
+        Series: ("publisher__name", "imprint__name", "name"),
+        Volume: ("publisher__name", "imprint__name", "series__name", "name"),
+        Identifier: ("identifier_type__name", "nss"),
+    }
+)
 _DEFAULT_QUERY_FIELDS = ("name",)
+_EXTRA_UPDATE_FIELDS_MAP = MappingProxyType(
+    {Series: ("volume_count",), Volume: ("issue_count",)}
+)
 
 LOG = get_logger(__name__)
 
@@ -71,17 +76,20 @@ class QueryForeignKeysMixin(QueuedThread):
         return fks_total
 
     @staticmethod
-    def _query_existing_mds(fk_cls, fk_filter):
+    def _query_existing_mds(fk_cls, fk_filter, extra_fields=None):
         """Query existing metatata tables."""
         fields = _CLASS_QUERY_FIELDS_MAP.get(fk_cls, _DEFAULT_QUERY_FIELDS)
+        if extra_fields:
+            fields += extra_fields
         flat = len(fields) == 1 and fk_cls != Publisher
         qs = fk_cls.objects.filter(fk_filter).values_list(*fields, flat=flat)
         return frozenset(qs)
 
-    def _query_create_metadata(
+    def _query_create_metadata(  # noqa: PLR0913
         self,
         fk_cls,
         create_mds,
+        update_mds,
         q_obj: Q,
         status,
     ):
@@ -99,6 +107,13 @@ class QueryForeignKeysMixin(QueuedThread):
 
             existing_mds = self._query_existing_mds(fk_cls, filter_chunk)
             create_mds.difference_update(existing_mds)
+            if extra_update_fields := _EXTRA_UPDATE_FIELDS_MAP.get(fk_cls):
+                # The mds that are in the existing_mds, but don't match the proposed mds with the extra update fields
+                update_mds.update(existing_mds)
+                match_with_extra_fields_mds = self._query_existing_mds(
+                    fk_cls, filter_chunk, extra_update_fields
+                )
+                update_mds.difference_update(match_with_extra_fields_mds)
 
             status.complete += len(filter_chunk)
             self.status_controller.update(status)
@@ -129,7 +144,9 @@ class QueryForeignKeysMixin(QueuedThread):
 
         filter_args[key] = group_name
 
-    def _get_create_group_set(self, groups, group_cls, create_group_set, status):
+    def _get_create_group_set(  # noqa: PLR0913
+        self, groups, group_cls, create_group_set, update_group_set, status
+    ):
         """Create the create group set."""
         all_filters = Q()
         for group_tree in groups:
@@ -145,10 +162,12 @@ class QueryForeignKeysMixin(QueuedThread):
             all_filters |= Q(**filter_args)
 
         candidate_groups = set(groups.keys())
+        update_groups = set()
         count = self._query_create_metadata(
-            group_cls, candidate_groups, all_filters, status
+            group_cls, candidate_groups, update_groups, all_filters, status
         )
         create_group_set.update(candidate_groups)
+        update_group_set.update(update_groups)
         return count
 
     @classmethod
@@ -166,6 +185,7 @@ class QueryForeignKeysMixin(QueuedThread):
         """Query missing groups for one group tree depth."""
         (
             create_group_set,
+            update_group_set,
             group_cls,
             create_and_update_groups,
             status,
@@ -177,7 +197,8 @@ class QueryForeignKeysMixin(QueuedThread):
                 group_tree,
                 count_value,
             )
-        elif group_cls in (Series, Volume):
+        elif group_cls in update_group_set:
+            # This always updates Volume or Series
             self._update_action_group(
                 group_cls,
                 create_and_update_groups[_UPDATE_GROUPS],
@@ -276,9 +297,18 @@ class QueryForeignKeysMixin(QueuedThread):
             status.subtitle = vnp
 
         create_group_set = set()
-        self._get_create_group_set(groups, group_cls, create_group_set, status)
+        update_group_set = set()
+        self._get_create_group_set(
+            groups, group_cls, create_group_set, update_group_set, status
+        )
 
-        data = (create_group_set, group_cls, create_and_update_groups, status)
+        data = (
+            create_group_set,
+            update_group_set,
+            group_cls,
+            create_and_update_groups,
+            status,
+        )
         for group_tree, count_value in groups.items():
             self._query_group_tree(data, group_tree, count_value)
 
@@ -401,7 +431,7 @@ class QueryForeignKeysMixin(QueuedThread):
             combined_q_obj |= filter_and_prefix & value_filter
 
         count += self._query_create_metadata(
-            model, possible_create_objs, combined_q_obj, status
+            model, possible_create_objs, None, combined_q_obj, status
         )
         if field_name == "identifiers":
             restored_create_objs = []
