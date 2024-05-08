@@ -234,32 +234,36 @@ class CreateForeignKeysMixin(QueuedThread):
         return count
 
     @staticmethod
-    def _create_contributor(role_name, person_name):
-        role = ContributorRole.objects.get(name=role_name) if role_name else None
-        person = ContributorPerson.objects.get(name=person_name)
-        return Contributor(role=role, person=person)
+    def _create_contributor_args(values):
+        return {
+            "role": ContributorRole.objects.get(name=values[0]) if values[0] else None,
+            "person": ContributorPerson.objects.get(name=values[1]),
+        }
 
     @staticmethod
-    def _create_story_arc_number(name, number):
-        story_arc = StoryArc.objects.get(name=name)
-        return StoryArcNumber(story_arc=story_arc, number=number)
+    def _create_story_arc_number_args(values):
+        return {"story_arc": StoryArc.objects.get(name=values[0]), "number": values[1]}
 
     @staticmethod
-    def _create_identifier(name, values):
-        identifier_type = IdentifierType.objects.get(name=name)
-        return Identifier(identifier_type=identifier_type, **dict(values))
+    def _create_identifier_args(values):
+        return {
+            "identifier_type": IdentifierType.objects.get(name=values[0]),
+            "nss": values[1],
+            "url": values[2],
+        }
 
     @status_notify()
     def _bulk_create_dict_models(
-        self, create_tuples, create_method, model, status=None
+        self, create_tuples, create_args_method, model, status=None
     ):
         """Bulk create a dict type m2m model."""
         if not create_tuples:
             return 0
 
         create_objs = []
-        for key, value in create_tuples:
-            obj = create_method(key, value)
+        for values_tuple in create_tuples:
+            args = create_args_method(values_tuple)
+            obj = model(**args)
             create_objs.append(obj)
 
         model.objects.bulk_create(
@@ -351,13 +355,13 @@ class CreateForeignKeysMixin(QueuedThread):
 
             # These all depend on bulk_create_named_models running first
             create_dict_data = (
-                (Contributor, create_contributors, self._create_contributor),
+                (Contributor, create_contributors, self._create_contributor_args),
                 (
                     StoryArcNumber,
                     create_story_arc_numbers,
-                    self._create_story_arc_number,
+                    self._create_story_arc_number_args,
                 ),
-                (Identifier, create_identifiers, self._create_identifier),
+                (Identifier, create_identifiers, self._create_identifier_args),
             )
             for model, create_objs, func in create_dict_data:
                 count = self._bulk_create_dict_models(

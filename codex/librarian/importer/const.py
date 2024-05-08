@@ -71,7 +71,7 @@ IDENTIFIERS_MODEL_REL_MAP = MappingProxyType(
             f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
             {
                 "nss": _IDENTIFIER_CODE_FIELD_NAME,
-                "url": _IDENTIFIER_URL_FIELD_NAME,
+                # "url": _IDENTIFIER_URL_FIELD_NAME,
             },
         ),
     }
