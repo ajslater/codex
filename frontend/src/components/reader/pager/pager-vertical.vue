@@ -71,7 +71,7 @@ export default {
       return this.settings.readInReverse;
     },
     items() {
-      const len = this.book?.maxPage + 1 ?? 0;
+      const len = this.book?.maxPage ? this.book.maxPage + 1 : 0;
       const pages = _.range(0, len);
       if (this.readInReverse) {
         pages.reverse();

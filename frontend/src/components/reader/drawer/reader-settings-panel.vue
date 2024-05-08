@@ -194,19 +194,15 @@ export default {
         case "w":
           updates = { fitTo: "W" };
           break;
-
         case "h":
           updates = { fitTo: "H" };
           break;
-
         case "s":
           updates = { fitTo: "S" };
           break;
-
         case "o":
           updates = { fitTo: "O" };
           break;
-
         case "2":
           updates = {
             twoPages: !this.selectedSettings.twoPages,

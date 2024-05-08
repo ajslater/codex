@@ -67,7 +67,6 @@ export default {
         case "i":
           hn = this.item.publisherName;
           break;
-
         case "v":
           hn = this.item.seriesName;
           break;

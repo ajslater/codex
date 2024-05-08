@@ -82,12 +82,31 @@ export default [
       },
     },
      */
-  },
-  {
-    files: ["docker-compose*.yaml"],
-    rules: {
-      "yml/no-empty-mapping-value": "off",
-    },
+    ignores: [
+      "!.circleci",
+      "**/__pycache__",
+      "*test-results*",
+      "*~",
+      ".git",
+      ".mypy_cache",
+      ".pytest_cache",
+      ".ruff_cache",
+      ".venv*",
+      "codex/_vendor/",
+      "codex/static_build",
+      "codex/static_root",
+      "codex/templates/**/*.html", // Handled by djlint
+      "codex/templates/*.html", // Handled by djlint
+      "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
+      "comics",
+      "config",
+      "dist",
+      "frontend",
+      "node_modules",
+      "package-lock.json",
+      "test-results",
+      "typings",
+    ],
   },
   js.configs.recommended,
   arrayFunc.configs.all,
@@ -119,6 +138,12 @@ export default [
       "prettier-vue/prettier": ["error", { parser: "sh" }],
     },
   },
+  {
+    files: ["docker-compose*.yaml"],
+    rules: {
+      "yml/no-empty-mapping-value": "off",
+    },
+  },
   ...compat.config({
     root: true,
     env: {
@@ -132,12 +157,13 @@ export default [
       // "plugin:import/recommended",
       "plugin:no-use-extend-native/recommended",
       "plugin:optimize-regex/all",
-      "plugin:promise/recommended",
+      //"plugin:promise/recommended",
       "plugin:switch-case/recommended",
       // PRETTIER
       "plugin:prettier-vue/recommended",
       // SECURITY
-      "plugin:no-unsanitized/DOM",
+      //https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
+      //"plugin:no-unsanitized/DOM",
     ],
     overrides: [
       {
@@ -166,25 +192,24 @@ export default [
       //"import",
       "no-constructor-bind",
       "no-secrets",
-      "no-unsanitized",
       "no-use-extend-native",
       "optimize-regex",
       "prettier-vue",
-      "promise",
+      //"promise",
       "switch-case",
     ],
     rules: {
+      "eslint-comments/no-unused-disable": 1,
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
       "no-secrets/no-secrets": "error",
-      "eslint-comments/no-unused-disable": 1,
       "prettier-vue/prettier": [
         "warn",
         {
           trailingComma: "all",
         },
       ],
-      "switch-case/newline-between-switch-case": "off", // Malfunctioning
+      //"switch-case/newline-between-switch-case": "off", // Malfunctioning
     },
     ignorePatterns: [
       "*~",
