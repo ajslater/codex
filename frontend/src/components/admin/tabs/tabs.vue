@@ -77,7 +77,7 @@ export default {
 }
 $task-width: 256px;
 #tabItems {
-  padding-top: 15px;
+  margin-top: 58px;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
