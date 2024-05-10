@@ -237,35 +237,55 @@ export const useBrowserStore = defineStore("browser", {
       if (noRedirectGroups.has(group)) {
         return;
       }
-      return { params: { group: this.lowestShownGroup, pks: "0", page: 1 } };
+      return { params: { group: this.lowestShownGroup, pks: "0", page: "1" } };
     },
     _validateTopGroup(data, redirect) {
-      // If the top group changed supergroups or we're at the root group and the new top group is above the proper nav group
+      // If the top group changed supergroups or we're at the root group and the new
+      // top group is above the proper nav group
       const oldTopGroup = this.settings.topGroup;
       const newTopGroup = data.topGroup;
       if (
-        !newTopGroup ||
         (!oldTopGroup && newTopGroup) ||
+        !newTopGroup ||
         oldTopGroup === newTopGroup
       ) {
         // First url, initializing settings.
         // or
         // topGroup didn't change.
+        // console.log("validate topGroup didn't change");
         return redirect;
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
       const newTopGroupIndex = GROUPS_REVERSED.indexOf(newTopGroup);
       const newTopGroupIsBrowse = newTopGroupIndex >= 0;
       const oldAndNewBothBrowseGroups =
-        oldTopGroupIndex >= 0 && newTopGroupIsBrowse;
-      if (oldAndNewBothBrowseGroups && oldTopGroupIndex <= newTopGroupIndex) {
-        // All is well, validated.
-        return redirect;
-      }
+        newTopGroupIsBrowse && oldTopGroupIndex >= 0;
+      // console.log({ oldAndNewBothBrowseGroups, oldTopGroupIndex, newTopGroupIndex });
 
       // Construct and return new redirect
-      const group = newTopGroupIsBrowse ? "r" : newTopGroup;
-      return { params: { group, pks: "0", page: 1 } };
+      let params;
+      if (oldAndNewBothBrowseGroups) {
+        if (oldTopGroupIndex < newTopGroupIndex) {
+          // new top group is a parent (REVERSED)
+          // Signal that we need new breadcrumbs. we do that by redirecting in place?
+          params = router.currentRoute.value.params;
+          // Make a numeric page so won't trigger the redirect remover and will always
+          // redirect so we repopulate breadcrumbs
+          params.page = +params.page;
+          // console.log("new top group is parent", params);
+        } else {
+          // New top group is a child (REVERSED)
+          // Redrect to the new root.
+          params = { group: "r", pks: "0", page: "1" };
+          //console.log("new top group is child", params);
+        }
+      } else {
+        // redirect to the new TopGroup
+        const group = newTopGroupIsBrowse ? "r" : newTopGroup;
+        params = { group, pks: "0", page: "1" };
+        // console.log("totally new top group", params);
+      }
+      return { params };
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
@@ -282,6 +302,10 @@ export const useBrowserStore = defineStore("browser", {
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
       redirect = this._validateTopGroup(data, redirect);
+      if (_.isEqual(redirect?.params, router.currentRoute.value.params)) {
+        // not triggered if page is numeric, which is intended.
+        redirect = undefined;
+      }
 
       // Add settings
       if (data) {
@@ -296,7 +320,11 @@ export const useBrowserStore = defineStore("browser", {
       const redirect = this._validateAndSaveSettings(data);
       useCommonStore().setTimestamp();
       this.browserPageLoaded = true;
-      await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
+      if (redirect) {
+        await redirectRoute(redirect);
+      } else {
+        await this.loadBrowserPage();
+      }
     },
     async clearFilters(clearSearch = false) {
       this.$patch((state) => {
@@ -330,7 +358,7 @@ export const useBrowserStore = defineStore("browser", {
       router.push(route).catch(console.warn);
     },
     handlePageError(error) {
-      if (HTTP_REDIRECT_CODES.has(error.response.status)) {
+      if (HTTP_REDIRECT_CODES.has(error?.response?.status)) {
         console.debug(error);
         const data = error.response.data;
         if (data.settings) {
