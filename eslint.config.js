@@ -209,7 +209,7 @@ export default [
           trailingComma: "all",
         },
       ],
-      //"switch-case/newline-between-switch-case": "off", // Malfunctioning
+      "switch-case/newline-between-switch-case": "off", // Malfunctioning
     },
     ignorePatterns: [
       "*~",
