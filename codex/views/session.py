@@ -10,7 +10,6 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.serializers.browser.page import BrowserRouteSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
@@ -110,15 +109,15 @@ class BrowserSessionViewBase(SessionViewBaseBase):
         }
     )
 
-    def get_last_route(self, serialize=False):
+    def get_last_route(self, name=True):
         """Get the last route from the breadcrumbs."""
         breadcrumbs = self.get_from_session("breadcrumbs")
         if not breadcrumbs:
             breadcrumbs = DEFAULTS["breadcrumbs"]
         last_route = breadcrumbs[-1]
-        if serialize:
-            serializer = BrowserRouteSerializer(last_route)
-            last_route = serializer.data
+        if not name:
+            last_route.pop("name", None)
+
         return last_route
 
 

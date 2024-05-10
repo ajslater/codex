@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from codex.logger.logging import get_logger
+from codex.serializers.route import RouteSerializer
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
 
 LOG = get_logger(__name__)
@@ -135,8 +136,12 @@ def _build_choices_and_defaults(data_dict):
                 VUETIFY_NULL_CODE = value
                 continue
             case "breadcrumbs":
-                value[0]["pks"] = ()
-                DEFAULTS[vuetify_key] = value
+                deserialized = []
+                for crumb in value:
+                    serializer = RouteSerializer(data=crumb)
+                    serializer.is_valid()
+                    deserialized.append(serializer.validated_data)
+                DEFAULTS[vuetify_key] = tuple(deserialized)
                 continue
 
         CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, value)

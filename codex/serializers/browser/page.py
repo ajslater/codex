@@ -13,6 +13,7 @@ from rest_framework.serializers import (
 from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
+from codex.serializers.route import RouteSerializer
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin):
@@ -36,40 +37,6 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     mtime = DateTimeField(format="%s", read_only=True)
 
 
-class BrowserRouteSerializer(Serializer):
-    """A vue route for the browser."""
-
-    group = CharField(read_only=True)
-    pks = CharField(read_only=True)
-    page = IntegerField(read_only=True)
-    name = CharField(read_only=True)
-
-    def to_representation(self, instance):
-        """Allow submission of sequences instead of strings for pks."""
-        pks = instance.get("pks")
-        if not pks:
-            instance["pks"] = "0"
-        elif not isinstance(pks, str):
-            instance["pks"] = ",".join(str(pk) for pk in sorted(pks))
-        return super().to_representation(instance)
-
-    def to_internal_value(self, data):
-        """Convert pk strings to tuples."""
-        instance = super().to_internal_value(data)
-        try:
-            pks = instance.get("pks")
-            if not pks:
-                instance["pks"] = ()
-            elif isinstance(pks, str):
-                pks = tuple(sorted(int(pk) for pk in pks.split(",")))
-                if 0 in pks:
-                    pks = ()
-                instance["pks"] = pks
-        except ValueError:
-            instance["pks"] = ()
-        return instance
-
-
 class BrowserAdminFlagsSerializer(Serializer):
     """These choices change with browse context."""
 
@@ -88,7 +55,7 @@ class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
-    breadcrumbs = ListSerializer(child=BrowserRouteSerializer())
+    breadcrumbs = ListSerializer(child=RouteSerializer())
     title = BrowserTitleSerializer(read_only=True)
     covers_timestamp = IntegerField(read_only=True)
     zero_pad = IntegerField(read_only=True)

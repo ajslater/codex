@@ -280,7 +280,7 @@ class ReaderView(
             "index": current.arc_index,  # type: ignore
             "count": arc_count,
         }
-        close_route = self.get_last_route()
+        close_route = self.get_last_route(name=False)
 
         return {"books": books, "arcs": arcs, "arc": arc, "close_route": close_route}
 
