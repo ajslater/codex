@@ -162,10 +162,10 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("keyup", this._keyListener);
+    window.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    window.removeEventListener("keyup", this._keyListener);
+    window.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
@@ -190,7 +190,7 @@ export default {
         })
         .catch(console.error);
     },
-    _keyListener(event) {
+    _keyUpListener(event) {
       // stop keys from activating reader shortcuts.
       event.stopImmediatePropagation();
     },
