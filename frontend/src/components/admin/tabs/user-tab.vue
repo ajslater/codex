@@ -87,7 +87,7 @@ import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
-import ChangePasswordDialog from "@/components/change-password-dialog.vue";
+import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
