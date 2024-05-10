@@ -9,7 +9,7 @@ import { mapActions, mapState } from "pinia";
 
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
 import AuthLogoutItem from "@/components/auth/logout-item.vue";
-import ChangePasswordDialog from "@/components/change-password-dialog.vue";
+import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
