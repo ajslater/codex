@@ -69,7 +69,6 @@
     "eslint-plugin-toml": "^0.11.0",
     "eslint-plugin-unicorn": "^52.0.0",
     "eslint-plugin-yml": "^1.12.2",
-    "eslint_d": "^13.1.1",
     "prettier": "^3.0.0",
     "prettier-plugin-nginx": "^1.0.3",
     "prettier-plugin-packagejson": "^2.4.4",

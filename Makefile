@@ -97,12 +97,6 @@ lint-frontend:
 ## @category Lint
 lint: lint-frontend lint-backend
 
-.PHONY: kill-eslint_d
-## Kill eslint daemon
-## @category Lint
-kill-eslint_d:
-	bin/kill-eslint_d.sh
-
 .PHONY: check
 ## Check django is ok
 ## @category Lint
