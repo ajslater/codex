@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from types import MappingProxyType
 
+from cairosvg import svg2png
+
 TOP_PATH = Path(__file__).parent.parent
 SRC_IMG_PATH = TOP_PATH / Path("codex/img")
 STATIC_IMG_PATH = TOP_PATH / Path("codex/static_src/img")
@@ -42,18 +44,6 @@ def create_maskable_icon(input_path):
         f.writelines(modified_lines)
 
 
-def inkscape(input_path, export_path, width, height):
-    """Transform svgs into pngs."""
-    args = (
-        INKSCAPE_PATH,
-        f"--export-width={width}",
-        f"--export-height={height}",
-        f"--export-filename={export_path}",
-        input_path,
-    )
-    subprocess.run(args, check=False)  # noqa: S603
-
-
 def transform_icon(name, size):
     """Transform svgs into optimized svgs and pngs."""
     svg_name = name + ".svg"
@@ -80,7 +70,7 @@ def transform_icon(name, size):
         or output_webp_path.stat().st_mtime < input_svg_mtime
     )
     if do_gen_png:
-        inkscape(input_svg_path, output_png_path, size, size)
+        svg2png(url=input_svg_path, write_to=output_png_path, width=size, height=size)
 
 
 def picopt():
