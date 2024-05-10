@@ -99,6 +99,7 @@ import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getBookInBrowserURL } from "@/api/v3/common";
+import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 
 const ATTRS = ["fitTo", "readingDirection", "twoPages"];
@@ -113,6 +114,7 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
     ...mapGetters(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
     ...mapState(useReaderStore, {
       choices: (state) => state.choices,
@@ -189,6 +191,9 @@ export default {
     },
     _keyUpListener(event) {
       event.stopPropagation();
+      if (this.isAuthDialogOpen) {
+        return;
+      }
       let updates;
       switch (event.key) {
         case "w":

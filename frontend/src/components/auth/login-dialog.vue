@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="showDialog"
+    v-model="showLoginDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
@@ -64,7 +64,7 @@
         table=""
         :disabled="!submitButtonEnabled"
         @submit="submit"
-        @cancel="showDialog = false"
+        @cancel="showLoginDialog = false"
       />
     </v-form>
   </v-dialog>
@@ -72,7 +72,7 @@
 
 <script>
 import { mdiLogin } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -109,7 +109,6 @@ export default {
         passwordConfirm: "",
       },
       submitButtonEnabled: false,
-      showDialog: false,
       registerMode: false,
       mdiLogin,
     };
@@ -123,6 +122,7 @@ export default {
       adminFlags: (state) => state.adminFlags,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
+    ...mapWritableState(useAuthStore, ["showLoginDialog"]),
     submitButtonLabel() {
       return this.registerMode ? "Register" : "Login";
     },
@@ -135,7 +135,7 @@ export default {
     },
   },
   watch: {
-    showDialog(to) {
+    showLoginDialog(to) {
       if (to) {
         this.loadAdminFlags();
         const form = this.$refs.form;
@@ -172,7 +172,7 @@ export default {
     doAuth(mode) {
       return this[mode](this.credentials)
         .then(() => {
-          return (this.showDialog =
+          return (this.showLoginDialog =
             this.formErrors && this.formErrors.length > 0);
         })
         .catch(console.error);

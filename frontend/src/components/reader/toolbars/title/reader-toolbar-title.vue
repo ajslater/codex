@@ -45,6 +45,7 @@ import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ReaderArcPosition from "@/components/reader/toolbars/title/arc-position.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/title/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
@@ -75,6 +76,7 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
     ...mapGetters(useReaderStore, ["activeTitle"]),
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current || {},
@@ -130,6 +132,9 @@ export default {
     },
     _keyUpListener(event) {
       event.stopPropagation();
+      if (this.isAuthDialogOpen) {
+        return;
+      }
       switch (event.key) {
         case "Escape":
           this.$refs.closeBook.$el.click();

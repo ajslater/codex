@@ -11,6 +11,8 @@ export const useAuthStore = defineStore("auth", {
     },
     user: undefined,
     MIN_PASSWORD_LENGTH: 4,
+    showLoginDialog: false,
+    showChangePasswordDialog: false,
   }),
   getters: {
     isCodexViewable() {
@@ -18,6 +20,9 @@ export const useAuthStore = defineStore("auth", {
     },
     isUserAdmin() {
       return this.user && (this.user.isStaff || this.user.isSuperuser);
+    },
+    isAuthDialogOpen() {
+      return this.showLoginDialog || this.showChangePasswordDialog;
     },
   },
   actions: {

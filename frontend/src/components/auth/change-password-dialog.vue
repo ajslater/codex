@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-if="user"
-    v-model="showDialog"
+    v-model="showChangePasswordDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="22em"
@@ -26,7 +26,7 @@
     </template>
     <div v-if="formSuccess" class="codexFormSuccess">
       {{ formSuccess }}
-      <CloseButton @click="showDialog = false" />
+      <CloseButton @click="showChangePasswordDialog = false" />
     </div>
     <v-form v-else ref="form" class="changePasswordForm">
       <h2>User {{ user.username }}</h2>
@@ -75,7 +75,7 @@
         table="Password"
         :disabled="!submitButtonEnabled"
         @submit="submit"
-        @cancel="showDialog = false"
+        @cancel="showChangePasswordDialog = false"
       />
     </v-form>
   </v-dialog>
@@ -83,7 +83,7 @@
 
 <script>
 import { mdiLockPlusOutline, mdiLockReset } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
@@ -137,7 +137,6 @@ export default {
         passwordConfirm: "",
       },
       submitButtonEnabled: false,
-      showDialog: false,
       mdiLockReset,
       mdiLockPlusOutline,
     };
@@ -148,9 +147,10 @@ export default {
       formSuccess: (state) => state.form.success,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
+    ...mapWritableState(useAuthStore, ["showChangePasswordDialog"]),
   },
   watch: {
-    showDialog(to) {
+    showChangePasswordDialog(to) {
       if (to) {
         const form = this.$refs.form;
         if (form) {

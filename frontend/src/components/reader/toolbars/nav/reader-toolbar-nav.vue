@@ -24,6 +24,7 @@ import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
 import ReaderBookChangeNavButton from "@/components/reader/toolbars/nav/reader-book-change-nav-button.vue";
 import ReaderNavButton from "@/components/reader/toolbars/nav/reader-nav-button.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 
 const PREV = "prev";
@@ -38,6 +39,7 @@ export default {
     ReaderBookChangeNavButton,
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
     ...mapGetters(useReaderStore, [
       "activeSettings",
       "isReadInReverse",
@@ -98,6 +100,9 @@ export default {
     },
     _keyUpListener(event) {
       event.stopPropagation();
+      if (this.isAuthDialogOpen) {
+        return;
+      }
       switch (event.key) {
         case " ":
           if (
