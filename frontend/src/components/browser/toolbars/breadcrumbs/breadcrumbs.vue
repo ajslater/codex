@@ -133,7 +133,9 @@ export default {
   text-overflow: ellipsis;
 }
 #tailCrumbWrapper {
+  padding-top: 5px;
   white-space: nowrap;
+
 }
 #crumbs :deep(a) {
   color: rgb(var(--v-theme-textDisabled));
@@ -141,7 +143,7 @@ export default {
 #crumbs :deep(a:hover) {
   color: white;
 }
-#headCrumbs:first-child :deep(.v-icon) {
+#headCrumbs :deep(.crumb:first-child .v-icon) {
   font-size: xx-large;
 }
 </style>

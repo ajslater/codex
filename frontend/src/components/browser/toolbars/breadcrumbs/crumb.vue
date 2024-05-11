@@ -1,6 +1,6 @@
 <template>
   <span class="crumb">
-    <span v-if="item.divider"> / </span>
+    <span v-if="item.divider" class="crumbDivider"> / </span>
     <router-link :title="item.tooltip" :to="item.to" class="link">
       <v-icon v-if="item.icon">
         {{ item.icon }}
@@ -24,5 +24,8 @@ export default {
 <style scoped lang="scss">
 .crumb {
   display: inline-flex;
+}
+.crumbDivider {
+  padding-right: 0.25em;
 }
 </style>
