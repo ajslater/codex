@@ -1,5 +1,5 @@
 <template>
-  <v-main id="browsePane" :class="{ padFooter: padFooter }">
+  <v-main id="browsePane" :class="browsePaneClasses">
     <div v-if="showBrowseItems" id="browsePaneContainer">
       <BrowserCard
         v-for="item in cards"
@@ -57,9 +57,13 @@ export default {
       ],
       numPages: (state) => state.page.numPages,
       query: (state) => state.settings.q,
+      isSearchOpen: (state) => state.isSearchOpen,
     }),
-    padFooter() {
-      return this.numPages > 1;
+    browsePaneClasses() {
+      return {
+        padFooter: this.numPages > 1,
+        browsePaneSearch: this.isSearchOpen,
+      };
     },
     showBrowseItems() {
       return (
@@ -106,11 +110,14 @@ export default {
 @import "../book-cover.scss";
 $card-margin: 32px;
 #browsePane {
-  margin-top: 160px;
+  margin-top: 108px;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));
   margin-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: auto;
+}
+.browsePaneSearch {
+  margin-top: 151px !important;
 }
 #browsePaneContainer {
   margin-top: $card-margin;
