@@ -35,7 +35,7 @@
           <BookCover
             id="bookCover"
             :cover-pk="md.coverPk"
-            :cover-mtime="md.coverMtime"
+            :cover-mtime="md.coverMtime || ''"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"
@@ -434,7 +434,7 @@ export default {
       return titledIdentifiers;
     },
     multiGroup() {
-      return this?.md?.ids.length > 1;
+      return this.md?.ids ? this.md.ids.length > 1 : false;
     },
   },
   watch: {
