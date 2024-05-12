@@ -21,7 +21,6 @@
         <CloseButton
           class="closeButton"
           title="Close Metadata (esc)"
-          size="x-large"
           @click="dialog = false"
         />
         <MetadataText
@@ -227,7 +226,6 @@
           <CloseButton
             class="closeButton"
             title="Close Metadata (esc)"
-            size="x-large"
             @click="dialog = false"
           />
         </span>
@@ -547,22 +545,19 @@ export default {
 }
 
 #footerLinks {
-  margin-top: 20px;
+  padding-top: 20px;
 }
 
 #downloadButton {
   margin-right: 10px;
 }
 
-#bottomRightButtons {
-  float: right;
-}
-
 #metadataContainer,
 #placeholderContainer {
-  padding-top: calc(20px + env(safe-area-inset-top));
-  padding-left: calc(20px + env(safe-area-inset-left));
-  padding-right: calc(20px + env(safe-area-inset-right));
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px,env(safe-area-inset-bottom));
 }
 
 .placeholder {
