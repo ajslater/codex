@@ -1,5 +1,5 @@
 <template>
-  <v-main>
+  <v-main id="unauthorized">
     <v-empty-state
       class="empty"
       headline="Unauthorized"
@@ -49,6 +49,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#unauthorized {
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px,env(safe-area-inset-bottom));
+}
 .empty {
   color: rgb(var(--v-theme-textDisabled));
 }

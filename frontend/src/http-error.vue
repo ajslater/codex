@@ -1,5 +1,5 @@
 <template>
-  <v-main v-if="isCodexViewable" id="main">
+  <v-main v-if="isCodexViewable" id="httpError">
     <h1 id="httpCode">
       {{ code }}
     </h1>
@@ -53,6 +53,12 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+#httpError {
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px,env(safe-area-inset-bottom));
+}
 #httpCode,
 #title,
 #link {
