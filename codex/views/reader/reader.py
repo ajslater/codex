@@ -174,20 +174,47 @@ class ReaderView(
         )
 
         if efv_flag:
+            folder = book.parent_folder
             folder_arc = {
                 "group": self.FOLDER_GROUP,
-                "pk": book.parent_folder.pk,
-                "name": book.parent_folder.name,
+                "pk": folder.pk,
+                "name": folder.name,
             }
         else:
             folder_arc = None
         return folder_arc
 
+    def _get_series_arc(self, book):
+        """Create the series arc."""
+        series = book.series
+        if series:
+            series_arc = {
+                "group": "s",
+                "pk": series.pk,
+                "name": series.name,
+            }
+        else:
+            series_arc = None
+        return series_arc
+
+    def _get_story_arcs(self, book):
+        """Create story arcs."""
+        sas = []
+        for san in book.story_arc_numbers.all():
+            sa = san.story_arc
+            arc = {
+                "group": "a",
+                "pk": sa.pk,
+                "name": sa.name,
+            }
+            sas.append(arc)
+        return sorted(sas, key=lambda x: x["name"])
+
     def _get_arcs(self, book):
         """Get all series/folder/story arcs."""
         # create top arcs
         folder_arc = self._get_folder_arc(book)
-        series_arc = {"group": "s", "pk": book.series.pk, "name": book.series.name}
+        series_arc = self._get_series_arc(book)
 
         # order top arcs
         top_group = self.params.get("top_group")
@@ -204,16 +231,7 @@ class ReaderView(
             arcs.append(other_arc)
 
         # story arcs
-        sas = []
-        for san in book.story_arc_numbers.all():
-            sa = san.story_arc
-            arc = {
-                "group": "a",
-                "pk": sa.pk,
-                "name": sa.name,
-            }
-            sas.append(arc)
-        sas = sorted(sas, key=lambda x: x["name"])
+        sas = self._get_story_arcs(book)
         arcs += sas
         return arcs
 
