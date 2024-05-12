@@ -1,9 +1,8 @@
 <template>
   <v-data-table-virtual
-    class="adminTable"
     fixed-header
-    mobile-breakpoint="md"
     item-value="pk"
+    :mobile="$vuetify.display.xs"
   >
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />
@@ -16,10 +15,6 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.adminTable {
-  /* Lets data table contents overflow scroll */
-  max-width: 100vw;
-}
 .adminTable :deep(thead > tr > th, .adminTable tbody > tr:nth-child(even)) {
   background-color: rgb(var(--v-theme-background)) !important;
 }
