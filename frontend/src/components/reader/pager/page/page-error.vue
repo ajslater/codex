@@ -1,14 +1,10 @@
 <template>
-  <div class="pageError" :class="{ twoPages }">
-    <div class="pageErrorContainer">
-      <div class="pageErrorText">
-        {{ text }}
-      </div>
-      <v-icon class="pageErrorIcon">
-        {{ icon }}
-      </v-icon>
-    </div>
-  </div>
+  <v-empty-state
+    class="pageError"
+    :class="{ twoPages }"
+    :headline="text"
+    :icon="icon"
+  />
 </template>
 <script>
 import { mdiAlertCircleOutline, mdiLockOutline } from "@mdi/js";
@@ -36,33 +32,13 @@ export default {
 </script>
 <style scoped lang="scss">
 .pageError {
-  display: inline-block;
   height: 100vh;
+}
+.pageError :deep(.v-icon),
+.pageError :deep(.v-empty-state__headline) {
+  color: rgb(var(--v-theme-error)) !important;
 }
 .twoPages {
   max-width: 50vw;
-}
-.pageErrorContainer {
-  display: grid;
-  place-items: center;
-  height: 100%;
-}
-.pageErrorText {
-  position: relative;
-  text-align: center;
-  font-size: calc(100vw / 25);
-  color: rgb(var(--v-theme-textDisabled));
-  padding: 0.5em;
-}
-.pageErrorIcon {
-  color: rgb(var(--v-theme-error));
-  width: 75%;
-  height: 75%;
-  opacity: 0.33;
-}
-.pageErrorText,
-.pageErrorIcon {
-  grid-row: 1;
-  grid-column: 1;
 }
 </style>
