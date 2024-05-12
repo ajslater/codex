@@ -1,5 +1,11 @@
 <template>
-  <ScaleButton variant="plain" icon title="Settings" @click.prevent="onClick">
+  <ScaleButton
+    id="settingsDrawerButton"
+    variant="plain"
+    icon
+    title="Settings"
+    @click.prevent="onClick"
+  >
     <v-icon>
       {{ mdiMenu }}
     </v-icon>
@@ -46,3 +52,8 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+#settingsDrawerButton {
+  padding-right: max(10px, calc(env(safe-area-inset-right) / 4));
+}
+</style>

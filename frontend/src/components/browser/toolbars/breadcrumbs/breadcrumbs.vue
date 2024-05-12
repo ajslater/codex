@@ -145,5 +145,7 @@ export default {
 }
 #headCrumbs :deep(.crumb:first-child .v-icon) {
   font-size: xx-large;
+  padding-left: max(4px, calc(env(safe-area-inset-left)/4));
+  min-width: 40px;
 }
 </style>

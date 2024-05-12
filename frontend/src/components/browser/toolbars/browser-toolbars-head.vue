@@ -10,7 +10,7 @@
 <script>
 import BrowserBreadcrumbsToolbar from "@/components/browser/toolbars/breadcrumbs/browser-toolbar-breadcrumbs.vue";
 import BrowserTitleToolbar from "@/components/browser/toolbars/browser-toolbar-title.vue";
-import BrowserSearchToolbar from "@/components/browser/toolbars/top/browser-toolbar-search.vue";
+import BrowserSearchToolbar from "@/components/browser/toolbars/search/browser-toolbar-search.vue";
 import BrowserTopToolbar from "@/components/browser/toolbars/top/browser-toolbar-top.vue";
 
 export default {

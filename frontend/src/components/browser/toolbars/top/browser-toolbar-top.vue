@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar density="compact" :height="52">
+  <v-toolbar id="browserToolbarTop" density="compact" :height="44">
     <v-toolbar-items id="browserToolbarLeftItems">
       <BrowserTopGroupSelect />
       <BrowserFilterBySelect />
@@ -45,7 +45,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#browserToolbarLeftItems {
-  padding-top: 4px;
+#browserToolbarTop {
+  padding-top: env(safe-area-inset-top);
+  padding-left: max(10px, calc(env(safe-area-inset-left) *.75));
+  padding-right: 0px; // given to the settings drawer button
 }
 </style>

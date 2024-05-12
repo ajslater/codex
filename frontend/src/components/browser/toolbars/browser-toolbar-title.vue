@@ -1,6 +1,6 @@
 <template>
   <v-toolbar
-    id="titleToolbar"
+    id="browserToolbarTitle"
     :height="24"
     :extension-height="24"
     elevation="8"
@@ -75,7 +75,9 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
-#titleToolbar {
+#browserToolbarTitle {
+  padding-left: max(10px, calc(env(safe-area-inset-left)/4) );
+  padding-right: max(10px, calc(env(safe-area-inset-right) /4));
   padding-bottom: 6px;
 }
 .codexToolbarTitle {

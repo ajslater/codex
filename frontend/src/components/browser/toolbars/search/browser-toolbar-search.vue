@@ -1,6 +1,11 @@
 <template>
   <v-slide-y-transition>
-    <v-toolbar v-if="isQuery || isSearchOpen" density="compact" :height="64">
+    <v-toolbar
+      v-if="isQuery || isSearchOpen"
+      id="browserToolbarSearch"
+      density="compact"
+      :height="64"
+    >
       <v-toolbar-items id="searchToolbarItems">
         <BrowserSearchCombobox />
       </v-toolbar-items>
@@ -11,7 +16,7 @@
 <script>
 import { mapState } from "pinia";
 
-import BrowserSearchCombobox from "@/components/browser/toolbars/top/search-combobox.vue";
+import BrowserSearchCombobox from "@/components/browser/toolbars/search/search-combobox.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
@@ -29,6 +34,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#browserToolbarSearch {
+  padding-left: max(calc(env(safe-area-inset-left) /4) + 10px);
+  padding-right: max(calc(env(safe-area-inset-right) /4) + 10px);
+}
 #searchToolbarItems {
   width: 100%;
 }
