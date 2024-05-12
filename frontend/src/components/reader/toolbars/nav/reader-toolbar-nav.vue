@@ -22,7 +22,6 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
-import ReaderArcPosition from "@/components/reader/toolbars/nav/arc-position.vue";
 import ReaderBookChangeNavButton from "@/components/reader/toolbars/nav/reader-book-change-nav-button.vue";
 import ReaderNavButton from "@/components/reader/toolbars/nav/reader-nav-button.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -38,7 +37,6 @@ export default {
     ReaderNavButton,
     PaginationToolbar,
     ReaderBookChangeNavButton,
-    ReaderArcPosition,
   },
   computed: {
     ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
