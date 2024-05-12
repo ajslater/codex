@@ -13,7 +13,6 @@
       @update:model-value="onSliderUpdate($event)"
     />
     <ReaderNavButton :value="max" :two-pages="twoPages" />
-    <ReaderArcPosition />
     <ReaderBookChangeNavButton :direction="bookNext" :narrow="false" />
   </PaginationToolbar>
 </template>

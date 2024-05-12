@@ -2,17 +2,18 @@
   <ToolbarSelect
     v-model="arc"
     class="arcSelect"
-    select-label="order by"
+    select-label="reading order"
     :items="arcItems"
     :disabled="!arcItems || arcItems.length <= 1"
+    @update:model-value="onUpdate"
   >
     <template #item="{ item, props }">
       <v-list-item
         v-bind="props"
         density="compact"
         variant="plain"
-        :prepend-icon="arcIcon(item.raw.group)"
-        :subtitle="arcLabel(item.raw)"
+        :prepend-icon="item.raw.prependIcon"
+        :subtitle="item.raw.subtitle"
         :append-icon="checkIcon(props.value)"
       />
     </template>
@@ -20,6 +21,7 @@
       <v-icon size="large" v-bind="props" class="arcSelectIcon">
         {{ arcIcon(item.raw.group) }}
       </v-icon>
+      <span id="arcPos"> {{ arc.index }} / {{ arc.count }} </span>
     </template>
   </ToolbarSelect>
 </template>
@@ -50,6 +52,7 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       arcGroup: (state) => state.arc?.group || "s",
+      arc: (state) => state.arc,
       arcName: (state) => {
         for (const arc of state.arcs) {
           if (state.arc.group === arc.group && state.arc.pk === arc.pk) {
@@ -63,50 +66,46 @@ export default {
         const items = [];
         for (const arc of state.arcs) {
           const item = {
-            value: `${arc.group}:${arc.pk}`,
+            value: arc,
             title: arc.name,
             group: arc.group,
+            subtitle: LABELS[arc.group],
+            prependIcon: ARC_ICONS[arc.group],
           };
           items.push(item);
         }
         return items;
       },
     }),
-    arc: {
-      get() {
-        return this.arcKey;
-      },
-      set(arcKey) {
-        const routeParams = this.$route.params;
-        if (!routeParams) {
-          return;
-        }
-        const [arcGroup, arcPk] = arcKey.split(":");
-        const params = {
-          ...routeParams,
-          arcGroup,
-          arcPk,
-        };
-        this.loadBooks(params);
-      },
-    },
   },
   methods: {
     ...mapActions(useReaderStore, ["loadBooks"]),
     arcIcon(group) {
       return ARC_ICONS[group];
     },
-    arcLabel(item) {
-      return LABELS[item.group];
-    },
     checkIcon(value) {
       return value === this.arc ? mdiCheck : "";
+    },
+    onUpdate(arc) {
+      const routeParams = this.$route.params;
+      if (!routeParams) {
+        return;
+      }
+      const params = {
+        ...routeParams,
+        arcGroup: arc.group,
+        arcPk: arc.pk,
+      };
+      this.loadBooks(params);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
+#arcPos {
+  letter-spacing: -.1em;
+}
 :deep(.v-select__selection) {
   color: rgb(var(--v-theme-textSecondary)) !important;
 }
