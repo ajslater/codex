@@ -8,15 +8,21 @@
 <script>
 export default {
   name: "ScaleButton",
+  props: {
+    scale: {
+      type: Boolean,
+      default: false,
+    },
+  },
   computed: {
     breakPoint() {
       return this.$vuetify.display.xs;
     },
     density() {
-      return this.breakPoint ? "compact" : "default";
+      return this.scale && this.breakPoint ? "compact" : "default";
     },
     size() {
-      return this.breakPoint ? "small" : "default";
+      return this.scale && this.breakPoint ? "small" : "default";
     },
   },
 };
