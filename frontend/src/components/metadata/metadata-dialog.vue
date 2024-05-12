@@ -4,7 +4,6 @@
       <v-btn
         aria-label="tags"
         class="tagButton cardControlButton"
-        :density="buttonDensity"
         :variant="buttonVariant"
         :icon="mdiTagOutline"
         title="Tags"
@@ -340,9 +339,6 @@ export default {
           }) +
             "." +
             this.fileType.toLowerCase();
-    },
-    buttonDensity() {
-      return this.toolbar ? "compact" : "default";
     },
     buttonVariant() {
       return this.toolbar ? "plain" : "text";

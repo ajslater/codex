@@ -1,8 +1,9 @@
 <template>
   <PaginationNavButton
+    v-if="toRoute"
+    :class="classes"
     icon
     variant="plain"
-    :disabled="disabled"
     :title="title"
     :to="toRoute"
   >
@@ -43,8 +44,11 @@ export default {
     icon() {
       return this.bookChangeIcon(this.direction);
     },
-    disabled() {
-      return !this.toRoute;
+    classes() {
+      return {
+        bookChangeNavButtonLeft: this.direction === "prev",
+        bookChangeNavButtonRight: this.direction === "next",
+      };
     },
   },
   methods: {
@@ -52,3 +56,12 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+.bookChangeNavButtonLeft {
+    padding-left: max(10px, calc(env(safe-area-inset-left) / 4));
+}
+
+.bookChangeNavButtonRight {
+    padding-right: max(10px, calc(env(safe-area-inset-right) / 4));
+}
+</style>

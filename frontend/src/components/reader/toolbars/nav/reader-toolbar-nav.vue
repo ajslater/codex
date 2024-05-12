@@ -1,5 +1,5 @@
 <template>
-  <PaginationToolbar v-if="maxPage">
+  <PaginationToolbar v-if="maxPage" id="readerToolbarNav">
     <ReaderBookChangeNavButton :direction="bookPrev" :narrow="false" />
     <ReaderNavButton :value="min" :two-pages="twoPages" />
     <PaginationSlider
@@ -13,6 +13,7 @@
       @update:model-value="onSliderUpdate($event)"
     />
     <ReaderNavButton :value="max" :two-pages="twoPages" />
+    <ReaderArcPosition />
     <ReaderBookChangeNavButton :direction="bookNext" :narrow="false" />
   </PaginationToolbar>
 </template>
@@ -22,6 +23,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
+import ReaderArcPosition from "@/components/reader/toolbars/nav/arc-position.vue";
 import ReaderBookChangeNavButton from "@/components/reader/toolbars/nav/reader-book-change-nav-button.vue";
 import ReaderNavButton from "@/components/reader/toolbars/nav/reader-nav-button.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -37,6 +39,7 @@ export default {
     ReaderNavButton,
     PaginationToolbar,
     ReaderBookChangeNavButton,
+    ReaderArcPosition,
   },
   computed: {
     ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
@@ -146,3 +149,10 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+#readerToolbarNav {
+  padding-left: 0px; // given to button;
+  padding-right: 0px; // given to button.
+  padding-bottom: env(safe-area-inset-top);
+}
+</style>

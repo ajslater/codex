@@ -2,7 +2,7 @@
   <ToolbarSelect
     v-model="arc"
     class="arcSelect"
-    select-label="order"
+    select-label="order by"
     :items="arcItems"
     :disabled="!arcItems || arcItems.length <= 1"
   >
@@ -12,7 +12,7 @@
         density="compact"
         variant="plain"
         :prepend-icon="arcIcon(item.raw.group)"
-        :subtitle="arcLabel(item.raw.group)"
+        :subtitle="arcLabel(item.raw)"
         :append-icon="checkIcon(props.value)"
       />
     </template>
@@ -24,7 +24,7 @@
   </ToolbarSelect>
 </template>
 <script>
-import { mdiBookMultiple, mdiCheck, mdiFolderOutline, mdiRedo } from "@mdi/js";
+import { mdiBookshelf, mdiCheck, mdiFolderOutline, mdiRedo } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
@@ -33,7 +33,7 @@ import { useReaderStore } from "@/stores/reader";
 const ARC_ICONS = {
   a: mdiRedo,
   f: mdiFolderOutline,
-  s: mdiBookMultiple,
+  s: mdiBookshelf,
 };
 
 const LABELS = {
@@ -96,8 +96,8 @@ export default {
     arcIcon(group) {
       return ARC_ICONS[group];
     },
-    arcLabel(group) {
-      return LABELS[group];
+    arcLabel(item) {
+      return LABELS[item.group];
     },
     checkIcon(value) {
       return value === this.arc ? mdiCheck : "";

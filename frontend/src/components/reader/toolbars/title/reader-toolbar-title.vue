@@ -1,27 +1,20 @@
 <template>
-  <v-toolbar id="readerTopToolbar" class="codexToolbar" density="compact">
+  <v-toolbar id="readerToolbarTop" class="codexToolbar" density="compact">
     <v-toolbar-items>
       <v-btn
-        id="closeBook"
         ref="closeBook"
+        class="closeBook"
         :to="closeBookRoute"
         size="large"
         density="compact"
         variant="plain"
         @click="onCloseBook"
       >
-        <span v-if="!$vuetify.display.smAndDown">close book</span>
-        <v-icon v-else title="Close Book">
-          {{ mdiClose }}
-        </v-icon>
+        close book
       </v-btn>
     </v-toolbar-items>
-    <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span v-html="title"></span>
-    </v-toolbar-title>
+    <v-spacer />
     <v-toolbar-items v-if="!empty">
-      <ReaderArcPosition />
       <ReaderArcSelect />
       <MetadataDialog
         ref="metadataDialog"
@@ -33,6 +26,12 @@
     <v-toolbar-items>
       <SettingsDrawerButton />
     </v-toolbar-items>
+    <template v-if="title" #extension>
+      <v-toolbar-title id="readerTitle" class="codexToolbarTitle">
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <span v-html="title"></span>
+      </v-toolbar-title>
+    </template>
   </v-toolbar>
 </template>
 
@@ -42,7 +41,6 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
-import ReaderArcPosition from "@/components/reader/toolbars/title/arc-position.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/title/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -54,7 +52,6 @@ export default {
   components: {
     MetadataDialog,
     ReaderArcSelect,
-    ReaderArcPosition,
     SettingsDrawerButton,
   },
   data() {
@@ -154,12 +151,12 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 
-#readerTopToolbar {
+#readerToolbarTop {
   width: 100%;
   top: 0px;
   padding-top: env(safe-area-inset-top);
-  padding-left: calc(env(safe-area-inset-left) / 2);
-  padding-right: calc(env(safe-area-inset-right) / 2);
+  padding-left: 0px; // given to button;
+  padding-right: 0px; // given to button.
   z-index: 20;
 }
 
@@ -167,19 +164,11 @@ export default {
   padding: 0px;
 }
 
-#toolbarTitle {
-  font-size: clamp(10pt, 2.75vw, 18pt);
-  line-height: normal;
-}
-
 :deep(.v-toolbar-title__placeholder) {
   text-overflow: clip;
   white-space: normal;
 }
-
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  #closeBook {
-    min-width: 32px;
-  }
+.closeBook {
+  padding-left: max(20px, calc(env(safe-area-inset-left) / 2));
 }
 </style>

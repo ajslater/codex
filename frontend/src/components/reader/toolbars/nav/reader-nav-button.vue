@@ -2,6 +2,8 @@
   <PaginationNavButton
     :key="isVertical"
     :disabled="disabled"
+    class="readerNavButton"
+    :class="classes"
     :title="title"
     :to="toRoute"
     @click="onClick"
@@ -41,7 +43,15 @@ export default {
           };
         }
       },
+      isBookPrev: (state) => Boolean(state.routes.books.prev),
+      isBookNext: (state) => Boolean(state.routes.books.next),
     }),
+    classes() {
+      return {
+        readerNavButtonLeft: !this.isBookPrev && this.value === 0,
+        readerNavButtonRight: !this.isBookNext && this.value != 0,
+      };
+    },
     title() {
       return "Page " + this.value;
     },
@@ -64,3 +74,16 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+.readerNavButton {
+  padding-left: 6px;
+  padding-right: 6px;
+
+}
+.readerNavButtonLeft {
+  padding-left: max(10px, calc(env(safe-area-inset-left) / 4)) !important;
+}
+.readerNavButtonRight {
+  padding-right: max(10px, calc(env(safe-area-inset-right) / 4)) !important;
+}
+</style>

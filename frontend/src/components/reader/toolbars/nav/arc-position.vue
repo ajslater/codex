@@ -1,5 +1,7 @@
 <template>
-  <span v-if="arcPosition" id="arcPosition">{{ arcPosition }}</span>
+  <span v-if="arcPosition" id="arcPosition" :title="title">
+    {{ arcPosition }}</span
+  >
 </template>
 <script>
 import { mapState } from "pinia";
@@ -11,10 +13,14 @@ export default {
     ...mapState(useReaderStore, {
       arcPosition(state) {
         const arc = state.arc;
-        if (arc && arc.index && arc.count) {
+        if (arc && arc.index && arc.count && arc.count > 1) {
           return `${arc.index}/${arc.count}`;
         }
         return "";
+      },
+      title(state) {
+        const arc = state.arc;
+        return `book ${arc.index} of ${arc.count} in ${arc.name}`;
       },
     }),
   },
@@ -22,18 +28,13 @@ export default {
 </script>
 <style lang="scss" scoped>
 @use "vuetify/styles/settings/variables" as vuetify;
-// Arc Position
 #arcPosition {
-  padding-top: 13px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 6px;
+  margin-right: 6px;
+  margin-left: 6px;
   color: rgb(var(--v-theme-textSecondary));
   text-align: center;
-}
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  #arcPosition {
-    padding-left: 0px;
-    padding-right: 0px;
-  }
+  border-radius: 5px;
+  border: solid thin rgb(var(--v-theme-textDisabled));
 }
 </style>
