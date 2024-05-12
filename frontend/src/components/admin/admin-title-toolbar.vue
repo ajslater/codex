@@ -39,8 +39,8 @@ export default {
   top: 0px;
   width: 100%;
   padding-top: env(safe-area-inset-top);
-  padding-right: calc(env(safe-area-inset-right) / 2);
   padding-left: calc(48px + calc(env(safe-area-inset-left) / 2));
+  padding-right: 0px; // given to settings button.
   z-index: 10;
 }
 .drawerMargin {

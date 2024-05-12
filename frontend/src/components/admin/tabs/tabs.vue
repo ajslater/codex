@@ -77,15 +77,15 @@ export default {
 }
 $task-width: 256px;
 #tabItems {
-  margin-top: 58px;
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  margin-top: 54px;
+
 }
 .tabItemContainer {
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 10px;
-  padding-right: 10px;
+  width: 100vw;
+  padding-left: max(10px, env(safe-area-inset-left));
+  padding-right: max(10px, env(safe-area-inset-right));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+
 }
 #noLibraries {
   text-align: center;
