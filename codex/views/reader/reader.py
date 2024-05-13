@@ -1,24 +1,30 @@
 """Views for reading comic books."""
 
+from copy import deepcopy
+from types import MappingProxyType
+
 from comicbox.box import Comicbox
 from django.db.models import F, IntegerField, Value
 from django.urls import reverse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Bookmark, Comic
-from codex.serializers.reader import ReaderComicsSerializer
+from codex.serializers.reader import ReaderArcSerializer, ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.session import BrowserSessionViewBase
 
 LOG = get_logger(__name__)
+
+
+_MIN_CRUMB_WALKBACK_LEN = 3
 
 
 class ReaderView(
@@ -29,6 +35,7 @@ class ReaderView(
     """Get info for displaying comic pages."""
 
     serializer_class = ReaderComicsSerializer
+    input_serializer_class = ReaderArcSerializer
 
     SETTINGS_ATTRS = ("fit_to", "two_pages", "reading_direction")
     _COMIC_FIELDS = (
@@ -44,12 +51,59 @@ class ReaderView(
     _VALID_ARC_GROUPS = frozenset({"f", "s", "a"})
     TARGET = "reader"
 
+    def __init__(self, *args, **kwargs):
+        """Initialize instance vars."""
+        super().__init__(*args, **kwargs)
+        self.series_pks: tuple[int, ...] = ()
+
+    def _get_series_pks_from_breadcrumbs(self):
+        """Get Multi-Group pks from the breadcrumbs."""
+        if self.series_pks:
+            return self.series_pks
+        breadcrumbs = self.get_from_session("breadcrumbs")
+        if breadcrumbs:
+            crumb = breadcrumbs[-1]
+            crumb_group = crumb.get("group")
+            if crumb_group == "v" and len(breadcrumbs) >= _MIN_CRUMB_WALKBACK_LEN:
+                crumb = breadcrumbs[-2]
+                crumb_group = crumb.get("group")
+            if crumb_group == "s":
+                self.series_pks = crumb.get("pks", ())
+
+        return self.series_pks
+
+    def _get_reader_arc_pks(
+        self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel
+    ):
+        """Get the nav filter."""
+        arc_pks = arc.get("pks", ())
+        if not arc_pks:
+            comic_pk = self.kwargs["pk"]
+            try:
+                arc_pk_qs = Comic.objects.filter(pk=comic_pk)
+                arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
+                arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
+                arc_pk = arc_pk_qs.values_list(arc_pk_rel, flat=True)[0]
+            except IndexError:
+                arc_pk = 0
+
+            if arc_pk_rel == "series__pk":
+                multi_arc_pks = self._get_series_pks_from_breadcrumbs()
+                if not arc_pk or arc_pk in multi_arc_pks:
+                    arc_pks = multi_arc_pks
+            if not arc_pks:
+                arc_pks = (arc_pk,)
+
+        return arc_pks
+
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
         select_related = ("series", "volume")
         prefetch_related = ()
 
-        arc_group = self.params.get("arc_group")
+        arc = self.params.get("arc", {})
+
+        arc_group = arc.get("group", "s")
         if arc_group == "a":
             # for story arcs
             rel = "story_arc_numbers__story_arc"
@@ -77,17 +131,13 @@ class ReaderView(
             ordering = ()
             arc_pk_select_related = ("series",)
 
-        # nav filter
-        arc_pk = self.params.get("arc_pk")
-        if not arc_pk:
-            # Get the correct arc/folder/series if not submitted with a post.
-            pk = self.kwargs.get("pk")
-            arc_pk_qs = Comic.objects.filter(pk=pk)
-            arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
-            arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
-            arc_pk = arc_pk_qs.values_list(arc_pk_rel, flat=True)[:1]
-        nav_filter = {rel: arc_pk}
-
+        arc_pks = self._get_reader_arc_pks(
+            arc,
+            arc_pk_select_related,
+            prefetch_related,
+            arc_pk_rel,
+        )
+        nav_filter = {f"{rel}__in": arc_pks}
         group_acl_filter = self.get_group_acl_filter(Comic)
 
         qs = (
@@ -106,19 +156,20 @@ class ReaderView(
             .annotate(mtime=F("updated_at"))
         )
         qs = self.annotate_group_names(qs, Comic)
-        if arc_group != "f":
-            model_group = "a" if arc_group == "a" else "i"
+        if arc_group == "s":
+            show = deepcopy(self.get_from_session("show"))
+            show.pop("p", None)
+            show.pop("i", None)
             qs, comic_sort_names = self.alias_sort_names(
-                qs, Comic, pks=[arc_pk], model_group=model_group
+                qs, Comic, pks=arc_pks, model_group="i", show=show
             )
             ordering = (
-                *ordering,
                 *comic_sort_names,
                 "issue_number",
                 "issue_suffix",
                 "sort_name",
             )
-        return qs.order_by(*ordering)
+        return qs.order_by(*ordering), arc_group
 
     def _append_with_settings(self, book, bookmark_filter):
         """Append bookmark to book list."""
@@ -138,7 +189,7 @@ class ReaderView(
 
         Yields 1 to 3 books
         """
-        comics = self._get_comics_list()
+        comics, arc_group = self._get_comics_list()
         bookmark_filter = self.get_bookmark_filter()
         books = {}
         prev_book = None
@@ -158,12 +209,13 @@ class ReaderView(
                 if book.arc_index is None:  # type: ignore
                     book.arc_index = index + 1  # type: ignore
                 book.filename = book.get_filename()  # type: ignore
-
+                book.arc_group = arc_group
+                book.arc_count = comics.count()
                 books["current"] = self._append_with_settings(book, bookmark_filter)
             else:
                 # Haven't matched yet, so set the previous comic
                 prev_book = book
-        return books, comics.count()
+        return books
 
     def _get_folder_arc(self, book):
         """Create the folder arc."""
@@ -177,7 +229,7 @@ class ReaderView(
             folder = book.parent_folder
             folder_arc = {
                 "group": self.FOLDER_GROUP,
-                "pk": folder.pk,
+                "pks": (folder.pk,),
                 "name": folder.name,
             }
         else:
@@ -188,14 +240,15 @@ class ReaderView(
         """Create the series arc."""
         series = book.series
         if series:
-            series_arc = {
-                "group": "s",
-                "pk": series.pk,
-                "name": series.name,
-            }
+            arc_pks = self._get_series_pks_from_breadcrumbs()
+            if book.series.pk not in arc_pks:
+                arc_pks = (book.series.pk,)
+            arc = (
+                {"group": "s", "pks": arc_pks, "name": series.name} if series else None
+            )
         else:
-            series_arc = None
-        return series_arc
+            arc = None
+        return arc
 
     def _get_story_arcs(self, book):
         """Create story arcs."""
@@ -204,7 +257,7 @@ class ReaderView(
             sa = san.story_arc
             arc = {
                 "group": "a",
-                "pk": sa.pk,
+                "pks": (sa.pk,),
                 "name": sa.name,
             }
             sas.append(arc)
@@ -272,7 +325,8 @@ class ReaderView(
     def get_object(self):
         """Get the previous and next comics in a group or story arc."""
         # Books
-        books, arc_count = self._get_book_collection()
+        self.last_route = self.get_last_route()
+        books = self._get_book_collection()
 
         current = books.get("current")
         if not current:
@@ -291,51 +345,63 @@ class ReaderView(
         # Arcs
         arcs = self._get_arcs(current)
 
-        arc_group = self.params.get("arc_group")
-        arc = {
-            "group": arc_group,
-            "pk": current.arc_pk,  # type: ignore
-            "index": current.arc_index,  # type: ignore
-            "count": arc_count,
-        }
-        close_route = self.get_last_route(name=False)
+        arc = self.params.get("arc", {})
+        if not arc.get("group"):
+            arc["group"] = current.arc_group  # type: ignore
+        if not arc.get("pks"):
+            arc["pks"] = (current.arc_pk,)  # type: ignore
+        arc["index"] = current.arc_index  # type:ignore
+        arc["count"] = current.arc_count  # type: ignore
+        close_route = self.last_route
+        close_route.pop("name", None)
 
         return {"books": books, "arcs": arcs, "arc": arc, "close_route": close_route}
 
     def _parse_params(self):
         data = self.request.GET
+        # Hack for query_parm parser
+        arc_data = MappingProxyType(
+            {"group": data.get("arc[group]"), "pks": data.get("arc[pks]")}
+        )
+        serializer = self.input_serializer_class(data=arc_data)
+        arc = {}
+        try:
+            serializer.is_valid()
+            arc = serializer.validated_data
+        except ValidationError:
+            pass
 
         # PARAMS
         session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
         top_group = session.get("top_group", "s")
-        arc_group = data.get("arcGroup")
+
+        # arc.group validation
+        # Can't be in the serializer
+        arc_group = arc.get("group", "")
+        if not arc_group:
+            series_pks = self._get_series_pks_from_breadcrumbs()
+            if series_pks:
+                arc_group = "s"
+                arc["pks"] = series_pks
         if not arc_group:
             arc_group = top_group
-
         if arc_group not in self._VALID_ARC_GROUPS:
-            arc_group = "s"
+            arc_group = None
 
-        arc_pk = data.get("arcPk")
-        if arc_pk is not None:
-            arc_pk = int(arc_pk)
-        elif arc_group == "a":
-            last_route = self.get_last_route()
-            if last_route.get("group") == "a":
-                arc_pk = last_route.get("pks")
-
-        params = {
-            "arc_group": arc_group,
-            "arc_pk": arc_pk,
-            "top_group": top_group,
-        }
+        params = MappingProxyType(
+            {
+                "arc": arc,
+                "top_group": top_group,
+            }
+        )
         self.params = params
 
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "arcGroup", OpenApiTypes.STR, enum=sorted(_VALID_ARC_GROUPS)
+                "arc[group]", OpenApiTypes.STR, enum=sorted(_VALID_ARC_GROUPS)
             ),
-            OpenApiParameter("arcPk", OpenApiTypes.INT),
+            OpenApiParameter("arc[pks]", OpenApiTypes.STR),
         ]
     )
     def get(self, *args, **kwargs):

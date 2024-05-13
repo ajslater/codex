@@ -27,14 +27,6 @@ class ReaderSettingsSerializer(Serializer):
     read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
 
 
-class ReaderArcSerializer(Serializer):
-    """A group of comics or a story arc."""
-
-    group = CharField(read_only=True)
-    pk = IntegerField(read_only=True)
-    name = CharField(read_only=True)
-
-
 class ReaderComicSerializer(Serializer):
     """Prev, Next and Current Comic info."""
 
@@ -45,12 +37,11 @@ class ReaderComicSerializer(Serializer):
     mtime = DateTimeField(format="%s", read_only=True)
 
 
-class ReaderCurrentArcSerializer(Serializer):
+class ReaderArcSerializer(RouteSerializer):
     """Information about the current Arc."""
 
-    group = CharField(read_only=True)
-    pk = IntegerField(read_only=True)
-    index = IntegerField(read_only=True)
+    page = None
+    index = IntegerField(read_only=True, required=False)
     count = IntegerField(read_only=True, required=False)
 
 
@@ -90,5 +81,5 @@ class ReaderComicsSerializer(Serializer):
 
     books = ReaderBooksSerializer(read_only=True)
     arcs = ReaderArcSerializer(many=True, read_only=True)
-    arc = ReaderCurrentArcSerializer(read_only=True)
+    arc = ReaderArcSerializer(read_only=True)
     close_route = RouteSerializer(read_only=True)

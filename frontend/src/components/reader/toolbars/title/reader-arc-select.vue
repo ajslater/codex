@@ -1,6 +1,6 @@
 <template>
   <ToolbarSelect
-    v-model="arc"
+    :model-value="arc"
     class="arcSelect"
     select-label="reading order"
     :items="arcItems"
@@ -55,13 +55,12 @@ export default {
       arc: (state) => state.arc,
       arcName: (state) => {
         for (const arc of state.arcs) {
-          if (state.arc.group === arc.group && state.arc.pk === arc.pk) {
+          if (state.arc.group === arc.group && state.arc.pks === arc.pks) {
             return arc.name;
           }
         }
         return "Unknown";
       },
-      arcKey: (state) => `${state.arc.group}:${state.arc.pk}`,
       arcItems: (state) => {
         const items = [];
         for (const arc of state.arcs) {
@@ -86,15 +85,16 @@ export default {
     checkIcon(value) {
       return value === this.arc ? mdiCheck : "";
     },
-    onUpdate(arc) {
+    onUpdate(selectedArc) {
       const routeParams = this.$route.params;
       if (!routeParams) {
         return;
       }
+      console.log("onUpdate:", selectedArc);
+      const arc = { group: selectedArc.group, pks: selectedArc.pks };
       const params = {
         ...routeParams,
-        arcGroup: arc.group,
-        arcPk: arc.pk,
+        arc,
       };
       this.loadBooks(params);
     },

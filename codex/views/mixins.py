@@ -35,7 +35,7 @@ class SharedAnnotationsMixin:
         if model == Comic:
             order_groups = cls._get_order_groups(pks, model_group)
             for order_group in order_groups:
-                if show and not show[order_group]:
+                if show and not show.get(order_group):
                     continue
                 group_name = GROUP_NAME_MAP[order_group]
                 ann_name = f"{group_name}_sort_name"
