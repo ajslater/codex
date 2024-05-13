@@ -90,7 +90,6 @@ export default {
       if (!routeParams) {
         return;
       }
-      console.log("onUpdate:", selectedArc);
       const arc = { group: selectedArc.group, pks: selectedArc.pks };
       const params = {
         ...routeParams,
