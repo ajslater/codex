@@ -17,7 +17,6 @@ ICONS = MappingProxyType(
         "logo": 32,
         "logo-maskable": 180,
         "missing-cover": 0,
-        "missing-page": 0,
         "publisher": 0,
         "imprint": 0,
         "series": 0,
@@ -70,7 +69,12 @@ def transform_icon(name, size):
         or output_webp_path.stat().st_mtime < input_svg_mtime
     )
     if do_gen_png:
-        svg2png(url=input_svg_path, write_to=output_png_path, width=size, height=size)
+        svg2png(
+            url=str(input_svg_path),
+            write_to=str(output_png_path),
+            output_width=size,
+            output_height=size,
+        )
 
 
 def picopt():
