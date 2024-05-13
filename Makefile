@@ -1,21 +1,21 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: activate-venv
+.PHONY: activate
 ## Activate local virtual environment
 ## @category Env
-activate-venv:
+activate:
 	source .venv/bin/activate
 
 .PHONY: update
 ## Update dependencies
 ## @category Update
-update: activate-venv
+update:
 	./bin/update-deps.sh
 
 .PHONY: update-builder
 ## Update builder requirements
 ## @category Update
-update-builder: activate-venv
+update-builder:
 	./bin/update-builder-requirement.sh
 
 ## version
@@ -24,13 +24,13 @@ V :=
 .PHONY: version
 ## Show or set project version
 ## @category Update
-version: actiate-venv
+version:
 	bin/version.sh $(V)
 
 .PHONY: install-backend-common
 ## Upgrade pip and poetry
 ## @category Install
-install-backend-common: activate-venv
+install-backend-common:
 	BREW_PREFIX=$(brew --prefix)
 	export LDFLAGS="-L${BREW_PREFIX}/opt/openssl@3/lib"
 	export CPPFLAGS="-I${BREW_PREFIX}/opt/openssl@3/include"
@@ -66,7 +66,7 @@ install-all: install-backend-common install-frontend
 .PHONY: fix-backend
 ## Fix only backend lint errors
 ## @category Lint
-fix-backend: activate-venv
+fix-backend:
 	./bin/fix-lint-backend.sh
 
 .PHONY: fix-frontend
@@ -83,7 +83,7 @@ fix: fix-frontend fix-backend
 .PHONY: lint-backend
 ## Lint the backend
 ## @category Lint
-lint-backend: activate-venv
+lint-backend:
 	./bin/lint-backend.sh
 
 .PHONY: lint-frontend
@@ -100,13 +100,13 @@ lint: lint-frontend lint-backend
 .PHONY: check
 ## Check django is ok
 ## @category Lint
-check: activate-venv
+check:
 	./bin/pm check
 
 .PHONY: test-backend
 ## Run backend tests
 ## @category Test
-test-backend: activate-venv
+test-backend:
 	./bin/test-backend.sh
 
 .PHONY: test-frontend
@@ -123,13 +123,13 @@ test: test-frontend test-backend
 .PHONY: benchmark-opds
 ## Time opds requests
 ## @category Test
-benchmark-opds: activate-venv
+benchmark-opds:
 	bin/benchmark-opds.sh
 
 .PHONY: clean
 ## Clean pycaches
 ## @category Build
-clean: activate-venv
+clean:
 	./bin/clean-pycache.sh
 
 .PHONY: clean-frontend
@@ -153,7 +153,7 @@ icons:
 .PHONY: collectstatic
 ## Collect static files for django
 ## @category Build
-collectstatic: activate-venv
+collectstatic:
 	bin/collectstatic.sh
 
 .PHONY: build-backend
@@ -176,7 +176,7 @@ kill:
 .PHONY: dev-server
 ## Run the dev webserver
 ## @category Run Server
-dev-server: kill activate-venv
+dev-server: kill 
 	./bin/dev-server.sh
 
 .PHONY: dev-prod-server
@@ -215,13 +215,13 @@ M :=
 .PHONY: dev-module
 ## Run a single codex module in dev mode
 ## @category Run Server
-dev-module: activate-venv
+dev-module:
 	./bin/dev-module.sh $(M)
 
 .PHONY: publish
 ## Publish package to pypi
 ## @category Deploy
-publish: activate-venv
+publish:
 	./bin/pypi-deploy.sh
 
 .PHONY: news
