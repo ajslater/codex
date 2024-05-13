@@ -102,6 +102,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.arcSelect {
+  min-width: 74px;
+}
 #arcPos {
   letter-spacing: -.1em;
 }
