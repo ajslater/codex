@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="readerToolbarTop" class="codexToolbar" density="compact">
+  <v-toolbar id="readerToolbarTop" density="compact">
     <v-toolbar-items>
       <v-btn
         ref="closeBook"
@@ -27,10 +27,8 @@
       <SettingsDrawerButton />
     </v-toolbar-items>
     <template v-if="title" #extension>
-      <v-toolbar-title id="readerTitle" class="codexToolbarTitle">
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <span v-html="title"></span>
-      </v-toolbar-title>
+      <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
+      <v-toolbar-title id="title" v-html="title" />
     </template>
   </v-toolbar>
 </template>
@@ -41,7 +39,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
-import ReaderArcSelect from "@/components/reader/toolbars/title/reader-arc-select.vue";
+import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -95,7 +93,7 @@ export default {
       return route;
     },
     title() {
-      return this.activeTitle.replaceAll(" ", " <wrb/>");
+      return this.activeTitle;
     },
   },
   watch: {
@@ -152,8 +150,9 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 
 #readerToolbarTop {
-  width: 100%;
+  position: fixed;
   top: 0px;
+  width: 100%;
   padding-top: env(safe-area-inset-top);
   padding-left: 0px; // given to button;
   padding-right: 0px; // given to button.
@@ -170,5 +169,11 @@ export default {
 }
 .closeBook {
   padding-left: max(20px, calc(env(safe-area-inset-left) / 2));
+}
+#title {
+  font-size: clamp(12px, 2vw, 20px);
+  text-align: center;
+  white-space: nowrap;
+  overflow: scroll;
 }
 </style>

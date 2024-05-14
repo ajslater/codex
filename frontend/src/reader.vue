@@ -3,7 +3,7 @@
     <div v-if="!empty">
       <div id="readerContainer">
         <v-slide-y-transition>
-          <ReaderTitleToolbar v-show="showToolbars" />
+          <ReaderTopToolbar v-show="showToolbars" />
         </v-slide-y-transition>
         <BooksWindow @click="toggleToolbars" />
         <v-slide-y-reverse-transition>
@@ -24,7 +24,7 @@ import BooksWindow from "@/components/reader/books-window.vue";
 import ReaderSettingsDrawer from "@/components/reader/drawer/reader-settings-drawer.vue";
 import ReaderEmpty from "@/components/reader/empty.vue";
 import ReaderNavToolbar from "@/components/reader/toolbars/nav/reader-toolbar-nav.vue";
-import ReaderTitleToolbar from "@/components/reader/toolbars/title/reader-toolbar-title.vue";
+import ReaderTopToolbar from "@/components/reader/toolbars/top/reader-toolbar-top.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
@@ -35,7 +35,7 @@ export default {
     BooksWindow,
     ReaderEmpty,
     ReaderNavToolbar,
-    ReaderTitleToolbar,
+    ReaderTopToolbar,
     ReaderSettingsDrawer,
     Unauthorized,
   },

@@ -1,6 +1,7 @@
 <template>
   <PaginationNavButton
     :key="toRoute"
+    :class="classes"
     :disabled="disabled"
     :title="title"
     :to="toRoute"
@@ -60,6 +61,12 @@ export default {
       const params = { ...this.routeParams, page };
       return { params };
     },
+    classes() {
+      return {
+        leftButton: this.back,
+        rightButton: !this.back,
+      };
+    },
     disabled() {
       return (
         (this.back && this.page <= 1) ||
@@ -67,7 +74,7 @@ export default {
       );
     },
     showMore() {
-      return this.more && this.toPage === this.numPages;
+      return this.more && this.isSearchMode && this.toPage === this.numPages;
       // && this.isSearchLimitedMode
     },
   },
@@ -83,5 +90,11 @@ export default {
 <style scoped lang="scss">
 .flipHoriz {
   transform: scaleX(-1);
+}
+.leftButton {
+  padding-left: calc(10px + env(safe-area-inset-left));
+}
+.rightButton {
+  padding-right: calc(10px + env(safe-area-inset-right));
 }
 </style>

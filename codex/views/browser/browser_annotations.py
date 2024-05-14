@@ -314,6 +314,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def _get_cover_pk_query(self, cover_pks):
         """Get Cover Pk queryset for comic queryset."""
         comic_qs = Comic.objects.filter(pk__in=cover_pks)
+        comic_qs = self.annotate_search_score(
+            comic_qs, Comic, self.cover_search_score_pairs
+        )
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
         comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
         comic_qs = comic_qs.group_by("id")

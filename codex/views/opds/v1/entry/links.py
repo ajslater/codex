@@ -1,30 +1,18 @@
 """OPDS v1 Entry Links Methods."""
 
-from types import MappingProxyType
 from urllib.parse import quote_plus
 
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
+from codex.views.const import MISSING_COVER_FN, MISSING_COVER_NAME_MAP
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 
 LOG = get_logger(__name__)
-MISSING_COVER = "img/missing_cover.svg"
-COVER_MAP = MappingProxyType(
-    {
-        "p": "publisher",
-        "i": "imprint",
-        "s": "series",
-        "v": "volume",
-        "a": "story-arc",
-        "f": "folder",
-        "c": "missing-cover",
-    }
-)
 
 
 class OPDS1EntryLinksMixin:
@@ -52,10 +40,15 @@ class OPDS1EntryLinksMixin:
             href = reverse("opds:bin:cover", kwargs=kwargs)
             mime_type = "image/webp"
         else:
-            name = COVER_MAP[self.obj.group]
-            fn = f"img/{name}.svg"
-            href = staticfiles_storage.url(fn)
-            mime_type = "image/svg+xml"
+            cover_name = MISSING_COVER_NAME_MAP.get(self.obj.group)
+            cover_path = "img/"
+            if cover_name:
+                cover_path += cover_name + ".svg"
+                mime_type = "image/svg+xml"
+            else:
+                cover_path += MISSING_COVER_FN
+                mime_type = "image/webp"
+            href = staticfiles_storage.url(cover_path)
         return OPDS1Link(Rel.THUMBNAIL, href, mime_type)
 
     def _image_link(self):
@@ -67,10 +60,9 @@ class OPDS1EntryLinksMixin:
             href = reverse("opds:bin:page", kwargs=kwargs)
             mime_type = "image/jpeg"
         else:
-            name = COVER_MAP[self.obj.group]
-            fn = f"img/{name}.svg"
+            fn = f"img/{MISSING_COVER_FN}"
             href = staticfiles_storage.url(fn)
-            mime_type = "image/svg+xml"
+            mime_type = "image/webp"
         return OPDS1Link(Rel.IMAGE, href, mime_type)
 
     def _nav_href(self, metadata=False):
@@ -141,6 +133,17 @@ class OPDS1EntryLinksMixin:
             pse_last_read_date=bookmark_updated_at,
         )
 
+    def _links_comic(self):
+        """Links for comics."""
+        result = []
+        if download := self._download_link():
+            result += [download]
+        if stream := self._stream_link():
+            result += [stream]
+        if not self.metadata and (metadata := self._nav_link(metadata=True)):
+            result += [metadata]
+        return result
+
     @property
     def links(self):
         """Create all entry links."""
@@ -152,12 +155,7 @@ class OPDS1EntryLinksMixin:
                 result += [image]
 
             if self.obj.group == "c" and not self.fake:
-                if download := self._download_link():
-                    result += [download]
-                if stream := self._stream_link():
-                    result += [stream]
-                if not self.metadata and (metadata := self._nav_link(metadata=True)):
-                    result += [metadata]
+                result += self._links_comic()
             elif nav := self._nav_link():
                 result += [nav]
 

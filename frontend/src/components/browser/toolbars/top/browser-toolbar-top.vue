@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="browserToolbarTop" density="compact" :height="44">
+  <v-toolbar id="browserToolbarTop" density="compact" :height="48">
     <v-toolbar-items id="browserToolbarLeftItems">
       <BrowserTopGroupSelect />
       <BrowserFilterBySelect />
@@ -45,9 +45,17 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbarTop {
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(5px + env(safe-area-inset-top));
+  padding-bottom: 5px;
   padding-left: max(10px, calc(env(safe-area-inset-left) *.75));
   padding-right: 0px; // given to the settings drawer button
+}
+@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+#browserToolbarTop {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: 0px;
+}
 }
 </style>

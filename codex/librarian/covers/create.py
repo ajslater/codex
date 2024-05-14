@@ -77,7 +77,8 @@ class CoverCreateMixin(CoverPathMixin):
             with cover_path.open("wb") as cover_file:
                 cover_file.write(data)
         elif not cover_path.exists():
-            cover_path.symlink_to(self.MISSING_COVER_PATH)
+            # zero length file is code for missing.
+            cover_path.touch()
 
     def _bulk_create_comic_covers(self, comic_pks):
         """Create bulk comic covers."""

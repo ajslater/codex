@@ -109,15 +109,16 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../book-cover.scss";
 $card-margin: 32px;
+$browse-pane-margin-top: calc(94px + $card-margin);
 #browsePane {
-  margin-top: 108px;
+  margin-top: $browse-pane-margin-top;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));
   margin-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: auto;
 }
 .browsePaneSearch {
-  margin-top: 151px !important;
+  margin-top: calc($browse-pane-margin-top + 32px) !important;
 }
 #browsePaneContainer {
   margin-top: $card-margin;
@@ -156,5 +157,11 @@ $card-margin: 32px;
     grid-gap: $small-card-margin;
     justify-content: space-evenly;
   }
+}
+
+@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+  #browsePane {
+  margin-top: 108px;
+}
 }
 </style>

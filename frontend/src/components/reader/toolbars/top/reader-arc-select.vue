@@ -29,7 +29,7 @@
 import { mdiBookshelf, mdiCheck, mdiFolderOutline, mdiRedo } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
+import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const ARC_ICONS = {
@@ -106,7 +106,10 @@ export default {
   min-width: 74px;
 }
 #arcPos {
-  letter-spacing: -.1em;
+  height: 22.75px;
+  padding-top: 4px;
+  font-size: 16px;
+  letter-spacing: -.15em;
 }
 :deep(.v-select__selection) {
   color: rgb(var(--v-theme-textSecondary)) !important;

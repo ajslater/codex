@@ -30,9 +30,8 @@ from codex.models import (
 from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser.browser_annotations import BrowserAnnotationsView
+from codex.views.browser.browser_breadcrumbs import BrowserBreadcrumbsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import GROUP_NAME_MAP
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
@@ -41,7 +40,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-class BrowserView(BrowserAnnotationsView):
+class BrowserView(BrowserBreadcrumbsView):
     """Browse comics with a variety of filters and sorts."""
 
     permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
@@ -96,6 +95,7 @@ class BrowserView(BrowserAnnotationsView):
         self.group_query: QuerySet = Comic.objects.none()
         self.group_instance: BrowserGroupModel | None = None
         self.valid_nav_groups: tuple[str, ...] = ()
+        self.cover_search_score_pairs: tuple[tuple[int, float], ...] = ()
 
     def _raise_redirect(self, reason, route_mask=None, settings_mask=None):
         """Redirect the client to a valid group url."""
@@ -219,141 +219,6 @@ class BrowserView(BrowserAnnotationsView):
         if parent_path_str and parent_path_str[0] != sep:
             parent_path_str = sep + parent_path_str
         return parent_path_str
-
-    def _is_breadcrumbs_child(self, breadcrumbs) -> bool:
-        """Is the current route a child of the stored breadcrumbs."""
-        is_child = False
-        if not breadcrumbs:
-            return is_child
-        group = self.kwargs["group"]
-        pks = self.kwargs["pks"]
-        up_route = breadcrumbs[-1]
-        up_group = up_route["group"]
-        up_pks = up_route["pks"]
-        if group == self.STORY_ARC_GROUP:
-            is_child = group == up_group and pks
-        elif group == self.FOLDER_GROUP:
-            if group == up_group and self.group_instance:
-                parent_folder: Folder | None = self.group_instance.parent_folder  # type: ignore
-                parent_pk = parent_folder.pk if parent_folder else 0
-                is_child = parent_pk in up_pks or (not up_pks and not parent_pk)
-        else:  # Browse Groups
-            show = self.params["show"]
-            test_parent = False
-            parent_group = None
-            for show_group, enabled in reversed(show.items()):
-                if not test_parent:
-                    if show_group == group:
-                        test_parent = True
-                    continue
-                if not enabled:
-                    continue
-                group_name = GROUP_NAME_MAP[show_group]
-                parent_group = getattr(self.group_instance, group_name, None)
-                is_child = bool(parent_group) and (parent_group.pk in up_pks)
-                break
-            if up_group == "r" and not parent_group:
-                is_child = True
-
-        return is_child
-
-    def _create_breadcrumbs(self):
-        pks = self.kwargs["pks"]
-        if not pks:
-            return []
-        group = self.kwargs["group"]
-        if group == self.STORY_ARC_GROUP:
-            # Create the only story_arc parent
-            breadcrumbs = [
-                {
-                    "group": self.STORY_ARC_GROUP,
-                    "pks": (),
-                    "page": 1,
-                    "name": "",
-                }
-            ]
-        elif group == self.FOLDER_GROUP:
-            # Create folder parents
-            breadcrumbs = []
-            folder: Folder | None = self.group_instance  # type: ignore
-            while folder:
-                folder = folder.parent_folder  # type: ignore
-                pks = (folder.pk,) if folder else ()
-                name = folder.name if folder else ""
-                parent_route = {
-                    "group": self.FOLDER_GROUP,
-                    "pks": pks,
-                    "page": 1,
-                    "name": name,
-                }
-                breadcrumbs = [parent_route, *breadcrumbs]
-        else:  # Browse Groups
-            # Create group parents
-            breadcrumbs = [{"group": self.ROOT_GROUP, "pks": (), "page": 1, "name": ""}]
-            show = self.params["show"]
-            for show_group, enabled in show.items():
-                if not enabled or show_group not in self.valid_nav_groups:  # type: ignore
-                    continue
-                attr = GROUP_NAME_MAP[show_group]  # + "_id"
-                parent_group = getattr(self.group_instance, attr, None)  # type: ignore
-                if parent_group:
-                    pks = (parent_group.pk,)
-                    name = parent_group.name
-                    parent_group_route = {
-                        "group": show_group,
-                        "pks": pks,
-                        "page": 1,
-                        "name": name,
-                    }
-                    breadcrumbs += [parent_group_route]
-        return breadcrumbs
-
-    def _is_breadcrumbs_identical(self, breadcrumbs):
-        if not breadcrumbs:
-            return False
-
-        up_route = breadcrumbs[-1]
-        if not up_route:
-            return False
-
-        group = self.kwargs["group"]
-        if up_route["group"] != group:
-            return False
-
-        pks = self.kwargs["pks"]
-        if set(up_route["pks"]) != set(pks):
-            return False
-
-        return True
-
-    def get_parent_breadcrumbs(
-        self,
-    ) -> tuple[dict[str, str | tuple[int, ...] | int], ...]:
-        """Get the breadcrumbs."""
-        breadcrumbs: list[dict[str, str | tuple[int, ...] | int]] = list(
-            self.get_from_session("breadcrumbs")
-        )
-
-        if not self._is_breadcrumbs_identical(breadcrumbs):
-            if not self._is_breadcrumbs_child(breadcrumbs):
-                breadcrumbs = self._create_breadcrumbs()
-
-            # Add current route to crumbs
-            group = self.kwargs["group"]
-            pks = self.kwargs["pks"]
-            name = self.group_instance.name if self.group_instance else ""
-            page = self.kwargs["page"]
-            route = {"group": group, "pks": pks, "page": page, "name": name}
-            breadcrumbs += [route]
-
-            # Save params
-            params = dict(self.params)
-            params["breadcrumbs"] = breadcrumbs
-            self.params = MappingProxyType(params)
-
-        parent_breadcrumbs = breadcrumbs[:-1] if breadcrumbs else ()
-
-        return tuple(parent_breadcrumbs)
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
@@ -654,7 +519,7 @@ class BrowserView(BrowserAnnotationsView):
         super().init_request()
         self._set_group_query_and_instance()
 
-    @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
+    @extend_schema(request=BrowserBreadcrumbsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
         self.init_request()

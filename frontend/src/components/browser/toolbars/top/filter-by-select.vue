@@ -68,8 +68,8 @@
 import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
-import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
+import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {

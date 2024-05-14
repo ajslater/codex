@@ -220,6 +220,24 @@ class Comic(WatchedPath):
         return Path(self.path).name
 
     @classmethod
+    def _get_title_issue_str(cls, obj, zero_pad):
+        """Get the issue parts of the title."""
+        issue_str = ""
+        if obj.issue_number is not None:
+            issue_number = obj.issue_number.normalize()
+            if not zero_pad:
+                zero_pad = 3
+            if issue_number % 1 == 0:
+                precision = 0
+            else:
+                precision = 1
+                zero_pad += 2
+            issue_str = f"#{issue_number:0{zero_pad}.{precision}f}"
+        if issue_suffix := obj.issue_suffix:
+            issue_str += issue_suffix
+        return issue_str
+
+    @classmethod
     def get_title(  # noqa: PLR0913
         cls, obj, volume=True, zero_pad=None, name=True, filename_fallback=False
     ):
@@ -236,20 +254,7 @@ class Comic(WatchedPath):
             names.append(vn)
 
         # Issue
-        issue_str = ""
-        if obj.issue_number is not None:
-            issue_number = obj.issue_number.normalize()
-            if not zero_pad:
-                zero_pad = 3
-            if issue_number % 1 == 0:
-                precision = 0
-            else:
-                precision = 1
-                zero_pad += 2
-            issue_str = f"#{issue_number:0{zero_pad}.{precision}f}"
-        if issue_suffix := obj.issue_suffix:
-            issue_str += issue_suffix
-        if issue_str:
+        if issue_str := cls._get_title_issue_str(obj, zero_pad):
             names.append(issue_str)
 
         # Title

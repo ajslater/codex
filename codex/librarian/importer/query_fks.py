@@ -11,11 +11,11 @@ from codex.librarian.importer.const import (
     CONTRIBUTORS_FIELD_NAME,
     COUNT_FIELDS,
     DICT_MODEL_CLASS_FIELDS_MAP,
+    DICT_MODEL_FIELD_MODEL_MAP,
     DICT_MODEL_REL_MAP,
     GROUP_COMPARE_FIELDS,
     GROUP_TREES,
     IDENTIFIERS_FIELD_NAME,
-    IDENTIFIERS_MODEL_REL_MAP,
     IMPRINT,
     PARENT_FOLDER,
     PUBLISHER,
@@ -360,9 +360,7 @@ class QueryForeignKeysMixin(QueuedThread):
         return value_filter
 
     @staticmethod
-    def _query_missing_dict_model_obj(
-        value_rel, key, values, possible_create_objs, _url_restore_map
-    ):
+    def _query_missing_dict_model_obj(value_rel, key, values, possible_create_objs, _):
         """Update all_filters and possible_create_objs for this obj."""
         for value in values:
             possible_create_objs.add((key, value))
@@ -381,68 +379,86 @@ class QueryForeignKeysMixin(QueuedThread):
 
         return value_filter
 
-    @staticmethod
-    def _add_value_filter_map(value_filter, filter_and_prefix, query_filter_map):
-        """Add a filter_and_prefix and the value filter to the map."""
-        if not value_filter:
-            return
+    def _query_missing_dict_model_add_to_query_filter_map(  # noqa: PLR0913
+        self,
+        key,
+        values,
+        field_name,
+        possible_create_objs,
+        query_filter_map,
+        url_restore_map,
+    ):
+        """Add value filter to query filter map."""
+        # Get the value filter
+        if field_name == "identifiers":
+            query_missing_method = self._query_missing_identifiers_model_obj
+        else:
+            query_missing_method = self._query_missing_dict_model_obj
+        key_rel, value_rel = DICT_MODEL_REL_MAP[field_name]
+
+        value_filter = query_missing_method(
+            value_rel, key, values, possible_create_objs, url_restore_map
+        )
+
+        # Add value_filter to the query_filter_map
+        filter_and_prefix = Q(**{key_rel: key})
         if filter_and_prefix not in query_filter_map:
             query_filter_map[filter_and_prefix] = Q()
         query_filter_map[filter_and_prefix] |= value_filter
 
+    @staticmethod
+    def _query_missing_dict_model_identifiers_restore_urls(
+        field_name, possible_create_objs, url_restore_map
+    ):
+        """Restore urls to only the identifier create objs."""
+        if field_name != "identifiers":
+            return
+        restored_create_objs = []
+        for create_obj in possible_create_objs:
+            url = url_restore_map.get(create_obj)
+            restored_create_objs.append((*create_obj, url))
+        possible_create_objs = restored_create_objs
+
     def _query_missing_dict_model(self, field_name, fks, create_objs, status):
-        """Find missing dict type m2m models with a supplied filter method."""
-        count = 0
+        """Find missing dict type m2m models."""
         possible_objs = fks.pop(field_name, None)
         if not possible_objs:
-            return count
+            return 0
 
+        # Create possible_create_objs & a query filter map and cache the urls for
+        # identifiers to be created, but not queried against
         possible_create_objs = set()
         query_filter_map = {}
-        # create the filter
-
-        if field_name == "identifiers":
-            rel_map = IDENTIFIERS_MODEL_REL_MAP
-            query_missing_method = self._query_missing_identifiers_model_obj
-        else:
-            rel_map = DICT_MODEL_REL_MAP
-            query_missing_method = self._query_missing_dict_model_obj
-            url_restore_map = {}
-
-        model, key_rel, value_rel = rel_map[field_name]
-
-        # this lets an identifier get recreated.
-        # fix that first
-        # Then try to do it with one query and one create.
-
         url_restore_map = {}
         for key, values in possible_objs.items():
-            filter_and_prefix = Q(**{key_rel: key})
-            value_filter = query_missing_method(
-                value_rel, key, values, possible_create_objs, url_restore_map
-            )
-            self._add_value_filter_map(
-                value_filter, filter_and_prefix, query_filter_map
+            self._query_missing_dict_model_add_to_query_filter_map(
+                key,
+                values,
+                field_name,
+                possible_create_objs,
+                query_filter_map,
+                url_restore_map,
             )
 
-        # get the obj metadata
+        # Build combined query object from the value_filter
         combined_q_obj = Q()
         for filter_and_prefix, value_filter in query_filter_map.items():
             combined_q_obj |= filter_and_prefix & value_filter
 
-        count += self._query_create_metadata(
+        # Finally run the query and get only the correct create_objs
+        model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
+        self._query_create_metadata(
             model, possible_create_objs, None, combined_q_obj, status
         )
-        if field_name == "identifiers":
-            restored_create_objs = []
-            for create_obj in possible_create_objs:
-                url = url_restore_map.get(create_obj)
-                restored_create_objs.append((*create_obj, url))
-            possible_create_objs = restored_create_objs
+        self._query_missing_dict_model_identifiers_restore_urls(
+            field_name, possible_create_objs, url_restore_map
+        )
 
+        # Final Cleanup
         create_objs.update(possible_create_objs)
         count = len(create_objs)
         if count:
+            model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
             vnp = model._meta.verbose_name_plural
             vnp = vnp.title() if vnp else "Nothings"
             self.log.info(f"Prepared {count} new {vnp}.")

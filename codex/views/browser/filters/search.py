@@ -18,10 +18,9 @@ SEARCH_SCORE_EMPTY = 0.0
 
 
 @dataclass
-class SearchScores:
+class SearchScorePks:
     """Search Scores for annotation."""
 
-    scores: tuple[tuple[int, float], ...] = ()
     scored_pks: tuple[int, ...] = ()
     prev_pks: tuple[int, ...] = ()
     next_pks: tuple[int, ...] = ()
@@ -115,13 +114,13 @@ class SearchFilterMixin:
 
         return tuple(scores_pairs), tuple(prev_pks), tuple(next_pks), tuple(scored_pks)
 
-    def get_search_scores(self, binary=False) -> SearchScores | None:
+    def _get_search_scores(self, binary=False):
         """Perform the search and return the scores as a dict."""
         text = self.params.get("q", "")  # type: ignore
         if not text:
-            return None
+            return (), (), (), ()
 
-        scores_pairs = ()
+        score_pairs = ()
         scored_pks = ()
         prev_pks = ()
         next_pks = ()
@@ -132,54 +131,54 @@ class SearchFilterMixin:
             if binary:
                 scored_pks = self._get_binary_search_scores(sqs)
             else:
-                scores_pairs, prev_pks, next_pks, scored_pks = (
+                score_pairs, prev_pks, next_pks, scored_pks = (
                     self._get_browser_search_scores(sqs)
                 )
-
         except MemoryError:
             LOG.warning("Search engine needs more memory, results truncated.")
         except Exception:
             LOG.exception("Getting Search Scores")
-        return SearchScores(scores_pairs, scored_pks, prev_pks, next_pks)
+        return score_pairs, prev_pks, next_pks, scored_pks
 
-    def _annotate_search_score(self, qs, model, search_scores: SearchScores | None):
+    def annotate_search_score(  # noqa: PLR0913
+        self, qs, model, score_pairs, prev_pks=None, next_pks=None
+    ):
         """Annotate the search score for ordering by search score.
 
         Choose the maximum matching score for the group.
         """
-        if search_scores:
+        if score_pairs:
             prefix = "" if model == Comic else self.rel_prefix  # type: ignore
             whens = []
-            for pk, score in search_scores.scores:
+            for pk, score in score_pairs:
                 when = {prefix + "pk": pk, "then": score}
                 whens.append(When(**when))
-            if search_scores.prev_pks:
-                whens.append(When(pk__in=search_scores.prev_pks, then=SEARCH_SCORE_MAX))
-            if search_scores.next_pks:
-                whens.append(When(pk__in=search_scores.next_pks, then=SEARCH_SCORE_MIN))
+            if prev_pks:
+                whens.append(When(pk__in=prev_pks, then=SEARCH_SCORE_MAX))
+            if next_pks:
+                whens.append(When(pk__in=next_pks, then=SEARCH_SCORE_MIN))
             search_score = self.order_agg_func(Case(*whens, default=SEARCH_SCORE_EMPTY))  # type: ignore
         else:
             search_score = Value(0.0)
         return qs.annotate(search_score=search_score)
 
-    def _get_search_query_filter(
-        self,
-        model,
-        search_scores: SearchScores,
-    ):
+    def _get_search_query_filter(self, model, scored_pks):
         """Get the search filter and scores."""
         prefix = "" if model == Comic else self.rel_prefix  # type: ignore
         rel = prefix + "pk__in"
-        return {rel: search_scores.scored_pks}
+        return {rel: scored_pks}
 
     def apply_search_filter(self, qs, model, binary=False):
         """Preparse search, search and return the filter and scores."""
         try:
-            search_scores = self.get_search_scores(binary)
-            qs = self._annotate_search_score(qs, model, search_scores)
-            if search_scores:
-                search_filter = self._get_search_query_filter(model, search_scores)
+            score_pairs, prev_pks, next_pks, scored_pks = self._get_search_scores(
+                binary
+            )
+            qs = self.annotate_search_score(qs, model, score_pairs, prev_pks, next_pks)
+            if score_pairs:
+                search_filter = self._get_search_query_filter(model, scored_pks)
                 qs = qs.filter(**search_filter)
+                self.cover_search_score_pairs = score_pairs
         except Exception:
             LOG.exception("Creating the search filter")
 

@@ -100,14 +100,16 @@
     id="g1053"
     style="display:inline;mix-blend-mode:normal;fill:url(#linearGradient1093);fill-opacity:0"
     inkscape:label="logo"
-    transform="matrix(0.80,0,0,0.80,51.5,51.5)"  ><circle
-      style="background-color:#1e1e1e;display:inline;mix-blend-mode:normal;fill:black;fill-opacity:1;stroke-width:2;image-rendering:auto;opacity:1"
+    transform="matrix(0.80,0,0,0.80,51.5,51.5)"  >
+    <circle
+      style="display:inline;mix-blend-mode:normal;fill:#1e1e1e;fill-opacity:1;stroke-width:2;image-rendering:auto;opacity:1"
       id="path284"
       cx="256"
       cy="256"
       r="256"
       inkscape:label="black-circle"
-    /><circle
+    />
+    <circle
       style="display:inline;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:url(#linearGradient2677);stroke-width:58.5486;stroke-dasharray:none;stroke-opacity:1"
       id="path3190"
       cx="256"

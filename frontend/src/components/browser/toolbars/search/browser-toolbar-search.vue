@@ -1,7 +1,7 @@
 <template>
   <v-slide-y-transition>
     <v-toolbar
-      v-if="isQuery || isSearchOpen"
+      v-if="isSearchOpen"
       id="browserToolbarSearch"
       density="compact"
       :height="64"
@@ -27,7 +27,6 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       isSearchOpen: (state) => state.isSearchOpen,
-      isQuery: (state) => Boolean(state.settings.q),
     }),
   },
 };

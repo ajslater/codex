@@ -12,7 +12,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
+import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {

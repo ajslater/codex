@@ -9,7 +9,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-import socket
 from logging import WARN, getLogger
 from os import environ
 from pathlib import Path
@@ -42,7 +41,7 @@ MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
 # fixes this in the bulk_create & bulk_update functions. So for complicated
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
-VITE_HOST = environ.get("VITE_HOST", socket.gethostname())
+VITE_HOST = environ.get("VITE_HOST")
 
 ####################################
 # Documented Environment Variables #
@@ -337,9 +336,7 @@ CACHES = {
     },
 }
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+INTERNAL_IPS = ("127.0.0.1",)
 
 SEARCH_INDEX_PATH = CONFIG_PATH / "whoosh_index"
 SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
@@ -357,10 +354,13 @@ CHANNEL_LAYERS = {
 }
 
 if DEBUG and not BUILD:
+    import socket
+
+    DEV_SERVER_HOST = VITE_HOST if VITE_HOST else socket.gethostname()
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,
-            "dev_server_host": VITE_HOST,
+            "dev_server_host": DEV_SERVER_HOST,
         }
     }
 

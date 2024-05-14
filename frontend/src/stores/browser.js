@@ -26,6 +26,7 @@ const DEFAULT_BOOKMARK_VALUES = new Set([
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
+const SEARCH_HIDE_TIMEOUT = 5000;
 
 const redirectRoute = function (route) {
   if (route && route.params) {
@@ -88,6 +89,7 @@ export const useBrowserStore = defineStore("browser", {
     zeroPad: 0,
     browserPageLoaded: false,
     isSearchOpen: false,
+    searchTimeout: undefined,
   }),
   getters: {
     topGroupChoices() {
@@ -277,7 +279,7 @@ export const useBrowserStore = defineStore("browser", {
           // New top group is a child (REVERSED)
           // Redrect to the new root.
           params = { group: "r", pks: "0", page: "1" };
-          //console.log("new top group is child", params);
+          // console.log("new top group is child", params);
         }
       } else {
         // redirect to the new TopGroup
@@ -297,7 +299,11 @@ export const useBrowserStore = defineStore("browser", {
               ? { ...state.settings[key], ...value }
               : (state.settings[key] = value);
         }
+        if (state.settings.q) {
+          state.isSearchOpen = true;
+        }
       });
+      this.startSearchHideTimer();
     },
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
@@ -349,6 +355,22 @@ export const useBrowserStore = defineStore("browser", {
         this.loadBrowserPage();
         return true;
       });
+    },
+    startSearchHideTimer() {
+      if (!this.isSearchOpen) {
+        return;
+      }
+      const q = this.settings.q;
+      if (q) {
+        clearTimeout(this.searchTimeout);
+      } else {
+        this.searchTimeout = setTimeout(() => {
+          const q = this.settings.q;
+          if (!q) {
+            this.setIsSearchOpen(false);
+          }
+        }, SEARCH_HIDE_TIMEOUT);
+      }
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE

@@ -2802,14 +2802,17 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "urnparse"
-version = "0.2.1"
+version = "0.2.2"
 description = "Python library for generating and parsing and RFC 8141 compliant uniform resource names (URN)."
 optional = false
 python-versions = "*"
 files = [
-    {file = "urnparse-0.2.1-py2.py3-none-any.whl", hash = "sha256:8af095760c5166b472be4ca570c1d71eb9b82bb722409d76fdcde564de844b23"},
-    {file = "urnparse-0.2.1.tar.gz", hash = "sha256:15d0964c16388cb99bdd891e5ddfa2eeeb558dc16121f4bd7255f12f0b837777"},
+    {file = "urnparse-0.2.2-py2.py3-none-any.whl", hash = "sha256:5bf3ce5ffbfcfbc7412c006c64eceb2531e2d91cf94d1103433684bb68913946"},
+    {file = "urnparse-0.2.2.tar.gz", hash = "sha256:907b8f6365aa453368d27f2d62e5d18606c4148a6d8d0dec7d62439888da4b28"},
 ]
+
+[package.dependencies]
+typing-extensions = ">=4.11.0"
 
 [package.extras]
 tests = ["check-manifest", "isort", "pydocstyle", "pytest"]

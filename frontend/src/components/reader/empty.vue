@@ -1,5 +1,5 @@
 <template>
-  <ReaderTitleToolbar />
+  <ReaderTopToolbar />
   <v-empty-state
     class="empty"
     headline="Book Not Found"
@@ -11,12 +11,12 @@
 <script>
 import { mdiBookRemoveOutline } from "@mdi/js";
 
-import ReaderTitleToolbar from "@/components/reader/toolbars/title/reader-toolbar-title.vue";
+import ReaderTopToolbar from "@/components/reader/toolbars/top/reader-toolbar-top.vue";
 
 export default {
   name: "ReaderEmpty",
   components: {
-    ReaderTitleToolbar,
+    ReaderTopToolbar,
   },
   data() {
     return {

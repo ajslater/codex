@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fnvhash import fnv1a_32
 
-from codex.settings.settings import CODEX_PATH, ROOT_CACHE_PATH
+from codex.settings.settings import ROOT_CACHE_PATH
 from codex.threads import QueuedThread
 
 
@@ -12,7 +12,6 @@ class CoverPathMixin(QueuedThread):
     """Path methods for covers."""
 
     COVER_ROOT = ROOT_CACHE_PATH / "covers"
-    MISSING_COVER_PATH = CODEX_PATH / "img" / "missing-cover.webp"
     _HEX_FILL = 8
     _PATH_STEP = 2
     _ZFILL = 12

@@ -5,11 +5,11 @@
     :extension-height="24"
     elevation="8"
   >
-    <v-toolbar-title class="codexToolbarTitle">
+    <v-toolbar-title class="browserToolbarTitle">
       {{ title }}
     </v-toolbar-title>
     <template v-if="subtitle" #extension>
-      <v-toolbar-title class="codexToolbarTitle codexToolbarSubtitle">
+      <v-toolbar-title class="browserToolbarTitle browserToolbarSubtitle">
         {{ subtitle }}
       </v-toolbar-title>
     </template>
@@ -80,18 +80,15 @@ export default {
   padding-right: max(10px, calc(env(safe-area-inset-right) /4));
   padding-bottom: 6px;
 }
-.codexToolbarTitle {
+.browserToolbarTitle {
+  font-size: clamp(12px, 2vw, 20px);
   text-align: center;
+  white-space: nowrap;
+  overflow: scroll;
 }
-.codexToolbarSubtitle {
-  color: rgb(var(--v-theme-textDisabled));
-  font-size: 15px;
+.browserToolbarSubtitle {
   padding-top: 2px;
-}
-
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .codexToolbarTitle {
-    font-size: 1rem;
-  }
+  font-size: 15px;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

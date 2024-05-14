@@ -1,5 +1,5 @@
 <template>
-  <ScaleButton variant="text" class="toolbarButton">
+  <ScaleButton variant="plain" class="toolbarButton">
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />
     </template>

@@ -66,6 +66,7 @@ class ReaderCurrentComicSerializer(ReaderComicSerializer):
 
     file_type = CharField(read_only=True, required=False)
     filename = CharField(read_only=True, required=False)
+    name = CharField(read_only=True, required=False)
 
 
 class ReaderBooksSerializer(Serializer):

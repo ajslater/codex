@@ -131,6 +131,9 @@ export const useReaderStore = defineStore("reader", {
       if (book) {
         if (state.arcs[0]?.group != "f") {
           title = getFullComicName(book);
+          if (book.name) {
+            title += " " + book.name;
+          }
         }
         if (!title) {
           title = book.filename || "";
@@ -425,7 +428,7 @@ export const useReaderStore = defineStore("reader", {
         });
     },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "c", ids: [this.books.current.pk] };
+      const groupParams = { group: "c", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       await BROWSER_API.setGroupBookmarks(groupParams, updates);
@@ -433,11 +436,9 @@ export const useReaderStore = defineStore("reader", {
     async setSettingsLocal(data) {
       this._updateSettings(data, true);
 
+      const groupParams = { group: "c", ids: [+this.books.current.pk] };
       await BROWSER_API.setGroupBookmarks(
-        {
-          group: "c",
-          pk: +this.books.current.pk,
-        },
+        groupParams,
         this.books.current.settings,
       );
     },

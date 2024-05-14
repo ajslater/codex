@@ -49,15 +49,20 @@ DICT_MODEL_CLASS_FIELDS_MAP = MappingProxyType(
         Identifier: frozenset({_IDENTIFIER_TYPE_FIELD_NAME}),
     }
 )
+DICT_MODEL_FIELD_MODEL_MAP = MappingProxyType(
+    {
+        CONTRIBUTORS_FIELD_NAME: Contributor,
+        STORY_ARCS_METADATA_KEY: StoryArcNumber,
+        IDENTIFIERS_FIELD_NAME: Identifier,
+    }
+)
 DICT_MODEL_REL_MAP = MappingProxyType(
     {
         CONTRIBUTORS_FIELD_NAME: (
-            Contributor,
             f"{_CONTRIBUTOR_ROLE_FIELD_NAME}__name",
             f"{_CONTRIBUTOR_PERSON_FIELD_NAME}__name",
         ),
         STORY_ARCS_METADATA_KEY: (
-            StoryArcNumber,
             f"{_STORY_ARC_FIELD_NAME}__name",
             _NUMBER_FIELD_NAME,
         ),
@@ -66,7 +71,6 @@ DICT_MODEL_REL_MAP = MappingProxyType(
 IDENTIFIERS_MODEL_REL_MAP = MappingProxyType(
     {
         IDENTIFIERS_FIELD_NAME: (
-            Identifier,
             f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
             {
                 "nss": _IDENTIFIER_CODE_FIELD_NAME,

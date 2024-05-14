@@ -52,8 +52,11 @@ export default {
       this.addToMenu(to);
     },
   },
+  beforeMount() {
+    this.query = this.stateQ;
+  },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings", "setIsSearchOpen"]),
+    ...mapActions(useBrowserStore, ["setSettings", "startSearchHideTimer"]),
     addToMenu(q) {
       if (!q || this.items.includes(q)) {
         return;
@@ -61,17 +64,6 @@ export default {
       const updateditems = this.items[0] === "" ? [] : this.items;
       updateditems.unshift(q);
       this.items = updateditems.slice(0, MAX_ITEMS);
-    },
-    startHideTimer() {
-      const q = this.query ? this.query.trim() : "";
-      if (!q) {
-        setTimeout(() => {
-          const q = this.query ? this.query.trim() : "";
-          if (!q) {
-            this.setIsSearchOpen(false);
-          }
-        }, 5000);
-      }
     },
     doSearch(clear = false) {
       this.menu = false;
@@ -82,15 +74,10 @@ export default {
         settings.orderReverse = false;
       }
       this.setSettings(settings);
-      if (q) {
-        this.addToMenu(q);
-      } else {
-        this.startHideTimer();
-      }
     },
     doEscape() {
       this.menu = false;
-      this.startHideTimer();
+      this.startSearchHideTimer();
     },
   },
 };

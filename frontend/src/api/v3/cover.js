@@ -10,11 +10,14 @@ const COVER_MAP = {
   c: "missing-cover",
 };
 
-export const getCoverSource = (pk, updatedAt, group) => {
+export const getCoverSource = (pk, mtime, group) => {
   let src;
   if (pk) {
     const basePath = getReaderBasePath(pk);
-    src = `${basePath}/cover.webp?${updatedAt}`;
+    src = `${basePath}/cover.webp?ts=${mtime}`;
+    if (group) {
+      src += `&group=${group}`;
+    }
   } else {
     const name = COVER_MAP[group];
     src = window.CODEX.STATIC + "img/" + name + ".svg";
