@@ -23,16 +23,16 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1"
-     inkscape:cx="30"
-     inkscape:cy="180"
+     inkscape:cx="12"
+     inkscape:cy="12.5"
      inkscape:window-width="1312"
-     inkscape:window-height="825"
-     inkscape:window-x="0"
-     inkscape:window-y="38"
+     inkscape:window-height="662"
+     inkscape:window-x="988"
+     inkscape:window-y="546"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg1" />
   <path
-     d="M 150.5,176.5 H 18.5 V 94 h 132 m 0,-16.5 h -66 L 68,61 H 18.5 C 9.3425,61 2,68.3425 2,77.5 v 99 A 16.5,16.5 0 0 0 18.5,193 h 132 A 16.5,16.5 0 0 0 167,176.5 V 94 c 0,-9.1575 -7.425,-16.5 -16.5,-16.5 z"
+     d="M 145.35737,174.14302 H 19.642626 V 95.571331 H 145.35737 m 0,-15.714328 H 82.500014 L 66.78562,64.142667 H 19.642626 c -8.721464,0 -15.7143446,6.992879 -15.7143446,15.714336 V 174.14302 A 15.714342,15.714329 0 0 0 19.642626,189.85733 H 145.35737 a 15.714342,15.714329 0 0 0 15.71435,-15.71431 V 95.571331 c 0,-8.721452 -7.07149,-15.714328 -15.71435,-15.714328 z"
      id="path1"
-     style="fill:#606060;fill-opacity:1;stroke-width:8.25;stroke:#606060;stroke-opacity:1" />
+     style="fill:#808080;fill-opacity:1;stroke:#000000;stroke-width:7.85656;stroke-opacity:0" />
 </svg>

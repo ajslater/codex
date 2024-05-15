@@ -1,14 +1,14 @@
-.: 1715657143.8786
+.: 1715731925.021083
 config:
   bigger: false
   convert_to:
-    - WEBP
+  - WEBP
   formats:
-    - GIF
-    - JPEG
-    - PNG
-    - SVG
-    - WEBP
+  - GIF
+  - JPEG
+  - PNG
+  - SVG
+  - WEBP
   ignore: []
   keep_metadata: true
   near_lossless: false
