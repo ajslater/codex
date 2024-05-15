@@ -1,5 +1,7 @@
 """Special Redirect Error."""
 
+from collections.abc import Mapping
+
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -8,8 +10,6 @@ from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
-from codex.serializers.redirect import BrowserRedirectSerializer
-from codex.serializers.route import RouteSerializer
 
 LOG = get_logger(__name__)
 
@@ -21,17 +21,9 @@ class SeeOtherRedirectError(APIException):
     default_code = "redirect"
     default_detail = "redirect to a valid route"
 
-    def _coerce_pks_to_string(self, detail):
-        """Coerce pks to valid string."""
-        params = detail.get("route", {}).get("params", DEFAULTS["breadcrumbs"][0])
-        serializer = RouteSerializer(params)
-        detail["route"]["params"] = serializer.data
-
-    def __init__(self, detail):
+    def __init__(self, detail: Mapping[str, str | dict]):
         """Create a response to pass to the exception handler."""
-        self._coerce_pks_to_string(detail)
-        serializer = BrowserRedirectSerializer(detail)
-        self.detail: dict = serializer.data  # type: ignore
+        self.detail: Mapping[str, str | Mapping] = detail  # type: ignore
         LOG.debug(
             f"redirect {self.detail.get('reason')} to {self.detail.get('route')} {self.detail.get('settings')}"
         )
@@ -40,7 +32,7 @@ class SeeOtherRedirectError(APIException):
     def _add_query_params(self, url):
         """Change OPDS settings like the frontend does with error.detail."""
         query_params = {}
-        settings = self.detail.get("settings", {})
+        settings: Mapping = self.detail.get("settings", {})  # type: ignore
         if top_group := settings.get("top_group"):
             query_params["top_group"] = top_group
         if order_by := settings.get("order_by"):
@@ -52,8 +44,8 @@ class SeeOtherRedirectError(APIException):
     def get_response(self, url_name):
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
-        route = self.detail.get("route", {})
-        params = route.get("params", DEFAULTS["breadcrumbs"][0])
+        route: Mapping = self.detail.get("route", {})  # type: ignore
+        params: dict = route.get("params", DEFAULTS["breadcrumbs"][0])
         url = reverse(url_name, kwargs=params)
         url = self._add_query_params(url)
 
