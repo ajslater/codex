@@ -1,5 +1,9 @@
 <template>
-  <v-toolbar id="readerToolbarTop" density="compact">
+  <v-toolbar
+    id="readerToolbarTop"
+    density="compact"
+    :extension-height="extensionHeight"
+  >
     <v-toolbar-items>
       <v-btn
         ref="closeBook"
@@ -28,7 +32,10 @@
     </v-toolbar-items>
     <template v-if="title" #extension>
       <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
-      <v-toolbar-title id="title" v-html="title" />
+      <v-toolbar-title class="readerTitle">
+        <div id="title">{{ title }}</div>
+        <div v-if="subtitle" id="subtitle">{{ subtitle }}</div>
+      </v-toolbar-title>
     </template>
   </v-toolbar>
 </template>
@@ -77,6 +84,7 @@ export default {
       currentBook: (state) => state.books?.current || {},
       closeRoute: (state) => state.routes.close,
       empty: (state) => state.empty,
+      subtitle: (state) => state.books?.current?.name || "",
     }),
     closeBookRoute() {
       // Choose the best route
@@ -94,6 +102,13 @@ export default {
     },
     title() {
       return this.activeTitle;
+    },
+    extensionHeight() {
+      let height = 32;
+      if (this.subtitle) {
+        height *= 2;
+      }
+      return height;
     },
   },
   watch: {
@@ -158,22 +173,24 @@ export default {
   padding-right: 0px; // given to button.
   z-index: 20;
 }
-
-:deep(.v-toolbar__content) {
-  padding: 0px;
-}
-
-:deep(.v-toolbar-title__placeholder) {
-  text-overflow: clip;
-  white-space: normal;
-}
 .closeBook {
   padding-left: max(20px, calc(env(safe-area-inset-left) / 2));
 }
-#title {
-  font-size: clamp(12px, 2vw, 20px);
+
+.readerTitle
+{
+  padding-left: calc(env(safe-area-inset-left) / 2);
+  padding-right: calc(env(safe-area-inset-left) / 2);
   text-align: center;
   white-space: nowrap;
   overflow: scroll;
+}
+#title {
+  font-size: clamp(18px, 3vw, 20px);
+}
+#subtitle {
+  font-size: clamp(16px, 3vw, 18px);
+  color: rgb(var(--v-theme-textSecondary));
+  padding-bottom: 10px;
 }
 </style>
