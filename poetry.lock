@@ -1877,13 +1877,13 @@ files = [
 
 [[package]]
 name = "pyright"
-version = "1.1.362"
+version = "1.1.363"
 description = "Command line wrapper for pyright"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.362-py3-none-any.whl", hash = "sha256:969957cff45154d8a45a4ab1dae5bdc8223d8bd3c64654fa608ab3194dfff319"},
-    {file = "pyright-1.1.362.tar.gz", hash = "sha256:6a477e448d4a07a6a0eab58b2a15a1bbed031eb3169fa809edee79cca168d83a"},
+    {file = "pyright-1.1.363-py3-none-any.whl", hash = "sha256:d3b8d73c8d230e26cc3523862f3398032a0c39a00d7bb69dc0f595f8e888fd01"},
+    {file = "pyright-1.1.363.tar.gz", hash = "sha256:00a8f0ae0e339473bb0488f8a2a2dcdf574e94a16cd7b4390d49d144714d8db2"},
 ]
 
 [package.dependencies]
@@ -2698,13 +2698,13 @@ telegram = ["requests"]
 
 [[package]]
 name = "treestamps"
-version = "1.0.1"
+version = "1.0.2"
 description = "Create timestamp records for recursive operations on directory trees."
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "treestamps-1.0.1-py3-none-any.whl", hash = "sha256:d837fdb039470430c424a9e734acdebc0f93723968b96f3f6de4f54b2928897f"},
-    {file = "treestamps-1.0.1.tar.gz", hash = "sha256:6541202b3b750bd24c0266b4dd6d149528b7bb0a82678b15ed8635dc626d0054"},
+    {file = "treestamps-1.0.2-py3-none-any.whl", hash = "sha256:253a039e35bdc7e9f94d1fe1ab21cf361988a3d7ea6cea480d496fe20a4859be"},
+    {file = "treestamps-1.0.2.tar.gz", hash = "sha256:c2c015bec12dde11c4faada5244c5fb5f7b35f8f38076c3a9804d5929bebb42f"},
 ]
 
 [package.dependencies]
@@ -2969,4 +2969,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "3289fe7caf263c1b851b532423862d759a55d64dafafa2b0aa7ff0c689cb1026"
+content-hash = "f67bff75c388bab92d06a43d3b28448e1281c28ab25ff61e96046b7f97f7e5ff"
