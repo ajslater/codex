@@ -78,7 +78,7 @@ export default {
     linkLabel() {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
-      label += " " + this.item.headerName;
+      label += " " + this.item.name;
       return label;
     },
     ids() {
