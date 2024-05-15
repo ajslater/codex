@@ -3,20 +3,17 @@
 import warnings
 from datetime import date, datetime
 
-from _vendor.haystack.backends import (
-    log_query,
-)
-from _vendor.haystack.constants import (
-    DJANGO_CT,
-)
-from _vendor.haystack.exceptions import SearchBackendError
-from _vendor.haystack.utils import get_model_ct
 from django.conf import settings
 from django.utils.encoding import force_str
 
 # Bubble up the correct error.
 from whoosh.sorting import Count, DateRangeFacet, FieldFacet
 from whoosh.support.relativedelta import relativedelta as RelativeDelta
+
+from codex._vendor.haystack.backends import log_query
+from codex._vendor.haystack.constants import DJANGO_CT
+from codex._vendor.haystack.exceptions import SearchBackendError
+from codex._vendor.haystack.utils import get_model_ct
 
 
 class CodexBackendSearchMixin:
