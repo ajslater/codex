@@ -273,7 +273,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 output_field=BooleanField(),
             )
 
-        if self.is_opds_1_acquisition:
+        if self.is_opds_1_acquisition or self.is_model_comic and self.TARGET == "browser":
             qs = qs.annotate(page=bookmark_page)
         else:
             qs = qs.alias(page=bookmark_page)
