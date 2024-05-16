@@ -45,7 +45,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
+    ...mapGetters(useAuthStore, ["isAuthorized", "isUserAdmin"]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
     }),

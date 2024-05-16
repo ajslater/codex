@@ -15,8 +15,11 @@ export const useAuthStore = defineStore("auth", {
     showChangePasswordDialog: false,
   }),
   getters: {
-    isCodexViewable() {
+    isAuthorized() {
       return Boolean(this.user || this.adminFlags.nonUsers);
+    },
+    isAuthChecked() {
+      return this.user !== undefined || this.adminFlags.registration !== undefined;
     },
     isUserAdmin() {
       return this.user && (this.user.isStaff || this.user.isSuperuser);
