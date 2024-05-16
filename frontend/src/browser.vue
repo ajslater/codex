@@ -1,5 +1,5 @@
 <template>
-  <v-main v-if="isCodexViewable" id="browser">
+  <v-main v-if="isAuthorized" id="browser">
     <BrowserHeadToolbars />
     <BrowserMain />
     <BrowserNavToolbar />
@@ -32,7 +32,7 @@ export default {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
   },
   watch: {
     $route: function () {
@@ -42,7 +42,7 @@ export default {
     user: function () {
       this.loadSettings();
     },
-    isCodexViewable: function () {
+    isAuthorized: function () {
       this.loadSettings();
     },
   },

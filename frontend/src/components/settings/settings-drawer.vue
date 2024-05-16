@@ -11,14 +11,14 @@
           <h3>{{ title }}</h3>
         </header>
         <v-divider />
-        <slot v-if="isCodexViewable" name="panel" />
-        <v-divider v-if="isCodexViewable" />
+        <slot v-if="isAuthorized" name="panel" />
+        <v-divider v-if="isAuthorized" />
         <AuthMenu />
         <component :is="AdminMenu" v-if="isUserAdmin" />
         <v-divider />
       </div>
       <div id="scrollFooter" class="footer">
-        <OPDSDialog v-if="isCodexViewable" />
+        <OPDSDialog v-if="isAuthorized" />
         <RepoFooter />
       </div>
     </div>
@@ -66,13 +66,13 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isUserAdmin", "isAuthorized"]),
     ...mapState(useCommonStore, {
       isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),
     open: {
       get() {
-        return this.isSettingsDrawerOpen || !this.isCodexViewable;
+        return this.isSettingsDrawerOpen || !this.isAuthorized;
       },
       set(value) {
         this.setSettingsDrawerOpen(value);

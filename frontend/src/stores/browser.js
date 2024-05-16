@@ -130,8 +130,8 @@ export const useBrowserStore = defineStore("browser", {
     filterByChoicesMaxLen() {
       return this._maxLenChoices(CHOICES.browser.bookmarkFilter);
     },
-    isCodexViewable() {
-      return useAuthStore().isCodexViewable;
+    isAuthorized() {
+      return useAuthStore().isAuthorized;
     },
     isDynamicFiltersSelected(state) {
       for (const [name, array] of Object.entries(state.settings.filters)) {
@@ -347,7 +347,7 @@ export const useBrowserStore = defineStore("browser", {
       await this.loadBrowserPage();
     },
     async setBookmarkFinished(params, finished) {
-      if (!this.isCodexViewable) {
+      if (!this.isAuthorized) {
         return;
       }
       await API.setGroupBookmarks(params, { finished }).then(() => {
@@ -398,7 +398,7 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // LOAD
     async loadSettings() {
-      if (!this.isCodexViewable) {
+      if (!this.isAuthorized) {
         return;
       }
       this.$patch((state) => {
@@ -422,7 +422,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async loadBrowserPage() {
       // Get objects for the current route and settings.
-      if (!this.isCodexViewable) {
+      if (!this.isAuthorized) {
         return;
       }
       if (!this.browserPageLoaded) {

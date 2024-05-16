@@ -54,7 +54,7 @@ export default {
     SearchHelp,
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
       isUserAuthorized: (state) => Boolean(state.user),
     }),
