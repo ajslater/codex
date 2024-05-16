@@ -1,5 +1,5 @@
 <template>
-  <v-main v-if="isCodexViewable" id="readerWrapper">
+  <v-main v-if="isAuthorized" id="readerWrapper">
     <div v-if="!empty">
       <div id="readerContainer">
         <v-slide-y-transition>
@@ -45,7 +45,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
@@ -57,7 +57,7 @@ export default {
     user() {
       this.loadReaderSettings();
     },
-    isCodexViewable() {
+    isAuthorized() {
       this.loadReaderSettings();
     },
   },

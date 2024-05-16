@@ -412,12 +412,12 @@ class QueryForeignKeysMixin(QueuedThread):
     ):
         """Restore urls to only the identifier create objs."""
         if field_name != "identifiers":
-            return
+            return possible_create_objs
         restored_create_objs = []
         for create_obj in possible_create_objs:
             url = url_restore_map.get(create_obj)
             restored_create_objs.append((*create_obj, url))
-        possible_create_objs = restored_create_objs
+        return restored_create_objs
 
     def _query_missing_dict_model(self, field_name, fks, create_objs, status):
         """Find missing dict type m2m models."""
@@ -450,7 +450,7 @@ class QueryForeignKeysMixin(QueuedThread):
         self._query_create_metadata(
             model, possible_create_objs, None, combined_q_obj, status
         )
-        self._query_missing_dict_model_identifiers_restore_urls(
+        possible_create_objs = self._query_missing_dict_model_identifiers_restore_urls(
             field_name, possible_create_objs, url_restore_map
         )
 

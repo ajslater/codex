@@ -39,14 +39,14 @@ export default {
     ...mapState(useAuthStore, {
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
     ...mapGetters(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
         return (
           this.nonUsers === undefined ||
-          (this.isCodexViewable &&
+          (this.isAuthorized &&
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
@@ -69,7 +69,7 @@ export default {
       return (
         this.cards &&
         this.cards.length > 0 &&
-        this.isCodexViewable &&
+        this.isAuthorized &&
         !this.showPlaceHolder
       );
     },

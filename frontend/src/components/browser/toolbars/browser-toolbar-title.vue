@@ -5,11 +5,11 @@
     :extension-height="24"
     elevation="8"
   >
-    <v-toolbar-title class="browserToolbarTitle">
+    <v-toolbar-title id="browserTitle" class="browserTitle">
       {{ title }}
     </v-toolbar-title>
     <template v-if="subtitle" #extension>
-      <v-toolbar-title class="browserToolbarTitle browserToolbarSubtitle">
+      <v-toolbar-title id="browserSubtitle" class="browserTitle">
         {{ subtitle }}
       </v-toolbar-title>
     </template>
@@ -80,17 +80,18 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbarTitle {
-  padding-left: max(10px, calc(env(safe-area-inset-left)/4) );
-  padding-right: max(10px, calc(env(safe-area-inset-right) /4));
   padding-bottom: 6px;
 }
-.browserToolbarTitle {
-  font-size: clamp(12px, 2vw, 20px);
+.browserTitle {
+  margin: 0px;
   text-align: center;
   white-space: nowrap;
   overflow: scroll;
 }
-.browserToolbarSubtitle {
+#browserTitle {
+  font-size: clamp(12px, 2vw, 20px);
+}
+#browserSubtitle {
   padding-top: 2px;
   font-size: 15px;
   color: rgb(var(--v-theme-textDisabled));

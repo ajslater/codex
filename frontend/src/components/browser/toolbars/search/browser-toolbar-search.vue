@@ -1,11 +1,6 @@
 <template>
   <v-slide-y-transition>
-    <v-toolbar
-      v-if="isSearchOpen"
-      id="browserToolbarSearch"
-      density="compact"
-      :height="64"
-    >
+    <v-toolbar v-if="isSearchOpen" density="compact" :height="64">
       <v-toolbar-items id="searchToolbarItems">
         <BrowserSearchCombobox />
       </v-toolbar-items>
@@ -33,10 +28,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#browserToolbarSearch {
-  padding-left: max(calc(env(safe-area-inset-left) /4) + 10px);
-  padding-right: max(calc(env(safe-area-inset-right) /4) + 10px);
-}
 #searchToolbarItems {
   width: 100%;
 }

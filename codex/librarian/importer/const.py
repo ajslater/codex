@@ -66,10 +66,6 @@ DICT_MODEL_REL_MAP = MappingProxyType(
             f"{_STORY_ARC_FIELD_NAME}__name",
             _NUMBER_FIELD_NAME,
         ),
-    }
-)
-IDENTIFIERS_MODEL_REL_MAP = MappingProxyType(
-    {
         IDENTIFIERS_FIELD_NAME: (
             f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
             {

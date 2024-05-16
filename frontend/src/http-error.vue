@@ -1,5 +1,5 @@
 <template>
-  <v-main v-if="isCodexViewable" id="httpError">
+  <v-main v-if="isAuthorized" id="httpError">
     <h1 id="httpCode">
       {{ code }}
     </h1>
@@ -36,7 +36,7 @@ export default {
     return {};
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
     code: function () {
       return +this.$route.params.code;
     },
