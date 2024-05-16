@@ -95,7 +95,6 @@ class BrowserView(BrowserBreadcrumbsView):
         self.group_query: QuerySet = Comic.objects.none()
         self.group_instance: BrowserGroupModel | None = None
         self.valid_nav_groups: tuple[str, ...] = ()
-        self.cover_search_score_pairs: tuple[tuple[int, float], ...] = ()
 
     def _raise_redirect(self, reason, route_mask=None, settings_mask=None):
         """Redirect the client to a valid group url."""

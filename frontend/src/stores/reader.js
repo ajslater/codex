@@ -131,9 +131,6 @@ export const useReaderStore = defineStore("reader", {
       if (book) {
         if (state.arcs[0]?.group != "f") {
           title = getFullComicName(book);
-          if (book.name) {
-            title += " " + book.name;
-          }
         }
         if (!title) {
           title = book.filename || "";

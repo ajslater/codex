@@ -37,7 +37,7 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      browserTitle: (state) => state.page.title,
+      browserTitle: (state) => state.page?.title,
       groupNames: (state) => state.choices.static.groupNames,
       modelGroup: (state) => state.page.modelGroup,
     }),
@@ -47,20 +47,24 @@ export default {
       if (Number(this.$route.params.pks) === 0) {
         title = "All";
       } else {
-        let names = [];
-        const { groupName, groupCount } = this.browserTitle;
-        const group = this.$route.params.group;
-        const formattedGroupName =
-          group === "v" ? formattedVolumeName(groupName) : groupName;
-        if (formattedGroupName) {
-          names.push(formattedGroupName);
+        if (this.browserTitle) {
+          let names = [];
+          const { groupName, groupCount } = this.browserTitle;
+          const group = this.$route.params.group;
+          const formattedGroupName =
+            group === "v" ? formattedVolumeName(groupName) : groupName;
+          if (formattedGroupName) {
+            names.push(formattedGroupName);
+          }
+          if (groupCount) {
+            const formattedGroupCount = `of ${groupCount}`;
+            names.push(formattedGroupCount);
+          }
+          //const delimiter = group === "f" ? "" : " ";
+          title = names.join(" ");
+        } else {
+          title = "";
         }
-        if (groupCount) {
-          const formattedGroupCount = `of ${groupCount}`;
-          names.push(formattedGroupCount);
-        }
-        //const delimiter = group === "f" ? "" : " ";
-        title = names.join(" ");
       }
       return title;
     },

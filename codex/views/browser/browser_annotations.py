@@ -66,6 +66,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
+        self.cover_search_score_pairs: tuple[tuple[int, float], ...] = ()
 
     def get_group_by(self, model=None):
         """Get the group by for the model."""
@@ -272,7 +273,11 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 output_field=BooleanField(),
             )
 
-        if self.is_opds_1_acquisition:
+        if (
+            self.is_opds_1_acquisition
+            or self.is_model_comic
+            and self.TARGET == "browser"
+        ):
             qs = qs.annotate(page=bookmark_page)
         else:
             qs = qs.alias(page=bookmark_page)
