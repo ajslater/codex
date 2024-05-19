@@ -2,6 +2,7 @@
 
 import re
 from os import fsdecode
+from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.box import Comicbox
@@ -24,8 +25,8 @@ from codex.logger.logging import get_logger
 from codex.logger_base import LoggerBaseMixin
 
 LOG = get_logger(__name__)
-FOLDER_COVER_IMAGE_EXP = r"\/?\.codex-cover\.\w{1,4}"
-FOLDER_COVER_RE = re.compile(FOLDER_COVER_IMAGE_EXP, re.IGNORECASE)
+_FOLDER_COVER_STEM = ".codex-cover"
+_IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
 
 
 class CoverMovedEvent(FileMovedEvent):
@@ -77,6 +78,10 @@ class CodexEventHandlerBase(FileSystemEventHandler, LoggerBaseMixin):
         self.init_logger(log_queue)
         super().__init__(*args, **kwargs)
 
+    @staticmethod
+    def _match_image_suffix(path: Path) -> bool:
+        return path and len(path.suffix) > 1 and path.suffix[1:] in _IMAGE_EXTS
+
 
 class CodexLibraryEventHandler(CodexEventHandlerBase):
     """Handle watchdog events for comics in a library."""
@@ -115,6 +120,13 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         suffix = fsdecode(suffix)
         return self._comic_matcher.match(suffix) is not None
 
+    @classmethod
+    def _match_folder_cover(cls, path_str: str) -> bool:
+        if not path_str:
+            return False
+        path = Path(path_str)
+        return path.stem == _FOLDER_COVER_STEM and cls._match_image_suffix(path)
+
     def _transform_file_move_event(
         self,
         event,
@@ -133,8 +145,8 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         elif source_match_comic and dest_match_comic:
             events.append(event)
 
-        source_match_cover = FOLDER_COVER_RE.match(event.src_path)
-        dest_match_cover = FOLDER_COVER_RE.match(event.dest_path)
+        source_match_cover = self._match_folder_cover(event.src_path)
+        dest_match_cover = self._match_folder_cover(event.dest_path)
         if source_match_cover and not dest_match_cover:
             events.append(CoverDeletedEvent(event.src_path))
         elif not source_match_cover and dest_match_cover:
@@ -151,13 +163,18 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         elif source_match_comic:
             events.append(event)
         else:
-            source_match_cover = FOLDER_COVER_RE.match(event.src_path)
+            # TODO create match function
+            source_match_cover = self._match_folder_cover(event.src_path)
+            #source_match_cover = FOLDER_COVER_RE.match(event.src_path)
+            #print(f"{FOLDER_COVER_IMAGE_EXP=}")
+            print(f"{event.src_path=} {source_match_cover=} {event.event_type=}")
             if source_match_cover and (
                 event_class := COVER_EVENT_TYPE_MAP.get(event.event_type)
             ):
                 # Convert to cover type
                 event = event_class(event.src_path)
                 events.append(event)
+        print(f"{events=}")
         return events
 
     def _transform_event(self, event):
@@ -192,12 +209,14 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
 class CodexCustomCoverEventHandler(CodexEventHandlerBase):
     """Special event handler for the custom cover dir."""
 
-    _DIRS = ("publishers", "imprints", "series", "story-arcs")
-    _EXTS = (r"jpe?g", "webp", "png", "gif", "bmp")
-    _IMAGE_RE_EXP = (
-        r"custom-covers\/(" + r"|".join(_DIRS) + r")\/.*\.(" + r"|".join(_EXTS) + r")$"
-    )
-    IMAGE_RE = re.compile(_IMAGE_RE_EXP, re.IGNORECASE)
+    _GROUP_COVER_DIRS = frozenset({"publishers", "imprints", "series", "story-arcs"})
+
+    @classmethod
+    def _match_group_cover_image(cls, path_str: str) -> bool:
+        path = Path(path_str)
+        if str(path.parent) not in cls._GROUP_COVER_DIRS:
+            return False
+        return cls._match_image_suffix(path)
 
     def dispatch(self, event):
         """Send only valid cover events to the EventBatcher."""
@@ -205,10 +224,9 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
         try:
             if event.is_directory or event.event_type in self.IGNORED_EVENTS:
                 return
-
-            src_cover_match = self.IMAGE_RE.match(event.src_path)
+            src_cover_match = self._match_group_cover_image(event.src_path)
             if event.event_type == EVENT_TYPE_MOVED:
-                dest_cover_match = self.IMAGE_RE.match(event.dest_path)
+                dest_cover_match = self._match_group_cover_image(event.dest_path)
                 if src_cover_match and dest_cover_match:
                     send_event = CoverMovedEvent(event.src_path, event.dest_path)
                 elif not src_cover_match and dest_cover_match:
