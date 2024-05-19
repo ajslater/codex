@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.19
+
+- Fixes
+  - Metadata crash on folders.
+
 ## v1.5.18
 
 - Fixes
