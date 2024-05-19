@@ -286,7 +286,3 @@ class Comic(WatchedPath):
         if self.issue_suffix:
             res += self.issue_suffix
         return res
-
-    def search_path(self) -> str:
-        """Relative path for search index."""
-        return self.path.removeprefix(self.library.path)

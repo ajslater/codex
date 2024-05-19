@@ -1,16 +1,54 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
-import arrayFunc from "eslint-plugin-array-func";
-import markdown from "eslint-plugin-markdown";
+import eslintPluginArrayFunc from "eslint-plugin-array-func";
 // import plugin broken for flag config
 // https://github.com/import-js/eslint-plugin-import/issues/2556
 // import importPlugin from "eslint-plugin-import";
-import pluginSecurity from "eslint-plugin-security";
+import eslintPluginJsonc from "eslint-plugin-jsonc";
+import eslintPluginMarkdown from "eslint-plugin-markdown";
+import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
+//import prettier from "eslint-plugin-prettier";
+//import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import eslintPluginSecurity from "eslint-plugin-security";
+import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
+import eslintPluginSonarjs from "eslint-plugin-sonarjs";
 import eslintPluginToml from "eslint-plugin-toml";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
+import eslintPluginYml from "eslint-plugin-yml";
 import globals from "globals";
 
 const compat = new FlatCompat();
+
+const ignores = [
+  "*~",
+  "**/__pycache__",
+  ".git",
+  "!.circleci",
+  ".mypy_cache",
+  ".ruff_cache",
+  ".pytest_cache",
+  ".venv*",
+  "bin/docker/registry.yaml", // breaks prettier plugin idk why
+  "cache/*",
+  "!cache/packages",
+  "cache/packages/*",
+  "!cache/packages/README.md",
+  "codex/_vendor/",
+  "codex/static_build",
+  "codex/static_root",
+  "codex/templates/*.html", // Handled by djlint
+  "codex/templates/**/*.html", // Handled by djlint
+  "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
+  "comics",
+  "config",
+  "dist",
+  "frontend",
+  "node_modules",
+  "package-lock.json",
+  "poetry.lock",
+  "test-results",
+  "typings",
+];
 
 export default [
   {
@@ -24,10 +62,16 @@ export default [
       reportUnusedDisableDirectives: "warn",
     },
     plugins: {
-      // import: importPlugin,
-      security: pluginSecurity,
+      arrayFunc: eslintPluginArrayFunc,
+      jsonc: eslintPluginJsonc,
+      markdown: eslintPluginMarkdown,
+      "no-secrets": eslintPluginNoSecrets,
+      security: eslintPluginSecurity,
+      "simple-import-sort": eslintPluginSimpleImportSort,
+      // sonarjs: eslintPluginSonarjs,
+      toml: eslintPluginToml,
       unicorn: eslintPluginUnicorn,
-      markdown: markdown,
+      yml: eslintPluginYml,
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
@@ -37,7 +81,10 @@ export default [
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
       "no-secrets/no-secrets": "error",
+      "prettier-vue/prettier": "warn",
       "security/detect-object-injection": "off",
+      "simple-import-sort/imports": "warn",
+      "simple-import-sort/exports": "warn",
       "space-before-function-paren": "off",
       "unicorn/switch-case-braces": ["warn", "avoid"],
       "unicorn/prefer-node-protocol": 0,
@@ -68,11 +115,18 @@ export default [
       },
     },
      */
+    ignores,
   },
-  ...markdown.configs.recommended,
-  ...eslintPluginToml.configs["flat/recommended"],
   js.configs.recommended,
-  arrayFunc.configs.all,
+  eslintPluginArrayFunc.configs.all,
+  ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
+  ...eslintPluginMarkdown.configs.recommended,
+  //eslintPluginPrettierRecommended,
+  //eslintPluginSecurity.configs.recommended,
+  eslintPluginSonarjs.configs.recommended,
+  ...eslintPluginToml.configs["flat/recommended"],
+  ...eslintPluginYml.configs["flat/standard"],
+  ...eslintPluginYml.configs["flat/prettier"],
   {
     files: ["**/*.md"],
     processor: "markdown/markdown",
@@ -93,6 +147,12 @@ export default [
       "prettier-vue/prettier": ["error", { parser: "sh" }],
     },
   },
+  {
+    files: ["docker-compose*.yaml"],
+    rules: {
+      "yml/no-empty-mapping-value": "off",
+    },
+  },
   ...compat.config({
     root: true,
     env: {
@@ -101,33 +161,20 @@ export default [
       node: true,
     },
     extends: [
-      // LANGS
-      "plugin:jsonc/recommended-with-json",
-      "plugin:jsonc/prettier",
-      "plugin:yml/standard",
-      "plugin:yml/prettier",
-      // CODE QUALITY
-      "plugin:sonarjs/recommended",
       // PRACTICES
       "plugin:eslint-comments/recommended",
       // "plugin:import/recommended",
       "plugin:no-use-extend-native/recommended",
       "plugin:optimize-regex/all",
-      "plugin:promise/recommended",
+      //"plugin:promise/recommended",
       "plugin:switch-case/recommended",
       // PRETTIER
       "plugin:prettier-vue/recommended",
       // SECURITY
-      "plugin:no-unsanitized/DOM",
+      //https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
+      //"plugin:no-unsanitized/DOM",
     ],
     overrides: [
-      {
-        files: ["*.yaml", "*.yml"],
-        //parser: "yaml-eslint-parser",
-        rules: {
-          "unicorn/filename-case": "off",
-        },
-      },
       {
         files: ["*.toml"],
         // parser: "toml-eslint-parser",
@@ -142,12 +189,6 @@ export default [
         //  "prettier-vue/prettier": ["error", { parser: "json" }],
         //},
       },
-      {
-        files: ["docker-compose*.yaml"],
-        rules: {
-          "yml/no-empty-mapping-value": "off",
-        },
-      },
     ],
     parserOptions: {
       ecmaFeatures: {
@@ -158,63 +199,25 @@ export default [
     plugins: [
       "eslint-comments",
       //"import",
-      "markdown",
       "no-constructor-bind",
-      "no-secrets",
-      "no-unsanitized",
       "no-use-extend-native",
       "optimize-regex",
       "prettier-vue",
-      "promise",
-      "simple-import-sort",
-      "sonarjs",
+      //"promise",
       "switch-case",
-      "unicorn",
     ],
     rules: {
+      "eslint-comments/no-unused-disable": 1,
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
-      "no-secrets/no-secrets": "error",
-      "eslint-comments/no-unused-disable": 1,
       "prettier-vue/prettier": [
         "warn",
         {
           trailingComma: "all",
         },
       ],
-      "simple-import-sort/exports": "warn",
-      "simple-import-sort/imports": "warn",
       "switch-case/newline-between-switch-case": "off", // Malfunctioning
     },
-    ignorePatterns: [
-      "*~",
-      "**/__pycache__",
-      ".git",
-      "!.circleci",
-      ".mypy_cache",
-      ".ruff_cache",
-      ".pytest_cache",
-      ".venv*",
-      "bin/docker/registry.yaml", // breaks prettier plugin idk why
-      "cache/*",
-      "!cache/packages",
-      "cache/packages/*",
-      "!cache/packages/README.md",
-      "codex/_vendor/",
-      "codex/static_build",
-      "codex/static_root",
-      "codex/templates/*.html", // Handled by djlint
-      "codex/templates/**/*.html", // Handled by djlint
-      "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
-      "comics",
-      "config",
-      "dist",
-      "frontend",
-      "node_modules",
-      "package-lock.json",
-      "poetry.lock",
-      "test-results",
-      "typings",
-    ],
+    ignorePatterns: ignores,
   }),
 ];
