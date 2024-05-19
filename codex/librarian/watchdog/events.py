@@ -2,15 +2,20 @@
 
 import re
 from os import fsdecode
+from types import MappingProxyType
 
 from comicbox.box import Comicbox
 from watchdog.events import (
     EVENT_TYPE_CLOSED,
     EVENT_TYPE_CREATED,
+    EVENT_TYPE_DELETED,
+    EVENT_TYPE_MODIFIED,
     EVENT_TYPE_MOVED,
     EVENT_TYPE_OPENED,
     FileCreatedEvent,
     FileDeletedEvent,
+    FileModifiedEvent,
+    FileMovedEvent,
     FileSystemEventHandler,
 )
 
@@ -19,12 +24,62 @@ from codex.logger.logging import get_logger
 from codex.logger_base import LoggerBaseMixin
 
 LOG = get_logger(__name__)
+FOLDER_COVER_IMAGE_EXP = r"\/?\.codex-cover\.\w{1,4}"
+FOLDER_COVER_RE = re.compile(FOLDER_COVER_IMAGE_EXP, re.IGNORECASE)
 
 
-class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
-    """Handle watchdog events for comics in a library."""
+class CoverMovedEvent(FileMovedEvent):
+    """Cover Modified."""
+
+    is_cover = True
+    is_synthetic = True
+
+
+class CoverModifiedEvent(FileModifiedEvent):
+    """Cover Modified."""
+
+    is_cover = True
+    is_synthetic = True
+
+
+class CoverCreatedEvent(FileCreatedEvent):
+    """Cover Created."""
+
+    is_cover = True
+    is_synthetic = True
+
+
+class CoverDeletedEvent(FileDeletedEvent):
+    """Cover Deleted."""
+
+    is_cover = True
+    is_synthetic = True
+
+
+COVER_EVENT_TYPE_MAP = MappingProxyType(
+    {
+        EVENT_TYPE_MODIFIED: CoverModifiedEvent,
+        EVENT_TYPE_CREATED: CoverCreatedEvent,
+        EVENT_TYPE_DELETED: CoverDeletedEvent,
+    }
+)
+
+
+class CodexEventHandlerBase(FileSystemEventHandler, LoggerBaseMixin):
+    """Base class for Codex Event Handlers."""
 
     IGNORED_EVENTS = frozenset({EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED})
+
+    def __init__(self, *args, **kwargs):
+        """Let us send along he library id."""
+        self.librarian_queue = kwargs.pop("librarian_queue")
+        log_queue = kwargs.pop("log_queue")
+        self.init_logger(log_queue)
+        super().__init__(*args, **kwargs)
+
+
+class CodexLibraryEventHandler(CodexEventHandlerBase):
+    """Handle watchdog events for comics in a library."""
 
     def _set_comic_matcher(self):
         comic_regex = r"\.(cb[zt"
@@ -48,9 +103,6 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
         self.library_pk = library.pk
-        self.librarian_queue = kwargs.pop("librarian_queue")
-        log_queue = kwargs.pop("log_queue")
-        self.init_logger(log_queue)
         self._set_comic_matcher()
         super().__init__(*args, **kwargs)
 
@@ -63,48 +115,114 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
         suffix = fsdecode(suffix)
         return self._comic_matcher.match(suffix) is not None
 
+    def _transform_file_move_event(
+        self,
+        event,
+        events,
+        source_match_comic,
+    ):
+        """Create possible multiple events for file moves."""
+        dest_match_comic = self._match_comic_suffix(event.dest_path)
+        if not source_match_comic and dest_match_comic:
+            # Moved from an ignored file extension into a comic type,
+            # so create a new comic.
+            events.append(FileCreatedEvent(event.dest_path))
+        elif source_match_comic and not dest_match_comic:
+            # moved into something that's not a comic name so delete
+            events.append(FileDeletedEvent(event.src_path))
+        elif source_match_comic and dest_match_comic:
+            events.append(event)
+
+        source_match_cover = FOLDER_COVER_RE.match(event.src_path)
+        dest_match_cover = FOLDER_COVER_RE.match(event.dest_path)
+        if source_match_cover and not dest_match_cover:
+            events.append(CoverDeletedEvent(event.src_path))
+        elif not source_match_cover and dest_match_cover:
+            events.append(CoverCreatedEvent(event.dest_path))
+        elif source_match_cover and dest_match_cover:
+            events.append(CoverMovedEvent(event.src_path, event.dest_path))
+
     def _transform_file_event(self, event):
         """Transform file events into other events."""
-        source_match = self._match_comic_suffix(event.src_path)
+        events = []
+        source_match_comic = self._match_comic_suffix(event.src_path)
         if event.event_type == EVENT_TYPE_MOVED:
-            # Some types of file moves need to be cast as other events.
-            dest_match = self._match_comic_suffix(event.dest_path)
-            if not source_match and dest_match:
-                # Moved from an ignored file extension into a comic type,
-                # so create a new comic.
-                event = FileCreatedEvent(event.dest_path)
-            elif source_match and not dest_match:
-                # moved into something that's not a comic name so delete
-                event = FileDeletedEvent(event.src_path)
-        elif not source_match:
-            # Don't process non-moved, non-comic files at all
-            event = None
-        return event
+            self._transform_file_move_event(event, events, source_match_comic)
+        elif source_match_comic:
+            events.append(event)
+        else:
+            source_match_cover = FOLDER_COVER_RE.match(event.src_path)
+            if source_match_cover and (
+                event_class := COVER_EVENT_TYPE_MAP.get(event.event_type)
+            ):
+                # Convert to cover type
+                event = event_class(event.src_path)
+                events.append(event)
+        return events
 
     def _transform_event(self, event):
         """Transform events into other events."""
+        events = []
         if event.event_type in self.IGNORED_EVENTS:
-            event = None
+            pass
         elif event.is_directory:
             if event.event_type == EVENT_TYPE_CREATED:
                 # Directories are only created by comics
-                event = None
+                pass
         else:
-            event = self._transform_file_event(event)
-        return event
+            events = self._transform_file_event(event)
+        return events
 
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
-            event = self._transform_event(event)
-            if not event:
-                return
+            events = self._transform_event(event)
 
             # Send it to the EventBatcher
-            task = WatchdogEventTask(self.library_pk, event)
-            self.librarian_queue.put(task)
+            for event in events:
+                task = WatchdogEventTask(self.library_pk, event)
+                self.librarian_queue.put(task)
 
             # Calls stub event dispatchers
             # super().dispatch(event)
+        except Exception:
+            self.log.exception(f"{self.__class__.__name__} dispatch")
+
+
+class CodexCustomCoverEventHandler(CodexEventHandlerBase):
+    """Special event handler for the custom cover dir."""
+
+    _DIRS = ("publishers", "imprints", "series", "story-arcs")
+    _EXTS = (r"jpe?g", "webp", "png", "gif", "bmp")
+    _IMAGE_RE_EXP = (
+        r"custom-covers\/(" + r"|".join(_DIRS) + r")\/.*\.(" + r"|".join(_EXTS) + r")$"
+    )
+    IMAGE_RE = re.compile(_IMAGE_RE_EXP, re.IGNORECASE)
+
+    def dispatch(self, event):
+        """Send only valid cover events to the EventBatcher."""
+        send_event = None
+        try:
+            if event.is_directory or event.event_type in self.IGNORED_EVENTS:
+                return
+
+            src_cover_match = self.IMAGE_RE.match(event.src_path)
+            if event.event_type == EVENT_TYPE_MOVED:
+                dest_cover_match = self.IMAGE_RE.match(event.dest_path)
+                if src_cover_match and dest_cover_match:
+                    send_event = CoverMovedEvent(event.src_path, event.dest_path)
+                elif not src_cover_match and dest_cover_match:
+                    send_event = CoverCreatedEvent(event.src_path)
+                elif src_cover_match and not dest_cover_match:
+                    send_event = CoverDeletedEvent(event.src_path)
+            elif src_cover_match:
+                event_class = COVER_EVENT_TYPE_MAP.get(event.event_type)
+                if not event_class:
+                    return
+                send_event = event_class(event.src_path)
+
+            if send_event:
+                task = WatchdogEventTask(0, send_event)
+                self.librarian_queue.put(task)
         except Exception:
             self.log.exception(f"{self.__class__.__name__} dispatch")

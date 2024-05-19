@@ -25,12 +25,16 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         {
             "library_id": None,
             "dirs_moved": {},
+            "dirs_modified": set(),
+            "dirs_deleted": set(),
             "files_moved": {},
             "files_modified": set(),
             "files_created": set(),
-            "dirs_deleted": set(),
-            "dirs_modified": set(),
             "files_deleted": set(),
+            "covers_moved": {},
+            "covers_modified": set(),
+            "covers_created": set(),
+            "covers_deleted": set(),
         }
     )
     MAX_DELAY = 60
@@ -54,7 +58,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         """Translate event class names into field names."""
         self._ensure_library_args(library_id)
 
-        prefix = "dir" if event.is_directory else "file"
+        prefix = "dir" if event.is_directory else "cover" if event.is_cover else "file"
         field = f"{prefix}s_{event.event_type}"
 
         return self.cache[library_id].get(field)
@@ -90,16 +94,22 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         for src_path in args["files_deleted"]:
             with suppress(KeyError):
                 del args["files_moved"][src_path]
+
         # created
         args["files_created"] -= args["files_deleted"]
         files_dest_paths = set(args["files_moved"].values())
         args["files_created"] -= files_dest_paths
+
         # modified
         args["dirs_modified"] -= args["dirs_deleted"]
         args["dirs_modified"] -= set(args["dirs_moved"].values())
+
         args["files_modified"] -= args["files_created"]
         args["files_modified"] -= args["files_deleted"]
         args["files_modified"] -= files_dest_paths
+
+        args["covers_modified"] -= args["covers_deleted"]
+        args["covers_modified"] -= args["covers_created"]
 
     def _create_task(self, library_id):
         """Create a task from cached aggregated message data."""

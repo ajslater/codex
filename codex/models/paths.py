@@ -4,29 +4,29 @@ from pathlib import Path
 
 from django.db.models import CASCADE, CharField, ForeignKey, JSONField
 
-from codex.models.base import MAX_NAME_LEN
-from codex.models.groups import BrowserGroupModel
+from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.library import MAX_PATH_LEN, Library
 
-__all__ = ("WatchedPath", "Folder", "FailedImport")
+__all__ = ("CustomCover", "FailedImport")
 
 
-class WatchedPath(BrowserGroupModel):
+class WatchedPath(BaseModel):
     """A filesystem path with data for Watchdog."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    path = CharField(max_length=MAX_PATH_LEN, db_index=True)
-    stat = JSONField(null=True)
     parent_folder = ForeignKey(
         "Folder",
         on_delete=CASCADE,
         null=True,
     )
+    path = CharField(max_length=MAX_PATH_LEN, db_index=True)
+    stat = JSONField(null=True)
     ZERO_STAT = (0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0)
 
     def set_stat(self):
         """Set select stat params from the filesystem."""
-        st_record = Path(self.path).stat()
+        path = Path(str(self.path))
+        st_record = path.stat()
         # Converting os.stat directly to a list or tuple saves
         # mtime as an int and causes problems.
         st = list(self.ZERO_STAT)
@@ -43,26 +43,24 @@ class WatchedPath(BrowserGroupModel):
 
     def presave(self):
         """Save stat."""
-        super().presave()
         self.set_stat()
 
     def __str__(self):
         """Return the full path."""
-        return self.path
+        return str(self.path)
 
-    class Meta(BrowserGroupModel.Meta):
-        """Constraints."""
+    class Meta(BaseModel.Meta):
+        """Use Mixin Meta."""
 
         unique_together = ("library", "path")
         abstract = True
 
 
-class Folder(WatchedPath):
-    """File system folder."""
-
-
 class FailedImport(WatchedPath):
     """Failed Comic Imports. Displayed in Admin Panel."""
+
+    # TODO rename reason
+    name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")
 
     def set_reason(self, exc):
         """Can't do this in save() because it breaks update_or_create."""
@@ -72,3 +70,11 @@ class FailedImport(WatchedPath):
             reason = reason.removesuffix(suffix)
         reason = reason[:MAX_NAME_LEN]
         self.name = reason.strip()
+
+
+class CustomCover(WatchedPath):
+    """Custom Cover Image."""
+
+    library = ForeignKey(
+        Library, on_delete=CASCADE, db_index=True, null=True, default=None
+    )

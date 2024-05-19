@@ -8,7 +8,10 @@ from watchdog.observers.api import (
 )
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
-from codex.librarian.watchdog.events import CodexLibraryEventHandler
+from codex.librarian.watchdog.events import (
+    CodexCustomCoverEventHandler,
+    CodexLibraryEventHandler,
+)
 from codex.models import Library
 from codex.worker_base import WorkerBaseMixin
 
@@ -18,6 +21,8 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 
     ENABLE_FIELD = ""
     ALWAYS_WATCH = False
+    MODEL = Library
+    EVENT_HANDLER = CodexLibraryEventHandler
 
     def __init__(self, *args, **kwargs):
         """Initialize queues."""
@@ -50,7 +55,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
             return
 
         # Set up the watch
-        handler = CodexLibraryEventHandler(
+        handler = self.EVENT_HANDLER(
             library,
             librarian_queue=self.librarian_queue,
             log_queue=self.log_queue,
@@ -74,7 +79,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
     def sync_library_watches(self):
         """Watch or unwatch all libraries according to the db."""
         try:
-            libraries = Library.objects.all().only("pk", "path", self.ENABLE_FIELD)
+            libraries = self.MODEL.objects.all().only("pk", "path", self.ENABLE_FIELD)
             library_paths = set()
             for library in libraries:
                 try:
@@ -149,7 +154,7 @@ class LibraryPollingObserver(UatuMixin):
     def poll(self, library_pks, force=False):
         """Poll each requested emitter."""
         try:
-            qs = Library.objects
+            qs = self.MODEL.objects
             if library_pks:
                 qs = qs.filter(pk__in=library_pks)
             paths = frozenset(qs.values_list("path", flat=True))
@@ -170,3 +175,15 @@ class LibraryPollingObserver(UatuMixin):
         # shutdown event next.
         self.event_queue.put(self._SHUTDOWN_EVENT)
         super().on_thread_stop()
+
+
+class CustomCoverEventObserver(LibraryEventObserver):
+    """Custom Cover Dir Event Observer."""
+
+    EVENT_HANDLER = CodexCustomCoverEventHandler
+
+
+class CustomCoverPollingObserver(LibraryPollingObserver):
+    """Custom Cover Dir Polling Observer."""
+
+    EVENT_HANDLER = CodexCustomCoverEventHandler

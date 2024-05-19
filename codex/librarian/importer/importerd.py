@@ -246,6 +246,12 @@ class ComicImporterThread(
             modified_paths = task.files_modified
             created_paths = task.files_created
             task.files_modified = task.files_created = None
+
+            print(f"{task.covers_moved=}")
+            print(f"{task.covers_modified=}")
+            print(f"{task.covers_created=}")
+            print(f"{task.covers_deleted=}")
+
             mds = {}
             m2m_mds = {}
             fks = {}
@@ -316,6 +322,10 @@ class ComicImporterThread(
                 dirs_deleted=frozenset(),
                 files_deleted=frozenset(),
                 force_import_metadata=True,
+                covers_moved={},
+                covers_modified=frozenset(),
+                covers_created=frozenset(),
+                covers_deleted=frozenset(),
             )
         self._apply(task)
 

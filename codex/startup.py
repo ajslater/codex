@@ -12,6 +12,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
+from codex.models.library import CustomCoverDir
 from codex.registration import patch_registration_setting
 from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
@@ -124,7 +125,21 @@ def clear_library_status():
     count = Library.objects.filter(update_in_progress=True).update(
         update_in_progress=False, updated_at=Now()
     )
-    LOG.debug(f"Reset {count} Library's update_in_progress flag")
+    if count:
+        LOG.debug(f"Reset {count} Library's update_in_progress flag")
+
+
+def init_custom_cover_dir():
+    """Initialize the Custom Cover Dir singleton row."""
+    defaults = dict(CustomCoverDir.DEFAULTS)
+    _, created = CustomCoverDir.objects.get_or_create(defaults=defaults, pk=1)
+    if created:
+        LOG.info("Created Custom Cover Dir settings in the db.")
+    count = CustomCoverDir.objects.filter(update_in_progress=True).update(
+        update_in_progress=False, updated_at=Now()
+    )
+    if count:
+        LOG.debug(f"Reset {count} Custom Cover Dir's update_in_progress flag")
 
 
 def ensure_db_rows():

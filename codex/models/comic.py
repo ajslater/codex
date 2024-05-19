@@ -22,7 +22,14 @@ from django.db.models import (
     TextField,
 )
 
-from codex.models.groups import Imprint, Publisher, Series, Volume
+from codex.models.groups import (
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+    WatchedPathBrowserGroup,
+)
 from codex.models.named import (
     AgeRating,
     Character,
@@ -41,7 +48,6 @@ from codex.models.named import (
     Tagger,
     Team,
 )
-from codex.models.paths import Folder, WatchedPath
 
 __all__ = ("Comic",)
 
@@ -55,7 +61,7 @@ class ReadingDirection(Choices):
     BTT = ReadingDirectionEnum.BTT.value
 
 
-class Comic(WatchedPath):
+class Comic(WatchedPathBrowserGroup):
     """Comic metadata."""
 
     class FileType(Choices):
@@ -168,10 +174,14 @@ class Comic(WatchedPath):
         default="",
     )
 
-    class Meta(WatchedPath.Meta):
+    # Not useful
+    custom_cover = None
+
+    class Meta(WatchedPathBrowserGroup.Meta):
         """Constraints."""
 
-        unique_together = ("library", "path")
+        # TODO see if this inherits properly
+        # unique_together = ("library", "path")
         verbose_name = "Issue"
 
     def _set_date(self):
@@ -282,4 +292,5 @@ class Comic(WatchedPath):
 
     def search_path(self) -> str:
         """Relative path for search index."""
-        return self.path.removeprefix(self.library.path)
+        library_path = self.library.path  # non
+        return self.path.removeprefix(library_path)

@@ -1,17 +1,17 @@
 """Browser Group models."""
 
-from django.db.models import (
-    CASCADE,
+from django.db.models import CASCADE, SET_DEFAULT, ForeignKey
+from django.db.models.fields import (
     CharField,
-    ForeignKey,
     PositiveSmallIntegerField,
     SmallIntegerField,
 )
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.const import ARTICLES
+from codex.models.paths import CustomCover, WatchedPath
 
-__all__ = ("BrowserGroupModel", "Publisher", "Imprint", "Series", "Volume")
+__all__ = ("BrowserGroupModel", "Publisher", "Imprint", "Series", "Volume", "Folder")
 
 
 class BrowserGroupModel(BaseModel):
@@ -22,6 +22,9 @@ class BrowserGroupModel(BaseModel):
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
     sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
+    custom_cover = ForeignKey(
+        CustomCover, on_delete=SET_DEFAULT, null=True, default=None
+    )
 
     def set_sort_name(self):
         """Create sort_name for model."""
@@ -103,6 +106,7 @@ class Volume(BrowserGroupModel):
 
     # Harmful because name is numeric
     sort_name = None
+    custom_cover = None
 
     def set_sort_name(self):
         """Noop."""
@@ -125,3 +129,23 @@ class Volume(BrowserGroupModel):
     def __str__(self):
         """Represent volume as a string."""
         return self.to_str(self.name)
+
+
+class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
+    """Watched Path Browser Group."""
+
+    def presave(self):
+        """Fix multiple inheritance presave."""
+        # TODO test presave calling bgm & stat
+        super().presave()
+        WatchedPath.presave(self)
+
+    class Meta(WatchedPath.Meta):  # type: ignore
+        """Use Mixin Meta."""
+
+        # TODO see if this does unique properly.
+        abstract = True
+
+
+class Folder(WatchedPathBrowserGroup):
+    """File system folder."""

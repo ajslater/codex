@@ -7,13 +7,13 @@ from pathlib import Path
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
 from codex.logger_base import LoggerBaseMixin
-from codex.models import Comic, FailedImport, Folder
+from codex.models import Comic, CustomCover, FailedImport, Folder
 
 
 class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     """Take snapshots from the Codex database."""
 
-    MODELS = (Folder, Comic, FailedImport)
+    MODELS = (Folder, Comic, FailedImport, CustomCover)
     _STAT_LEN = 10
 
     @classmethod
@@ -81,3 +81,10 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         for wp in chain.from_iterable(self._walk(path)):
             st = self._create_stat_from_db_stat(wp, stat, force)
             self._set_lookups(wp["path"], st)
+
+
+class CodexDatabaseCoverSnapshot(CodexDatabaseSnapshot):
+    """Take snapshots only for the custom cover dir."""
+
+    MODELS = (CustomCover,)
+    # Or an init variable on the other snapshot
