@@ -55,6 +55,10 @@ class WatchedPath(BaseModel):
         unique_together = ("library", "path")
         abstract = True
 
+    def search_path(self) -> str:
+        """Relative path for search index."""
+        return self.path.removeprefix(self.library.path)
+
 
 class FailedImport(WatchedPath):
     """Failed Comic Imports. Displayed in Admin Panel."""

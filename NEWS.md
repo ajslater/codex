@@ -25,6 +25,16 @@ border-radius: 128px;
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
 
+## v1.5.19
+
+- Fixes
+  - Metadata crash on folders.
+
+## v1.5.18
+
+- Fixes
+  - Ignore comic pages from dotfiles and macOS resource forks.
+
 ## v1.5.17
 
 - Fixes
