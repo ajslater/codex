@@ -56,6 +56,10 @@ class WatchedPath(BrowserGroupModel):
         unique_together = ("library", "path")
         abstract = True
 
+    def search_path(self) -> str:
+        """Relative path for search index."""
+        return self.path.removeprefix(self.library.path)
+
 
 class Folder(WatchedPath):
     """File system folder."""
