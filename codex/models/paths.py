@@ -55,6 +55,7 @@ class WatchedPath(BrowserGroupModel):
         """Relative path for search index."""
         return self.path.removeprefix(self.library.path)
 
+
 class Folder(WatchedPath):
     """File system folder."""
 
