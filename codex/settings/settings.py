@@ -62,7 +62,11 @@ THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH.mkdir(exist_ok=True, parents=True)
+CUSTOM_COVER_DIR = CONFIG_PATH / "custom-covers"
+CUSTOM_COVER_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
+for group_dir in CUSTOM_COVER_GROUP_DIRS:
+    custom_cover_group_dir = CUSTOM_COVER_DIR/ group_dir
+    custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)

@@ -16,8 +16,9 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 
 from codex.models.base import BaseModel
+from codex.settings.settings import CUSTOM_COVER_DIR
 
-__all__ = ("Library", "validate_dir_exists")
+__all__ = ("Library", "validate_dir_exists", "CustomCoverDir")
 
 MAX_PATH_LEN = 4095
 
@@ -66,22 +67,23 @@ class Library(RootDirBase):
 
 
 class CustomCoverDir(RootDirBase):
-    CHILD_PATHS = ("publishers", "imprints", "series", "story-arcs")
+    """The Custom Cover Dir's Watch Data."""
+
     DEFAULTS = MappingProxyType(
         {
             "pk": 1,
             "events": False,
             "poll": False,
+            #"poll_every": RootDirBase.DEFAULT_POLL_EVERY,
         }
     )
 
     @property
     def path(self):
-        from settings.settings import CONFIG_PATH
-
-        return CONFIG_PATH / "custom-covers"
+        """Always the same path."""
+        return str(CUSTOM_COVER_DIR)
 
     def save(self, *args, **kwargs):
         """Limit to one row."""
-        self.pk = "X"
+        self.pk = 1
         super().save(*args, **kwargs)

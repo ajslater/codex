@@ -11,6 +11,13 @@ class WatchdogTask:
 
 
 @dataclass
+class WatchdogPollCustomCoversTask(WatchdogTask):
+    """Tell observer to poll the custom covers now."""
+
+    force: bool
+
+
+@dataclass
 class WatchdogPollLibrariesTask(WatchdogTask):
     """Tell observer to poll these libraries now."""
 

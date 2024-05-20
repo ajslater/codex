@@ -5,6 +5,7 @@ from time import time
 from typing import ClassVar
 
 from django.core.cache import cache
+from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import GenericAPIView
@@ -15,40 +16,39 @@ from rest_framework.viewsets import ModelViewSet
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.tasks import DelayedTasks
-from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.librarian.watchdog.tasks import (
+    WatchdogPollCustomCoversTask,
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
 from codex.logger.logging import get_logger
-from codex.models import FailedImport, Folder, Library
+from codex.models import CustomCoverDir, FailedImport, Folder, Library
 from codex.serializers.admin import (
     AdminFolderListSerializer,
     AdminFolderSerializer,
+    CustomCoverDirSerializer,
     FailedImportSerializer,
     LibrarySerializer,
 )
 
 LOG = get_logger(__name__)
 
-
-class AdminLibraryViewSet(ModelViewSet):
-    """Admin Library Viewset."""
+class AdminModelViewSet(ModelViewSet):
+    """Admin ModelViewSet."""
 
     permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
-    queryset = Library.objects.prefetch_related("groups").defer(
-        "update_in_progress", "created_at", "updated_at"
-    )
-    serializer_class = LibrarySerializer
+
+class WatchdogChangeMixin:
+    """Common watchdog change methods."""
 
     WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
 
-    def _create_library_folder(self, library):
-        folder = Folder(
-            library=library, path=library.path, name=Path(library.path).name
-        )
-        folder.save()
+    @classmethod
+    def _sync_watchdog(cls, validated_keys=None):
+        if validated_keys is None or validated_keys.intersection(cls.WATCHDOG_SYNC_FIELDS):
+            task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
+            LIBRARIAN_QUEUE.put(task)
 
-    @staticmethod
-    def _sync_watchdog():
-        task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
-        LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
     def _on_change():
@@ -56,21 +56,64 @@ class AdminLibraryViewSet(ModelViewSet):
         task = LIBRARY_CHANGED_TASK
         LIBRARIAN_QUEUE.put(task)
 
+
+class AdminCustomCoverDirViewSet(AdminModelViewSet, WatchdogChangeMixin):
+    """Admin CustomCoverDir Viewset."""
+
+    queryset = CustomCoverDir.objects.defer(
+        "update_in_progress", "created_at", "updated_at"
+    )
+    serializer_class = CustomCoverDirSerializer
+    PK = 1
+
+    def get_object(self):
+        """Force pk to 1."""
+        if self.PK is not None:
+            self.kwargs["pk"] = self.PK
+        return super().get_object()
+
+    @staticmethod
+    def _poll(force):
+        task = WatchdogPollCustomCoversTask(force)
+        LIBRARIAN_QUEUE.put(task)
+
+    def perform_create(self, _serializer):
+        """Disallow."""
+        raise NotSupportedError
+
+    def perform_update(self, serializer):
+        """Perform update an run hooks."""
+        validated_keys = frozenset(serializer.validated_data.keys())
+        super().perform_update(serializer)
+        self._sync_watchdog(validated_keys)
+        self._poll(False)
+
+    def perform_destroy(self, _instance):
+        """Disallow."""
+        raise NotSupportedError
+
+
+class AdminLibraryViewSet(AdminModelViewSet, WatchdogChangeMixin):
+    """Admin Library Viewset."""
+
+    queryset = Library.objects.prefetch_related("groups").defer(
+        "update_in_progress", "created_at", "updated_at"
+    )
+    serializer_class = LibrarySerializer
+
+    def _create_library_folder(self, library):
+        folder = Folder(
+            library=library, path=library.path, name=Path(library.path).name
+        )
+        folder.save()
+
+    def _get_pk(self):
+        return self.kwargs["pk"]
+
     @staticmethod
     def _poll(pk, force):
         task = WatchdogPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
-
-    def perform_update(self, serializer):
-        """Perform update an run hooks."""
-        validated_keys = set(serializer.validated_data.keys())
-        super().perform_update(serializer)
-        if "groupSet" in validated_keys:
-            self._on_change()
-        if validated_keys.intersection(self.WATCHDOG_SYNC_FIELDS):
-            self._sync_watchdog()
-        pk = self.kwargs.get("pk")
-        self._poll(pk, False)
 
     def perform_create(self, serializer):
         """Perform create and run hooks."""
@@ -82,6 +125,18 @@ class AdminLibraryViewSet(ModelViewSet):
         self._sync_watchdog()
         self._poll(library.pk, False)
 
+
+    def perform_update(self, serializer):
+        """Perform update an run hooks."""
+        validated_keys = frozenset(serializer.validated_data.keys())
+        super().perform_update(serializer)
+        if "groupSet" in validated_keys:
+            self._on_change()
+        self._sync_watchdog(validated_keys)
+        pk = self.kwargs["pk"]
+        self._poll(pk, False)
+
+
     def perform_destroy(self, instance):
         """Perform destroy and run hooks."""
         super().perform_destroy(instance)
@@ -89,10 +144,9 @@ class AdminLibraryViewSet(ModelViewSet):
         self._on_change()
 
 
-class AdminFailedImportViewSet(ModelViewSet):
+class AdminFailedImportViewSet(AdminModelViewSet):
     """Admin FailedImport Viewset."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = FailedImport.objects.defer("updated_at")
     serializer_class = FailedImportSerializer
 

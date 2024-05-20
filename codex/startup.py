@@ -149,6 +149,7 @@ def ensure_db_rows():
     init_timestamps()
     init_librarian_statuses()
     clear_library_status()
+    init_custom_cover_dir()
 
 
 def codex_init():

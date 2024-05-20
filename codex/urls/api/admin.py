@@ -7,6 +7,7 @@ from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
 from codex.views.admin.library import (
+    AdminCustomCoverDirViewSet,
     AdminFailedImportViewSet,
     AdminFolderListView,
     AdminLibraryViewSet,
@@ -61,6 +62,11 @@ urlpatterns = [
         "library/<int:pk>/",
         AdminLibraryViewSet.as_view({**UPDATE, **DELETE}),
         name="library",
+    ),
+    path(
+        "custom-cover-dir",
+        AdminCustomCoverDirViewSet.as_view({**UPDATE, **READ}),
+        name="custom-cover-dir",
     ),
     path("folders", AdminFolderListView.as_view(), name="folders"),
     path(

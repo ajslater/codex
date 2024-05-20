@@ -23,11 +23,12 @@ from watchdog.events import (
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger.logging import get_logger
 from codex.logger_base import LoggerBaseMixin
+from codex.settings.settings import CUSTOM_COVER_GROUP_DIRS
 
 LOG = get_logger(__name__)
 _FOLDER_COVER_STEM = ".codex-cover"
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
-
+_GROUP_COVER_DIRS = frozenset(CUSTOM_COVER_GROUP_DIRS)
 
 class CoverMovedEvent(FileMovedEvent):
     """Cover Modified."""
@@ -163,18 +164,13 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         elif source_match_comic:
             events.append(event)
         else:
-            # TODO create match function
             source_match_cover = self._match_folder_cover(event.src_path)
-            #source_match_cover = FOLDER_COVER_RE.match(event.src_path)
-            #print(f"{FOLDER_COVER_IMAGE_EXP=}")
-            print(f"{event.src_path=} {source_match_cover=} {event.event_type=}")
             if source_match_cover and (
                 event_class := COVER_EVENT_TYPE_MAP.get(event.event_type)
             ):
                 # Convert to cover type
                 event = event_class(event.src_path)
                 events.append(event)
-        print(f"{events=}")
         return events
 
     def _transform_event(self, event):
@@ -209,12 +205,10 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
 class CodexCustomCoverEventHandler(CodexEventHandlerBase):
     """Special event handler for the custom cover dir."""
 
-    _GROUP_COVER_DIRS = frozenset({"publishers", "imprints", "series", "story-arcs"})
-
     @classmethod
     def _match_group_cover_image(cls, path_str: str) -> bool:
         path = Path(path_str)
-        if str(path.parent) not in cls._GROUP_COVER_DIRS:
+        if str(path.parent) not in _GROUP_COVER_DIRS:
             return False
         return cls._match_image_suffix(path)
 

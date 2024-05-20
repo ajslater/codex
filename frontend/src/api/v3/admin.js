@@ -40,6 +40,16 @@ const deleteGroup = (pk) => {
   return HTTP.delete(`/admin/group/${pk}/`);
 };
 
+// Custom Cover Dir
+
+const getCustomCoversDirs = () => {
+  return HTTP.get("/admin/custom-cover-dir");
+};
+
+const updateCustomCoversDir = (pk, data) => {
+  return HTTP.put(`/admin/custom-cover-dir`, data);
+};
+
 // LIBRARIES
 
 const createLibrary = (data) => {
@@ -114,6 +124,7 @@ export default {
   deleteLibrary,
   deleteGroup,
   deleteUser,
+  getCustomCoversDirs,
   getFailedImports,
   getFlags,
   getFolders,
@@ -125,6 +136,7 @@ export default {
   librarianTask,
   postLibrarianTask,
   updateAPIKey,
+  updateCustomCoversDir,
   updateFlag,
   updateGroup,
   updateLibrary,

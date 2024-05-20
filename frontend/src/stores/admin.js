@@ -25,6 +25,7 @@ export const useAdminStore = defineStore("admin", {
     users: [],
     groups: [],
     libraries: [],
+    customCoverDirs: [],
     failedImports: [],
     flags: {},
     folderPicker: {

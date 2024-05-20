@@ -77,6 +77,51 @@
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
+    <h2>Custom Covers Dir</h2>
+    <AdminTable :headers="customCoverDirHeaders" :items="customCoversDirs">
+      <template #[`item.events`]="{ item }">
+        <v-checkbox-btn :model-value="item.events" disabled />
+      </template>
+      <template #[`item.poll`]="{ item }">
+        <v-checkbox-btn :model-value="item.poll" disabled />
+      </template>
+      <template #[`item.pollEvery`]="{ item }">
+        <span :class="{ disabled: !item.poll }">
+          {{ item.pollEvery }}
+        </span>
+      </template>
+      <template #[`item.lastPoll`]="{ item }">
+        <DateTimeColumn :dttm="item.lastPoll" />
+      </template>
+      <template #[`item.actions`]="{ item }">
+        <ConfirmDialog
+          :icon="mdiDatabaseClockOutline"
+          title-text="Poll for updated covers"
+          :object-name="item.path"
+          confirm-text="Poll Library"
+          size="small"
+          density="compact"
+          @confirm="poll(item.pk)"
+        />
+        <ConfirmDialog
+          :icon="mdiDatabaseSyncOutline"
+          title-text="Force update every cover"
+          :object-name="item.path"
+          confirm-text="Force Update"
+          size="small"
+          density="compact"
+          @confirm="forcePoll(item.pk)"
+        />
+        <AdminCreateUpdateDialog
+          table="CustomCoversDir"
+          :old-row="item"
+          :inputs="AdminCustomCoverDirUpdateInputs"
+          max-width="22em"
+          size="small"
+          density="compact"
+        />
+      </template>
+    </AdminTable>
   </div>
 </template>
 
@@ -90,6 +135,7 @@ import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
+import AdminCustomCoverDirUpdateInputs from "@/components/admin/create-update-dialog/custom-cover-dir-update-inputs.vue";
 import AdminLibraryCreateUpdateInputs from "@/components/admin/create-update-dialog/library-create-update-inputs.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
@@ -100,6 +146,7 @@ import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminLibrariesTab",
@@ -122,6 +169,7 @@ export default {
       mdiDatabaseSyncOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
+      AdminCustomCoverDirUpdateInputs: markRaw(AdminCustomCoverDirUpdateInputs),
       headers: [
         { title: "Path", key: "path", align: "start" },
         {
@@ -137,20 +185,38 @@ export default {
         { title: "Groups", key: "groups" },
         { title: "Actions", key: "actions", sortable: false },
       ],
+      customCoverDirHeaders: [
+        { title: "Path", key: "path", align: "start" },
+        {
+          title: "Watch File Events",
+          key: "events",
+        },
+        {
+          title: "Poll Files Periodically",
+          key: "poll",
+        },
+        { title: "Poll Every", key: "pollEvery" },
+        { title: "Last Poll", key: "lastPoll" },
+        { title: "", key: "" },
+        { title: "Actions", key: "actions", sortable: false },
+      ],
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       libraries: (state) => state.libraries,
-      formErrors: (state) => state.form.errors,
+      customCoversDirs: (state) => state.customCoversDirs,
+    }),
+    ...mapState(useCommonStore, {
+      formErrors: (state) => state.form?.errors,
     }),
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
   },
   mounted() {
-    this.loadTables(["Group", "Library", "FailedImport"]);
+    this.loadTables(["Group", "Library", "FailedImport", "CustomCoversDir"]);
   },
   methods: {
     ...mapActions(useAdminStore, [
