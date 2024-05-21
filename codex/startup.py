@@ -12,11 +12,11 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
-from codex.models.library import CustomCoverDir
 from codex.registration import patch_registration_setting
 from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
     BACKUP_DB_PATH,
+    CUSTOM_COVER_DIR,
     HYPERCORN_CONFIG,
     HYPERCORN_CONFIG_TOML,
     RESET_ADMIN,
@@ -126,20 +126,21 @@ def clear_library_status():
         update_in_progress=False, updated_at=Now()
     )
     if count:
-        LOG.debug(f"Reset {count} Library's update_in_progress flag")
+        LOG.debug(f"Reset {count} Libraries' update_in_progress flag")
 
 
 def init_custom_cover_dir():
     """Initialize the Custom Cover Dir singleton row."""
-    defaults = dict(CustomCoverDir.DEFAULTS)
-    _, created = CustomCoverDir.objects.get_or_create(defaults=defaults, pk=1)
-    if created:
-        LOG.info("Created Custom Cover Dir settings in the db.")
-    count = CustomCoverDir.objects.filter(update_in_progress=True).update(
-        update_in_progress=False, updated_at=Now()
+    defaults = dict(**Library.CUSTOM_COVER_DIR_DEFAULTS, path=CUSTOM_COVER_DIR)
+    covers_library, created = Library.objects.get_or_create(
+        defaults=defaults, covers_only=True
     )
-    if count:
-        LOG.debug(f"Reset {count} Custom Cover Dir's update_in_progress flag")
+    if created:
+        LOG.info("Created Custom Covers Dir settings in the db.")
+
+    if covers_library.path != CUSTOM_COVER_DIR:
+        Library.objects.filter(covers_only=True).update(path=CUSTOM_COVER_DIR)
+        LOG.info(f"Updated Custom Group Covers Dir path to {CUSTOM_COVER_DIR}.")
 
 
 def ensure_db_rows():

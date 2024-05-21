@@ -60,12 +60,13 @@
         <AdminCreateUpdateDialog
           table="Library"
           :old-row="item"
-          :inputs="AdminLibraryCreateUpdateInputs"
+          :inputs="createUpdateInputs(item)"
           max-width="22em"
           size="small"
           density="compact"
         />
         <AdminDeleteRowDialog
+          v-if="!item.coversOnly"
           table="Library"
           :pk="item.pk"
           :name="item.path"
@@ -77,51 +78,6 @@
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
-    <h2>Custom Covers Dir</h2>
-    <AdminTable :headers="customCoverDirHeaders" :items="customCoversDirs">
-      <template #[`item.events`]="{ item }">
-        <v-checkbox-btn :model-value="item.events" disabled />
-      </template>
-      <template #[`item.poll`]="{ item }">
-        <v-checkbox-btn :model-value="item.poll" disabled />
-      </template>
-      <template #[`item.pollEvery`]="{ item }">
-        <span :class="{ disabled: !item.poll }">
-          {{ item.pollEvery }}
-        </span>
-      </template>
-      <template #[`item.lastPoll`]="{ item }">
-        <DateTimeColumn :dttm="item.lastPoll" />
-      </template>
-      <template #[`item.actions`]="{ item }">
-        <ConfirmDialog
-          :icon="mdiDatabaseClockOutline"
-          title-text="Poll for updated covers"
-          :object-name="item.path"
-          confirm-text="Poll Library"
-          size="small"
-          density="compact"
-          @confirm="poll(item.pk)"
-        />
-        <ConfirmDialog
-          :icon="mdiDatabaseSyncOutline"
-          title-text="Force update every cover"
-          :object-name="item.path"
-          confirm-text="Force Update"
-          size="small"
-          density="compact"
-          @confirm="forcePoll(item.pk)"
-        />
-        <AdminCreateUpdateDialog
-          table="CustomCoversDir"
-          :old-row="item"
-          :inputs="AdminCustomCoverDirUpdateInputs"
-          max-width="22em"
-          size="small"
-          density="compact"
-        />
-      </template>
-    </AdminTable>
   </div>
 </template>
 
@@ -244,6 +200,20 @@ export default {
     },
     forcePoll(pk) {
       this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
+    },
+    createUpdateInputs(item) {
+      return item.coversOnly
+        ? AdminCustomCoverDirUpdateInputs
+        : AdminLibraryCreateUpdateInputs;
+    },
+    pollCustomCoverDir() {
+      this.librarianTask("poll_custom_cover_dir", "Poll Custom Cover Dir");
+    },
+    forcePollCustomCoverDir() {
+      this.librarianTask(
+        "poll_custom_cover_dir_force",
+        "Force Poll Custom Cover Dir",
+      );
     },
   },
 };

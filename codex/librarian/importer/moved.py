@@ -163,7 +163,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
-        libraries = Library.objects.only("pk", "path")
+        libraries = Library.objects.filter(covers_only=False).only("pk", "path")
         for library in libraries.iterator():
             orphan_folder_paths = (
                 Folder.objects.filter(library=library, parent_folder=None)

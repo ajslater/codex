@@ -18,7 +18,6 @@ from rest_framework.serializers import (
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, FailedImport, Library
 from codex.models.admin import GroupAuth
-from codex.models.library import CustomCoverDir, RootDirBase
 from codex.serializers.choices import CHOICES
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -95,36 +94,15 @@ class AdminFlagSerializer(BaseModelSerializer):
         read_only_fields = ("key",)
 
 
-class RootDirBaseSerializer(BaseModelSerializer):
-    """RootDirBase Abstract Serializer."""
-
-    class Meta(BaseModelSerializer.Meta):
-        """Specify Model and fields."""
-
-        model = RootDirBase
-        abstract = True
-        fields = ("pk", "path", "events", "last_poll", "poll", "poll_every")
-        read_only_fields = ("last_poll", "pk")
-
-
-class CustomCoverDirSerializer(RootDirBaseSerializer):
-    """CustomCoverDir Serializer."""
-
-    class Meta(RootDirBaseSerializer.Meta):
-        """Specify Model."""
-
-        model = CustomCoverDir
-        read_only_fields = (*RootDirBaseSerializer.Meta.read_only_fields, "path")
-
-
-class LibrarySerializer(RootDirBaseSerializer):
+class LibrarySerializer(BaseModelSerializer):
     """Library Serializer."""
 
-    class Meta(RootDirBaseSerializer.Meta):
+    class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = Library
-        fields = (*RootDirBaseSerializer.Meta.fields, "groups")
+        fields = ("pk", "path", "events", "last_poll", "poll", "poll_every", "groups")
+        read_only_fields = ("last_poll", "pk")
 
     def validate_path(self, path):
         """Validate new library paths."""

@@ -49,6 +49,16 @@
           "title": "Update All Failed Imports",
           "desc": "Forcibly update all failed imports in all libraries",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "poll_custom_cover_dir",
+          "title": "Poll Custom Group Covers Dir",
+          "desc": "Update Custom Group Covers if changes detected"
+        },
+        {
+          "value": "poll_custom_cover_dir_force",
+          "title": "Force Update Custom Group Covers",
+          "desc": "Forcibly update all group custom covers"
         }
       ]
     },

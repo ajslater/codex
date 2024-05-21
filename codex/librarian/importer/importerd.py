@@ -236,6 +236,7 @@ class ComicImporterThread(
         """Bulk import comics."""
         start_time = time()
         self.librarian_queue.put(SearchIndexAbortTask())
+        print(f"{task.library_id=}")
         library = Library.objects.get(pk=task.library_id)
         try:
             self._init_apply(library, task)

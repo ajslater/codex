@@ -23,12 +23,13 @@ from watchdog.events import (
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger.logging import get_logger
 from codex.logger_base import LoggerBaseMixin
-from codex.settings.settings import CUSTOM_COVER_GROUP_DIRS
+from codex.settings.settings import CUSTOM_COVER_DIR, CUSTOM_COVER_GROUP_DIRS
 
 LOG = get_logger(__name__)
 _FOLDER_COVER_STEM = ".codex-cover"
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
 _GROUP_COVER_DIRS = frozenset(CUSTOM_COVER_GROUP_DIRS)
+
 
 class CoverMovedEvent(FileMovedEvent):
     """Cover Modified."""
@@ -72,8 +73,9 @@ class CodexEventHandlerBase(FileSystemEventHandler, LoggerBaseMixin):
 
     IGNORED_EVENTS = frozenset({EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED})
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
+        self.library_pk = library.pk
         self.librarian_queue = kwargs.pop("librarian_queue")
         log_queue = kwargs.pop("log_queue")
         self.init_logger(log_queue)
@@ -106,9 +108,8 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
             un_str = ", ".join(unsupported)
             LOG.warning(f"Cannot detect or read from {un_str} archives")
 
-    def __init__(self, library, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Let us send along he library id."""
-        self.library_pk = library.pk
         self._set_comic_matcher()
         super().__init__(*args, **kwargs)
 
@@ -134,7 +135,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         events,
         source_match_comic,
     ):
-        """Create possible multiple events for file moves."""
+        """Create file events for file moves."""
         dest_match_comic = self._match_comic_suffix(event.dest_path)
         if not source_match_comic and dest_match_comic:
             # Moved from an ignored file extension into a comic type,
@@ -146,6 +147,8 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         elif source_match_comic and dest_match_comic:
             events.append(event)
 
+    def _transform_file_move_event_to_cover_event(self, event, events):
+        """Create cover events for file moves."""
         source_match_cover = self._match_folder_cover(event.src_path)
         dest_match_cover = self._match_folder_cover(event.dest_path)
         if source_match_cover and not dest_match_cover:
@@ -161,6 +164,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         source_match_comic = self._match_comic_suffix(event.src_path)
         if event.event_type == EVENT_TYPE_MOVED:
             self._transform_file_move_event(event, events, source_match_comic)
+            self._transform_file_move_event_to_cover_event(event, events)
         elif source_match_comic:
             events.append(event)
         else:
@@ -208,9 +212,23 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
     @classmethod
     def _match_group_cover_image(cls, path_str: str) -> bool:
         path = Path(path_str)
-        if str(path.parent) not in _GROUP_COVER_DIRS:
+        parent = path.parent
+        if parent.parent != CUSTOM_COVER_DIR or str(parent.name) not in _GROUP_COVER_DIRS:
             return False
         return cls._match_image_suffix(path)
+
+    @classmethod
+    def _transform_event_moved(cls, event, src_cover_match):
+        """Get a cover event for a file moved event."""
+        send_event = None
+        dest_cover_match = cls._match_group_cover_image(event.dest_path)
+        if src_cover_match and dest_cover_match:
+            send_event = CoverMovedEvent(event.src_path, event.dest_path)
+        elif not src_cover_match and dest_cover_match:
+            send_event = CoverCreatedEvent(event.src_path)
+        elif src_cover_match and not dest_cover_match:
+            send_event = CoverDeletedEvent(event.src_path)
+        return send_event
 
     def dispatch(self, event):
         """Send only valid cover events to the EventBatcher."""
@@ -220,13 +238,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
                 return
             src_cover_match = self._match_group_cover_image(event.src_path)
             if event.event_type == EVENT_TYPE_MOVED:
-                dest_cover_match = self._match_group_cover_image(event.dest_path)
-                if src_cover_match and dest_cover_match:
-                    send_event = CoverMovedEvent(event.src_path, event.dest_path)
-                elif not src_cover_match and dest_cover_match:
-                    send_event = CoverCreatedEvent(event.src_path)
-                elif src_cover_match and not dest_cover_match:
-                    send_event = CoverDeletedEvent(event.src_path)
+                send_event = self._transform_event_moved(event, src_cover_match)
             elif src_cover_match:
                 event_class = COVER_EVENT_TYPE_MAP.get(event.event_type)
                 if not event_class:
@@ -234,7 +246,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
                 send_event = event_class(event.src_path)
 
             if send_event:
-                task = WatchdogEventTask(0, send_event)
+                task = WatchdogEventTask(self.library_pk, send_event)
                 self.librarian_queue.put(task)
         except Exception:
             self.log.exception(f"{self.__class__.__name__} dispatch")

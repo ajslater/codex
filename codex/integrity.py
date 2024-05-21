@@ -34,6 +34,7 @@ MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
 MIGRATION_0025 = "0025_add_story_arc_number"
 MIGRATION_0026 = "0026_comicbox_1"
+MIGRATION_0028 = "0028_custom_covers"  # TODO merge with 27
 M2M_NAMES = MappingProxyType(
     {
         "Character": "characters",
@@ -51,7 +52,7 @@ SKIP_M2M_CHECKS = MappingProxyType(
     {"Contributor": MIGRATION_0026, "StoryArcNumber": MIGRATION_0025}
 )
 NULL_SET = frozenset({None})
-HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic")
+HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic", "CustomCover")
 GROUP_HOSTS = MappingProxyType(
     {
         "Imprint": ("Publisher",),
@@ -306,6 +307,10 @@ def _repair_library_groups(apps):
 def _delete_errors():
     """DELETE things we can't fix."""
     for host_model_name in HAVE_LIBRARY_FKS:
+        if host_model_name == "CustomCover" and not has_applied_migration(
+            MIGRATION_0028
+        ):
+            continue
         _delete_fk_integrity_errors(apps, host_model_name, "Library", "library")
 
     for host_model_name in WATCHED_PATHS:

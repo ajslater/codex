@@ -36,7 +36,10 @@ from codex.librarian.search.tasks import (
     SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.librarian.watchdog.tasks import (
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
 from codex.logger.logging import get_logger
 from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
