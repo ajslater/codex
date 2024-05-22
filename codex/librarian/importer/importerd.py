@@ -248,36 +248,29 @@ class ComicImporterThread(
         self._log_task(library.path, task)
         self._init_librarian_status(task, library.path)
 
-    def _create_comic_relations(self, library, fks) -> int:
-        """Query all foreign keys to determine what needs creating, then create them."""
-        if not fks:
-            return 0
-        create_data = self.query_all_missing_fks(library.path, fks)
-        return self.create_all_fks(library, create_data)
-
-    def _create_cover_relations(
-        self, library, cover_paths: frozenset[int], link_cover_pks: set[int]
+    def _create_comic_and_cover_relations(
+        self, library, fks, cover_paths: frozenset[int], link_cover_pks: set[int]
     ) -> int:
+        """Query all foreign keys to determine what needs creating, then create them."""
+        count = 0
+        if not fks and not cover_paths:
+            return count
+        create_data = self.query_all_missing_fks(library.path, fks)
         query_data = []
-        count = self.query_missing_custom_covers(
+        count += self.query_missing_custom_covers(
             cover_paths,
             library,
             query_data,
-            status=ImportStatusTypes.QUERY_MISSING_COVERS,
         )
-        if not query_data:
-            return count
-        update_covers_qs, create_cover_paths = query_data
-
-        count = self.update_custom_covers(
-            update_covers_qs, status=ImportStatusTypes.COVERS_MODIFIED
-        )
-        count += self.create_custom_covers(
-            create_cover_paths,
-            library,
-            link_cover_pks,
-            status=ImportStatusTypes.COVERS_CREATED,
-        )
+        count += self.create_all_fks(library, create_data)
+        if query_data:
+            update_covers_qs, create_cover_paths = query_data
+            count += self.update_custom_covers(update_covers_qs)
+            count += self.create_custom_covers(
+                create_cover_paths,
+                library,
+                link_cover_pks,
+            )
         return count
 
     def _finish_apply_status(self, library):
@@ -356,12 +349,10 @@ class ComicImporterThread(
             cover_paths = frozenset(task.covers_modified | task.covers_created)
             task.covers_modified = task.covers_created = None
 
-            changed += self._create_comic_relations(library, fks)
-            fks = None
-            changed += self._create_cover_relations(
-                library, cover_paths, link_cover_pks
+            changed += self._create_comic_and_cover_relations(
+                library, fks, cover_paths, link_cover_pks
             )
-            cover_paths = None
+            fks = cover_paths = None
 
             imported_count = self.bulk_update_comics(
                 modified_paths,
@@ -407,16 +398,16 @@ class ComicImporterThread(
                 library_id=library_id,
                 dirs_moved={},
                 files_moved={},
+                covers_moved={},
                 dirs_modified=frozenset(),
                 files_modified=frozenset(paths),
+                covers_modified=frozenset(),
                 files_created=frozenset(),
+                covers_created=frozenset(),
                 dirs_deleted=frozenset(),
                 files_deleted=frozenset(),
-                force_import_metadata=True,
-                covers_moved={},
-                covers_modified=frozenset(),
-                covers_created=frozenset(),
                 covers_deleted=frozenset(),
+                force_import_metadata=True,
             )
         self._apply(task)
 

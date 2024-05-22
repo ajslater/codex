@@ -6,12 +6,12 @@ from django.db.models.functions import Now
 
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
-    DELINK_COVER_MODELS,
     FOLDERS_FIELD,
     MOVED_BULK_COMIC_UPDATE_FIELDS,
     MOVED_BULK_COVER_UPDATE_FIELDS,
     MOVED_BULK_FOLDER_UPDATE_FIELDS,
     PARENT_FOLDER,
+    UNLINK_COVER_MODELS,
 )
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import (
@@ -75,21 +75,18 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         return count
 
-    @status_notify(status_type=ImportStatusTypes.FILES_MOVED, updates=False)
-    def _bulk_covers_moved(self, moved_paths, library, link_cover_pks, status=None):
-        """Move covers."""
-        count = 0
-        if not moved_paths:
-            return count
-
-        # update covers
+    def _bulk_covers_moved_prepare(self, library, moved_paths, status):
+        """Create an update map for bulk update."""
         covers = CustomCover.objects.filter(
             library=library, path__in=moved_paths.keys()
         ).only("pk", "path")
 
+        if status:
+            status.total = covers.count()
+
         now = Now()
         moved_covers = []
-        delink_pks = set()
+        unlink_pks = set()
         for cover in covers.iterator():
             try:
                 new_path = moved_paths[cover.path]
@@ -98,27 +95,49 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                 cover.updated_at = now
                 cover.presave()
                 moved_covers.append(cover)
-                delink_pks.add(cover.pk)
+                unlink_pks.add(cover.pk)
             except Exception:
                 self.log.exception(f"moving {cover.path}")
+        return moved_covers, unlink_pks
 
-        CustomCover.objects.bulk_update(moved_covers, MOVED_BULK_COVER_UPDATE_FIELDS)
-
-        for model in DELINK_COVER_MODELS:
-            groups = model.objects.filter(custom_cover__in=delink_pks)
-            delink_groups = []
+    def _bulk_covers_moved_unlink(self, unlink_pks, link_cover_pks):
+        """Unlink moved covers because they could have moved between group dirs."""
+        if not unlink_pks:
+            return
+        for model in UNLINK_COVER_MODELS:
+            groups = model.objects.filter(custom_cover__in=unlink_pks)
+            unlink_groups = []
             for group in groups:
                 group.custom_cover = None
-            model.objects.bulk_update(delink_groups, ["custom_cover"])
+            model.objects.bulk_update(unlink_groups, ["custom_cover"])
 
-        self._remove_covers(delink_pks, custom=True)  # type: ignore
-        link_cover_pks.update(delink_pks)
+        self._remove_covers(unlink_pks, custom=True)  # type: ignore
+        link_cover_pks.update(unlink_pks)
 
-        count = len(covers)
+    @status_notify(status_type=ImportStatusTypes.FILES_MOVED, updates=False)
+    def _bulk_covers_moved(self, moved_paths, library, link_cover_pks, status=None):
+        """Move covers."""
+        count = 0
+        if not moved_paths:
+            return count
+        if status:
+            status.total = len(moved_paths)
+
+        moved_covers, unlink_pks = self._bulk_covers_moved_prepare(
+            library, moved_paths, status
+        )
+        if moved_covers:
+            CustomCover.objects.bulk_update(
+                moved_covers, MOVED_BULK_COVER_UPDATE_FIELDS
+            )
+        count = len(moved_covers)
+
+        self._bulk_covers_moved_unlink(unlink_pks, link_cover_pks)
+
         if count:
             self.log.info(f"Moved {count} custom covers.")
             if status:
-                status.count += count
+                status.add_complete(count)
 
         return count
 

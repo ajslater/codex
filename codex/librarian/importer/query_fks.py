@@ -630,12 +630,14 @@ class QueryForeignKeysMixin(QueuedThread):
             create_identifiers,
         )
 
-    @status_notify()
+    @status_notify(ImportStatusTypes.QUERY_MISSING_COVERS, updates=False)
     def query_missing_custom_covers(
         self, cover_paths: frozenset, library, query_data: list, status=None
     ):
         """Identify update & create covers."""
         self.log.debug(f"Querying {len(cover_paths)} custom cover_paths")
+        if status:
+            status.total = len(cover_paths)
 
         update_covers_qs = CustomCover.objects.filter(
             library=library, path__in=cover_paths
@@ -645,7 +647,13 @@ class QueryForeignKeysMixin(QueuedThread):
         update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
         create_cover_paths = cover_paths - update_cover_paths
         query_data.append(create_cover_paths)
-        count = len(create_cover_paths) + len(update_cover_paths)
-        if status:
-            status.complete += count
+        update_count = len(update_cover_paths)
+        create_count = len(create_cover_paths)
+        count = create_count + update_count
+        if count:
+            self.log.debug(
+                f"Discovered {update_count} custom covers to update and {create_count} to create."
+            )
+            if status:
+                status.add_complete(count)
         return count

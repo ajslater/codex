@@ -141,9 +141,16 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
         - frozenset(BULK_UPDATE_FOLDER_MODIFIED_FIELDS)
     )
 )
-MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
-MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", *GROUP_BASE_FIELDS)
-MOVED_BULK_COVER_UPDATE_FIELDS = ("path",)
+MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "stat", "updated_at")
+MOVED_BULK_FOLDER_UPDATE_FIELDS = (
+    "path",
+    "parent_folder",
+    *GROUP_BASE_FIELDS,
+    "stat",
+    "updated_at",
+)
+MOVED_BULK_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at")
+CUSTOM_COVER_UPDATE_FIELDS = ("stat", "updated_at")
 
 #########
 # OTHER #
@@ -152,7 +159,7 @@ VOLUME_COUNT = "volume_count"
 ISSUE_COUNT = "issue_count"
 COUNT_FIELDS = {Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
 _GROUP_CLASSES = (Publisher, Imprint, Series, Volume)
-DELINK_COVER_MODELS = (Folder, Publisher, Imprint, Series, StoryArc)
+UNLINK_COVER_MODELS = (Folder, Publisher, Imprint, Series, StoryArc)
 
 
 def _create_group_update_fields():
