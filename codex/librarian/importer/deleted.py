@@ -1,6 +1,6 @@
 """Clean up the database after moves or imports."""
 
-from codex.librarian.covers.tasks import CoverRemoveTask, CustomCoverRemoveTask
+from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Folder
 from codex.models.paths import CustomCover
@@ -11,11 +11,7 @@ class DeletedMixin(QueuedThread):
     """Clean up database methods."""
 
     def _remove_covers(self, delete_pks, custom=False):
-        delete_pks = frozenset(delete_pks)
-        if custom:
-            task = CustomCoverRemoveTask(delete_pks)
-        else:
-            task = CoverRemoveTask(delete_pks)
+        task = CoverRemoveTask(delete_pks, custom)
         self.librarian_queue.put(task)
 
     @status_notify(status_type=ImportStatusTypes.DIRS_DELETED, updates=False)

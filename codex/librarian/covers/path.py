@@ -12,6 +12,7 @@ class CoverPathMixin(QueuedThread):
     """Path methods for covers."""
 
     COVER_ROOT = ROOT_CACHE_PATH / "covers"
+    CUSTOM_COVER_ROOT = ROOT_CACHE_PATH / "custom-covers"
     _HEX_FILL = 8
     _PATH_STEP = 2
     _ZFILL = 12
@@ -27,16 +28,17 @@ class CoverPathMixin(QueuedThread):
         return Path("/".join(parts))
 
     @classmethod
-    def get_cover_path(cls, pk):
+    def get_cover_path(cls, pk, custom=False):
         """Get cover path for comic pk."""
         cover_path = cls._hex_path(pk)
-        return cls.COVER_ROOT / cover_path.with_suffix(".webp")
+        root = cls.CUSTOM_COVER_ROOT if custom else cls.COVER_ROOT
+        return root / cover_path.with_suffix(".webp")
 
     @classmethod
-    def get_cover_paths(cls, comic_pks):
+    def get_cover_paths(cls, pks, custom=False):
         """Get cover paths for many comic pks."""
         cover_paths = set()
-        for comic_pk in comic_pks:
-            cover_path = cls.get_cover_path(comic_pk)
+        for pk in pks:
+            cover_path = cls.get_cover_path(pk, custom)
             cover_paths.add(cover_path)
         return cover_paths

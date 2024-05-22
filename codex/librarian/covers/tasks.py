@@ -29,14 +29,8 @@ class LibrariesTask:
 class CoverRemoveTask(CoverTask):
     """Purge a set of comic covers."""
 
-    comic_pks: frozenset
-
-
-@dataclass
-class CustomCoverRemoveTask(CoverTask):
-    """Purge a set of comic covers."""
-
-    custom_cover_pks: frozenset
+    pks: frozenset
+    custom: bool
 
 
 @dataclass

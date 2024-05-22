@@ -3,7 +3,6 @@
 from django.db.models import NOT_PROVIDED
 from django.db.models.functions import Now
 
-from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.importer.const import (
     BULK_UPDATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS_WITH_VALUES,
@@ -78,9 +77,8 @@ class UpdateComicsMixin(LinkComicsMixin):
             Timestamp.touch(Timestamp.TimestampChoices.COVERS)
             count = len(update_comics)
 
-            task = CoverRemoveTask(frozenset(comic_pks))
+            self._remove_covers(comic_pks, False)  # type: ignore
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
-            self.librarian_queue.put(task)
             if count:
                 self.log.info(f"Updated {count} comics.")
         except Exception:

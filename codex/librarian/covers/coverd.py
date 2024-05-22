@@ -8,7 +8,6 @@ from codex.librarian.covers.tasks import (
     CoverRemoveOrphansTask,
     CoverRemoveTask,
     CoverSaveToCache,
-    CustomCoverRemoveTask,
 )
 
 
@@ -23,9 +22,7 @@ class CoverContributorThread(CoverCreateMixin, CoverPurgeMixin):
         elif isinstance(task, CoverRemoveAllTask):
             self.purge_all_comic_covers(self.librarian_queue)
         elif isinstance(task, CoverRemoveTask):
-            self.purge_comic_covers(task.comic_pks)
-        elif isinstance(task, CustomCoverRemoveTask):
-            self.purge_custom_covers(task.custom_cover_pks)
+            self.purge_comic_covers(task.pks, task.custom)
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
         elif isinstance(task, CoverCreateAllTask):
