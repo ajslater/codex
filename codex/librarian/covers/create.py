@@ -54,7 +54,7 @@ class CoverCreateMixin(CoverPathMixin):
     @classmethod
     def _get_custom_cover_image(cls, cover_path):
         """Get cover image from image file."""
-        with Path(cover_path).open("r") as f:
+        with Path(cover_path).open("rb") as f:
             return f.read()
 
     @classmethod
