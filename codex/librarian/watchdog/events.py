@@ -177,23 +177,14 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
                 events.append(event)
         return events
 
-    def _transform_event(self, event):
-        """Transform events into other events."""
-        events = []
-        if event.event_type in self.IGNORED_EVENTS:
-            pass
-        elif event.is_directory:
-            if event.event_type == EVENT_TYPE_CREATED:
-                # Directories are only created by comics
-                pass
-        else:
-            events = self._transform_file_event(event)
-        return events
-
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
-            events = self._transform_event(event)
+            if event.event_type in self.IGNORED_EVENTS or (event.is_directory and event.event_type == EVENT_TYPE_CREATED):
+                # Directories are only created by comics
+                return
+
+            events = self._transform_file_event(event)
 
             # Send it to the EventBatcher
             for event in events:
@@ -228,7 +219,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
         if src_cover_match and dest_cover_match:
             send_event = CoverMovedEvent(event.src_path, event.dest_path)
         elif not src_cover_match and dest_cover_match:
-            send_event = CoverCreatedEvent(event.src_path)
+            send_event = CoverCreatedEvent(event.dest_path)
         elif src_cover_match and not dest_cover_match:
             send_event = CoverDeletedEvent(event.src_path)
         return send_event
