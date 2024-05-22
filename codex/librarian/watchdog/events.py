@@ -180,7 +180,9 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
-            if event.event_type in self.IGNORED_EVENTS or (event.is_directory and event.event_type == EVENT_TYPE_CREATED):
+            if event.event_type in self.IGNORED_EVENTS or (
+                event.is_directory and event.event_type == EVENT_TYPE_CREATED
+            ):
                 # Directories are only created by comics
                 return
 
