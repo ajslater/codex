@@ -36,6 +36,10 @@ export default {
       type: String,
       required: true,
     },
+    coverCustom: {
+      type: Boolean,
+      required: true,
+    },
     multiGroup: {
       type: Boolean,
       required: true,
@@ -48,7 +52,12 @@ export default {
   },
   computed: {
     coverSrc() {
-      return getCoverSource(this.coverPk, this.coverMtime, this.group);
+      return getCoverSource(
+        this.coverPk,
+        this.coverMtime,
+        this.group,
+        this.coverCustom,
+      );
     },
     childCountClasses() {
       return {

@@ -205,12 +205,30 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
         if model == Comic:
-            qs = qs.annotate(cover_pk=F("pk"))
-            qs = qs.annotate(cover_mtime=F("updated_at"))
-        elif self.admin_flags["dynamic_group_covers"]:
-            # At this point it's only been filtered.
-            qs = qs.annotate(cover_pk=F(self.rel_prefix + "pk"))
-            qs = qs.annotate(cover_pks=JsonGroupArray("cover_pk", distinct=True))
+            qs = qs.annotate(cover_pk=F("pk"), cover_mtime=F("updated_at"))
+        else:
+            if self.admin_flags["dynamic_group_covers"]:
+                # At this point it's only been filtered.
+                default_cover_pk = F(self.rel_prefix + "pk")
+                default_cover_mtime = F(self.rel_prefix + "updated_at")
+            else:
+                default_cover_pk = None
+                default_cover_mtime = None
+
+            qs = qs.annotate(
+                cover_custom=F("custom_cover"),
+                cover_pk=Case(
+                    When(custom_cover__isnull=False, then=F("custom_cover__pk")),
+                    default=default_cover_pk,
+                ),
+                cover_mtime=Case(
+                    When(
+                        custom_cover__isnull=False, then=F("custom_cover__updated_at")
+                    ),
+                    default=default_cover_mtime,
+                ),
+                cover_pks=JsonGroupArray("cover_pk", distinct=True),
+            )
         return qs
 
     def _annotate_group(self, qs, model):

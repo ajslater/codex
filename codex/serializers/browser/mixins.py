@@ -22,6 +22,7 @@ class BrowserAggregateSerializerMixin(Serializer):
     child_count = IntegerField(read_only=True)
     cover_pk = IntegerField(read_only=True)
     cover_mtime = DateTimeField(format="%s", read_only=True)
+    cover_custom = BooleanField(read_only=True)
 
     # Bookmark annotations
     page = IntegerField(read_only=True)

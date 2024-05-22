@@ -34,6 +34,7 @@
             id="bookCover"
             :cover-pk="md.coverPk"
             :cover-mtime="md.coverMtime || ''"
+            :cover-custom="md.coverCustom || false"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"
