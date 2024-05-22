@@ -79,6 +79,4 @@ class FailedImport(WatchedPath):
 class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
-    library = ForeignKey(
-        Library, on_delete=CASCADE, db_index=True, null=True, default=None
-    )
+    parent_folder = None

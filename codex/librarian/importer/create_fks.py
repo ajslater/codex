@@ -6,6 +6,8 @@ So we may safely create the comics next.
 from itertools import chain
 from pathlib import Path
 
+from django.db.models.functions.datetime import Now
+
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_FIELDS,
     COUNT_FIELDS,
@@ -24,6 +26,7 @@ from codex.models import (
     Contributor,
     ContributorPerson,
     ContributorRole,
+    CustomCover,
     Folder,
     Imprint,
     Publisher,
@@ -375,3 +378,45 @@ class CreateForeignKeysMixin(QueuedThread):
         finally:
             self.status_controller.finish(status)
         return status.complete if status.complete else 0
+
+    @status_notify()
+    def update_custom_covers(self, update_covers_qs, status=None) -> int:
+        """Update Custom Covers."""
+        now = Now()
+        update_covers = []
+        for cover in update_covers_qs.only("updated_at"):
+            cover.updated_at = now
+            cover.presave()
+            update_covers.append(cover)
+
+        CustomCover.objects.bulk_update(update_covers, ["stat", "updated_at"])
+        update_cover_pks = update_covers_qs.values_list("pk", flat=True)
+        self._remove_covers(update_cover_pks, custom=True)  # type: ignore
+        count = len(update_covers)
+        if status:
+            status.complete += count
+        return count
+
+    @status_notify()
+    def create_custom_covers(
+        self, create_cover_paths, library, link_cover_pks, status=None
+    ) -> int:
+        """Create Custom Covers."""
+        create_covers = []
+        for path in create_cover_paths:
+            cover = CustomCover(library=library, path=path)
+            cover.presave()
+            create_covers.append(cover)
+
+        objs = CustomCover.objects.bulk_create(
+            create_covers,
+            update_conflicts=True,
+            update_fields=("path", "stat"),
+            unique_fields=CustomCover._meta.unique_together[0],
+        )
+        created_pks = frozenset(obj.pk for obj in objs)
+        link_cover_pks.update(created_pks)
+        count = len(created_pks)
+        if status:
+            status.complete += count
+        return count

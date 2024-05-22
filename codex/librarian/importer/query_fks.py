@@ -35,6 +35,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.named import Identifier
+from codex.models.paths import CustomCover
 from codex.settings.settings import FILTER_BATCH_SIZE
 from codex.status import Status
 from codex.threads import QueuedThread
@@ -628,3 +629,23 @@ class QueryForeignKeysMixin(QueuedThread):
             create_story_arc_numbers,
             create_identifiers,
         )
+
+    @status_notify()
+    def query_missing_custom_covers(
+        self, cover_paths: frozenset, library, query_data: list, status=None
+    ):
+        """Identify update & create covers."""
+        self.log.debug(f"Querying {len(cover_paths)} custom cover_paths")
+
+        update_covers_qs = CustomCover.objects.filter(
+            library=library, path__in=cover_paths
+        )
+        query_data.append(update_covers_qs)
+
+        update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
+        create_cover_paths = cover_paths - update_cover_paths
+        query_data.append(create_cover_paths)
+        count = len(create_cover_paths) + len(update_cover_paths)
+        if status:
+            status.complete += count
+        return count

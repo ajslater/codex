@@ -118,33 +118,8 @@ class ComicImporterThread(
             self.log.debug("  " + log)
 
     @staticmethod
-    def _init_if_modified_or_created(task, path, status_list):
-        """Initialize librarian statuses for modified or created ops."""
-        total_paths = len(task.files_modified) + len(task.files_created)
-        status_list += [
-            Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
-            Status(ImportStatusTypes.QUERY_MISSING_FKS),
-            Status(ImportStatusTypes.CREATE_FKS),
-        ]
-        if task.files_modified:
-            status_list += [
-                Status(
-                    ImportStatusTypes.FILES_MODIFIED,
-                    None,
-                    len(task.files_modified),
-                )
-            ]
-        if task.files_created:
-            status_list += [
-                Status(ImportStatusTypes.FILES_CREATED, None, len(task.files_created))
-            ]
-        if task.files_modified or task.files_created:
-            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS)]
-        return total_paths
-
-    def _init_librarian_status(self, task, path):
-        """Update the librarian status tasks."""
-        status_list = []
+    def _init_librarian_status_moved(task, status_list):
+        """Initialize moved statuses."""
         search_index_updates = 0
         if task.dirs_moved:
             status_list += [
@@ -155,19 +130,82 @@ class ComicImporterThread(
                 Status(ImportStatusTypes.FILES_MOVED, None, len(task.files_moved))
             ]
             search_index_updates += len(task.files_moved)
-        if task.files_modified:
+        if task.covers_moved:
+            status_list += [
+                Status(ImportStatusTypes.COVERS_MOVED, None, len(task.covers_moved))
+            ]
+        if task.dirs_modified:
             status_list += [
                 Status(ImportStatusTypes.DIRS_MODIFIED, None, len(task.dirs_modified))
             ]
+        return search_index_updates
+
+    @staticmethod
+    def _init_if_modified_or_created(task, path, status_list):
+        """Initialize librarian statuses for modified or created ops."""
+        total_paths = len(task.files_modified) + len(task.files_created)
+        status_list += [
+            Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
+            Status(ImportStatusTypes.QUERY_MISSING_FKS),
+            Status(ImportStatusTypes.QUERY_MISSING_COVERS),
+            Status(ImportStatusTypes.CREATE_FKS),
+        ]
+        if task.files_modified:
+            status_list += [
+                Status(
+                    ImportStatusTypes.FILES_MODIFIED,
+                    None,
+                    len(task.files_modified),
+                )
+            ]
+        if task.covers_modified:
+            status_list += [
+                Status(
+                    ImportStatusTypes.COVERS_MODIFIED,
+                    None,
+                    len(task.covers_modified),
+                )
+            ]
+
+        if task.files_created or task.covers_created:
+            status_list += [
+                Status(ImportStatusTypes.FILES_CREATED, None, len(task.files_created))
+            ]
+        if task.covers_created:
+            status_list += [
+                Status(ImportStatusTypes.COVERS_CREATED, None, len(task.covers_created))
+            ]
+
         if task.files_modified or task.files_created:
-            search_index_updates += self._init_if_modified_or_created(
-                task, path, status_list
-            )
+            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS)]
+        if task.covers_created or task.covers_moved:
+            status_list += [
+                Status(
+                    ImportStatusTypes.COVERS_LINK,
+                    None,
+                    len(task.covers_created) + len(task.covers_moved),
+                )
+            ]
+        return total_paths
+
+    @staticmethod
+    def _init_librarian_status_deleted(task, status_list):
+        """Init deleted statuses."""
+        search_index_updates = 0
         if task.files_deleted:
             status_list += [
                 Status(ImportStatusTypes.FILES_DELETED, None, len(task.files_deleted))
             ]
             search_index_updates += len(task.files_deleted)
+        if task.covers_deleted:
+            status_list += [
+                Status(ImportStatusTypes.COVERS_DELETED, None, len(task.covers_deleted))
+            ]
+        return search_index_updates
+
+    @staticmethod
+    def _init_librarian_status_search_index(search_index_updates, status_list):
+        """Init search index statuses."""
         status_list += [
             Status(
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
@@ -176,6 +214,23 @@ class ComicImporterThread(
             ),
             Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
         ]
+
+    def _init_librarian_status(self, task, path):
+        """Update the librarian status tasks."""
+        status_list = []
+        search_index_updates = 0
+        search_index_updates += self._init_librarian_status_moved(task, status_list)
+        if (
+            task.files_modified
+            or task.files_created
+            or task.covers_modified
+            or task.covers_created
+        ):
+            search_index_updates += self._init_if_modified_or_created(
+                task, path, status_list
+            )
+        search_index_updates += self._init_librarian_status_deleted(task, status_list)
+        self._init_librarian_status_search_index(search_index_updates, status_list)
         self.status_controller.start_many(status_list)
 
     def _init_apply(self, library, task):
@@ -199,6 +254,31 @@ class ComicImporterThread(
             return 0
         create_data = self.query_all_missing_fks(library.path, fks)
         return self.create_all_fks(library, create_data)
+
+    def _create_cover_relations(
+        self, library, cover_paths: frozenset[int], link_cover_pks: set[int]
+    ) -> int:
+        query_data = []
+        count = self.query_missing_custom_covers(
+            cover_paths,
+            library,
+            query_data,
+            status=ImportStatusTypes.QUERY_MISSING_COVERS,
+        )
+        if not query_data:
+            return count
+        update_covers_qs, create_cover_paths = query_data
+
+        count = self.update_custom_covers(
+            update_covers_qs, status=ImportStatusTypes.COVERS_MODIFIED
+        )
+        count += self.create_custom_covers(
+            create_cover_paths,
+            library,
+            link_cover_pks,
+            status=ImportStatusTypes.COVERS_CREATED,
+        )
+        return count
 
     def _finish_apply_status(self, library):
         """Finish all librarian statuses."""
@@ -236,22 +316,22 @@ class ComicImporterThread(
         """Bulk import comics."""
         start_time = time()
         self.librarian_queue.put(SearchIndexAbortTask())
-        print(f"{task.library_id=}")
         library = Library.objects.get(pk=task.library_id)
         try:
             self._init_apply(library, task)
 
             changed: int = 0
-            changed += self.move_and_modify_dirs(library, task)
+            link_cover_pks: set[int] = set()
+            changed += self.move_and_modify_dirs(library, task, link_cover_pks)
 
             modified_paths = task.files_modified
             created_paths = task.files_created
             task.files_modified = task.files_created = None
 
-            print(f"{task.covers_moved=}")
-            print(f"{task.covers_modified=}")
-            print(f"{task.covers_created=}")
-            print(f"{task.covers_deleted=}")
+            # print(f"{task.covers_moved=}")
+            # print(f"{task.covers_modified=}")
+            # print(f"{task.covers_created=}")
+            # print(f"{task.covers_deleted=}")
 
             mds = {}
             m2m_mds = {}
@@ -273,8 +353,15 @@ class ComicImporterThread(
             modified_paths -= fis.keys()
             created_paths -= fis.keys()
 
+            cover_paths = frozenset(task.covers_modified | task.covers_created)
+            task.covers_modified = task.covers_created = None
+
             changed += self._create_comic_relations(library, fks)
             fks = None
+            changed += self._create_cover_relations(
+                library, cover_paths, link_cover_pks
+            )
+            cover_paths = None
 
             imported_count = self.bulk_update_comics(
                 modified_paths,
@@ -288,6 +375,9 @@ class ComicImporterThread(
             self.bulk_query_and_link_comic_m2m_fields(m2m_mds)
             m2m_mds = None
             changed += imported_count
+
+            self.link_custom_covers(link_cover_pks)
+            link_cover_pks = set()
 
             new_failed_imports = self.fail_imports(
                 library, fis, bool(task.files_deleted)

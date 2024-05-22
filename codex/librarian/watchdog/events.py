@@ -213,7 +213,10 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
     def _match_group_cover_image(cls, path_str: str) -> bool:
         path = Path(path_str)
         parent = path.parent
-        if parent.parent != CUSTOM_COVER_DIR or str(parent.name) not in _GROUP_COVER_DIRS:
+        if (
+            parent.parent != CUSTOM_COVER_DIR
+            or str(parent.name) not in _GROUP_COVER_DIRS
+        ):
             return False
         return cls._match_image_suffix(path)
 

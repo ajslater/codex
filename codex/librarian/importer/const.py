@@ -5,9 +5,11 @@ from types import MappingProxyType
 from codex.models import (
     Comic,
     Contributor,
+    Folder,
     Imprint,
     Publisher,
     Series,
+    StoryArc,
     StoryArcNumber,
     Volume,
 )
@@ -141,7 +143,7 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
 )
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", *GROUP_BASE_FIELDS)
-
+MOVED_BULK_COVER_UPDATE_FIELDS = ("path",)
 
 #########
 # OTHER #
@@ -150,6 +152,7 @@ VOLUME_COUNT = "volume_count"
 ISSUE_COUNT = "issue_count"
 COUNT_FIELDS = {Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
 _GROUP_CLASSES = (Publisher, Imprint, Series, Volume)
+DELINK_COVER_MODELS = (Folder, Publisher, Imprint, Series, StoryArc)
 
 
 def _create_group_update_fields():
@@ -182,6 +185,14 @@ GROUP_COMPARE_FIELDS = MappingProxyType(
     {
         Series: ("publisher__name", "imprint__name", "name"),
         Volume: ("publisher__name", "imprint__name", "series__name", "name"),
+    }
+)
+CUSTOM_COVER_NAME_MODELS_MAP = MappingProxyType(
+    {
+        "publishers": Publisher,
+        "imprints": Imprint,
+        "series": Series,
+        "story-arcs": StoryArc,
     }
 )
 

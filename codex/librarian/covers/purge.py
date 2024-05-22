@@ -57,6 +57,12 @@ class CoverPurgeMixin(CoverPathMixin):
         cover_paths = self.get_cover_paths(comic_pks)
         return self.purge_cover_paths(cover_paths)
 
+    def purge_custom_covers(self, custom_cover_pks):
+        """Purge a set of custom cover paths."""
+        # print("PURGE CUSTOM COVERS TODO", custom_cover_pks)
+        # cover_paths = self.get_custom_cover_paths(custom_cover_pks)
+        # return self.purge_cover_paths(cover_paths)
+
     def purge_all_comic_covers(self, librarian_queue):
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")

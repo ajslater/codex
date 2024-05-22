@@ -124,7 +124,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
                     timeout=self.timeout,
                     log_queue=self.log_queue,
                     librarian_queue=self.librarian_queue,
-                    covers_only=covers_only
+                    covers_only=covers_only,
                 )
                 self._add_emitter(emitter)
                 if self.is_alive():

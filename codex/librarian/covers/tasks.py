@@ -33,6 +33,13 @@ class CoverRemoveTask(CoverTask):
 
 
 @dataclass
+class CustomCoverRemoveTask(CoverTask):
+    """Purge a set of comic covers."""
+
+    custom_cover_pks: frozenset
+
+
+@dataclass
 class CoverSaveToCache(CoverTask):
     """Write cover to disk."""
 

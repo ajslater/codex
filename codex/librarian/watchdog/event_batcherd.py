@@ -58,7 +58,13 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         """Translate event class names into field names."""
         self._ensure_library_args(library_id)
 
-        prefix = "dir" if event.is_directory else "cover" if getattr(event, "is_cover", False) else "file"
+        prefix = (
+            "dir"
+            if event.is_directory
+            else "cover"
+            if getattr(event, "is_cover", False)
+            else "file"
+        )
         field = f"{prefix}s_{event.event_type}"
 
         return self.cache[library_id].get(field)

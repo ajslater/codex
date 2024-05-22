@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from codex.librarian.importer.const import (
     COMIC_FK_FIELD_NAMES,
+    CUSTOM_COVER_NAME_MODELS_MAP,
     DICT_MODEL_FIELD_NAME_CLASS_MAP,
     DICT_MODEL_REL_LINK_MAP,
     FOLDERS_FIELD,
@@ -20,12 +21,14 @@ from codex.librarian.importer.const import (
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
     Comic,
+    CustomCover,
     Folder,
     Imprint,
     Publisher,
     Series,
     Volume,
 )
+from codex.models.groups import get_sort_name
 from codex.models.named import Identifier
 from codex.threads import QueuedThread
 
@@ -257,3 +260,52 @@ class LinkComicsMixin(QueuedThread):
         if del_total:
             self.log.info(f"Deleted {del_total} stale relations for altered comics.")
         return created_total + del_total
+
+    def _link_custom_cover_prepare(self, cover, model_map):
+        """Prepare one cover in the model map for bulk update."""
+        path = Path(cover.path)
+        if cover.library and cover.library.covers_only:
+            model = CUSTOM_COVER_NAME_MODELS_MAP.get(path.parent.name)
+            if not model:
+                self.log.warning(f"Custom Cover model not found for {path}")
+                return
+            sort_name = get_sort_name(path.stem)
+            group_filter = {"sort_name": sort_name}
+        else:
+            model = Folder
+            group_filter = {"path": str(path.parent)}
+        qs = model.objects.filter(**group_filter)
+        if not qs.exists():
+            return
+
+        if model not in model_map:
+            model_map[model] = []
+
+        for obj in qs.iterator():
+            obj.custom_cover = cover
+            model_map[model].append(obj)
+
+    @status_notify(status_type=ImportStatusTypes.COVERS_LINK)
+    def link_custom_covers(self, link_cover_pks, status=None):
+        """Link Custom Covers to Groups."""
+        model_map = {}
+        covers = CustomCover.objects.filter(pk__in=link_cover_pks).only(
+            "library", "path"
+        )
+        for cover in covers:
+            self._link_custom_cover_prepare(cover, model_map)
+
+        total_count = 0
+        for model, objs in model_map.items():
+            if not objs:
+                continue
+            model.objects.bulk_update(objs, ["custom_cover"])
+            count = len(objs)
+            self.log.info(
+                f"Linked {count} custom covers to {model.__class__.__name__}s"
+            )
+            if status:
+                status.complete = status.complete or 0
+                status.complete += count
+            total_count += count
+        return total_count

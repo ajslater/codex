@@ -14,6 +14,19 @@ from codex.models.paths import CustomCover, WatchedPath
 __all__ = ("BrowserGroupModel", "Publisher", "Imprint", "Series", "Volume", "Folder")
 
 
+def get_sort_name(name: str) -> str:
+    """Create sort_name from name."""
+    lower_name = name.lower()
+    sort_name = lower_name
+    name_parts = lower_name.split()
+    if len(name_parts) > 1:
+        first_word = name_parts[0]
+        if first_word in ARTICLES:
+            sort_name = " ".join(name_parts[1:])
+            sort_name += ", " + first_word
+    return sort_name
+
+
 class BrowserGroupModel(BaseModel):
     """Browser groups."""
 
@@ -28,15 +41,7 @@ class BrowserGroupModel(BaseModel):
 
     def set_sort_name(self):
         """Create sort_name for model."""
-        lower_name = self.name.lower()
-        sort_name = lower_name
-        name_parts = lower_name.split()
-        if len(name_parts) > 1:
-            first_word = name_parts[0]
-            if first_word in ARTICLES:
-                sort_name = " ".join(name_parts[1:])
-                sort_name += ", " + first_word
-        self.sort_name = sort_name
+        self.sort_name = get_sort_name(self.name)
 
     def presave(self):
         """Set computed values."""
