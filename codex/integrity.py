@@ -12,6 +12,7 @@ from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
+from django.db.models.query import Q
 from django.db.utils import OperationalError
 
 from codex.logger.logging import get_logger
@@ -345,8 +346,8 @@ def _repair_groups_with_custom_covers(apps):
     for model_name, group_letter in CUSTOM_COVER_MODEL_NAMES.items():
         valid_covers = custom_cover_model.objects.filter(group=group_letter)
         group_model = apps.get_model("codex", model_name)
-        objs = group_model.objects.filter(
-            custom_cover__isnull=False, custom_cover__in=valid_covers
+        objs = group_model.objects.exclude(
+            Q(custom_cover__isnull=True) | Q(custom_cover__in=valid_covers)
         )
         update_groups = []
         for group in objs:
