@@ -1,5 +1,7 @@
 """Initialize Codex Dataabse before running."""
 
+from pathlib import Path
+
 from django.core.cache import cache
 from django.core.management import call_command
 from django.db import connection
@@ -138,9 +140,10 @@ def init_custom_cover_dir():
     if created:
         LOG.info("Created Custom Covers Dir settings in the db.")
 
-    if covers_library.path != CUSTOM_COVER_DIR:
-        Library.objects.filter(covers_only=True).update(path=CUSTOM_COVER_DIR)
-        LOG.info(f"Updated Custom Group Covers Dir path to {CUSTOM_COVER_DIR}.")
+    old_path = covers_library.path
+    if Path(old_path) != CUSTOM_COVER_DIR:
+        Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVER_DIR))
+        LOG.info(f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVER_DIR}.")
 
 
 def update_custom_covers_for_config_dir():
