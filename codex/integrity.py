@@ -355,7 +355,8 @@ def _repair_groups_with_custom_covers(apps):
             update_groups.append(group)
         group_model.objects.bulk_update(update_groups, ["custom_cover"])
         count = len(update_groups)
-        LOG.info(f"Removed illegal custom cover links from {count} {model_name}s")
+        if count:
+            LOG.warn(f"Removed illegal custom cover links from {count} {model_name}s")
 
 
 def _delete_errors():
