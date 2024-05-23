@@ -11,7 +11,7 @@ from codex.librarian.covers.tasks import (
 )
 
 
-class CoverContributorThread(CoverCreateMixin, CoverPurgeMixin):
+class CoverThread(CoverCreateMixin, CoverPurgeMixin):
     """Create comic covers in it's own thread."""
 
     def process_item(self, item):
