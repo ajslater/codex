@@ -401,7 +401,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return status.complete if status.complete else 0
 
     @status_notify(ImportStatusTypes.COVERS_MODIFIED, updates=False)
-    def update_custom_covers(self, update_covers_qs, status=None) -> int:
+    def update_custom_covers(self, update_covers_qs, link_cover_pks, status=None) -> int:
         """Update Custom Covers."""
         count = 0
         update_covers_count = update_covers_qs.count()
@@ -420,6 +420,7 @@ class CreateForeignKeysMixin(QueuedThread):
         if update_covers:
             CustomCover.objects.bulk_update(update_covers, CUSTOM_COVER_UPDATE_FIELDS)
             update_cover_pks = update_covers_qs.values_list("pk", flat=True)
+            link_cover_pks.update(update_cover_pks)
             self._remove_covers(update_cover_pks, custom=True)  # type: ignore
             count = len(update_covers)
             if status:

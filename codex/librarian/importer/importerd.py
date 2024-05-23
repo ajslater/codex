@@ -265,7 +265,7 @@ class ComicImporterThread(
         count += self.create_all_fks(library, create_data)
         if query_data:
             update_covers_qs, create_cover_paths = query_data
-            count += self.update_custom_covers(update_covers_qs)
+            count += self.update_custom_covers(update_covers_qs, link_cover_pks)
             count += self.create_custom_covers(
                 create_cover_paths,
                 library,

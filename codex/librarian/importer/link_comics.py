@@ -272,7 +272,7 @@ class LinkComicsMixin(QueuedThread):
             model = Folder
             path = str(Path(cover.path).parent)
             group_filter = {"path": path}
-        qs = model.objects.filter(**group_filter)
+        qs = model.objects.filter(**group_filter).exclude(custom_cover=cover)
         if not qs.exists():
             return
 
