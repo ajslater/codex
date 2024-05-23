@@ -143,7 +143,9 @@ def init_custom_cover_dir():
     old_path = covers_library.path
     if Path(old_path) != CUSTOM_COVER_DIR:
         Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVER_DIR))
-        LOG.info(f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVER_DIR}.")
+        LOG.info(
+            f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVER_DIR}."
+        )
 
 
 def update_custom_covers_for_config_dir():
