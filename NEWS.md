@@ -1063,7 +1063,7 @@ Yanked. Crash loading admin page.
   - Reader swiping navigation
   - Reader keyboard shortcut help dialog
   - Tentative linux/armhf support. No way for me to test this
-  - Vacuum the sqllite database once a day to prevent bloat
+  - Vacuum the sqlite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
 
 ## v0.6.7
