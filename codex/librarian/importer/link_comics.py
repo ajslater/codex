@@ -5,8 +5,8 @@ from pathlib import Path
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
+    CLASS_CUSTOM_COVER_GROUP_MAP,
     COMIC_FK_FIELD_NAMES,
-    CUSTOM_COVER_NAME_MODELS_MAP,
     DICT_MODEL_FIELD_NAME_CLASS_MAP,
     DICT_MODEL_REL_LINK_MAP,
     FOLDERS_FIELD,
@@ -28,7 +28,6 @@ from codex.models import (
     Series,
     Volume,
 )
-from codex.models.groups import get_sort_name
 from codex.models.named import Identifier
 from codex.threads import QueuedThread
 
@@ -263,17 +262,16 @@ class LinkComicsMixin(QueuedThread):
 
     def _link_custom_cover_prepare(self, cover, model_map):
         """Prepare one cover in the model map for bulk update."""
-        path = Path(cover.path)
         if cover.library and cover.library.covers_only:
-            model = CUSTOM_COVER_NAME_MODELS_MAP.get(path.parent.name)
+            model = CLASS_CUSTOM_COVER_GROUP_MAP.inverse.get(cover.group)
             if not model:
-                self.log.warning(f"Custom Cover model not found for {path}")
+                self.log.warning(f"Custom Cover model not found for {cover.path}")
                 return
-            sort_name = get_sort_name(path.stem)
-            group_filter = {"sort_name": sort_name}
+            group_filter = {"sort_name": cover.sort_name}
         else:
             model = Folder
-            group_filter = {"path": str(path.parent)}
+            path = str(Path(cover.path).parent)
+            group_filter = {"path": path}
         qs = model.objects.filter(**group_filter)
         if not qs.exists():
             return
@@ -285,9 +283,23 @@ class LinkComicsMixin(QueuedThread):
             obj.custom_cover = cover
             model_map[model].append(obj)
 
+    def _link_custom_cover_group(self, model, objs, status):
+        """Bulk link a group to it's custom covers."""
+        count = 0
+        if not objs:
+            return count
+        model.objects.bulk_update(objs, ["custom_cover"])
+        count += len(objs)
+        self.log.info(f"Linked {count} custom covers to {model.__class__.__name__}s")
+        if status:
+            status.complete = status.complete or 0
+            status.complete += count
+        return count
+
     @status_notify(status_type=ImportStatusTypes.COVERS_LINK)
     def link_custom_covers(self, link_cover_pks, status=None):
         """Link Custom Covers to Groups."""
+        # Aggregate objs to update for each group model.
         model_map = {}
         covers = CustomCover.objects.filter(pk__in=link_cover_pks).only(
             "library", "path"
@@ -295,17 +307,8 @@ class LinkComicsMixin(QueuedThread):
         for cover in covers:
             self._link_custom_cover_prepare(cover, model_map)
 
+        # Bulk update each model type
         total_count = 0
         for model, objs in model_map.items():
-            if not objs:
-                continue
-            model.objects.bulk_update(objs, ["custom_cover"])
-            count = len(objs)
-            self.log.info(
-                f"Linked {count} custom covers to {model.__class__.__name__}s"
-            )
-            if status:
-                status.complete = status.complete or 0
-                status.complete += count
-            total_count += count
+            total_count += self._link_custom_cover_group(model, objs, status)
         return total_count

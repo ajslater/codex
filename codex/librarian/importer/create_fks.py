@@ -6,10 +6,12 @@ So we may safely create the comics next.
 from itertools import chain
 from pathlib import Path
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_FIELDS,
+    CLASS_CUSTOM_COVER_GROUP_MAP,
     COUNT_FIELDS,
     CREATE_DICT_UPDATE_FIELDS,
     CUSTOM_COVER_UPDATE_FIELDS,
@@ -45,7 +47,20 @@ class CreateForeignKeysMixin(QueuedThread):
     """Methods for creating foreign keys."""
 
     @staticmethod
-    def _create_group_obj(group_class, group_param_tuple, group_count):
+    def _add_custom_cover_to_group(group_class, obj):
+        """If a custom cover exists for this group, add it."""
+        group = CLASS_CUSTOM_COVER_GROUP_MAP.get(group_class)
+        if not group:
+            # Normal, volume doesn't link to covers
+            return
+        try:
+            cover = CustomCover.objects.filter(group=group, sort_name=obj.sort_name)[0]
+            obj.custom_cover = cover
+        except (IndexError, ObjectDoesNotExist):
+            pass
+
+    @classmethod
+    def _create_group_obj(cls, group_class, group_param_tuple, group_count):
         """Create a set of browser group objects."""
         defaults = {"name": group_param_tuple[-1]}
         if group_class in (Imprint, Series, Volume):
@@ -68,6 +83,7 @@ class CreateForeignKeysMixin(QueuedThread):
 
         obj = group_class(**defaults)
         obj.presave()
+        cls._add_custom_cover_to_group(group_class, obj)
         return obj
 
     @staticmethod
@@ -103,6 +119,8 @@ class CreateForeignKeysMixin(QueuedThread):
             obj = self._create_group_obj(group_class, group_param_tuple, group_count)
             create_groups.append(obj)
         update_fields = GROUP_UPDATE_FIELDS[group_class]
+        if group_class in CLASS_CUSTOM_COVER_GROUP_MAP:
+            update_fields += ("custom_cover",)
         group_class.objects.bulk_create(
             create_groups,
             update_conflicts=True,
@@ -161,6 +179,7 @@ class CreateForeignKeysMixin(QueuedThread):
             parent_folder=parent,
         )
         folder.presave()
+        self._add_custom_cover_to_group(Folder, folder)
         create_folders.append(folder)
 
     def _bulk_folders_create_depth_level(self, library, paths, status):
@@ -216,6 +235,7 @@ class CreateForeignKeysMixin(QueuedThread):
             named_obj = named_class(name=name)
             if is_story_arc:
                 named_obj.presave()
+                self._add_custom_cover_to_group(StoryArc, named_obj)
             create_named_objs.append(named_obj)
 
         update_fields = NAMED_MODEL_UPDATE_FIELDS

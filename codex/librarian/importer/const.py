@@ -2,6 +2,8 @@
 
 from types import MappingProxyType
 
+from bidict import bidict
+
 from codex.models import (
     Comic,
     Contributor,
@@ -15,6 +17,7 @@ from codex.models import (
 )
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import Identifier
+from codex.models.paths import CustomCover
 
 #################
 # DICT METADATA #
@@ -159,7 +162,6 @@ VOLUME_COUNT = "volume_count"
 ISSUE_COUNT = "issue_count"
 COUNT_FIELDS = {Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
 _GROUP_CLASSES = (Publisher, Imprint, Series, Volume)
-UNLINK_COVER_MODELS = (Folder, Publisher, Imprint, Series, StoryArc)
 
 
 def _create_group_update_fields():
@@ -194,12 +196,13 @@ GROUP_COMPARE_FIELDS = MappingProxyType(
         Volume: ("publisher__name", "imprint__name", "series__name", "name"),
     }
 )
-CUSTOM_COVER_NAME_MODELS_MAP = MappingProxyType(
+CLASS_CUSTOM_COVER_GROUP_MAP = bidict(
     {
-        "publishers": Publisher,
-        "imprints": Imprint,
-        "series": Series,
-        "story-arcs": StoryArc,
+        Publisher: CustomCover.GroupChoice.P.value,
+        Imprint: CustomCover.GroupChoice.I.value,
+        Series: CustomCover.GroupChoice.S.value,
+        StoryArc: CustomCover.GroupChoice.A.value,
+        Folder: CustomCover.GroupChoice.F.value,
     }
 )
 

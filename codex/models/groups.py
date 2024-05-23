@@ -8,23 +8,10 @@ from django.db.models.fields import (
 )
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
-from codex.models.const import ARTICLES
 from codex.models.paths import CustomCover, WatchedPath
+from codex.models.util import get_sort_name
 
 __all__ = ("BrowserGroupModel", "Publisher", "Imprint", "Series", "Volume", "Folder")
-
-
-def get_sort_name(name: str) -> str:
-    """Create sort_name from name."""
-    lower_name = name.lower()
-    sort_name = lower_name
-    name_parts = lower_name.split()
-    if len(name_parts) > 1:
-        first_word = name_parts[0]
-        if first_word in ARTICLES:
-            sort_name = " ".join(name_parts[1:])
-            sort_name += ", " + first_word
-    return sort_name
 
 
 class BrowserGroupModel(BaseModel):

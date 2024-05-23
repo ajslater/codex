@@ -6,12 +6,12 @@ from django.db.models.functions import Now
 
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
+    CLASS_CUSTOM_COVER_GROUP_MAP,
     FOLDERS_FIELD,
     MOVED_BULK_COMIC_UPDATE_FIELDS,
     MOVED_BULK_COVER_UPDATE_FIELDS,
     MOVED_BULK_FOLDER_UPDATE_FIELDS,
     PARENT_FOLDER,
-    UNLINK_COVER_MODELS,
 )
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import (
@@ -104,7 +104,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         """Unlink moved covers because they could have moved between group dirs."""
         if not unlink_pks:
             return
-        for model in UNLINK_COVER_MODELS:
+        for model in CLASS_CUSTOM_COVER_GROUP_MAP:
             groups = model.objects.filter(custom_cover__in=unlink_pks)
             unlink_groups = []
             for group in groups:
