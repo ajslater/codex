@@ -3,7 +3,7 @@
 from django.core.cache import cache
 from django.core.management import call_command
 from django.db import connection
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.functions import Now
 
 from codex.integrity import has_unapplied_migrations, rebuild_db, repair_db
@@ -11,7 +11,7 @@ from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
-from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
+from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
 from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
@@ -143,6 +143,56 @@ def init_custom_cover_dir():
         LOG.info(f"Updated Custom Group Covers Dir path to {CUSTOM_COVER_DIR}.")
 
 
+def update_custom_covers_for_config_dir():
+    """Update custom covers if the config dir changes."""
+    # This is okay, but I wouldn't need to do it if paths were constructed from
+    # parent_folder and library.path
+    # Fast lookup without relations seems better though, paths shouldn't change too much.
+
+    # Determine which covers need re-pathing
+    update_covers = []
+    delete_cover_pks = []
+    update_fields = ("path", "updated_at")
+    group_covers = (
+        CustomCover.objects.filter(library__covers_only=True)
+        .exclude(path__startswith=F("library__path"))
+        .only(*update_fields)
+    )
+    LOG.debug(f"Checking that group custom covers are under {CUSTOM_COVER_DIR}")
+    for cover in group_covers.iterator():
+        old_path = cover.path
+        parts = old_path.rsplit("/custom-covers/")
+        if len(parts) < 2:  # noqa: PLR2004
+            delete_cover_pks.append(cover.pk)
+            continue
+        new_path = CUSTOM_COVER_DIR / "custom-covers" / parts[1]
+        if new_path.exists():
+            cover.path = str(new_path)
+            update_covers.append(cover)
+        else:
+            delete_cover_pks.append(cover.pk)
+    update_count = len(update_covers)
+    LOG.debug(
+        f"Found {update_count} custom covers to update, {len(delete_cover_pks)} to delete."
+    )
+
+    # Update covers
+    if update_count:
+        CustomCover.objects.bulk_update(update_covers, update_fields)
+        LOG.info(
+            f"Updated {update_count} CustomCovers sources to point to new config dir"
+        )
+
+    # Delete covers we can't reliably update.
+    if delete_cover_pks:
+        delete_qs = CustomCover.objects.filter(pk__in=delete_cover_pks)
+        delete_count = delete_qs.count()
+        delete_qs.delete()
+        LOG.warning(
+            f"Delete {delete_count} CustomCovers that could not be re-sourced after config dir change."
+        )
+
+
 def ensure_db_rows():
     """Ensure database content is good."""
     ensure_superuser()
@@ -151,6 +201,7 @@ def ensure_db_rows():
     init_librarian_statuses()
     clear_library_status()
     init_custom_cover_dir()
+    update_custom_covers_for_config_dir()
 
 
 def codex_init():
