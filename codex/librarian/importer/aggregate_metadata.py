@@ -87,7 +87,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         return m2m_md
 
     def _get_path_metadata(self, path, import_metadata):
-        """Get the metatada from comicbox and munge it a little."""
+        """Get the metadata from comicbox and munge it a little."""
         md = {}
         fk_md = {}
         group_tree_md = {}
@@ -251,7 +251,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         force_import_metadata,
         status=None,
     ):
-        """Get aggregated metatada for the paths given."""
+        """Get aggregated metadata for the paths given."""
         total_paths = len(all_paths)
         if not total_paths:
             return 0

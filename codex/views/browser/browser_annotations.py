@@ -34,7 +34,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
     _NONE_DATETIMEFIELD = Value(None, DateTimeField())
     _ORDER_AGGREGATE_FUNCS = MappingProxyType(
-        # These are annotated to order_value becauase they're simple relations
+        # These are annotated to order_value because they're simple relations
         {
             "age_rating": Avg,
             "community_rating": Avg,
