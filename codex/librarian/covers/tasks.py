@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CoverTask:
-    """Handle with the CoverContributor."""
+    """Handle with the CoverThread."""
 
 
 @dataclass

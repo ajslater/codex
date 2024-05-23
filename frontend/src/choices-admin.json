@@ -26,6 +26,7 @@
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",
+    "JCD": "Cleanup Custom Covers",
     "JDO": "Optimize Database",
     "JDB": "Backup Database",
     "JSD": "Cleanup Expired Sessions",
@@ -80,7 +81,7 @@
         {
           "value": "create_all_comic_covers",
           "title": "Create All Comic Covers",
-          "desc": "Pre-generate covers for every comic in every library",
+          "desc": "Pre-generate covers for every comic in every library and all custom covers",
           "confirm": "Are you sure?"
         }
       ]
@@ -199,14 +200,19 @@
           "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly."
         },
         {
+          "value": "cleanup_db_custom_covers",
+          "title": "Remove Orphan Database Custom Covers",
+          "desc": "Remove Custom Covers from the db that no longer represent custom cover images on disk. Runs nightly."
+        },
+        {
           "value": "cleanup_sessions",
           "title": "Cleanup Sessions",
           "desc": "Remove corrupt and expired sessions. Runs nightly."
         },
         {
           "value": "cleanup_covers",
-          "title": "Remove Orphan Covers",
-          "desc": "from comics that no longer exist. Runs nightly."
+          "title": "Remove Orphan Cover Thumbnails",
+          "desc": "no longer have source comics or custom images. Runs nightly."
         },
         {
           "value": "librarian_clear_status",

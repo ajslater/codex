@@ -8,6 +8,7 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
+    JanitorCleanCoversTask,
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
@@ -30,6 +31,7 @@ from codex.status import Status
 
 _JANITOR_STATII = (
     Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES),
+    Status(JanitorStatusTypes.CLEANUP_COVERS),
     Status(JanitorStatusTypes.CLEANUP_SESSIONS),
     Status(JanitorStatusTypes.DB_OPTIMIZE),
     Status(JanitorStatusTypes.DB_BACKUP),
@@ -59,6 +61,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             tasks = (
                 SearchIndexAbortTask(),
                 JanitorCleanFKsTask(),
+                JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
                 JanitorVacuumTask(),
                 JanitorBackupTask(),
@@ -89,6 +92,8 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                     self.shutdown_codex()
                 case JanitorCleanFKsTask():
                     self.cleanup_fks()
+                case JanitorCleanCoversTask():
+                    self.cleanup_custom_covers()
                 case JanitorCleanupSessionsTask():
                     self.cleanup_sessions()
                 case JanitorClearStatusTask():
