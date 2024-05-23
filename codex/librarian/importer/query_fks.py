@@ -1,5 +1,6 @@
 """Query the missing foreign keys for comics and contributors."""
 
+from itertools import chain
 from logging import DEBUG, INFO
 from pathlib import Path
 from types import MappingProxyType
@@ -567,6 +568,30 @@ class QueryForeignKeysMixin(QueuedThread):
             self.log.info(f"Prepared {count} new Folders.")
         return count
 
+    @staticmethod
+    def _get_create_fks_totals(create_data):
+        (
+            create_groups,
+            update_groups,
+            create_folder_paths,
+            create_fks,
+            create_contributors,
+            create_story_arc_numbers,
+            create_identifiers,
+        ) = create_data
+        total_fks = 0
+        for data_group in chain(
+            create_groups.values(), update_groups.values(), create_fks.values()
+        ):
+            total_fks += len(data_group)
+        total_fks += (
+            len(create_folder_paths)
+            + len(create_contributors)
+            + len(create_story_arc_numbers)
+            + len(create_identifiers)
+        )
+        return total_fks
+
     def query_all_missing_fks(self, library_path, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
         create_contributors = set()
@@ -620,7 +645,7 @@ class QueryForeignKeysMixin(QueuedThread):
         finally:
             self.status_controller.finish(status)
 
-        return (
+        create_data = (
             create_groups,
             update_groups,
             create_folder_paths,
@@ -629,6 +654,11 @@ class QueryForeignKeysMixin(QueuedThread):
             create_story_arc_numbers,
             create_identifiers,
         )
+
+        total_fks = self._get_create_fks_totals(create_data)
+        status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
+        self.status_controller.update(status, notify=False)
+        return (*create_data, total_fks)
 
     @status_notify(ImportStatusTypes.QUERY_MISSING_COVERS, updates=False)
     def query_missing_custom_covers(
@@ -643,12 +673,17 @@ class QueryForeignKeysMixin(QueuedThread):
             library=library, path__in=cover_paths
         )
         query_data.append(update_covers_qs)
-
         update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
+        update_count = len(update_cover_paths)
+        update_status = Status(ImportStatusTypes.COVERS_MODIFIED, 0, update_count)
+        self.status_controller.update(update_status, notify=False)
+
         create_cover_paths = cover_paths - update_cover_paths
         query_data.append(create_cover_paths)
-        update_count = len(update_cover_paths)
         create_count = len(create_cover_paths)
+        create_status = Status(ImportStatusTypes.COVERS_CREATED, 0, create_count)
+        self.status_controller.update(create_status, notify=False)
+
         count = create_count + update_count
         if count:
             self.log.debug(

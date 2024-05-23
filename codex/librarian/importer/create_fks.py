@@ -3,7 +3,6 @@
 So we may safely create the comics next.
 """
 
-from itertools import chain
 from pathlib import Path
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -306,8 +305,8 @@ class CreateForeignKeysMixin(QueuedThread):
             self.status_controller.update(status)
         return count
 
-    @staticmethod
-    def _get_create_fks_totals(create_data):
+    def create_all_fks(self, library, create_data) -> int:
+        """Bulk create all foreign keys."""
         (
             create_groups,
             update_groups,
@@ -316,35 +315,12 @@ class CreateForeignKeysMixin(QueuedThread):
             create_contributors,
             create_story_arc_numbers,
             create_identifiers,
+            total_fks,
         ) = create_data
-        total_fks = 0
-        for data_group in chain(
-            create_groups.values(), update_groups.values(), create_fks.values()
-        ):
-            total_fks += len(data_group)
-        total_fks += (
-            len(create_folder_paths)
-            + len(create_contributors)
-            + len(create_story_arc_numbers)
-            + len(create_identifiers)
-        )
-        return total_fks
 
-    def create_all_fks(self, library, create_data) -> int:
-        """Bulk create all foreign keys."""
-        total_fks = self._get_create_fks_totals(create_data)
         status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
         try:
             self.status_controller.start(status)
-            (
-                create_groups,
-                update_groups,
-                create_folder_paths,
-                create_fks,
-                create_contributors,
-                create_story_arc_numbers,
-                create_identifiers,
-            ) = create_data
 
             for group_class, group_tree_counts in create_groups.items():
                 count = self._bulk_group_create(
@@ -401,7 +377,9 @@ class CreateForeignKeysMixin(QueuedThread):
         return status.complete if status.complete else 0
 
     @status_notify(ImportStatusTypes.COVERS_MODIFIED, updates=False)
-    def update_custom_covers(self, update_covers_qs, link_cover_pks, status=None) -> int:
+    def update_custom_covers(
+        self, update_covers_qs, link_cover_pks, status=None
+    ) -> int:
         """Update Custom Covers."""
         count = 0
         update_covers_count = update_covers_qs.count()

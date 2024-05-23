@@ -178,13 +178,15 @@ class ComicImporterThread(
 
         if task.files_modified or task.files_created:
             status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS)]
-        if task.covers_created or task.covers_moved:
+
+        num_covers_linked = (
+            len(task.covers_moved)
+            + len(task.covers_modified)
+            + len(task.covers_created)
+        )
+        if num_covers_linked:
             status_list += [
-                Status(
-                    ImportStatusTypes.COVERS_LINK,
-                    None,
-                    len(task.covers_created) + len(task.covers_moved),
-                )
+                Status(ImportStatusTypes.COVERS_LINK, None, num_covers_linked)
             ]
         return total_paths
 
@@ -256,21 +258,29 @@ class ComicImporterThread(
         if not fks and not cover_paths:
             return count
         create_data = self.query_all_missing_fks(library.path, fks)
-        query_data = []
+        query_cover_data = []
         count += self.query_missing_custom_covers(
             cover_paths,
             library,
-            query_data,
+            query_cover_data,
         )
         count += self.create_all_fks(library, create_data)
-        if query_data:
-            update_covers_qs, create_cover_paths = query_data
+        if query_cover_data:
+            update_covers_qs, create_cover_paths = query_cover_data
             count += self.update_custom_covers(update_covers_qs, link_cover_pks)
+            link_covers_status = Status(
+                ImportStatusTypes.COVERS_LINK, 0, len(link_cover_pks)
+            )
+            self.status_controller.update(link_covers_status, notify=False)
             count += self.create_custom_covers(
                 create_cover_paths,
                 library,
                 link_cover_pks,
             )
+            link_covers_status = Status(
+                ImportStatusTypes.COVERS_LINK, 0, len(link_cover_pks)
+            )
+            self.status_controller.update(link_covers_status, notify=False)
         return count
 
     def _finish_apply_status(self, library):
