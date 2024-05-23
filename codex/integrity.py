@@ -310,7 +310,7 @@ def _delete_extra_custom_cover_libraries(apps):
     if not has_applied_migration(MIGRATION_0028):
         return
     library_model = apps.get_model("codex", "library")
-    custom_cover_libraries = library_model.object.filter(cover_only=True)
+    custom_cover_libraries = library_model.objects.filter(covers_only=True)
     if custom_cover_libraries.count() <= 1:
         return
 
@@ -327,7 +327,7 @@ def _delete_extra_custom_cover_libraries(apps):
             f"Removed {count} duplicate custom cover libraries pointing to unused custom cover dirs."
         )
 
-    custom_cover_libraries = library_model.object.filter(cover_only=True)
+    custom_cover_libraries = library_model.object.filter(covers_only=True)
     count = custom_cover_libraries.count()
     if count <= 1:
         return
