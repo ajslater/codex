@@ -159,7 +159,9 @@ class LibraryPollingObserver(UatuMixin):
     def poll(self, library_pks, force=False):
         """Poll each requested emitter."""
         try:
-            qs = Library.objects.filter(pk__in=library_pks)
+            qs = Library.objects.all()
+            if library_pks:
+                qs = qs.filter(pk__in=library_pks)
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
