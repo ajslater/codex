@@ -101,7 +101,16 @@ class LibrarySerializer(BaseModelSerializer):
         """Specify Model."""
 
         model = Library
-        fields = ("pk", "path", "events", "last_poll", "poll", "poll_every", "groups", "covers_only")
+        fields = (
+            "pk",
+            "path",
+            "events",
+            "last_poll",
+            "poll",
+            "poll_every",
+            "groups",
+            "covers_only",
+        )
         read_only_fields = ("last_poll", "pk", "covers_only")
 
     def validate_path(self, path):

@@ -29,6 +29,7 @@
     :disabled="!row.poll"
   />
   <AdminRelationPicker
+    v-if="!row.coversOnly"
     v-model="row.groups"
     label="Groups"
     :objs="groups"

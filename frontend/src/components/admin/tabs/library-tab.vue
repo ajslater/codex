@@ -8,7 +8,7 @@
     </header>
     <AdminTable
       :headers="headers"
-      :items="libraries"
+      :items="items"
       :sort-by="[{ key: 'path', order: 'asc' }]"
     >
       <template #no-data>
@@ -31,7 +31,11 @@
         <DateTimeColumn :dttm="item.lastPoll" />
       </template>
       <template #[`item.groups`]="{ item }">
+        <v-icon v-if="item.coversOnly" disabled>{{
+          mdiCircleOffOutline
+        }}</v-icon>
         <RelationChips
+          v-else
           :pks="item.groups"
           :objs="groups"
           group-type
@@ -41,26 +45,27 @@
       <template #[`item.actions`]="{ item }">
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
-          title-text="Poll for updated comics"
+          :title-text="`Poll for updated ${item.label}s`"
           :object-name="item.path"
-          confirm-text="Poll Library"
+          :confirm-text="pollConfirmText(item)"
           size="small"
           density="compact"
-          @confirm="poll(item.pk)"
+          @confirm="poll(item)"
         />
         <ConfirmDialog
           :icon="mdiDatabaseSyncOutline"
-          title-text="Force update every comic"
+          :title-text="`Force update every ${item.label}`"
           :object-name="item.path"
           confirm-text="Force Update"
           size="small"
           density="compact"
-          @confirm="forcePoll(item.pk)"
+          @confirm="forcePoll(item)"
         />
         <AdminCreateUpdateDialog
           table="Library"
           :old-row="item"
-          :inputs="createUpdateInputs(item)"
+          :inputs="AdminLibraryCreateUpdateInputs"
+          :label="updateLabel(item)"
           max-width="22em"
           size="small"
           density="compact"
@@ -83,6 +88,7 @@
 
 <script>
 import {
+  mdiCircleOffOutline,
   mdiDatabaseClockOutline,
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
@@ -91,7 +97,6 @@ import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
-import AdminCustomCoverDirUpdateInputs from "@/components/admin/create-update-dialog/custom-cover-dir-update-inputs.vue";
 import AdminLibraryCreateUpdateInputs from "@/components/admin/create-update-dialog/library-create-update-inputs.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
@@ -121,11 +126,11 @@ export default {
         pk: 0,
         field: undefined,
       },
+      mdiCircleOffOutline,
       mdiDatabaseClockOutline,
       mdiDatabaseSyncOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
-      AdminCustomCoverDirUpdateInputs: markRaw(AdminCustomCoverDirUpdateInputs),
       headers: [
         { title: "Path", key: "path", align: "start" },
         {
@@ -141,28 +146,24 @@ export default {
         { title: "Groups", key: "groups" },
         { title: "Actions", key: "actions", sortable: false },
       ],
-      customCoverDirHeaders: [
-        { title: "Path", key: "path", align: "start" },
-        {
-          title: "Watch File Events",
-          key: "events",
-        },
-        {
-          title: "Poll Files Periodically",
-          key: "poll",
-        },
-        { title: "Poll Every", key: "pollEvery" },
-        { title: "Last Poll", key: "lastPoll" },
-        { title: "", key: "" },
-        { title: "Actions", key: "actions", sortable: false },
-      ],
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
-      libraries: (state) => state.libraries,
-      customCoversDirs: (state) => state.customCoversDirs,
+      // libraries: (state) => state.libraries,
+      // customCoversDirs: (state) => state.customCoversDirs,
+      items(state) {
+        const annotatedItems = [];
+        for (const library of state.libraries) {
+          const annotatedItem = { ...library };
+          annotatedItem.label = annotatedItem.coversOnly
+            ? "custom group cover"
+            : "comic";
+          annotatedItems.push(annotatedItem);
+        }
+        return annotatedItems;
+      },
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form?.errors,
@@ -195,18 +196,36 @@ export default {
         return this.formErrors;
       }
     },
-    poll(pk) {
-      // TODO change Library
-      this.librarianTask("poll", `Poll Library ${pk}`, pk);
+    libraryLabel(item, long = true) {
+      let label = "";
+      if (item.coversOnly) {
+        if (long) {
+          label += "Custom Group ";
+        }
+        label += "Cover Dir";
+      } else {
+        label += "Library";
+      }
+      return label;
     },
-    forcePoll(pk) {
-      // TODO change Library
-      this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
+    poll(item) {
+      const label = this.libraryLabel(item);
+      this.librarianTask("poll", `Poll ${label} ${item.pk}`, item.pk);
     },
-    createUpdateInputs(item) {
-      return item.coversOnly
-        ? AdminCustomCoverDirUpdateInputs
-        : AdminLibraryCreateUpdateInputs;
+    forcePoll(item) {
+      const label = this.libraryLabel(item);
+      this.librarianTask(
+        "poll_force",
+        `Force Poll ${label} ${item.pk}`,
+        item.pk,
+      );
+    },
+    pollConfirmText(item) {
+      const label = this.libraryLabel(item, false);
+      return `Poll ${label}`;
+    },
+    updateLabel(item) {
+      return item.coversOnly ? "Cover Dir" : "";
     },
   },
 };

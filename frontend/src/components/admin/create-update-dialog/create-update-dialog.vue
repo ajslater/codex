@@ -4,18 +4,20 @@
       <AdminCreateUpdateButton
         :update="Boolean(oldRow)"
         :table="table"
+        :label="label"
         v-bind="props"
         :size="size"
         :density="density"
-        :title="title"
+        :title="buttonTitle"
       />
     </template>
     <v-form ref="form" class="cuForm">
-      <h2>{{ table }}</h2>
+      <h2>{{ title }}</h2>
       <component :is="inputs" :old-row="oldRow" @change="change" />
       <SubmitFooter
         :verb="verb"
         :table="table"
+        :label="label"
         :disabled="!submitButtonEnabled"
         @submit="submit"
         @cancel="showDialog = false"
@@ -42,6 +44,10 @@ export default {
     table: {
       type: String,
       required: true,
+    },
+    label: {
+      type: String,
+      default: "",
     },
     oldRow: {
       type: [Object, Boolean],
@@ -72,8 +78,11 @@ export default {
       return this.oldRow ? "Update" : "Add";
     },
     title() {
+      return this.label || this.table;
+    },
+    buttonTitle() {
       const verb = this.oldRow ? "Edit" : "Add";
-      return verb + " " + this.table;
+      return verb + " " + this.title;
     },
   },
   watch: {

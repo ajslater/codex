@@ -12,7 +12,7 @@
       <small v-else>&nbsp;</small>
     </div>
     <ConfirmFooter
-      :confirm-text="`${verb} ${table}`"
+      :confirm-text="confirmText"
       :disabled="disabled"
       @confirm="$emit('submit')"
       @cancel="$emit('cancel')"
@@ -33,6 +33,7 @@ export default {
   props: {
     verb: { type: String, required: true },
     table: { type: String, required: true },
+    label: { type: String, default: "" },
     disabled: { type: Boolean, default: false },
   },
   emits: ["cancel", "submit"],
@@ -41,6 +42,10 @@ export default {
       errors: (state) => state.form.errors,
       success: (state) => state.form.success,
     }),
+    confirmText() {
+      const label = this.label || this.table;
+      return `${this.verb} ${label}`;
+    },
   },
   beforeMount() {
     this.clearErrors();
