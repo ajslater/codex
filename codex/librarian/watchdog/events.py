@@ -23,12 +23,12 @@ from watchdog.events import (
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger.logging import get_logger
 from codex.logger_base import LoggerBaseMixin
-from codex.settings.settings import CUSTOM_COVER_DIR, CUSTOM_COVER_GROUP_DIRS
+from codex.models import CustomCover
+from codex.settings.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
 
 LOG = get_logger(__name__)
-_FOLDER_COVER_STEM = ".codex-cover"
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
-_GROUP_COVER_DIRS = frozenset(CUSTOM_COVER_GROUP_DIRS)
+_GROUP_COVERS_DIRS = frozenset(CUSTOM_COVERS_GROUP_DIRS)
 
 
 class CoverMovedEvent(FileMovedEvent):
@@ -59,7 +59,7 @@ class CoverDeletedEvent(FileDeletedEvent):
     is_synthetic = True
 
 
-COVER_EVENT_TYPE_MAP = MappingProxyType(
+COVERS_EVENT_TYPE_MAP = MappingProxyType(
     {
         EVENT_TYPE_MODIFIED: CoverModifiedEvent,
         EVENT_TYPE_CREATED: CoverCreatedEvent,
@@ -127,7 +127,9 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         if not path_str:
             return False
         path = Path(path_str)
-        return path.stem == _FOLDER_COVER_STEM and cls._match_image_suffix(path)
+        return path.stem == CustomCover.FOLDER_COVER_STEM and cls._match_image_suffix(
+            path
+        )
 
     def _transform_file_move_event(
         self,
@@ -170,7 +172,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         else:
             source_match_cover = self._match_folder_cover(event.src_path)
             if source_match_cover and (
-                event_class := COVER_EVENT_TYPE_MAP.get(event.event_type)
+                event_class := COVERS_EVENT_TYPE_MAP.get(event.event_type)
             ):
                 # Convert to cover type
                 event = event_class(event.src_path)
@@ -207,8 +209,8 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
         path = Path(path_str)
         parent = path.parent
         if (
-            parent.parent != CUSTOM_COVER_DIR
-            or str(parent.name) not in _GROUP_COVER_DIRS
+            parent.parent != CUSTOM_COVERS_DIR
+            or str(parent.name) not in _GROUP_COVERS_DIRS
         ):
             return False
         return cls._match_image_suffix(path)
@@ -236,7 +238,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
             if event.event_type == EVENT_TYPE_MOVED:
                 send_event = self._transform_event_moved(event, src_cover_match)
             elif src_cover_match:
-                event_class = COVER_EVENT_TYPE_MAP.get(event.event_type)
+                event_class = COVERS_EVENT_TYPE_MAP.get(event.event_type)
                 if not event_class:
                     return
                 send_event = event_class(event.src_path)

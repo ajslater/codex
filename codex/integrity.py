@@ -19,7 +19,7 @@ from codex.logger.logging import get_logger
 from codex.settings.settings import (
     CODEX_PATH,
     CONFIG_PATH,
-    CUSTOM_COVER_DIR,
+    CUSTOM_COVERS_DIR,
     DB_PATH,
     SKIP_INTEGRITY_CHECK,
 )
@@ -318,7 +318,7 @@ def _delete_extra_custom_cover_libraries(apps):
     # Attempt to remove the bad ones, probably futile
     bad_lib_pks = []
     for library in custom_cover_libraries:
-        if library.path != CUSTOM_COVER_DIR:
+        if library.path != CUSTOM_COVERS_DIR:
             bad_lib_pks.append(library.pk)
     delete_libs = library_model.object.filter(pk__in=bad_lib_pks)
     count = delete_libs.count()

@@ -18,7 +18,8 @@ from codex.registration import patch_registration_setting
 from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
     BACKUP_DB_PATH,
-    CUSTOM_COVER_DIR,
+    CUSTOM_COVERS_DIR,
+    CUSTOM_COVERS_SUBDIR,
     HYPERCORN_CONFIG,
     HYPERCORN_CONFIG_TOML,
     RESET_ADMIN,
@@ -133,7 +134,7 @@ def clear_library_status():
 
 def init_custom_cover_dir():
     """Initialize the Custom Cover Dir singleton row."""
-    defaults = dict(**Library.CUSTOM_COVER_DIR_DEFAULTS, path=CUSTOM_COVER_DIR)
+    defaults = dict(**Library.CUSTOM_COVERS_DIR_DEFAULTS, path=CUSTOM_COVERS_DIR)
     covers_library, created = Library.objects.get_or_create(
         defaults=defaults, covers_only=True
     )
@@ -141,10 +142,10 @@ def init_custom_cover_dir():
         LOG.info("Created Custom Covers Dir settings in the db.")
 
     old_path = covers_library.path
-    if Path(old_path) != CUSTOM_COVER_DIR:
-        Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVER_DIR))
+    if Path(old_path) != CUSTOM_COVERS_DIR:
+        Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVERS_DIR))
         LOG.info(
-            f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVER_DIR}."
+            f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVERS_DIR}."
         )
 
 
@@ -163,14 +164,14 @@ def update_custom_covers_for_config_dir():
         .exclude(path__startswith=F("library__path"))
         .only(*update_fields)
     )
-    LOG.debug(f"Checking that group custom covers are under {CUSTOM_COVER_DIR}")
+    LOG.debug(f"Checking that group custom covers are under {CUSTOM_COVERS_DIR}")
     for cover in group_covers.iterator():
         old_path = cover.path
-        parts = old_path.rsplit("/custom-covers/")
+        parts = old_path.rsplit(f"/{CUSTOM_COVERS_SUBDIR}/")
         if len(parts) < 2:  # noqa: PLR2004
             delete_cover_pks.append(cover.pk)
             continue
-        new_path = CUSTOM_COVER_DIR / "custom-covers" / parts[1]
+        new_path = CUSTOM_COVERS_DIR / parts[1]
         if new_path.exists():
             cover.path = str(new_path)
             update_covers.append(cover)

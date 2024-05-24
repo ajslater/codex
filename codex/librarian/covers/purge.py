@@ -56,16 +56,16 @@ class CoverPurgeMixin(CoverPathMixin):
     def purge_comic_covers(self, pks: frozenset[int], custom: bool):
         """Purge a set a cover paths."""
         cover_paths = self.get_cover_paths(pks, custom)
-        cover_root = self.CUSTOM_COVER_ROOT if custom else self.COVER_ROOT
+        cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
         return self.purge_cover_paths(cover_paths, cover_root)
 
     def purge_all_comic_covers(self, librarian_queue):
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")
         try:
-            shutil.rmtree(self.COVER_ROOT)
+            shutil.rmtree(self.COVERS_ROOT)
             self.log.info("Removed entire comic cover cache.")
-            shutil.rmtree(self.CUSTOM_COVER_ROOT)
+            shutil.rmtree(self.CUSTOM_COVERS_ROOT)
             self.log.info("Removed entire custom cover cache.")
         except Exception as exc:
             self.log.warning(exc)
@@ -96,7 +96,7 @@ class CoverPurgeMixin(CoverPathMixin):
 
     def cleanup_orphan_covers(self):
         """Cleanup both comic and custom covers."""
-        self._cleanup_orphan_covers(Comic, self.COVER_ROOT, "comics")
+        self._cleanup_orphan_covers(Comic, self.COVERS_ROOT, "comics")
         self._cleanup_orphan_covers(
-            CustomCover, self.CUSTOM_COVER_ROOT, "custom covers"
+            CustomCover, self.CUSTOM_COVERS_ROOT, "custom covers"
         )

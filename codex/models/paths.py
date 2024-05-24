@@ -91,6 +91,7 @@ class CustomCover(WatchedPath):
         A = "a"
         F = "f"
 
+    FOLDER_COVER_STEM = ".codex-cover"
     DIR_GROUP_CHOICE_MAP = MappingProxyType(
         {
             "publishers": GroupChoice.P,
@@ -108,7 +109,7 @@ class CustomCover(WatchedPath):
         """Set group and sort_name from path."""
         path = Path(self.path)
         stem = path.stem
-        if stem == ".codex-cover":
+        if stem == self.FOLDER_COVER_STEM:
             self.group = self.GroupChoice.F.value
         else:
             choice = self.DIR_GROUP_CHOICE_MAP[path.parent.name]

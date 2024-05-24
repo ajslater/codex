@@ -33,7 +33,7 @@ class Library(BaseModel):
 
     DEFAULT_POLL_EVERY_SECONDS = 60 * 60
     DEFAULT_POLL_EVERY = timedelta(seconds=DEFAULT_POLL_EVERY_SECONDS)
-    CUSTOM_COVER_DIR_DEFAULTS = MappingProxyType(
+    CUSTOM_COVERS_DIR_DEFAULTS = MappingProxyType(
         {
             "covers_only": True,
             "events": False,

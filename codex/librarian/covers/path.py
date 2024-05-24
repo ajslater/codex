@@ -11,8 +11,8 @@ from codex.threads import QueuedThread
 class CoverPathMixin(QueuedThread):
     """Path methods for covers."""
 
-    COVER_ROOT = ROOT_CACHE_PATH / "covers"
-    CUSTOM_COVER_ROOT = ROOT_CACHE_PATH / "custom-covers"
+    COVERS_ROOT = ROOT_CACHE_PATH / "covers"
+    CUSTOM_COVERS_ROOT = ROOT_CACHE_PATH / "custom-covers"
     _HEX_FILL = 8
     _PATH_STEP = 2
     _ZFILL = 12
@@ -31,7 +31,7 @@ class CoverPathMixin(QueuedThread):
     def get_cover_path(cls, pk, custom=False):
         """Get cover path for comic pk."""
         cover_path = cls._hex_path(pk)
-        root = cls.CUSTOM_COVER_ROOT if custom else cls.COVER_ROOT
+        root = cls.CUSTOM_COVERS_ROOT if custom else cls.COVERS_ROOT
         return root / cover_path.with_suffix(".webp")
 
     @classmethod
