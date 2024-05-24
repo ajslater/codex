@@ -290,7 +290,7 @@ class LinkComicsMixin(QueuedThread):
             return count
         model.objects.bulk_update(objs, ["custom_cover"])
         count += len(objs)
-        self.log.info(f"Linked {count} custom covers to {model.__class__.__name__}s")
+        self.log.info(f"Linked {count} custom covers to {model.__name__}s")
         if status:
             status.complete = status.complete or 0
             status.complete += count

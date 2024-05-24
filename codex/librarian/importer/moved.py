@@ -7,9 +7,9 @@ from django.db.models.functions import Now
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
     CLASS_CUSTOM_COVER_GROUP_MAP,
+    CUSTOM_COVER_UPDATE_FIELDS,
     FOLDERS_FIELD,
     MOVED_BULK_COMIC_UPDATE_FIELDS,
-    MOVED_BULK_COVER_UPDATE_FIELDS,
     MOVED_BULK_FOLDER_UPDATE_FIELDS,
     PARENT_FOLDER,
 )
@@ -113,7 +113,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                 unlink_groups.append(group)
             if unlink_groups:
                 model.objects.bulk_update(unlink_groups, ["custom_cover"])
-                self.log.debug(f"Unlinked {len(unlink_groups)} {model.__class__.__name__} moved custom covers.")
+                self.log.debug(
+                    f"Unlinked {len(unlink_groups)} {model.__name__} moved custom covers."
+                )
 
         self._remove_covers(unlink_pks, custom=True)  # type: ignore
 
@@ -131,9 +133,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         )
         link_cover_pks.update(unlink_pks)
         if moved_covers:
-            CustomCover.objects.bulk_update(
-                moved_covers, MOVED_BULK_COVER_UPDATE_FIELDS
-            )
+            CustomCover.objects.bulk_update(moved_covers, CUSTOM_COVER_UPDATE_FIELDS)
         count = len(moved_covers)
 
         self._bulk_covers_moved_unlink(unlink_pks)

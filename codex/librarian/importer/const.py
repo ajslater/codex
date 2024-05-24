@@ -152,8 +152,7 @@ MOVED_BULK_FOLDER_UPDATE_FIELDS = (
     "stat",
     "updated_at",
 )
-MOVED_BULK_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at")
-CUSTOM_COVER_UPDATE_FIELDS = ("stat", "updated_at")
+CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group")
 
 #########
 # OTHER #
