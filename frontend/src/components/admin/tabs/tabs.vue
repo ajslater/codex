@@ -1,10 +1,10 @@
 <template>
   <div id="tabContainer">
     <v-tabs
-      :class="{ rightMargin: !$vuetify.display.mdAndDown }"
       class="adminTabs"
       grow
       show-arrows
+      :class="{ drawerMargin: !mdAndDown }"
     >
       <v-tab
         v-for="tab in tabs"
@@ -46,6 +46,9 @@ export default {
     ...mapState(useAdminStore, {
       librariesLoaded: (state) => Boolean(state.libraries),
     }),
+    mdAndDown() {
+      return this.$vuetify.display.mdAndDown;
+    },
   },
   watch: {
     $route(to) {
@@ -84,7 +87,7 @@ $task-width: 256px;
 
 }
 .tabItemContainer {
-  width: 100vw;
+  width: 100%;
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
   padding-bottom: max(10px, env(safe-area-inset-bottom));
@@ -94,7 +97,7 @@ $task-width: 256px;
   text-align: center;
   padding: 1em;
 }
-.rightMargin {
+.drawerMargin {
   width: calc(100% - 256px) !important;
 }
 </style>
