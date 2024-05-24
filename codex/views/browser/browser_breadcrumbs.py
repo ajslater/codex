@@ -7,7 +7,7 @@ from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.const import GROUP_NAME_MAP
 
 if TYPE_CHECKING:
-    from codex.models.paths import Folder
+    from codex.models.groups import Folder
 
 
 class BrowserBreadcrumbsView(BrowserAnnotationsView):

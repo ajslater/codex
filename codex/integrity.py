@@ -12,12 +12,14 @@ from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
+from django.db.models.query import Q
 from django.db.utils import OperationalError
 
 from codex.logger.logging import get_logger
 from codex.settings.settings import (
     CODEX_PATH,
     CONFIG_PATH,
+    CUSTOM_COVERS_DIR,
     DB_PATH,
     SKIP_INTEGRITY_CHECK,
 )
@@ -34,6 +36,7 @@ MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
 MIGRATION_0025 = "0025_add_story_arc_number"
 MIGRATION_0026 = "0026_comicbox_1"
+MIGRATION_0028 = "0028_custom_covers"  # TODO merge with 27
 M2M_NAMES = MappingProxyType(
     {
         "Character": "characters",
@@ -51,7 +54,7 @@ SKIP_M2M_CHECKS = MappingProxyType(
     {"Contributor": MIGRATION_0026, "StoryArcNumber": MIGRATION_0025}
 )
 NULL_SET = frozenset({None})
-HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic")
+HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic", "CustomCover")
 GROUP_HOSTS = MappingProxyType(
     {
         "Imprint": ("Publisher",),
@@ -60,7 +63,6 @@ GROUP_HOSTS = MappingProxyType(
         "Comic": ("Publisher", "Imprint", "Series", "Volume"),
     }
 )
-
 COMIC_FK_FIELDS = MappingProxyType(
     {
         "AgeRating": "age_rating",
@@ -71,7 +73,6 @@ COMIC_FK_FIELDS = MappingProxyType(
         "Tagger": "tagger",
     }
 )
-
 WATCHED_PATHS = ("Comic", "Folder")
 CONTRIBUTOR_FIELDS = MappingProxyType(
     {"ContributorRole": "role", "ContributorPerson": "person"}
@@ -92,6 +93,9 @@ DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL = (
     'IN (SELECT "codex_folder"."id" FROM "codex_folder")))'
 )
 MIGRATION_DIR = CODEX_PATH / "migrations"
+CUSTOM_COVER_MODEL_NAMES = MappingProxyType(
+    {"publisher": "p", "imprint": "i", "series": "s", "storyarc": "a", "folder": "f"}
+)
 
 LOG = get_logger(__name__)
 
@@ -303,9 +307,68 @@ def _repair_library_groups(apps):
     bad_relations.delete()
 
 
+def _delete_extra_custom_cover_libraries(apps):
+    if not has_applied_migration(MIGRATION_0028):
+        return
+    library_model = apps.get_model("codex", "library")
+    custom_cover_libraries = library_model.objects.filter(covers_only=True)
+    if custom_cover_libraries.count() <= 1:
+        return
+
+    # Attempt to remove the bad ones, probably futile
+    bad_lib_pks = []
+    for library in custom_cover_libraries:
+        if library.path != CUSTOM_COVERS_DIR:
+            bad_lib_pks.append(library.pk)
+    delete_libs = library_model.object.filter(pk__in=bad_lib_pks)
+    count = delete_libs.count()
+    if count:
+        delete_libs.delete()
+        LOG.warn(
+            f"Removed {count} duplicate custom cover libraries pointing to unused custom cover dirs."
+        )
+
+    custom_cover_libraries = library_model.object.filter(covers_only=True)
+    count = custom_cover_libraries.count()
+    if count <= 1:
+        return
+    custom_cover_libraries.delete()
+    LOG.warn(
+        f"Removed all ({count}) custom cover libraries, Unable to determine valid one. Will recreate upon startup."
+    )
+
+
+def _repair_groups_with_custom_covers(apps):
+    if not has_applied_migration(MIGRATION_0028):
+        return
+    custom_cover_model = apps.get_model("codex", "customcover")
+    now = Now()
+    for model_name, group_letter in CUSTOM_COVER_MODEL_NAMES.items():
+        valid_covers = custom_cover_model.objects.filter(group=group_letter)
+        group_model = apps.get_model("codex", model_name)
+        objs = group_model.objects.exclude(
+            Q(custom_cover__isnull=True) | Q(custom_cover__in=valid_covers)
+        )
+        update_groups = []
+        for group in objs:
+            group.custom_cover = None
+            group.updated_at = now
+            update_groups.append(group)
+        group_model.objects.bulk_update(update_groups, ["custom_cover"])
+        count = len(update_groups)
+        if count:
+            LOG.warn(f"Removed illegal custom cover links from {count} {model_name}s")
+
+
 def _delete_errors():
     """DELETE things we can't fix."""
+    _delete_extra_custom_cover_libraries(apps)
+
     for host_model_name in HAVE_LIBRARY_FKS:
+        if host_model_name == "CustomCover" and not has_applied_migration(
+            MIGRATION_0028
+        ):
+            continue
         _delete_fk_integrity_errors(apps, host_model_name, "Library", "library")
 
     for host_model_name in WATCHED_PATHS:
@@ -378,6 +441,7 @@ def _repair_integrity():
     _mark_comics_with_bad_rels_for_update(comic_model, bad_comic_ids)
 
     _repair_library_groups(apps)
+    _repair_groups_with_custom_covers(apps)
 
 
 def repair_db():

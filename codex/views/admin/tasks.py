@@ -17,6 +17,7 @@ from codex.librarian.covers.tasks import (
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
+    JanitorCleanCoversTask,
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
@@ -36,7 +37,10 @@ from codex.librarian.search.tasks import (
     SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.librarian.watchdog.tasks import (
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
 from codex.logger.logging import get_logger
 from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
@@ -86,6 +90,7 @@ class AdminLibrarianTaskView(APIView):
             "notify_library_changed": LIBRARY_CHANGED_TASK,
             "notify_librarian_status": LIBRARIAN_STATUS_TASK,
             "cleanup_fks": JanitorCleanFKsTask(),
+            "cleanup_db_custom_covers": JanitorCleanCoversTask(),
             "cleanup_sessions": JanitorCleanupSessionsTask(),
             "cleanup_covers": CoverRemoveOrphansTask(),
             "librarian_clear_status": JanitorClearStatusTask(),

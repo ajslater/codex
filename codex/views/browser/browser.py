@@ -370,7 +370,7 @@ class BrowserView(BrowserBreadcrumbsView):
         title = self._get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
-        libraries_exist = Library.objects.exists()
+        libraries_exist = Library.objects.filter(covers_only=False).exists()
         covers_timestamp = int(
             Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.COVERS.value

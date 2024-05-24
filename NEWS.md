@@ -9,12 +9,14 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
+  - Smaller Browser controls.
+  - Breadcrumbs in the browser
+  - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
+  - Admin Flag to disable dynamic group covers in the browser in favor of
+    default group covers.
+  - Metadata tags can click to browse filtered on that tag.
   - Search one page of results at a time for speed.
   - Browser, Search, and Cover query optimizations.
-  - Breadcrumbs in the browser
-  - Admin Flag to disable dynamic group covers in the browser.
-  - Smaller Browser controls.
-  - Metadata tags can click to browse filtered on that tag.
   - Granular caching for covers in the browser.
   - Experimental API throttling support. See README.
 - Fixes
@@ -1062,7 +1064,7 @@ Yanked. Crash loading admin page.
   - Reader swiping navigation
   - Reader keyboard shortcut help dialog
   - Tentative linux/armhf support. No way for me to test this
-  - Vacuum the sqllite database once a day to prevent bloat
+  - Vacuum the sqlite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
 
 ## v0.6.7

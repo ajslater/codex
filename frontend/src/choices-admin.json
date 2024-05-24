@@ -13,6 +13,12 @@
     "IFC": "Create Books",
     "IMQ": "Prepare Tags for Linking",
     "IMC": "Link Books to Tags",
+    "ICQ": "Discover Missing Custom Covers",
+    "ICM": "Custom Covers Moved",
+    "ICU": "Modify Custom Covers",
+    "ICC": "Create Custom Covers",
+    "ICD": "Delete Custom Covers",
+    "ICL": "Link Custom Covers",
     "IDD": "Remove Folders",
     "IFD": "Remove Books",
     "IFI": "Record Failed Imports",
@@ -20,6 +26,7 @@
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",
+    "JCD": "Cleanup Custom Covers",
     "JDO": "Optimize Database",
     "JDB": "Backup Database",
     "JSD": "Cleanup Expired Sessions",
@@ -49,6 +56,16 @@
           "title": "Update All Failed Imports",
           "desc": "Forcibly update all failed imports in all libraries",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "poll_custom_cover_dir",
+          "title": "Poll Custom Group Covers Dir",
+          "desc": "Update Custom Group Covers if changes detected"
+        },
+        {
+          "value": "poll_custom_cover_dir_force",
+          "title": "Force Update Custom Group Covers",
+          "desc": "Forcibly update all group custom covers"
         }
       ]
     },
@@ -64,7 +81,7 @@
         {
           "value": "create_all_comic_covers",
           "title": "Create All Comic Covers",
-          "desc": "Pre-generate covers for every comic in every library",
+          "desc": "Pre-generate covers for every comic in every library and all custom covers",
           "confirm": "Are you sure?"
         }
       ]
@@ -183,14 +200,19 @@
           "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly."
         },
         {
+          "value": "cleanup_db_custom_covers",
+          "title": "Remove Orphan Database Custom Covers",
+          "desc": "Remove Custom Covers from the db that no longer represent custom cover images on disk. Runs nightly."
+        },
+        {
           "value": "cleanup_sessions",
           "title": "Cleanup Sessions",
           "desc": "Remove corrupt and expired sessions. Runs nightly."
         },
         {
           "value": "cleanup_covers",
-          "title": "Remove Orphan Covers",
-          "desc": "from comics that no longer exist. Runs nightly."
+          "title": "Remove Orphan Cover Thumbnails",
+          "desc": "no longer have source comics or custom images. Runs nightly."
         },
         {
           "value": "librarian_clear_status",

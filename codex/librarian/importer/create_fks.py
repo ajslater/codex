@@ -3,13 +3,17 @@
 So we may safely create the comics next.
 """
 
-from itertools import chain
 from pathlib import Path
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models.functions.datetime import Now
 
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_FIELDS,
+    CLASS_CUSTOM_COVER_GROUP_MAP,
     COUNT_FIELDS,
     CREATE_DICT_UPDATE_FIELDS,
+    CUSTOM_COVER_UPDATE_FIELDS,
     GROUP_BASE_FIELDS,
     GROUP_UPDATE_FIELDS,
     IMPRINT,
@@ -24,6 +28,7 @@ from codex.models import (
     Contributor,
     ContributorPerson,
     ContributorRole,
+    CustomCover,
     Folder,
     Imprint,
     Publisher,
@@ -41,7 +46,20 @@ class CreateForeignKeysMixin(QueuedThread):
     """Methods for creating foreign keys."""
 
     @staticmethod
-    def _create_group_obj(group_class, group_param_tuple, group_count):
+    def _add_custom_cover_to_group(group_class, obj):
+        """If a custom cover exists for this group, add it."""
+        group = CLASS_CUSTOM_COVER_GROUP_MAP.get(group_class)
+        if not group:
+            # Normal, volume doesn't link to covers
+            return
+        try:
+            cover = CustomCover.objects.filter(group=group, sort_name=obj.sort_name)[0]
+            obj.custom_cover = cover
+        except (IndexError, ObjectDoesNotExist):
+            pass
+
+    @classmethod
+    def _create_group_obj(cls, group_class, group_param_tuple, group_count):
         """Create a set of browser group objects."""
         defaults = {"name": group_param_tuple[-1]}
         if group_class in (Imprint, Series, Volume):
@@ -64,6 +82,7 @@ class CreateForeignKeysMixin(QueuedThread):
 
         obj = group_class(**defaults)
         obj.presave()
+        cls._add_custom_cover_to_group(group_class, obj)
         return obj
 
     @staticmethod
@@ -99,6 +118,8 @@ class CreateForeignKeysMixin(QueuedThread):
             obj = self._create_group_obj(group_class, group_param_tuple, group_count)
             create_groups.append(obj)
         update_fields = GROUP_UPDATE_FIELDS[group_class]
+        if group_class in CLASS_CUSTOM_COVER_GROUP_MAP:
+            update_fields += ("custom_cover",)
         group_class.objects.bulk_create(
             create_groups,
             update_conflicts=True,
@@ -157,6 +178,7 @@ class CreateForeignKeysMixin(QueuedThread):
             parent_folder=parent,
         )
         folder.presave()
+        self._add_custom_cover_to_group(Folder, folder)
         create_folders.append(folder)
 
     def _bulk_folders_create_depth_level(self, library, paths, status):
@@ -212,6 +234,7 @@ class CreateForeignKeysMixin(QueuedThread):
             named_obj = named_class(name=name)
             if is_story_arc:
                 named_obj.presave()
+                self._add_custom_cover_to_group(StoryArc, named_obj)
             create_named_objs.append(named_obj)
 
         update_fields = NAMED_MODEL_UPDATE_FIELDS
@@ -282,8 +305,8 @@ class CreateForeignKeysMixin(QueuedThread):
             self.status_controller.update(status)
         return count
 
-    @staticmethod
-    def _get_create_fks_totals(create_data):
+    def create_all_fks(self, library, create_data) -> int:
+        """Bulk create all foreign keys."""
         (
             create_groups,
             update_groups,
@@ -292,35 +315,12 @@ class CreateForeignKeysMixin(QueuedThread):
             create_contributors,
             create_story_arc_numbers,
             create_identifiers,
+            total_fks,
         ) = create_data
-        total_fks = 0
-        for data_group in chain(
-            create_groups.values(), update_groups.values(), create_fks.values()
-        ):
-            total_fks += len(data_group)
-        total_fks += (
-            len(create_folder_paths)
-            + len(create_contributors)
-            + len(create_story_arc_numbers)
-            + len(create_identifiers)
-        )
-        return total_fks
 
-    def create_all_fks(self, library, create_data) -> int:
-        """Bulk create all foreign keys."""
-        total_fks = self._get_create_fks_totals(create_data)
         status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
         try:
             self.status_controller.start(status)
-            (
-                create_groups,
-                update_groups,
-                create_folder_paths,
-                create_fks,
-                create_contributors,
-                create_story_arc_numbers,
-                create_identifiers,
-            ) = create_data
 
             for group_class, group_tree_counts in create_groups.items():
                 count = self._bulk_group_create(
@@ -375,3 +375,63 @@ class CreateForeignKeysMixin(QueuedThread):
         finally:
             self.status_controller.finish(status)
         return status.complete if status.complete else 0
+
+    @status_notify(ImportStatusTypes.COVERS_MODIFIED, updates=False)
+    def update_custom_covers(
+        self, update_covers_qs, link_cover_pks, status=None
+    ) -> int:
+        """Update Custom Covers."""
+        count = 0
+        update_covers_count = update_covers_qs.count()
+        if not update_covers_count:
+            return count
+        if status:
+            status.total = update_covers_count
+        now = Now()
+
+        update_covers = []
+        for cover in update_covers_qs.only(*CUSTOM_COVER_UPDATE_FIELDS):
+            cover.updated_at = now
+            cover.presave()
+            update_covers.append(cover)
+
+        if update_covers:
+            CustomCover.objects.bulk_update(update_covers, CUSTOM_COVER_UPDATE_FIELDS)
+            update_cover_pks = update_covers_qs.values_list("pk", flat=True)
+            link_cover_pks.update(update_cover_pks)
+            self._remove_covers(update_cover_pks, custom=True)  # type: ignore
+            count = len(update_covers)
+            if status:
+                status.add_complete(count)
+        return count
+
+    @status_notify(ImportStatusTypes.COVERS_CREATED, updates=False)
+    def create_custom_covers(
+        self, create_cover_paths, library, link_cover_pks, status=None
+    ) -> int:
+        """Create Custom Covers."""
+        count = 0
+        if not create_cover_paths:
+            return count
+        if status:
+            status.total = len(create_cover_paths)
+
+        create_covers = []
+        for path in create_cover_paths:
+            cover = CustomCover(library=library, path=path)
+            cover.presave()
+            create_covers.append(cover)
+
+        if create_covers:
+            objs = CustomCover.objects.bulk_create(
+                create_covers,
+                update_conflicts=True,
+                update_fields=("path", "stat"),
+                unique_fields=CustomCover._meta.unique_together[0],
+            )
+            created_pks = frozenset(obj.pk for obj in objs)
+            link_cover_pks.update(created_pks)
+            count = len(created_pks)
+            if status:
+                status.add_complete(count)
+        return count

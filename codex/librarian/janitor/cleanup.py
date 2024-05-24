@@ -1,6 +1,7 @@
 """Clean up the database after moves or imports."""
 
 import logging
+from pathlib import Path
 from time import time
 from types import MappingProxyType
 
@@ -34,6 +35,7 @@ from codex.models import (
     Team,
     Volume,
 )
+from codex.models.paths import CustomCover
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
@@ -106,6 +108,28 @@ class CleanupMixin(WorkerBaseMixin):
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
         finally:
             self.status_controller.finish(status)
+
+    def cleanup_custom_covers(self):
+        """Clean up unused custom covers."""
+        start = time()
+        covers = CustomCover.objects.only("path")
+        status = Status(JanitorStatusTypes.CLEANUP_COVERS, 0, covers.count())
+        delete_pks = []
+        try:
+            self.status_controller.start(status)
+            self.log.debug("Cleaning up db custom covers with no source images...")
+            for cover in covers.iterator():
+                if not Path(cover.path).exists():
+                    delete_pks.append(cover.pk)
+                status.increment_complete()
+            delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
+            count = delete_qs.count()
+            delete_qs.delete()
+            level = logging.INFO if status.complete else logging.DEBUG
+            self.log.log(level, f"Deleted {count} CustomCovers without source images.")
+        finally:
+            until = start + 2
+            self.status_controller.finish(status, until=until)
 
     def cleanup_sessions(self):
         """Delete corrupt sessions."""

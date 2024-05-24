@@ -6,7 +6,7 @@ from pathlib import Path
 
 from django.db import migrations, models
 
-from codex.models.const import ARTICLES
+from codex.models.util import get_sort_name
 
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 COVER_ROOT = CONFIG_PATH / "cache" / "covers"
@@ -23,17 +23,7 @@ _GROUP_MODEL_NAMES = (
 
 def _set_sort_name(obj):
     """Create sort_name for model."""
-    # Duplicate code from BaseGroupModel
-    sort_name = ""
-    lower_name = obj.name.lower()
-    sort_name = lower_name
-    name_parts = lower_name.split()
-    if len(name_parts) > 1:
-        first_word = name_parts[0]
-        if first_word in ARTICLES:
-            sort_name = " ".join(name_parts[1:])
-            sort_name += ", " + first_word
-    obj.sort_name = sort_name
+    obj.sort_name = get_sort_name(obj.name)
 
 
 def _generate_sort_name(apps, _schema_editor):

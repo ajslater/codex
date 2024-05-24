@@ -25,6 +25,12 @@ class ImportStatusTypes(Choices):
     DIRS_DELETED = "IDD"
     FILES_DELETED = "IFD"
     FAILED_IMPORTS = "IFI"
+    QUERY_MISSING_COVERS = "ICQ"
+    COVERS_MOVED = "ICM"
+    COVERS_MODIFIED = "ICU"
+    COVERS_CREATED = "ICC"
+    COVERS_DELETED = "ICD"
+    COVERS_LINK = "ICL"
 
 
 def status_notify(status_type: str | Enum = "", updates=True):

@@ -7,19 +7,20 @@ from pathlib import Path
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
 from codex.logger_base import LoggerBaseMixin
-from codex.models import Comic, FailedImport, Folder
+from codex.models import Comic, CustomCover, FailedImport, Folder
 
 
 class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     """Take snapshots from the Codex database."""
 
-    MODELS = (Folder, Comic, FailedImport)
+    MODELS = (Folder, Comic, FailedImport, CustomCover)
+    COVERS_ONLY_MODELS = (CustomCover,)
     _STAT_LEN = 10
 
-    @classmethod
-    def _walk(cls, root):
+    def _walk(self, root):
         """Populate the DirectorySnapshot structures from the database."""
-        for model in cls.MODELS:
+        models = self.COVERS_ONLY_MODELS if self._covers_only else self.MODELS
+        for model in models:
             yield (
                 model.objects.filter(library__path=root)
                 .order_by("path")
@@ -57,7 +58,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         i = (st.st_ino, st.st_dev)
         self._inode_to_path[i] = path
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         path,
         _recursive=True,  # unused, always recursive
@@ -65,8 +66,10 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         _listdir=os.listdir,  # unused for database
         force=False,
         log_queue=None,
+        covers_only=False,
     ):
         """Initialize like DirectorySnapshot but use a database walk."""
+        self._covers_only = covers_only
         self.init_logger(log_queue)
         self._stat_info = {}
         self._inode_to_path = {}

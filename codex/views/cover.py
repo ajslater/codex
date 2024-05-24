@@ -58,11 +58,12 @@ class CoverView(APIView, GroupACLMixin):
         thumb_image_data = None
         content_type = "image/webp"
 
+        custom: bool = self.request.GET.get("custom") == "1"
         pk = self.kwargs.get("pk")
-        cover_path = CoverPathMixin.get_cover_path(pk)
+        cover_path = CoverPathMixin.get_cover_path(pk, custom)
         if not cover_path.exists():
             thumb_image_data = CoverCreateMixin.create_cover_from_path(
-                pk, cover_path, LOG, LIBRARIAN_QUEUE
+                pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
             )
             if not thumb_image_data:
                 cover_path, content_type = self._get_missing_cover_path()

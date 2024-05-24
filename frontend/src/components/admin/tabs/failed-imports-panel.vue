@@ -1,5 +1,5 @@
 <template>
-  <div v-if="failedImports && failedImports.length > 0" id="failedImports">
+  <div v-if="failedImports && failedImports.length > 0">
     <v-expansion-panels>
       <v-expansion-panel
         id="failedImportsPanel"
@@ -120,8 +120,8 @@ export default {
   display: block;
   margin-left: 2em;
 }
-#failedImports {
-  margin-top: 60px;
+#failedImportsPanel {
+  padding-top: 10px;
 }
 #failedImportsIcon {
   padding-left: 0.25em;

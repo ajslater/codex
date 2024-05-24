@@ -37,10 +37,11 @@ WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
 CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", 1.25))
 CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", 250))
 MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
-# sqlite parser breaks with more than 1000 variables in a query and django only
-# fixes this in the bulk_create & bulk_update functions. So for complicated
-# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
-FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
+# sqlite parser breaks with more than 1000 variables in a query and
+# django only fixes this in the bulk_create & bulk_update functions.
+# So for complicated queries I gotta batch them myself. Filter arg
+# count is a proxy, but it works. 990 errors sometimes.
+FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 900))
 VITE_HOST = environ.get("VITE_HOST")
 
 ####################################
@@ -62,7 +63,12 @@ THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH.mkdir(exist_ok=True, parents=True)
+CUSTOM_COVERS_SUBDIR = "custom-covers"
+CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
+CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
+for group_dir in CUSTOM_COVERS_GROUP_DIRS:
+    custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
+    custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)

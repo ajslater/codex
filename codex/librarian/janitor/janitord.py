@@ -1,4 +1,4 @@
-"""Perform maintence tasks."""
+"""Perform maintenance tasks."""
 
 from datetime import datetime, time, timedelta
 from threading import Condition, Event

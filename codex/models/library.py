@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 from pathlib import Path
+from types import MappingProxyType
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -32,7 +33,14 @@ class Library(BaseModel):
 
     DEFAULT_POLL_EVERY_SECONDS = 60 * 60
     DEFAULT_POLL_EVERY = timedelta(seconds=DEFAULT_POLL_EVERY_SECONDS)
-
+    CUSTOM_COVERS_DIR_DEFAULTS = MappingProxyType(
+        {
+            "covers_only": True,
+            "events": False,
+            "poll": False,
+        }
+    )
+    covers_only = BooleanField(db_index=True, default=False)
     path = CharField(
         unique=True,
         db_index=True,
@@ -46,9 +54,9 @@ class Library(BaseModel):
     update_in_progress = BooleanField(default=False)
     groups = ManyToManyField(Group, blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return the path."""
-        return self.path
+        return str(self.path)
 
     class Meta(BaseModel.Meta):
         """Pluralize."""

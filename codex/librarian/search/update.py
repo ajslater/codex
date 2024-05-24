@@ -319,7 +319,7 @@ class UpdateMixin(RemoveMixin):
         self.abort_event.clear()
         try:
             any_update_in_progress = Library.objects.filter(
-                update_in_progress=True
+                covers_only=False, update_in_progress=True
             ).exists()
             if any_update_in_progress:
                 self.log.debug(

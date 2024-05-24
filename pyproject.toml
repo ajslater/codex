@@ -39,6 +39,7 @@ include = ["codex/static_root/**/*"]
 python = "^3.10"
 aioprocessing = "^2.0.1"
 ansicolors = "^1.1"
+bidict = "^0.23.1"
 case-converter = "^1.1.0"
 channels = "^4.0.0"
 comicbox = { extras = ["pdf"], version = "^1.1.7" }

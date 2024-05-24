@@ -13,3 +13,4 @@ class JanitorStatusTypes(Choices):
     DB_OPTIMIZE = "JDO"
     DB_BACKUP = "JDB"
     CLEANUP_SESSIONS = "JSD"
+    CLEANUP_COVERS = "JCD"
