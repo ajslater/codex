@@ -172,7 +172,7 @@ export default {
     }),
   },
   mounted() {
-    this.loadTables(["Group", "Library", "FailedImport", "CustomCoversDir"]);
+    this.loadTables(["Group", "Library", "FailedImport"]);
   },
   methods: {
     ...mapActions(useAdminStore, [
@@ -196,24 +196,17 @@ export default {
       }
     },
     poll(pk) {
+      // TODO change Library
       this.librarianTask("poll", `Poll Library ${pk}`, pk);
     },
     forcePoll(pk) {
+      // TODO change Library
       this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
     },
     createUpdateInputs(item) {
       return item.coversOnly
         ? AdminCustomCoverDirUpdateInputs
         : AdminLibraryCreateUpdateInputs;
-    },
-    pollCustomCoverDir() {
-      this.librarianTask("poll_custom_cover_dir", "Poll Custom Cover Dir");
-    },
-    forcePollCustomCoverDir() {
-      this.librarianTask(
-        "poll_custom_cover_dir_force",
-        "Force Poll Custom Cover Dir",
-      );
     },
   },
 };
