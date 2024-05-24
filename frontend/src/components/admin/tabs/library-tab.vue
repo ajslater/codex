@@ -25,6 +25,7 @@
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
 import AdminLibraryCreateUpdateInputs from "@/components/admin/create-update-dialog/library-create-update-inputs.vue";
 import AdminCustomCoversPanel from "@/components/admin/tabs/custom-covers-panel.vue";
 import AdminFailedImportsPanel from "@/components/admin/tabs/failed-imports-panel.vue";
@@ -34,8 +35,9 @@ import { useAdminStore } from "@/stores/admin";
 export default {
   name: "AdminLibrariesTab",
   components: {
-    AdminLibraryTable,
     AdminFailedImportsPanel,
+    AdminLibraryTable,
+    AdminCreateUpdateDialog,
     AdminCustomCoversPanel,
   },
   data() {

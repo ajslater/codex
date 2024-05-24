@@ -5,7 +5,7 @@
         <h4 id="coverDirHeader">Custom Covers</h4>
       </v-expansion-panel-title>
       <v-expansion-panel-text>
-        <AdminLibraryTable :items="coverDirItems" disable-sort />
+        <AdminLibraryTable :items="coverDirItems" disable-sort :covers-dir="true" />
         <v-expansion-panels>
           <v-expansion-panel id="customCoversHelp">
             <v-expansion-panel-title>

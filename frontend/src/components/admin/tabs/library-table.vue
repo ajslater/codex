@@ -20,9 +20,7 @@
       <DateTimeColumn :dttm="item.lastPoll" />
     </template>
     <template #[`item.groups`]="{ item }">
-      <v-icon v-if="item.coversOnly" disabled>{{ mdiCircleOffOutline }}</v-icon>
       <RelationChips
-        v-else
         :pks="item.groups"
         :objs="groups"
         group-type
@@ -101,6 +99,9 @@ export default {
     ConfirmDialog,
     DateTimeColumn,
   },
+  props: {
+    coversDir: { type: Boolean, default: false },
+  },
   data() {
     return {
       lastUpdate: {
@@ -112,21 +113,6 @@ export default {
       mdiDatabaseSyncOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
-      headers: [
-        { title: "Path", key: "path", align: "start" },
-        {
-          title: "Watch File Events",
-          key: "events",
-        },
-        {
-          title: "Poll Files Periodically",
-          key: "poll",
-        },
-        { title: "Poll Every", key: "pollEvery" },
-        { title: "Last Poll", key: "lastPoll" },
-        { title: "Groups", key: "groups" },
-        { title: "Actions", key: "actions", sortable: false },
-      ],
     };
   },
   computed: {
@@ -144,6 +130,26 @@ export default {
           annotatedItems.push(annotatedItem);
         }
         return annotatedItems;
+      },
+      headers() {
+        const headers = [
+          { title: "Path", key: "path", align: "start" },
+          {
+            title: "Watch File Events",
+            key: "events",
+          },
+          {
+            title: "Poll Files Periodically",
+            key: "poll",
+          },
+          { title: "Poll Every", key: "pollEvery" },
+          { title: "Last Poll", key: "lastPoll" },
+        ];
+        if (!this.coversDir) {
+          headers.push({ title: "Groups", key: "groups" });
+        }
+        headers.push({ title: "Actions", key: "actions", sortable: false });
+        return headers;
       },
     }),
     ...mapState(useCommonStore, {
