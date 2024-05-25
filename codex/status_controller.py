@@ -130,9 +130,18 @@ class StatusController(LoggerBaseMixin):
                 types += [self._to_status_type_value(status)]
             ls_filter = {"status_type__in": types} if types else {}
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
-            LibrarianStatus.objects.filter(**ls_filter).update(**updates)
+            lses = LibrarianStatus.objects.filter(**ls_filter)
+            update_ls = []
+            for ls in lses.iterator():
+                for key, value in updates.items():
+                    setattr(ls, key, value)
+                update_ls.append(ls)
+            LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
             self._enqueue_notifier_task(notify, until)
-            if not filter:
+            if filter:
+                # self.log.debug(f"Cleared {types} librarian statuses")
+                pass
+            else:
                 self.log.info("Cleared all librarian statuses")
         except Exception as exc:
             self.log.warning(f"Finish status {statii}: {exc}")

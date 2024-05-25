@@ -2,7 +2,7 @@
   <v-toolbar
     id="titleBar"
     class="codexToolbar"
-    :class="{ drawerMargin: !lgAndDown }"
+    :class="{ drawerMargin: !mdAndDown }"
     density="compact"
     elevation="8"
   >
@@ -10,9 +10,9 @@
       Codex Administration
     </v-toolbar-title>
     <SettingsDrawerButton
-      :key="lgAndDown"
-      :class="{ invisible: !lgAndDown }"
-      :disabled="!lgAndDown"
+      :key="mdAndDown"
+      :class="{ invisible: !mdAndDown }"
+      :disabled="!mdAndDown"
     />
   </v-toolbar>
 </template>
@@ -24,8 +24,8 @@ export default {
     SettingsDrawerButton,
   },
   computed: {
-    lgAndDown() {
-      return this.$vuetify.display.lgAndDown;
+    mdAndDown() {
+      return this.$vuetify.display.mdAndDown;
     },
   },
 };

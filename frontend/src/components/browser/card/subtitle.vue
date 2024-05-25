@@ -62,9 +62,6 @@ export default {
       return false;
     },
     headerName: function () {
-      if (this.item.ids && this.item.ids.length > 1) {
-        return "Multiple";
-      }
       let hn;
       switch (this.item.group) {
         case "i":
@@ -81,6 +78,9 @@ export default {
           break;
         default:
           hn = "";
+      }
+      if (hn && this.item.ids && this.item.ids.length > 1) {
+        return "Multiple";
       }
       return hn;
     },

@@ -9,12 +9,13 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
+  - Smaller Browser controls.
+  - Breadcrumbs in the browser
+  - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
+  - Browser setting to choose Dynamic, First or static Icon group covers.
+  - Metadata tags can click to browse filtered on that tag.
   - Search one page of results at a time for speed.
   - Browser, Search, and Cover query optimizations.
-  - Breadcrumbs in the browser
-  - Admin Flag to disable dynamic group covers in the browser.
-  - Smaller Browser controls.
-  - Metadata tags can click to browse filtered on that tag.
   - Granular caching for covers in the browser.
   - Experimental API throttling support. See README.
 - Fixes
@@ -23,6 +24,16 @@ border-radius: 128px;
   - Order By respects browser show groups settings.
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
+
+## v1.5.19
+
+- Fixes
+  - Metadata crash on folders.
+
+## v1.5.18
+
+- Fixes
+  - Ignore comic pages from dotfiles and macOS resource forks.
 
 ## v1.5.17
 
@@ -1052,7 +1063,7 @@ Yanked. Crash loading admin page.
   - Reader swiping navigation
   - Reader keyboard shortcut help dialog
   - Tentative linux/armhf support. No way for me to test this
-  - Vacuum the sqllite database once a day to prevent bloat
+  - Vacuum the sqlite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
 
 ## v0.6.7

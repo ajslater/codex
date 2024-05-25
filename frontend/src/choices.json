@@ -19,7 +19,13 @@
         "value": "READ"
       }
     ],
-    "breadcrumbs": [{ "group": "r", "pks": "0", "page": 1 }],
+    "breadcrumbs": [
+      {
+        "group": "r",
+        "pks": "0",
+        "page": 1
+      }
+    ],
     "q": "",
     "topGroup": [
       {
@@ -154,7 +160,22 @@
       "gtin": "GTIN",
       "isbn": "ISBN",
       "upc": "UPC"
-    }
+    },
+    "coverStyle": [
+      {
+        "title": "Dynamic",
+        "value": "d",
+        "default": true
+      },
+      {
+        "title": "First",
+        "value": "f"
+      },
+      {
+        "title": "Icons",
+        "value": "i"
+      }
+    ]
   },
   "reader": {
     "fitTo": [

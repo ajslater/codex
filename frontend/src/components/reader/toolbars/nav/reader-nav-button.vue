@@ -76,14 +76,14 @@ export default {
 </script>
 <style scoped lang="scss">
 .readerNavButton {
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-left: 15px;
+  padding-right: 15px;
 
 }
 .readerNavButtonLeft {
-  padding-left: max(10px, calc(env(safe-area-inset-left) / 4)) !important;
+  padding-left: max(15px, calc(env(safe-area-inset-left) / 4)) !important;
 }
 .readerNavButtonRight {
-  padding-right: max(10px, calc(env(safe-area-inset-right) / 4)) !important;
+  padding-right: max(15px, calc(env(safe-area-inset-right) / 4)) !important;
 }
 </style>

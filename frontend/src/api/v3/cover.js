@@ -10,13 +10,16 @@ const COVER_MAP = {
   c: "missing-cover",
 };
 
-export const getCoverSource = (pk, mtime, group) => {
+export const getCoverSource = (pk, mtime, group, custom) => {
   let src;
   if (pk) {
     const basePath = getReaderBasePath(pk);
     src = `${basePath}/cover.webp?ts=${mtime}`;
     if (group) {
       src += `&group=${group}`;
+    }
+    if (custom) {
+      src += `&custom=1`;
     }
   } else {
     const name = COVER_MAP[group];

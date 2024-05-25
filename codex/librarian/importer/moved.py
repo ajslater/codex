@@ -6,6 +6,8 @@ from django.db.models.functions import Now
 
 from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
+    CLASS_CUSTOM_COVER_GROUP_MAP,
+    CUSTOM_COVER_UPDATE_FIELDS,
     FOLDERS_FIELD,
     MOVED_BULK_COMIC_UPDATE_FIELDS,
     MOVED_BULK_FOLDER_UPDATE_FIELDS,
@@ -17,7 +19,7 @@ from codex.librarian.importer.create_fks import (
 )
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
-from codex.models import Comic, Folder, Library
+from codex.models import Comic, CustomCover, Folder, Library
 
 
 class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixin):
@@ -70,6 +72,76 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         count = len(comics)
         if count:
             self.log.info(f"Moved {count} comics.")
+
+        return count
+
+    def _bulk_covers_moved_prepare(self, library, moved_paths, status):
+        """Create an update map for bulk update."""
+        covers = CustomCover.objects.filter(
+            library=library, path__in=moved_paths.keys()
+        ).only("pk", "path")
+
+        if status:
+            status.total = covers.count()
+
+        now = Now()
+        moved_covers = []
+        unlink_pks = set()
+        for cover in covers.iterator():
+            try:
+                new_path = moved_paths[cover.path]
+                cover.path = new_path
+                new_path = Path(new_path)
+                cover.updated_at = now
+                cover.presave()
+                moved_covers.append(cover)
+                unlink_pks.add(cover.pk)
+            except Exception:
+                self.log.exception(f"moving {cover.path}")
+        return moved_covers, unlink_pks
+
+    def _bulk_covers_moved_unlink(self, unlink_pks):
+        """Unlink moved covers because they could have moved between group dirs."""
+        if not unlink_pks:
+            return
+        self.log.debug(f"Unlinking {len(unlink_pks)} moved custom covers.")
+        for model in CLASS_CUSTOM_COVER_GROUP_MAP:
+            groups = model.objects.filter(custom_cover__in=unlink_pks)
+            unlink_groups = []
+            for group in groups:
+                group.custom_cover = None
+                unlink_groups.append(group)
+            if unlink_groups:
+                model.objects.bulk_update(unlink_groups, ["custom_cover"])
+                self.log.debug(
+                    f"Unlinked {len(unlink_groups)} {model.__name__} moved custom covers."
+                )
+
+        self._remove_covers(unlink_pks, custom=True)  # type: ignore
+
+    @status_notify(status_type=ImportStatusTypes.FILES_MOVED, updates=False)
+    def _bulk_covers_moved(self, moved_paths, library, link_cover_pks, status=None):
+        """Move covers."""
+        count = 0
+        if not moved_paths:
+            return count
+        if status:
+            status.total = len(moved_paths)
+
+        moved_covers, unlink_pks = self._bulk_covers_moved_prepare(
+            library, moved_paths, status
+        )
+        link_cover_pks.update(unlink_pks)
+        if moved_covers:
+            CustomCover.objects.bulk_update(moved_covers, CUSTOM_COVER_UPDATE_FIELDS)
+        count = len(moved_covers)
+
+        self._bulk_covers_moved_unlink(unlink_pks)
+
+        if count:
+            self.log.info(f"Moved {count} custom covers.")
+            if status:
+                status.add_complete(count)
 
         return count
 
@@ -163,7 +235,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
-        libraries = Library.objects.only("pk", "path")
+        libraries = Library.objects.filter(covers_only=False).only("pk", "path")
         for library in libraries.iterator():
             orphan_folder_paths = (
                 Folder.objects.filter(library=library, parent_folder=None)
@@ -177,7 +249,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
             self._bulk_folders_moved(folders_moved, library)
 
-    def move_and_modify_dirs(self, library, task):
+    def move_and_modify_dirs(self, library, task, link_cover_pks):
         """Move files and dirs and modify dirs."""
         changed = 0
         changed += self._bulk_folders_moved(task.dirs_moved, library)
@@ -185,6 +257,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         changed += self._bulk_comics_moved(task.files_moved, library)
         task.files_moved = None
+
+        changed += self._bulk_covers_moved(task.covers_moved, library, link_cover_pks)
+        task.covers_moved = None
 
         changed += self.bulk_folders_modified(task.dirs_modified, library)
         task.dirs_modified = None

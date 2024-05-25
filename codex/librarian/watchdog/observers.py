@@ -8,7 +8,10 @@ from watchdog.observers.api import (
 )
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
-from codex.librarian.watchdog.events import CodexLibraryEventHandler
+from codex.librarian.watchdog.events import (
+    CodexCustomCoverEventHandler,
+    CodexLibraryEventHandler,
+)
 from codex.models import Library
 from codex.worker_base import WorkerBaseMixin
 
@@ -50,7 +53,12 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
             return
 
         # Set up the watch
-        handler = CodexLibraryEventHandler(
+        handler_class = (
+            CodexCustomCoverEventHandler
+            if library.covers_only
+            else CodexLibraryEventHandler
+        )
+        handler = handler_class(
             library,
             librarian_queue=self.librarian_queue,
             log_queue=self.log_queue,
@@ -109,12 +117,14 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 
             # If we don't have an emitter for this watch already, create it.
             if self._emitter_for_watch.get(watch) is None:
+                covers_only = isinstance(event_handler, CodexCustomCoverEventHandler)
                 emitter = self._emitter_class(
                     event_queue=self.event_queue,
                     watch=watch,
                     timeout=self.timeout,
                     log_queue=self.log_queue,
                     librarian_queue=self.librarian_queue,
+                    covers_only=covers_only,
                 )
                 self._add_emitter(emitter)
                 if self.is_alive():
@@ -149,7 +159,7 @@ class LibraryPollingObserver(UatuMixin):
     def poll(self, library_pks, force=False):
         """Poll each requested emitter."""
         try:
-            qs = Library.objects
+            qs = Library.objects.all()
             if library_pks:
                 qs = qs.filter(pk__in=library_pks)
             paths = frozenset(qs.values_list("path", flat=True))

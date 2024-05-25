@@ -149,9 +149,9 @@ class BrowserBaseView(
             data = {}
 
         serializer = self.input_serializer_class(data=data)
-
         serializer.is_valid(raise_exception=True)
-        params = deepcopy(dict(self.SESSION_DEFAULTS))
+
+        params = deepcopy(self.request.session[self.SESSION_KEY])
         params.update(serializer.validated_data)
         self.params = MappingProxyType(params)
 

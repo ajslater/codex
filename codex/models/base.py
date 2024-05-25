@@ -23,3 +23,6 @@ class BaseModel(Model):
 
         abstract = True
         get_latest_by = "updated_at"
+
+    def presave(self):
+        """Create values before save."""

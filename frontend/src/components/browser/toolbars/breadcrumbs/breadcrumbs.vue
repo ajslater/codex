@@ -1,12 +1,12 @@
 <template>
-  <span id="crumbs">
-    <span id="headCrumbs">
-      <Breadcrumb v-for="item of headCrumbs" :key="item.to" :item="item" />
-    </span>
-    <span id="tailCrumbWrapper">
-      <Breadcrumb v-if="tailCrumb" id="tailCrumb" :item="tailCrumb" />
-    </span>
-  </span>
+  <v-breadcrumbs id="browserBreadcrumbs" density="compact" :items="breadcrumbs">
+    <template #item="{ item }">
+      <v-breadcrumbs-item :to="item.to" :title="item.tooltip">
+        <v-icon v-if="item.icon">{{ item.icon }}</v-icon>
+        <span v-else>{{ item.title }}</span>
+      </v-breadcrumbs-item>
+    </template>
+  </v-breadcrumbs>
 </template>
 <script>
 import {
@@ -18,7 +18,6 @@ import {
 } from "@mdi/js";
 import { mapState } from "pinia";
 
-import Breadcrumb from "@/components/browser/toolbars/breadcrumbs/crumb.vue";
 import { useBrowserStore } from "@/stores/browser";
 const GROUP_NAME_MAP = {
   f: "Folder",
@@ -39,9 +38,6 @@ const GROUP_ICON_MAP = {
 
 export default {
   name: "BrowserBreadcrumbs",
-  components: {
-    Breadcrumb,
-  },
   computed: {
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
@@ -49,53 +45,22 @@ export default {
         if (!state.page.breadcrumbs) {
           return crumbs;
         }
-        let first = true;
-        let divider = true;
         let parentPks = "";
         for (const crumb of state.page.breadcrumbs) {
-          [divider, first] = this.getDivider(first);
           const to = this.getTo(crumb, parentPks);
           const title = crumb.name ? crumb.name : "";
           const group = crumb.group;
           const icon = this.getIcon(crumb.pks, title, group);
           const tooltip = crumb.pks === "0" ? "Top" : GROUP_NAME_MAP[group];
-          const displayCrumb = { to, title, icon, tooltip, divider };
+          const displayCrumb = { to, title, icon, tooltip };
           crumbs.push(displayCrumb);
           parentPks = crumb.pks;
         }
         return crumbs;
       },
-      headCrumbs() {
-        let head;
-        const bc = this.breadcrumbs;
-        if (bc.length > 1) {
-          head = bc.slice(0, -1);
-        } else {
-          head = bc;
-        }
-        return head;
-      },
-      tailCrumb() {
-        let tail = "";
-        const bc = this.breadcrumbs;
-        if (bc.length > 1) {
-          tail = bc[bc.length - 1];
-        }
-        return tail;
-      },
     }),
   },
   methods: {
-    getDivider(first) {
-      let divider;
-      if (first) {
-        divider = false;
-        first = false;
-      } else {
-        divider = true;
-      }
-      return [divider, first];
-    },
     getTo(crumb, parentPks) {
       const params = { ...crumb };
       delete params["name"];
@@ -121,30 +86,25 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#crumbs {
-  display: flex;
+#browserBreadcrumbs {
   max-width: 100vw;
   font-size: small;
   color: rgb(var(--v-theme-textDisabled));
+  padding-top: 0px;
+  padding-bottom: 0px;
+  padding-left: 8px;
+  padding-right: 0px;
 }
-#headCrumbs {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+#browserBreadcrumbs :deep(.v-breadcrumbs-item) {
+  padding: 0px;
 }
-#tailCrumbWrapper {
-  padding-top: 5px;
-  white-space: nowrap;
-
+#browserBreadcrumbs :deep(.v-breadcrumbs-divider) {
+  padding: 3px;
 }
-#crumbs :deep(a) {
-  color: rgb(var(--v-theme-textDisabled));
+#browserBreadcrumbs :deep(.v-breadcrumbs-item:first-child .v-icon) {
+  font-size: xx-large !important;
 }
-#crumbs :deep(a:hover) {
+#browserBreadcrumbs :deep(a:hover) {
   color: white;
-}
-#headCrumbs :deep(.crumb:first-child .v-icon) {
-  font-size: xx-large;
-  min-width: 40px;
 }
 </style>

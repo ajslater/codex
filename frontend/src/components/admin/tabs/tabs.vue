@@ -1,10 +1,10 @@
 <template>
   <div id="tabContainer">
     <v-tabs
-      :class="{ rightMargin: !$vuetify.display.mdAndDown }"
       class="adminTabs"
       grow
       show-arrows
+      :class="{ drawerMargin: !mdAndDown }"
     >
       <v-tab
         v-for="tab in tabs"
@@ -22,14 +22,14 @@
         </v-window-item>
       </router-view>
     </v-window>
-    <div v-if="!librariesExist" id="noLibraries">
+    <div v-if="!comicLibrariesExist" id="noLibraries">
       Codex has no libraries. Select the Libraries tab and add a comic library.
     </div>
   </div>
 </template>
 
 <script>
-import { mapActions, mapGetters } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import titleize from "titleize";
 
 import { useAdminStore } from "@/stores/admin";
@@ -42,7 +42,13 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["librariesExist"]),
+    ...mapGetters(useAdminStore, ["comicLibrariesExist"]),
+    ...mapState(useAdminStore, {
+      librariesLoaded: (state) => Boolean(state.libraries),
+    }),
+    mdAndDown() {
+      return this.$vuetify.display.mdAndDown;
+    },
   },
   watch: {
     $route(to) {
@@ -52,7 +58,7 @@ export default {
     },
   },
   mounted() {
-    if (!this.librariesExist) {
+    if (!this.librariesLoaded) {
       this.loadTables(["Library"]);
     }
   },
@@ -81,7 +87,7 @@ $task-width: 256px;
 
 }
 .tabItemContainer {
-  width: 100vw;
+  width: 100%;
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
   padding-bottom: max(10px, env(safe-area-inset-bottom));
@@ -91,7 +97,7 @@ $task-width: 256px;
   text-align: center;
   padding: 1em;
 }
-.rightMargin {
+.drawerMargin {
   width: calc(100% - 256px) !important;
 }
 </style>

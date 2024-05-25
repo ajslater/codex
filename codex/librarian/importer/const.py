@@ -2,17 +2,22 @@
 
 from types import MappingProxyType
 
+from bidict import bidict
+
 from codex.models import (
     Comic,
     Contributor,
+    Folder,
     Imprint,
     Publisher,
     Series,
+    StoryArc,
     StoryArcNumber,
     Volume,
 )
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import Identifier
+from codex.models.paths import CustomCover
 
 #################
 # DICT METADATA #
@@ -139,9 +144,15 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
         - frozenset(BULK_UPDATE_FOLDER_MODIFIED_FIELDS)
     )
 )
-MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
-MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", *GROUP_BASE_FIELDS)
-
+MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "stat", "updated_at")
+MOVED_BULK_FOLDER_UPDATE_FIELDS = (
+    "path",
+    "parent_folder",
+    *GROUP_BASE_FIELDS,
+    "stat",
+    "updated_at",
+)
+CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group")
 
 #########
 # OTHER #
@@ -182,6 +193,15 @@ GROUP_COMPARE_FIELDS = MappingProxyType(
     {
         Series: ("publisher__name", "imprint__name", "name"),
         Volume: ("publisher__name", "imprint__name", "series__name", "name"),
+    }
+)
+CLASS_CUSTOM_COVER_GROUP_MAP = bidict(
+    {
+        Publisher: CustomCover.GroupChoice.P.value,
+        Imprint: CustomCover.GroupChoice.I.value,
+        Series: CustomCover.GroupChoice.S.value,
+        StoryArc: CustomCover.GroupChoice.A.value,
+        Folder: CustomCover.GroupChoice.F.value,
     }
 )
 

@@ -8,6 +8,7 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Timestamp
+from codex.models.paths import CustomCover
 from codex.status import Status
 
 
@@ -20,17 +21,17 @@ class CoverPurgeMixin(CoverPathMixin):
     )
 
     @classmethod
-    def _cleanup_cover_dirs(cls, path):
+    def _cleanup_cover_dirs(cls, path, cover_root):
         """Recursively remove empty cover directories."""
-        if not path or cls.COVER_ROOT not in path.parents:
+        if not path or cover_root not in path.parents:
             return
         try:
             path.rmdir()
-            cls._cleanup_cover_dirs(path.parent)
+            cls._cleanup_cover_dirs(path.parent, cover_root)
         except OSError:
             pass
 
-    def purge_cover_paths(self, cover_paths):
+    def purge_cover_paths(self, cover_paths, cover_root):
         """Purge a set a cover paths."""
         self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
         status = Status(CoverStatusTypes.PURGE_COVERS, 0, len(cover_paths))
@@ -46,38 +47,41 @@ class CoverPurgeMixin(CoverPathMixin):
                 cover_dirs.add(cover_path.parent)
                 self.status_controller.update(status)
             for cover_dir in cover_dirs:
-                self._cleanup_cover_dirs(cover_dir)
+                self._cleanup_cover_dirs(cover_dir, cover_root)
             self.log.info(f"Removed {status.complete} cover thumbnails.")
         finally:
             self.status_controller.finish(status)
         return status.complete
 
-    def purge_comic_covers(self, comic_pks):
+    def purge_comic_covers(self, pks: frozenset[int], custom: bool):
         """Purge a set a cover paths."""
-        cover_paths = self.get_cover_paths(comic_pks)
-        return self.purge_cover_paths(cover_paths)
+        cover_paths = self.get_cover_paths(pks, custom)
+        cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
+        return self.purge_cover_paths(cover_paths, cover_root)
 
     def purge_all_comic_covers(self, librarian_queue):
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")
         try:
-            shutil.rmtree(self.COVER_ROOT)
+            shutil.rmtree(self.COVERS_ROOT)
             self.log.info("Removed entire comic cover cache.")
+            shutil.rmtree(self.CUSTOM_COVERS_ROOT)
+            self.log.info("Removed entire custom cover cache.")
         except Exception as exc:
             self.log.warning(exc)
         Timestamp.touch(Timestamp.TimestampChoices.COVERS)
         librarian_queue.put(LIBRARY_CHANGED_TASK)
 
-    def cleanup_orphan_covers(self):
+    def _cleanup_orphan_covers(self, cover_class, cover_root, name):
         """Remove all orphan cover thumbs."""
         try:
-            self.log.debug("Removing covers from missing comics.")
+            self.log.debug(f"Removing covers from missing {name}.")
             self.status_controller.start_many(self._CLEANUP_STATUS_MAP)
-            comic_pks = Comic.objects.all().values_list("pk", flat=True)
-            db_cover_paths = self.get_cover_paths(comic_pks)
+            pks = cover_class.objects.all().values_list("pk", flat=True)
+            db_cover_paths = self.get_cover_paths(pks)
 
             orphan_cover_paths = set()
-            for root, _, filenames in os.walk(self.COVER_ROOT):
+            for root, _, filenames in os.walk(cover_root):
                 root_path = Path(root)
                 for fn in filenames:
                     fs_cover_path = root_path / fn
@@ -86,6 +90,13 @@ class CoverPurgeMixin(CoverPathMixin):
         finally:
             self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN)
 
-        count = self.purge_cover_paths(orphan_cover_paths)
-        self.log.info(f"Removed {count} covers for missing comics.")
+        count = self.purge_cover_paths(orphan_cover_paths, cover_root)
+        self.log.info(f"Removed {count} covers for missing {name}.")
         return count
+
+    def cleanup_orphan_covers(self):
+        """Cleanup both comic and custom covers."""
+        self._cleanup_orphan_covers(Comic, self.COVERS_ROOT, "comics")
+        self._cleanup_orphan_covers(
+            CustomCover, self.CUSTOM_COVERS_ROOT, "custom covers"
+        )

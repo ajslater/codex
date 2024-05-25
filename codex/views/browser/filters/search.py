@@ -175,7 +175,7 @@ class SearchFilterMixin:
                 binary
             )
             qs = self.annotate_search_score(qs, model, score_pairs, prev_pks, next_pks)
-            if score_pairs:
+            if score_pairs or scored_pks:
                 search_filter = self._get_search_query_filter(model, scored_pks)
                 qs = qs.filter(**search_filter)
                 self.cover_search_score_pairs = score_pairs

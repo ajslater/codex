@@ -50,7 +50,6 @@ class BrowserView(BrowserBreadcrumbsView):
         {
             AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
             AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
-            AdminFlag.FlagChoices.DYNAMIC_GROUP_COVERS.value: "dynamic_group_covers",
         }
     )
 
@@ -370,7 +369,7 @@ class BrowserView(BrowserBreadcrumbsView):
         title = self._get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
-        libraries_exist = Library.objects.exists()
+        libraries_exist = Library.objects.filter(covers_only=False).exists()
         covers_timestamp = int(
             Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.COVERS.value

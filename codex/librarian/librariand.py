@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 from caseconverter import snakecase
 
-from codex.librarian.covers.coverd import CoverContributorThread
+from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.importer.importerd import ComicImporterThread
@@ -43,7 +43,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
     _THREAD_CLASSES = (
         NotifierThread,
         DelayedTasksThread,
-        CoverContributorThread,
+        CoverThread,
         SearchIndexerThread,
         ComicImporterThread,
         WatchdogEventBatcherThread,
@@ -81,7 +81,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         """Process an individual task popped off the queue."""
         match task:
             case CoverTask():
-                self._threads.cover_contributor_thread.queue.put(task)
+                self._threads.cover_thread.queue.put(task)
             case WatchdogEventTask():
                 self._threads.watchdog_event_batcher_thread.queue.put(task)
             case ImportTask():

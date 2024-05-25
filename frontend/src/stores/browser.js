@@ -50,6 +50,7 @@ export const useBrowserStore = defineStore("browser", {
         bookmark: CHOICES.browser.bookmarkFilter,
         groupNames: CHOICES.browser.groupNames,
         settingsGroup: CHOICES.browser.settingsGroup,
+        coverStyle: CHOICES.browser.coverStyle,
         readingDirection: createReadingDirection(),
         identifierType: CHOICES.browser.identifierTypes,
       }),
@@ -65,6 +66,7 @@ export const useBrowserStore = defineStore("browser", {
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
       twentyFourHourTime: undefined,
+      coverStyle: undefined,
     },
     page: {
       adminFlags: {

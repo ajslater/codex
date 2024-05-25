@@ -38,8 +38,17 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    librariesExist() {
-      return this.libraries && this.libraries.length > 0;
+    comicLibrariesExist() {
+      let exist = false;
+      if (this.libraries) {
+        for (const library of this.libraries) {
+          if (!library.coversOnly) {
+            exist = true;
+            break;
+          }
+        }
+      }
+      return exist;
     },
   },
   actions: {

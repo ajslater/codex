@@ -20,12 +20,32 @@ from django.db.models import (
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 
-from codex.models import BrowserGroupModel, Comic, Folder, StoryArc, Volume
+from codex.models import (
+    BrowserGroupModel,
+    Comic,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    StoryArc,
+    Volume,
+)
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.browser_order_by import (
     BrowserOrderByView,
 )
 from codex.views.mixins import SharedAnnotationsMixin
+
+_REL_MAP = MappingProxyType(
+    {
+        Publisher: "publisher",
+        Imprint: "imprint",
+        Series: "series",
+        Volume: "volume",
+        Folder: "parent_folder",
+        StoryArc: "story_arc_numbers__story_arc",
+    }
+)
 
 
 class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
@@ -34,7 +54,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
     _NONE_DATETIMEFIELD = Value(None, DateTimeField())
     _ORDER_AGGREGATE_FUNCS = MappingProxyType(
-        # These are annotated to order_value becauase they're simple relations
+        # These are annotated to order_value because they're simple relations
         {
             "age_rating": Avg,
             "community_rating": Avg,
@@ -205,12 +225,31 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
         if model == Comic:
-            qs = qs.annotate(cover_pk=F("pk"))
-            qs = qs.annotate(cover_mtime=F("updated_at"))
-        elif self.admin_flags["dynamic_group_covers"]:
-            # At this point it's only been filtered.
-            qs = qs.annotate(cover_pk=F(self.rel_prefix + "pk"))
-            qs = qs.annotate(cover_pks=JsonGroupArray("cover_pk", distinct=True))
+            qs = qs.annotate(cover_pk=F("pk"), cover_mtime=F("updated_at"))
+        else:
+            cover_style = self.params.get("cover_style")
+            if cover_style == "i":
+                default_cover_pk = None
+                default_cover_mtime = None
+            else:
+                # At this point it's only been filtered.
+                default_cover_pk = F(self.rel_prefix + "pk")
+                default_cover_mtime = F(self.rel_prefix + "updated_at")
+
+            qs = qs.annotate(
+                cover_custom=F("custom_cover"),
+                cover_pk=Case(
+                    When(custom_cover__isnull=False, then=F("custom_cover__pk")),
+                    default=default_cover_pk,
+                ),
+                cover_mtime=Case(
+                    When(
+                        custom_cover__isnull=False, then=F("custom_cover__updated_at")
+                    ),
+                    default=default_cover_mtime,
+                ),
+                cover_pks=JsonGroupArray("cover_pk", distinct=True),
+            )
         return qs
 
     def _annotate_group(self, qs, model):
@@ -316,14 +355,44 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Annotations only for metadata."""
         return qs.annotate(mtime=Max("updated_at"))
 
-    def _get_cover_pk_query(self, cover_pks):
+    def _get_cover_pk_query(self, cover_pks, group_ids):
         """Get Cover Pk queryset for comic queryset."""
-        comic_qs = Comic.objects.filter(pk__in=cover_pks)
-        comic_qs = self.annotate_search_score(
-            comic_qs, Comic, self.cover_search_score_pairs
-        )
-        comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
-        comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
+        cover_style = self.params.get("cover_style")
+        if cover_style == "d":
+            # DYNAMIC COVERS
+            comic_qs = Comic.objects.filter(pk__in=cover_pks)
+            comic_qs = self.annotate_search_score(
+                comic_qs, Comic, self.cover_search_score_pairs
+            )
+            comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
+            comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
+        else:  # "f"
+            # FIRST COVERS
+            # The only filter at all is the model relation.
+            group_rel = _REL_MAP[self.model]  # type: ignore
+            comic_qs = Comic.objects.filter(**{f"{group_rel}__in": group_ids})
+
+            # Order generated irrespective of browser filters and order
+            if self.kwargs["group"] == "f":
+                order_key = "filename"
+            elif self.kwargs["group"] == "a":
+                order_key = "story_arc_number"
+            else:
+                order_key = "sort_name"
+
+            model_group = self.model_group  # type: ignore
+            show = MappingProxyType(self.params["show"])  # type: ignore
+            model_group = self.kwargs["group"]
+            comic_qs, comic_sort_names = self.alias_sort_names(
+                comic_qs, Comic, cover_pks, model_group, show
+            )
+            comic_qs = self.add_order_by(
+                comic_qs,
+                Comic,
+                order_key=order_key,
+                do_reverse=False,
+                comic_sort_names=comic_sort_names,
+            )
         comic_qs = comic_qs.group_by("id")
         return comic_qs.only("pk", "updated_at")
 
@@ -331,8 +400,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Python hack to re-cover groups collapsed with group_by."""
         # This would be better in the main query but OuterRef can't access annotations.
         # So cover_pks aggregates all covers from multi groups like ids does.
-        if self.is_model_comic or not self.admin_flags["dynamic_group_covers"]:  # type: ignore
+        if self.is_model_comic or self.params.get("cover_style") == "i":
             return group_qs
+
         recovered_group_list = []
         for group in group_qs:
             cover_pks = group.cover_pks
@@ -340,7 +410,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 cover_pk = cover_pks[0]
                 cover_updated_at = group.updated_at
             else:
-                comic_qs = self._get_cover_pk_query(cover_pks)
+                comic_qs = self._get_cover_pk_query(cover_pks, group.ids)
                 # print(comic_qs.explain())
                 # print(comic_qs.query)
                 cover = comic_qs[0]

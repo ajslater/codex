@@ -7,7 +7,7 @@ from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.const import GROUP_NAME_MAP
 
 if TYPE_CHECKING:
-    from codex.models.paths import Folder
+    from codex.models.groups import Folder
 
 
 class BrowserBreadcrumbsView(BrowserAnnotationsView):
@@ -150,7 +150,7 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
     ) -> tuple[dict[str, str | tuple[int, ...] | int], ...]:
         """Get the breadcrumbs."""
         breadcrumbs: list[dict[str, str | tuple[int, ...] | int]] = list(
-            self.get_from_session("breadcrumbs")
+            self.params.get("breadcrumbs", [])
         )
 
         if not self._is_breadcrumbs_identical(breadcrumbs):

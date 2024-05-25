@@ -150,7 +150,10 @@ class AdminStatsView(GenericAPIView):
 
             vnp_name = snakecase(title)
             vnp_name += "_count"
-            obj[vnp_name] = model.objects.count()
+            qs = model.objects
+            if model == Library:
+                qs = qs.filter(covers_only=False)
+            obj[vnp_name] = qs.count()
         return obj
 
     @staticmethod

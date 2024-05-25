@@ -54,6 +54,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         timeout=DEFAULT_EMITTER_TIMEOUT,
         log_queue=None,
         librarian_queue=None,
+        covers_only=False,
     ):
         """Initialize snapshot methods."""
         self.init_worker(log_queue, librarian_queue)
@@ -61,6 +62,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         self._force = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
+        self._covers_only = covers_only
         super().__init__(
             event_queue, watch, timeout=timeout, event_filter=_CODEX_EVENT_FILTER
         )
@@ -84,6 +86,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             self.watch.is_recursive,
             force=self._force,
             log_queue=self.log_queue,
+            covers_only=self._covers_only,
         )
         self._force = False
         return db_snapshot

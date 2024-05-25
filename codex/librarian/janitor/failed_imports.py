@@ -22,6 +22,6 @@ class UpdateFailedImportsMixin(WorkerBaseMixin):
 
     def force_update_all_failed_imports(self):
         """Force update events for failed imports in every library."""
-        pks = Library.objects.values_list("pk", flat=True)
+        pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
         for pk in pks:
             self._force_update_failed_imports(pk)

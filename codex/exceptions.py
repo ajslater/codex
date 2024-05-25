@@ -1,6 +1,8 @@
 """Special Redirect Error."""
 
 from collections.abc import Mapping
+from copy import deepcopy
+from pprint import pformat
 
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -10,6 +12,7 @@ from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
+from codex.serializers.route import RouteSerializer
 
 LOG = get_logger(__name__)
 
@@ -23,10 +26,20 @@ class SeeOtherRedirectError(APIException):
 
     def __init__(self, detail: Mapping[str, str | dict]):
         """Create a response to pass to the exception handler."""
+        detail = dict(detail)
+        route: dict = detail.get("route", {})  # type: ignore
+        params: dict = route.get("params", DEFAULTS["breadcrumbs"][0])
+        # Save route in server format for redirect reverse
+        self.route_kwargs = params
+        # Serialize route for detail
+        serializer = RouteSerializer(params)
+        route = deepcopy(route)
+        route["params"] = serializer.data
+        detail["route"] = route
+        # Pop uneccissary breadcrumbs.
+        detail.get("settings", {}).pop("breadcrumbs", None)  # type: ignore
         self.detail: Mapping[str, str | Mapping] = detail  # type: ignore
-        LOG.debug(
-            f"redirect {self.detail.get('reason')} to {self.detail.get('route')} {self.detail.get('settings')}"
-        )
+        LOG.debug(f"redirect {pformat(detail)}")
         # super().__init__ converts every type into strings! do not use it.
 
     def _add_query_params(self, url):
@@ -44,9 +57,7 @@ class SeeOtherRedirectError(APIException):
     def get_response(self, url_name):
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
-        route: Mapping = self.detail.get("route", {})  # type: ignore
-        params: dict = route.get("params", DEFAULTS["breadcrumbs"][0])
-        url = reverse(url_name, kwargs=params)
+        url = reverse(url_name, kwargs=self.route_kwargs)
         url = self._add_query_params(url)
 
         return redirect(url, permanent=False)

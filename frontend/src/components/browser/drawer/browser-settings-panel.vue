@@ -14,6 +14,8 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
+  <CoverStyleSelect />
+  <v-divider />
   <!--
   <v-checkbox
     v-tooltip="{
@@ -44,6 +46,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import CoverStyleSelect from "@/components/browser/drawer/cover-style-select.vue";
 import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -51,6 +54,7 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "BrowserSettingsPanel",
   components: {
+    CoverStyleSelect,
     SearchHelp,
   },
   computed: {

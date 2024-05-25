@@ -1,5 +1,5 @@
 <template>
-  <SettingsDrawer title="Admin" :temporary="lgAndDown">
+  <SettingsDrawer title="Admin" :temporary="mdAndDown">
     <template #panel>
       <AdminSettingsPanel />
     </template>
@@ -19,19 +19,19 @@ export default {
     AdminSettingsPanel,
   },
   computed: {
-    lgAndDown() {
-      return this.$vuetify.display.lgAndDown;
+    mdAndDown() {
+      return this.$vuetify.display.mdAndDown;
     },
   },
   watch: {
-    lgAndDown(to) {
+    mdAndDown(to) {
       if (!to) {
         this.setSettingsDrawerOpen(true);
       }
     },
   },
   mounted() {
-    if (!this.lgAndDown) {
+    if (!this.mdAndDown) {
       this.setSettingsDrawerOpen(true);
     }
   },
