@@ -224,33 +224,39 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
+        cover_style = self.params.get("cover_style")
         if model == Comic:
-            qs = qs.annotate(cover_pk=F("pk"), cover_mtime=F("updated_at"))
+            default_cover_pk = F("pk")
+            default_cover_mtime = F("updated_at")
+        elif cover_style == "i":
+            default_cover_pk = None
+            default_cover_mtime = None
         else:
-            cover_style = self.params.get("cover_style")
-            if cover_style == "i":
-                default_cover_pk = None
-                default_cover_mtime = None
-            else:
-                # At this point it's only been filtered.
-                default_cover_pk = F(self.rel_prefix + "pk")
-                default_cover_mtime = F(self.rel_prefix + "updated_at")
+            # At this point it's only been filtered.
+            default_cover_pk = F(self.rel_prefix + "pk")
+            default_cover_mtime = F(self.rel_prefix + "updated_at")
 
-            qs = qs.annotate(
-                cover_custom=F("custom_cover"),
-                cover_pk=Case(
-                    When(custom_cover__isnull=False, then=F("custom_cover__pk")),
-                    default=default_cover_pk,
-                ),
-                cover_mtime=Case(
-                    When(
-                        custom_cover__isnull=False, then=F("custom_cover__updated_at")
-                    ),
-                    default=default_cover_mtime,
-                ),
-                cover_pks=JsonGroupArray("cover_pk", distinct=True),
+        if model in (Volume, Comic):
+            cover_custom = Value(False)
+            cover_pk = default_cover_pk
+            cover_mtime = default_cover_mtime
+        else:
+            cover_custom = F("custom_cover")
+            cover_pk = Case(
+                When(custom_cover__isnull=False, then=F("custom_cover__pk")),
+                default=default_cover_pk,
             )
-        return qs
+            cover_mtime = Case(
+                When(custom_cover__isnull=False, then=F("custom_cover__updated_at")),
+                default=default_cover_mtime,
+            )
+
+        return qs.annotate(
+            cover_custom=cover_custom,
+            cover_pk=cover_pk,
+            cover_mtime=cover_mtime,
+            cover_pks=JsonGroupArray("cover_pk", distinct=True),
+        )
 
     def _annotate_group(self, qs, model):
         """Annotate Group."""

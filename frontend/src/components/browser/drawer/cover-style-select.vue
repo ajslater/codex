@@ -35,7 +35,7 @@
 <script>
 import {
   mdiChessRook,
-  mdiFilterSettings,
+  mdiFilterSettingsOutline,
   mdiNumeric1CircleOutline,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
@@ -47,7 +47,7 @@ export default {
   data() {
     return {
       COVER_STYLE_ICONS: {
-        d: mdiFilterSettings,
+        d: mdiFilterSettingsOutline,
         f: mdiNumeric1CircleOutline,
         i: mdiChessRook,
       },
@@ -75,6 +75,7 @@ export default {
 }
 .coverStyleSelection { 
   padding-left: 0px;
+  opacity: 1;
 }
 .coverStyleSelection :deep(.v-list-item__spacer),
 .coverStyleItem :deep(.v-list-item__spacer)
@@ -83,6 +84,6 @@ export default {
 }
 .coverStyleSelection :deep(.v-icon),
 .coverStyleItem :deep(.v-icon) {
-  margin-right: 8px;
+  margin-right: 0.33em;
 }
 </style>

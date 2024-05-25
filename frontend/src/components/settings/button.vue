@@ -54,6 +54,6 @@ export default {
 </script>
 <style scoped lang="scss">
 #settingsDrawerButton {
-  padding-right: max(10px, calc(env(safe-area-inset-right) / 4));
+  padding-right: max(10px, calc(env(safe-area-inset-right) / 2));
 }
 </style>

@@ -104,7 +104,7 @@ class BrowserBaseView(
         add_acl = not (cover and self.model == Folder)  # type: ignore
         object_filter = self.get_group_acl_filter(model) if add_acl else Q()
         object_filter &= self.get_bookmark_filter(model)
-        object_filter &= self.get_comic_field_filter(self.rel_prefix)
+        object_filter &= self.get_comic_field_filter(model)
         return object_filter
 
     def get_query_filters(self, model, choices=False):
