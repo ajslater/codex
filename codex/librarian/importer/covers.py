@@ -14,6 +14,7 @@ class CoversMixin:
         total_count = 0
         now = Now()
 
+        log_list = []
         for model, pks in deleted_comic_groups.items():
             rel = "story_arc_number__" if model == StoryArc else ""
             updated_at_rel = rel + "comic__updated_at__gt"
@@ -32,13 +33,15 @@ class CoversMixin:
             count = len(updated)
             if count:
                 model.objects.bulk_update(updated, ["updated_at"])
-                self.log.debug(  # type: ignore
-                    f"Updated {count} {model.__name__}s timestamps for cover cache busting."
-                )
+                log_list.append(f"{count} {model.__name__}s.")
                 total_count += count
         if total_count:
+            groups_log = ", ".join(log_list)
+            self.log.debug( # type: ignore
+                f"Updated {groups_log} timestamps for browser cache busting."
+            )
             self.log.info(  # type: ignore
-                f"Updated {total_count} group timestamps for cover cache busting."
+                f"Updated {total_count} group timestamps for browser cache busting."
             )
 
         return total_count
