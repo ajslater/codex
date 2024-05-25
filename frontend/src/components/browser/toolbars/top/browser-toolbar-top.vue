@@ -49,6 +49,7 @@ export default {
 #browserToolbarTop {
   padding-top: calc(5px + env(safe-area-inset-top));
   padding-bottom: 5px;
+  padding-left: max(5px, calc(env(safe-area-inset-left)/2));
   padding-right: 0px; // given to the settings drawer button
 }
 @media #{map-get(vuetify.$display-breakpoints, 'xs')} {

@@ -58,10 +58,10 @@ export default {
 </script>
 <style scoped lang="scss">
 .bookChangeNavButtonLeft {
-    padding-left: max(15px, calc(env(safe-area-inset-left) / 4));
+    padding-left: max(15px, calc(env(safe-area-inset-left) / 3));
 }
 
 .bookChangeNavButtonRight {
-    padding-right: max(15px, calc(env(safe-area-inset-right) / 4));
+    padding-right: max(15px, calc(env(safe-area-inset-right) / 3));
 }
 </style>
