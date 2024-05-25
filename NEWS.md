@@ -12,8 +12,7 @@ border-radius: 128px;
   - Smaller Browser controls.
   - Breadcrumbs in the browser
   - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
-  - Admin Flag to disable dynamic group covers in the browser in favor of
-    default group covers.
+  - Browser setting to choose Dynamic, First or static Icon group covers.
   - Metadata tags can click to browse filtered on that tag.
   - Search one page of results at a time for speed.
   - Browser, Search, and Cover query optimizations.

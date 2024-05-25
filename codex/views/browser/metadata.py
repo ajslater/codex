@@ -52,7 +52,6 @@ class MetadataView(BrowserAnnotationsView):
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
             AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
-            AdminFlag.FlagChoices.DYNAMIC_GROUP_COVERS.value: "dynamic_group_covers",
         }
     )
 

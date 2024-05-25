@@ -150,7 +150,7 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
     ) -> tuple[dict[str, str | tuple[int, ...] | int], ...]:
         """Get the breadcrumbs."""
         breadcrumbs: list[dict[str, str | tuple[int, ...] | int]] = list(
-            self.get_from_session("breadcrumbs")
+            self.params.get("breadcrumbs", [])
         )
 
         if not self._is_breadcrumbs_identical(breadcrumbs):

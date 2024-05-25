@@ -104,6 +104,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
             "q": DEFAULTS["q"],
             "search_results_limit": DEFAULTS["searchResultsLimit"],
             "show": DEFAULTS["show"],
+            "cover_style": DEFAULTS["coverStyle"],
             "twenty_four_hour_time": False,
             "top_group": DEFAULTS["topGroup"],
         }

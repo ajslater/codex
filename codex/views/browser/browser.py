@@ -50,7 +50,6 @@ class BrowserView(BrowserBreadcrumbsView):
         {
             AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
             AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
-            AdminFlag.FlagChoices.DYNAMIC_GROUP_COVERS.value: "dynamic_group_covers",
         }
     )
 
