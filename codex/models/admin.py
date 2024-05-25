@@ -82,7 +82,6 @@ class Timestamp(BaseModel):
     class TimestampChoices(TextChoices):
         """Choices for Timestamps."""
 
-        COVERS = "CV", _("Covers")
         JANITOR = "JA", _("Janitor")
         CODEX_VERSION = "VR", _("Codex Version")
         SEARCH_INDEX_UUID = "SI", _("Search Index UUID")

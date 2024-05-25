@@ -24,7 +24,6 @@ from codex.models import (
     Publisher,
     Series,
     StoryArc,
-    Timestamp,
     Volume,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
@@ -370,11 +369,6 @@ class BrowserView(BrowserBreadcrumbsView):
         # needs to happen after pagination
         # runs obj list query twice :/
         libraries_exist = Library.objects.filter(covers_only=False).exists()
-        covers_timestamp = int(
-            Timestamp.objects.get(
-                key=Timestamp.TimestampChoices.COVERS.value
-            ).updated_at.timestamp()
-        )
 
         # construct final data structure
         return MappingProxyType(
@@ -389,7 +383,6 @@ class BrowserView(BrowserBreadcrumbsView):
                 "total_count": total_count,
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
-                "covers_timestamp": covers_timestamp,
             }
         )
 

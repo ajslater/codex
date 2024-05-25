@@ -11,7 +11,6 @@ from codex.librarian.importer.link_comics import LinkComicsMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
     Comic,
-    Timestamp,
 )
 
 
@@ -74,7 +73,6 @@ class UpdateComicsMixin(LinkComicsMixin):
         self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
             Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
-            Timestamp.touch(Timestamp.TimestampChoices.COVERS)
             count = len(update_comics)
 
             self._remove_covers(comic_pks, False)  # type: ignore

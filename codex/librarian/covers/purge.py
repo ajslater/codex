@@ -7,7 +7,7 @@ from pathlib import Path
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.models import Comic, Timestamp
+from codex.models import Comic
 from codex.models.paths import CustomCover
 from codex.status import Status
 
@@ -69,7 +69,6 @@ class CoverPurgeMixin(CoverPathMixin):
             self.log.info("Removed entire custom cover cache.")
         except Exception as exc:
             self.log.warning(exc)
-        Timestamp.touch(Timestamp.TimestampChoices.COVERS)
         librarian_queue.put(LIBRARY_CHANGED_TASK)
 
     def _cleanup_orphan_covers(self, cover_class, cover_root, name):

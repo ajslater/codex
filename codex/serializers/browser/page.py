@@ -57,7 +57,6 @@ class BrowserPageSerializer(Serializer):
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     breadcrumbs = ListSerializer(child=RouteSerializer())
     title = BrowserTitleSerializer(read_only=True)
-    covers_timestamp = IntegerField(read_only=True)
     zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)
     model_group = CharField(read_only=True)
