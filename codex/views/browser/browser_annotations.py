@@ -414,15 +414,20 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             cover_pks = group.cover_pks
             if len(cover_pks) == 1:
                 cover_pk = cover_pks[0]
-                cover_updated_at = group.updated_at
+                cover_mtime = group.updated_at
             else:
                 comic_qs = self._get_cover_pk_query(cover_pks, group.ids)
                 # print(comic_qs.explain())
                 # print(comic_qs.query)
                 cover = comic_qs[0]
                 cover_pk = cover.pk
-                cover_updated_at = cover.updated_at
+                if len(group.ids) == 1:
+                    cover_mtime = group.updated_at
+                else:
+                    cover_mtime = group.__class__.objects.filter(
+                        pk__in=group.ids
+                    ).aggregate(updated_at=Max("updated_at"))["updated_at"]
+            group.cover_mtime = cover_mtime
             group.cover_pk = cover_pk
-            group.cover_mtime = cover_updated_at
             recovered_group_list.append(group)
         return recovered_group_list

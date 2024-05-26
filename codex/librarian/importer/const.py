@@ -219,3 +219,11 @@ COMIC_M2M_FIELD_NAMES = frozenset(
     for field in Comic._meta.get_fields()
     if field.many_to_many and field.name != "folders"
 )
+COMIC_GROUP_FIELD_NAMES = (
+    "publisher",
+    "imprint",
+    "series",
+    "volume",
+    "story_arc_numbers",
+    "folders",
+)

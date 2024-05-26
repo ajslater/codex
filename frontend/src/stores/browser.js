@@ -79,7 +79,6 @@ export const useBrowserStore = defineStore("browser", {
         groupName: undefined,
         groupCount: undefined,
       },
-      coversTimestamp: 0,
       librariesExist: undefined,
       modelGroup: undefined,
       numPages: 1,
