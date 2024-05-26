@@ -10,6 +10,7 @@ from rest_framework.serializers import (
 )
 
 from codex.serializers.browser.filters import IntListField
+from codex.serializers.fields import TimestampField
 
 
 class BrowserAggregateSerializerMixin(Serializer):
@@ -21,7 +22,7 @@ class BrowserAggregateSerializerMixin(Serializer):
     # Aggregate Annotations
     child_count = IntegerField(read_only=True)
     cover_pk = IntegerField(read_only=True)
-    cover_mtime = DateTimeField(format="%s", read_only=True)
+    cover_mtime = TimestampField(read_only=True)
     cover_custom = BooleanField(read_only=True)
 
     # Bookmark annotations

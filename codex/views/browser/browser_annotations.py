@@ -406,7 +406,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Python hack to re-cover groups collapsed with group_by."""
         # This would be better in the main query but OuterRef can't access annotations.
         # So cover_pks aggregates all covers from multi groups like ids does.
-        if self.is_model_comic or self.params.get("cover_style") == "i":
+        cover_style = self.params.get("cover_style")
+        if self.is_model_comic or cover_style == "i":
             return group_qs
 
         recovered_group_list = []
@@ -414,19 +415,20 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             cover_pks = group.cover_pks
             if len(cover_pks) == 1:
                 cover_pk = cover_pks[0]
-                cover_mtime = group.updated_at
             else:
                 comic_qs = self._get_cover_pk_query(cover_pks, group.ids)
                 # print(comic_qs.explain())
                 # print(comic_qs.query)
                 cover = comic_qs[0]
                 cover_pk = cover.pk
-                if len(group.ids) == 1:
-                    cover_mtime = group.updated_at
-                else:
-                    cover_mtime = group.__class__.objects.filter(
-                        pk__in=group.ids
-                    ).aggregate(updated_at=Max("updated_at"))["updated_at"]
+
+            if len(group.ids) == 1:
+                cover_mtime = group.updated_at
+            else:
+                cover_mtime = group.__class__.objects.filter(
+                pk__in=group.ids
+                ).aggregate(updated_at=Max("updated_at"))["updated_at"]
+
             group.cover_mtime = cover_mtime
             group.cover_pk = cover_pk
             recovered_group_list.append(group)

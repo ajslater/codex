@@ -28,7 +28,7 @@ const trimObject = (obj) => {
   return result;
 };
 
-const preSerialize = (data) => {
+const preSerialize = (data, ts) => {
   const params = trimObject(data);
   if (params.q === "") {
     delete params.q;
@@ -39,33 +39,36 @@ const preSerialize = (data) => {
       params[key] = JSON.stringify(params[key]);
     }
   }
-  params.ts = useCommonStore().timestamp;
+  if (!ts) {
+    ts = useCommonStore().timestamp;
+  }
+  params.ts = ts;
   return params;
 };
 
-const getAvailableFilterChoices = ({ group, pks }, data) => {
-  const params = preSerialize(data);
+const getAvailableFilterChoices = ({ group, pks }, data, ts) => {
+  const params = preSerialize(data, ts);
   return HTTP.get(`/${group}/${pks}/choices_available`, { params });
 };
 
-const getFilterChoices = ({ group, pks }, fieldName, data) => {
-  const params = preSerialize(data);
+const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
+  const params = preSerialize(data, ts);
   return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, { params });
 };
 
-const loadBrowserPage = ({ group, pks, page }, data) => {
-  const params = preSerialize(data);
+const loadBrowserPage = ({ group, pks, page }, data, ts) => {
+  const params = preSerialize(data, ts);
   return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
-const getMetadata = ({ group, pks }, data) => {
+const getMetadata = ({ group, pks }, data, ts) => {
   const pkList = pks.join(",");
-  const params = preSerialize(data);
+  const params = preSerialize(data, ts);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
-const getSettings = () => {
-  const params = preSerialize({});
+const getSettings = (ts) => {
+  const params = preSerialize({}, ts);
   return HTTP.get("/r/settings", { params });
 };
 

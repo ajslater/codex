@@ -6,6 +6,7 @@ import CHOICES from "@/choices";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
+import { getTimestamp } from "@/datetime";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
@@ -67,6 +68,8 @@ export const useBrowserStore = defineStore("browser", {
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
       twentyFourHourTime: undefined,
       coverStyle: undefined,
+      mtime: 0,
+      bookmarkMtime: 0,
     },
     page: {
       adminFlags: {
@@ -84,6 +87,7 @@ export const useBrowserStore = defineStore("browser", {
       numPages: 1,
       groups: [],
       books: [],
+      mtime: 0,
     },
     // LOCAL UI
     filterMode: "base",
@@ -184,10 +188,16 @@ export const useBrowserStore = defineStore("browser", {
       }
       return route;
     },
+    maxMtime(state) {
+      return this._maxMtime(state.page.mtime);
+    },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
     // UTILITY
+    _maxMtime(groupMtime) {
+      return Math.max(this.settings.mtime, groupMtime);
+    },
     _maxLenChoices(choices) {
       let maxLen = 0;
       for (const item of choices) {
@@ -303,6 +313,7 @@ export const useBrowserStore = defineStore("browser", {
         if (state.settings.q) {
           state.isSearchOpen = true;
         }
+        state.settings.mtime = getTimestamp();
       });
       this.startSearchHideTimer();
     },
@@ -325,7 +336,6 @@ export const useBrowserStore = defineStore("browser", {
     async setSettings(data) {
       // Save settings to state and re-get the objects.
       const redirect = this._validateAndSaveSettings(data);
-      useCommonStore().setTimestamp();
       this.browserPageLoaded = true;
       if (redirect) {
         await redirectRoute(redirect);
@@ -343,8 +353,8 @@ export const useBrowserStore = defineStore("browser", {
           state.settings.orderReverse = false;
         }
         state.browserPageLoaded = true;
+        state.settings.mtime = getTimestamp();
       });
-      useCommonStore().setTimestamp();
       await this.loadBrowserPage();
     },
     async setBookmarkFinished(params, finished) {
@@ -352,8 +362,8 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       await API.setGroupBookmarks(params, { finished }).then(() => {
-        useCommonStore().setTimestamp();
-        this.loadBrowserPage();
+        const mtime = getTimestamp();
+        this.loadBrowserPage(mtime);
         return true;
       });
     },
@@ -406,7 +416,7 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      await API.getSettings()
+      await API.getSettings(this.settings.mtime)
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
@@ -421,7 +431,7 @@ export const useBrowserStore = defineStore("browser", {
           return this.handlePageError(error);
         });
     },
-    async loadBrowserPage() {
+    async loadBrowserPage(mtime) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
         return;
@@ -432,7 +442,10 @@ export const useBrowserStore = defineStore("browser", {
         this.browserPageLoaded = false;
       }
       const params = router.currentRoute.value.params;
-      await API.loadBrowserPage(params, this.settings)
+      if (!mtime) {
+        mtime = this.maxMtime();
+      }
+      await API.loadBrowserPage(params, this.settings, mtime)
         .then((response) => {
           const page = Object.freeze({ ...response.data });
           this.$patch((state) => {
@@ -448,6 +461,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
         this.settings,
+        this.maxMtime,
       )
         .then((response) => {
           this.choices.dynamic = response.data;
@@ -460,6 +474,7 @@ export const useBrowserStore = defineStore("browser", {
         router.currentRoute.value.params,
         fieldName,
         this.settings,
+        this.maxMtime,
       )
         .then((response) => {
           this.choices.dynamic[fieldName] = Object.freeze(response.data);

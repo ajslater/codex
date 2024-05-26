@@ -81,6 +81,7 @@ export const useReaderStore = defineStore("reader", {
       twoPages: false,
       readingDirection: "ltr",
       readRtlInReverse: false,
+      mtime: 0,
     },
     books: {
       current: undefined,

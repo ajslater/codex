@@ -4,13 +4,13 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
-    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
 )
 
 from codex.models import Bookmark
+from codex.serializers.fields import TimestampField
 from codex.serializers.route import RouteSerializer
 
 
@@ -25,6 +25,7 @@ class ReaderSettingsSerializer(Serializer):
     two_pages = BooleanField(allow_null=True, required=False)
     reading_direction = CharField(allow_null=True, required=False)
     read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
+    mtime = TimestampField(read_only=True)
 
 
 class ReaderComicSerializer(Serializer):
@@ -34,7 +35,7 @@ class ReaderComicSerializer(Serializer):
     settings = ReaderSettingsSerializer(read_only=True)
     max_page = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
-    mtime = DateTimeField(format="%s", read_only=True)
+    mtime = TimestampField(read_only=True)
 
 
 class ReaderArcSerializer(RouteSerializer):

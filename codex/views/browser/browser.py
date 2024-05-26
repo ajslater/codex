@@ -16,6 +16,7 @@ from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
+    Bookmark,
     BrowserGroupModel,
     Comic,
     Folder,
@@ -30,7 +31,7 @@ from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_breadcrumbs import BrowserBreadcrumbsView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
+from codex.views.browser.const import GROUP_MTIME_MODEL_MAP, MAX_OBJ_PER_PAGE
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
@@ -356,6 +357,23 @@ class BrowserView(BrowserBreadcrumbsView):
         recovered_group_list = self.re_cover_multi_groups(group_qs)
         total_count = page_group_count + page_book_count
         return recovered_group_list, book_qs, num_pages, total_count, zero_pad
+    def _get_page_mtime(self):
+        if self.group_instance:
+            return self.group_instance.updated_at
+        group = self.kwargs["group"]
+        model = GROUP_MTIME_MODEL_MAP[group]
+        return model.objects.aggregate(max=Max("updated_at"))["max"]
+
+    def _get_bookmark_mtime(self):
+        # TODO adjust for session
+        qs = Bookmark.objects.filter(user=self.request.user)
+        if self.model:
+            model_field = self.model.__name__.lower()
+            rel = f"comic__{model_field}__in"
+            pks = self.kwargs["pks"]
+            group_filter = {rel:pks}
+            qs = qs.filter(**group_filter)
+        return qs.aggregate(max=Max("updated_at"))["max"]
 
     def get_object(self):
         """Validate settings and get the querysets."""
@@ -369,6 +387,8 @@ class BrowserView(BrowserBreadcrumbsView):
         # needs to happen after pagination
         # runs obj list query twice :/
         libraries_exist = Library.objects.filter(covers_only=False).exists()
+        mtime = self._get_page_mtime()
+        bookmark_mtime = self._get_bookmark_mtime()
 
         # construct final data structure
         return MappingProxyType(
@@ -383,6 +403,8 @@ class BrowserView(BrowserBreadcrumbsView):
                 "total_count": total_count,
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
+                "mtime": mtime,
+                "bookmark_mtime": bookmark_mtime,
             }
         )
 

@@ -3,7 +3,6 @@
 from rest_framework.serializers import (
     BooleanField,
     CharField,
-    DateTimeField,
     DecimalField,
     IntegerField,
     ListSerializer,
@@ -13,6 +12,7 @@ from rest_framework.serializers import (
 from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
+from codex.serializers.fields import TimestampField
 from codex.serializers.route import RouteSerializer
 
 
@@ -34,7 +34,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     order_value = CharField(read_only=True)
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
-    mtime = DateTimeField(format="%s", read_only=True)
+    mtime = TimestampField(read_only=True)
 
 
 class BrowserAdminFlagsSerializer(Serializer):
@@ -63,3 +63,5 @@ class BrowserPageSerializer(Serializer):
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    mtime = TimestampField(read_only=True)
+    bookmark_mtime = TimestampField(read_only=True)
