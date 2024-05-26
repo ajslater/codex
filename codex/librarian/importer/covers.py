@@ -37,7 +37,7 @@ class CoversMixin:
                 total_count += count
         if total_count:
             groups_log = ", ".join(log_list)
-            self.log.debug( # type: ignore
+            self.log.debug(  # type: ignore
                 f"Updated {groups_log} timestamps for browser cache busting."
             )
             self.log.info(  # type: ignore
