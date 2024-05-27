@@ -123,15 +123,10 @@ class BrowserBaseView(
                 if not parsed_val:
                     continue
                 parsed_key = key
-            elif key in ("q", "query"):
-                # parse and strip query param
-                # "query" is used by opds v2
-                if "q" in result:
-                    continue
-                parsed_val = val.strip()
-                if not parsed_val:
-                    continue
+            elif key == "query":
+                # parse query param for opds v2
                 parsed_key = "q"
+                parsed_val = val
             else:
                 parsed_key = key
                 parsed_val = val
