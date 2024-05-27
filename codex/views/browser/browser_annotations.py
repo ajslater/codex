@@ -249,8 +249,10 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         else:  # cover_style == "d"
             default_cover_pk = F(self.rel_prefix + "pk")
             if self.is_bookmark_filtered:
-                default_cover_mtime = Max(
-                    F(self.rel_prefix + "updated_at"), F("bookmark_updated_at")
+                default_cover_mtime = Case(
+                    When(bookmark_updated_at__gt=F(self.rel_prefix + "updated_at")),
+                    then=F("bookmark_updated_at"),
+                    default=F(self.rel_prefix + "updated_at"),
                 )
             else:
                 default_cover_mtime = F(self.rel_prefix + "updated_at")
@@ -368,7 +370,11 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_mtime(self, qs):
         """Annotations mtime."""
         if self.is_bookmark_filtered:
-            mtime = Max("updated_at", "bookmark_updated_at")
+            mtime = Case(
+                When(bookmark_updated_at__gt=F("updated_at")),
+                then=F("bookmark_updated_at"),
+                default=F("updated_at"),
+            )
         else:
             mtime = F("updated_at")
         return qs.annotate(mtime=mtime)

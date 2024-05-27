@@ -1,7 +1,6 @@
 """Views for browsing comic library."""
 
 from copy import deepcopy
-from datetime import datetime, timezone
 from math import ceil, floor, log10
 from os import sep
 from pathlib import Path
@@ -29,6 +28,7 @@ from codex.models import (
 )
 from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.choices import DEFAULTS
+from codex.util import max_none
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_breadcrumbs import BrowserBreadcrumbsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
@@ -324,6 +324,21 @@ class BrowserView(BrowserBreadcrumbsView):
 
         return page_group_qs, page_book_qs, num_pages, page_group_count, page_book_count
 
+    def _get_page_mtime(self, group_qs):
+        if self.group_instance:
+            page_updated_at_max = self.group_instance.updated_at
+        else:
+            page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
+
+        group_class = self.group_class if self.group_class else self.model
+        if self.is_bookmark_filtered:
+            agg_func = self.get_bookmark_updated_at_aggregate(group_class, True)
+            page_bookmark_updated_at = group_qs.aggregate(max=agg_func)["max"]
+        else:
+            page_bookmark_updated_at = None
+
+        return max_none(page_updated_at_max, page_bookmark_updated_at)
+
     @staticmethod
     def _get_zero_pad(book_qs):
         """Get the zero padding for the display."""
@@ -360,22 +375,6 @@ class BrowserView(BrowserBreadcrumbsView):
         recovered_group_list = self.re_cover_multi_groups(group_qs)
         total_count = page_group_count + page_book_count
         return recovered_group_list, book_qs, num_pages, total_count, zero_pad, mtime
-
-    def _get_page_mtime(self, group_qs):
-        if self.group_instance:
-            page_updated_at_max = self.group_instance.updated_at
-        else:
-            page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
-
-        group_class = self.group_class if self.group_class else self.model
-        if self.is_bookmark_filtered:
-            # TODO if not group_instance and bookmark, nest the max queries in to one db query.
-            agg = self.get_bookmark_updated_at_aggregate(group_class, True)
-            page_bookmark_updated_at = group_qs.aggregate(max=agg)["max"]
-        else:
-            page_bookmark_updated_at = datetime.fromtimestamp(0, timezone.utc)
-
-        return max(page_updated_at_max, page_bookmark_updated_at)
 
     def get_object(self):
         """Validate settings and get the querysets."""
