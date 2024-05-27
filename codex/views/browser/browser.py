@@ -1,6 +1,7 @@
 """Views for browsing comic library."""
 
 from copy import deepcopy
+from datetime import datetime, timezone
 from math import ceil, floor, log10
 from os import sep
 from pathlib import Path
@@ -16,7 +17,6 @@ from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
-    Bookmark,
     BrowserGroupModel,
     Comic,
     Folder,
@@ -31,7 +31,7 @@ from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_breadcrumbs import BrowserBreadcrumbsView
-from codex.views.browser.const import GROUP_MTIME_MODEL_MAP, MAX_OBJ_PER_PAGE
+from codex.views.browser.const import MAX_OBJ_PER_PAGE
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
@@ -343,6 +343,9 @@ class BrowserView(BrowserBreadcrumbsView):
         group_qs, book_qs, num_pages, page_group_count, page_book_count = (
             self._paginate(group_qs, book_qs, group_count, book_count)
         )
+        mtime = self._get_page_mtime(
+            group_qs
+        )  # TODO should this be after paginate or not?
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
         if page_book_count:
@@ -356,28 +359,31 @@ class BrowserView(BrowserBreadcrumbsView):
 
         recovered_group_list = self.re_cover_multi_groups(group_qs)
         total_count = page_group_count + page_book_count
-        return recovered_group_list, book_qs, num_pages, total_count, zero_pad
-    def _get_page_mtime(self):
-        if self.group_instance:
-            return self.group_instance.updated_at
-        group = self.kwargs["group"]
-        model = GROUP_MTIME_MODEL_MAP[group]
-        return model.objects.aggregate(max=Max("updated_at"))["max"]
+        return recovered_group_list, book_qs, num_pages, total_count, zero_pad, mtime
 
-    def _get_bookmark_mtime(self):
-        # TODO adjust for session
-        qs = Bookmark.objects.filter(user=self.request.user)
-        if self.model:
-            model_field = self.model.__name__.lower()
-            rel = f"comic__{model_field}__in"
-            pks = self.kwargs["pks"]
-            group_filter = {rel:pks}
-            qs = qs.filter(**group_filter)
-        return qs.aggregate(max=Max("updated_at"))["max"]
+    def _get_page_mtime(self, group_qs):
+        if self.group_instance:
+            page_updated_at_max = self.group_instance.updated_at
+        else:
+            page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
+
+        is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
+            "UNREAD",
+            "IN_PROGRESS",
+        )
+        group_class = self.group_class if self.group_class else self.model
+        if is_bookmark_filtered:
+            # TODO if not group_instance and bookmark, nest the max queries in to one db query.
+            agg = self.get_bookmark_updated_at_aggregate(group_class, True)
+            page_bookmark_updated_at = group_qs.aggregate(max=agg)["max"]
+        else:
+            page_bookmark_updated_at = datetime.fromtimestamp(0, timezone.utc)
+
+        return max(page_updated_at_max, page_bookmark_updated_at)
 
     def get_object(self):
         """Validate settings and get the querysets."""
-        group_list, book_qs, num_pages, total_count, zero_pad = (
+        group_list, book_qs, num_pages, total_count, zero_pad, mtime = (
             self._get_group_and_books()
         )
 
@@ -387,8 +393,6 @@ class BrowserView(BrowserBreadcrumbsView):
         # needs to happen after pagination
         # runs obj list query twice :/
         libraries_exist = Library.objects.filter(covers_only=False).exists()
-        mtime = self._get_page_mtime()
-        bookmark_mtime = self._get_bookmark_mtime()
 
         # construct final data structure
         return MappingProxyType(
@@ -404,7 +408,6 @@ class BrowserView(BrowserBreadcrumbsView):
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
                 "mtime": mtime,
-                "bookmark_mtime": bookmark_mtime,
             }
         )
 

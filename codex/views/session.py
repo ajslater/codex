@@ -2,7 +2,6 @@
 
 from abc import ABC
 from copy import deepcopy
-from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import ClassVar
 
@@ -108,7 +107,6 @@ class BrowserSessionViewBase(SessionViewBaseBase):
             "cover_style": DEFAULTS["coverStyle"],
             "twenty_four_hour_time": False,
             "top_group": DEFAULTS["topGroup"],
-            "mtime": datetime.fromtimestamp(0, timezone.utc),
         }
     )
 
@@ -133,7 +131,6 @@ class ReaderSessionViewBase(SessionViewBaseBase):
             "fit_to": DEFAULTS["fitTo"],
             "two_pages": False,
             "reading_direction": DEFAULTS["readingDirection"],
-            "mtime": datetime.fromtimestamp(0, timezone.utc),
         }
     )
 

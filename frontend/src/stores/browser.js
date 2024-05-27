@@ -3,10 +3,9 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
 import CHOICES from "@/choices";
+import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
-import { getTimestamp } from "@/datetime";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
@@ -69,7 +68,6 @@ export const useBrowserStore = defineStore("browser", {
       twentyFourHourTime: undefined,
       coverStyle: undefined,
       mtime: 0,
-      bookmarkMtime: 0,
     },
     page: {
       adminFlags: {
@@ -188,14 +186,14 @@ export const useBrowserStore = defineStore("browser", {
       }
       return route;
     },
-    maxMtime(state) {
-      return this._maxMtime(state.page.mtime);
+    pageMaxMtime(state) {
+      return this.maxMtime(state.page.mtime);
     },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
     // UTILITY
-    _maxMtime(groupMtime) {
+    maxMtime(groupMtime) {
       return Math.max(this.settings.mtime, groupMtime);
     },
     _maxLenChoices(choices) {
@@ -443,7 +441,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       const params = router.currentRoute.value.params;
       if (!mtime) {
-        mtime = this.maxMtime();
+        mtime = this.pageMaxMtime;
       }
       await API.loadBrowserPage(params, this.settings, mtime)
         .then((response) => {
@@ -461,7 +459,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
         this.settings,
-        this.maxMtime,
+        this.pageMaxMtime,
       )
         .then((response) => {
           this.choices.dynamic = response.data;
@@ -474,7 +472,7 @@ export const useBrowserStore = defineStore("browser", {
         router.currentRoute.value.params,
         fieldName,
         this.settings,
-        this.maxMtime,
+        this.pageMaxMtime,
       )
         .then((response) => {
           this.choices.dynamic[fieldName] = Object.freeze(response.data);

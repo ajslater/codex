@@ -28,16 +28,8 @@ export default {
     finished: {
       type: Boolean,
     },
-    coverPk: {
-      type: Number,
-      default: 0,
-    },
-    coverMtime: {
-      type: String,
-      required: true,
-    },
-    coverCustom: {
-      type: Boolean,
+    cover: {
+      type: Object,
       required: true,
     },
     multiGroup: {
@@ -52,12 +44,7 @@ export default {
   },
   computed: {
     coverSrc() {
-      return getCoverSource(
-        this.coverPk,
-        this.coverMtime,
-        this.group,
-        this.coverCustom,
-      );
+      return getCoverSource(this.group, this.cover);
     },
     childCountClasses() {
       return {

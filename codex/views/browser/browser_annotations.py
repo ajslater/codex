@@ -168,19 +168,34 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(page_count=page_count_sum)
         return qs
 
-    def _annotate_bookmark_updated_at(self, qs, model):
-        if self.is_opds_1_acquisition or self.order_key == "bookmark_updated_at":
-            bm_rel = self.get_bm_rel(model)
-            bm_filter = self._get_my_bookmark_filter(bm_rel)
-            self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
+    def get_bookmark_updated_at_aggregate(self, model, always_max=False):
+        """Get The aggregate function for relevant bookmark.updated_at."""
+        bm_rel = self.get_bm_rel(model)
+        bm_filter = self._get_my_bookmark_filter(bm_rel)
+        self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
 
-            updated_at_rel = f"{bm_rel}__updated_at"
-            bookmark_updated_at_aggregate = self.order_agg_func(
-                updated_at_rel,
-                default=self._NONE_DATETIMEFIELD,
-                filter=bm_filter,
+        updated_at_rel = f"{bm_rel}__updated_at"
+        agg_func = Max if always_max else self.order_agg_func
+        return agg_func(
+            updated_at_rel,
+            default=self._NONE_DATETIMEFIELD,
+            filter=bm_filter,
+        )
+
+    def _annotate_bookmark_updated_at(self, qs, model):
+        is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
+            "UNREAD",
+            "IN_PROGRESS",
+        )
+        if (
+            self.is_opds_1_acquisition
+            or self.order_key == "bookmark_updated_at"
+            or is_bookmark_filtered
+        ):
+            bookmark_updated_at_aggregate = self.get_bookmark_updated_at_aggregate(
+                model
             )
-            if self.TARGET == "opds1":
+            if self.TARGET == "opds1" or is_bookmark_filtered:
                 qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
             else:
                 qs = qs.alias(bookmark_updated_at=bookmark_updated_at_aggregate)
@@ -231,10 +246,22 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         elif cover_style == "i":
             default_cover_pk = None
             default_cover_mtime = None
-        else:
+        elif cover_style == "f":
             # At this point it's only been filtered.
             default_cover_pk = F(self.rel_prefix + "pk")
             default_cover_mtime = F(self.rel_prefix + "updated_at")
+        else:  # cover_style == "d"
+            default_cover_pk = F(self.rel_prefix + "pk")
+            is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
+                "UNREAD",
+                "IN_PROGRESS",
+            )
+            if is_bookmark_filtered:
+                default_cover_mtime = Max(
+                    F(self.rel_prefix + "updated_at"), F("bookmark_updated_at")
+                )
+            else:
+                default_cover_mtime = F(self.rel_prefix + "updated_at")
 
         if model in (Volume, Comic):
             cover_custom = Value(False)
@@ -346,6 +373,18 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
+    def _annotate_mtime(self, qs):
+        """Annotations mtime."""
+        is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
+            "UNREAD",
+            "IN_PROGRESS",
+        )
+        if is_bookmark_filtered:
+            mtime = Max("updated_at", "bookmark_updated_at")
+        else:
+            mtime = F("updated_at")
+        return qs.annotate(mtime=mtime)
+
     def annotate_card_aggregates(self, qs, model):
         """Annotate aggregates that appear the browser card."""
         qs = self._annotate_cover_pk(qs, model)
@@ -355,11 +394,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._annotate_group(qs, model)
         qs = self.annotate_group_names(qs, model)
         qs = self._annotate_bookmarks(qs, model)
-        return self._annotate_progress(qs)
-
-    def annotate_for_metadata(self, qs, _model):
-        """Annotations only for metadata."""
-        return qs.annotate(mtime=Max("updated_at"))
+        qs = self._annotate_progress(qs)
+        return self._annotate_mtime(qs)
 
     def _get_cover_pk_query(self, cover_pks, group_ids):
         """Get Cover Pk queryset for comic queryset."""
@@ -426,7 +462,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 cover_mtime = group.updated_at
             else:
                 cover_mtime = group.__class__.objects.filter(
-                pk__in=group.ids
+                    pk__in=group.ids
                 ).aggregate(updated_at=Max("updated_at"))["updated_at"]
 
             group.cover_mtime = cover_mtime

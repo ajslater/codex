@@ -34,7 +34,6 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     order_value = CharField(read_only=True)
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
-    mtime = TimestampField(read_only=True)
 
 
 class BrowserAdminFlagsSerializer(Serializer):
@@ -64,4 +63,3 @@ class BrowserPageSerializer(Serializer):
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     mtime = TimestampField(read_only=True)
-    bookmark_mtime = TimestampField(read_only=True)

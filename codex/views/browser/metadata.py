@@ -259,7 +259,6 @@ class MetadataView(BrowserAnnotationsView):
         filtered_qs = qs
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
-        qs = self.annotate_for_metadata(qs, self.model)
         group_by = self.get_group_by()
         qs = qs.group_by(group_by)
         qs = self._annotate_values_and_fks(qs, filtered_qs)
