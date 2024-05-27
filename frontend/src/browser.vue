@@ -35,14 +35,14 @@ export default {
     ...mapGetters(useAuthStore, ["isAuthorized"]),
   },
   watch: {
-    $route: function () {
+    $route() {
       window.scrollTo(0, 0);
       this.loadBrowserPage();
     },
-    user: function () {
+    user() {
       this.loadSettings();
     },
-    isAuthorized: function () {
+    isAuthorized() {
       this.loadSettings();
     },
   },
