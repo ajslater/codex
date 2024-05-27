@@ -1,5 +1,8 @@
-import { getReaderBasePath, getReaderPath } from "@/api/v3/common";
-import { serializeParams } from "@/stores/common";
+import {
+  getReaderBasePath,
+  getReaderPath,
+  serializeParams,
+} from "@/api/v3/common";
 
 import { HTTP } from "./base";
 

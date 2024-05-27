@@ -1,4 +1,4 @@
-import { serializeParams } from "@/stores/common";
+import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 

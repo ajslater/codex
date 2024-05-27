@@ -68,11 +68,7 @@ const _trimObject = (obj) => {
   return result;
 };
 
-const serializeParams = (data, ts, jsonKeys) => {
-  const params = _trimObject(data);
-  if (params.q === "") {
-    delete params.q;
-  }
+const _serialize = (params, jsonKeys) => {
   // Since axios 1.0 I have to manually serialize complex objects
   if (jsonKeys) {
     for (const key of jsonKeys) {
@@ -81,10 +77,24 @@ const serializeParams = (data, ts, jsonKeys) => {
       }
     }
   }
+};
+
+const _addTimestamp = (params, ts) => {
   if (!ts) {
     ts = useCommonStore().timestamp;
   }
   params.ts = ts;
+};
+
+export const serializeParams = (data, ts, jsonKeys) => {
+  const params = _trimObject(data);
+  /* TODO test
+  if (params.q === "") {
+    delete params.q;
+  }
+  */
+  _serialize(params, jsonKeys);
+  _addTimestamp(params, ts);
   return params;
 };
 
