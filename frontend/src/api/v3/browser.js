@@ -61,9 +61,12 @@ const loadBrowserPage = ({ group, pks, page }, data, ts) => {
   return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
-const getMetadata = ({ group, pks }, data, ts) => {
+const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
-  const params = preSerialize(data, ts);
+  const mtime = Math.max(group.mtime, settings.mtime);
+  const data = { ...settings };
+  delete data.mtime;
+  const params = preSerialize(data, mtime);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
