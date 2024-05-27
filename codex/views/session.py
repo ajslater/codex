@@ -80,7 +80,6 @@ class BrowserSessionViewBase(SessionViewBaseBase):
             "locations": [],
             "monochrome": [],
             "original_format": [],
-            "q": "",
             "reading_direction": [],
             "series_groups": [],
             "stories": [],
