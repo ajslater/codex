@@ -72,6 +72,7 @@ export default {
 .coverStyleSelect {
   padding-left: 18px;
   padding-top: 10px;
+  padding-bottom: 2px;
 }
 .coverStyleSelection { 
   padding-left: 0px;
