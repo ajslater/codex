@@ -302,16 +302,26 @@ export const useBrowserStore = defineStore("browser", {
     // MUTATIONS
     _addSettings(data) {
       this.$patch((state) => {
+        let updateTimestamp = false;
         for (let [key, value] of Object.entries(data)) {
-          state.settings[key] =
-            typeof state.settings[key] === "object"
-              ? { ...state.settings[key], ...value }
-              : (state.settings[key] = value);
+          let newValue;
+          if (typeof state.settings[key] === "object") {
+            newValue = { ...state.settings[key], ...value };
+          } else {
+            newValue = value;
+          }
+          if (!_.isEqual(state.settings[key], newValue)) {
+            state.settings[key] = newValue;
+            updateTimestamp = true;
+          }
         }
-        if (state.settings.q) {
+        if (state.settings.q && !state.isSearchOpen) {
           state.isSearchOpen = true;
+          updateTimestamp = true;
         }
-        state.settings.mtime = getTimestamp();
+        if (updateTimestamp) {
+          state.settings.mtime = getTimestamp();
+        }
       });
       this.startSearchHideTimer();
     },
