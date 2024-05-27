@@ -1,5 +1,7 @@
 """Custom fields."""
+
 from datetime import datetime
+from math import floor
 
 from rest_framework.fields import Field
 
@@ -10,7 +12,7 @@ class TimestampField(Field):
     def to_representation(self, value):
         """Convert to int from datetime, or castable."""
         if isinstance(value, datetime):
-            return value.timestamp()
+            value = floor(value.timestamp())
         return int(value)
 
     def to_internal_value(self, data):
