@@ -9,8 +9,8 @@ from django.utils.timezone import now
 from humanize import naturaldelta
 
 from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
+from codex.librarian.importer.cache import CacheMixin
 from codex.librarian.importer.const import FIS, FKS, M2M_MDS, MDS
-from codex.librarian.importer.covers import CoversMixin
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
@@ -37,7 +37,7 @@ class ComicImporterThread(
     UpdateComicsMixin,
     FailedImportsMixin,
     MovedMixin,
-    CoversMixin,
+    CacheMixin,
 ):
     """A worker to handle all bulk database updates."""
 
@@ -386,7 +386,9 @@ class ComicImporterThread(
             deleted_comic_groups = {}
             changed += self.delete(library, task, deleted_comic_groups)
 
-            self.update_groups_for_covers(import_start_time, deleted_comic_groups)
+            self.update_groups_with_changed_comics(
+                import_start_time, deleted_comic_groups
+            )
 
             if changed:
                 cache.clear()

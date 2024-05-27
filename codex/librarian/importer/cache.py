@@ -6,10 +6,10 @@ from django.db.models.query import Q
 from codex.models import StoryArc
 
 
-class CoversMixin:
+class CacheMixin:
     """Update Groups timestamp for cover cache busting."""
 
-    def update_groups_for_covers(self, start_time, deleted_comic_groups):
+    def update_groups_with_changed_comics(self, start_time, deleted_comic_groups):
         """Update timestamps for each group for cover cache busting."""
         total_count = 0
         now = Now()
