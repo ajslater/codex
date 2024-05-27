@@ -330,9 +330,9 @@ class BrowserView(BrowserBreadcrumbsView):
         else:
             page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
 
-        group_class = self.group_class if self.group_class else self.model
         if self.is_bookmark_filtered:
-            agg_func = self.get_bookmark_updated_at_aggregate(group_class, True)
+            # TODO apply the filters to the actual group_class query?
+            agg_func = self.get_bookmark_updated_at_aggregate(self.model, True)
             page_bookmark_updated_at = group_qs.aggregate(max=agg_func)["max"]
         else:
             page_bookmark_updated_at = None
