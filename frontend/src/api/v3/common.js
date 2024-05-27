@@ -35,10 +35,6 @@ export const getBookInBrowserURL = ({ pk, mtime }) => {
   return `${BASE_URL}/book.pdf?mtime=${mtime}`;
 };
 
-export const getTSParams = () => {
-  return { ts: useCommonStore().timestamp };
-};
-
 const getVersions = (ts) => {
   const params = { ts };
   return HTTP.get("/version", { params });
@@ -48,12 +44,56 @@ const getOPDSURLs = () => {
   return HTTP.get("/opds-urls");
 };
 
+const _trimObject = (obj) => {
+  // Remove empty and undefined objects because they're default values.
+  if (obj === undefined || obj === null) {
+    return {};
+  }
+  const isArray = Array.isArray(obj);
+  const result = isArray ? [] : {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined || val === null) {
+      continue;
+    }
+    const isValObject = val && typeof val === "object";
+    const trimmedVal = isValObject ? _trimObject(val) : val;
+    if (!isValObject || Object.keys(trimmedVal).length > 0) {
+      if (isArray) {
+        result.push(trimmedVal);
+      } else {
+        result[key] = trimmedVal;
+      }
+    }
+  }
+  return result;
+};
+
+const serializeParams = (data, ts, jsonKeys) => {
+  const params = _trimObject(data);
+  if (params.q === "") {
+    delete params.q;
+  }
+  // Since axios 1.0 I have to manually serialize complex objects
+  if (jsonKeys) {
+    for (const key of jsonKeys) {
+      if (params[key]) {
+        params[key] = JSON.stringify(params[key]);
+      }
+    }
+  }
+  if (!ts) {
+    ts = useCommonStore().timestamp;
+  }
+  params.ts = ts;
+  return params;
+};
+
 export default {
   downloadIOSPWAFix,
   getBookInBrowserURL,
   getReaderBasePath,
   getReaderPath,
-  getTSParams,
   getVersions,
   getOPDSURLs,
+  serializeParams,
 };

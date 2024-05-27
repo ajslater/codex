@@ -1,4 +1,5 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
+import _ from "lodash";
 import { defineStore } from "pinia";
 import titleize from "titleize";
 
@@ -297,10 +298,14 @@ export const useReaderStore = defineStore("reader", {
         };
         ensureNoTwoPageVertical(this.books.current.settings);
       } else {
-        this.readerSettings = {
+        const newSettings = {
           ...this.readerSettings,
           ...updates,
         };
+        if (!_.isEqual(this.readerSettings, newSettings)) {
+          newSettings.mtime = Date.now();
+          this.readerSettings = newSettings;
+        }
       }
     },
     ///////////////////////////////////////////////////////////////////////////
@@ -367,7 +372,7 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadReaderSettings() {
-      return API.getReaderSettings()
+      return API.getReaderSettings(this.readerSettings.mtime)
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
