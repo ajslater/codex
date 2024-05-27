@@ -155,6 +155,8 @@ class BrowserBaseView(
         params.update(serializer.validated_data)
         self.params = MappingProxyType(params)
 
+        self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
+
     def set_order_key(self):
         """Unused until browser."""
 

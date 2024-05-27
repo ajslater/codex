@@ -353,7 +353,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async clearFilters(clearSearch = false) {
       this.$patch((state) => {
-        state.settings.filters = { bookmark: "ALL" };
+        state.settings.filters = { bookmark: "" };
         state.filterMode = "base";
         if (clearSearch) {
           state.settings.q = "";

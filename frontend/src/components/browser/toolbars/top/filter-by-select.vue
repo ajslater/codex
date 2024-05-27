@@ -122,7 +122,7 @@ export default {
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     padRight() {
-      return this.$vuetify.display.xs && this.bookmarkFilter == "ALL";
+      return this.$vuetify.display.xs && !this.bookmarkFilter;
     },
   },
   methods: {

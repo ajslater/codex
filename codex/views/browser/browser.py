@@ -367,12 +367,8 @@ class BrowserView(BrowserBreadcrumbsView):
         else:
             page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
 
-        is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
-            "UNREAD",
-            "IN_PROGRESS",
-        )
         group_class = self.group_class if self.group_class else self.model
-        if is_bookmark_filtered:
+        if self.is_bookmark_filtered:
             # TODO if not group_instance and bookmark, nest the max queries in to one db query.
             agg = self.get_bookmark_updated_at_aggregate(group_class, True)
             page_bookmark_updated_at = group_qs.aggregate(max=agg)["max"]

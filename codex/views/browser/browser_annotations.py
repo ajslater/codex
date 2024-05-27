@@ -183,19 +183,15 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         )
 
     def _annotate_bookmark_updated_at(self, qs, model):
-        is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
-            "UNREAD",
-            "IN_PROGRESS",
-        )
         if (
             self.is_opds_1_acquisition
             or self.order_key == "bookmark_updated_at"
-            or is_bookmark_filtered
+            or self.is_bookmark_filtered
         ):
             bookmark_updated_at_aggregate = self.get_bookmark_updated_at_aggregate(
                 model
             )
-            if self.TARGET == "opds1" or is_bookmark_filtered:
+            if self.TARGET == "opds1" or self.is_bookmark_filtered:
                 qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
             else:
                 qs = qs.alias(bookmark_updated_at=bookmark_updated_at_aggregate)
@@ -252,11 +248,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             default_cover_mtime = F(self.rel_prefix + "updated_at")
         else:  # cover_style == "d"
             default_cover_pk = F(self.rel_prefix + "pk")
-            is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
-                "UNREAD",
-                "IN_PROGRESS",
-            )
-            if is_bookmark_filtered:
+            if self.is_bookmark_filtered:
                 default_cover_mtime = Max(
                     F(self.rel_prefix + "updated_at"), F("bookmark_updated_at")
                 )
@@ -375,11 +367,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_mtime(self, qs):
         """Annotations mtime."""
-        is_bookmark_filtered = self.params.get("filters", {}).get("bookmark") in (
-            "UNREAD",
-            "IN_PROGRESS",
-        )
-        if is_bookmark_filtered:
+        if self.is_bookmark_filtered:
             mtime = Max("updated_at", "bookmark_updated_at")
         else:
             mtime = F("updated_at")
