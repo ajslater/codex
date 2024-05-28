@@ -11,7 +11,7 @@ class BookmarkFilterMixin:
         rel_prefix = self.get_rel_prefix(model)  # type: ignore
         return rel_prefix + "bookmark"
 
-    def _get_my_bookmark_filter(self, bm_rel):
+    def get_my_bookmark_filter(self, bm_rel):
         """Get a filter for my session or user defined bookmarks."""
         if self.request.user.is_authenticated:  # type: ignore
             my_bookmarks_kwargs = {f"{bm_rel}__user": self.request.user}  # type: ignore
@@ -27,7 +27,7 @@ class BookmarkFilterMixin:
         choice = self.params["filters"].get("bookmark", "")  # type: ignore
         if choice:
             bm_rel = self.get_bm_rel(model)
-            my_bookmark_filter = self._get_my_bookmark_filter(bm_rel)
+            my_bookmark_filter = self.get_my_bookmark_filter(bm_rel)
             if choice == "READ":
                 bookmark_filter = my_bookmark_filter & Q(
                     **{f"{bm_rel}__finished": True}

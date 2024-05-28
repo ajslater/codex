@@ -34,6 +34,7 @@ from codex.models.functions import JsonGroupArray
 from codex.views.browser.browser_order_by import (
     BrowserOrderByView,
 )
+from codex.views.const import STORY_ARC_GROUP
 from codex.views.mixins import SharedAnnotationsMixin
 
 _REL_MAP = MappingProxyType(
@@ -133,7 +134,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Get story_arc__pk
         group = self.kwargs["group"]
         pks = self.kwargs["pks"]
-        if group == self.STORY_ARC_GROUP and pks:
+        if group == STORY_ARC_GROUP and pks:
             story_arc_pks = pks
         else:
             story_arc_pks = self.params.get("filters", {}).get(  # type: ignore
@@ -171,7 +172,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def get_bookmark_updated_at_aggregate(self, model, always_max=False):
         """Get The aggregate function for relevant bookmark.updated_at."""
         bm_rel = self.get_bm_rel(model)
-        bm_filter = self._get_my_bookmark_filter(bm_rel)
+        bm_filter = self.get_my_bookmark_filter(bm_rel)
         self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
 
         updated_at_rel = f"{bm_rel}__updated_at"
@@ -290,7 +291,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             bm_rel, bm_filter = self.bm_annotation_data[model]  # type: ignore
         else:
             bm_rel = self.get_bm_rel(model)
-            bm_filter = self._get_my_bookmark_filter(bm_rel)
+            bm_filter = self.get_my_bookmark_filter(bm_rel)
 
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
@@ -369,14 +370,11 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_mtime(self, qs):
         """Annotations mtime."""
-        if self.is_bookmark_filtered:
-            mtime = Case(
-                When(bookmark_updated_at__gt=F("updated_at")),
-                then=F("bookmark_updated_at"),
-                default=F("updated_at"),
-            )
-        else:
-            mtime = F("updated_at")
+        mtime = Case(
+            When(bookmark_updated_at__gt=F("updated_at")),
+            then=F("bookmark_updated_at"),
+            default=F("updated_at"),
+        )
         return qs.annotate(mtime=mtime)
 
     def annotate_card_aggregates(self, qs, model):

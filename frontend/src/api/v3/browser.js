@@ -29,8 +29,8 @@ const getMetadata = ({ group, pks }, settings) => {
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
-const getSettings = (ts) => {
-  const params = serializeParams({}, ts);
+const getSettings = () => {
+  const params = serializeParams({});
   return HTTP.get("/r/settings", { params });
 };
 

@@ -32,7 +32,7 @@ export const getReaderBasePath = (pk) => {
 
 export const getBookInBrowserURL = ({ pk, mtime }) => {
   const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
-  return `${BASE_URL}/book.pdf?mtime=${mtime}`;
+  return `${BASE_URL}/book.pdf?ts=${mtime}`;
 };
 
 const getVersions = (ts) => {
@@ -42,6 +42,13 @@ const getVersions = (ts) => {
 
 const getOPDSURLs = () => {
   return HTTP.get("/opds-urls");
+};
+
+export const getMtime = (groups, useBookmarkFilter) => {
+  const params = serializeParams({ groups, useBookmarkFilter }, Date.now(), [
+    "groups",
+  ]);
+  return HTTP.get("/mtime", { params });
 };
 
 const _trimObject = (obj) => {
@@ -88,11 +95,6 @@ const _addTimestamp = (params, ts) => {
 
 export const serializeParams = (data, ts, jsonKeys) => {
   const params = _trimObject(data);
-  /* TODO test
-  if (params.q === "") {
-    delete params.q;
-  }
-  */
   _serialize(params, jsonKeys);
   _addTimestamp(params, ts);
   return params;
@@ -106,4 +108,5 @@ export default {
   getVersions,
   getOPDSURLs,
   serializeParams,
+  getMtime,
 };

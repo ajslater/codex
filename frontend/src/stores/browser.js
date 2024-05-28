@@ -2,6 +2,7 @@ import _ from "lodash";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
+import COMMON_API from "@/api/v3/common";
 import CHOICES from "@/choices";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
@@ -67,7 +68,6 @@ export const useBrowserStore = defineStore("browser", {
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
       twentyFourHourTime: undefined,
       coverStyle: undefined,
-      mtime: 0,
     },
     page: {
       adminFlags: {
@@ -186,16 +186,10 @@ export const useBrowserStore = defineStore("browser", {
       }
       return route;
     },
-    pageMaxMtime(state) {
-      return this.maxMtime(state.page.mtime);
-    },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
     // UTILITY
-    maxMtime(groupMtime) {
-      return Math.max(this.settings.mtime, groupMtime);
-    },
     _maxLenChoices(choices) {
       let maxLen = 0;
       for (const item of choices) {
@@ -302,7 +296,6 @@ export const useBrowserStore = defineStore("browser", {
     // MUTATIONS
     _addSettings(data) {
       this.$patch((state) => {
-        let updateTimestamp = false;
         for (let [key, value] of Object.entries(data)) {
           let newValue;
           if (typeof state.settings[key] === "object") {
@@ -312,15 +305,10 @@ export const useBrowserStore = defineStore("browser", {
           }
           if (!_.isEqual(state.settings[key], newValue)) {
             state.settings[key] = newValue;
-            updateTimestamp = true;
           }
         }
         if (state.settings.q && !state.isSearchOpen) {
           state.isSearchOpen = true;
-          updateTimestamp = true;
-        }
-        if (updateTimestamp) {
-          state.settings.mtime = getTimestamp();
         }
       });
       this.startSearchHideTimer();
@@ -361,7 +349,6 @@ export const useBrowserStore = defineStore("browser", {
           state.settings.orderReverse = false;
         }
         state.browserPageLoaded = true;
-        state.settings.mtime = getTimestamp();
       });
       await this.loadBrowserPage();
     },
@@ -370,8 +357,8 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       await API.setGroupBookmarks(params, { finished }).then(() => {
-        const mtime = getTimestamp();
-        this.loadBrowserPage(mtime);
+        self.page.mtime = getTimestamp();
+        this.loadBrowserPage();
         return true;
       });
     },
@@ -424,7 +411,7 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      await API.getSettings(this.settings.mtime)
+      await API.getSettings()
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
@@ -444,15 +431,15 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
+      if (!mtime) {
+        mtime = this.page.mtime;
+      }
       if (!this.browserPageLoaded) {
         return this.loadSettings();
       } else {
         this.browserPageLoaded = false;
       }
       const params = router.currentRoute.value.params;
-      if (!mtime) {
-        mtime = this.pageMaxMtime;
-      }
       await API.loadBrowserPage(params, this.settings, mtime)
         .then((response) => {
           const page = Object.freeze({ ...response.data });
@@ -469,7 +456,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
         this.settings,
-        this.pageMaxMtime,
+        this.page.mtime,
       )
         .then((response) => {
           this.choices.dynamic = response.data;
@@ -482,11 +469,26 @@ export const useBrowserStore = defineStore("browser", {
         router.currentRoute.value.params,
         fieldName,
         this.settings,
-        this.pageMaxMtime,
+        this.page.mtime,
       )
         .then((response) => {
           this.choices.dynamic[fieldName] = Object.freeze(response.data);
           return true;
+        })
+        .catch(console.error);
+    },
+    async updateMtimes() {
+      const route = router.currentRoute.value;
+      const group =
+        route.params.group != "r" ? route.params.group : this.page.modelGroup;
+      const pks = route.params.pks;
+      return await COMMON_API.getMtime([{ group, pks }], true)
+        .then((response) => {
+          const newMtime = response.data.maxMtime;
+          if (newMtime > this.page.mtime) {
+            this.choices.dynamic = undefined;
+            this.loadBrowserPage(newMtime);
+          }
         })
         .catch(console.error);
     },

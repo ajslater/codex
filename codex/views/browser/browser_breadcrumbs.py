@@ -4,7 +4,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
-from codex.views.const import GROUP_NAME_MAP
+from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, ROOT_GROUP, STORY_ARC_GROUP
 
 if TYPE_CHECKING:
     from codex.models.groups import Folder
@@ -51,9 +51,9 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
         up_route = breadcrumbs[-1]
         up_group = up_route["group"]
         up_pks = up_route["pks"]
-        if group == self.STORY_ARC_GROUP:
+        if group == STORY_ARC_GROUP:
             is_child = group == up_group and pks
-        elif group == self.FOLDER_GROUP:
+        elif group == FOLDER_GROUP:
             is_child = self._is_breadcrumbs_child_folder(
                 is_child, group, up_group, up_pks
             )
@@ -68,7 +68,7 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
         """Create the only story_arc parent."""
         return [
             {
-                "group": self.STORY_ARC_GROUP,
+                "group": STORY_ARC_GROUP,
                 "pks": (),
                 "page": 1,
                 "name": "",
@@ -84,7 +84,7 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
             pks = (folder.pk,) if folder else ()
             name = folder.name if folder else ""
             parent_route = {
-                "group": self.FOLDER_GROUP,
+                "group": FOLDER_GROUP,
                 "pks": pks,
                 "page": 1,
                 "name": name,
@@ -94,7 +94,7 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
 
     def _create_breadcrumbs_group(self):
         """Create browse group parents."""
-        breadcrumbs = [{"group": self.ROOT_GROUP, "pks": (), "page": 1, "name": ""}]
+        breadcrumbs = [{"group": ROOT_GROUP, "pks": (), "page": 1, "name": ""}]
         show = self.params["show"]
         for show_group, enabled in show.items():
             if not enabled or show_group not in self.valid_nav_groups:  # type: ignore
@@ -119,9 +119,9 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
         if not pks:
             return []
         group = self.kwargs["group"]
-        if group == self.STORY_ARC_GROUP:
+        if group == STORY_ARC_GROUP:
             breadcrumbs = self._create_breadcrumbs_story_arc()
-        elif group == self.FOLDER_GROUP:
+        elif group == FOLDER_GROUP:
             breadcrumbs = self._create_breadcrumbs_folder()
         else:
             breadcrumbs = self._create_breadcrumbs_group()

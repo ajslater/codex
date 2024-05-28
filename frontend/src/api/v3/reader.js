@@ -13,8 +13,8 @@ const getReaderInfo = (data, ts) => {
   return HTTP.get(`c/${pk}`, { params });
 };
 
-const getReaderSettings = (ts) => {
-  const params = serializeParams({}, ts);
+const getReaderSettings = () => {
+  const params = serializeParams({});
   return HTTP.get(`c/settings`, { params });
 };
 

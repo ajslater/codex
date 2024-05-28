@@ -6,13 +6,16 @@ import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
+import { useReaderStore } from "@/stores/reader";
 import { store } from "@/stores/store";
 
 const libraryChanged = function () {
   useCommonStore().setTimestamp();
   const route = router.currentRoute.value;
   if (route.name === "browser") {
-    useBrowserStore().loadBrowserPage({ showProgress: false });
+    useBrowserStore().updateMtimes();
+  } else if (route.name == "reader") {
+    useReaderStore().updateMtimes();
   } else if (route.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }

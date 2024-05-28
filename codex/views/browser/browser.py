@@ -32,6 +32,7 @@ from codex.util import max_none
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_breadcrumbs import BrowserBreadcrumbsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
+from codex.views.const import COMIC_GROUP, FOLDER_GROUP, ROOT_GROUP, STORY_ARC_GROUP
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
@@ -112,14 +113,14 @@ class BrowserView(BrowserBreadcrumbsView):
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
         group = self.kwargs["group"]
-        if group == self.FOLDER_GROUP:
+        if group == FOLDER_GROUP:
             return group
-        if group == self.STORY_ARC_GROUP:
+        if group == STORY_ARC_GROUP:
             pks = self.kwargs.get("pks")
-            return self.COMIC_GROUP if pks else group
+            return COMIC_GROUP if pks else group
         if group == self.valid_nav_groups[-1]:
             # special case for lowest valid group
-            return self.COMIC_GROUP
+            return COMIC_GROUP
         return self.valid_nav_groups[self.valid_nav_groups.index(group) + 1]
 
     def _get_common_queryset(self, model):
@@ -330,12 +331,8 @@ class BrowserView(BrowserBreadcrumbsView):
         else:
             page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
 
-        if self.is_bookmark_filtered:
-            # TODO apply the filters to the actual group_class query?
-            agg_func = self.get_bookmark_updated_at_aggregate(self.model, True)
-            page_bookmark_updated_at = group_qs.aggregate(max=agg_func)["max"]
-        else:
-            page_bookmark_updated_at = None
+        agg_func = self.get_bookmark_updated_at_aggregate(self.model, True)
+        page_bookmark_updated_at = group_qs.aggregate(max=agg_func)["max"]
 
         return max_none(page_updated_at_max, page_bookmark_updated_at)
 
@@ -418,7 +415,7 @@ class BrowserView(BrowserBreadcrumbsView):
             if allowed:
                 valid_top_groups.append(nav_group)
         # Issues is always a valid top group
-        valid_top_groups += [self.COMIC_GROUP]
+        valid_top_groups += [COMIC_GROUP]
 
         return valid_top_groups
 
@@ -450,7 +447,7 @@ class BrowserView(BrowserBreadcrumbsView):
         """
         top_group = self.params["top_group"]
         nav_group = self.kwargs["group"]
-        valid_nav_groups = [self.ROOT_GROUP]
+        valid_nav_groups = [ROOT_GROUP]
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
             if top_group == possible_nav_group:
@@ -462,7 +459,7 @@ class BrowserView(BrowserBreadcrumbsView):
                 if nav_group not in valid_nav_groups:
                     reason = (
                         f"Nav group {nav_group} unavailable, "
-                        f"redirect to {self.ROOT_GROUP}"
+                        f"redirect to {ROOT_GROUP}"
                     )
                     self._raise_redirect(reason)
                 break
@@ -477,7 +474,7 @@ class BrowserView(BrowserBreadcrumbsView):
             settings_mask = {"top_group": valid_top_groups[0]}
             self._raise_redirect(reason, settings_mask=settings_mask)
 
-        valid_top_groups = (self.FOLDER_GROUP,)
+        valid_top_groups = (FOLDER_GROUP,)
         self._validate_top_group(valid_top_groups)
         self.valid_nav_groups = valid_top_groups
 
@@ -491,7 +488,7 @@ class BrowserView(BrowserBreadcrumbsView):
         # Validate pks
         nav_group = self.kwargs["group"]
         pks = self.kwargs["pks"]
-        if nav_group == self.ROOT_GROUP and (pks and 0 not in pks):
+        if nav_group == ROOT_GROUP and (pks and 0 not in pks):
             # r never has pks
             reason = f"Redirect r with {pks=} to pks 0"
             self._raise_redirect(reason)
@@ -502,16 +499,16 @@ class BrowserView(BrowserBreadcrumbsView):
 
     def _validate_story_arc_settings(self):
         """Validate story arc settings."""
-        valid_top_groups = (self.STORY_ARC_GROUP,)
+        valid_top_groups = (STORY_ARC_GROUP,)
         self._validate_top_group(valid_top_groups)
         self.valid_nav_groups = valid_top_groups
 
     def validate_settings(self):
         """Validate group and top group settings."""
         group = self.kwargs["group"]
-        if group == self.FOLDER_GROUP:
+        if group == FOLDER_GROUP:
             self._validate_folder_settings()
-        elif group == self.STORY_ARC_GROUP:
+        elif group == STORY_ARC_GROUP:
             self._validate_story_arc_settings()
         else:
             self._validate_browser_group_settings()

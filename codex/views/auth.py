@@ -1,7 +1,5 @@
 """Views authorization."""
 
-from types import MappingProxyType
-
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
@@ -16,7 +14,6 @@ from codex.models import AdminFlag, Comic, Folder, StoryArc, UserActive
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
 from codex.serializers.choices import CHOICES
 from codex.serializers.mixins import OKSerializer
-from codex.views.const import GROUP_NAME_MAP
 
 LOG = get_logger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}
@@ -87,19 +84,6 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
 
 class GroupACLMixin:
     """Filter group ACLS for views."""
-
-    ROOT_GROUP = "r"
-    FOLDER_GROUP = "f"
-    STORY_ARC_GROUP = "a"
-    COMIC_GROUP = "c"
-    GROUP_RELATION = MappingProxyType(
-        {
-            **GROUP_NAME_MAP,
-            COMIC_GROUP: "pk",
-            FOLDER_GROUP: "parent_folder",
-            STORY_ARC_GROUP: "story_arc_numbers__story_arc",
-        }
-    )
 
     def get_rel_prefix(self, model):
         """Return the relation prfiex for most fields."""

@@ -85,3 +85,4 @@ class ReaderComicsSerializer(Serializer):
     arcs = ReaderArcSerializer(many=True, read_only=True)
     arc = ReaderArcSerializer(read_only=True)
     close_route = RouteSerializer(read_only=True)
+    mtime = TimestampField(read_only=True)

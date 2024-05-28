@@ -17,7 +17,9 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Bookmark, Comic
 from codex.serializers.reader import ReaderArcSerializer, ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
+from codex.util import max_none
 from codex.views.bookmark import BookmarkBaseView
+from codex.views.const import FOLDER_GROUP
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.session import BrowserSessionViewBase
 
@@ -113,7 +115,7 @@ class ReaderView(
             arc_index = F("story_arc_numbers__number")
             ordering = ("arc_index", "date")
             arc_pk_select_related = ()
-        elif arc_group == self.FOLDER_GROUP:
+        elif arc_group == FOLDER_GROUP:
             # folder mode
             rel = "parent_folder"
             fields = (*self._COMIC_FIELDS, "parent_folder")
@@ -228,9 +230,10 @@ class ReaderView(
         if efv_flag:
             folder = book.parent_folder
             folder_arc = {
-                "group": self.FOLDER_GROUP,
+                "group": FOLDER_GROUP,
                 "pks": (folder.pk,),
                 "name": folder.name,
+                "mtime": folder.updated_at,
             }
         else:
             folder_arc = None
@@ -244,7 +247,14 @@ class ReaderView(
             if book.series.pk not in arc_pks:
                 arc_pks = (book.series.pk,)
             arc = (
-                {"group": "s", "pks": arc_pks, "name": series.name} if series else None
+                {
+                    "group": "s",
+                    "pks": arc_pks,
+                    "name": series.name,
+                    "mtime": series.updated_at,
+                }
+                if series
+                else None
             )
         else:
             arc = None
@@ -259,6 +269,7 @@ class ReaderView(
                 "group": "a",
                 "pks": (sa.pk,),
                 "name": sa.name,
+                "mtime": sa.updated_at,
             }
             sas.append(arc)
         return sorted(sas, key=lambda x: x["name"])
@@ -271,7 +282,7 @@ class ReaderView(
 
         # order top arcs
         top_group = self.params.get("top_group")
-        if top_group == self.FOLDER_GROUP and folder_arc:
+        if top_group == FOLDER_GROUP and folder_arc:
             arc = folder_arc
             other_arc = series_arc
         else:
@@ -286,7 +297,11 @@ class ReaderView(
         # story arcs
         sas = self._get_story_arcs(book)
         arcs += sas
-        return arcs
+
+        max_mtime = None
+        for arc in arcs:
+            max_mtime = max_none(max_mtime, arc["mtime"])
+        return arcs, max_mtime
 
     def _raise_not_found(self):
         """Raise not found exception."""
@@ -343,7 +358,7 @@ class ReaderView(
         }
 
         # Arcs
-        arcs = self._get_arcs(current)
+        arcs, mtime = self._get_arcs(current)
 
         arc = self.params.get("arc", {})
         if not arc.get("group"):
@@ -355,7 +370,13 @@ class ReaderView(
         close_route = self.last_route
         close_route.pop("name", None)
 
-        return {"books": books, "arcs": arcs, "arc": arc, "close_route": close_route}
+        return {
+            "books": books,
+            "arcs": arcs,
+            "arc": arc,
+            "close_route": close_route,
+            "mtime": mtime,
+        }
 
     def _parse_params(self):
         data = self.request.GET
