@@ -356,7 +356,7 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
-      await API.setGroupBookmarks(params, { finished }).then(() => {
+      await COMMON_API.setGroupBookmarks(params, { finished }).then(() => {
         self.page.mtime = getTimestamp();
         this.loadBrowserPage();
         return true;

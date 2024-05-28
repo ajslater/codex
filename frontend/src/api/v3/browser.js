@@ -34,19 +34,10 @@ const getSettings = () => {
   return HTTP.get("/r/settings", { params });
 };
 
-const setGroupBookmarks = ({ group, ids }, data) => {
-  if (data.fitTo === null) {
-    data.fitTo = "";
-  }
-  const pks = ids.join(",");
-  return HTTP.patch(`${group}/${pks}/bookmark`, data);
-};
-
 export default {
   getAvailableFilterChoices,
   getFilterChoices,
   getMetadata,
   getSettings,
   loadBrowserPage,
-  setGroupBookmarks,
 };

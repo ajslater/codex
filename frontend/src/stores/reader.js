@@ -3,7 +3,6 @@ import { defineStore } from "pinia";
 import titleize from "titleize";
 
 // import { reactive } from "vue";
-import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
@@ -434,13 +433,13 @@ export const useReaderStore = defineStore("reader", {
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
-      await BROWSER_API.setGroupBookmarks(groupParams, updates);
+      await COMMON_API.setGroupBookmarks(groupParams, updates);
     },
     async setSettingsLocal(data) {
       this._updateSettings(data, true);
 
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await BROWSER_API.setGroupBookmarks(
+      await COMMON_API.setGroupBookmarks(
         groupParams,
         this.books.current.settings,
       );

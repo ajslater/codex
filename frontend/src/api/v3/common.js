@@ -2,55 +2,6 @@ import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
 
-const downloadIOSPWAFix = (href, fileName) => {
-  // iOS has a download bug inside PWAs. The user is trapped in the
-  // download screen and cannot return to the app.
-  // https://developer.apple.com/forums/thread/95911
-  // This works around that by creating temporary blob link which
-  // makes the PWA display browser back controls
-  HTTP.get(href, { responseType: "blob" })
-    .then((response) => {
-      const link = document.createElement("a");
-      const blob = new Blob([response.data], {
-        type: "application/octet-stream",
-      });
-      link.href = window.URL.createObjectURL(blob);
-      link.download = fileName;
-      link.click();
-      return window.URL.revokeObjectURL(response.data);
-    })
-    .catch(console.warn);
-};
-
-export const getReaderPath = (pk) => {
-  return `c/${pk}`;
-};
-
-export const getReaderBasePath = (pk) => {
-  return window.CODEX.API_V3_PATH + getReaderPath(pk);
-};
-
-export const getBookInBrowserURL = ({ pk, mtime }) => {
-  const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
-  return `${BASE_URL}/book.pdf?ts=${mtime}`;
-};
-
-const getVersions = (ts) => {
-  const params = { ts };
-  return HTTP.get("/version", { params });
-};
-
-const getOPDSURLs = () => {
-  return HTTP.get("/opds-urls");
-};
-
-export const getMtime = (groups, useBookmarkFilter) => {
-  const params = serializeParams({ groups, useBookmarkFilter }, Date.now(), [
-    "groups",
-  ]);
-  return HTTP.get("/mtime", { params });
-};
-
 const _trimObject = (obj) => {
   // Remove empty and undefined objects because they're default values.
   if (obj === undefined || obj === null) {
@@ -100,13 +51,70 @@ export const serializeParams = (data, ts, jsonKeys) => {
   return params;
 };
 
+const downloadIOSPWAFix = (href, fileName) => {
+  // iOS has a download bug inside PWAs. The user is trapped in the
+  // download screen and cannot return to the app.
+  // https://developer.apple.com/forums/thread/95911
+  // This works around that by creating temporary blob link which
+  // makes the PWA display browser back controls
+  HTTP.get(href, { responseType: "blob" })
+    .then((response) => {
+      const link = document.createElement("a");
+      const blob = new Blob([response.data], {
+        type: "application/octet-stream",
+      });
+      link.href = window.URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      return window.URL.revokeObjectURL(response.data);
+    })
+    .catch(console.warn);
+};
+
+export const getReaderPath = (pk) => {
+  return `c/${pk}`;
+};
+
+export const getReaderBasePath = (pk) => {
+  return window.CODEX.API_V3_PATH + getReaderPath(pk);
+};
+
+export const getBookInBrowserURL = ({ pk, mtime }) => {
+  const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
+  return `${BASE_URL}/book.pdf?ts=${mtime}`;
+};
+
+export const getMtime = (groups, useBookmarkFilter) => {
+  const params = serializeParams({ groups, useBookmarkFilter }, Date.now(), [
+    "groups",
+  ]);
+  return HTTP.get("/mtime", { params });
+};
+const getOPDSURLs = () => {
+  return HTTP.get("/opds-urls");
+};
+
+const getVersions = (ts) => {
+  const params = { ts };
+  return HTTP.get("/version", { params });
+};
+
+const setGroupBookmarks = ({ group, ids }, data) => {
+  if (data.fitTo === null) {
+    data.fitTo = "";
+  }
+  const pks = ids.join(",");
+  return HTTP.patch(`${group}/${pks}/bookmark`, data);
+};
+
 export default {
   downloadIOSPWAFix,
   getBookInBrowserURL,
+  getMtime,
+  getOPDSURLs,
   getReaderBasePath,
   getReaderPath,
   getVersions,
-  getOPDSURLs,
   serializeParams,
-  getMtime,
+  setGroupBookmarks,
 };
