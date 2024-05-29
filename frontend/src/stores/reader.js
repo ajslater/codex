@@ -377,11 +377,15 @@ export const useReaderStore = defineStore("reader", {
         .catch(console.error);
     },
     async loadBooks(params, mtime) {
+      const route = router.currentRoute.value;
       if (!params) {
-        params = router.currentRoute.value.params;
+        params = route.params;
       }
       if (!mtime) {
-        mtime = this.mtime;
+        mtime = route.query?.ts;
+        if (!mtime) {
+          mtime = this.mtime;
+        }
       }
       await API.getReaderInfo(params, mtime)
         .then((response) => {

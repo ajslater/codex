@@ -94,7 +94,12 @@ export default {
         ? getReaderRoute(this.item, this.importMetadata)
         : {
             name: "browser",
-            params: { group: this.item.group, pks: this.ids, page: 1 },
+            params: {
+              group: this.item.group,
+              pks: this.ids,
+              page: 1,
+            },
+            query: { ts: this.item.mtime },
           };
     },
     progressBackgroundColor() {

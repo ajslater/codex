@@ -431,16 +431,19 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
+      const route = router.currentRoute.value;
       if (!mtime) {
-        mtime = this.page.mtime;
+        mtime = route.query.ts;
+        if (!mtime) {
+          mtime = this.page.mtime;
+        }
       }
       if (!this.browserPageLoaded) {
         return this.loadSettings();
       } else {
         this.browserPageLoaded = false;
       }
-      const params = router.currentRoute.value.params;
-      await API.loadBrowserPage(params, this.settings, mtime)
+      await API.loadBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
           const page = Object.freeze({ ...response.data });
           this.$patch((state) => {
