@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
 
+
 class BrowserBaseView(
     ComicFieldFilter, BookmarkFilterMixin, GroupFilterMixin, SearchFilterMixin
 ):

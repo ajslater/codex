@@ -128,10 +128,10 @@ class AdminFolderListView(GenericAPIView):
     def get(self, *_args, **_kwargs):
         """Get subdirectories for a path."""
         try:
-            serializer = self.input_serializer_class(data=self.request.query_params)
+            serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            path = Path(serializer.validated_data.get("path", "."))
-            show_hidden = serializer.validated_data.get("show_hidden", False)
+            path = Path(serializer.validated_data.get("path", "."))  # type: ignore
+            show_hidden = serializer.validated_data.get("show_hidden", False)  # type: ignore
             root_path = path.resolve()
 
             dirs = []

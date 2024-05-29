@@ -28,9 +28,9 @@ class RouteSerializer(Serializer):
             pks = instance.get("pks")
             if isinstance(pks, str):
                 pks = tuple(sorted(int(pk) for pk in pks.split(",")))
-            if 0 in pks:
+            if 0 in pks:  # type: ignore
                 pks = ()
-            instance["pks"] = tuple(pks)
+            instance["pks"] = tuple(pks)  # type: ignore
         except ValueError:
             instance["pks"] = ()
         return instance

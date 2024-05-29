@@ -58,7 +58,7 @@ class LinksMixin(BrowserView):
         elif hasattr(self, "request"):
             # if request link and not init static links
             href = update_href_query_params(
-                href, self.request.query_params, new_query_params=data.query_params
+                href, self.request.GET, new_query_params=data.query_params
             )
         return href
 

@@ -45,9 +45,10 @@ class TimezoneView(GenericAPIView):
     @extend_schema(request=input_serializer_class)
     def post(self, request, *args, **kwargs):
         """Get the user info for the current user."""
-        serializer = self.input_serializer_class(data=self.request.data)
+        data = self.request.data  # type: ignore
+        serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        request.session["django_timezone"] = serializer.validated_data["timezone"]
+        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
         request.session.save()
         user = self.request.user
         if user.is_authenticated:

@@ -145,7 +145,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 entries += [
                     OPDS1Entry(
                         obj,
-                        self.request.query_params,
+                        self.request.GET,
                         data,
                         title_filename_fallback=fallback,
                     )
@@ -165,9 +165,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 entries += self.facets(entries=True, root=at_root)
 
             entries += self._get_entries_section("groups", False)
-            metadata = (
-                self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
-            )
+            metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
             entries += self._get_entries_section("books", metadata)
         except Exception:
             LOG.exception("Getting OPDS v1 entries")
@@ -232,7 +230,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
             self.is_opds_1_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
         )
 
     def init_request(self):

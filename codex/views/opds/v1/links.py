@@ -120,7 +120,7 @@ class LinksMixin(FacetsMixin):
                 return False
 
         for key, value in top_link.query_params.items():
-            if str(self.request.query_params.get(key)) != str(value):
+            if str(self.request.GET.get(key)) != str(value):
                 return False
 
         return True
@@ -128,7 +128,7 @@ class LinksMixin(FacetsMixin):
     def _link(self, kwargs, rel, query_params=None, mime_type=MimeType.NAV):
         """Create a link."""
         if query_params is None:
-            query_params = self.request.query_params
+            query_params = self.request.GET
         href = reverse("opds:v1:feed", kwargs=kwargs)
         href = update_href_query_params(href, query_params)
         return OPDS1Link(rel, href, mime_type)

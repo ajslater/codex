@@ -20,7 +20,7 @@ from codex.serializers.choices import VUETIFY_NULL_CODE
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
 
-class TimestampField(Field):
+class TimestampField(IntegerField):
     """IntegerTimestampField."""
 
     def to_representation(self, value):

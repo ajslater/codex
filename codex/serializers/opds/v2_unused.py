@@ -15,7 +15,9 @@ class RecursiveField(Serializer):
 
     def to_representation(self, instance):
         """Represent with own class."""
-        serializer = self.parent.parent.__class__(instance, context=self.context)
+        parent = self.parent
+        # Should not be ignored but is currently unused
+        serializer = parent.parent.__class__(instance, context=self.context)  # type: ignore
         return serializer.data
 
 

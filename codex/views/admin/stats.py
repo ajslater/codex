@@ -243,7 +243,7 @@ class AdminStatsView(GenericAPIView):
         """Get the stats object and serialize it."""
         input_serializer = self.input_serializer_class(data=self.request.GET)
         input_serializer.is_valid()
-        self.params = frozenset(input_serializer.validated_data.get("params", {}))
+        self.params = frozenset(input_serializer.validated_data.get("params", {}))  # type: ignore
 
         obj = self.get_object()
         serializer = self.get_serializer(obj)

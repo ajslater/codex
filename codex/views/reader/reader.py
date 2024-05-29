@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from comicbox.box import Comicbox
 from django.db.models import F, IntegerField, Value
@@ -22,6 +23,9 @@ from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FOLDER_GROUP
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.session import BrowserSessionViewBase
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 LOG = get_logger(__name__)
 
@@ -103,7 +107,7 @@ class ReaderView(
         select_related = ("series", "volume")
         prefetch_related = ()
 
-        arc = self.params.get("arc", {})
+        arc: Mapping = self.params.get("arc", {})  # type: ignore
 
         arc_group = arc.get("group", "s")
         if arc_group == "a":
@@ -388,7 +392,7 @@ class ReaderView(
         arc = {}
         try:
             serializer.is_valid()
-            arc = serializer.validated_data
+            arc: dict = serializer.validated_data  # type: ignore
         except ValidationError:
             pass
 

@@ -160,7 +160,8 @@ class SessionViewBase(SessionViewBaseBase, GenericAPIView, ABC):
     @extend_schema(responses=None)
     def put(self, *args, **kwargs):
         """Update session settings."""
-        serializer = self.get_serializer(data=self.request.data)
+        data = self.request.data  # type: ignore
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.save_params_to_session(serializer.validated_data)
         return Response()

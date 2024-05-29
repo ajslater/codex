@@ -1,7 +1,7 @@
 """Librarian Status View."""
 
 from types import MappingProxyType
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAdminUser
@@ -46,6 +46,9 @@ from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 LOG = get_logger(__name__)
 
@@ -114,10 +117,12 @@ class AdminLibrarianTaskView(APIView):
     @extend_schema(request=input_serializer_class)
     def post(self, *_args, **_kwargs):
         """Download a comic archive."""
-        serializer = self.input_serializer_class(data=self.request.data)
+        data = self.request.POST
+        serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        task_name = serializer.validated_data.get("task")
-        pk = serializer.validated_data.get("library_id")
+        validated_data: Mapping = serializer.validated_data  # type: ignore
+        task_name = validated_data.get("task")
+        pk = validated_data.get("library_id")
         task = self._get_task(task_name, pk)
         if task:
             LIBRARIAN_QUEUE.put(task)

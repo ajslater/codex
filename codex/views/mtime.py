@@ -13,6 +13,7 @@ from codex.views.utils import reparse_json_query_params
 
 REPARSE_JSON_FIELDS = frozenset({"groups"})
 
+
 class MtimeView(GenericAPIView, BookmarkFilterMixin):
     """Get the mtimes for the submitted groups."""
 

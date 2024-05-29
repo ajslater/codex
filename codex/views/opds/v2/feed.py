@@ -224,7 +224,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             acquisition_groups = frozenset(self.valid_nav_groups[-2:])
             self.is_opds_2_acquisition = group in acquisition_groups
         self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
         )
 
     def init_request(self):

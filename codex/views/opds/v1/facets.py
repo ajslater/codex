@@ -92,12 +92,10 @@ class FacetsMixin(BrowserView):
         href = reverse("opds:v1:feed", kwargs=kwargs)
         facet_active = False
         for key, val in new_query_params.items():
-            if self.request.query_params.get(key) == val:
+            if self.request.GET.get(key) == val:
                 facet_active = True
                 break
-        href = update_href_query_params(
-            href, self.request.query_params, new_query_params
-        )
+        href = update_href_query_params(href, self.request.GET, new_query_params)
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(
@@ -118,7 +116,7 @@ class FacetsMixin(BrowserView):
             ids=item.get("pks"),
             name=name,
         )
-        qps = {**self.request.query_params}
+        qps = {**self.request.GET}
         qps.update(query_params)
         zero_pad = self.obj["zero_pad"]
         data = OPDS1EntryData(
@@ -131,7 +129,7 @@ class FacetsMixin(BrowserView):
         default_val = DEFAULT_FACETS.get(facet_group.query_param)
         if facet.value == default_val:
             compare += [None]
-        return self.request.query_params.get(facet_group.query_param) in compare
+        return self.request.GET.get(facet_group.query_param) in compare
 
     @staticmethod
     def _did_special_group_change(group, facet_group):
