@@ -1,8 +1,5 @@
 """Get the mtimes for the submitted groups."""
 
-import json
-from urllib.parse import unquote_plus
-
 from django.db.models import Max
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -12,6 +9,7 @@ from codex.serializers.mtime import GroupsMtimeSerializer, MtimeSerializer
 from codex.util import max_none
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.const import GROUP_MODEL_MAP
+from codex.views.utils import reparse_json_query_params
 
 
 class MtimeView(GenericAPIView, BookmarkFilterMixin):
@@ -58,9 +56,8 @@ class MtimeView(GenericAPIView, BookmarkFilterMixin):
     def get(self, *args, **kwargs):
         """Get the mtimes for the submitted groups."""
         # Parse Request
-        groups = self.request.GET.get("groups", "")
-        groups = unquote_plus(groups)
-        groups = json.loads(groups)
+        params = reparse_json_query_params(self.request.GET)
+        groups = params.get("groups", "")
         use_bookmark_filter = self.request.GET.get("use_bookmark_filter", False)
 
         max_mtime = self.get_max_groups_mtime(groups, use_bookmark_filter)

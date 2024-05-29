@@ -1,16 +1,12 @@
 """Views for browsing comic library."""
 
-import json
 from copy import deepcopy
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
-from urllib.parse import unquote_plus
 
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.db.models.aggregates import Max, Min
-from djangorestframework_camel_case.settings import api_settings
-from djangorestframework_camel_case.util import underscoreize
 from rest_framework.exceptions import NotFound
 
 from codex.logger.logging import get_logger
@@ -25,6 +21,7 @@ from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin
 from codex.views.browser.filters.search import SearchFilterMixin
 from codex.views.const import GROUP_MODEL_MAP, ROOT_GROUP
+from codex.views.utils import reparse_json_query_params
 
 LOG = get_logger(__name__)
 
@@ -97,36 +94,17 @@ class BrowserBaseView(
         object_filter &= self.get_group_filter(choices)
         return object_filter
 
-    def _parse_query_params(self, query_params):
+    def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
-        result = {}
-        for key, val in query_params.items():
-            if key in self._GET_JSON_KEYS:
-                unquoted_val = unquote_plus(val)  # for pocketbooks reader
-                parsed_val = json.loads(unquoted_val)
-                if not parsed_val:
-                    continue
-                parsed_key = key
-            elif key == "query":
-                # parse query param for opds v2
-                parsed_key = "q"
-                parsed_val = val
-            else:
-                parsed_key = key
-                parsed_val = val
-
-            result[parsed_key] = parsed_val
-        return underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
+        query_params = reparse_json_query_params(self.request.GET)
+        if "q" not in query_params and (query := query_params.get("query")):
+            # parse query param for opds v2
+            query_params["q"] = query
+        return query_params
 
     def parse_params(self):
         """Validate sbmitted settings and apply them over the session settings."""
-        if self.request.method == "GET":
-            data = self._parse_query_params(self.request.GET)
-        elif hasattr(self.request, "data"):
-            data = self._parse_query_params(self.request.data)
-        else:
-            data = {}
-
+        data = self._parse_query_params()
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
 
