@@ -16,7 +16,7 @@ from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FALSY
 
 LOG = get_logger(__name__)
-PDF_MIME_TYPE = "application/pdf"
+_PDF_MIME_TYPE = "application/pdf"
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -67,7 +67,7 @@ class ReaderPageView(BookmarkBaseView):
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
         if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
-            content_type = PDF_MIME_TYPE
+            content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type
         with Comicbox(comic.path) as cb:
@@ -81,7 +81,7 @@ class ReaderPageView(BookmarkBaseView):
         ],
         responses={
             (200, content_type): OpenApiTypes.BINARY,
-            (200, PDF_MIME_TYPE): OpenApiTypes.BINARY,
+            (200, _PDF_MIME_TYPE): OpenApiTypes.BINARY,
         },
     )
     def get(self, *_args, **_kwargs):

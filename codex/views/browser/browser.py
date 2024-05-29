@@ -31,8 +31,13 @@ from codex.serializers.choices import DEFAULTS
 from codex.util import max_none
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_breadcrumbs import BrowserBreadcrumbsView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import COMIC_GROUP, FOLDER_GROUP, ROOT_GROUP, STORY_ARC_GROUP
+from codex.views.const import (
+    COMIC_GROUP,
+    FOLDER_GROUP,
+    MAX_OBJ_PER_PAGE,
+    ROOT_GROUP,
+    STORY_ARC_GROUP,
+)
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
@@ -53,7 +58,13 @@ class BrowserView(BrowserBreadcrumbsView):
             AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
         }
     )
-
+    DEFAULT_ROUTE = MappingProxyType(
+        {
+            "name": "browser",
+            "params": deepcopy(DEFAULTS["breadcrumbs"][0]),
+        }
+    )
+    TARGET = "browser"
     _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
         type[BrowserGroupModel], tuple[str | None, ...]
     ] = MappingProxyType(
@@ -67,26 +78,6 @@ class BrowserView(BrowserBreadcrumbsView):
             StoryArc: (None,),
         }
     )
-    DEFAULT_ROUTE = MappingProxyType(
-        {
-            "name": "browser",
-            "params": deepcopy(DEFAULTS["breadcrumbs"][0]),
-        }
-    )
-    _OPDS_M2M_RELS = (
-        "characters",
-        "genres",
-        "locations",
-        "series_groups",
-        "story_arc_numbers",
-        "story_arc_numbers__story_arc",
-        "tags",
-        "teams",
-        "contributors",
-        "contributors__role",
-        "contributors__person",
-    )
-    TARGET = "browser"
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""

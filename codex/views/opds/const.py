@@ -3,6 +3,16 @@
 from collections.abc import Mapping
 from types import MappingProxyType
 
+from codex.models import (
+    Character,
+    Genre,
+    Location,
+    SeriesGroup,
+    StoryArc,
+    Tag,
+    Team,
+)
+
 BLANK_TITLE = "Unknown"
 AUTHOR_ROLES = {"Writer"}
 
@@ -71,3 +81,6 @@ class MimeType:
         }
     )
     OCTET = "application/octet-stream"
+
+
+OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)

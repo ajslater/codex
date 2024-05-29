@@ -41,7 +41,7 @@ class AdminModelViewSet(ModelViewSet):
 class AdminLibraryViewSet(AdminModelViewSet):
     """Admin Library Viewset."""
 
-    WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
+    _WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
 
     queryset = Library.objects.prefetch_related("groups").defer(
         "update_in_progress", "created_at", "updated_at"
@@ -51,7 +51,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
     @classmethod
     def _sync_watchdog(cls, validated_keys=None):
         if validated_keys is None or validated_keys.intersection(
-            cls.WATCHDOG_SYNC_FIELDS
+            cls._WATCHDOG_SYNC_FIELDS
         ):
             task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
             LIBRARIAN_QUEUE.put(task)

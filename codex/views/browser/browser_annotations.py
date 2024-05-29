@@ -47,39 +47,38 @@ _REL_MAP = MappingProxyType(
         StoryArc: "story_arc_numbers__story_arc",
     }
 )
+_NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
+_NONE_DATETIMEFIELD = Value(None, DateTimeField())
+_ORDER_AGGREGATE_FUNCS = MappingProxyType(
+    # These are annotated to order_value because they're simple relations
+    {
+        "age_rating": Avg,
+        "community_rating": Avg,
+        "created_at": Min,
+        "critical_rating": Avg,
+        "date": Min,
+        "page_count": Sum,
+        "size": Sum,
+        "updated_at": Min,
+    }
+)
+_ANNOTATED_ORDER_FIELDS = frozenset(
+    # These are annotated with their own functions
+    {
+        "filename",
+        "sort_name",
+        "search_score",
+        "bookmark_updated_at",
+        "story_arc_number",
+    }
+)
+_ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+    {Comic: "id", Volume: "name"}
+)
 
 
 class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
-
-    _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
-    _NONE_DATETIMEFIELD = Value(None, DateTimeField())
-    _ORDER_AGGREGATE_FUNCS = MappingProxyType(
-        # These are annotated to order_value because they're simple relations
-        {
-            "age_rating": Avg,
-            "community_rating": Avg,
-            "created_at": Min,
-            "critical_rating": Avg,
-            "date": Min,
-            "page_count": Sum,
-            "size": Sum,
-            "updated_at": Min,
-        }
-    )
-    _ANNOTATED_ORDER_FIELDS = frozenset(
-        # These are annotated with their own functions
-        {
-            "filename",
-            "sort_name",
-            "search_score",
-            "bookmark_updated_at",
-            "story_arc_number",
-        }
-    )
-    _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = (
-        MappingProxyType({Comic: "id", Volume: "name"})
-    )
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -93,7 +92,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Get the group by for the model."""
         if model is None:
             model = self.model
-        return self._ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
+        return _ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
 
     def _alias_sort_names(self, qs, model):
         """Annotate sort_name."""
@@ -151,7 +150,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             story_arc_number = self.order_agg_func("selected_story_arc_number__number")
         else:
-            story_arc_number = self._NONE_INTEGERFIELD
+            story_arc_number = _NONE_INTEGERFIELD
 
         return qs.alias(story_arc_number=story_arc_number)
 
@@ -179,7 +178,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         agg_func = Max if always_max else self.order_agg_func
         return agg_func(
             updated_at_rel,
-            default=self._NONE_DATETIMEFIELD,
+            default=_NONE_DATETIMEFIELD,
             filter=bm_filter,
         )
 
@@ -203,11 +202,11 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Determine order func
         if model == Folder and self.order_key == "filename":
             order_value = F("name")
-        elif model == Comic or self.order_key in self._ANNOTATED_ORDER_FIELDS:
+        elif model == Comic or self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotaions
             order_value = F(self.order_key)
         else:
-            agg_func = self._ORDER_AGGREGATE_FUNCS[self.order_key]
+            agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
             agg_func = self.order_agg_func if agg_func == Min else agg_func
             field = self.rel_prefix + self.order_key
             order_value = agg_func(field)

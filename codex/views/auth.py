@@ -16,7 +16,6 @@ from codex.serializers.choices import CHOICES
 from codex.serializers.mixins import OKSerializer
 
 LOG = get_logger(__name__)
-NULL_USER = {"pk": None, "username": None, "is_staff": False}
 
 
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):

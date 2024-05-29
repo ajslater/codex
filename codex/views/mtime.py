@@ -11,7 +11,7 @@ from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.const import GROUP_MODEL_MAP
 from codex.views.utils import reparse_json_query_params
 
-REPARSE_JSON_FIELDS = frozenset({"groups"})
+_REPARSE_JSON_FIELDS = frozenset({"groups"})
 
 
 class MtimeView(GenericAPIView, BookmarkFilterMixin):
@@ -58,7 +58,7 @@ class MtimeView(GenericAPIView, BookmarkFilterMixin):
     def get(self, *args, **kwargs):
         """Get the mtimes for the submitted groups."""
         # Parse Request
-        params = reparse_json_query_params(self.request.GET, REPARSE_JSON_FIELDS)
+        params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
         groups = params.get("groups", "")
         use_bookmark_filter = self.request.GET.get("use_bookmark_filter", False)
 

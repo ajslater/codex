@@ -37,7 +37,7 @@ _COMIC_VALUE_FIELD_NAMES = frozenset(
 )
 _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
 _COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_count"})
-_PATH_GROUPS = ("c", "f")
+_PATH_GROUPS = frozenset({"c", "f"})
 _CONTRIBUTOR_RELATIONS = ("role", "person")
 _SUM_FIELDS = frozenset({"page_count", "size"})
 _GROUP_RELS = frozenset({"publisher", "imprint", "series", "volume"})

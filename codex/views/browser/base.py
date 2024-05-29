@@ -28,7 +28,7 @@ LOG = get_logger(__name__)
 if TYPE_CHECKING:
     from codex.models.groups import BrowserGroupModel
 
-REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
+_REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
 
 
 class BrowserBaseView(
@@ -98,7 +98,7 @@ class BrowserBaseView(
 
     def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
-        query_params = reparse_json_query_params(self.request.GET, REPARSE_JSON_FIELDS)
+        query_params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
         if "q" not in query_params and (query := query_params.get("query")):
             # parse query param for opds v2
             query_params["q"] = query

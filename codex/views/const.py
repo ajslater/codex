@@ -2,14 +2,36 @@
 
 from types import MappingProxyType
 
+from django.contrib.auth.models import Group, User
+from django.contrib.sessions.models import Session
+
 from codex.models import (
+    AgeRating,
     BrowserGroupModel,
+    Character,
     Comic,
+    Contributor,
+    ContributorPerson,
+    ContributorRole,
+    Country,
     Folder,
+    Genre,
+    Identifier,
+    IdentifierType,
     Imprint,
+    Language,
+    Library,
+    Location,
+    OriginalFormat,
     Publisher,
+    ScanInfo,
     Series,
+    SeriesGroup,
     StoryArc,
+    StoryArcNumber,
+    Tag,
+    Tagger,
+    Team,
     Volume,
 )
 from codex.settings.settings import CODEX_PATH
@@ -56,3 +78,40 @@ GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
         }
     )
 )
+GROUP_MODELS = (
+    Publisher,
+    Imprint,
+    Series,
+    Volume,
+    Comic,
+    Folder,
+)
+METADATA_MODELS = (
+    AgeRating,
+    Character,
+    Country,
+    Genre,
+    Identifier,
+    IdentifierType,
+    Language,
+    Location,
+    OriginalFormat,
+    SeriesGroup,
+    ScanInfo,
+    StoryArc,
+    StoryArcNumber,
+    Team,
+    Tag,
+    Tagger,
+    Contributor,
+    ContributorPerson,
+    ContributorRole,
+)
+CONFIG_MODELS = (
+    Library,
+    User,
+    Group,
+    Session,
+)
+MAX_OBJ_PER_PAGE = 100
+GROUP_MTIME_MODEL_MAP = MappingProxyType({"r": Publisher, "a": StoryArc, "f": Folder})
