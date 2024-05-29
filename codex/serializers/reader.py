@@ -44,6 +44,7 @@ class ReaderArcSerializer(RouteSerializer):
     page = None
     index = IntegerField(read_only=True, required=False)
     count = IntegerField(read_only=True, required=False)
+    mtime = TimestampField(read_only=True)
 
 
 class ReaderCurrentComicSerializer(ReaderComicSerializer):

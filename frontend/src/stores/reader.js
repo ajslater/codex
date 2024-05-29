@@ -175,6 +175,26 @@ export const useReaderStore = defineStore("reader", {
       const limit = maxPage - adj;
       return this.page >= limit;
     },
+    closeBookRoute(state) {
+      const route = { name: "browser" };
+      let params = state.routes.close;
+      if (params) {
+        for (const arc of state.arcs) {
+          if (params.group === arc.group && arc.mtime) {
+            route.query = { ts: arc.mtime };
+            break;
+          }
+        }
+        const cardPk = state.books?.current?.pk;
+        if (cardPk) {
+          route.hash = `#card-${cardPk}`;
+        }
+      } else {
+        params = window.CODEX.LAST_ROUTE || CHOICES.browser.breadcrumbs[0];
+      }
+      route.params = params;
+      return route;
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////
