@@ -10,6 +10,7 @@ from rest_framework.serializers import (
 
 from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
+from codex.serializers.fields import TimestampField
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
@@ -44,3 +45,4 @@ class BrowserSettingsSerializer(Serializer):
     top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
     opds_metadata = BooleanField(required=False)
     limit = IntegerField(required=False)
+    mtime = TimestampField(read_only=True)

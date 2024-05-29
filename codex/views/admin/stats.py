@@ -6,7 +6,6 @@ from types import MappingProxyType
 from typing import ClassVar
 
 from caseconverter import snakecase
-from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema
@@ -15,37 +14,14 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import (
-    AgeRating,
-    Character,
     Comic,
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
-    Country,
-    Folder,
-    Genre,
-    Identifier,
-    IdentifierType,
-    Imprint,
-    Language,
     Library,
-    Location,
-    OriginalFormat,
-    Publisher,
-    ScanInfo,
-    Series,
-    SeriesGroup,
-    StoryArc,
-    StoryArcNumber,
-    Tag,
-    Tagger,
-    Team,
     Timestamp,
-    Volume,
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
 from codex.version import VERSION
+from codex.views.const import CONFIG_MODELS, GROUP_MODELS, METADATA_MODELS
 
 LOG = get_logger(__name__)
 
@@ -57,46 +33,11 @@ class AdminStatsView(GenericAPIView):
     serializer_class = AdminStatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
-    _GROUP_MODELS = (
-        Publisher,
-        Imprint,
-        Series,
-        Volume,
-        Comic,
-        Folder,
-    )
-    _METADATA_MODELS = (
-        AgeRating,
-        Character,
-        Country,
-        Genre,
-        Identifier,
-        IdentifierType,
-        Language,
-        Location,
-        OriginalFormat,
-        SeriesGroup,
-        ScanInfo,
-        StoryArc,
-        StoryArcNumber,
-        Team,
-        Tag,
-        Tagger,
-        Contributor,
-        ContributorPerson,
-        ContributorRole,
-    )
-    _CONFIG_MODELS = (
-        Library,
-        User,
-        Group,
-        Session,
-    )
     _KEY_MODELS_MAP = MappingProxyType(
         {
-            "config": _CONFIG_MODELS,
-            "groups": _GROUP_MODELS,
-            "metadata": _METADATA_MODELS,
+            "config": CONFIG_MODELS,
+            "groups": GROUP_MODELS,
+            "metadata": METADATA_MODELS,
         }
     )
     _DOCKERENV_PATH = Path("/.dockerenv")
@@ -243,7 +184,7 @@ class AdminStatsView(GenericAPIView):
         """Get the stats object and serialize it."""
         input_serializer = self.input_serializer_class(data=self.request.GET)
         input_serializer.is_valid()
-        self.params = frozenset(input_serializer.validated_data.get("params", {}))
+        self.params = frozenset(input_serializer.validated_data.get("params", {}))  # type: ignore
 
         obj = self.get_object()
         serializer = self.get_serializer(obj)

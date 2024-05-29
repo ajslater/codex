@@ -1,16 +1,12 @@
 """Views for browsing comic library."""
 
-import json
 from copy import deepcopy
 from types import MappingProxyType
-from typing import Any
-from urllib.parse import unquote_plus
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.db.models.aggregates import Max, Min
-from djangorestframework_camel_case.settings import api_settings
-from djangorestframework_camel_case.util import underscoreize
 from rest_framework.exceptions import NotFound
 
 from codex.logger.logging import get_logger
@@ -18,20 +14,21 @@ from codex.models import (
     AdminFlag,
     Comic,
     Folder,
-    Imprint,
-    Publisher,
-    Series,
-    StoryArc,
-    Volume,
 )
-from codex.models.groups import BrowserGroupModel
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin
 from codex.views.browser.filters.search import SearchFilterMixin
+from codex.views.const import GROUP_MODEL_MAP, ROOT_GROUP
+from codex.views.utils import reparse_json_query_params
 
 LOG = get_logger(__name__)
+
+if TYPE_CHECKING:
+    from codex.models.groups import BrowserGroupModel
+
+_REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
 
 
 class BrowserBaseView(
@@ -41,20 +38,6 @@ class BrowserBaseView(
 
     input_serializer_class = BrowserSettingsSerializer
 
-    GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
-        MappingProxyType(
-            {
-                GroupFilterMixin.ROOT_GROUP: None,
-                "p": Publisher,
-                "i": Imprint,
-                "s": Series,
-                "v": Volume,
-                GroupFilterMixin.COMIC_GROUP: Comic,
-                GroupFilterMixin.FOLDER_GROUP: Folder,
-                GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
-            }
-        )
-    )
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
 
     _GET_JSON_KEYS = frozenset({"filters", "show"})
@@ -95,7 +78,7 @@ class BrowserBaseView(
     def get_model_group(self):
         """Determine model group for set_browse_model()."""
         group = self.kwargs["group"]
-        if group == self.ROOT_GROUP:
+        if group == ROOT_GROUP:
             group = self.params["top_group"]
         return group
 
@@ -113,47 +96,25 @@ class BrowserBaseView(
         object_filter &= self.get_group_filter(choices)
         return object_filter
 
-    def _parse_query_params(self, query_params):
+    def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
-        result = {}
-        for key, val in query_params.items():
-            if key in self._GET_JSON_KEYS:
-                unquoted_val = unquote_plus(val)  # for pocketbooks reader
-                parsed_val = json.loads(unquoted_val)
-                if not parsed_val:
-                    continue
-                parsed_key = key
-            elif key in ("q", "query"):
-                # parse and strip query param
-                # "query" is used by opds v2
-                if "q" in result:
-                    continue
-                parsed_val = val.strip()
-                if not parsed_val:
-                    continue
-                parsed_key = "q"
-            else:
-                parsed_key = key
-                parsed_val = val
-
-            result[parsed_key] = parsed_val
-        return underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
+        query_params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
+        if "q" not in query_params and (query := query_params.get("query")):
+            # parse query param for opds v2
+            query_params["q"] = query
+        return query_params
 
     def parse_params(self):
         """Validate sbmitted settings and apply them over the session settings."""
-        if self.request.method == "GET":
-            data = self._parse_query_params(self.request.GET)
-        elif hasattr(self.request, "data"):
-            data = self._parse_query_params(self.request.data)
-        else:
-            data = {}
-
+        data = self._parse_query_params()
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
 
         params = deepcopy(self.request.session[self.SESSION_KEY])
         params.update(serializer.validated_data)
         self.params = MappingProxyType(params)
+
+        self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
 
     def set_order_key(self):
         """Unused until browser."""
@@ -164,10 +125,10 @@ class BrowserBaseView(
     def set_model(self):
         """Set the model for the browse list."""
         group = self.kwargs["group"]
-        self.group_class = self.GROUP_MODEL_MAP[group]
+        self.group_class = GROUP_MODEL_MAP[group]
 
         self.model_group = self.get_model_group()
-        self.model = self.GROUP_MODEL_MAP.get(self.model_group)
+        self.model = GROUP_MODEL_MAP.get(self.model_group)
         if self.model is None:
             detail = f"Cannot browse {group=}"
             LOG.debug(detail)

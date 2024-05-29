@@ -13,6 +13,7 @@ from codex.serializers.models.bookmark import (
     BookmarkSerializer,
 )
 from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
+from codex.views.const import GROUP_RELATION
 
 LOG = get_logger(__name__)
 VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
@@ -165,7 +166,7 @@ class BookmarkView(BookmarkBaseView):
 
     def _validate(self, serializer_class):
         """Validate and translate the submitted data."""
-        data = self.request.data
+        data = self.request.data  # type: ignore
         if serializer_class:
             serializer = serializer_class(data=data, partial=True)
         else:
@@ -184,10 +185,7 @@ class BookmarkView(BookmarkBaseView):
 
         pks = self.kwargs.get("pks")
 
-        if group == "f":
-            relation = "folders__in"
-        else:
-            relation = self.GROUP_RELATION[group] + "__in"
+        relation = "folders__in" if group == "f" else GROUP_RELATION[group] + "__in"
         comic_filter = {relation: pks}
 
         self.update_bookmarks(updates, comic_filter=comic_filter)

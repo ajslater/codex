@@ -18,7 +18,7 @@ class DownloadView(APIView, GroupACLMixin):
     permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     content_type = "application/vnd.comicbook+zip"
 
-    AS_ATTACHMENT = True
+    _AS_ATTACHMENT = True
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *_args, **kwargs):
@@ -48,7 +48,7 @@ class DownloadView(APIView, GroupACLMixin):
         filename = comic.get_filename()
         return FileResponse(
             comic_file,
-            as_attachment=self.AS_ATTACHMENT,
+            as_attachment=self._AS_ATTACHMENT,
             content_type=content_type,
             filename=filename,
         )
@@ -57,4 +57,4 @@ class DownloadView(APIView, GroupACLMixin):
 class FileView(DownloadView):
     """View a comic in the browser."""
 
-    AS_ATTACHMENT = False
+    _AS_ATTACHMENT = False

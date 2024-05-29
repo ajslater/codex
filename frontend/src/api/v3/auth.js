@@ -1,4 +1,4 @@
-import { getTSParams } from "@/api/v3/common";
+import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
@@ -26,7 +26,7 @@ const login = async (credentials) => {
 };
 
 const getProfile = async () => {
-  const params = getTSParams();
+  const params = serializeParams();
   return await HTTP.get("/auth/profile/", { params });
 };
 

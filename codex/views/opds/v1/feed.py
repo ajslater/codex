@@ -17,8 +17,7 @@ from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
 from codex.views.browser.browser import BrowserView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import FALSY
+from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE, MimeType
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -145,7 +144,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 entries += [
                     OPDS1Entry(
                         obj,
-                        self.request.query_params,
+                        self.request.GET,
                         data,
                         title_filename_fallback=fallback,
                     )
@@ -165,9 +164,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 entries += self.facets(entries=True, root=at_root)
 
             entries += self._get_entries_section("groups", False)
-            metadata = (
-                self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
-            )
+            metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
             entries += self._get_entries_section("books", metadata)
         except Exception:
             LOG.exception("Getting OPDS v1 entries")
@@ -232,7 +229,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
             self.is_opds_1_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
         )
 
     def init_request(self):

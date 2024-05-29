@@ -77,7 +77,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             self.queue.put(task)
         self.search_indexer_abort_event = Manager().Event()
 
-    def _process_task(self, task):
+    def _process_task(self, task):  # noqa: PLR0912,C901
         """Process an individual task popped off the queue."""
         match task:
             case CoverTask():

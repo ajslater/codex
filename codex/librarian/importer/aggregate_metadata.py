@@ -28,6 +28,7 @@ from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Imprint, Publisher, Series, Volume
 from codex.models.admin import AdminFlag
 from codex.status import Status
+from codex.util import max_none
 
 
 class AggregateMetadataMixin(CleanMetadataMixin):
@@ -182,22 +183,13 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 all_fks[field] = set()
             all_fks[field].add(name)
 
-    @staticmethod
-    def _none_max(a, b):
-        """None aware math.max."""
-        if a is not None and b is not None:
-            return max(a, b)
-        if a is None:
-            return b
-        return a
-
     @classmethod
     def _set_max_group_count(cls, common_args, group_class, index, count_key):
         """Assign the maximum group count number."""
         all_fks, group_tree, group_md = common_args
         group_name = group_tree[0:index]
         try:
-            count = cls._none_max(
+            count = max_none(
                 all_fks[GROUP_TREES][Series].get(group_name),
                 group_md.get(count_key),
             )

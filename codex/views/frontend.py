@@ -6,7 +6,7 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from codex.serializers.route import RouteSerializer
-from codex.views.session import BrowserSessionViewBase
+from codex.views.browser.session import BrowserSessionViewBase
 
 
 class IndexView(BrowserSessionViewBase):

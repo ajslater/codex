@@ -2,6 +2,54 @@ import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
 
+const _trimObject = (obj) => {
+  // Remove empty and undefined objects because they're default values.
+  if (obj === undefined || obj === null) {
+    return {};
+  }
+  const isArray = Array.isArray(obj);
+  const result = isArray ? [] : {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined || val === null) {
+      continue;
+    }
+    const isValObject = val && typeof val === "object";
+    const trimmedVal = isValObject ? _trimObject(val) : val;
+    if (!isValObject || Object.keys(trimmedVal).length > 0) {
+      if (isArray) {
+        result.push(trimmedVal);
+      } else {
+        result[key] = trimmedVal;
+      }
+    }
+  }
+  return result;
+};
+
+const _json_serialize = (params) => {
+  // Since axios 1.0 I have to manually serialize complex objects
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "object" || Array.isArray(value)) {
+      params[key] = JSON.stringify(value);
+    }
+  }
+};
+
+const _addTimestamp = (params, ts) => {
+  if (!ts) {
+    ts = useCommonStore().timestamp;
+  }
+  params.ts = ts;
+};
+
+// TODO Try removing trimObjects
+export const serializeParams = (data, ts) => {
+  const params = _trimObject(data);
+  _json_serialize(params);
+  _addTimestamp(params, ts);
+  return params;
+};
+
 const downloadIOSPWAFix = (href, fileName) => {
   // iOS has a download bug inside PWAs. The user is trapped in the
   // download screen and cannot return to the app.
@@ -32,11 +80,15 @@ export const getReaderBasePath = (pk) => {
 
 export const getBookInBrowserURL = ({ pk, mtime }) => {
   const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
-  return `${BASE_URL}/book.pdf?mtime=${mtime}`;
+  return `${BASE_URL}/book.pdf?ts=${mtime}`;
 };
 
-export const getTSParams = () => {
-  return { ts: useCommonStore().timestamp };
+export const getMtime = (groups, useBookmarkFilter) => {
+  const params = serializeParams({ groups, useBookmarkFilter }, Date.now());
+  return HTTP.get("/mtime", { params });
+};
+const getOPDSURLs = () => {
+  return HTTP.get("/opds-urls");
 };
 
 const getVersions = (ts) => {
@@ -44,16 +96,22 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
-const getOPDSURLs = () => {
-  return HTTP.get("/opds-urls");
+const setGroupBookmarks = ({ group, ids }, data) => {
+  if (data.fitTo === null) {
+    data.fitTo = "";
+  }
+  const pks = ids.join(",");
+  return HTTP.patch(`${group}/${pks}/bookmark`, data);
 };
 
 export default {
   downloadIOSPWAFix,
   getBookInBrowserURL,
+  getMtime,
+  getOPDSURLs,
   getReaderBasePath,
   getReaderPath,
-  getTSParams,
   getVersions,
-  getOPDSURLs,
+  serializeParams,
+  setGroupBookmarks,
 };

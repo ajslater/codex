@@ -32,9 +32,7 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-pk="md.coverPk"
-            :cover-mtime="md.coverMtime || ''"
-            :cover-custom="md.coverCustom || false"
+            :cover="md.cover"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"

@@ -11,24 +11,25 @@ from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_contributors, get_m2m_objects
 from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
 
+_MD_CONTRIBUTOR_MAP = MappingProxyType(
+    {
+        "author": AUTHOR_ROLES,
+        # "translator": {},
+        "editor": {"Editor"},
+        "artist": {"CoverArtist"},
+        # "illustrator": {},
+        "letterer": {"Letterer"},
+        "penciller": {"Penciller"},
+        "colorist": {"Colorist"},
+        "inker": {"Inker"},
+    }
+)
+_CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
+
 
 class PublicationMixin(LinksMixin):
     """Publication Methods for OPDS 2.0 feed."""
 
-    _MD_CONTRIBUTOR_MAP = MappingProxyType(
-        {
-            "author": AUTHOR_ROLES,
-            # "translator": {},
-            "editor": {"Editor"},
-            "artist": {"CoverArtist"},
-            # "illustrator": {},
-            "letterer": {"Letterer"},
-            "penciller": {"Penciller"},
-            "colorist": {"Colorist"},
-            "inker": {"Inker"},
-        }
-    )
-    _CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
     is_opds_metadata = False
 
     def _get_big_image_link(self, obj, cover_pk):
@@ -106,9 +107,9 @@ class PublicationMixin(LinksMixin):
 
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
-        for key, roles in self._MD_CONTRIBUTOR_MAP.items():
+        for key, roles in _MD_CONTRIBUTOR_MAP.items():
             self._add_contributors(md, obj.ids, key, roles)
-        if contributors := get_contributors(obj.ids, self._CONTRIBUTOR_ROLES, True):
+        if contributors := get_contributors(obj.ids, _CONTRIBUTOR_ROLES, True):
             md["contributor"] = contributors
 
         if m2m_objs := get_m2m_objects(obj.ids):

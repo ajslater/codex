@@ -10,8 +10,7 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
 from codex.views.browser.browser import BrowserView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import FALSY
+from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
     FACETS,
@@ -224,7 +223,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             acquisition_groups = frozenset(self.valid_nav_groups[-2:])
             self.is_opds_2_acquisition = group in acquisition_groups
         self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
         )
 
     def init_request(self):

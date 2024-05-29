@@ -10,7 +10,6 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
 LOG = get_logger(__name__)
@@ -57,84 +56,6 @@ class SessionViewBaseBase(GenericAPIView, ABC):
             LOG.warning(f"Saving params to session: {exc}")
 
 
-class BrowserSessionViewBase(SessionViewBaseBase):
-    """Browser session base."""
-
-    SESSION_KEY = "browser"  # type: ignore
-    CONTRIBUTOR_PERSON_UI_FIELD = "contributors"
-    STORY_ARC_UI_FIELD = "story_arcs"
-    IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
-    _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
-        {
-            "age_rating": [],
-            "characters": [],
-            "country": [],
-            CONTRIBUTOR_PERSON_UI_FIELD: [],
-            "community_rating": [],
-            "critical_rating": [],
-            "decade": [],
-            "file_type": [],
-            "genres": [],
-            IDENTIFIER_TYPE_UI_FIELD: [],
-            "language": [],
-            "locations": [],
-            "monochrome": [],
-            "original_format": [],
-            "q": "",
-            "reading_direction": [],
-            "series_groups": [],
-            "stories": [],
-            STORY_ARC_UI_FIELD: [],
-            "tagger": [],
-            "tags": [],
-            "teams": [],
-            "year": [],
-        }
-    )
-    FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
-    SESSION_DEFAULTS = MappingProxyType(
-        {
-            "breadcrumbs": DEFAULTS["breadcrumbs"],
-            "filters": {
-                "bookmark": DEFAULTS["bookmarkFilter"],
-                **_DYNAMIC_FILTER_DEFAULTS,
-            },
-            "order_by": DEFAULTS["orderBy"],
-            "order_reverse": DEFAULTS["orderReverse"],
-            "q": DEFAULTS["q"],
-            "search_results_limit": DEFAULTS["searchResultsLimit"],
-            "show": DEFAULTS["show"],
-            "cover_style": DEFAULTS["coverStyle"],
-            "twenty_four_hour_time": False,
-            "top_group": DEFAULTS["topGroup"],
-        }
-    )
-
-    def get_last_route(self, name=True):
-        """Get the last route from the breadcrumbs."""
-        breadcrumbs = self.get_from_session("breadcrumbs")
-        if not breadcrumbs:
-            breadcrumbs = DEFAULTS["breadcrumbs"]
-        last_route = breadcrumbs[-1]
-        if not name:
-            last_route.pop("name", None)
-
-        return last_route
-
-
-class ReaderSessionViewBase(SessionViewBaseBase):
-    """Reader session base."""
-
-    SESSION_KEY = "reader"  # type: ignore
-    SESSION_DEFAULTS = MappingProxyType(
-        {
-            "fit_to": DEFAULTS["fitTo"],
-            "two_pages": False,
-            "reading_direction": DEFAULTS["readingDirection"],
-        }
-    )
-
-
 class SessionViewBase(SessionViewBaseBase, GenericAPIView, ABC):
     """Session view for retrieving stored settings."""
 
@@ -161,7 +82,8 @@ class SessionViewBase(SessionViewBaseBase, GenericAPIView, ABC):
     @extend_schema(responses=None)
     def put(self, *args, **kwargs):
         """Update session settings."""
-        serializer = self.get_serializer(data=self.request.data)
+        data = self.request.data  # type: ignore
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.save_params_to_session(serializer.validated_data)
         return Response()
