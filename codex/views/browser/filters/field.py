@@ -5,7 +5,7 @@ from types import MappingProxyType
 from django.db.models import Q
 
 from codex.models.comic import Comic
-from codex.views.session import BrowserSessionViewBase
+from codex.views.browser.session import BrowserSessionViewBase
 
 _FILTER_REL_MAP = MappingProxyType(
     {

@@ -20,9 +20,9 @@ from codex.serializers.reader import ReaderArcSerializer, ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.util import max_none
 from codex.views.bookmark import BookmarkBaseView
+from codex.views.browser.session import BrowserSessionViewBase
 from codex.views.const import FOLDER_GROUP
 from codex.views.mixins import SharedAnnotationsMixin
-from codex.views.session import BrowserSessionViewBase
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
