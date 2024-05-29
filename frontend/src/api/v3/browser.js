@@ -2,9 +2,6 @@ import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
-const JSON_KEYS = ["filters", "show"];
-Object.freeze(JSON_KEYS);
-
 const getAvailableFilterChoices = ({ group, pks }, data, ts) => {
   const params = serializeParams(data, ts);
   return HTTP.get(`/${group}/${pks}/choices_available`, { params });
@@ -16,7 +13,7 @@ const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
 };
 
 const loadBrowserPage = ({ group, pks, page }, data, ts) => {
-  const params = serializeParams(data, ts, JSON_KEYS);
+  const params = serializeParams(data, ts);
   return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
@@ -25,7 +22,7 @@ const getMetadata = ({ group, pks }, settings) => {
   const mtime = Math.max(group.mtime, settings.mtime);
   const data = { ...settings };
   delete data.mtime;
-  const params = serializeParams(data, mtime, JSON_KEYS);
+  const params = serializeParams(data, mtime);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 

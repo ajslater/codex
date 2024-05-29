@@ -26,13 +26,11 @@ const _trimObject = (obj) => {
   return result;
 };
 
-const _serialize = (params, jsonKeys) => {
+const _json_serialize = (params) => {
   // Since axios 1.0 I have to manually serialize complex objects
-  if (jsonKeys) {
-    for (const key of jsonKeys) {
-      if (params[key]) {
-        params[key] = JSON.stringify(params[key]);
-      }
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "object" || Array.isArray(value)) {
+      params[key] = JSON.stringify(value);
     }
   }
 };
@@ -44,9 +42,10 @@ const _addTimestamp = (params, ts) => {
   params.ts = ts;
 };
 
-export const serializeParams = (data, ts, jsonKeys) => {
+// TODO Try removing trimObjects
+export const serializeParams = (data, ts) => {
   const params = _trimObject(data);
-  _serialize(params, jsonKeys);
+  _json_serialize(params);
   _addTimestamp(params, ts);
   return params;
 };
@@ -85,9 +84,7 @@ export const getBookInBrowserURL = ({ pk, mtime }) => {
 };
 
 export const getMtime = (groups, useBookmarkFilter) => {
-  const params = serializeParams({ groups, useBookmarkFilter }, Date.now(), [
-    "groups",
-  ]);
+  const params = serializeParams({ groups, useBookmarkFilter }, Date.now());
   return HTTP.get("/mtime", { params });
 };
 const getOPDSURLs = () => {
