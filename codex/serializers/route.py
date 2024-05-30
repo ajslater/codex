@@ -3,6 +3,8 @@
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 
+from codex.views.util import Route
+
 
 class RouteSerializer(Serializer):
     """A vue route for the browser."""
@@ -14,7 +16,9 @@ class RouteSerializer(Serializer):
 
     def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""
-        pks = instance.get("pks")
+        if isinstance(instance, Route):
+            instance = instance.dict()
+        pks = instance["pks"]
         if not pks:
             instance["pks"] = "0"
         elif not isinstance(pks, str):

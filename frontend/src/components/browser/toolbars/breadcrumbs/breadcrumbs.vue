@@ -72,7 +72,7 @@ export default {
     },
     getIcon(pks, title, group) {
       let icon;
-      if (pks === "0") {
+      if ("rfa".indexOf(group) != -1 && pks === "0") {
         icon = mdiFormatVerticalAlignTop;
       } else if (!title) {
         icon = GROUP_ICON_MAP[group];
