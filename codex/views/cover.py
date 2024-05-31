@@ -10,7 +10,7 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.views.auth import (
-    AuthFilterAPIView,
+    AuthAPIView,
 )
 from codex.views.const import MISSING_COVER_FN, MISSING_COVER_NAME_MAP, STATIC_IMG_PATH
 
@@ -30,7 +30,7 @@ class WEBPRenderer(BaseRenderer):
         return data
 
 
-class CoverView(AuthFilterAPIView):
+class CoverView(AuthAPIView):
     """ComicCover View."""
 
     renderer_classes = (WEBPRenderer,)

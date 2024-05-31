@@ -5,12 +5,12 @@ from rest_framework.response import Response
 
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.opds.urls import OPDSURLsSerializer
-from codex.views.auth import AuthFilterGenericAPIView
+from codex.views.auth import AuthGenericAPIView
 
 _OPDS_VERSIONS = (1, 2)
 
 
-class OPDSURLsView(AuthFilterGenericAPIView):
+class OPDSURLsView(AuthGenericAPIView):
     """OPDS URLs."""
 
     serializer_class = OPDSURLsSerializer

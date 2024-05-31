@@ -32,11 +32,45 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
         return super().has_permission(request, view)
 
 
-class GroupACLMixin:
-    """Filter group ACLS for views."""
+class AuthMixin:
+    """General Auth Policy."""
 
     parser_classes = (JSONParser,)
     permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
+
+
+class AuthAPIView(AuthMixin, APIView):
+    """Auth Policy APIView."""
+
+
+class AuthGenericAPIView(AuthMixin, GenericAPIView):
+    """Auth Policy GenericAPIView."""
+
+
+class TimezoneView(AuthGenericAPIView):
+    """User info."""
+
+    parser_classes = (JSONParser,)
+    input_serializer_class = TimezoneSerializer
+    serializer_class = OKSerializer
+
+    @extend_schema(request=input_serializer_class)
+    def post(self, request, *args, **kwargs):
+        """Get the user info for the current user."""
+        data = self.request.data  # type: ignore
+        serializer = self.input_serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
+        request.session.save()
+        user = self.request.user
+        if user.is_authenticated:
+            UserActive.objects.update_or_create(user=user)
+        serializer = self.get_serializer()
+        return Response(serializer.data)
+
+
+class GroupACLMixin:
+    """Filter group ACLS for views."""
 
     def get_rel_prefix(self, model):
         """Return the relation prfiex for most fields."""
@@ -72,31 +106,9 @@ class GroupACLMixin:
         return query
 
 
-class AuthFilterGenericAPIView(GenericAPIView, GroupACLMixin):
+class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):
     """Auth Enabled GenericAPIView."""
 
 
-class AuthFilterAPIView(APIView, GroupACLMixin):
+class AuthFilterAPIView(AuthAPIView, GroupACLMixin):
     """Auth Enabled APIView."""
-
-
-class TimezoneView(AuthFilterGenericAPIView):
-    """User info."""
-
-    parser_classes = (JSONParser,)
-    input_serializer_class = TimezoneSerializer
-    serializer_class = OKSerializer
-
-    @extend_schema(request=input_serializer_class)
-    def post(self, request, *args, **kwargs):
-        """Get the user info for the current user."""
-        data = self.request.data  # type: ignore
-        serializer = self.input_serializer_class(data=data)
-        serializer.is_valid(raise_exception=True)
-        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
-        request.session.save()
-        user = self.request.user
-        if user.is_authenticated:
-            UserActive.objects.update_or_create(user=user)
-        serializer = self.get_serializer()
-        return Response(serializer.data)
