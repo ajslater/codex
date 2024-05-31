@@ -12,17 +12,17 @@ class AdminAuthMixin:
     permission_classes = (IsAdminUser,)
 
 
-class AdminAPIView(APIView, AdminAuthMixin):
+class AdminAPIView(AdminAuthMixin, APIView):
     """Admin API View."""
 
 
-class AdminGenericAPIView(GenericAPIView, AdminAuthMixin):
+class AdminGenericAPIView( AdminAuthMixin, GenericAPIView):
     """Admin Generic API View."""
 
 
-class AdminModelViewSet(ModelViewSet, AdminAuthMixin):
+class AdminModelViewSet(AdminAuthMixin, ModelViewSet):
     """Admin Model View Set."""
 
 
-class AdminReadOnlyModelViewSet(ReadOnlyModelViewSet, AdminAuthMixin):
+class AdminReadOnlyModelViewSet(AdminAuthMixin, ReadOnlyModelViewSet):
     """Admin Read Only Model View Set."""
