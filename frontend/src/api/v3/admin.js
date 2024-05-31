@@ -85,8 +85,8 @@ const updateFlag = (key, data) => {
 
 // TASKS
 
-const postLibrarianTask = async (task) => {
-  return await HTTP.post("/admin/librarian/task", { task });
+const postLibrarianTask = async (data) => {
+  return await HTTP.post("/admin/librarian/task", data);
 };
 
 // STATUSES
@@ -96,19 +96,13 @@ const getLibrarianStatuses = () => {
   return HTTP.get("/admin/librarian/status", { params });
 };
 
-// TASKS
-
-const librarianTask = (task, library_id) => {
-  return HTTP.post("/admin/librarian/task", { task, library_id });
-};
-
 const getStats = () => {
   const params = { ts: Date.now() };
   return HTTP.get("/admin/stats", { params });
 };
 
-const updateAPIKey = () => {
-  return HTTP.post("/admin/api_key");
+const updateAPIKey = async () => {
+  return await HTTP.post("/admin/api_key");
 };
 
 export default {
@@ -127,7 +121,6 @@ export default {
   getLibraries,
   getStats,
   getUsers,
-  librarianTask,
   postLibrarianTask,
   updateAPIKey,
   updateFlag,
