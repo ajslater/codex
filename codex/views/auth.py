@@ -1,19 +1,17 @@
 """Views authorization."""
 
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
-from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc, UserActive
-from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
-from codex.serializers.choices import CHOICES
+from codex.serializers.auth import TimezoneSerializer
 from codex.serializers.mixins import OKSerializer
 
 LOG = get_logger(__name__)
@@ -34,58 +32,10 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
         return super().has_permission(request, view)
 
 
-class TimezoneView(GenericAPIView):
-    """User info."""
-
-    input_serializer_class = TimezoneSerializer
-    serializer_class = OKSerializer
-
-    _AUTH_USER_MODEL_TYPE = type(settings.AUTH_USER_MODEL)
-
-    @extend_schema(request=input_serializer_class)
-    def post(self, request, *args, **kwargs):
-        """Get the user info for the current user."""
-        data = self.request.data  # type: ignore
-        serializer = self.input_serializer_class(data=data)
-        serializer.is_valid(raise_exception=True)
-        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
-        request.session.save()
-        user = self.request.user
-        if user.is_authenticated:
-            UserActive.objects.update_or_create(user=user)
-        serializer = self.get_serializer()
-        return Response(serializer.data)
-
-
-class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
-    """Get admin flags relevant to auth."""
-
-    _ADMIN_FLAG_KEYS = frozenset(
-        (
-            AdminFlag.FlagChoices.NON_USERS.value,
-            AdminFlag.FlagChoices.REGISTRATION.value,
-        )
-    )
-
-    serializer_class = AuthAdminFlagsSerializer
-    queryset = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only("key", "on")
-
-    def get_object(self):
-        """Get admin flags."""
-        flags = {}
-        for obj in self.get_queryset():  # type: ignore
-            name = CHOICES["admin"]["adminFlags"][obj.key].lower().replace(" ", "_")
-            flags[name] = obj.on
-        return flags
-
-    def get(self, request, *args, **kwargs):
-        """Get admin flags relevant to auth."""
-        return self.retrieve(request, *args, **kwargs)
-
-
 class GroupACLMixin:
     """Filter group ACLS for views."""
 
+    parser_classes = (JSONParser,)
     permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
 
     def get_rel_prefix(self, model):
@@ -128,3 +78,25 @@ class AuthFilterGenericAPIView(GenericAPIView, GroupACLMixin):
 
 class AuthFilterAPIView(APIView, GroupACLMixin):
     """Auth Enabled APIView."""
+
+
+class TimezoneView(AuthFilterGenericAPIView):
+    """User info."""
+
+    parser_classes = (JSONParser,)
+    input_serializer_class = TimezoneSerializer
+    serializer_class = OKSerializer
+
+    @extend_schema(request=input_serializer_class)
+    def post(self, request, *args, **kwargs):
+        """Get the user info for the current user."""
+        data = self.request.data  # type: ignore
+        serializer = self.input_serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
+        request.session.save()
+        user = self.request.user
+        if user.is_authenticated:
+            UserActive.objects.update_or_create(user=user)
+        serializer = self.get_serializer()
+        return Response(serializer.data)

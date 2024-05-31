@@ -86,6 +86,7 @@ const updateFlag = (key, data) => {
 // TASKS
 
 const postLibrarianTask = async (data) => {
+  console.log(data);
   return await HTTP.post("/admin/librarian/task", data);
 };
 

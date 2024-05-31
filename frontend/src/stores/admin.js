@@ -150,7 +150,7 @@ export const useAdminStore = defineStore("admin", {
         return false;
       }
       const commonStore = useCommonStore();
-      await API.postLibrarianTask({task, libraryId})
+      await API.postLibrarianTask({ task, libraryId })
         .then(() => commonStore.setSuccess(text))
         .catch(commonStore.setErrors);
     },
