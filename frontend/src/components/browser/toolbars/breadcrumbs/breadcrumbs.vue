@@ -86,13 +86,14 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #browserBreadcrumbs {
   max-width: 100vw;
   font-size: small;
   color: rgb(var(--v-theme-textDisabled));
   padding-top: 0px;
   padding-bottom: 0px;
-  padding-left: 8px;
+  padding-left: max(10px, calc(env(safe-area-inset-left)/2));
   padding-right: 0px;
 }
 #browserBreadcrumbs :deep(.v-breadcrumbs-item) {
@@ -106,5 +107,10 @@ export default {
 }
 #browserBreadcrumbs :deep(a:hover) {
   color: white;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+#browserBreadcrumbs {
+  padding-left: max(5px, calc(env(safe-area-inset-left)/2));
+}
 }
 </style>
