@@ -145,12 +145,12 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(commonStore.setErrors);
     },
-    async librarianTask(task, text, library_id) {
+    async librarianTask(task, text, libraryId) {
       if (!this.isUserAdmin) {
         return false;
       }
       const commonStore = useCommonStore();
-      await API.librarianTask(task, library_id)
+      await API.postLibrarianTask({task, libraryId})
         .then(() => commonStore.setSuccess(text))
         .catch(commonStore.setErrors);
     },
