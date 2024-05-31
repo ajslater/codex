@@ -9,7 +9,7 @@ from codex.librarian.covers.create import CoverCreateMixin
 from codex.models import Comic
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_contributors, get_m2m_objects
-from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
+from codex.views.opds.v2.top_links import HrefData, LinkData, OPDS2TopLinksView
 
 _MD_CONTRIBUTOR_MAP = MappingProxyType(
     {
@@ -27,7 +27,7 @@ _MD_CONTRIBUTOR_MAP = MappingProxyType(
 _CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
 
 
-class PublicationMixin(LinksMixin):
+class OPDS2PublicationView(OPDS2TopLinksView):
     """Publication Methods for OPDS 2.0 feed."""
 
     is_opds_metadata = False

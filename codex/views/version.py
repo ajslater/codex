@@ -1,13 +1,13 @@
 """Version View."""
 
-from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.serializers.versions import VersionsSerializer
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
+from codex.views.auth import AuthFilterGenericAPIView
 
 
-class VersionView(GenericAPIView):
+class VersionView(AuthFilterGenericAPIView):
     """Return Codex Versions."""
 
     serializer_class = VersionsSerializer

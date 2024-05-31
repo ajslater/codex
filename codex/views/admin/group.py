@@ -1,24 +1,20 @@
 """Group View."""
 
-from typing import ClassVar
-
 from django.contrib.auth.models import Group
 from django.core.cache import cache
-from rest_framework.permissions import IsAdminUser
-from rest_framework.viewsets import ModelViewSet
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
 from codex.serializers.admin import GroupSerializer
+from codex.views.admin.auth import AdminModelViewSet
 
 LOG = get_logger(__name__)
 
 
-class AdminGroupViewSet(ModelViewSet):
+class AdminGroupViewSet(AdminModelViewSet):
     """Admin Group Viewset."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = Group.objects.prefetch_related("user_set", "library_set").select_related(
         "groupauth"
     )

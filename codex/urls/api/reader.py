@@ -8,7 +8,7 @@ from codex.views.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.reader.page import ReaderPageView
 from codex.views.reader.reader import ReaderView
-from codex.views.reader.session import ReaderSessionView
+from codex.views.reader.settings import ReaderSettingsView
 
 app_name = "issue"
 urlpatterns = [
@@ -30,5 +30,5 @@ urlpatterns = [
         cache_control(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
         name="page",
     ),
-    path("settings", ReaderSessionView.as_view(), name="settings"),
+    path("settings", ReaderSettingsView.as_view(), name="settings"),
 ]

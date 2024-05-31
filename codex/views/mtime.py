@@ -1,12 +1,12 @@
 """Get the mtimes for the submitted groups."""
 
 from django.db.models import Max
-from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.models.groups import Publisher
 from codex.serializers.mtime import GroupsMtimeSerializer, MtimeSerializer
 from codex.util import max_none
+from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.const import GROUP_MODEL_MAP
 from codex.views.utils import reparse_json_query_params
@@ -14,7 +14,7 @@ from codex.views.utils import reparse_json_query_params
 _REPARSE_JSON_FIELDS = frozenset({"groups"})
 
 
-class MtimeView(GenericAPIView, BookmarkFilterMixin):
+class MtimeView(AuthFilterGenericAPIView, BookmarkFilterMixin):
     """Get the mtimes for the submitted groups."""
 
     serializer_class = GroupsMtimeSerializer

@@ -12,11 +12,6 @@ from codex.views.const import FOLDER_GROUP
 class BrowserOrderByView(BrowserAnnotationsFilterView):
     """Base class for views that need ordering."""
 
-    def __init__(self, *args, **kwargs):
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        self.order_key: str = ""
-
     def set_order_key(self):
         """Get the default order key for the view."""
         order_key: str = self.params.get("order_by", "")  # type: ignore

@@ -31,7 +31,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.functions import JsonGroupArray
-from codex.views.browser.browser_order_by import (
+from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
 from codex.views.const import STORY_ARC_GROUP
@@ -369,9 +369,10 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_mtime(self, qs):
         """Annotations mtime."""
+        when_filter = {self.rel_prefix + "bookmark__updated_at__gt": F("updated_at")}
         mtime = Case(
-            When(bookmark_updated_at__gt=F("updated_at")),
-            then=F("bookmark_updated_at"),
+            When(**when_filter),
+            then=F(self.rel_prefix + "bookmark__updated_at"),
             default=F("updated_at"),
         )
         return qs.annotate(mtime=mtime)

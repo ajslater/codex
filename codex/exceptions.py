@@ -30,6 +30,7 @@ class SeeOtherRedirectError(APIException):
         route: dict = detail.get("route", {})  # type: ignore
         params: dict = route.get("params", DEFAULTS["breadcrumbs"][0])
         # Save route in server format for redirect reverse
+        params.pop("name", None)
         self.route_kwargs = params
         # Serialize route for detail
         serializer = RouteSerializer(params)

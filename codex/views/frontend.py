@@ -6,11 +6,13 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from codex.serializers.route import RouteSerializer
-from codex.views.browser.session import BrowserSessionViewBase
+from codex.views.session import SessionView
 
 
-class IndexView(BrowserSessionViewBase):
+class IndexView(SessionView):
     """The main app."""
+
+    SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
     renderer_classes: ClassVar[list] = [TemplateHTMLRenderer]  # type: ignore
     template_name = "index.html"

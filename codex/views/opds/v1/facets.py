@@ -77,7 +77,7 @@ DEFAULT_FACETS = {
 }
 
 
-class FacetsMixin(BrowserView):
+class OPDS1FacetsView(BrowserView):
     """OPDS 1 Facets methods."""
 
     OPDS = 1
@@ -89,6 +89,7 @@ class FacetsMixin(BrowserView):
     obj = MappingProxyType({})
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
+        kwargs.pop("name", None)
         href = reverse("opds:v1:feed", kwargs=kwargs)
         facet_active = False
         for key, val in new_query_params.items():

@@ -1,16 +1,16 @@
 """OPDS URLs."""
 
 from django.urls import reverse
-from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.opds.urls import OPDSURLsSerializer
+from codex.views.auth import AuthFilterGenericAPIView
 
 _OPDS_VERSIONS = (1, 2)
 
 
-class OPDSURLsView(GenericAPIView):
+class OPDSURLsView(AuthFilterGenericAPIView):
     """OPDS URLs."""
 
     serializer_class = OPDSURLsSerializer
@@ -19,6 +19,7 @@ class OPDSURLsView(GenericAPIView):
         """Resolve the urls."""
         obj = {}
         route = DEFAULTS["breadcrumbs"][0]
+        route.pop("name", None)
         for version in _OPDS_VERSIONS:
             key = f"v{version}"
             name = f"opds:v{version}:feed"

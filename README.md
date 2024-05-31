@@ -379,13 +379,16 @@ OPDS 2.0 book readers exist, but I am not yet aware of an OPDS 2.0 comic reader.
 
 #### Clients
 
-- iOS has [Panels](https://panels.app/), [KYBook 3](http://kybook-reader.com/),
-  and
+- iOS has [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
+  [KYBook 3](http://kybook-reader.com/), and
   [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
 - Android has
   [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
   and
   [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
+
+Kybook 3 does not seem to support http basic authentication, so Cbbodex users
+are not supported.
 
 #### HTTP Basic Authentication
 

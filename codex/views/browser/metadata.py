@@ -1,7 +1,6 @@
 """View for marking comics read and unread."""
 
 from types import MappingProxyType
-from typing import ClassVar
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, IntegerField, Sum, Value
@@ -13,8 +12,7 @@ from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.serializers.browser.metadata import MetadataSerializer
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser.browser_annotations import BrowserAnnotationsView
+from codex.views.browser.annotations import BrowserAnnotationsView
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -46,7 +44,6 @@ _GROUP_RELS = frozenset({"publisher", "imprint", "series", "volume"})
 class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     serializer_class = MetadataSerializer
     TARGET = "metadata"
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
@@ -276,7 +273,7 @@ class MetadataView(BrowserAnnotationsView):
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
 
-    def set_valid_browse_nav_groups(self, _valid_top_groups):
+    def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
         """Limited allowed nav groups for metadata."""
         group = self.kwargs["group"]
         self.valid_nav_groups = (group,)

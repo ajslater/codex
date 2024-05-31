@@ -1,7 +1,6 @@
 """View for marking comics read and unread."""
 
 from types import MappingProxyType
-from typing import ClassVar
 
 import pycountry
 from caseconverter import snakecase
@@ -27,7 +26,6 @@ from codex.serializers.browser.filters import (
     CharListField,
 )
 from codex.serializers.models.pycountry import PyCountrySerializer
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.filters.annotations import (
     BrowserAnnotationsFilterView,
 )
@@ -75,8 +73,6 @@ _SERIALIZER_MANY = False
 
 class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
     """Get choices for filter dialog."""
-
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):

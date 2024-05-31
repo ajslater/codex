@@ -1,6 +1,5 @@
 """Views for browsing comic library."""
 
-from copy import deepcopy
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -16,10 +15,7 @@ from codex.models import (
     Folder,
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
-from codex.views.browser.filters.bookmark import BookmarkFilterMixin
-from codex.views.browser.filters.field import ComicFieldFilter
-from codex.views.browser.filters.group import GroupFilterMixin
-from codex.views.browser.filters.search import SearchFilterMixin
+from codex.views.browser.filters.search import SearchFilterView
 from codex.views.const import GROUP_MODEL_MAP, ROOT_GROUP
 from codex.views.utils import reparse_json_query_params
 
@@ -31,9 +27,7 @@ if TYPE_CHECKING:
 _REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
 
 
-class BrowserBaseView(
-    ComicFieldFilter, BookmarkFilterMixin, GroupFilterMixin, SearchFilterMixin
-):
+class BrowserBaseView(SearchFilterView):
     """Browse comics with a variety of filters and sorts."""
 
     input_serializer_class = BrowserSettingsSerializer
@@ -56,6 +50,7 @@ class BrowserBaseView(
         self.is_model_comic: bool = False
         self.admin_flags: MappingProxyType[str, bool] = MappingProxyType({})
         self.order_agg_func: type[Min | Max] = Min
+        self.order_key: str = ""
 
     def is_admin(self):
         """Is the current user an admin."""
@@ -109,11 +104,7 @@ class BrowserBaseView(
         data = self._parse_query_params()
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-
-        params = deepcopy(self.request.session[self.SESSION_KEY])
-        params.update(serializer.validated_data)
-        self.params = MappingProxyType(params)
-
+        self.load_params_from_session(serializer.validated_data)
         self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
 
     def set_order_key(self):

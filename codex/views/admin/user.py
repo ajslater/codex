@@ -1,29 +1,24 @@
 """Admin User ViewSet."""
 
-from typing import ClassVar
-
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
-from rest_framework.viewsets import ModelViewSet
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
 from codex.serializers.admin import UserChangePasswordSerializer, UserSerializer
+from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 LOG = get_logger(__name__)
 
 
-class AdminUserViewSet(ModelViewSet):
+class AdminUserViewSet(AdminModelViewSet):
     """User ViewSet."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = User.objects.prefetch_related("groups").defer(
         "first_name", "last_name", "email"
     )
@@ -55,10 +50,9 @@ class AdminUserViewSet(ModelViewSet):
         self._on_change()
 
 
-class AdminUserChangePasswordView(GenericAPIView):
+class AdminUserChangePasswordView(AdminGenericAPIView):
     """Special View to hash user password."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     serializer_class = UserChangePasswordSerializer
 
     def put(self, request, *args, **kwargs):

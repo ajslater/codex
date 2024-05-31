@@ -5,18 +5,19 @@ from types import MappingProxyType
 from django.db.models import Q
 
 from codex.models.comic import Comic
-from codex.views.browser.session import BrowserSessionViewBase
+from codex.views.browser.filters.bookmark import BookmarkFilterMixin
+from codex.views.browser.filters.group import GroupFilterView
 
 _FILTER_REL_MAP = MappingProxyType(
     {
-        BrowserSessionViewBase.CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
-        BrowserSessionViewBase.STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
-        BrowserSessionViewBase.IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
+        GroupFilterView.CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
+        GroupFilterView.STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
+        GroupFilterView.IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
     }
 )
 
 
-class ComicFieldFilter(BrowserSessionViewBase):
+class ComicFieldFilterView(GroupFilterView, BookmarkFilterMixin):
     """Comic field filters."""
 
     def _filter_by_comic_field(self, field, rel_prefix):

@@ -8,6 +8,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc, UserActive
@@ -85,6 +86,8 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
 class GroupACLMixin:
     """Filter group ACLS for views."""
 
+    permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
+
     def get_rel_prefix(self, model):
         """Return the relation prfiex for most fields."""
         prefix = ""
@@ -117,3 +120,11 @@ class GroupACLMixin:
             query |= auth_query
 
         return query
+
+
+class AuthFilterGenericAPIView(GenericAPIView, GroupACLMixin):
+    """Auth Enabled GenericAPIView."""
+
+
+class AuthFilterAPIView(APIView, GroupACLMixin):
+    """Auth Enabled APIView."""

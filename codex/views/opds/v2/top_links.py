@@ -1,10 +1,10 @@
 """OPDS v2.0 top links section methods."""
 
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
+from codex.views.opds.v2.links import HrefData, LinkData, OPDS2LinksView
 
 
-class TopLinksMixin(LinksMixin):
+class OPDS2TopLinksView(OPDS2LinksView):
     """OPDS 2.0 top links section methods."""
 
     def _link_auth(self):

@@ -9,6 +9,7 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.search.query import CodexSearchQuerySet
 from codex.settings.settings import DEBUG
+from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
@@ -26,7 +27,7 @@ class SearchScorePks:
     next_pks: tuple[int, ...] = ()
 
 
-class SearchFilterMixin:
+class SearchFilterView(ComicFieldFilterView):
     """Search Filters Methods."""
 
     def _is_search_results_limited(self) -> bool:

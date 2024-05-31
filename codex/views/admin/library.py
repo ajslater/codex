@@ -2,16 +2,12 @@
 
 from pathlib import Path
 from time import time
-from typing import ClassVar
 
 from django.core.cache import cache
 from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
@@ -28,14 +24,9 @@ from codex.serializers.admin import (
     FailedImportSerializer,
     LibrarySerializer,
 )
+from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 LOG = get_logger(__name__)
-
-
-class AdminModelViewSet(ModelViewSet):
-    """Admin ModelViewSet."""
-
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
 
 
 class AdminLibraryViewSet(AdminModelViewSet):
@@ -67,9 +58,6 @@ class AdminLibraryViewSet(AdminModelViewSet):
             library=library, path=library.path, name=Path(library.path).name
         )
         folder.save()
-
-    def _get_pk(self):
-        return self.kwargs["pk"]
 
     @staticmethod
     def _poll(pk, force):
@@ -117,10 +105,9 @@ class AdminFailedImportViewSet(AdminModelViewSet):
     serializer_class = FailedImportSerializer
 
 
-class AdminFolderListView(GenericAPIView):
+class AdminFolderListView(AdminGenericAPIView):
     """List server directories."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type:ignore
     serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 

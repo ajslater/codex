@@ -39,7 +39,7 @@ class LinkData:
     num_items: int | None = None
 
 
-class LinksMixin(BrowserView):
+class OPDS2LinksView(BrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
     num_pages = 0  # For pyright. Overwritten every run.
@@ -69,6 +69,7 @@ class LinksMixin(BrowserView):
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
+        kwargs.pop("name", None)
         href = reverse(url_name, kwargs=kwargs)
         return self._href_update_query_params(href, data)
 

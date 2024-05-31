@@ -1,10 +1,11 @@
 """Browser breadcrumbs calculations."""
 
+from contextlib import suppress
 from types import MappingProxyType
 
 from codex.logger.logging import get_logger
-from codex.views.browser.browser_annotations import BrowserAnnotationsView
-from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, ROOT_GROUP, STORY_ARC_GROUP
+from codex.views.browser.paginate import BrowserPaginateView
+from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, STORY_ARC_GROUP
 from codex.views.util import Route
 
 LOG = get_logger(__name__)
@@ -12,7 +13,7 @@ LOG = get_logger(__name__)
 _GROUP_ORDER = "rpisv"  # TODO move to const
 
 
-class BrowserBreadcrumbsView(BrowserAnnotationsView):
+class BrowserBreadcrumbsView(BrowserPaginateView):
     """Browser breadcrumbs calculations."""
 
     def _init_breadcrumbs(self, valid_groups):
@@ -38,15 +39,15 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
         page = self.kwargs["page"]
         gi = self.group_instance  # type: ignore
         name = gi.name if gi else ""
-        new_crumb = Route(STORY_ARC_GROUP, pks, page, name)
+        group_crumb = Route(STORY_ARC_GROUP, pks, page, name)
 
-        if old_breadcrumbs and old_breadcrumbs[-1] & new_crumb:
+        if old_breadcrumbs and old_breadcrumbs[-1] & group_crumb:
             # Graft. Hurray
             breadcrumbs = old_breadcrumbs
         else:
             # Create
-            new_breadcrumbs = [new_crumb]
-            if new_crumb.pks and 0 not in new_crumb.pks:
+            new_breadcrumbs = [group_crumb]
+            if group_crumb.pks and 0 not in group_crumb.pks:
                 # Add head.
                 new_breadcrumbs = [Route(STORY_ARC_GROUP, ()), *new_breadcrumbs]
             changed = True
@@ -70,11 +71,11 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
 
         folder = self.group_instance  # type: ignore
         name = folder.name if folder else "All"
-        new_crumb = Route(FOLDER_GROUP, self.kwargs["pks"], self.kwargs["page"], name)
+        group_crumb = Route(FOLDER_GROUP, self.kwargs["pks"], self.kwargs["page"], name)
         new_breadcrumbs = []
 
         while True:
-            branch = self._breadcrumb_find_branch(reversed_breadcrumbs, new_crumb)
+            branch = self._breadcrumb_find_branch(reversed_breadcrumbs, group_crumb)
             if branch and not branch[0].pks:
                 # Branch must have the top as a head.
                 # Graft. Hurray.
@@ -82,36 +83,35 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
                 break
 
             # Add head
-            new_breadcrumbs = [new_crumb, *new_breadcrumbs]
+            new_breadcrumbs = [group_crumb, *new_breadcrumbs]
             changed = True
-            if not new_crumb.pks:
+            if not group_crumb.pks:
                 break
 
             # parent next
             folder = folder.parent_folder
             if folder:
-                new_crumb = Route(FOLDER_GROUP, (folder.pk,), 1, name=folder.name)
+                group_crumb = Route(FOLDER_GROUP, (folder.pk,), 1, name=folder.name)
             else:
-                new_crumb = Route(FOLDER_GROUP, (), 1, name="All")
+                group_crumb = Route(FOLDER_GROUP, (), 1, name="All")
 
         breadcrumbs = new_breadcrumbs
 
         return tuple(breadcrumbs), changed
 
-    def _breadcrumbs_graft_or_create_group_one(
-        self, group, old_breadcrumbs, new_breadcrumbs, changed
-    ) -> tuple[bool, bool]:
-        """Graft or create one browse group breadcrumb."""
+    def _get_breadcrumbs_group_crumb(self, group):
+        """Create the crumb for this group."""
         gi = self.group_instance  # type: ignore
         if not gi:
-            new_crumb = Route(ROOT_GROUP, ())
+            pks = ()
+            page = 1
+            name = "All"
         if group == self.kwargs["group"]:
             # create self crumb
-            name = gi.name if gi else "All"
             pks = self.kwargs["pks"]
             page = self.kwargs["page"]
+            name = gi.name if gi else "All"
         else:
-            new_crumb = None
             page = 1
             if (attr := GROUP_NAME_MAP.get(group)) and (
                 parent_group := getattr(gi, attr, None)
@@ -122,11 +122,17 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
                 pks = ()
                 name = "All"
 
-        new_crumb = Route(group, pks, page, name)
+        return Route(group, pks, page, name)
+
+    def _breadcrumbs_graft_or_create_group_crumb(
+        self, group, old_breadcrumbs, new_breadcrumbs, changed
+    ) -> tuple[bool, bool]:
+        """Graft or create one browse group breadcrumb."""
+        group_crumb = self._get_breadcrumbs_group_crumb(group)
 
         if old_breadcrumbs and (
-            (new_crumb == old_breadcrumbs[-1])
-            or (changed and (new_crumb & old_breadcrumbs[-1]))
+            (group_crumb == old_breadcrumbs[-1])
+            or (changed and (group_crumb & old_breadcrumbs[-1]))
             and not old_breadcrumbs[0].pks
         ):
             # Graft. Hurray
@@ -134,7 +140,7 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
             done = True
         else:
             # Insert the new node
-            new_breadcrumbs.insert(0, new_crumb)
+            new_breadcrumbs.insert(0, group_crumb)
             changed = True
             done = False
         return done, changed
@@ -147,20 +153,28 @@ class BrowserBreadcrumbsView(BrowserAnnotationsView):
         test_groups = tuple(reversed(vng[:-1]))
         new_breadcrumbs = []
         level = done = False
-        browser_group_index = _GROUP_ORDER.index(self.kwargs["group"])
+        try:
+            browser_group_index = _GROUP_ORDER.index(self.kwargs["group"])
+        except ValueError:
+            browser_group_index = -1
 
         for group in test_groups:
             try:
-                level = level or _GROUP_ORDER.index(group) <= browser_group_index
+                with suppress(ValueError):
+                    level = level or _GROUP_ORDER.index(group) <= browser_group_index
                 if level:
-                    done, changed = self._breadcrumbs_graft_or_create_group_one(
+                    done, changed = self._breadcrumbs_graft_or_create_group_crumb(
                         group, old_breadcrumbs, new_breadcrumbs, changed
                     )
-                if old_breadcrumbs and _GROUP_ORDER.index(
-                    old_breadcrumbs[-1].group
-                ) >= _GROUP_ORDER.index(group):
-                    # Trim old_breadcrumbs to match to group
-                    old_breadcrumbs.pop(-1)
+                try:
+                    if old_breadcrumbs and _GROUP_ORDER.index(
+                        old_breadcrumbs[-1].group
+                    ) >= _GROUP_ORDER.index(group):
+                        # Trim old_breadcrumbs to match to group
+                        old_breadcrumbs.pop(-1)
+                except ValueError:
+                    old_breadcrumbs = []
+
                 if done:
                     break
             except Exception:

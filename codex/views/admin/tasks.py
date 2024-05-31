@@ -1,13 +1,10 @@
 """Librarian Status View."""
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
@@ -46,6 +43,7 @@ from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
+from codex.views.admin.auth import AdminAPIView, AdminReadOnlyModelViewSet
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -53,20 +51,18 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
+class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
     """Librarian Task Statuses."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
         "active", "pk"
     )
     serializer_class = LibrarianStatusSerializer
 
 
-class AdminLibrarianTaskView(APIView):
+class AdminLibrarianTaskView(AdminAPIView):
     """Queue Librarian Jobs."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 

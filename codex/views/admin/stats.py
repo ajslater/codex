@@ -9,7 +9,6 @@ from caseconverter import snakecase
 from django.contrib.sessions.models import Session
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema
-from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
@@ -21,12 +20,13 @@ from codex.models import (
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
 from codex.version import VERSION
+from codex.views.admin.auth import AdminGenericAPIView
 from codex.views.const import CONFIG_MODELS, GROUP_MODELS, METADATA_MODELS
 
 LOG = get_logger(__name__)
 
 
-class AdminStatsView(GenericAPIView):
+class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
     permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]  # type: ignore

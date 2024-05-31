@@ -74,6 +74,7 @@ def full_redirect_view(url_name):
     def func(request):
         """Redirect to view, forwarding query strings and auth."""
         kwargs = DEFAULTS["breadcrumbs"][0]
+        kwargs.pop("name", None)
         url = reverse(url_name, kwargs=kwargs)
 
         # Forward the query string.

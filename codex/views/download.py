@@ -1,21 +1,18 @@
 """Download a comic archive."""
 
 from pathlib import Path
-from typing import ClassVar
 
 from django.http import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
-from rest_framework.views import APIView
 
 from codex.models import Comic
-from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
+from codex.views.auth import AuthFilterAPIView
 
 
-class DownloadView(APIView, GroupACLMixin):
+class DownloadView(AuthFilterAPIView):
     """Return the comic archive file as an attachment."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     content_type = "application/vnd.comicbook+zip"
 
     _AS_ATTACHMENT = True
