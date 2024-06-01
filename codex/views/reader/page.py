@@ -1,7 +1,5 @@
 """Views for reading comic books."""
 
-from typing import ClassVar
-
 from comicbox.box import Comicbox
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
@@ -11,12 +9,11 @@ from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FALSY
 
 LOG = get_logger(__name__)
-PDF_MIME_TYPE = "application/pdf"
+_PDF_MIME_TYPE = "application/pdf"
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -43,7 +40,6 @@ class ReaderPageView(BookmarkBaseView):
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
     content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type:ignore
 
     def _update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""
@@ -67,7 +63,7 @@ class ReaderPageView(BookmarkBaseView):
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
         if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
-            content_type = PDF_MIME_TYPE
+            content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type
         with Comicbox(comic.path) as cb:
@@ -81,7 +77,7 @@ class ReaderPageView(BookmarkBaseView):
         ],
         responses={
             (200, content_type): OpenApiTypes.BINARY,
-            (200, PDF_MIME_TYPE): OpenApiTypes.BINARY,
+            (200, _PDF_MIME_TYPE): OpenApiTypes.BINARY,
         },
     )
     def get(self, *_args, **_kwargs):

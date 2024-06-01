@@ -31,9 +31,10 @@ from codex.models import (
     Volume,
 )
 from codex.models.functions import JsonGroupArray
-from codex.views.browser.browser_order_by import (
+from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
+from codex.views.const import STORY_ARC_GROUP
 from codex.views.mixins import SharedAnnotationsMixin
 
 _REL_MAP = MappingProxyType(
@@ -46,39 +47,38 @@ _REL_MAP = MappingProxyType(
         StoryArc: "story_arc_numbers__story_arc",
     }
 )
+_NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
+_NONE_DATETIMEFIELD = Value(None, DateTimeField())
+_ORDER_AGGREGATE_FUNCS = MappingProxyType(
+    # These are annotated to order_value because they're simple relations
+    {
+        "age_rating": Avg,
+        "community_rating": Avg,
+        "created_at": Min,
+        "critical_rating": Avg,
+        "date": Min,
+        "page_count": Sum,
+        "size": Sum,
+        "updated_at": Min,
+    }
+)
+_ANNOTATED_ORDER_FIELDS = frozenset(
+    # These are annotated with their own functions
+    {
+        "filename",
+        "sort_name",
+        "search_score",
+        "bookmark_updated_at",
+        "story_arc_number",
+    }
+)
+_ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+    {Comic: "id", Volume: "name"}
+)
 
 
 class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
-
-    _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
-    _NONE_DATETIMEFIELD = Value(None, DateTimeField())
-    _ORDER_AGGREGATE_FUNCS = MappingProxyType(
-        # These are annotated to order_value because they're simple relations
-        {
-            "age_rating": Avg,
-            "community_rating": Avg,
-            "created_at": Min,
-            "critical_rating": Avg,
-            "date": Min,
-            "page_count": Sum,
-            "size": Sum,
-            "updated_at": Min,
-        }
-    )
-    _ANNOTATED_ORDER_FIELDS = frozenset(
-        # These are annotated with their own functions
-        {
-            "filename",
-            "sort_name",
-            "search_score",
-            "bookmark_updated_at",
-            "story_arc_number",
-        }
-    )
-    _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = (
-        MappingProxyType({Comic: "id", Volume: "name"})
-    )
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -92,7 +92,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Get the group by for the model."""
         if model is None:
             model = self.model
-        return self._ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
+        return _ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
 
     def _alias_sort_names(self, qs, model):
         """Annotate sort_name."""
@@ -133,7 +133,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Get story_arc__pk
         group = self.kwargs["group"]
         pks = self.kwargs["pks"]
-        if group == self.STORY_ARC_GROUP and pks:
+        if group == STORY_ARC_GROUP and pks:
             story_arc_pks = pks
         else:
             story_arc_pks = self.params.get("filters", {}).get(  # type: ignore
@@ -150,7 +150,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             story_arc_number = self.order_agg_func("selected_story_arc_number__number")
         else:
-            story_arc_number = self._NONE_INTEGERFIELD
+            story_arc_number = _NONE_INTEGERFIELD
 
         return qs.alias(story_arc_number=story_arc_number)
 
@@ -168,19 +168,30 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(page_count=page_count_sum)
         return qs
 
-    def _annotate_bookmark_updated_at(self, qs, model):
-        if self.is_opds_1_acquisition or self.order_key == "bookmark_updated_at":
-            bm_rel = self.get_bm_rel(model)
-            bm_filter = self._get_my_bookmark_filter(bm_rel)
-            self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
+    def get_bookmark_updated_at_aggregate(self, model, always_max=False):
+        """Get The aggregate function for relevant bookmark.updated_at."""
+        bm_rel = self.get_bm_rel(model)
+        bm_filter = self.get_my_bookmark_filter(bm_rel)
+        self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
 
-            updated_at_rel = f"{bm_rel}__updated_at"
-            bookmark_updated_at_aggregate = self.order_agg_func(
-                updated_at_rel,
-                default=self._NONE_DATETIMEFIELD,
-                filter=bm_filter,
+        updated_at_rel = f"{bm_rel}__updated_at"
+        agg_func = Max if always_max else self.order_agg_func
+        return agg_func(
+            updated_at_rel,
+            default=_NONE_DATETIMEFIELD,
+            filter=bm_filter,
+        )
+
+    def _annotate_bookmark_updated_at(self, qs, model):
+        if (
+            self.is_opds_1_acquisition
+            or self.order_key == "bookmark_updated_at"
+            or self.is_bookmark_filtered
+        ):
+            bookmark_updated_at_aggregate = self.get_bookmark_updated_at_aggregate(
+                model
             )
-            if self.TARGET == "opds1":
+            if self.TARGET == "opds1" or self.is_bookmark_filtered:
                 qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
             else:
                 qs = qs.alias(bookmark_updated_at=bookmark_updated_at_aggregate)
@@ -191,11 +202,11 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Determine order func
         if model == Folder and self.order_key == "filename":
             order_value = F("name")
-        elif model == Comic or self.order_key in self._ANNOTATED_ORDER_FIELDS:
+        elif model == Comic or self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotaions
             order_value = F(self.order_key)
         else:
-            agg_func = self._ORDER_AGGREGATE_FUNCS[self.order_key]
+            agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
             agg_func = self.order_agg_func if agg_func == Min else agg_func
             field = self.rel_prefix + self.order_key
             order_value = agg_func(field)
@@ -231,10 +242,20 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         elif cover_style == "i":
             default_cover_pk = None
             default_cover_mtime = None
-        else:
+        elif cover_style == "f":
             # At this point it's only been filtered.
             default_cover_pk = F(self.rel_prefix + "pk")
             default_cover_mtime = F(self.rel_prefix + "updated_at")
+        else:  # cover_style == "d"
+            default_cover_pk = F(self.rel_prefix + "pk")
+            if self.is_bookmark_filtered:
+                default_cover_mtime = Case(
+                    When(bookmark_updated_at__gt=F(self.rel_prefix + "updated_at")),
+                    then=F("bookmark_updated_at"),
+                    default=F(self.rel_prefix + "updated_at"),
+                )
+            else:
+                default_cover_mtime = F(self.rel_prefix + "updated_at")
 
         if model in (Volume, Comic):
             cover_custom = Value(False)
@@ -269,7 +290,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             bm_rel, bm_filter = self.bm_annotation_data[model]  # type: ignore
         else:
             bm_rel = self.get_bm_rel(model)
-            bm_filter = self._get_my_bookmark_filter(bm_rel)
+            bm_filter = self.get_my_bookmark_filter(bm_rel)
 
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
@@ -346,6 +367,16 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
+    def _annotate_mtime(self, qs):
+        """Annotations mtime."""
+        when_filter = {self.rel_prefix + "bookmark__updated_at__gt": F("updated_at")}
+        mtime = Case(
+            When(**when_filter),
+            then=F(self.rel_prefix + "bookmark__updated_at"),
+            default=F("updated_at"),
+        )
+        return qs.annotate(mtime=mtime)
+
     def annotate_card_aggregates(self, qs, model):
         """Annotate aggregates that appear the browser card."""
         qs = self._annotate_cover_pk(qs, model)
@@ -355,11 +386,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._annotate_group(qs, model)
         qs = self.annotate_group_names(qs, model)
         qs = self._annotate_bookmarks(qs, model)
-        return self._annotate_progress(qs)
-
-    def annotate_for_metadata(self, qs, _model):
-        """Annotations only for metadata."""
-        return qs.annotate(mtime=Max("updated_at"))
+        qs = self._annotate_progress(qs)
+        return self._annotate_mtime(qs)
 
     def _get_cover_pk_query(self, cover_pks, group_ids):
         """Get Cover Pk queryset for comic queryset."""
@@ -406,7 +434,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Python hack to re-cover groups collapsed with group_by."""
         # This would be better in the main query but OuterRef can't access annotations.
         # So cover_pks aggregates all covers from multi groups like ids does.
-        if self.is_model_comic or self.params.get("cover_style") == "i":
+        cover_style = self.params.get("cover_style")
+        if self.is_model_comic or cover_style == "i":
             return group_qs
 
         recovered_group_list = []
@@ -414,19 +443,20 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             cover_pks = group.cover_pks
             if len(cover_pks) == 1:
                 cover_pk = cover_pks[0]
-                cover_mtime = group.updated_at
             else:
                 comic_qs = self._get_cover_pk_query(cover_pks, group.ids)
                 # print(comic_qs.explain())
                 # print(comic_qs.query)
                 cover = comic_qs[0]
                 cover_pk = cover.pk
-                if len(group.ids) == 1:
-                    cover_mtime = group.updated_at
-                else:
-                    cover_mtime = group.__class__.objects.filter(
-                        pk__in=group.ids
-                    ).aggregate(updated_at=Max("updated_at"))["updated_at"]
+
+            if len(group.ids) == 1:
+                cover_mtime = group.updated_at
+            else:
+                cover_mtime = group.__class__.objects.filter(
+                    pk__in=group.ids
+                ).aggregate(updated_at=Max("updated_at"))["updated_at"]
+
             group.cover_mtime = cover_mtime
             group.cover_pk = cover_pk
             recovered_group_list.append(group)

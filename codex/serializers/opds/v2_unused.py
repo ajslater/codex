@@ -3,7 +3,7 @@
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
 
-from codex.serializers.opds.v2 import LinkListField
+from codex.serializers.opds.v2 import OPDS2LinkListField
 
 
 class RecursiveField(Serializer):
@@ -15,7 +15,9 @@ class RecursiveField(Serializer):
 
     def to_representation(self, instance):
         """Represent with own class."""
-        serializer = self.parent.parent.__class__(instance, context=self.context)
+        parent = self.parent
+        # Should not be ignored but is currently unused
+        serializer = parent.parent.__class__(instance, context=self.context)  # type: ignore
         return serializer.data
 
 
@@ -68,7 +70,7 @@ class OPDS2ProfileSerializer(Serializer):
 
     name = CharField(read_only=True)
     email = CharField(read_only=True)
-    links = LinkListField(read_only=True, required=False)
+    links = OPDS2LinkListField(read_only=True, required=False)
     loans = OPDS2CopiesSerializer(read_only=True)
     holds = OPDS2HoldsSerializer(read_only=True)
 

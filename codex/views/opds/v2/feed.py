@@ -3,15 +3,14 @@
 from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
 from codex.views.browser.browser import BrowserView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import FALSY
+from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
+from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
     FACETS,
@@ -22,22 +21,20 @@ from codex.views.opds.v2.const import (
     NavigationGroup,
 )
 from codex.views.opds.v2.links import HrefData, LinkData
-from codex.views.opds.v2.publications import PublicationMixin
-from codex.views.opds.v2.top_links import TopLinksMixin
+from codex.views.opds.v2.publications import OPDS2PublicationView
 
 LOG = get_logger(__name__)
 
 
-class OPDS2FeedView(PublicationMixin, TopLinksMixin):
+class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
     """OPDS 2.0 Feed."""
 
     DEFAULT_ROUTE = MappingProxyType(
-        {**TopLinksMixin.DEFAULT_ROUTE, "name": "opds:v2:feed"}
+        {**OPDS2PublicationView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
     TARGET = "opds2"
     throttle_scope = "opds"
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
     serializer_class = OPDS2FeedSerializer
 
     def _title(self, browser_title):
@@ -55,11 +52,11 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             result = BLANK_TITLE
         return result
 
-    def _detect_user_agent(self):
-        """Hacks for individual clients."""
-        user_agent = self.request.headers.get("User-Agent")
-        if not user_agent:
-            return
+    # def _detect_user_agent(self):
+    #    """Hacks for individual clients."""
+    #    user_agent = self.request.headers.get("User-Agent")
+    #    if not user_agent:
+    #        return
 
     @staticmethod
     def _is_allowed(link_spec):
@@ -187,7 +184,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         self.num_pages = browser_page["num_pages"]
 
         # opds page
-        title = self._title(browser_page.get("browser_title"))
+        title = self._title(browser_page.get("title"))
         number_of_items = browser_page["total_count"]
         current_page = self.kwargs.get("page")
         up_route = self.get_last_route()
@@ -224,7 +221,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             acquisition_groups = frozenset(self.valid_nav_groups[-2:])
             self.is_opds_2_acquisition = group in acquisition_groups
         self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
         )
 
     def init_request(self):

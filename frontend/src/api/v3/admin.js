@@ -1,4 +1,4 @@
-import { getTSParams } from "@/api/v3/common";
+import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
@@ -9,7 +9,8 @@ const createUser = (data) => {
 };
 
 const getUsers = () => {
-  return HTTP.get("/admin/user");
+  const params = serializeParams();
+  return HTTP.get("/admin/user", { params });
 };
 
 const updateUser = (pk, data) => {
@@ -30,7 +31,8 @@ const createGroup = (data) => {
 };
 
 const getGroups = () => {
-  return HTTP.get("/admin/group");
+  const params = serializeParams();
+  return HTTP.get("/admin/group", { params });
 };
 
 const updateGroup = (pk, data) => {
@@ -46,7 +48,8 @@ const createLibrary = (data) => {
   return HTTP.post("/admin/library", data);
 };
 const getLibraries = () => {
-  return HTTP.get("/admin/library");
+  const params = serializeParams();
+  return HTTP.get("/admin/library", { params });
 };
 
 const updateLibrary = (pk, data) => {
@@ -65,14 +68,15 @@ const getFolders = (path, showHidden) => {
 };
 
 const getFailedImports = () => {
-  const params = getTSParams();
+  const params = serializeParams();
   return HTTP.get("/admin/failed-import", { params });
 };
 
 // FLAGS
 
 const getFlags = () => {
-  return HTTP.get("/admin/flag");
+  const params = serializeParams();
+  return HTTP.get("/admin/flag", { params });
 };
 
 const updateFlag = (key, data) => {
@@ -81,8 +85,9 @@ const updateFlag = (key, data) => {
 
 // TASKS
 
-const postLibrarianTask = async (task) => {
-  return await HTTP.post("/admin/librarian/task", { task });
+const postLibrarianTask = async (data) => {
+  console.log(data);
+  return await HTTP.post("/admin/librarian/task", data);
 };
 
 // STATUSES
@@ -92,18 +97,13 @@ const getLibrarianStatuses = () => {
   return HTTP.get("/admin/librarian/status", { params });
 };
 
-// TASKS
-
-const librarianTask = (task, library_id) => {
-  return HTTP.post("/admin/librarian/task", { task, library_id });
-};
-
 const getStats = () => {
-  return HTTP.get("/admin/stats");
+  const params = { ts: Date.now() };
+  return HTTP.get("/admin/stats", { params });
 };
 
-const updateAPIKey = () => {
-  return HTTP.post("/admin/api_key");
+const updateAPIKey = async () => {
+  return await HTTP.post("/admin/api_key");
 };
 
 export default {
@@ -122,7 +122,6 @@ export default {
   getLibraries,
   getStats,
   getUsers,
-  librarianTask,
   postLibrarianTask,
   updateAPIKey,
   updateFlag,

@@ -1,18 +1,17 @@
 """Comic cover thumbnail view."""
 
-from typing import ClassVar
-
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
-from rest_framework.views import APIView
 
 from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
+from codex.views.auth import (
+    AuthAPIView,
+)
 from codex.views.const import MISSING_COVER_FN, MISSING_COVER_NAME_MAP, STATIC_IMG_PATH
 
 LOG = get_logger(__name__)
@@ -31,10 +30,9 @@ class WEBPRenderer(BaseRenderer):
         return data
 
 
-class CoverView(APIView, GroupACLMixin):
+class CoverView(AuthAPIView):
     """ComicCover View."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
 

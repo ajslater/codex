@@ -76,7 +76,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
 
-    def run(self, task):
+    def run(self, task):  # noqa: PLR0912,C901
         """Run Janitor tasks as the librarian process directly."""
         try:
             match task:

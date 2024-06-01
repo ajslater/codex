@@ -1,7 +1,6 @@
 """View for marking comics read and unread."""
 
 from types import MappingProxyType
-from typing import ClassVar
 
 import pycountry
 from caseconverter import snakecase
@@ -27,7 +26,6 @@ from codex.serializers.browser.filters import (
     CharListField,
 )
 from codex.serializers.models.pycountry import PyCountrySerializer
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.filters.annotations import (
     BrowserAnnotationsFilterView,
 )
@@ -50,37 +48,31 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
         ),
     }
 )
+_NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
+_BACK_REL_MAP = MappingProxyType(
+    {
+        ContributorPerson: "contributor__",
+        StoryArc: "storyarcnumber__",
+        IdentifierType: "identifier__",
+    }
+)
+_CLASS_REL_MAP = MappingProxyType(
+    {
+        Publisher: "publisher",
+        Imprint: "imprint",
+        Series: "series",
+        Volume: "volume",
+        Comic: "pk",
+        Folder: "parent_folder",
+        StoryArc: "story_arc_numbers__story_arc",
+        IdentifierType: "identifiers__identifier_type",
+    }
+)
+_SERIALIZER_MANY = False
 
 
 class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
     """Get choices for filter dialog."""
-
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
-
-    _CONTRIBUTORS_PERSON_REL = "contributors__person"
-    _STORY_ARC_REL = "story_arc_numbers__story_arc"
-    _IDENTIFIERS_REL = "identifiers__identifier_type"
-    _NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
-    _BACK_REL_MAP = MappingProxyType(
-        {
-            ContributorPerson: "contributor__",
-            StoryArc: "storyarcnumber__",
-            IdentifierType: "identifier__",
-        }
-    )
-    _REL_MAP = MappingProxyType(
-        {
-            Publisher: "publisher",
-            Imprint: "imprint",
-            Series: "series",
-            Volume: "volume",
-            Comic: "pk",
-            Folder: "parent_folder",
-            StoryArc: "story_arc_numbers__story_arc",
-            IdentifierType: "identifiers__identifier_type",
-        }
-    )
-    _SERIALIZER_MANY = False
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -97,8 +89,8 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
             LOG.error("No model to make filter choices!")
             m2m_filter = {}
         else:
-            model_rel: str = self._REL_MAP[self.model]  # type: ignore
-            back_rel = self._BACK_REL_MAP.get(model, "")
+            model_rel: str = _CLASS_REL_MAP[self.model]  # type: ignore
+            back_rel = _BACK_REL_MAP.get(model, "")
             back_rel += "comic__"
             back_rel += model_rel
             back_rel += "__in"
@@ -137,7 +129,7 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
         """Return choices."""
         self.init_request()
         obj = self.get_object()
-        serializer = self.get_serializer(obj, many=self._SERIALIZER_MANY)
+        serializer = self.get_serializer(obj, many=_SERIALIZER_MANY)
         return Response(serializer.data)
 
 
@@ -225,7 +217,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         # rows. :(
         if self.does_m2m_null_exist(comic_qs, rel):
             choices = list(qs)
-            choices.append(self._NULL_NAMED_ROW)
+            choices.append(_NULL_NAMED_ROW)
         else:
             choices = qs
         return choices

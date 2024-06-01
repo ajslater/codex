@@ -1,12 +1,10 @@
 """OPDS v1 feed."""
 
-from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from comicbox.box import Comicbox
 from drf_spectacular.utils import extend_schema
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
@@ -17,17 +15,16 @@ from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
 from codex.views.browser.browser import BrowserView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import FALSY
+from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
+from codex.views.opds.auth import OPDSTemplateView
 from codex.views.opds.const import BLANK_TITLE, MimeType
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
-    LinksMixin,
+    OPDS1LinksView,
     RootTopLinks,
     TopLinks,
 )
-from codex.views.template import CodexXMLTemplateView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -54,10 +51,9 @@ class UserAgentPrefixes:
     # "Panels", "Chunky"
 
 
-class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
+class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
     """OPDS 1 Feed."""
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
     template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
     throttle_classes = (ScopedRateThrottle,)
@@ -90,7 +86,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Create the feed title."""
         result = ""
         try:
-            browser_title: Mapping[str, Any] = self.obj.get("browser_title")  # type: ignore
+            browser_title: Mapping[str, Any] = self.obj.get("title")  # type: ignore
             if browser_title:
                 parent_name = browser_title.get("parent_name", "All")
                 pks = self.kwargs["pks"]
@@ -107,10 +103,9 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
 
     @property
     def updated(self):
-        """Hack in feed update time from cover timestamp."""
+        """Use mtime for updated."""
         try:
-            if ts := self.obj.get("covers_timestamp"):
-                return datetime.fromtimestamp(ts, tz=timezone.utc)  # type: ignore
+            return self.obj.get("mtime", "")
         except Exception:
             LOG.exception("Getting OPDS v1 updated")
 
@@ -145,7 +140,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 entries += [
                     OPDS1Entry(
                         obj,
-                        self.request.query_params,
+                        self.request.GET,
                         data,
                         title_filename_fallback=fallback,
                     )
@@ -165,9 +160,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 entries += self.facets(entries=True, root=at_root)
 
             entries += self._get_entries_section("groups", False)
-            metadata = (
-                self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
-            )
+            metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
             entries += self._get_entries_section("books", metadata)
         except Exception:
             LOG.exception("Getting OPDS v1 entries")
@@ -232,7 +225,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
             self.is_opds_1_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
         )
 
     def init_request(self):

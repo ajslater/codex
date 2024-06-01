@@ -3,7 +3,7 @@
     "bookmarkFilter": [
       {
         "title": "All",
-        "value": "ALL",
+        "value": "",
         "default": true
       },
       {

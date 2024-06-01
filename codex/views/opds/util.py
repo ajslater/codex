@@ -6,19 +6,12 @@ from django.urls import reverse
 from django.utils.http import urlencode
 
 from codex.models import (
-    Character,
     Contributor,
     ContributorPerson,
-    Genre,
-    Location,
-    SeriesGroup,
     StoryArc,
-    Tag,
-    Team,
 )
 from codex.serializers.choices import DEFAULTS
-
-OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
+from codex.views.opds.const import OPDS_M2M_MODELS
 
 
 def update_href_query_params(href, old_query_params, new_query_params=None):
@@ -81,6 +74,7 @@ def full_redirect_view(url_name):
     def func(request):
         """Redirect to view, forwarding query strings and auth."""
         kwargs = DEFAULTS["breadcrumbs"][0]
+        kwargs.pop("name", None)
         url = reverse(url_name, kwargs=kwargs)
 
         # Forward the query string.

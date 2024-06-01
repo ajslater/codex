@@ -9,12 +9,13 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.search.query import CodexSearchQuerySet
 from codex.settings.settings import DEBUG
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
+from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
-SEARCH_SCORE_MAX = 100.0
-SEARCH_SCORE_MIN = 0.001
-SEARCH_SCORE_EMPTY = 0.0
+_SEARCH_SCORE_MAX = 100.0
+_SEARCH_SCORE_MIN = 0.001
+_SEARCH_SCORE_EMPTY = 0.0
 
 
 @dataclass
@@ -26,7 +27,7 @@ class SearchScorePks:
     next_pks: tuple[int, ...] = ()
 
 
-class SearchFilterMixin:
+class SearchFilterView(ComicFieldFilterView):
     """Search Filters Methods."""
 
     def _is_search_results_limited(self) -> bool:
@@ -154,10 +155,12 @@ class SearchFilterMixin:
                 when = {prefix + "pk": pk, "then": score}
                 whens.append(When(**when))
             if prev_pks:
-                whens.append(When(pk__in=prev_pks, then=SEARCH_SCORE_MAX))
+                whens.append(When(pk__in=prev_pks, then=_SEARCH_SCORE_MAX))
             if next_pks:
-                whens.append(When(pk__in=next_pks, then=SEARCH_SCORE_MIN))
-            search_score = self.order_agg_func(Case(*whens, default=SEARCH_SCORE_EMPTY))  # type: ignore
+                whens.append(When(pk__in=next_pks, then=_SEARCH_SCORE_MIN))
+            search_score = self.order_agg_func(  # type: ignore
+                Case(*whens, default=_SEARCH_SCORE_EMPTY)
+            )
         else:
             search_score = Value(0.0)
         return qs.annotate(search_score=search_score)

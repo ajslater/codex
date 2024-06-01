@@ -14,7 +14,7 @@ from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
-from codex.views.opds.v1.facets import FacetsMixin
+from codex.views.opds.v1.facets import OPDS1FacetsView
 
 LOG = get_logger(__name__)
 
@@ -101,13 +101,13 @@ class RootTopLinks:
     ALL = (NEW, FEATURED, LAST_READ)
 
 
-class LinksMixin(FacetsMixin):
+class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
     # overwritten in get_object()
     DEFAULT_ROUTE = MappingProxyType(
         {
-            **FacetsMixin.DEFAULT_ROUTE,
+            **OPDS1FacetsView.DEFAULT_ROUTE,
             "name": "opds:v1:feed",
         }
     )
@@ -120,7 +120,7 @@ class LinksMixin(FacetsMixin):
                 return False
 
         for key, value in top_link.query_params.items():
-            if str(self.request.query_params.get(key)) != str(value):
+            if str(self.request.GET.get(key)) != str(value):
                 return False
 
         return True
@@ -128,7 +128,8 @@ class LinksMixin(FacetsMixin):
     def _link(self, kwargs, rel, query_params=None, mime_type=MimeType.NAV):
         """Create a link."""
         if query_params is None:
-            query_params = self.request.query_params
+            query_params = self.request.GET
+        kwargs.pop("name", None)
         href = reverse("opds:v1:feed", kwargs=kwargs)
         href = update_href_query_params(href, query_params)
         return OPDS1Link(rel, href, mime_type)

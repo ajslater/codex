@@ -11,11 +11,7 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
-
-class CharListField(ListField):
-    """List of CharFields."""
-
-    child = CharField()
+from codex.serializers.fields import CharListField
 
 
 class OPDS2LinkPropertiesSerializer(Serializer):
@@ -69,7 +65,7 @@ class OPDS2LinkSerializer(Serializer):
         return obj.get("rel")
 
 
-class LinkListField(ListField):
+class OPDS2LinkListField(ListField):
     """Link List."""
 
     child = OPDS2LinkSerializer()
@@ -148,7 +144,7 @@ class OPDS2FacetSerializer(Serializer):
     """Facets."""
 
     metadata = OPDS2MetadataSerializer(read_only=True)
-    links = LinkListField(read_only=True)
+    links = OPDS2LinkListField(read_only=True)
 
 
 class OPDS2PublicationSerializer(OPDS2FacetSerializer):
@@ -158,19 +154,19 @@ class OPDS2PublicationSerializer(OPDS2FacetSerializer):
     """
 
     metadata = OPDS2PublicationMetadataSerializer(read_only=True)
-    links = LinkListField(read_only=True)
-    images = LinkListField(read_only=True, required=False)
+    links = OPDS2LinkListField(read_only=True)
+    images = OPDS2LinkListField(read_only=True, required=False)
 
 
 class OPDS2GroupSerializer(Serializer):
     """Group."""
 
     metadata = OPDS2MetadataSerializer(read_only=True)
-    links = LinkListField(read_only=True, required=False)
+    links = OPDS2LinkListField(read_only=True, required=False)
     publications = ListField(
         child=OPDS2PublicationSerializer(), read_only=True, required=False
     )
-    navigation = LinkListField(read_only=True, required=False)
+    navigation = OPDS2LinkListField(read_only=True, required=False)
 
 
 class OPDS2FeedSerializer(OPDS2GroupSerializer):

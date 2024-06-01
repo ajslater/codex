@@ -8,7 +8,7 @@ from codex.views.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.metadata import MetadataView
-from codex.views.browser.session import BrowserSessionView
+from codex.views.browser.settings import BrowserSettingsView
 
 METADATA_TIMEOUT = PAGE_MAX_AGE
 
@@ -45,5 +45,5 @@ urlpatterns = [
         BookmarkView.as_view(),
         name="bookmark",
     ),
-    path("settings", never_cache(BrowserSessionView.as_view()), name="settings"),
+    path("settings", never_cache(BrowserSettingsView.as_view()), name="settings"),
 ]

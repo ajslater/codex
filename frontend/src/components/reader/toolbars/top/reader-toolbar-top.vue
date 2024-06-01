@@ -44,7 +44,6 @@
 import { mdiClose } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -79,27 +78,12 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
-    ...mapGetters(useReaderStore, ["activeTitle"]),
+    ...mapGetters(useReaderStore, ["activeTitle", "closeBookRoute"]),
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current || {},
-      closeRoute: (state) => state.routes.close,
       empty: (state) => state.empty,
       subtitle: (state) => state.books?.current?.name || "",
     }),
-    closeBookRoute() {
-      // Choose the best route
-      const route = {
-        name: "browser",
-        params: this.closeRoute,
-      };
-      if (route.params) {
-        route.hash = `#card-${this.currentBook?.pk}`;
-      } else {
-        route.params =
-          window.CODEX.LAST_ROUTE || CHOICES.browser.breadcrumbs[0];
-      }
-      return route;
-    },
     title() {
       return this.activeTitle;
     },

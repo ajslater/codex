@@ -5,10 +5,10 @@ from django.db.models.expressions import Value
 from django.db.models.fields import PositiveSmallIntegerField
 
 from codex.models.comic import Comic
-from codex.views.browser.base import BrowserBaseView
+from codex.views.browser.validate import BrowserValidateView
 
 
-class BrowserAnnotationsFilterView(BrowserBaseView):
+class BrowserAnnotationsFilterView(BrowserValidateView):
     """Annotations that also filter."""
 
     ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())

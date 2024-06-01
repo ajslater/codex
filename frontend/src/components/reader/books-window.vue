@@ -62,7 +62,7 @@ export default {
   },
   beforeMount() {
     this.setBookChangeFlag();
-    this.loadBooks(this.$route.params);
+    this.loadBooks();
   },
   methods: {
     ...mapActions(useReaderStore, ["setBookChangeFlag", "loadBooks"]),

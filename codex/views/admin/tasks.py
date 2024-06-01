@@ -1,13 +1,10 @@
 """Librarian Status View."""
 
 from types import MappingProxyType
-from typing import ClassVar
+from typing import TYPE_CHECKING
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
@@ -46,24 +43,26 @@ from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
+from codex.views.admin.auth import AdminAPIView, AdminReadOnlyModelViewSet
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 LOG = get_logger(__name__)
 
 
-class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
+class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
     """Librarian Task Statuses."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
         "active", "pk"
     )
     serializer_class = LibrarianStatusSerializer
 
 
-class AdminLibrarianTaskView(APIView):
+class AdminLibrarianTaskView(AdminAPIView):
     """Queue Librarian Jobs."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
@@ -114,10 +113,12 @@ class AdminLibrarianTaskView(APIView):
     @extend_schema(request=input_serializer_class)
     def post(self, *_args, **_kwargs):
         """Download a comic archive."""
-        serializer = self.input_serializer_class(data=self.request.data)
+        data = self.request.POST
+        serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        task_name = serializer.validated_data.get("task")
-        pk = serializer.validated_data.get("library_id")
+        validated_data: Mapping = serializer.validated_data  # type: ignore
+        task_name = validated_data.get("task")
+        pk = validated_data.get("library_id")
         task = self._get_task(task_name, pk)
         if task:
             LIBRARIAN_QUEUE.put(task)

@@ -2,16 +2,12 @@
 
 from pathlib import Path
 from time import time
-from typing import ClassVar
 
 from django.core.cache import cache
 from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
@@ -28,20 +24,15 @@ from codex.serializers.admin import (
     FailedImportSerializer,
     LibrarySerializer,
 )
+from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 LOG = get_logger(__name__)
-
-
-class AdminModelViewSet(ModelViewSet):
-    """Admin ModelViewSet."""
-
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
 
 
 class AdminLibraryViewSet(AdminModelViewSet):
     """Admin Library Viewset."""
 
-    WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
+    _WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
 
     queryset = Library.objects.prefetch_related("groups").defer(
         "update_in_progress", "created_at", "updated_at"
@@ -51,7 +42,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
     @classmethod
     def _sync_watchdog(cls, validated_keys=None):
         if validated_keys is None or validated_keys.intersection(
-            cls.WATCHDOG_SYNC_FIELDS
+            cls._WATCHDOG_SYNC_FIELDS
         ):
             task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
             LIBRARIAN_QUEUE.put(task)
@@ -67,9 +58,6 @@ class AdminLibraryViewSet(AdminModelViewSet):
             library=library, path=library.path, name=Path(library.path).name
         )
         folder.save()
-
-    def _get_pk(self):
-        return self.kwargs["pk"]
 
     @staticmethod
     def _poll(pk, force):
@@ -117,10 +105,9 @@ class AdminFailedImportViewSet(AdminModelViewSet):
     serializer_class = FailedImportSerializer
 
 
-class AdminFolderListView(GenericAPIView):
+class AdminFolderListView(AdminGenericAPIView):
     """List server directories."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type:ignore
     serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 
@@ -128,10 +115,10 @@ class AdminFolderListView(GenericAPIView):
     def get(self, *_args, **_kwargs):
         """Get subdirectories for a path."""
         try:
-            serializer = self.input_serializer_class(data=self.request.query_params)
+            serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            path = Path(serializer.validated_data.get("path", "."))
-            show_hidden = serializer.validated_data.get("show_hidden", False)
+            path = Path(serializer.validated_data.get("path", "."))  # type: ignore
+            show_hidden = serializer.validated_data.get("show_hidden", False)  # type: ignore
             root_path = path.resolve()
 
             dirs = []
