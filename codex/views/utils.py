@@ -9,7 +9,7 @@ from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 
 
-def reparse_json_query_params(query_params, keys):
+def reparse_json_query_params(query_params, keys) -> dict:
     """Reparse JSON encoded query_params."""
     # It is an unbelievable amount of trouble to try to parse axios native bracket
     # encoded complex objects in python
@@ -23,4 +23,4 @@ def reparse_json_query_params(query_params, keys):
             parsed_value = value
 
         parsed_dict[key] = parsed_value
-    return underscoreize(parsed_dict, **api_settings.JSON_UNDERSCOREIZE)  # type:ignore
+    return dict(underscoreize(parsed_dict, **api_settings.JSON_UNDERSCOREIZE))  # type:ignore
