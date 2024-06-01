@@ -11,7 +11,6 @@ from humanize import naturaldelta
 from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
 from codex.librarian.importer.cache import CacheMixin
 from codex.librarian.importer.const import FIS, FKS, M2M_MDS, MDS
-from codex.librarian.importer.covers import CoversMixin
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin

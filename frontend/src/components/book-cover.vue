@@ -32,10 +32,6 @@ export default {
       type: Object,
       required: true,
     },
-    coverCustom: {
-      type: Boolean,
-      required: true,
-    },
     multiGroup: {
       type: Boolean,
       required: true,
