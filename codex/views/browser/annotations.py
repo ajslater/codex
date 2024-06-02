@@ -239,13 +239,10 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         if model == Comic:
             default_cover_pk = F("pk")
             default_cover_mtime = F("updated_at")
-        elif cover_style == "i":
-            default_cover_pk = None
-            default_cover_mtime = None
-        elif cover_style == "f":
+        if cover_style == "f":
             # At this point it's only been filtered.
-            default_cover_pk = F(self.rel_prefix + "pk")
-            default_cover_mtime = F(self.rel_prefix + "updated_at")
+            default_cover_pk = F("first_comic__pk")
+            default_cover_mtime = F("first_comic__updated_at")
         else:  # cover_style == "d"
             default_cover_pk = F(self.rel_prefix + "pk")
             if self.is_bookmark_filtered:
@@ -367,12 +364,14 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
-    def _annotate_mtime(self, qs):
+    def _annotate_mtime(self, qs, model):
         """Annotations mtime."""
-        when_filter = {self.rel_prefix + "bookmark__updated_at__gt": F("updated_at")}
+        bm_rel = self.get_bm_rel(model)
+        bm_ua_rel = bm_rel + "__updated_at"
+        when_filter = {bm_ua_rel + "__gt": F("updated_at")}
         mtime = Case(
             When(**when_filter),
-            then=F(self.rel_prefix + "bookmark__updated_at"),
+            then=F(bm_ua_rel),
             default=F("updated_at"),
         )
         return qs.annotate(mtime=mtime)
@@ -387,7 +386,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self.annotate_group_names(qs, model)
         qs = self._annotate_bookmarks(qs, model)
         qs = self._annotate_progress(qs)
-        return self._annotate_mtime(qs)
+        return self._annotate_mtime(qs, model)
 
     def _get_cover_pk_query(self, cover_pks, group_ids):
         """Get Cover Pk queryset for comic queryset."""
@@ -434,8 +433,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Python hack to re-cover groups collapsed with group_by."""
         # This would be better in the main query but OuterRef can't access annotations.
         # So cover_pks aggregates all covers from multi groups like ids does.
-        cover_style = self.params.get("cover_style")
-        if self.is_model_comic or cover_style == "i":
+        if self.is_model_comic:
             return group_qs
 
         recovered_group_list = []

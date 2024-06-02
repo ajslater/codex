@@ -12,7 +12,7 @@ border-radius: 128px;
   - Smaller Browser controls.
   - Breadcrumbs in the browser
   - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
-  - Browser setting to choose Dynamic, First or static Icon group covers.
+  - Browser setting to choose Dynamic or First group covers.
   - Metadata tags can click to browse filtered on that tag.
   - Search one page of results at a time for speed.
   - Browser, Search, and Cover query optimizations.
@@ -24,6 +24,7 @@ border-radius: 128px;
   - Order By respects browser show groups settings.
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
+  - Clean up all orphan folders on startup instead of first pass
 
 ## v1.5.19
 

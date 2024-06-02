@@ -113,7 +113,8 @@ class AdminLibrarianTaskView(AdminAPIView):
     @extend_schema(request=input_serializer_class)
     def post(self, *_args, **_kwargs):
         """Download a comic archive."""
-        data = self.request.POST
+        # DRF does not populate POST correctly, only data
+        data = self.request.data  # type:ignore
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         validated_data: Mapping = serializer.validated_data  # type: ignore

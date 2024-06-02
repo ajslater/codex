@@ -3,13 +3,18 @@
 from contextlib import suppress
 from decimal import ROUND_DOWN, Decimal
 from typing import Any
+from zipfile import BadZipFile
 
+from comicbox.box import Comicbox
 from comicbox.box.computed import IDENTIFIERS_KEY
+from comicbox.exceptions import UnsupportedArchiveTypeError
 from comicbox.schemas.comicbox_mixin import CONTRIBUTORS_KEY
 from django.db.models import CharField
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
+from rarfile import BadRarFile
 
-from codex.librarian.importer.const import STORY_ARCS_METADATA_KEY
+from codex.librarian.importer.const import FIS, STORY_ARCS_METADATA_KEY
+from codex.librarian.importer.query_fks import QueryForeignKeysImporter
 from codex.models import Comic
 from codex.models.named import (
     ContributorPerson,
@@ -18,7 +23,6 @@ from codex.models.named import (
     IdentifierType,
     StoryArc,
 )
-from codex.threads import QueuedThread
 
 _MD_INVALID_KEYS = frozenset(
     (
@@ -62,7 +66,7 @@ _DECIMAL_ZERO = Decimal("0.00")
 _ALPHA_2_LEN = 2
 
 
-class CleanMetadataMixin(QueuedThread):
+class ExtractMetadataImporter(QueryForeignKeysImporter):
     """Clean metadata before importing."""
 
     @staticmethod
@@ -219,7 +223,7 @@ class CleanMetadataMixin(QueuedThread):
         cls._assign_or_pop(md, IDENTIFIERS_KEY, clean_identifiers)
 
     @classmethod
-    def clean_md(cls, md):
+    def _clean_md(cls, md):
         """Sanitize the metadata before import."""
         cls._title_to_name(md)
         md = cls._prune_extra_keys(md)
@@ -230,4 +234,29 @@ class CleanMetadataMixin(QueuedThread):
         cls._clean_contributors(md)
         cls._clean_story_arcs(md)
         cls._clean_identifiers(md)
+        return md
+
+    def extract_and_clean(self, path, import_metadata):
+        """Extract metadata from comic and clean it for codex."""
+        md = {}
+        failed_import = {}
+        try:
+            if import_metadata:
+                with Comicbox(path) as cb:
+                    md = cb.to_dict()
+                    md = md.get("comicbox", {})
+                    if "file_type" not in md:
+                        md["file_type"] = cb.get_file_type()
+                    if "page_count" not in md:
+                        md["page_count"] = cb.get_page_count()
+            md["path"] = path
+            md = self._clean_md(md)
+        except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
+            self.log.warning(f"Failed to import {path}: {exc}")
+            failed_import = {path: exc}
+        except Exception as exc:
+            self.log.exception(f"Failed to import: {path}")
+            failed_import = {path: exc}
+        if failed_import:
+            self.metadata[FIS].update(failed_import)
         return md

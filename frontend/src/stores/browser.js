@@ -357,8 +357,7 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       await COMMON_API.setGroupBookmarks(params, { finished }).then(() => {
-        self.page.mtime = getTimestamp();
-        this.loadBrowserPage();
+        this.loadBrowserPage(getTimestamp());
         return true;
       });
     },

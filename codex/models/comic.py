@@ -176,6 +176,7 @@ class Comic(WatchedPathBrowserGroup):
 
     # Not useful
     custom_cover = None
+    first_comic = None
 
     class Meta(WatchedPathBrowserGroup.Meta):
         """Constraints."""

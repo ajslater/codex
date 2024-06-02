@@ -14,6 +14,16 @@ from codex.librarian.importer.const import (
     DICT_MODEL_CLASS_FIELDS_MAP,
     DICT_MODEL_FIELD_MODEL_MAP,
     DICT_MODEL_REL_MAP,
+    FK_CREATE,
+    FKC_CONTRIBUTORS,
+    FKC_CREATE_FKS,
+    FKC_CREATE_GROUPS,
+    FKC_FOLDER_PATHS,
+    FKC_IDENTIFIERS,
+    FKC_STORY_ARC_NUMBERS,
+    FKC_TOTAL_FKS,
+    FKC_UPDATE_GROUPS,
+    FKS,
     GROUP_COMPARE_FIELDS,
     GROUP_TREES,
     IDENTIFIERS_FIELD_NAME,
@@ -23,7 +33,8 @@ from codex.librarian.importer.const import (
     SERIES,
     STORY_ARCS_METADATA_KEY,
 )
-from codex.librarian.importer.status import ImportStatusTypes, status_notify
+from codex.librarian.importer.query_covers import QueryCustomCoversImporter
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.logger.logging import get_logger
 from codex.models import (
     Comic,
@@ -36,13 +47,9 @@ from codex.models import (
     Volume,
 )
 from codex.models.named import Identifier
-from codex.models.paths import CustomCover
 from codex.settings.settings import FILTER_BATCH_SIZE
 from codex.status import Status
-from codex.threads import QueuedThread
 
-_CREATE_GROUPS = "create_groups"
-_UPDATE_GROUPS = "update_groups"
 _CLASS_QUERY_FIELDS_MAP = MappingProxyType(
     {
         Contributor: ("role__name", "person__name"),
@@ -58,18 +65,23 @@ _DEFAULT_QUERY_FIELDS = ("name",)
 _EXTRA_UPDATE_FIELDS_MAP = MappingProxyType(
     {Series: ("volume_count",), Volume: ("issue_count",)}
 )
-
+_DICT_MODEL_KEY_MAP = MappingProxyType(
+    {
+        CONTRIBUTORS_FIELD_NAME: FKC_CONTRIBUTORS,
+        STORY_ARCS_METADATA_KEY: FKC_STORY_ARC_NUMBERS,
+        IDENTIFIERS_FIELD_NAME: FKC_IDENTIFIERS,
+    }
+)
 LOG = get_logger(__name__)
 
 
-class QueryForeignKeysMixin(QueuedThread):
+class QueryForeignKeysImporter(QueryCustomCoversImporter):
     """Methods for querying what fks are missing."""
 
-    @staticmethod
-    def _get_query_fks_totals(fks):
+    def _get_query_fks_totals(self):
         """Get the query foreign keys totals."""
         fks_total = 0
-        for key, objs in fks.items():
+        for key, objs in self.metadata[FKS].items():
             if key == GROUP_TREES:
                 for groups in objs.values():
                     fks_total += len(groups)
@@ -96,9 +108,8 @@ class QueryForeignKeysMixin(QueuedThread):
         status,
     ):
         """Get create metadata by comparing proposed meatada to existing rows."""
-        if status:
-            vnp = fk_cls._meta.verbose_name_plural.title()
-            status.subtitle = vnp
+        vnp = fk_cls._meta.verbose_name_plural.title()
+        status.subtitle = vnp
         offset = 0
         num_qs = len(q_obj.children)
         while offset < num_qs:
@@ -117,13 +128,12 @@ class QueryForeignKeysMixin(QueuedThread):
                 )
                 update_mds.difference_update(match_with_extra_fields_mds)
 
-            status.complete += len(filter_chunk)
+            status.add_complete(len(filter_chunk))
             self.status_controller.update(status)
 
             offset += FILTER_BATCH_SIZE
 
-        if status:
-            status.subtitle = ""
+        status.subtitle = ""
 
         return num_qs
 
@@ -172,11 +182,11 @@ class QueryForeignKeysMixin(QueuedThread):
         update_group_set.update(update_groups)
         return count
 
-    @classmethod
     def _update_action_group(
-        cls, group_cls, action_groups, group_tree, count_value: int | None
+        self, group_cls, action_groups_key, group_tree, count_value: int | None
     ):
         """Update the create or update group dict with the count dict."""
+        action_groups = self.metadata[FK_CREATE][action_groups_key]
         if group_cls not in action_groups:
             action_groups[group_cls] = {}
         if group_tree not in action_groups[group_cls]:
@@ -189,13 +199,12 @@ class QueryForeignKeysMixin(QueuedThread):
             create_group_set,
             update_group_set,
             group_cls,
-            create_and_update_groups,
             status,
         ) = data
         if group_tree in create_group_set:
             self._update_action_group(
                 group_cls,
-                create_and_update_groups[_CREATE_GROUPS],
+                FKC_CREATE_GROUPS,
                 group_tree,
                 count_value,
             )
@@ -203,14 +212,11 @@ class QueryForeignKeysMixin(QueuedThread):
             # This always updates Volume or Series
             self._update_action_group(
                 group_cls,
-                create_and_update_groups[_UPDATE_GROUPS],
+                FKC_UPDATE_GROUPS,
                 group_tree,
                 count_value,
             )
-        if status:
-            status.complete = status.complete or 0
-            status.complete += 1
-            self.status_controller.update(status)
+        status.add_complete(1)
 
     @staticmethod
     def _prune_group_updates_get_filter(group_cls, update_group_trees):
@@ -281,22 +287,19 @@ class QueryForeignKeysMixin(QueuedThread):
         prune_count = len(update_group_trees) - len(pruned_update_group_trees)
         self.log.debug(f"Pruned {prune_count} {vnp} from updates.")
 
-    @status_notify()
     def _query_missing_group(
         self,
         groups,
         group_cls,
-        create_and_update_groups,
-        status=None,
+        status,
     ):
         """Get missing groups from proposed groups to create."""
         count = 0
         if not groups:
             return count
 
-        if status:
-            vnp = group_cls._meta.verbose_name_plural.title()
-            status.subtitle = vnp
+        vnp = group_cls._meta.verbose_name_plural.title()
+        status.subtitle = vnp
 
         create_group_set = set()
         update_group_set = set()
@@ -308,24 +311,23 @@ class QueryForeignKeysMixin(QueuedThread):
             create_group_set,
             update_group_set,
             group_cls,
-            create_and_update_groups,
             status,
         )
         for group_tree, count_value in groups.items():
             self._query_group_tree(data, group_tree, count_value)
+        self.status_controller.update(status)
 
         # after counts have been tallied, prune the ones that don't need an update.
-        update_groups = create_and_update_groups.get(_UPDATE_GROUPS)
+        update_groups = self.metadata[FK_CREATE][FKC_UPDATE_GROUPS]
         self._prune_group_updates(group_cls, update_groups)
 
-        if status:
-            status.subtitle = ""
+        status.subtitle = ""
 
         create_count = len(
-            create_and_update_groups.get(_CREATE_GROUPS, {}).get(group_cls, {})
+            self.metadata[FK_CREATE][FKC_CREATE_GROUPS].get(group_cls, {})
         )
         update_count = len(
-            create_and_update_groups.get(_UPDATE_GROUPS, {}).get(group_cls, {})
+            self.metadata[FK_CREATE][FKC_UPDATE_GROUPS].get(group_cls, {})
         )
         count = create_count + update_count
         if count:
@@ -421,9 +423,9 @@ class QueryForeignKeysMixin(QueuedThread):
             restored_create_objs.append((*create_obj, url))
         return restored_create_objs
 
-    def _query_missing_dict_model(self, field_name, fks, create_objs, status):
+    def _query_missing_dict_model(self, field_name, create_objs_key, status):
         """Find missing dict type m2m models."""
-        possible_objs = fks.pop(field_name, None)
+        possible_objs = self.metadata[FKS].pop(field_name, None)
         if not possible_objs:
             return 0
 
@@ -457,24 +459,22 @@ class QueryForeignKeysMixin(QueuedThread):
         )
 
         # Final Cleanup
-        create_objs.update(possible_create_objs)
-        count = len(create_objs)
+        self.metadata[FK_CREATE][create_objs_key].update(possible_create_objs)
+        count = len(self.metadata[FK_CREATE][create_objs_key])
         if count:
             model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
             vnp = model._meta.verbose_name_plural
             vnp = vnp.title() if vnp else "Nothings"
             self.log.info(f"Prepared {count} new {vnp}.")
-        if status:
-            status.complete = status.complete or 0
-            status.complete += count
+        status.add_complete(count)
+        self.status_controller.update(status, notify=False)
         return count
 
     ##########
     # SIMPLE #
     ##########
 
-    @status_notify()
-    def _query_missing_simple_models(self, names, fk_data, status=None):
+    def _query_missing_simple_models(self, names, fk_data, status):
         """Find missing named models and folders."""
         # count = 0
         if not names:
@@ -488,9 +488,8 @@ class QueryForeignKeysMixin(QueuedThread):
         create_names = set(names)
         num_proposed_names = len(proposed_names)
 
-        if status:
-            vnp = fk_cls._meta.verbose_name_plural.title()
-            status.subtitle = vnp
+        vnp = fk_cls._meta.verbose_name_plural.title()
+        status.subtitle = vnp
         while start < num_proposed_names:
             # Do this in batches so as not to exceed the 1k line sqlite limit
             end = start + FILTER_BATCH_SIZE
@@ -499,11 +498,8 @@ class QueryForeignKeysMixin(QueuedThread):
             fk_filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, fk_filter)
             num_in_batch = len(batch_proposed_names)
-            # count += num_in_batch
-            if status:
-                status.complete = status.complete or 0
-                status.complete += num_in_batch
-                self.status_controller.update(status)
+            status.add_complete(num_in_batch)
+            self.status_controller.update(status)
             start += FILTER_BATCH_SIZE
 
         if status:
@@ -520,7 +516,7 @@ class QueryForeignKeysMixin(QueuedThread):
         self.log.log(level, f"Prepared {len(create_names)} new {vnp}.")
         return len(names)
 
-    def _query_one_simple_model(self, fk_field, fks, create_fks, status):
+    def _query_one_simple_model(self, fk_field, status):
         """Batch query one simple model name."""
         for cls, names in DICT_MODEL_CLASS_FIELDS_MAP.items():
             if fk_field in names:
@@ -528,25 +524,24 @@ class QueryForeignKeysMixin(QueuedThread):
                 break
         else:
             base_cls = Comic
-        fk_data = create_fks, base_cls, fk_field, "name"
-        names = fks.pop(fk_field)
-        status.complete += self._query_missing_simple_models(
-            names,
-            fk_data,
-            status=status,
+        fk_data = self.metadata[FK_CREATE][FKC_CREATE_FKS], base_cls, fk_field, "name"
+        names = self.metadata[FKS].pop(fk_field)
+        status.add_complete(
+            self._query_missing_simple_models(
+                names,
+                fk_data,
+                status,
+            )
         )
+        self.status_controller.update(status, notify=False)
 
     ###########
     # FOLDERS #
     ###########
-
-    @status_notify()
-    def query_missing_folder_paths(
-        self, comic_paths, library_path, create_folder_paths, status=None
-    ):
+    def query_missing_folder_paths(self, comic_paths, status):
         """Find missing folder paths."""
         # Get the proposed folder_paths
-        library_path = Path(library_path)
+        library_path = Path(self.library.path)
         proposed_folder_paths = set()
         for comic_path in comic_paths:
             for path in Path(comic_path).parents:
@@ -559,136 +554,81 @@ class QueryForeignKeysMixin(QueuedThread):
         self._query_missing_simple_models(
             proposed_folder_paths,
             fk_data,
-            status=status,
+            status,
         )
-        folder_paths_set = create_folder_paths_dict.get(Folder, set())
-        create_folder_paths |= folder_paths_set
+        create_folder_paths = create_folder_paths_dict.get(Folder, set())
+        if FK_CREATE not in self.metadata:
+            # TODO move to moved?
+            self.metadata[FK_CREATE] = {}
+        if FKC_FOLDER_PATHS not in self.metadata[FK_CREATE]:
+            # TODO move to moved?
+            self.metadata[FK_CREATE][FKC_FOLDER_PATHS] = set()
+        self.metadata[FK_CREATE][FKC_FOLDER_PATHS] |= create_folder_paths
         count = len(create_folder_paths)
         if count:
             self.log.info(f"Prepared {count} new Folders.")
         return count
 
-    @staticmethod
-    def _get_create_fks_totals(create_data):
-        (
-            create_groups,
-            update_groups,
-            create_folder_paths,
-            create_fks,
-            create_contributors,
-            create_story_arc_numbers,
-            create_identifiers,
-        ) = create_data
+    def _get_create_fks_totals(self):
+        fkc = self.metadata[FK_CREATE]
         total_fks = 0
         for data_group in chain(
-            create_groups.values(), update_groups.values(), create_fks.values()
+            fkc[FKC_CREATE_GROUPS].values(),
+            fkc[FKC_UPDATE_GROUPS].values(),
+            fkc[FKC_CREATE_FKS].values(),
         ):
             total_fks += len(data_group)
         total_fks += (
-            len(create_folder_paths)
-            + len(create_contributors)
-            + len(create_story_arc_numbers)
-            + len(create_identifiers)
+            len(fkc[FKC_FOLDER_PATHS])
+            + len(fkc[FKC_CONTRIBUTORS])
+            + len(fkc[FKC_STORY_ARC_NUMBERS])
+            + len(fkc[FKC_IDENTIFIERS])
         )
         return total_fks
 
-    def query_all_missing_fks(self, library_path, fks):
+    def query_all_missing_fks(self):
         """Get objects to create by querying existing objects for the proposed fks."""
-        create_contributors = set()
-        create_story_arc_numbers = set()
-        create_identifiers = set()
-        create_groups = {}
-        update_groups = {}
-        create_folder_paths = set()
-        create_fks = {}
-        self.log.debug(f"Querying existing foreign keys for comics in {library_path}")
-        fks_total = self._get_query_fks_totals(fks)
-        dict_model_map = MappingProxyType(
-            {
-                CONTRIBUTORS_FIELD_NAME: create_contributors,
-                STORY_ARCS_METADATA_KEY: create_story_arc_numbers,
-                IDENTIFIERS_FIELD_NAME: create_identifiers,
-            }
+        if FKS not in self.metadata:
+            return
+        self.metadata[FK_CREATE] = {
+            FKC_CONTRIBUTORS: set(),
+            FKC_STORY_ARC_NUMBERS: set(),
+            FKC_IDENTIFIERS: set(),
+            FKC_CREATE_GROUPS: {},
+            FKC_UPDATE_GROUPS: {},
+            FKC_FOLDER_PATHS: set(),
+            FKC_CREATE_FKS: {},
+        }
+        self.log.debug(
+            f"Querying existing foreign keys for comics in {self.library.path}"
         )
-        status = Status(ImportStatusTypes.QUERY_MISSING_FKS, 0, fks_total)
+        status = Status(ImportStatusTypes.QUERY_MISSING_FKS)
         try:
             self.status_controller.start(status)
-            for field_name, create_objs in dict_model_map.items():
+            for field_name, create_objs_key in _DICT_MODEL_KEY_MAP.items():
                 self._query_missing_dict_model(
                     field_name,
-                    fks,
-                    create_objs,
+                    create_objs_key,
                     status,
                 )
-
-            create_and_update_groups = {
-                _CREATE_GROUPS: create_groups,
-                _UPDATE_GROUPS: update_groups,
-            }
-            for group_class, groups in fks.pop(GROUP_TREES, {}).items():
+            for group_class, groups in self.metadata[FKS].pop(GROUP_TREES, {}).items():
                 self._query_missing_group(
                     groups,
                     group_class,
-                    create_and_update_groups,
-                    status=status,
+                    status,
                 )
 
             self.query_missing_folder_paths(
-                fks.pop(COMIC_PATHS, ()),
-                library_path,
-                create_folder_paths,
-                status=status,
+                self.metadata[FKS].pop(COMIC_PATHS, ()), status
             )
 
-            for fk_field in sorted(fks.keys()):
-                self._query_one_simple_model(fk_field, fks, create_fks, status)
+            for fk_field in sorted(self.metadata[FKS].keys()):
+                self._query_one_simple_model(fk_field, status)
+            self.metadata.pop(FKS)
         finally:
             self.status_controller.finish(status)
 
-        create_data = (
-            create_groups,
-            update_groups,
-            create_folder_paths,
-            create_fks,
-            create_contributors,
-            create_story_arc_numbers,
-            create_identifiers,
-        )
-
-        total_fks = self._get_create_fks_totals(create_data)
+        total_fks = self._get_create_fks_totals()
         status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
         self.status_controller.update(status, notify=False)
-        return (*create_data, total_fks)
-
-    @status_notify(ImportStatusTypes.QUERY_MISSING_COVERS, updates=False)
-    def query_missing_custom_covers(
-        self, cover_paths: frozenset, library, query_data: list, status=None
-    ):
-        """Identify update & create covers."""
-        self.log.debug(f"Querying {len(cover_paths)} custom cover_paths")
-        if status:
-            status.total = len(cover_paths)
-
-        update_covers_qs = CustomCover.objects.filter(
-            library=library, path__in=cover_paths
-        )
-        query_data.append(update_covers_qs)
-        update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
-        update_count = len(update_cover_paths)
-        update_status = Status(ImportStatusTypes.COVERS_MODIFIED, 0, update_count)
-        self.status_controller.update(update_status, notify=False)
-
-        create_cover_paths = cover_paths - update_cover_paths
-        query_data.append(create_cover_paths)
-        create_count = len(create_cover_paths)
-        create_status = Status(ImportStatusTypes.COVERS_CREATED, 0, create_count)
-        self.status_controller.update(create_status, notify=False)
-
-        count = create_count + update_count
-        if count:
-            self.log.debug(
-                f"Discovered {update_count} custom covers to update and {create_count} to create."
-            )
-            if status:
-                status.add_complete(count)
-        return count
+        self.metadata[FK_CREATE][FKC_TOTAL_FKS] = total_fks

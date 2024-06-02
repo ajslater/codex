@@ -33,11 +33,7 @@
   </v-select>
 </template>
 <script>
-import {
-  mdiChessRook,
-  mdiFilterSettingsOutline,
-  mdiNumeric1CircleOutline,
-} from "@mdi/js";
+import { mdiFilterSettingsOutline, mdiNumeric1CircleOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
@@ -49,7 +45,6 @@ export default {
       COVER_STYLE_ICONS: {
         d: mdiFilterSettingsOutline,
         f: mdiNumeric1CircleOutline,
-        i: mdiChessRook,
       },
     };
   },
