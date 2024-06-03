@@ -62,8 +62,9 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                 "q": DEFAULTS["q"],
                 "search_results_limit": DEFAULTS["searchResultsLimit"],
                 "show": DEFAULTS["show"],
-                "cover_style": DEFAULTS["coverStyle"],
-                "twenty_four_hour_time": False,
+                "dynamic_covers": DEFAULTS["dynamicCovers"],
+                "custom_covers": DEFAULTS["customCovers"],
+                "twenty_four_hour_time": DEFAULTS["twentyFourHourTime"],
                 "top_group": DEFAULTS["topGroup"],
             },
             READER_SESSION_KEY: {

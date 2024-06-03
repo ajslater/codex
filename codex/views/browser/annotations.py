@@ -20,6 +20,7 @@ from django.db.models import (
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 
+from codex.logger.logging import get_logger
 from codex.models import (
     BrowserGroupModel,
     Comic,
@@ -75,6 +76,8 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
 _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {Comic: "id", Volume: "name"}
 )
+
+LOG = get_logger(__name__)
 
 
 class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
@@ -235,15 +238,12 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
-        cover_style = self.params.get("cover_style")
         if model == Comic:
             default_cover_pk = F("pk")
             default_cover_mtime = F("updated_at")
-        if cover_style == "f":
-            # At this point it's only been filtered.
-            default_cover_pk = F("first_comic__pk")
-            default_cover_mtime = F("first_comic__updated_at")
-        else:  # cover_style == "d"
+
+        dynamic_covers = self.params.get("dynamic_covers")
+        if dynamic_covers:
             default_cover_pk = F(self.rel_prefix + "pk")
             if self.is_bookmark_filtered:
                 default_cover_mtime = Case(
@@ -253,8 +253,12 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 )
             else:
                 default_cover_mtime = F(self.rel_prefix + "updated_at")
+        else:
+            default_cover_pk = F("first_comic__pk")
+            default_cover_mtime = F("first_comic__updated_at")
 
-        if model in (Volume, Comic):
+        custom_covers = self.params.get("custom_covers")
+        if model in (Volume, Comic) or not custom_covers:
             cover_custom = Value(False)
             cover_pk = default_cover_pk
             cover_mtime = default_cover_mtime
@@ -388,10 +392,10 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._annotate_progress(qs)
         return self._annotate_mtime(qs, model)
 
-    def _get_cover_pk_query(self, cover_pks, group_ids):
+    def _get_cover_comic(self, cover_pks, group):
         """Get Cover Pk queryset for comic queryset."""
-        cover_style = self.params.get("cover_style")
-        if cover_style == "d":
+        dynamic_covers = self.params.get("dynamic_covers")
+        if dynamic_covers:
             # DYNAMIC COVERS
             comic_qs = Comic.objects.filter(pk__in=cover_pks)
             comic_qs = self.annotate_search_score(
@@ -399,35 +403,36 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
             comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
-        else:  # "f"
+            comic_qs = comic_qs.group_by("id")
+            comic_qs = comic_qs.only("pk", "updated_at")
+            # print(comic_qs.explain())
+            # print(comic_qs.query)
+            cover_comic = comic_qs.first()
+        else:
             # FIRST COVERS
-            # The only filter at all is the model relation.
-            group_rel = _REL_MAP[self.model]  # type: ignore
-            comic_qs = Comic.objects.filter(**{f"{group_rel}__in": group_ids})
+            group_qs = group.__class__.objects.filter(pk__in=group.ids)
+            group_qs = group_qs.order_by("sort_name").only("first_comic")
+            cover_comic = group_qs.first().first_comic
+        return cover_comic
 
-            # Order generated irrespective of browser filters and order
-            if self.kwargs["group"] == "f":
-                order_key = "filename"
-            elif self.kwargs["group"] == "a":
-                order_key = "story_arc_number"
-            else:
-                order_key = "sort_name"
+    def _recover_multi_groups_group(self, group, recovered_group_list):
+        cover_pks = group.cover_pks
+        if len(cover_pks) == 1:
+            cover_pk = cover_pks[0]
+        else:
+            cover = self._get_cover_comic(cover_pks, group)
+            cover_pk = cover.pk
 
-            model_group = self.model_group  # type: ignore
-            show = MappingProxyType(self.params["show"])  # type: ignore
-            model_group = self.kwargs["group"]
-            comic_qs, comic_sort_names = self.alias_sort_names(
-                comic_qs, Comic, cover_pks, model_group, show
-            )
-            comic_qs = self.add_order_by(
-                comic_qs,
-                Comic,
-                order_key=order_key,
-                do_reverse=False,
-                comic_sort_names=comic_sort_names,
-            )
-        comic_qs = comic_qs.group_by("id")
-        return comic_qs.only("pk", "updated_at")
+        if len(group.ids) == 1:
+            cover_mtime = group.updated_at
+        else:
+            cover_mtime = group.__class__.objects.filter(pk__in=group.ids).aggregate(
+                updated_at=Max("updated_at")
+            )["updated_at"]
+
+        group.cover_mtime = cover_mtime
+        group.cover_pk = cover_pk
+        recovered_group_list.append(group)
 
     def re_cover_multi_groups(self, group_qs):
         """Python hack to re-cover groups collapsed with group_by."""
@@ -438,24 +443,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
         recovered_group_list = []
         for group in group_qs:
-            cover_pks = group.cover_pks
-            if len(cover_pks) == 1:
-                cover_pk = cover_pks[0]
-            else:
-                comic_qs = self._get_cover_pk_query(cover_pks, group.ids)
-                # print(comic_qs.explain())
-                # print(comic_qs.query)
-                cover = comic_qs[0]
-                cover_pk = cover.pk
-
-            if len(group.ids) == 1:
-                cover_mtime = group.updated_at
-            else:
-                cover_mtime = group.__class__.objects.filter(
-                    pk__in=group.ids
-                ).aggregate(updated_at=Max("updated_at"))["updated_at"]
-
-            group.cover_mtime = cover_mtime
-            group.cover_pk = cover_pk
-            recovered_group_list.append(group)
+            try:
+                self._recover_multi_groups_group(group, recovered_group_list)
+            except Exception:
+                msg = f"Re Covering collapsed browser group: {group}"
+                LOG.exception(msg)
         return recovered_group_list

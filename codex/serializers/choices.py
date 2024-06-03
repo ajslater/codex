@@ -49,7 +49,7 @@ _CHOICES_FN_RE = {
     _CHOICES_MODULE_NAME: create_choices_fn_regexes(_CHOICES_MODULE_NAME),
     _ADMIN_CHOICES_MODULE_NAME: create_choices_fn_regexes(_ADMIN_CHOICES_MODULE_NAME),
 }
-_SINGLE_VALUE_KEYS = frozenset({"orderReverse", "q", "searchResultsLimit"})
+_SINGLE_VALUE_KEYS = frozenset({"orderReverse", "q", "searchResultsLimit", "twentyFourHourTime", "dynamicCovers", "customCovers"})
 
 # Exports
 CHOICES = {}

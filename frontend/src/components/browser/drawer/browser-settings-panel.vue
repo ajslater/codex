@@ -14,7 +14,32 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
-  <CoverStyleSelect />
+  <v-checkbox
+    v-tooltip="{
+      openDelay,
+      text: 'Adjust cover with filters and order by',
+    }"
+    class="browserGroupCheckbox"
+    density="compact"
+    hide-details="auto"
+    :model-value="dynamicCovers"
+    :true-value="true"
+    label="Dynamic Covers"
+    @update:model-value="setDynamicCovers($event)"
+  />
+  <v-checkbox
+    v-tooltip="{
+      openDelay,
+      text: 'Overlay custom covers if the admin has set them.',
+    }"
+    class="browserGroupCheckbox"
+    density="compact"
+    hide-details="auto"
+    :model-value="customCovers"
+    :true-value="true"
+    label="Custom Covers"
+    @update:model-value="setCustomCovers($event)"
+  />
   <v-divider />
   <!--
   <v-checkbox
@@ -46,7 +71,6 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import CoverStyleSelect from "@/components/browser/drawer/cover-style-select.vue";
 import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -54,8 +78,12 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "BrowserSettingsPanel",
   components: {
-    CoverStyleSelect,
     SearchHelp,
+  },
+  data() {
+    return {
+      openDelay: 2000, // for tooltips
+    };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isAuthorized"]),
@@ -70,6 +98,8 @@ export default {
         state.settings?.twentyFourHourTime || false,
       twentyFourHourTimeTitle: (state) =>
         state.choices?.static?.twentyFourHourTime?.title || "",
+      dynamicCovers: (state) => state.settings?.dynamicCovers || false,
+      customCovers: (state) => state.settings?.customCovers || false,
     }),
   },
   methods: {
@@ -80,6 +110,14 @@ export default {
     },
     set24HourTime(value) {
       const data = { twentyFourHourTime: value === true };
+      this.setSettings(data);
+    },
+    setDynamicCovers(value) {
+      const data = { dynamicCovers: value === true };
+      this.setSettings(data);
+    },
+    setCustomCovers(value) {
+      const data = { customCovers: value === true };
       this.setSettings(data);
     },
     /*
