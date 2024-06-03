@@ -241,9 +241,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         if model == Comic:
             default_cover_pk = F("pk")
             default_cover_mtime = F("updated_at")
-
-        dynamic_covers = self.params.get("dynamic_covers")
-        if dynamic_covers:
+        elif self.params.get("dynamic_covers"):
             default_cover_pk = F(self.rel_prefix + "pk")
             if self.is_bookmark_filtered:
                 default_cover_mtime = Case(
