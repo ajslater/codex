@@ -517,13 +517,13 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "1.1.7"
+version = "1.1.8"
 description = "An API for reading comic archive contents and metadata: CBZ, CBR, CBT and PDF"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "comicbox-1.1.7-py3-none-any.whl", hash = "sha256:bddc586f5ee2b2915337fb53a4012fdc32f494ad5be954c1f7c83a76845e2b0c"},
-    {file = "comicbox-1.1.7.tar.gz", hash = "sha256:5c54a0f5dac9fd56957070047f2785cecc786695608d1ff79cca5a21558f6491"},
+    {file = "comicbox-1.1.8-py3-none-any.whl", hash = "sha256:6e45dab0645ed535b90771b500315af3b9f6ddf881614ae4cc0002ddd2ca2575"},
+    {file = "comicbox-1.1.8.tar.gz", hash = "sha256:d7af4c23c3db33d4321cc9a7658e92eb7ec4dc8d07729fa3e50cbc976a3445f8"},
 ]
 
 [package.dependencies]
@@ -534,7 +534,7 @@ comicfn2dict = ">=0.2.2,<0.3.0"
 confuse = ">=2.0.0,<3.0.0"
 marshmallow = ">=3.19.0,<4.0.0"
 marshmallow-union = ">=0.1.15.post1,<0.2.0"
-pycountry = ">=23.12.11,<24.0.0"
+pycountry = ">=24.6.1,<25.0.0"
 python-dateutil = ">=2.8.2,<3.0.0"
 rarfile = ">=4.0,<5.0"
 ruamel-yaml = ">=0.17.32,<0.19.00"
@@ -1642,13 +1642,13 @@ pyasn1 = ">=0.4.6,<0.7.0"
 
 [[package]]
 name = "pycountry"
-version = "23.12.11"
+version = "24.6.1"
 description = "ISO country, subdivision, language, currency and script definitions and their translations"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pycountry-23.12.11-py3-none-any.whl", hash = "sha256:2ff91cff4f40ff61086e773d61e72005fe95de4a57bfc765509db05695dc50ab"},
-    {file = "pycountry-23.12.11.tar.gz", hash = "sha256:00569d82eaefbc6a490a311bfa84a9c571cff9ddbf8b0a4f4e7b4f868b4ad925"},
+    {file = "pycountry-24.6.1-py3-none-any.whl", hash = "sha256:f1a4fb391cd7214f8eefd39556d740adcc233c778a27f8942c8dca351d6ce06f"},
+    {file = "pycountry-24.6.1.tar.gz", hash = "sha256:b61b3faccea67f87d10c1f2b0fc0be714409e8fcdcc1315613174f6466c10221"},
 ]
 
 [[package]]
@@ -2965,4 +2965,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "00badcfe56567726a263546a648e09f5f13ea1c5562a07e10730309ab2858269"
+content-hash = "a937f1b4daa148d22129c9fb520296474d92686bf19df91b4fa08c34200016fc"
