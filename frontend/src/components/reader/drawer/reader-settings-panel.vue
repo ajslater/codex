@@ -54,6 +54,10 @@
       />
     </v-radio-group>
     <v-checkbox
+      v-tooltip="{
+        openDelay,
+        text: 'Cache all pages from this book in the browser',
+      }"
       :model-value="cacheBook"
       class="cacheBook"
       density="compact"
@@ -85,8 +89,11 @@
     <v-btn
       v-if="!isGlobalScope"
       id="clearSettingsButton"
+      v-tooltip="{
+        openDelay,
+        text: 'Use the default settings for all comics for this comic',
+      }"
       :disabled="isClearSettingsButtonDisabled"
-      title="Use the default settings for all comics for this comic"
       @click="clearSettingsLocal"
     >
       Clear Comic Settings
@@ -111,6 +118,7 @@ export default {
     return {
       isGlobalScope: false,
       mdiOpenInNew,
+      openDelay: 2000,
     };
   },
   computed: {
