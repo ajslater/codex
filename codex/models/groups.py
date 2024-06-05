@@ -131,14 +131,12 @@ class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
 
     def presave(self):
         """Fix multiple inheritance presave."""
-        # TODO test presave calling bgm & stat
         super().presave()
         WatchedPath.presave(self)
 
     class Meta(WatchedPath.Meta):  # type: ignore
         """Use Mixin Meta."""
 
-        # TODO see if this does unique properly.
         abstract = True
 
 
