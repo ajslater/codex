@@ -41,6 +41,7 @@ class CoverView(BrowserAnnotationsView):
 
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
+    TARGET = "cover"
 
     def get_model_group(self):
         """Return the url group."""
@@ -88,7 +89,7 @@ class CoverView(BrowserAnnotationsView):
             if custom_cover:
                 return custom_cover.pk, True
 
-        comic_qs = self.get_filtered_queryset(Comic, search_binary_filter=False)
+        comic_qs = self.get_filtered_queryset(Comic)
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
         comic_qs = self.add_order_by(comic_qs, Comic)
         comic_qs = comic_qs.only("pk")

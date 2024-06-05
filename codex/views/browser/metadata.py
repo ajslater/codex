@@ -249,7 +249,7 @@ class MetadataView(BrowserAnnotationsView):
             group = self.kwargs["group"]
             raise NotFound(detail=f"Cannot get metadata for {group=}")
 
-        qs = self.get_filtered_queryset(self.model, search_binary_filter=True)
+        qs = self.get_filtered_queryset(self.model)
 
         filtered_qs = qs
         qs = self.annotate_order_aggregates(qs, self.model)

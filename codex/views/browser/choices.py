@@ -57,6 +57,7 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
     """Get choices for filter dialog."""
 
     SERIALIZER_MANY = False
+    TARGET = "choices"
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -94,7 +95,7 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
-        return self.get_filtered_queryset(Comic, search_binary_filter=True)
+        return self.get_filtered_queryset(Comic)
 
     @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
     def get(self, *_args, **_kwargs):

@@ -26,10 +26,10 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
         qs = qs.alias(pre_search_child_count=Count(rel, distinct=True))
         return qs.filter(pre_search_child_count__gt=0)
 
-    def get_filtered_queryset(self, model, search_binary_filter=False):
+    def get_filtered_queryset(self, model):
         """Get a filtered queryset for the model."""
         object_filter = self.get_query_filters(model)
 
         qs = model.objects.filter(object_filter)
         qs = self._filter_by_child_count(qs, model)
-        return self.apply_search_filter(qs, model, search_binary_filter)
+        return self.apply_search_filter(qs, model)

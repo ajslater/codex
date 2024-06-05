@@ -30,6 +30,8 @@ class SearchScorePks:
 class SearchFilterView(ComicFieldFilterView):
     """Search Filters Methods."""
 
+    TARGET = ""
+
     def _is_search_results_limited(self) -> bool:
         """Get search result limit from params."""
         # user = self.request.user  # type: ignore
@@ -115,7 +117,7 @@ class SearchFilterView(ComicFieldFilterView):
 
         return tuple(scores_pairs), tuple(prev_pks), tuple(next_pks), tuple(scored_pks)
 
-    def _get_search_scores(self, model, qs, binary=False):
+    def _get_search_scores(self, model, qs):
         """Perform the search and return the scores as a dict."""
         text = self.params.get("q", "")  # type: ignore
         if not text:
@@ -133,7 +135,10 @@ class SearchFilterView(ComicFieldFilterView):
             if comic_ids:
                 # Prefilter comic ids. If nothing is allowed, don't search.
                 sqs = sqs.filter_comic_ids(comic_ids)
-                binary = binary or self.params.get("order_by") != "search_score"  # type: ignore
+                binary = (
+                    self.TARGET in frozenset({"cover", "choices"})
+                    or self.params.get("order_by", "") != "search_score"
+                )
                 if binary:
                     scored_pks = self._get_binary_search_scores(sqs)
                 else:
@@ -176,11 +181,11 @@ class SearchFilterView(ComicFieldFilterView):
         rel = prefix + "pk__in"
         return {rel: scored_pks}
 
-    def apply_search_filter(self, qs, model, binary_filter=False):
+    def apply_search_filter(self, qs, model):
         """Preparse search, search and return the filter and scores."""
         try:
             score_pairs, prev_pks, next_pks, scored_pks = self._get_search_scores(
-                model, qs, binary_filter
+                model, qs
             )
             qs = self.annotate_search_score(qs, model, score_pairs, prev_pks, next_pks)
             if score_pairs or scored_pks:

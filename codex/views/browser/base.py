@@ -33,7 +33,6 @@ class BrowserBaseView(SearchFilterView):
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
 
     _GET_JSON_KEYS = frozenset({"filters", "show"})
-    TARGET = ""
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
