@@ -101,7 +101,7 @@
         :disabled="isClearSettingsButtonDisabled"
         @click="clearSettingsLocal"
       >
-        Clear Comic Settings
+        Clear Settings
       </v-btn>
     </div>
   </div>
@@ -289,9 +289,10 @@ export default {
 }
 #readerScopedSettings {
   // halfway between background (18) and surface (33) color
-  background-color: rgb(26,26,26); //rgba(var(--v-theme-surface));
+  background-color: rgb(25,25,25); //rgba(var(--v-theme-surface));
   margin-top: 4px;
   padding-left: 4px;
   padding-top: 4px;
+  margin-right: 8px;
 }
 </style>
