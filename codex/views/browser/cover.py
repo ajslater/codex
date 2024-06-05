@@ -14,9 +14,9 @@ from codex.models.paths import CustomCover
 from codex.serializers.choices import DEFAULTS
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import (
+    GROUP_RELATION,
     MISSING_COVER_FN,
     MISSING_COVER_NAME_MAP,
-    MODEL_REL_MAP,
     STATIC_IMG_PATH,
 )
 
@@ -81,18 +81,14 @@ class CoverView(BrowserAnnotationsView):
         pks = self.kwargs["pks"]
 
         if self.model != Volume and self.params.get("custom_covers"):
-            group_rel = "folder" if self.model == Folder else MODEL_REL_MAP[self.model]  # type: ignore
+            group = self.kwargs["group"]
+            group_rel = "folder" if self.model == Folder else GROUP_RELATION[group]  # type: ignore
             comic_filter = {f"{group_rel}__in": pks}
             custom_cover = CustomCover.objects.filter(**comic_filter).only("pk").first()
             if custom_cover:
                 return custom_cover.pk, True
 
-        object_filter = self.get_query_filters_without_group(Comic)
-        comic_qs = Comic.objects.filter(object_filter)
-        group_rel = "folders" if self.model == Folder else MODEL_REL_MAP[self.model]  # type: ignore
-        group_filter = {f"{group_rel}__in": pks}
-        comic_qs = comic_qs.filter(**group_filter)
-        comic_qs = self.filter_by_annotations(comic_qs, Comic)
+        comic_qs = self.get_filtered_queryset(Comic, search_binary_filter=False)
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
         comic_qs = self.add_order_by(comic_qs, Comic)
         comic_qs = comic_qs.only("pk")

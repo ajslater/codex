@@ -12,12 +12,7 @@ from codex.logger.logging import get_logger
 from codex.models import (
     Comic,
     ContributorPerson,
-    Folder,
-    Imprint,
-    Publisher,
-    Series,
     StoryArc,
-    Volume,
 )
 from codex.models.named import IdentifierType
 from codex.serializers.browser.choices import CHOICES_SERIALIZER_CLASS_MAP
@@ -48,7 +43,6 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
         ),
     }
 )
-_NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
 _BACK_REL_MAP = MappingProxyType(
     {
         ContributorPerson: "contributor__",
@@ -56,23 +50,13 @@ _BACK_REL_MAP = MappingProxyType(
         IdentifierType: "identifier__",
     }
 )
-_CLASS_REL_MAP = MappingProxyType(
-    {
-        Publisher: "publisher",
-        Imprint: "imprint",
-        Series: "series",
-        Volume: "volume",
-        Comic: "pk",
-        Folder: "parent_folder",
-        StoryArc: "story_arc_numbers__story_arc",
-        IdentifierType: "identifiers__identifier_type",
-    }
-)
-_SERIALIZER_MANY = False
+_NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
 
 
 class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
     """Get choices for filter dialog."""
+
+    SERIALIZER_MANY = False
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -85,21 +69,13 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
 
     def get_m2m_field_query(self, model, comic_qs: QuerySet):
         """Get distinct m2m value objects for the relation."""
-        if self.model is None:
-            LOG.error("No model to make filter choices!")
-            m2m_filter = {}
-        else:
-            model_rel: str = _CLASS_REL_MAP[self.model]  # type: ignore
-            back_rel = _BACK_REL_MAP.get(model, "")
-            back_rel += "comic__"
-            back_rel += model_rel
-            back_rel += "__in"
-            m2m_filter = {back_rel: comic_qs}
+        back_rel = _BACK_REL_MAP.get(model, "")
+        m2m_filter = {f"{back_rel}comic__in": comic_qs}
         return model.objects.filter(**m2m_filter).values("pk", "name").distinct()
 
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):
-        """Get if null values exists for an m2m field."""
+        """Get if comics exist in the filter without values exists for an m2m field."""
         return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
 
     def get_rel_and_model(self, field_name):
@@ -114,22 +90,18 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
             rel = field_name
             model = remote_field.model if remote_field else None
 
-        rel = self.rel_prefix + rel
-
         return rel, model
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
-        object_filter = self.get_query_filters(self.model, choices=True)
-        qs = self.model.objects.filter(object_filter)  # type: ignore
-        return self.filter_by_annotations(qs, self.model, binary=True)
+        return self.get_filtered_queryset(Comic, search_binary_filter=True)
 
     @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Return choices."""
         self.init_request()
         obj = self.get_object()
-        serializer = self.get_serializer(obj, many=_SERIALIZER_MANY)
+        serializer = self.get_serializer(obj, many=self.SERIALIZER_MANY)
         return Response(serializer.data)
 
 
@@ -162,6 +134,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     def get_object(self):
         """Get choice counts."""
         qs = super().get_object()
+        filters = self.params.get("filters", {})
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
             if field_name == "story_arcs" and self.model == StoryArc:
@@ -174,9 +147,9 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             else:
                 count = self._get_field_choices_count(qs, rel)
 
-            filters = self.params.get("filters", {})
             try:
-                flag = count > 1 or field_name in filters  # type: ignore
+                is_filter_set = bool(filters.get(field_name))
+                flag = is_filter_set or count > 1  # type: ignore
             except TypeError:
                 flag = False
             data[field_name] = flag
@@ -187,7 +160,9 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
     # serializer_class = Dynamic class determined in get()
-    _SERIALIZER_MANY = True
+    SERIALIZER_MANY = True
+    # HACK get_serializer(data, many=True) requires this to be set for the debug API view
+    queryset = Comic.objects.none()
 
     def _get_field_choices(self, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""

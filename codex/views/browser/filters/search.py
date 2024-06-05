@@ -176,11 +176,11 @@ class SearchFilterView(ComicFieldFilterView):
         rel = prefix + "pk__in"
         return {rel: scored_pks}
 
-    def apply_search_filter(self, qs, model, binary=False):
+    def apply_search_filter(self, qs, model, binary_filter=False):
         """Preparse search, search and return the filter and scores."""
         try:
             score_pairs, prev_pks, next_pks, scored_pks = self._get_search_scores(
-                model, qs, binary
+                model, qs, binary_filter
             )
             qs = self.annotate_search_score(qs, model, score_pairs, prev_pks, next_pks)
             if score_pairs or scored_pks:

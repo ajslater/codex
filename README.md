@@ -288,8 +288,8 @@ index, a Django cache and comic book cover thumbnails.
 
 Codex contains some experimental throttling controls. The value supplied to
 these variables will be interpreted as the maximum number of allowed requests
-per minute. For example, the following settings would limit each described group to 2
-queries per second.
+per minute. For example, the following settings would limit each described group
+to 2 queries per second.
 
 - `CODEX_THROTTLE_ANON=30` Anonymous users
 - `CODEX_THROTTLE_USER=30` Authenticated users

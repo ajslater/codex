@@ -2,7 +2,8 @@
 
 from django.db.models import Q
 
-from codex.views.const import FOLDER_GROUP, GROUP_RELATION
+from codex.models import Comic
+from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, GROUP_RELATION
 from codex.views.session import SessionView
 
 
@@ -11,18 +12,22 @@ class GroupFilterView(SessionView):
 
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
-    def get_group_filter(self, choices):
+    def get_group_filter(self, model):
         """Get filter for the displayed group."""
         group = self.kwargs["group"]  # type: ignore
         pks = self.kwargs["pks"]  # type: ignore
         if pks:  # type: ignore
-            group_relation = "comic__" if choices else ""
-            if choices and group == FOLDER_GROUP:
-                group_relation += "folders"
+            if model == GROUP_MODEL_MAP.get(group):
+                # metadata only
+                rel = "pk"
+            elif model == Comic and group == FOLDER_GROUP:
+                # choices & covers
+                rel = "folders"
             else:
-                group_relation += GROUP_RELATION[group]
-            group_relation += "__in"
-            group_filter_dict = {group_relation: pks}  # type: ignore
+                rel = GROUP_RELATION[group]
+
+            rel += "__in"
+            group_filter_dict = {rel: pks}  # type: ignore
         elif group == FOLDER_GROUP:
             group_filter_dict = {"parent_folder": None}
         else:

@@ -75,19 +75,6 @@ class BrowserBaseView(SearchFilterView):
             group = self.params["top_group"]
         return group
 
-    def get_query_filters_without_group(self, model):
-        """Return all the filters except the group filter."""
-        object_filter = self.get_group_acl_filter(model)
-        object_filter &= self.get_bookmark_filter(model)
-        object_filter &= self.get_comic_field_filter(model)
-        return object_filter
-
-    def get_query_filters(self, model, choices=False):
-        """Return the main object filter and the one for aggregates."""
-        object_filter = self.get_query_filters_without_group(model)
-        object_filter &= self.get_group_filter(choices)
-        return object_filter
-
     def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
         query_params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)

@@ -249,16 +249,14 @@ class MetadataView(BrowserAnnotationsView):
             group = self.kwargs["group"]
             raise NotFound(detail=f"Cannot get metadata for {group=}")
 
-        object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
-        pks = self.kwargs["pks"]
-        qs = self.model.objects.filter(object_filter, pk__in=pks)
-        qs = self.filter_by_annotations(qs, self.model, binary=True)
+        qs = self.get_filtered_queryset(self.model, search_binary_filter=True)
+
         filtered_qs = qs
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
+        qs = self._annotate_values_and_fks(qs, filtered_qs)
         group_by = self.get_group_by()
         qs = qs.group_by(group_by)
-        qs = self._annotate_values_and_fks(qs, filtered_qs)
 
         try:
             obj = qs[0]
