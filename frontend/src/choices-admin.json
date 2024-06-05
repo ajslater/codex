@@ -22,7 +22,7 @@
     "IDD": "Remove Folders",
     "IFD": "Remove Books",
     "IFI": "Record Failed Imports",
-    "IGU": "Cover and Cache Update",
+    "IGU": "Update First Covers",
     "JTD": "Cleanup Stale Tags",
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
