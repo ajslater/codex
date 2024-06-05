@@ -98,7 +98,7 @@ export const useBrowserStore = defineStore("browser", {
     zeroPad: 0,
     browserPageLoaded: false,
     isSearchOpen: false,
-    searchTimeout: undefined,
+    searchHideTimeout: undefined,
   }),
   getters: {
     topGroupChoices() {
@@ -342,7 +342,7 @@ export const useBrowserStore = defineStore("browser", {
           state.isSearchOpen = true;
         }
       });
-      this.startSearchHideTimer();
+      this.startSearchHideTimeout();
     },
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
@@ -392,15 +392,18 @@ export const useBrowserStore = defineStore("browser", {
         return true;
       });
     },
-    startSearchHideTimer() {
+    clearSearchHideTimeout() {
+      clearTimeout(this.searchHideTimeout);
+    },
+    startSearchHideTimeout() {
       if (!this.isSearchOpen) {
         return;
       }
       const q = this.settings.q;
       if (q) {
-        clearTimeout(this.searchTimeout);
+        this.clearSearchHideTimeout();
       } else {
-        this.searchTimeout = setTimeout(() => {
+        this.searchHideTimeout = setTimeout(() => {
           const q = this.settings.q;
           if (!q) {
             this.setIsSearchOpen(false);

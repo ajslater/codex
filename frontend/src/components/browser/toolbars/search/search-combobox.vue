@@ -18,8 +18,11 @@
     variant="solo"
     @click:clear="doSearch(true)"
     @click:prepend-inner="doSearch"
-    @keydown.enter="doSearch"
-    @keydown.esc="doEscape"
+    @keydown="clearSearchHideTimeout"
+    @keyup.enter="doSearch"
+    @keyup.esc="doBlur"
+    @focus="clearSearchHideTimeout"
+    @blur="doBlur"
   />
 </template>
 
@@ -56,7 +59,11 @@ export default {
     this.query = this.stateQ;
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings", "startSearchHideTimer"]),
+    ...mapActions(useBrowserStore, [
+      "setSettings",
+      "startSearchHideTimeout",
+      "clearSearchHideTimeout",
+    ]),
     addToMenu(q) {
       if (!q || this.items.includes(q)) {
         return;
@@ -72,12 +79,16 @@ export default {
       if (clear) {
         settings.orderBy = "sort_name";
         settings.orderReverse = false;
+        this.doBlur();
       }
       this.setSettings(settings);
     },
-    doEscape() {
+    doBlur() {
       this.menu = false;
-      this.startSearchHideTimer();
+      const q = this.query ? this.query.trim() : "";
+      if (!q) {
+        this.startSearchHideTimeout();
+      }
     },
   },
 };
