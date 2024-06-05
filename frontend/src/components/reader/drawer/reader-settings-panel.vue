@@ -9,95 +9,101 @@
       <v-radio label="Only this comic" :value="false" />
       <v-radio label="Default for all comics" :value="true" />
     </v-radio-group>
-    <v-radio-group
-      class="displayRadioGroup"
-      density="compact"
-      label="Display"
-      hide-details="auto"
-      :model-value="selectedSettings.fitTo"
-      @update:model-value="settingsDialogChanged({ fitTo: $event })"
-    >
-      <v-radio
-        v-for="item in fitToChoices"
-        :key="item.value"
-        :label="item.title"
-        :value="item.value"
+    <div id="readerScopedSettings">
+      <v-radio-group
+        class="displayRadioGroup"
+        density="compact"
+        label="Display"
+        hide-details="auto"
+        :model-value="selectedSettings.fitTo"
+        @update:model-value="settingsDialogChanged({ fitTo: $event })"
+      >
+        <v-radio
+          v-for="item in fitToChoices"
+          :key="item.value"
+          :label="item.title"
+          :value="item.value"
+        />
+      </v-radio-group>
+      <v-checkbox
+        :disabled="disableTwoPages"
+        class="displayTwoPages"
+        density="compact"
+        label="Two pages"
+        hide-details="auto"
+        :model-value="selectedSettings.twoPages"
+        :true-value="true"
+        :indeterminate="
+          selectedSettings.twoPages === null ||
+          selectedSettings.twoPages === undefined
+        "
+        @update:model-value="settingsDialogChanged({ twoPages: $event })"
       />
-    </v-radio-group>
-    <v-checkbox
-      :disabled="disableTwoPages"
-      class="displayTwoPages"
-      density="compact"
-      label="Two pages"
-      hide-details="auto"
-      :model-value="selectedSettings.twoPages"
-      :true-value="true"
-      :indeterminate="
-        selectedSettings.twoPages === null ||
-        selectedSettings.twoPages === undefined
-      "
-      @update:model-value="settingsDialogChanged({ twoPages: $event })"
-    />
-    <v-radio-group
-      class="displayRadioGroup"
-      density="compact"
-      label="Reading Direction"
-      hide-details="auto"
-      :model-value="selectedSettings.readingDirection"
-      @update:model-value="settingsDialogChanged({ readingDirection: $event })"
-    >
-      <v-radio
-        v-for="item in readingDirectionChoices"
-        :key="item.value"
-        :label="item.title"
-        :value="item.value"
+      <v-radio-group
+        class="displayRadioGroup"
+        density="compact"
+        label="Reading Direction"
+        hide-details="auto"
+        :model-value="selectedSettings.readingDirection"
+        @update:model-value="
+          settingsDialogChanged({ readingDirection: $event })
+        "
+      >
+        <v-radio
+          v-for="item in readingDirectionChoices"
+          :key="item.value"
+          :label="item.title"
+          :value="item.value"
+        />
+      </v-radio-group>
+      <v-checkbox
+        v-tooltip="{
+          openDelay,
+          text: 'Cache all pages from this book in the browser',
+        }"
+        :model-value="cacheBook"
+        class="cacheBook"
+        density="compact"
+        :disabled="disableCacheBook"
+        label="Cache Entire Book"
+        hide-details="auto"
+        :true-value="true"
+        @update:model-value="setSettingsClient({ cacheBook: $event })"
       />
-    </v-radio-group>
-    <v-checkbox
-      v-tooltip="{
-        openDelay,
-        text: 'Cache all pages from this book in the browser',
-      }"
-      :model-value="cacheBook"
-      class="cacheBook"
-      density="compact"
-      :disabled="disableCacheBook"
-      label="Cache Entire Book"
-      hide-details="auto"
-      :true-value="true"
-      @update:model-value="setSettingsClient({ cacheBook: $event })"
-    />
-    <a
-      v-if="isPDF"
-      id="readPDFInBrowser"
-      :href="bookInBrowserURL"
-      target="_blank"
-    >
-      <v-icon>{{ mdiOpenInNew }}</v-icon
-      >Read PDF in Browser
-    </a>
-    <v-checkbox
-      v-if="isGlobalScope"
-      :model-value="selectedSettings.readRtlInReverse"
-      class="readRtlInReverse"
-      density="compact"
-      label="Read RTL Comics as LTR"
-      hide-details="auto"
-      :true-value="true"
-      @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
-    />
-    <v-btn
-      v-if="!isGlobalScope"
-      id="clearSettingsButton"
-      v-tooltip="{
-        openDelay,
-        text: 'Use the default settings for all comics for this comic',
-      }"
-      :disabled="isClearSettingsButtonDisabled"
-      @click="clearSettingsLocal"
-    >
-      Clear Comic Settings
-    </v-btn>
+      <a
+        v-if="isPDF"
+        id="readPDFInBrowser"
+        :href="bookInBrowserURL"
+        target="_blank"
+      >
+        <v-icon>{{ mdiOpenInNew }}</v-icon
+        >Read PDF in Browser
+      </a>
+      <v-checkbox
+        v-if="isGlobalScope"
+        :model-value="selectedSettings.readRtlInReverse"
+        class="readRtlInReverse"
+        density="compact"
+        label="Read RTL Comics as LTR"
+        hide-details="auto"
+        :true-value="true"
+        @update:model-value="
+          settingsDialogChanged({ readRtlInReverse: $event })
+        "
+      />
+      <v-btn
+        v-if="!isGlobalScope"
+        id="clearSettingsButton"
+        v-tooltip="{
+          openDelay,
+          text: 'Use the default settings for all comics for this comic',
+        }"
+        :disabled="isClearSettingsButtonDisabled"
+        @click="clearSettingsLocal"
+      >
+        Clear Comic Settings
+      </v-btn>
+    </div>
   </div>
 </template>
 
@@ -261,10 +267,6 @@ export default {
   background-color: inherit;
 }
 
-.displayRadioGroup {
-  margin-top: 15px;
-}
-
 .displayTwoPages {
   margin-top: 5px;
   margin-bottom: 10px;
@@ -284,5 +286,12 @@ export default {
   display: block;
   padding-left: 2px;
   color: rgba(var(--v-theme-textSecondary));
+}
+#readerScopedSettings {
+  // halfway between background (18) and surface (33) color
+  background-color: rgb(26,26,26); //rgba(var(--v-theme-surface));
+  margin-top: 4px;
+  padding-left: 4px;
+  padding-top: 4px;
 }
 </style>
