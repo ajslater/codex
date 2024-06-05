@@ -3,10 +3,11 @@
 from django.db.models.aggregates import Count
 
 from codex.models.comic import Comic
+from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.validate import BrowserValidateView
 
 
-class BrowserAnnotationsFilterView(BrowserValidateView):
+class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
     """Annotations that also filter."""
 
     def get_query_filters(self, model):
