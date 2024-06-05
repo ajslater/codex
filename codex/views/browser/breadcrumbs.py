@@ -69,9 +69,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         reversed_breadcrumbs = list(reversed(old_breadcrumbs))
 
+        pks = self.kwargs["pks"]
+        page = self.kwargs["page"]
         folder = self.group_instance  # type: ignore
-        name = folder.name if folder else "All"
-        group_crumb = Route(FOLDER_GROUP, self.kwargs["pks"], self.kwargs["page"], name)
+        name = folder.name if folder and pks else ""
+        group_crumb = Route(FOLDER_GROUP, pks, page, name)
         new_breadcrumbs = []
 
         while True:
@@ -89,11 +91,13 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 break
 
             # parent next
+            if not folder:
+                break
             folder = folder.parent_folder
             if folder:
                 group_crumb = Route(FOLDER_GROUP, (folder.pk,), 1, name=folder.name)
             else:
-                group_crumb = Route(FOLDER_GROUP, (), 1, name="All")
+                group_crumb = Route(FOLDER_GROUP, (), 1, name="")
 
         breadcrumbs = new_breadcrumbs
 
@@ -105,12 +109,12 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         if not gi:
             pks = ()
             page = 1
-            name = "All"
+            name = ""
         if group == self.kwargs["group"]:
             # create self crumb
             pks = self.kwargs["pks"]
             page = self.kwargs["page"]
-            name = gi.name if gi else "All"
+            name = gi.name if gi else ""
         else:
             page = 1
             if (attr := GROUP_NAME_MAP.get(group)) and (
@@ -120,7 +124,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 name = parent_group.name
             else:
                 pks = ()
-                name = "All"
+                name = ""
 
         return Route(group, pks, page, name)
 
