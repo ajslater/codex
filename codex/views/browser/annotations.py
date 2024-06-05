@@ -236,8 +236,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             child_count_sum = _ONE_INTEGERFIELD
         else:
             child_count_sum = Count(self.rel_prefix + "pk", distinct=True)
-            qs = qs.annotate(child_count=child_count_sum)
-        return qs
+        return qs.annotate(child_count=child_count_sum)
 
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
