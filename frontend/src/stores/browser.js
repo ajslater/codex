@@ -28,6 +28,12 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
+const COVER_KEYS = ["customCovers", "dynamicCovers", "q"];
+Object.freeze(COVER_KEYS);
+const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse"];
+Object.freeze(DYNAMIC_COVER_KEYS);
+const CHOICES_KEYS = ["filters", "q"];
+Object.freeze(CHOICES_KEYS);
 
 const redirectRoute = function (route) {
   if (route && route.params) {
@@ -185,6 +191,30 @@ export const useBrowserStore = defineStore("browser", {
         route.name = "home";
       }
       return route;
+    },
+    coverSettings(state) {
+      const usedSettings = {};
+      const group = router.currentRoute.value.params?.group;
+      if (group != "c") {
+        for (const [key, value] of Object.entries(state.settings)) {
+          if (
+            COVER_KEYS.includes(key) ||
+            (state.settings.dynamicCovers && DYNAMIC_COVER_KEYS.includes(key))
+          ) {
+            usedSettings[key] = value;
+          }
+        }
+      }
+      return usedSettings;
+    },
+    choicesSettings(state) {
+      const usedSettings = {};
+      for (const [key, value] of Object.entries(state.settings)) {
+        if (CHOICES_KEYS.includes(key)) {
+          usedSettings[key] = value;
+        }
+      }
+      return usedSettings;
     },
   },
   actions: {
@@ -458,7 +488,7 @@ export const useBrowserStore = defineStore("browser", {
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
-        this.settings,
+        this.choicesSettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -471,7 +501,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getFilterChoices(
         router.currentRoute.value.params,
         fieldName,
-        this.settings,
+        this.choicesSettings,
         this.page.mtime,
       )
         .then((response) => {
