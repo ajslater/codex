@@ -1,10 +1,10 @@
 <template>
-  <div v-if="dttm">
+  <time v-if="dttm" datetime="formattedDate">
     {{ formattedDate }}
-    <div class="colTime">
+    <time class="colTime" datetime="formattedTime">
       {{ formattedTime }}
-    </div>
-  </div>
+    </time>
+  </time>
 </template>
 
 <script>
