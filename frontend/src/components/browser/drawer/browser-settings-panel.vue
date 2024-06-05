@@ -1,45 +1,54 @@
 <template>
-  <div id="groupCaption" class="text-caption">
-    Show these groups when navigating the browse tree.
+  <div
+    id="showSettings"
+    v-tooltip="{
+      openDelay,
+      text: 'Show these groups when navigating the browse tree',
+    }"
+  >
+    <h4 class="settingsHeader">Show Group Levels</h4>
+    <v-checkbox
+      v-for="choice of groupChoices"
+      :key="choice.title"
+      class="browserGroupCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="showSettings[choice.value]"
+      :true-value="true"
+      :label="`Show ${choice.title}`"
+      @update:model-value="setShow(choice.value, $event)"
+    />
   </div>
-  <v-checkbox
-    v-for="choice of groupChoices"
-    :key="choice.title"
-    class="browserGroupCheckbox"
-    density="compact"
-    hide-details="auto"
-    :model-value="showSettings[choice.value]"
-    :true-value="true"
-    :label="`Show ${choice.title}`"
-    @update:model-value="setShow(choice.value, $event)"
-  />
   <v-divider />
-  <v-checkbox
-    v-tooltip="{
-      openDelay,
-      text: 'Adjust cover with filters and order by',
-    }"
-    class="browserGroupCheckbox"
-    density="compact"
-    hide-details="auto"
-    :model-value="dynamicCovers"
-    :true-value="true"
-    label="Dynamic Covers"
-    @update:model-value="setDynamicCovers($event)"
-  />
-  <v-checkbox
-    v-tooltip="{
-      openDelay,
-      text: 'Overlay custom covers if the admin has set them.',
-    }"
-    class="browserGroupCheckbox"
-    density="compact"
-    hide-details="auto"
-    :model-value="customCovers"
-    :true-value="true"
-    label="Custom Covers"
-    @update:model-value="setCustomCovers($event)"
-  />
+  <div>
+    <h4 class="settingsHeader">Covers</h4>
+    <v-checkbox
+      v-tooltip="{
+        openDelay,
+        text: 'Adjust cover with filters and order by',
+      }"
+      class="browserGroupCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="dynamicCovers"
+      :true-value="true"
+      label="Dynamic Covers"
+      @update:model-value="setDynamicCovers($event)"
+    />
+    <v-checkbox
+      v-tooltip="{
+        openDelay,
+        text: 'Overlay custom covers if the admin has set them.',
+      }"
+      class="browserGroupCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="customCovers"
+      :true-value="true"
+      label="Custom Covers"
+      @update:model-value="setCustomCovers($event)"
+    />
+  </div>
   <v-divider />
   <!--
   <v-checkbox
@@ -131,15 +140,17 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#groupCaption,
+#showSettings{
+  padding-top: 10px;
+}
 .browserGroupCheckbox,
+.settingsHeader,
 // .searchResultsCheckbox
 {
   padding-right: 10px;
   padding-left: 15px;
 }
-#groupCaption {
-  padding-top: 10px;
+.settingsHeader {
   color: rgb(var(--v-theme-textDisabled));
 }
 </style>
