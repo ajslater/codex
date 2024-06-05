@@ -17,6 +17,7 @@ from django.db.models import (
     Value,
     When,
 )
+from django.db.models.aggregates import Count
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 
@@ -63,6 +64,7 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
 _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {Comic: "id", Volume: "name"}
 )
+_ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
 
 LOG = get_logger(__name__)
 
@@ -225,6 +227,18 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         value = "c" if model == Comic else self.model_group  # type: ignore
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
+    def _annotate_child_count(self, qs, model):
+        """Annotate Child Count."""
+        if self.TARGET == "opds2":
+            return qs
+
+        if model == Comic:
+            child_count_sum = _ONE_INTEGERFIELD
+        else:
+            child_count_sum = Count(self.rel_prefix + "pk", distinct=True)
+            qs = qs.annotate(child_count=child_count_sum)
+        return qs
+
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
         if model in self.bm_annotation_data:  # type: ignore
@@ -327,6 +341,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = self._annotate_order_value(qs, model)
         qs = self._annotate_group(qs, model)
         qs = self.annotate_group_names(qs, model)
+        qs = self._annotate_child_count(qs, model)
         qs = self._annotate_bookmarks(qs, model)
         qs = self._annotate_progress(qs)
         return self._annotate_mtime(qs, model)
