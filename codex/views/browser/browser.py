@@ -183,13 +183,11 @@ class BrowserView(BrowserTitleView):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
         book_qs, book_count = self._get_book_queryset()
+        mtime = self._get_page_mtime(group_qs)
         # Paginate
         group_qs, book_qs, num_pages, page_group_count, page_book_count = self.paginate(
             group_qs, book_qs, group_count, book_count
         )
-        mtime = self._get_page_mtime(
-            group_qs
-        )  # TODO should this be after paginate or not?
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
         if page_book_count:

@@ -64,6 +64,7 @@ GROUP_RELATION = MappingProxyType(
         STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
+GROUP_ORDER = "rpisv"
 MODEL_REL_MAP = MappingProxyType(
     {
         Publisher: "publisher",

@@ -5,12 +5,11 @@ from types import MappingProxyType
 
 from codex.logger.logging import get_logger
 from codex.views.browser.paginate import BrowserPaginateView
-from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, STORY_ARC_GROUP
+from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, STORY_ARC_GROUP, GROUP_ORDER
 from codex.views.util import Route
 
 LOG = get_logger(__name__)
 
-_GROUP_ORDER = "rpisv"  # TODO move to const
 
 
 class BrowserBreadcrumbsView(BrowserPaginateView):
@@ -151,29 +150,29 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def _breadcrumbs_graft_or_create_group(self) -> tuple[tuple[Route, ...], bool]:
         """Graft or create browse group breadcrumbs."""
-        old_breadcrumbs, changed = self._init_breadcrumbs(_GROUP_ORDER)
+        old_breadcrumbs, changed = self._init_breadcrumbs(GROUP_ORDER)
 
         vng = self.valid_nav_groups  # type: ignore
         test_groups = tuple(reversed(vng[:-1]))
         new_breadcrumbs = []
         level = done = False
         try:
-            browser_group_index = _GROUP_ORDER.index(self.kwargs["group"])
+            browser_group_index = GROUP_ORDER.index(self.kwargs["group"])
         except ValueError:
             browser_group_index = -1
 
         for group in test_groups:
             try:
                 with suppress(ValueError):
-                    level = level or _GROUP_ORDER.index(group) <= browser_group_index
+                    level = level or GROUP_ORDER.index(group) <= browser_group_index
                 if level:
                     done, changed = self._breadcrumbs_graft_or_create_group_crumb(
                         group, old_breadcrumbs, new_breadcrumbs, changed
                     )
                 try:
-                    if old_breadcrumbs and _GROUP_ORDER.index(
+                    if old_breadcrumbs and GROUP_ORDER.index(
                         old_breadcrumbs[-1].group
-                    ) >= _GROUP_ORDER.index(group):
+                    ) >= GROUP_ORDER.index(group):
                         # Trim old_breadcrumbs to match to group
                         old_breadcrumbs.pop(-1)
                 except ValueError:
