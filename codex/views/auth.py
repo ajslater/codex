@@ -69,7 +69,8 @@ class TimezoneView(AuthGenericAPIView):
 class GroupACLMixin:
     """Filter group ACLS for views."""
 
-    def get_rel_prefix(self, model):
+    @staticmethod
+    def get_rel_prefix(model):
         """Return the relation prfiex for most fields."""
         prefix = ""
         if model != Comic:
