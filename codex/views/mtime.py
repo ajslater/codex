@@ -9,7 +9,7 @@ from codex.util import max_none
 from codex.views.auth import AuthGenericAPIView
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.const import GROUP_MODEL_MAP
-from codex.views.utils import reparse_json_query_params
+from codex.views.util import reparse_json_query_params
 
 _REPARSE_JSON_FIELDS = frozenset({"groups"})
 
@@ -20,19 +20,24 @@ class MtimeView(AuthGenericAPIView, BookmarkFilterMixin):
     serializer_class = GroupsMtimeSerializer
     response_serializer_class = MtimeSerializer
 
-    def _get_group_mtime(self, group, pks, use_bookmark_filter):
+    def _parse_params(self):
+        params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
+        self.groups = params.get("groups", "")
+        self.use_bookmark_filter = self.request.GET.get("use_bookmark_filter", False)
+
+    def _get_group_mtime(self, group, pks):
         """Get one group's mtimes."""
         model = GROUP_MODEL_MAP[group]
         if not model:
             model = Publisher
 
-        qs = model.objects
+        qs = model.objects.all()
 
         if pks and 0 not in pks:
             qs = qs.filter(pk__in=pks)
         updated_at_max = qs.aggregate(max=Max("updated_at"))["max"]
 
-        if use_bookmark_filter:
+        if self.use_bookmark_filter:
             bm_rel = self.get_bm_rel(model)
             bm_filter = self.get_my_bookmark_filter(bm_rel)
             qs = qs.filter(bm_filter)
@@ -44,25 +49,23 @@ class MtimeView(AuthGenericAPIView, BookmarkFilterMixin):
 
         return updated_at_max
 
-    def get_max_groups_mtime(self, groups, use_bookmark_filter):
+    def get_max_groups_mtime(self):
         """Get max mtime for all groups."""
         max_mtime = None
 
-        for item in groups:
+        for item in self.groups:
             group = item["group"]
             pks = tuple(int(pk) for pk in item["pks"].split(","))
-            mtime = self._get_group_mtime(group, pks, use_bookmark_filter)
+            mtime = self._get_group_mtime(group, pks)
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime
 
     def get(self, *args, **kwargs):
         """Get the mtimes for the submitted groups."""
         # Parse Request
-        params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
-        groups = params.get("groups", "")
-        use_bookmark_filter = self.request.GET.get("use_bookmark_filter", False)
+        self._parse_params()
 
-        max_mtime = self.get_max_groups_mtime(groups, use_bookmark_filter)
+        max_mtime = self.get_max_groups_mtime()
 
         # Serialize Response
         result = {"max_mtime": max_mtime}

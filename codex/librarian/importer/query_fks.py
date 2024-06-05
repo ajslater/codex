@@ -106,6 +106,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         update_mds,
         q_obj: Q,
         status,
+        and_q_obj: Q | None = None,
     ):
         """Get create metadata by comparing proposed meatada to existing rows."""
         vnp = fk_cls._meta.verbose_name_plural.title()
@@ -117,6 +118,8 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             # django.db.utils.OperationalError: Expression tree is too large (maximum depth 1000)
             children_chunk = q_obj.children[offset : offset + FILTER_BATCH_SIZE]
             filter_chunk = Q(*children_chunk, _connector=Q.OR)
+            if and_q_obj:
+                filter_chunk = and_q_obj & filter_chunk
 
             existing_mds = self._query_existing_mds(fk_cls, filter_chunk)
             create_mds.difference_update(existing_mds)
@@ -445,15 +448,32 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             )
 
         # Build combined query object from the value_filter
-        combined_q_obj = Q()
-        for filter_and_prefix, value_filter in query_filter_map.items():
-            combined_q_obj |= filter_and_prefix & value_filter
+        model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
+        if model == Identifier:
+            for filter_and_prefix, value_filter in query_filter_map.items():
+                self._query_create_metadata(
+                    model,
+                    possible_create_objs,
+                    None,
+                    value_filter,
+                    status,
+                    and_q_obj=filter_and_prefix,
+                )
+        else:
+            combined_q_obj = Q()
+            for filter_and_prefix, value_filter in query_filter_map.items():
+                combined_q_obj |= filter_and_prefix & value_filter
+            self._query_create_metadata(
+                model,
+                possible_create_objs,
+                None,
+                combined_q_obj,
+                status,
+            )
 
         # Finally run the query and get only the correct create_objs
-        model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
-        self._query_create_metadata(
-            model, possible_create_objs, None, combined_q_obj, status
-        )
+
+        # TODO if identifiers. break it up by  identifier_type__name
         possible_create_objs = self._query_missing_dict_model_identifiers_restore_urls(
             field_name, possible_create_objs, url_restore_map
         )

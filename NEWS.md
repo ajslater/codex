@@ -9,15 +9,14 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
-  - Smaller Browser controls.
   - Breadcrumbs in the browser
-  - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
   - Browser setting to choose Dynamic or First group covers.
+  - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
   - Metadata tags can click to browse filtered on that tag.
-  - Search one page of results at a time for speed.
-  - Browser, Search, and Cover query optimizations.
+  - Browser, search, and cover speed optimizations.
   - Granular caching for covers in the browser.
   - Experimental API throttling support. See README.
+  - More compact UI controls.
 - Fixes
   - OPDS http basic authorization fixed.
   - Groups with the same name case insensitively collapsed in the browser.

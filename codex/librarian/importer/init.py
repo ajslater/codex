@@ -243,8 +243,8 @@ class InitImporter(WorkerBaseMixin):
         ):
             search_index_updates += self._init_if_modified_or_created(path, status_list)
         search_index_updates += self._init_librarian_status_deleted(status_list)
-        self._init_librarian_status_search_index(search_index_updates, status_list)
         status_list += [Status(ImportStatusTypes.GROUP_UPDATE)]
+        self._init_librarian_status_search_index(search_index_updates, status_list)
         self.status_controller.start_many(status_list)
 
     def init_apply(self):

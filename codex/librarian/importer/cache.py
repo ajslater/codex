@@ -1,5 +1,8 @@
 """Update Groups timestamp for cover cache busting."""
 
+import os
+
+from django.db.models.aggregates import Count
 from django.db.models.functions import Now
 from django.db.models.query import Q
 
@@ -15,25 +18,78 @@ _UPDATE_FIELDS = ("first_comic", "updated_at")
 class CacheUpdateImporter(InitImporter):
     """Update Groups timestamp for cover cache busting."""
 
-    def _update_first_cover_volume(self, obj):
+    @staticmethod
+    def _walk_up_folders(model_qs):
+        """Ugly iteration to collect parent folders without folders linking to children."""
+        # XXX Probably this can be optimized
+        folder_qs = model_qs
+        all_folder_pks = set()
+        while folder_qs.count():
+            folder_pks = folder_qs.values_list("pk", flat=True)
+            all_folder_pks |= set(folder_pks)
+            parent_pks = (
+                folder_qs.filter(parent_folder__isnull=False)
+                .distinct()
+                .values_list("parent_folder__pk", flat=True)
+            )
+            folder_qs = Folder.objects.filter(pk__in=parent_pks)
+
+        # update deepest paths first for first comic aggregation
+        batch_map = {}
+        all_folders = (
+            Folder.objects.filter(pk__in=all_folder_pks).order_by("-path").only("path")
+        )
+        for folder in all_folders:
+            depth = folder.path.count(os.sep)
+            if depth not in batch_map:
+                batch_map[depth] = set()
+            batch_map[depth].add(folder.pk)
+
+        batches = []
+        for _, pks in sorted(batch_map.items(), reverse=True):
+            qs = (
+                Folder.objects.filter(pk__in=pks)
+                .select_related("first_comic")
+                .only(*_UPDATE_FIELDS)
+            )
+            batches.append(qs)
+
+        return tuple(batches)
+
+    @staticmethod
+    def _update_first_cover_volume(obj):
         qs = Comic.objects.filter(volume=obj)
-        qs = qs.order_by("issue_number", "issue_suffix", "sort_name")
+        qs = qs.order_by("issue_number", "issue_suffix", "sort_name").only("pk")
         obj.first_comic = qs.first()
 
-    def _update_first_cover_group(self, obj, model, field):
+    @staticmethod
+    def _update_first_cover_group(obj, model, field):
         qs = model.objects.filter(**{field: obj})
         order_by = "name" if model == Volume else "sort_name"
-        qs = qs.order_by(order_by)
+        qs = qs.select_related("first_comic").order_by(order_by).only("first_comic")
         obj.first_comic = qs.first().first_comic
 
-    def _update_first_cover_story_arc(self, obj):
+    @staticmethod
+    def _update_first_cover_story_arc(obj):
         qs = Comic.objects.filter(story_arc_numbers__story_arc=obj)
-        qs = qs.order_by("story_arc_numbers__number", "date")
+        qs = qs.order_by("story_arc_numbers__number", "date").only("pk")
         obj.first_comic = qs.first()
 
-    def _update_first_cover_folder(self, obj):
-        first_comic = Comic.objects.filter(parent_folder=obj).order_by("path").first()
-        first_folder = Folder.objects.filter(parent_folder=obj).order_by("path").first()
+    @staticmethod
+    def _update_first_cover_folder(obj):
+        first_comic = (
+            Comic.objects.filter(parent_folder=obj)
+            .order_by("path")
+            .only("path")
+            .first()
+        )
+        first_folder = (
+            Folder.objects.filter(parent_folder=obj)
+            .select_related("first_comic")
+            .order_by("path")
+            .only("first_comic", "path")
+            .first()
+        )
         if first_comic and not first_folder:
             obj.first_comic = first_comic
         elif first_folder and not first_comic:
@@ -44,21 +100,69 @@ class CacheUpdateImporter(InitImporter):
             else:
                 obj.first_comic = first_folder.first_comic
 
-    def _update_first_cover(self, model, obj):
+    @classmethod
+    def _update_first_cover(cls, model, obj):
         if model == Volume:
-            self._update_first_cover_volume(obj)
+            cls._update_first_cover_volume(obj)
         elif model == Series:
-            self._update_first_cover_group(obj, Volume, "series")
+            cls._update_first_cover_group(obj, Volume, "series")
         elif model == Imprint:
-            self._update_first_cover_group(obj, Series, "imprint")
+            cls._update_first_cover_group(obj, Series, "imprint")
         elif model == Publisher:
-            self._update_first_cover_group(obj, Imprint, "publisher")
+            cls._update_first_cover_group(obj, Imprint, "publisher")
         elif model == StoryArc:
-            self._update_first_cover_story_arc(obj)
+            cls._update_first_cover_story_arc(obj)
         elif model == Folder:
-            self._update_first_cover_folder(obj)
+            cls._update_first_cover_folder(obj)
 
-    def update_groups_with_changed_comics(self, deleted_comic_groups):
+    @classmethod
+    def _update_group_first_comic(  # noqa: PLR0913
+        cls, force_update_group_map, model, start_time, now, log_list
+    ):
+        rel = "storyarcnumber__" if model == StoryArc else ""
+        updated_at_rel = rel + "comic__updated_at__gt"
+        updated_filter = {updated_at_rel: start_time}
+        filter_query = (
+            Q(**updated_filter)
+            | Q(first_comic__isnull=True)
+            | Q(updated_at__gt=start_time)
+        )
+        if model != Volume:
+            filter_query |= Q(custom_cover__updated_at__gt=start_time)
+        pks = force_update_group_map.get(model)
+        if pks:
+            filter_query |= Q(pk__in=pks)
+        model_qs = model.objects.filter(filter_query)
+
+        # only update those with comics
+        rel_prefix = "storyarcnumber__" if model == StoryArc else ""
+        rel_prefix += "comic"
+        model_qs = model_qs.alias(child_count=Count(f"{rel_prefix}__pk", distinct=True))
+        model_qs = model_qs.filter(child_count__gt=0)
+        model_qs = model_qs.distinct()
+        if model == Folder:
+            batches = cls._walk_up_folders(model_qs)
+        else:
+            model_qs.select_related("first_comic").only(*_UPDATE_FIELDS)
+            batches = (model_qs,)
+
+        total_count = 0
+        for model_qs in batches:
+            updated = []
+            for obj in model_qs:
+                cls._update_first_cover(model, obj)
+                obj.updated_at = now
+                updated.append(obj)
+
+            count = len(updated)
+            if count:
+                model.objects.bulk_update(updated, _UPDATE_FIELDS)
+                total_count += count
+        if total_count:
+            log_list.append(f"{total_count} {model.__name__}s")
+        return total_count
+
+    def update_all_groups_first_comics(self, force_update_group_map, start_time):
         """Update timestamps for each group for cover cache busting."""
         total_count = 0
         now = Now()
@@ -67,41 +171,22 @@ class CacheUpdateImporter(InitImporter):
         try:
             log_list = []
             for model in _FIRST_COVER_MODEL_UPDATE_ORDER:
-                pks = deleted_comic_groups.get(model)
-                rel = "storyarcnumber__" if model == StoryArc else ""
-                updated_at_rel = rel + "comic__updated_at__gt"
-                updated_filter = {updated_at_rel: self.start_time}
-                model_qs = (
-                    model.objects.filter(Q(**updated_filter) | Q(pk__in=pks))
-                    .distinct()
-                    .only(*_UPDATE_FIELDS)
+                # self.log.debug(f"Updating first covers for {model.__name__}s...")
+                count = self._update_group_first_comic(
+                    force_update_group_map, model, start_time, now, log_list
                 )
-                if model == Folder:
-                    # update deepest paths first for first comic aggregation
-                    model_qs.order_by("-path")
-
-                updated = []
-                for obj in model_qs:
-                    self._update_first_cover(model, obj)
-                    obj.updated_at = now
-                    updated.append(obj)
-
-                count = len(updated)
                 if count:
-                    model.objects.bulk_update(updated, _UPDATE_FIELDS)
-                    log_list.append(f"{count} {model.__name__}s.")
-                    total_count += count
-
+                    self.log.debug(
+                        f"Updated {count} first covers for {model.__name__}s"
+                    )
                 status.add_complete(count)
                 self.status_controller.update(status, notify=False)
+                total_count += count
 
             if total_count:
                 groups_log = ", ".join(log_list)
-                self.log.debug(  # type: ignore
-                    f"Updated {groups_log} timestamps for browser cache busting."
-                )
                 self.log.info(  # type: ignore
-                    f"Updated {total_count} group timestamps for browser cache busting."
+                    f"Updated first covers for {groups_log}."
                 )
                 self.changed += total_count
         finally:

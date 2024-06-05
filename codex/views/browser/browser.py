@@ -203,13 +203,12 @@ class BrowserView(BrowserTitleView):
         # print(group_qs.explain())
         # print(group_qs.query)
 
-        recovered_group_list = self.re_cover_multi_groups(group_qs)
         total_count = page_group_count + page_book_count
-        return recovered_group_list, book_qs, num_pages, total_count, zero_pad, mtime
+        return group_qs, book_qs, num_pages, total_count, zero_pad, mtime
 
     def get_object(self):
         """Validate settings and get the querysets."""
-        group_list, book_qs, num_pages, total_count, zero_pad, mtime = (
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
             self._get_group_and_books()
         )
 
@@ -226,7 +225,7 @@ class BrowserView(BrowserTitleView):
                 "breadcrumbs": parent_breadcrumbs,
                 "title": title,
                 "model_group": self.model_group,
-                "groups": group_list,
+                "groups": group_qs,
                 "books": book_qs,
                 "zero_pad": zero_pad,
                 "num_pages": num_pages,

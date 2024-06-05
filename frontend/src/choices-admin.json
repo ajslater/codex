@@ -74,6 +74,11 @@
           "title": "Create All Comic Covers",
           "desc": "Pre-generate covers for every comic in every library and all custom covers",
           "confirm": "Are you sure?"
+        },
+        {
+          "value": "update_first_covers",
+          "title": "Force Update First Covers",
+          "desc": "Relink first covers to groups for the non-dynamic covers view."
         }
       ]
     },

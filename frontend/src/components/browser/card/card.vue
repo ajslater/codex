@@ -3,11 +3,11 @@
     <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
       <div class="browserCardTop">
         <BookCover
-          :cover="item.cover"
           :group="item.group"
+          :pks="item.ids"
+          :mtime="item.mtime"
           :child-count="item.childCount"
           :finished="item.finished"
-          :multi-group="multiGroup"
         />
         <router-link
           v-if="toRoute"
@@ -82,9 +82,6 @@ export default {
     },
     ids() {
       return this.item.ids.join(",");
-    },
-    multiGroup() {
-      return this.item.ids.length > 1;
     },
     toRoute() {
       if (!this.doubleTapHovered) {

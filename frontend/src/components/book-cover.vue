@@ -12,13 +12,20 @@
 </template>
 
 <script>
-import { getCoverSource } from "@/api/v3/cover.js";
+import { mapState } from "pinia";
+
+import { getCoverSrc } from "@/api/v3/browser";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BookCover",
   props: {
     group: {
       type: String,
+      required: true,
+    },
+    pks: {
+      type: Array,
       required: true,
     },
     childCount: {
@@ -28,13 +35,9 @@ export default {
     finished: {
       type: Boolean,
     },
-    cover: {
-      type: Object,
-      required: true,
-    },
-    multiGroup: {
-      type: Boolean,
-      required: true,
+    mtime: {
+      type: Number,
+      default: Date.now(),
     },
   },
   data() {
@@ -43,13 +46,18 @@ export default {
     };
   },
   computed: {
+    ...mapState(useBrowserStore, ["settings"]),
     coverSrc() {
-      return getCoverSource(this.group, this.cover);
+      return getCoverSrc(
+        { group: this.group, pks: this.pks },
+        this.settings,
+        this.mtime,
+      );
     },
     childCountClasses() {
       return {
         childCount: true,
-        multiGroup: this.multiGroup,
+        multiGroup: this.pks.length > 1,
       };
     },
   },

@@ -12,6 +12,7 @@ from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
+from codex.views.util import pop_name
 
 
 @dataclass
@@ -89,7 +90,7 @@ class OPDS1FacetsView(BrowserView):
     obj = MappingProxyType({})
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
-        kwargs.pop("name", None)
+        kwargs = pop_name(kwargs)
         href = reverse("opds:v1:feed", kwargs=kwargs)
         facet_active = False
         for key, val in new_query_params.items():

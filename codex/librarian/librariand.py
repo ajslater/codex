@@ -11,7 +11,11 @@ from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.importer.importerd import ComicImporterThread
-from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, ImportTask
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+    ImportTask,
+    UpdateGroupsFirstComic,
+)
 from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.janitord import JanitorThread
 from codex.librarian.janitor.tasks import JanitorTask
@@ -70,9 +74,11 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.broadcast_queue = broadcast_queue
         startup_tasks = (
             AdoptOrphanFoldersTask(),
+            UpdateGroupsFirstComic(),
             WatchdogSyncTask(),
             SearchIndexRebuildIfDBChangedTask(),
         )
+
         for task in startup_tasks:
             self.queue.put(task)
         self.search_indexer_abort_event = Manager().Event()

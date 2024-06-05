@@ -20,7 +20,7 @@ urlpatterns = [
     #
     # utilities
     path(
-        "c/<int:pk>/cover.webp",
+        "<str:group>/<int_list:pks>/cover.webp",
         cache_control(max_age=COVER_MAX_AGE, public=True)(OPDSCoverView.as_view()),
         name="cover",
     ),

@@ -15,6 +15,7 @@ from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
+from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
@@ -129,7 +130,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         """Create a link."""
         if query_params is None:
             query_params = self.request.GET
-        kwargs.pop("name", None)
+        kwargs = pop_name(kwargs)
         href = reverse("opds:v1:feed", kwargs=kwargs)
         href = update_href_query_params(href, query_params)
         return OPDS1Link(rel, href, mime_type)

@@ -1,9 +1,9 @@
 """Publication Methods for OPDS v2.0 feed."""
 
+from datetime import datetime
+from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
-
-from django.contrib.staticfiles.storage import staticfiles_storage
 
 from codex.librarian.covers.create import CoverCreateMixin
 from codex.models import Comic
@@ -32,39 +32,16 @@ class OPDS2PublicationView(OPDS2TopLinksView):
 
     is_opds_metadata = False
 
-    def _get_big_image_link(self, obj, cover_pk):
-        if cover_pk:
-            mime_type = MimeType.JPEG
-            url_name = "opds:bin:page"
-            href = None
-            min_page = 0
-            max_page = obj.max_page or 1
-        else:
-            mime_type = MimeType.WEBP
-            href = staticfiles_storage.url("img/missing_cover.webp")
-            url_name = None
-            min_page = None
-            max_page = None
-
-        kwargs = {"pk": obj.pk, "page": 0}
-        href_data = HrefData(
-            kwargs,
-            absolute_query_params=True,
-            url_name=url_name,
-            min_page=min_page,
-            max_page=max_page,
-        )
-        link_data = LinkData(Rel.IMAGE, href_data, href=href, mime_type=mime_type)
-        return self.link(link_data)
-
     def _images(self, obj):
         # Images
-        cover_pk = obj.cover_pk
-
-        kwargs = {"pk": cover_pk}
-        href_data = HrefData(
-            kwargs, url_name="opds:bin:cover", absolute_query_params=True
-        )
+        kwargs = {"group": obj.group, "pks": obj.ids}
+        ts = floor(datetime.timestamp(obj.updated_at))
+        query_params = {
+            "customCovers": True,
+            "dynamicCovers": False,
+            "ts": ts,
+        }
+        href_data = HrefData(kwargs, query_params, True, "opds:bin:cover")
         link_data = LinkData(
             Rel.THUMBNAIL,
             href_data,
@@ -75,7 +52,9 @@ class OPDS2PublicationView(OPDS2TopLinksView):
 
         cover_link = self.link(link_data)
 
-        image_link = self._get_big_image_link(obj, cover_pk)
+        link_data.rel = Rel.IMAGE
+
+        image_link = self.link(link_data)
 
         return [
             cover_link,

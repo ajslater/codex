@@ -495,7 +495,7 @@ export const useReaderStore = defineStore("reader", {
       return await COMMON_API.getMtime(this.arcs, false)
         .then((response) => {
           const newMtime = response.data.maxMtime;
-          if (newMtime > this.mtime) {
+          if (newMtime !== this.mtime) {
             this.loadBooks(undefined, newMtime);
           }
         })

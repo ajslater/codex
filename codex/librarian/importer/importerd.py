@@ -1,11 +1,15 @@
 """Bulk import and move comics and folders."""
 
+from django.utils.timezone import datetime
+
 from codex.librarian.importer.importer import ComicImporter
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
     ImportDBDiffTask,
     LazyImportComicsTask,
+    UpdateGroupsFirstComic,
 )
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Folder, Library
 from codex.threads import QueuedThread
 
@@ -71,6 +75,15 @@ class ComicImporterThread(QueuedThread):
                 # Only run the moved task.
                 importer.bulk_folders_moved()
 
+    def _update_groups_first_comic(self, task):
+        pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
+        start_time = task.start_time if task.start_time else datetime.now()
+        for pk in pks:
+            task = ImportDBDiffTask(library_id=pk)
+            importer = self._create_importer(task)
+            importer.update_all_groups_first_comics({}, start_time)
+        self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+
     def process_item(self, item):
         """Run the updater."""
         task = item
@@ -80,5 +93,7 @@ class ComicImporterThread(QueuedThread):
             self._lazy_import_metadata(task)
         elif isinstance(task, AdoptOrphanFoldersTask):
             self._adopt_orphan_folders()
+        elif isinstance(task, UpdateGroupsFirstComic):
+            self._update_groups_first_comic(task)
         else:
             self.log.warning(f"Bad task sent to library updater {task}")

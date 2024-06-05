@@ -260,10 +260,8 @@ class MetadataView(BrowserAnnotationsView):
         qs = qs.group_by(group_by)
         qs = self._annotate_values_and_fks(qs, filtered_qs)
 
-        qs_list = self.re_cover_multi_groups(qs)
-
         try:
-            obj = qs_list[0]
+            obj = qs[0]
             if not obj:
                 reason = "Empty obj"
                 raise ValueError(reason)  # noqa TRY301

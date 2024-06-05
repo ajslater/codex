@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 
 
 @dataclass
@@ -43,3 +44,10 @@ class LazyImportComicsTask(ImportTask):
 @dataclass
 class AdoptOrphanFoldersTask(ImportTask):
     """Move orphaned folders into a correct tree position."""
+
+
+@dataclass
+class UpdateGroupsFirstComic(ImportTask):
+    """Force the update of the first comics."""
+
+    start_time: datetime | None = None

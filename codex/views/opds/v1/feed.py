@@ -41,13 +41,13 @@ class OpdsNs:
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
 
-class UserAgentPrefixes:
+class UserAgentNames:
     """Control whether to hack in facets with nav links."""
 
-    CLIENT_REORDERS = ("Chunky",)
-    FACET_SUPPORT = ("yar",)  # kybooks
-    SIMPLE_DOWNLOAD_MIME_TYPES = ("PocketBook",)
-    # Other known valid  prefixes:
+    CLIENT_REORDERS = frozenset({"Chunky"})
+    FACET_SUPPORT = frozenset({"yar"})  # kybooks
+    SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
+    # Other known valid  names:
     # "Panels", "Chunky"
 
 
@@ -197,22 +197,21 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def _set_user_agent_variables(self):
         """Set User Agent variables."""
-        # defaults in FacetsMixin
         user_agent = self.request.headers.get("User-Agent")
         if not user_agent:
             return
-        for prefix in UserAgentPrefixes.FACET_SUPPORT:
-            if user_agent.startswith(prefix):
-                self.use_facets = True
-                break
-        for prefix in UserAgentPrefixes.CLIENT_REORDERS:
-            if user_agent.startswith(prefix):
-                self.skip_order_facets = True
-                break
-        for prefix in UserAgentPrefixes.SIMPLE_DOWNLOAD_MIME_TYPES:
-            if user_agent.startswith(prefix):
-                self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
-                break
+        user_agent_parts = user_agent.split("/", 1)
+        if user_agent_parts:
+            user_agent_name = user_agent_parts[0]
+        else:
+            return
+
+        if user_agent_name in UserAgentNames.FACET_SUPPORT:
+            self.use_facets = True
+        if user_agent_name in UserAgentNames.CLIENT_REORDERS:
+            self.skip_order_facets = True
+        if user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES:
+            self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
 
     def set_opds_request_type(self):
         """Set the opds request type variables."""

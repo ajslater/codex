@@ -4,7 +4,6 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import User
-from django.db.models import Q
 from django.db.models.aggregates import Max, Min
 from rest_framework.exceptions import NotFound
 
@@ -12,12 +11,11 @@ from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
     Comic,
-    Folder,
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.search import SearchFilterView
 from codex.views.const import GROUP_MODEL_MAP, ROOT_GROUP
-from codex.views.utils import reparse_json_query_params
+from codex.views.util import reparse_json_query_params
 
 LOG = get_logger(__name__)
 
@@ -77,10 +75,9 @@ class BrowserBaseView(SearchFilterView):
             group = self.params["top_group"]
         return group
 
-    def get_query_filters_without_group(self, model, cover=False):
+    def get_query_filters_without_group(self, model):
         """Return all the filters except the group filter."""
-        add_acl = not (cover and self.model == Folder)  # type: ignore
-        object_filter = self.get_group_acl_filter(model) if add_acl else Q()
+        object_filter = self.get_group_acl_filter(model)
         object_filter &= self.get_bookmark_filter(model)
         object_filter &= self.get_comic_field_filter(model)
         return object_filter

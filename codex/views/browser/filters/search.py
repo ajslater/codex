@@ -186,7 +186,6 @@ class SearchFilterView(ComicFieldFilterView):
             if score_pairs or scored_pks:
                 search_filter = self._get_search_query_filter(model, scored_pks)
                 qs = qs.filter(**search_filter)
-                self.cover_search_score_pairs = score_pairs
         except Exception:
             LOG.exception("Creating the search filter")
 

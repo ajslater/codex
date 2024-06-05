@@ -487,7 +487,8 @@ export const useBrowserStore = defineStore("browser", {
       return await COMMON_API.getMtime([{ group, pks }], true)
         .then((response) => {
           const newMtime = response.data.maxMtime;
-          if (newMtime > this.page.mtime) {
+          // console.log(`new ${newMtime} !== old ${this.page.mtime}`);
+          if (newMtime !== this.page.mtime) {
             this.choices.dynamic = undefined;
             this.loadBrowserPage(newMtime);
           }

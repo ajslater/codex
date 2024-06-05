@@ -7,6 +7,7 @@ from types import MappingProxyType
 from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import AuthFilterGenericAPIView
+from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
@@ -97,7 +98,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             breadcrumbs = DEFAULTS["breadcrumbs"]
         last_route = breadcrumbs[-1]
         if not name:
-            last_route.pop("name", None)
+            last_route = pop_name(last_route)
 
         return last_route
 

@@ -64,6 +64,17 @@ GROUP_RELATION = MappingProxyType(
         STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
+MODEL_REL_MAP = MappingProxyType(
+    {
+        Publisher: "publisher",
+        Imprint: "imprint",
+        Series: "series",
+        Volume: "volume",
+        Folder: "parent_folder",
+        StoryArc: "story_arc_numbers__story_arc",
+        Comic: "pk",
+    }
+)
 GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
     MappingProxyType(
         {

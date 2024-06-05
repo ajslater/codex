@@ -1,6 +1,6 @@
 """Binary views with Basic Authentication added."""
 
-from codex.views.cover import CoverView
+from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.reader.page import ReaderPageView
