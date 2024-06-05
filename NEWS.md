@@ -15,7 +15,7 @@ border-radius: 128px;
   - Metadata tags can click to browse filtered on that tag.
   - Browser, search, and cover speed optimizations.
   - Granular caching for covers in the browser.
-  - Experimental API throttling support. See README.
+  - Experimental API throttling support. Search the README for "throttle".
   - More compact UI controls.
 - Fixes
   - OPDS http basic authorization fixed.
