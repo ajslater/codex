@@ -58,7 +58,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     settings: {
       filters: {},
-      q: "",
+      q: undefined,
       topGroup: undefined,
       orderBy: undefined,
       orderReverse: undefined,
@@ -230,7 +230,8 @@ export const useBrowserStore = defineStore("browser", {
           }
         }
         return;
-      } else if (this.q) {
+      } else if (this.q || this.q === undefined) {
+        // undefined is browser open, do not redirect to first search.
         return;
       }
       // If first search redirect to lowest group and change order
