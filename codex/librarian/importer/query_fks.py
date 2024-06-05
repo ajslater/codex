@@ -472,8 +472,6 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             )
 
         # Finally run the query and get only the correct create_objs
-
-        # TODO if identifiers. break it up by  identifier_type__name
         possible_create_objs = self._query_missing_dict_model_identifiers_restore_urls(
             field_name, possible_create_objs, url_restore_map
         )
@@ -578,10 +576,8 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         )
         create_folder_paths = create_folder_paths_dict.get(Folder, set())
         if FK_CREATE not in self.metadata:
-            # TODO move to moved?
             self.metadata[FK_CREATE] = {}
         if FKC_FOLDER_PATHS not in self.metadata[FK_CREATE]:
-            # TODO move to moved?
             self.metadata[FK_CREATE][FKC_FOLDER_PATHS] = set()
         self.metadata[FK_CREATE][FKC_FOLDER_PATHS] |= create_folder_paths
         count = len(create_folder_paths)
