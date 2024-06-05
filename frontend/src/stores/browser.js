@@ -260,7 +260,7 @@ export const useBrowserStore = defineStore("browser", {
           }
         }
         return;
-      } else if (this.q || this.q === undefined) {
+      } else if (this.settings.q || this.settings.q === undefined) {
         // undefined is browser open, do not redirect to first search.
         return;
       }
