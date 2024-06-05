@@ -168,14 +168,17 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def _ensure_page_counts(self):
         """Ensure page counts on books with just in time comicbox."""
+        if self.admin_flags.get("import_metadata"):
+            return
         books_qs: QuerySet = self.obj["books"]  # type: ignore
         import_pks = set()
         new_books = []
         for book in books_qs:
-            if not book.page_count:
-                with Comicbox(book.path) as cb:
-                    book.file_type = cb.get_file_type()
-                    book.page_count = cb.get_page_count()
+            if book.page_count is not None:
+                continue
+            with Comicbox(book.path) as cb:
+                book.file_type = cb.get_file_type()
+                book.page_count = cb.get_page_count()
             new_books.append(book)
             import_pks.add(book.pk)
         if new_books:
