@@ -294,20 +294,16 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 output_field=BooleanField(),
             )
 
-        if (
-            self.is_opds_1_acquisition
-            or self.is_model_comic
-            and self.TARGET == "browser"
+        if self.is_opds_1_acquisition or (
+            self.is_model_comic and self.TARGET == "browser"
         ):
             qs = qs.annotate(page=bookmark_page)
-        else:
+        elif self.TARGET in frozenset({"metadata", "browser"}):
             qs = qs.alias(page=bookmark_page)
 
         if self.TARGET in frozenset({"metadata", "browser"}):
+            # Only used for progress and progress is only for metadata and browser anyway
             qs.annotate(finished=finished_aggregate)
-        else:
-            # Only used for progress
-            qs.alias(finished=finished_aggregate)
         return qs
 
     def _annotate_progress(self, qs):
