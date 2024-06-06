@@ -46,14 +46,8 @@ class ComicImporterThread(QueuedThread):
             )
             self._import(task)
 
-    def _adopt_orphan_folders(self):
-        """Find orphan folders and move them into their correct place."""
-        status = Status(ImportStatusTypes.ADOPT_FOLDERS)
-        libraries = Library.objects.filter(covers_only=False).only("path")
-        for library in libraries.iterator():
-            while True:
-                self.status_controller.start(status)
-                # Run until there are no orphan folders
+    def _adopt_orphan_folders_for_library(self, library):
+                """Adopt orphan folders for one library."""
                 orphan_folder_paths = (
                     Folder.objects.filter(library=library, parent_folder=None)
                     .exclude(path=library.path)
@@ -61,8 +55,7 @@ class ComicImporterThread(QueuedThread):
                 )
                 if not orphan_folder_paths:
                     self.log.debug(f"No orphan folders in {library.path}")
-                    break
-                self.status_controller.finish(status)
+                    return False
 
                 self.log.debug(
                     f"{len(orphan_folder_paths)} orphan folders found in {library.path}"
@@ -79,7 +72,22 @@ class ComicImporterThread(QueuedThread):
                 importer = self._create_importer(task)
                 # Only run the moved task.
                 importer.bulk_folders_moved()
-        self.status_controller.finish(status)
+                return True
+
+    def _adopt_orphan_folders(self):
+        """Find orphan folders and move them into their correct place."""
+        status = Status(ImportStatusTypes.ADOPT_FOLDERS)
+        moved_status = Status(ImportStatusTypes.DIRS_MOVED)
+        self.status_controller.start(status)
+        self.status_controller.start(moved_status)
+        libraries = Library.objects.filter(covers_only=False).only("path")
+        for library in libraries.iterator():
+            folders_left = True
+            while folders_left:
+                # Run until there are no orphan folders
+                folders_left = self._adopt_orphan_folders_for_library(library)
+
+        self.status_controller.finish_many((moved_status, status))
 
     def _update_groups_first_comic(self, task):
         pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
