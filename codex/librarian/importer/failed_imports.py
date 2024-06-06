@@ -84,13 +84,12 @@ class FailedImportsImporter(DeletedImporter):
         ).only(*_BULK_UPDATE_FAILED_IMPORT_FIELDS)
         if not update_failed_import_objs:
             return
-        now = Now()
         for fi in update_failed_import_objs:
             try:
                 exc = update_failed_imports.pop(fi.path)
                 fi.set_reason(exc)
                 fi.presave()
-                fi.updated_at = now
+                fi.updated_at = Now()
             except Exception as exc:
                 self.log.exception(
                     f"Error preparing failed import update for {fi.path}"

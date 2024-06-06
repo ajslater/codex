@@ -342,7 +342,6 @@ def _repair_groups_with_custom_covers(apps):
     if not has_applied_migration(MIGRATION_0027):
         return
     custom_cover_model = apps.get_model("codex", "customcover")
-    now = Now()
     for model_name, group_letter in CUSTOM_COVER_MODEL_NAMES.items():
         valid_covers = custom_cover_model.objects.filter(group=group_letter)
         group_model = apps.get_model("codex", model_name)
@@ -352,7 +351,7 @@ def _repair_groups_with_custom_covers(apps):
         update_groups = []
         for group in objs:
             group.custom_cover = None
-            group.updated_at = now
+            group.updated_at = Now()
             update_groups.append(group)
         group_model.objects.bulk_update(update_groups, ["custom_cover"])
         count = len(update_groups)
