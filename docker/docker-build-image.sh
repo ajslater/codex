@@ -45,8 +45,8 @@ BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
 ######################
 # DEBUG CIRCLECI ENV #
 ######################
-ls
-ls ./dist
+ls || true
+ls ./dist || true
 #####################
 docker buildx bake \
   "${BAKE_ARGS[@]-}" \
