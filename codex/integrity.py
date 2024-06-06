@@ -36,7 +36,7 @@ MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
 MIGRATION_0025 = "0025_add_story_arc_number"
 MIGRATION_0026 = "0026_comicbox_1"
-MIGRATION_0030 = "0028_first_comic"  # TODO merge with 27
+MIGRATION_0027 = "0027_import_order_and_covers"
 M2M_NAMES = MappingProxyType(
     {
         "Character": "characters",
@@ -308,7 +308,7 @@ def _repair_library_groups(apps):
 
 
 def _delete_extra_custom_cover_libraries(apps):
-    if not has_applied_migration(MIGRATION_0030):
+    if not has_applied_migration(MIGRATION_0027):
         return
     library_model = apps.get_model("codex", "library")
     custom_cover_libraries = library_model.objects.filter(covers_only=True)
@@ -339,7 +339,7 @@ def _delete_extra_custom_cover_libraries(apps):
 
 
 def _repair_groups_with_custom_covers(apps):
-    if not has_applied_migration(MIGRATION_0030):
+    if not has_applied_migration(MIGRATION_0027):
         return
     custom_cover_model = apps.get_model("codex", "customcover")
     now = Now()
@@ -366,7 +366,7 @@ def _delete_errors():
 
     for host_model_name in HAVE_LIBRARY_FKS:
         if host_model_name == "CustomCover" and not has_applied_migration(
-            MIGRATION_0030
+            MIGRATION_0027
         ):
             continue
         _delete_fk_integrity_errors(apps, host_model_name, "Library", "library")
