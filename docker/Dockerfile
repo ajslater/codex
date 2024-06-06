@@ -6,7 +6,7 @@ LABEL maintainer="AJ Slater <aj@slater.net>"
 WORKDIR /app
 
 # Install codex
-COPY ./dist/$CODEX_WHEEL ./dist/$CODEX_WHEEL
+COPY /dist/$CODEX_WHEEL ./dist/$CODEX_WHEEL
 
 # hadolint ignore=DL3059,DL3013
 RUN pip3 install --no-cache-dir ./dist/$CODEX_WHEEL
