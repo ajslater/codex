@@ -5,11 +5,11 @@ executors:
       resource_class: large
   amd64-medium-executor:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
       resource_class: medium
   arm64-medium-executor:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
       resource_class: arm.medium
 jobs:
   build-base-amd64: &build-base
