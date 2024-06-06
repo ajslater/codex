@@ -58,10 +58,6 @@ class MetadataView(BrowserAnnotationsView):
     def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
         """Limited allowed nav groups for metadata."""
         group = self.kwargs["group"]
-        if group not in ALL_GROUPS:
-            msg = f"Metadata not possible for illegal {group=}"
-            raise NotFound(msg)
-
         self.valid_nav_groups = (group,)
 
     def _get_comic_value_fields(self):

@@ -65,7 +65,6 @@ GROUP_RELATION = MappingProxyType(
     }
 )
 GROUP_ORDER = "rpisv"
-ALL_GROUPS = "pisvfa"
 MODEL_REL_MAP = MappingProxyType(
     {
         Publisher: "publisher",
