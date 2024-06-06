@@ -109,6 +109,7 @@ export const useReaderStore = defineStore("reader", {
       cacheBook: false,
       scale: SCALE_DEFAULT,
     },
+    showToolbars: false,
   }),
   getters: {
     groupBooks(state) {
@@ -323,6 +324,9 @@ export const useReaderStore = defineStore("reader", {
         };
       }
     },
+    toggleToolbars() {
+      this.showToolbars = !this.showToolbars;
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
     _getBookRoutePage(book, isPrev) {
@@ -413,7 +417,7 @@ export const useReaderStore = defineStore("reader", {
           const books = data.books;
 
           // Undefined settings breaks code.
-          const allBooks = [books.prevBook, books.current, books.nextBook];
+          const allBooks = [books?.prevBook, books?.current, books?.nextBook];
           for (const book of allBooks) {
             if (book && !book.settings) {
               book.settings = {};

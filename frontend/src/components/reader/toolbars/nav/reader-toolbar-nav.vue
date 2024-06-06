@@ -1,20 +1,26 @@
 <template>
-  <PaginationToolbar v-if="maxPage" id="readerToolbarNav">
-    <ReaderBookChangeNavButton :direction="bookPrev" :narrow="false" />
-    <ReaderNavButton :value="min" :two-pages="twoPages" />
-    <PaginationSlider
-      :key="key"
-      :model-value="storePage"
-      :min="+0"
-      :max="maxPage"
-      :step="step"
-      :track-color="trackColor"
-      :reverse="isReadInReverse"
-      @update:model-value="onSliderUpdate($event)"
-    />
-    <ReaderNavButton :value="max" :two-pages="twoPages" />
-    <ReaderBookChangeNavButton :direction="bookNext" :narrow="false" />
-  </PaginationToolbar>
+  <v-slide-y-reverse-transition>
+    <PaginationToolbar
+      v-if="maxPage"
+      v-show="showToolbars"
+      id="readerToolbarNav"
+    >
+      <ReaderBookChangeNavButton :direction="bookPrev" :narrow="false" />
+      <ReaderNavButton :value="min" :two-pages="twoPages" />
+      <PaginationSlider
+        :key="key"
+        :model-value="storePage"
+        :min="+0"
+        :max="maxPage"
+        :step="step"
+        :track-color="trackColor"
+        :reverse="isReadInReverse"
+        @update:model-value="onSliderUpdate($event)"
+      />
+      <ReaderNavButton :value="max" :two-pages="twoPages" />
+      <ReaderBookChangeNavButton :direction="bookNext" :narrow="false" />
+    </PaginationToolbar>
+  </v-slide-y-reverse-transition>
 </template>
 
 <script>
@@ -46,6 +52,7 @@ export default {
       "isVertical",
     ]),
     ...mapState(useReaderStore, {
+      showToolbars: (state) => state.showToolbars,
       storePage: (state) => state.page,
       key(state) {
         return `${state.books?.current?.pk}:${this.step}:${this.isReadInReverse}`;
