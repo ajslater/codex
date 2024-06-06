@@ -41,7 +41,6 @@ class MtimeView(AuthGenericAPIView, BookmarkFilterMixin):
             bm_rel = self.get_bm_rel(model)
             bm_filter = self.get_my_bookmark_filter(bm_rel)
             qs = qs.filter(bm_filter)
-            # TODO can these be combined into one max?
             bookmark_updated_at_max = qs.aggregate(max=(Max(f"{bm_rel}__updated_at")))[
                 "max"
             ]
