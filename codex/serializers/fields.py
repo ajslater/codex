@@ -1,8 +1,7 @@
 """Custom fields."""
 
 from abc import ABC
-from datetime import datetime
-from math import floor
+from datetime import datetime, timezone
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -24,14 +23,14 @@ class TimestampField(IntegerField):
     """IntegerTimestampField."""
 
     def to_representation(self, value):
-        """Convert to int from datetime, or castable."""
+        """Convert to Jascript millisecond int timestamp from datetime, or castable."""
         if isinstance(value, datetime):
-            value = floor(value.timestamp())
-        return int(value)
+            value = value.timestamp()
+        return int(float(value) * 1000)
 
     def to_internal_value(self, data):
-        """Convert from castable, likely string."""
-        return int(data)
+        """Convert from castable, likely string to datetime."""
+        return datetime.fromtimestamp(float(data) / 1000, tz=timezone.utc)
 
 
 def validate_decades(decades):
