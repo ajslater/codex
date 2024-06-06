@@ -35,8 +35,9 @@ export default {
     ...mapGetters(useAuthStore, ["isAuthorized"]),
   },
   watch: {
-    $route() {
+    $route(to) {
       window.scrollTo(0, 0);
+      this.setPageMtime(to?.query?.ts);
       this.loadBrowserPage();
     },
     user() {
@@ -50,7 +51,11 @@ export default {
     this.loadSettings();
   },
   methods: {
-    ...mapActions(useBrowserStore, ["loadBrowserPage", "loadSettings"]),
+    ...mapActions(useBrowserStore, [
+      "loadBrowserPage",
+      "loadSettings",
+      "setPageMtime",
+    ]),
   },
 };
 </script>

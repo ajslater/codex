@@ -406,6 +406,9 @@ export const useBrowserStore = defineStore("browser", {
         }, SEARCH_HIDE_TIMEOUT);
       }
     },
+    setPageMtime(mtime) {
+      self.mtime = mtime;
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
