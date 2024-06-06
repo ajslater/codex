@@ -190,7 +190,24 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def get_object(self):  # type: ignore
         """Get the browser page and serialize it for this subclass."""
-        self.obj = super().get_object()
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            super()._get_group_and_books()
+        )
+        book_qs = book_qs.select_related("series", "volume", "language")
+
+        title = self.get_browser_page_title()
+        self.obj = MappingProxyType(
+            {
+                "title": title,
+                "groups": group_qs,
+                "books": book_qs,
+                "zero_pad": zero_pad,
+                "num_pages": num_pages,
+                "total_count": total_count,
+                "mtime": mtime,
+            }
+        )
+
         self.is_aq_feed = self.model_group in ("c", "f")
 
         self._ensure_page_counts()
