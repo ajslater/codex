@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Features
   - Breadcrumbs in the browser
-  - Browser setting to choose Dynamic or First group covers.
+  - Browser setting to choose Dynamic or First group covers. Thanks @Thakk.
   - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
   - Metadata tags can click to browse filtered on that tag.
   - Browser, search, and cover speed optimizations.

@@ -7,7 +7,7 @@ import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginJsonc from "eslint-plugin-jsonc";
 import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
-import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
+//import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 //import prettier from "eslint-plugin-prettier";
 //import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginSecurity from "eslint-plugin-security";
@@ -67,7 +67,7 @@ export default [
       jsonc: eslintPluginJsonc,
       markdown: eslintPluginMarkdown,
       "no-secrets": eslintPluginNoSecrets,
-      "no-use-extend-native": eslintPluginNoUseExtendNative,
+      // "no-use-extend-native": eslintPluginNoUseExtendNative,
       security: eslintPluginSecurity,
       "simple-import-sort": eslintPluginSimpleImportSort,
       // sonarjs: eslintPluginSonarjs,
@@ -123,7 +123,7 @@ export default [
   eslintPluginArrayFunc.configs.all,
   ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
-  eslintPluginNoUseExtendNative.configs.recommended,
+  //eslintPluginNoUseExtendNative.configs.recommended,
   //eslintPluginPrettierRecommended,
   //eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,

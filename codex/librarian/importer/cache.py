@@ -3,7 +3,7 @@
 import os
 
 from django.db.models.aggregates import Count
-from django.db.models.functions import Now
+from django.db.models.functions.datetime import Now
 from django.db.models.query import Q
 
 from codex.librarian.importer.init import InitImporter
@@ -104,8 +104,8 @@ class CacheUpdateImporter(InitImporter):
             cls._update_first_cover_folder(obj)
 
     @classmethod
-    def _update_group_first_comic(  # noqa: PLR0913
-        cls, force_update_group_map, model, start_time, now, log_list
+    def _update_group_first_comic(
+        cls, force_update_group_map, model, start_time, log_list
     ):
         rel = "storyarcnumber__" if model == StoryArc else ""
         updated_at_rel = rel + "comic__updated_at__gt"
@@ -139,7 +139,7 @@ class CacheUpdateImporter(InitImporter):
             updated = []
             for obj in model_qs:
                 cls._update_first_cover(model, obj)
-                obj.updated_at = now
+                obj.updated_at = Now()
                 updated.append(obj)
 
             count = len(updated)
@@ -153,7 +153,6 @@ class CacheUpdateImporter(InitImporter):
     def update_all_groups_first_comics(self, force_update_group_map, start_time):
         """Update timestamps for each group for cover cache busting."""
         total_count = 0
-        now = Now()
         status = Status(ImportStatusTypes.GROUP_UPDATE)
         self.status_controller.start(status)
         try:
@@ -161,7 +160,7 @@ class CacheUpdateImporter(InitImporter):
             for model in _FIRST_COVER_MODEL_UPDATE_ORDER:
                 # self.log.debug(f"Updating first covers for {model.__name__}s...")
                 count = self._update_group_first_comic(
-                    force_update_group_map, model, start_time, now, log_list
+                    force_update_group_map, model, start_time, log_list
                 )
                 if count:
                     self.log.debug(
