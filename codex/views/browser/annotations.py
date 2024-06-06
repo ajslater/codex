@@ -19,7 +19,8 @@ from django.db.models import (
 )
 from django.db.models.aggregates import Count
 from django.db.models.fields import CharField, PositiveSmallIntegerField
-from django.db.models.functions import Least, Reverse, Right, StrIndex
+from django.db.models.functions import Coalesce, Least, Reverse, Right, StrIndex
+from django.db.models.functions.comparison import Greatest
 
 from codex.logger.logging import get_logger
 from codex.models import (
@@ -33,7 +34,7 @@ from codex.models.functions import JsonGroupArray
 from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
-from codex.views.const import STORY_ARC_GROUP
+from codex.views.const import EPOCH_START, STORY_ARC_GROUP
 from codex.views.mixins import SharedAnnotationsMixin
 
 _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
@@ -314,10 +315,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_mtime(self, qs):
         """Annotations mtime."""
         if self.is_bookmark_filtered:
-            mtime = Case(
-                When(bookmark_updated_at__gt=F("updated_at")),
-                then=F("bookmark_updated_at"),
-                default=F("updated_at"),
+            mtime = Greatest(
+                Coalesce("bookmark_updated_at", Value(EPOCH_START)), "updated_at"
             )
         else:
             mtime = F("updated_at")
