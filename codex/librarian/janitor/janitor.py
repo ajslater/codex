@@ -2,11 +2,11 @@
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
     UpdateGroupsFirstComic,
 )
-from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
 from codex.librarian.janitor.status import JanitorStatusTypes

@@ -104,8 +104,10 @@ class AdminLibrarianTaskView(AdminAPIView):
             "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
             "janitor_nightly": JanitorNightlyTask(),
             "update_first_covers": UpdateGroupsFirstComic(),
-            "force_update_first_covers": UpdateGroupsFirstComic(start_time=_EPOCH_START),
-            "adopt_folders": AdoptOrphanFoldersTask()
+            "force_update_first_covers": UpdateGroupsFirstComic(
+                start_time=_EPOCH_START
+            ),
+            "adopt_folders": AdoptOrphanFoldersTask(),
         }
     )
 

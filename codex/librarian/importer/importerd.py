@@ -47,32 +47,32 @@ class ComicImporterThread(QueuedThread):
             self._import(task)
 
     def _adopt_orphan_folders_for_library(self, library):
-                """Adopt orphan folders for one library."""
-                orphan_folder_paths = (
-                    Folder.objects.filter(library=library, parent_folder=None)
-                    .exclude(path=library.path)
-                    .values_list("path", flat=True)
-                )
-                if not orphan_folder_paths:
-                    self.log.debug(f"No orphan folders in {library.path}")
-                    return False
+        """Adopt orphan folders for one library."""
+        orphan_folder_paths = (
+            Folder.objects.filter(library=library, parent_folder=None)
+            .exclude(path=library.path)
+            .values_list("path", flat=True)
+        )
+        if not orphan_folder_paths:
+            self.log.debug(f"No orphan folders in {library.path}")
+            return False
 
-                self.log.debug(
-                    f"{len(orphan_folder_paths)} orphan folders found in {library.path}"
-                )
+        self.log.debug(
+            f"{len(orphan_folder_paths)} orphan folders found in {library.path}"
+        )
 
-                # Move in place
-                folders_moved = {path: path for path in orphan_folder_paths}
+        # Move in place
+        folders_moved = {path: path for path in orphan_folder_paths}
 
-                # An abridged import task.
-                task = ImportDBDiffTask(
-                    library_id=library.pk,
-                    dirs_moved=folders_moved,
-                )
-                importer = self._create_importer(task)
-                # Only run the moved task.
-                importer.bulk_folders_moved()
-                return True
+        # An abridged import task.
+        task = ImportDBDiffTask(
+            library_id=library.pk,
+            dirs_moved=folders_moved,
+        )
+        importer = self._create_importer(task)
+        # Only run the moved task.
+        importer.bulk_folders_moved()
+        return True
 
     def _adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
