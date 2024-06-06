@@ -105,11 +105,6 @@ export const useBrowserStore = defineStore("browser", {
       const choices = [];
       for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
-          /* XXX divider not implemented yet in Vuetify 3
-          if (item.value === "f") {
-            choices.push({ divider: true });
-          }
-          */
           choices.push(item);
         }
       }

@@ -55,7 +55,6 @@ class MetadataView(BrowserAnnotationsView):
         }
     )
 
-
     def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
         """Limited allowed nav groups for metadata."""
         group = self.kwargs["group"]

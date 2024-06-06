@@ -23,7 +23,11 @@ class CacheUpdateImporter(InitImporter):
         """Create batches of folders by folder depth level."""
         # Collect all related folders
         folder_pks = model_qs.values_list("pk", flat=True)
-        all_folders = Folder.objects.filter(Q(folder__pk__in=folder_pks) | Q(pk__in=folder_pks)).select_related("first_comic").only('path', *_UPDATE_FIELDS)
+        all_folders = (
+            Folder.objects.filter(Q(folder__pk__in=folder_pks) | Q(pk__in=folder_pks))
+            .select_related("first_comic")
+            .only("path", *_UPDATE_FIELDS)
+        )
 
         # Create a map of each folder by path depth level
         batch_map = {}

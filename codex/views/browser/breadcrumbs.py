@@ -5,11 +5,10 @@ from types import MappingProxyType
 
 from codex.logger.logging import get_logger
 from codex.views.browser.paginate import BrowserPaginateView
-from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, STORY_ARC_GROUP, GROUP_ORDER
+from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, GROUP_ORDER, STORY_ARC_GROUP
 from codex.views.util import Route
 
 LOG = get_logger(__name__)
-
 
 
 class BrowserBreadcrumbsView(BrowserPaginateView):
