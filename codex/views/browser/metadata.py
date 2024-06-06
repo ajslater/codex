@@ -15,7 +15,6 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
-from codex.views.const import ALL_GROUPS
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
