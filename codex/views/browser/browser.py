@@ -121,9 +121,7 @@ class BrowserView(BrowserTitleView):
     ################
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
-        object_filter = self.get_query_filters(model, False)
-        qs = model.objects.filter(object_filter)
-        qs = self.filter_by_annotations(qs, model)
+        qs = self.get_filtered_queryset(model)
         count_group_by = self.get_group_by(model)
         count = qs.group_by(count_group_by).count()
         if count:
@@ -184,14 +182,12 @@ class BrowserView(BrowserTitleView):
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
+        mtime = self._get_page_mtime(group_qs)
         book_qs, book_count = self._get_book_queryset()
         # Paginate
         group_qs, book_qs, num_pages, page_group_count, page_book_count = self.paginate(
             group_qs, book_qs, group_count, book_count
         )
-        mtime = self._get_page_mtime(
-            group_qs
-        )  # TODO should this be after paginate or not?
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
         if page_book_count:
@@ -203,13 +199,12 @@ class BrowserView(BrowserTitleView):
         # print(group_qs.explain())
         # print(group_qs.query)
 
-        recovered_group_list = self.re_cover_multi_groups(group_qs)
         total_count = page_group_count + page_book_count
-        return recovered_group_list, book_qs, num_pages, total_count, zero_pad, mtime
+        return group_qs, book_qs, num_pages, total_count, zero_pad, mtime
 
     def get_object(self):
         """Validate settings and get the querysets."""
-        group_list, book_qs, num_pages, total_count, zero_pad, mtime = (
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
             self._get_group_and_books()
         )
 
@@ -226,7 +221,7 @@ class BrowserView(BrowserTitleView):
                 "breadcrumbs": parent_breadcrumbs,
                 "title": title,
                 "model_group": self.model_group,
-                "groups": group_list,
+                "groups": group_qs,
                 "books": book_qs,
                 "zero_pad": zero_pad,
                 "num_pages": num_pages,

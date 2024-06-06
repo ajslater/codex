@@ -1,43 +1,46 @@
 <template>
-  <v-toolbar
-    id="readerToolbarTop"
-    density="compact"
-    :extension-height="extensionHeight"
-  >
-    <v-toolbar-items>
-      <v-btn
-        ref="closeBook"
-        class="closeBook"
-        :to="closeBookRoute"
-        size="large"
-        density="compact"
-        variant="plain"
-        @click="onCloseBook"
-      >
-        close book
-      </v-btn>
-    </v-toolbar-items>
-    <v-spacer />
-    <v-toolbar-items v-if="!empty">
-      <ReaderArcSelect />
-      <MetadataDialog
-        ref="metadataDialog"
-        group="c"
-        :toolbar="true"
-        :book="currentBook"
-      />
-    </v-toolbar-items>
-    <v-toolbar-items>
-      <SettingsDrawerButton />
-    </v-toolbar-items>
-    <template v-if="title" #extension>
-      <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
-      <v-toolbar-title class="readerTitle">
-        <div id="title">{{ title }}</div>
-        <div v-if="subtitle" id="subtitle">{{ subtitle }}</div>
-      </v-toolbar-title>
-    </template>
-  </v-toolbar>
+  <v-slide-y-transition>
+    <v-toolbar
+      v-show="showToolbars"
+      id="readerToolbarTop"
+      density="compact"
+      :extension-height="extensionHeight"
+    >
+      <v-toolbar-items>
+        <v-btn
+          ref="closeBook"
+          class="closeBook"
+          :to="closeBookRoute"
+          size="large"
+          density="compact"
+          variant="plain"
+          @click="onCloseBook"
+        >
+          close book
+        </v-btn>
+      </v-toolbar-items>
+      <v-spacer />
+      <v-toolbar-items v-if="!empty">
+        <ReaderArcSelect />
+        <MetadataDialog
+          ref="metadataDialog"
+          group="c"
+          :toolbar="true"
+          :book="currentBook"
+        />
+      </v-toolbar-items>
+      <v-toolbar-items>
+        <SettingsDrawerButton />
+      </v-toolbar-items>
+      <template v-if="title" #extension>
+        <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
+        <v-toolbar-title class="readerTitle">
+          <div id="title">{{ title }}</div>
+          <div v-if="subtitle" id="subtitle">{{ subtitle }}</div>
+        </v-toolbar-title>
+      </template>
+    </v-toolbar>
+  </v-slide-y-transition>
 </template>
 
 <script>
@@ -80,6 +83,7 @@ export default {
     ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
     ...mapGetters(useReaderStore, ["activeTitle", "closeBookRoute"]),
     ...mapState(useReaderStore, {
+      showToolbars: (state) => state.showToolbars,
       currentBook: (state) => state.books?.current || {},
       empty: (state) => state.empty,
       subtitle: (state) => state.books?.current?.name || "",
@@ -92,6 +96,7 @@ export default {
       if (this.subtitle) {
         height *= 2;
       }
+      height += 4;
       return height;
     },
   },
@@ -168,6 +173,9 @@ export default {
   text-align: center;
   white-space: nowrap;
   overflow: scroll;
+}
+.readerTitle {
+  padding-bottom: 4px;
 }
 #title {
   font-size: clamp(18px, 3vw, 20px);

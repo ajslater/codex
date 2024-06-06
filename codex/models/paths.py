@@ -66,7 +66,6 @@ class WatchedPath(BaseModel):
 class FailedImport(WatchedPath):
     """Failed Comic Imports. Displayed in Admin Panel."""
 
-    # TODO rename reason
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")
 
     def set_reason(self, exc):

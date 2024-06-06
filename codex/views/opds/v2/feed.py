@@ -175,32 +175,34 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
 
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
-        browser_page = super().get_object()
-
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            self._get_group_and_books()
+        )
+        title = self.get_browser_page_title()
         # convert browser_page into opds page
 
         # instance vars
-        self.is_aq_feed = browser_page.get("model_group") in ("c", "f")
-        self.num_pages = browser_page["num_pages"]
+        self.is_aq_feed = self.model_group in ("c", "f")
+        self.num_pages = num_pages
 
         # opds page
-        title = self._title(browser_page.get("title"))
-        number_of_items = browser_page["total_count"]
+        title = self._title(title)
+        number_of_items = total_count
         current_page = self.kwargs.get("page")
         up_route = self.get_last_route()
         links = self.get_links(up_route)
         facets = self._get_facets()
 
         # opds groups
-        page_groups = browser_page.get("groups")
-        page_books = browser_page.get("books")
-        zero_pad = browser_page["zero_pad"]
+        page_groups = group_qs
+        page_books = book_qs
         groups = self._get_groups(page_groups, page_books, title, zero_pad)
 
         return MappingProxyType(
             {
                 "metadata": {
                     "title": title,
+                    "modified": mtime,
                     "number_of_items": number_of_items,
                     "items_per_page": MAX_OBJ_PER_PAGE,
                     "current_page": current_page,

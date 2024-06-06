@@ -8,9 +8,9 @@ from django.utils.http import urlencode
 from codex.models import (
     Contributor,
     ContributorPerson,
-    StoryArc,
 )
 from codex.serializers.choices import DEFAULTS
+from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS
 
 
@@ -58,9 +58,7 @@ def get_m2m_objects(pks) -> dict:
     cats = {}
     for model in OPDS_M2M_MODELS:
         table = model.__name__.lower()
-        rel = "comic"
-        if model == StoryArc:
-            rel = "storyarcnumber__" + rel
+        rel = GroupACLMixin.get_rel_prefix(model)
         comic_filter = {rel + "__in": pks}
         qs = model.objects.filter(**comic_filter).order_by("name").only("name")
         cats[table] = qs

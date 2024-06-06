@@ -32,11 +32,11 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover="md.cover"
             :group="group"
+            :pks="md.ids"
             :child-count="md.childCount"
             :finished="md.finished"
-            :multi-group="multiGroup"
+            :mtime="md.mtime"
           />
           <v-progress-linear
             class="bookCoverProgress"

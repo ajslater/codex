@@ -28,6 +28,12 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
+const COVER_KEYS = ["customCovers", "dynamicCovers", "q"];
+Object.freeze(COVER_KEYS);
+const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse"];
+Object.freeze(DYNAMIC_COVER_KEYS);
+const CHOICES_KEYS = ["filters", "q"];
+Object.freeze(CHOICES_KEYS);
 
 const redirectRoute = function (route) {
   if (route && route.params) {
@@ -51,7 +57,6 @@ export const useBrowserStore = defineStore("browser", {
         bookmark: CHOICES.browser.bookmarkFilter,
         groupNames: CHOICES.browser.groupNames,
         settingsGroup: CHOICES.browser.settingsGroup,
-        coverStyle: CHOICES.browser.coverStyle,
         readingDirection: createReadingDirection(),
         identifierType: CHOICES.browser.identifierTypes,
       }),
@@ -59,15 +64,16 @@ export const useBrowserStore = defineStore("browser", {
     },
     settings: {
       filters: {},
-      q: "",
+      q: undefined,
       topGroup: undefined,
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
-      twentyFourHourTime: undefined,
-      coverStyle: undefined,
+      twentyFourHourTime: false,
+      dynamicCovers: false,
+      customCovers: true,
     },
     page: {
       adminFlags: {
@@ -92,18 +98,13 @@ export const useBrowserStore = defineStore("browser", {
     zeroPad: 0,
     browserPageLoaded: false,
     isSearchOpen: false,
-    searchTimeout: undefined,
+    searchHideTimeout: undefined,
   }),
   getters: {
     topGroupChoices() {
       const choices = [];
       for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
-          /* XXX divider not implemented yet in Vuetify 3
-          if (item.value === "f") {
-            choices.push({ divider: true });
-          }
-          */
           choices.push(item);
         }
       }
@@ -186,6 +187,30 @@ export const useBrowserStore = defineStore("browser", {
       }
       return route;
     },
+    coverSettings(state) {
+      const usedSettings = {};
+      const group = router.currentRoute.value.params?.group;
+      if (group != "c") {
+        for (const [key, value] of Object.entries(state.settings)) {
+          if (
+            COVER_KEYS.includes(key) ||
+            (state.settings.dynamicCovers && DYNAMIC_COVER_KEYS.includes(key))
+          ) {
+            usedSettings[key] = value;
+          }
+        }
+      }
+      return usedSettings;
+    },
+    choicesSettings(state) {
+      const usedSettings = {};
+      for (const [key, value] of Object.entries(state.settings)) {
+        if (CHOICES_KEYS.includes(key)) {
+          usedSettings[key] = value;
+        }
+      }
+      return usedSettings;
+    },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
@@ -230,7 +255,8 @@ export const useBrowserStore = defineStore("browser", {
           }
         }
         return;
-      } else if (this.q) {
+      } else if (this.settings.q || this.settings.q === undefined) {
+        // undefined is browser open, do not redirect to first search.
         return;
       }
       // If first search redirect to lowest group and change order
@@ -311,7 +337,7 @@ export const useBrowserStore = defineStore("browser", {
           state.isSearchOpen = true;
         }
       });
-      this.startSearchHideTimer();
+      this.startSearchHideTimeout();
     },
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
@@ -357,20 +383,22 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       await COMMON_API.setGroupBookmarks(params, { finished }).then(() => {
-        self.page.mtime = getTimestamp();
-        this.loadBrowserPage();
+        this.loadBrowserPage(getTimestamp());
         return true;
       });
     },
-    startSearchHideTimer() {
+    clearSearchHideTimeout() {
+      clearTimeout(this.searchHideTimeout);
+    },
+    startSearchHideTimeout() {
       if (!this.isSearchOpen) {
         return;
       }
       const q = this.settings.q;
       if (q) {
-        clearTimeout(this.searchTimeout);
+        this.clearSearchHideTimeout();
       } else {
-        this.searchTimeout = setTimeout(() => {
+        this.searchHideTimeout = setTimeout(() => {
           const q = this.settings.q;
           if (!q) {
             this.setIsSearchOpen(false);
@@ -458,7 +486,7 @@ export const useBrowserStore = defineStore("browser", {
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
-        this.settings,
+        this.choicesSettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -471,7 +499,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getFilterChoices(
         router.currentRoute.value.params,
         fieldName,
-        this.settings,
+        this.choicesSettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -488,7 +516,8 @@ export const useBrowserStore = defineStore("browser", {
       return await COMMON_API.getMtime([{ group, pks }], true)
         .then((response) => {
           const newMtime = response.data.maxMtime;
-          if (newMtime > this.page.mtime) {
+          // console.log(`new ${newMtime} !== old ${this.page.mtime}`);
+          if (newMtime !== this.page.mtime) {
             this.choices.dynamic = undefined;
             this.loadBrowserPage(newMtime);
           }

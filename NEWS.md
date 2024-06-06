@@ -9,21 +9,21 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
-  - Smaller Browser controls.
   - Breadcrumbs in the browser
+  - Browser setting to choose Dynamic or First group covers.
   - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
-  - Browser setting to choose Dynamic, First or static Icon group covers.
   - Metadata tags can click to browse filtered on that tag.
-  - Search one page of results at a time for speed.
-  - Browser, Search, and Cover query optimizations.
+  - Browser, search, and cover speed optimizations.
   - Granular caching for covers in the browser.
-  - Experimental API throttling support. See README.
+  - Experimental API throttling support. Search the README for "throttle".
+  - More compact UI controls.
 - Fixes
   - OPDS http basic authorization fixed.
   - Groups with the same name case insensitively collapsed in the browser.
   - Order By respects browser show groups settings.
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
+  - Clean up all orphan folders on startup instead of first pass
 
 ## v1.5.19
 

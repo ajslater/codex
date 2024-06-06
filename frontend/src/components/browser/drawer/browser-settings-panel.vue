@@ -1,20 +1,54 @@
 <template>
-  <div id="groupCaption" class="text-caption">
-    Show these groups when navigating the browse tree.
+  <div
+    id="showSettings"
+    v-tooltip="{
+      openDelay,
+      text: 'Show these groups when navigating the browse tree',
+    }"
+  >
+    <h4 class="settingsHeader">Show Group Levels</h4>
+    <v-checkbox
+      v-for="choice of groupChoices"
+      :key="choice.title"
+      class="browserGroupCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="showSettings[choice.value]"
+      :true-value="true"
+      :label="`Show ${choice.title}`"
+      @update:model-value="setShow(choice.value, $event)"
+    />
   </div>
-  <v-checkbox
-    v-for="choice of groupChoices"
-    :key="choice.title"
-    class="browserGroupCheckbox"
-    density="compact"
-    hide-details="auto"
-    :model-value="showSettings[choice.value]"
-    :true-value="true"
-    :label="`Show ${choice.title}`"
-    @update:model-value="setShow(choice.value, $event)"
-  />
   <v-divider />
-  <CoverStyleSelect />
+  <div>
+    <h4 class="settingsHeader">Covers</h4>
+    <v-checkbox
+      v-tooltip="{
+        openDelay,
+        text: 'Adjust cover with filters and order by',
+      }"
+      class="browserGroupCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="dynamicCovers"
+      :true-value="true"
+      label="Dynamic Covers"
+      @update:model-value="setDynamicCovers($event)"
+    />
+    <v-checkbox
+      v-tooltip="{
+        openDelay,
+        text: 'Overlay custom covers if the admin has set them.',
+      }"
+      class="browserGroupCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="customCovers"
+      :true-value="true"
+      label="Custom Covers"
+      @update:model-value="setCustomCovers($event)"
+    />
+  </div>
   <v-divider />
   <!--
   <v-checkbox
@@ -46,7 +80,6 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import CoverStyleSelect from "@/components/browser/drawer/cover-style-select.vue";
 import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -54,8 +87,12 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "BrowserSettingsPanel",
   components: {
-    CoverStyleSelect,
     SearchHelp,
+  },
+  data() {
+    return {
+      openDelay: 2000, // for tooltips
+    };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isAuthorized"]),
@@ -70,6 +107,8 @@ export default {
         state.settings?.twentyFourHourTime || false,
       twentyFourHourTimeTitle: (state) =>
         state.choices?.static?.twentyFourHourTime?.title || "",
+      dynamicCovers: (state) => state.settings?.dynamicCovers || false,
+      customCovers: (state) => state.settings?.customCovers || false,
     }),
   },
   methods: {
@@ -80,6 +119,14 @@ export default {
     },
     set24HourTime(value) {
       const data = { twentyFourHourTime: value === true };
+      this.setSettings(data);
+    },
+    setDynamicCovers(value) {
+      const data = { dynamicCovers: value === true };
+      this.setSettings(data);
+    },
+    setCustomCovers(value) {
+      const data = { customCovers: value === true };
       this.setSettings(data);
     },
     /*
@@ -93,15 +140,17 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#groupCaption,
+#showSettings{
+  padding-top: 10px;
+}
 .browserGroupCheckbox,
+.settingsHeader,
 // .searchResultsCheckbox
 {
   padding-right: 10px;
   padding-left: 15px;
 }
-#groupCaption {
-  padding-top: 10px;
+.settingsHeader {
   color: rgb(var(--v-theme-textDisabled));
 }
 </style>

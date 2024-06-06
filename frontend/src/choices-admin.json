@@ -22,6 +22,7 @@
     "IDD": "Remove Folders",
     "IFD": "Remove Books",
     "IFI": "Record Failed Imports",
+    "IGU": "Update First Covers",
     "JTD": "Cleanup Stale Tags",
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
@@ -34,7 +35,8 @@
     "SIU": "Search Index Update",
     "SID": "Search Index Remove Stale Records",
     "SIM": "Search Index Optimize",
-    "WPO": "Poll Library"
+    "WPO": "Poll Library",
+    "IAF": "Adopt Orphan Folders"
   },
   "tasks": [
     {
@@ -56,16 +58,6 @@
           "title": "Update All Failed Imports",
           "desc": "Forcibly update all failed imports in all libraries",
           "confirm": "This can take a long time"
-        },
-        {
-          "value": "poll_custom_cover_dir",
-          "title": "Poll Custom Group Covers Dir",
-          "desc": "Update Custom Group Covers if changes detected"
-        },
-        {
-          "value": "poll_custom_cover_dir_force",
-          "title": "Force Update Custom Group Covers",
-          "desc": "Forcibly update all group custom covers"
         }
       ]
     },
@@ -83,6 +75,16 @@
           "title": "Create All Comic Covers",
           "desc": "Pre-generate covers for every comic in every library and all custom covers",
           "confirm": "Are you sure?"
+        },
+        {
+          "value": "update_first_covers",
+          "title": "Ensure First Covers",
+          "desc": "Link first covers to groups missing first covers for the non-dynamic covers view."
+        },
+        {
+          "value": "force_update_first_covers",
+          "title": "Force Update First Covers",
+          "desc": "Force the recalculation and relink of first covers to groups for the non-dynamic covers view."
         }
       ]
     },
@@ -213,6 +215,11 @@
           "value": "cleanup_covers",
           "title": "Remove Orphan Cover Thumbnails",
           "desc": "no longer have source comics or custom images. Runs nightly."
+        },
+        {
+          "value": "adopt_folders",
+          "title": "Adopt Orphan Folders",
+          "desc": "Move orphaned folders from the top of the folder tree to under their correct parent. Runs nightly and at startup."
         },
         {
           "value": "librarian_clear_status",

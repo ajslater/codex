@@ -5,7 +5,6 @@ from types import MappingProxyType
 from django.db.models import Q
 
 from codex.models.comic import Comic
-from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.group import GroupFilterView
 
 _FILTER_REL_MAP = MappingProxyType(
@@ -17,7 +16,7 @@ _FILTER_REL_MAP = MappingProxyType(
 )
 
 
-class ComicFieldFilterView(GroupFilterView, BookmarkFilterMixin):
+class ComicFieldFilterView(GroupFilterView):
     """Comic field filters."""
 
     def _filter_by_comic_field(self, field, rel_prefix):

@@ -25,6 +25,9 @@ class BrowserGroupModel(BaseModel):
     custom_cover = ForeignKey(
         CustomCover, on_delete=SET_DEFAULT, null=True, default=None
     )
+    first_comic = ForeignKey(
+        "Comic", on_delete=SET_DEFAULT, null=True, default=None, related_name="+"
+    )
 
     def set_sort_name(self):
         """Create sort_name for model."""
@@ -128,14 +131,12 @@ class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
 
     def presave(self):
         """Fix multiple inheritance presave."""
-        # TODO test presave calling bgm & stat
         super().presave()
         WatchedPath.presave(self)
 
     class Meta(WatchedPath.Meta):  # type: ignore
         """Use Mixin Meta."""
 
-        # TODO see if this does unique properly.
         abstract = True
 
 

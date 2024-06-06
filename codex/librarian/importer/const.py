@@ -115,12 +115,7 @@ DICT_MODEL_REL_LINK_MAP = MappingProxyType(
 # BULK UPDATE #
 ###############
 
-_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
-    "created_at",
-    "searchresult",
-    "id",
-    "bookmark",
-}
+_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {"bookmark", "created_at", "id", "library"}
 GROUP_BASE_FIELDS = ("name", "sort_name")
 BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(
@@ -130,6 +125,7 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )
 )
+BULK_CREATE_COMIC_FIELDS = (*BULK_UPDATE_COMIC_FIELDS, "library")
 BULK_UPDATE_FOLDER_FIELDS = (
     *GROUP_BASE_FIELDS,
     "stat",
@@ -189,6 +185,10 @@ MDS = "mds"
 M2M_MDS = "m2m_mds"
 FKS = "fks"
 FIS = "fis"
+FK_CREATE = "fk_create"
+COVERS_UPDATE = "covers_update"
+COVERS_CREATE = "covers_create"
+LINK_COVER_PKS = "link_cover_pks"
 GROUP_COMPARE_FIELDS = MappingProxyType(
     {
         Series: ("publisher__name", "imprint__name", "name"),
@@ -227,3 +227,12 @@ COMIC_GROUP_FIELD_NAMES = (
     "story_arc_numbers",
     "folders",
 )
+
+FKC_CONTRIBUTORS = "create_contributors"
+FKC_STORY_ARC_NUMBERS = "create_story_arc_numbers"
+FKC_IDENTIFIERS = "create_identifiers"
+FKC_CREATE_GROUPS = "create_groups"
+FKC_UPDATE_GROUPS = "update_groups"
+FKC_CREATE_FKS = "create_fks"
+FKC_FOLDER_PATHS = "create_folder_paths"
+FKC_TOTAL_FKS = "total_fks"

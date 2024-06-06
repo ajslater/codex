@@ -75,7 +75,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        select_related = ("series", "volume")
+        select_related = ("series",)
         prefetch_related = ()
 
         arc: Mapping = self.params.get("arc", {})  # type: ignore

@@ -5,12 +5,10 @@ from types import MappingProxyType
 
 from codex.logger.logging import get_logger
 from codex.views.browser.paginate import BrowserPaginateView
-from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, STORY_ARC_GROUP
+from codex.views.const import FOLDER_GROUP, GROUP_NAME_MAP, GROUP_ORDER, STORY_ARC_GROUP
 from codex.views.util import Route
 
 LOG = get_logger(__name__)
-
-_GROUP_ORDER = "rpisv"  # TODO move to const
 
 
 class BrowserBreadcrumbsView(BrowserPaginateView):
@@ -69,9 +67,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         reversed_breadcrumbs = list(reversed(old_breadcrumbs))
 
+        pks = self.kwargs["pks"]
+        page = self.kwargs["page"]
         folder = self.group_instance  # type: ignore
-        name = folder.name if folder else "All"
-        group_crumb = Route(FOLDER_GROUP, self.kwargs["pks"], self.kwargs["page"], name)
+        name = folder.name if folder and pks else ""
+        group_crumb = Route(FOLDER_GROUP, pks, page, name)
         new_breadcrumbs = []
 
         while True:
@@ -89,11 +89,13 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 break
 
             # parent next
+            if not folder:
+                break
             folder = folder.parent_folder
             if folder:
                 group_crumb = Route(FOLDER_GROUP, (folder.pk,), 1, name=folder.name)
             else:
-                group_crumb = Route(FOLDER_GROUP, (), 1, name="All")
+                group_crumb = Route(FOLDER_GROUP, (), 1, name="")
 
         breadcrumbs = new_breadcrumbs
 
@@ -105,12 +107,12 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         if not gi:
             pks = ()
             page = 1
-            name = "All"
+            name = ""
         if group == self.kwargs["group"]:
             # create self crumb
             pks = self.kwargs["pks"]
             page = self.kwargs["page"]
-            name = gi.name if gi else "All"
+            name = gi.name if gi else ""
         else:
             page = 1
             if (attr := GROUP_NAME_MAP.get(group)) and (
@@ -120,7 +122,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 name = parent_group.name
             else:
                 pks = ()
-                name = "All"
+                name = ""
 
         return Route(group, pks, page, name)
 
@@ -147,29 +149,29 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def _breadcrumbs_graft_or_create_group(self) -> tuple[tuple[Route, ...], bool]:
         """Graft or create browse group breadcrumbs."""
-        old_breadcrumbs, changed = self._init_breadcrumbs(_GROUP_ORDER)
+        old_breadcrumbs, changed = self._init_breadcrumbs(GROUP_ORDER)
 
         vng = self.valid_nav_groups  # type: ignore
         test_groups = tuple(reversed(vng[:-1]))
         new_breadcrumbs = []
         level = done = False
         try:
-            browser_group_index = _GROUP_ORDER.index(self.kwargs["group"])
+            browser_group_index = GROUP_ORDER.index(self.kwargs["group"])
         except ValueError:
             browser_group_index = -1
 
         for group in test_groups:
             try:
                 with suppress(ValueError):
-                    level = level or _GROUP_ORDER.index(group) <= browser_group_index
+                    level = level or GROUP_ORDER.index(group) <= browser_group_index
                 if level:
                     done, changed = self._breadcrumbs_graft_or_create_group_crumb(
                         group, old_breadcrumbs, new_breadcrumbs, changed
                     )
                 try:
-                    if old_breadcrumbs and _GROUP_ORDER.index(
+                    if old_breadcrumbs and GROUP_ORDER.index(
                         old_breadcrumbs[-1].group
-                    ) >= _GROUP_ORDER.index(group):
+                    ) >= GROUP_ORDER.index(group):
                         # Trim old_breadcrumbs to match to group
                         old_breadcrumbs.pop(-1)
                 except ValueError:

@@ -2,13 +2,9 @@
   <v-main v-if="isAuthorized" id="readerWrapper">
     <div v-if="!empty">
       <div id="readerContainer">
-        <v-slide-y-transition>
-          <ReaderTopToolbar v-show="showToolbars" />
-        </v-slide-y-transition>
-        <BooksWindow @click="toggleToolbars" />
-        <v-slide-y-reverse-transition>
-          <ReaderNavToolbar v-show="showToolbars" />
-        </v-slide-y-reverse-transition>
+        <ReaderTopToolbar />
+        <BooksWindow />
+        <ReaderNavToolbar />
       </div>
     </div>
     <ReaderEmpty v-else />
@@ -67,9 +63,6 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, ["loadReaderSettings"]),
-    toggleToolbars() {
-      this.showToolbars = !this.showToolbars;
-    },
   },
 };
 </script>

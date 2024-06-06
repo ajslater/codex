@@ -176,12 +176,11 @@ class Comic(WatchedPathBrowserGroup):
 
     # Not useful
     custom_cover = None
+    first_comic = None
 
     class Meta(WatchedPathBrowserGroup.Meta):
         """Constraints."""
 
-        # TODO see if this inherits properly
-        # unique_together = ("library", "path")
         verbose_name = "Issue"
 
     def _set_date(self):

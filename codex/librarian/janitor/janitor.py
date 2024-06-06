@@ -2,6 +2,11 @@
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+    UpdateGroupsFirstComic,
+)
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
 from codex.librarian.janitor.status import JanitorStatusTypes
@@ -36,8 +41,11 @@ _JANITOR_STATII = (
     Status(JanitorStatusTypes.DB_OPTIMIZE),
     Status(JanitorStatusTypes.DB_BACKUP),
     Status(JanitorStatusTypes.CODEX_UPDATE),
+    Status(ImportStatusTypes.GROUP_UPDATE),
     Status(CoverStatusTypes.FIND_ORPHAN),
     Status(CoverStatusTypes.PURGE_COVERS),
+    Status(ImportStatusTypes.ADOPT_FOLDERS),
+    Status(ImportStatusTypes.DIRS_MOVED),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE),
@@ -66,6 +74,8 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                 JanitorVacuumTask(),
                 JanitorBackupTask(),
                 JanitorUpdateTask(force=False),
+                AdoptOrphanFoldersTask(),
+                UpdateGroupsFirstComic(),
                 CoverRemoveOrphansTask(),
                 SearchIndexUpdateTask(False),
                 SearchIndexMergeTask(optimize),

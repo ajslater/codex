@@ -4,7 +4,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
-from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -35,7 +34,6 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
 class AuthMixin:
     """General Auth Policy."""
 
-    parser_classes = (JSONParser,)
     permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
 
 
@@ -50,7 +48,6 @@ class AuthGenericAPIView(AuthMixin, GenericAPIView):
 class TimezoneView(AuthGenericAPIView):
     """User info."""
 
-    parser_classes = (JSONParser,)
     input_serializer_class = TimezoneSerializer
     serializer_class = OKSerializer
 
@@ -72,7 +69,8 @@ class TimezoneView(AuthGenericAPIView):
 class GroupACLMixin:
     """Filter group ACLS for views."""
 
-    def get_rel_prefix(self, model):
+    @staticmethod
+    def get_rel_prefix(model):
         """Return the relation prfiex for most fields."""
         prefix = ""
         if model != Comic:

@@ -10,6 +10,7 @@ from codex.views.browser.browser import BrowserView
 from codex.views.const import FALSY
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
+from codex.views.util import pop_name
 
 
 @dataclass
@@ -69,7 +70,7 @@ class OPDS2LinksView(BrowserView):
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
-        kwargs.pop("name", None)
+        kwargs = pop_name(kwargs)
         href = reverse(url_name, kwargs=kwargs)
         return self._href_update_query_params(href, data)
 

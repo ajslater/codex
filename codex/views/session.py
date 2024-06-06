@@ -7,6 +7,7 @@ from types import MappingProxyType
 from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import AuthFilterGenericAPIView
+from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
@@ -62,8 +63,9 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                 "q": DEFAULTS["q"],
                 "search_results_limit": DEFAULTS["searchResultsLimit"],
                 "show": DEFAULTS["show"],
-                "cover_style": DEFAULTS["coverStyle"],
-                "twenty_four_hour_time": False,
+                "dynamic_covers": DEFAULTS["dynamicCovers"],
+                "custom_covers": DEFAULTS["customCovers"],
+                "twenty_four_hour_time": DEFAULTS["twentyFourHourTime"],
                 "top_group": DEFAULTS["topGroup"],
             },
             READER_SESSION_KEY: {
@@ -96,7 +98,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             breadcrumbs = DEFAULTS["breadcrumbs"]
         last_route = breadcrumbs[-1]
         if not name:
-            last_route.pop("name", None)
+            last_route = pop_name(last_route)
 
         return last_route
 

@@ -41,13 +41,13 @@ class OpdsNs:
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
 
-class UserAgentPrefixes:
+class UserAgentNames:
     """Control whether to hack in facets with nav links."""
 
-    CLIENT_REORDERS = ("Chunky",)
-    FACET_SUPPORT = ("yar",)  # kybooks
-    SIMPLE_DOWNLOAD_MIME_TYPES = ("PocketBook",)
-    # Other known valid  prefixes:
+    CLIENT_REORDERS = frozenset({"Chunky"})
+    FACET_SUPPORT = frozenset({"yar"})  # kybooks
+    SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
+    # Other known valid  names:
     # "Panels", "Chunky"
 
 
@@ -168,14 +168,17 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def _ensure_page_counts(self):
         """Ensure page counts on books with just in time comicbox."""
+        if self.admin_flags.get("import_metadata"):
+            return
         books_qs: QuerySet = self.obj["books"]  # type: ignore
         import_pks = set()
         new_books = []
         for book in books_qs:
-            if not book.page_count:
-                with Comicbox(book.path) as cb:
-                    book.file_type = cb.get_file_type()
-                    book.page_count = cb.get_page_count()
+            if book.page_count is not None:
+                continue
+            with Comicbox(book.path) as cb:
+                book.file_type = cb.get_file_type()
+                book.page_count = cb.get_page_count()
             new_books.append(book)
             import_pks.add(book.pk)
         if new_books:
@@ -187,7 +190,24 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def get_object(self):  # type: ignore
         """Get the browser page and serialize it for this subclass."""
-        self.obj = super().get_object()
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            super()._get_group_and_books()
+        )
+        book_qs = book_qs.select_related("series", "volume", "language")
+
+        title = self.get_browser_page_title()
+        self.obj = MappingProxyType(
+            {
+                "title": title,
+                "groups": group_qs,
+                "books": book_qs,
+                "zero_pad": zero_pad,
+                "num_pages": num_pages,
+                "total_count": total_count,
+                "mtime": mtime,
+            }
+        )
+
         self.is_aq_feed = self.model_group in ("c", "f")
 
         self._ensure_page_counts()
@@ -197,22 +217,21 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def _set_user_agent_variables(self):
         """Set User Agent variables."""
-        # defaults in FacetsMixin
         user_agent = self.request.headers.get("User-Agent")
         if not user_agent:
             return
-        for prefix in UserAgentPrefixes.FACET_SUPPORT:
-            if user_agent.startswith(prefix):
-                self.use_facets = True
-                break
-        for prefix in UserAgentPrefixes.CLIENT_REORDERS:
-            if user_agent.startswith(prefix):
-                self.skip_order_facets = True
-                break
-        for prefix in UserAgentPrefixes.SIMPLE_DOWNLOAD_MIME_TYPES:
-            if user_agent.startswith(prefix):
-                self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
-                break
+        user_agent_parts = user_agent.split("/", 1)
+        if user_agent_parts:
+            user_agent_name = user_agent_parts[0]
+        else:
+            return
+
+        if user_agent_name in UserAgentNames.FACET_SUPPORT:
+            self.use_facets = True
+        if user_agent_name in UserAgentNames.CLIENT_REORDERS:
+            self.skip_order_facets = True
+        if user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES:
+            self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
 
     def set_opds_request_type(self):
         """Set the opds request type variables."""

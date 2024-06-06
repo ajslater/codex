@@ -161,21 +161,9 @@
       "isbn": "ISBN",
       "upc": "UPC"
     },
-    "coverStyle": [
-      {
-        "title": "Dynamic",
-        "value": "d",
-        "default": true
-      },
-      {
-        "title": "First",
-        "value": "f"
-      },
-      {
-        "title": "Icons",
-        "value": "i"
-      }
-    ]
+    "dynamicCovers": false,
+    "customCovers": true,
+    "twentyFourHourTime": false
   },
   "reader": {
     "fitTo": [

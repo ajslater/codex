@@ -1,5 +1,6 @@
 """Librarian Status View."""
 
+from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -10,6 +11,10 @@ from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
+)
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+    UpdateGroupsFirstComic,
 )
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -49,6 +54,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 LOG = get_logger(__name__)
+_EPOCH_START = datetime.fromtimestamp(0, tz=timezone.utc)
 
 
 class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
@@ -97,6 +103,11 @@ class AdminLibrarianTaskView(AdminAPIView):
             "poll": WatchdogPollLibrariesTask(frozenset(), False),
             "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
             "janitor_nightly": JanitorNightlyTask(),
+            "update_first_covers": UpdateGroupsFirstComic(),
+            "force_update_first_covers": UpdateGroupsFirstComic(
+                start_time=_EPOCH_START
+            ),
+            "adopt_folders": AdoptOrphanFoldersTask(),
         }
     )
 
@@ -113,7 +124,8 @@ class AdminLibrarianTaskView(AdminAPIView):
     @extend_schema(request=input_serializer_class)
     def post(self, *_args, **_kwargs):
         """Download a comic archive."""
-        data = self.request.POST
+        # DRF does not populate POST correctly, only data
+        data = self.request.data  # type:ignore
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         validated_data: Mapping = serializer.validated_data  # type: ignore

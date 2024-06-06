@@ -1,12 +1,12 @@
 """OPDS v1 Entry Links Methods."""
 
+from datetime import datetime
+from math import floor
 from urllib.parse import quote_plus
 
-from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
-from codex.views.const import MISSING_COVER_FN, MISSING_COVER_NAME_MAP
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
@@ -31,39 +31,24 @@ class OPDS1EntryLinksMixin:
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
 
-    def _thumb_link(self):
+    def _cover_link(self, rel):
         if self.fake:
             return None
-        cover_pk = getattr(self.obj, "cover_pk", None)
-        if cover_pk:
-            kwargs = {"pk": cover_pk}
+        # cover_pk = getattr(self.obj, "cover_pk", None)
+        try:
+            kwargs = {"group": self.obj.group, "pks": self.obj.ids}
+            ts = floor(datetime.timestamp(self.obj.updated_at))
+            query_params = {
+                "customCovers": True,
+                "dynamicCovers": False,
+                "ts": ts,
+            }
             href = reverse("opds:bin:cover", kwargs=kwargs)
+            href = update_href_query_params(href, query_params)
             mime_type = "image/webp"
-        else:
-            cover_name = MISSING_COVER_NAME_MAP.get(self.obj.group)
-            cover_path = "img/"
-            if cover_name:
-                cover_path += cover_name + ".svg"
-                mime_type = "image/svg+xml"
-            else:
-                cover_path += MISSING_COVER_FN
-                mime_type = "image/webp"
-            href = staticfiles_storage.url(cover_path)
-        return OPDS1Link(Rel.THUMBNAIL, href, mime_type)
-
-    def _image_link(self):
-        if self.fake:
-            return None
-        cover_pk = getattr(self.obj, "cover_pk", None)
-        if cover_pk:
-            kwargs = {"pk": cover_pk, "page": 0}
-            href = reverse("opds:bin:page", kwargs=kwargs)
-            mime_type = "image/jpeg"
-        else:
-            fn = f"img/{MISSING_COVER_FN}"
-            href = staticfiles_storage.url(fn)
-            mime_type = "image/webp"
-        return OPDS1Link(Rel.IMAGE, href, mime_type)
+            return OPDS1Link(rel, href, mime_type)
+        except Exception:
+            LOG.exception("create thumb")
 
     def _nav_href(self, metadata=False):
         try:
@@ -149,9 +134,9 @@ class OPDS1EntryLinksMixin:
         """Create all entry links."""
         result = []
         try:
-            if thumb := self._thumb_link():
+            if thumb := self._cover_link(Rel.THUMBNAIL):
                 result += [thumb]
-            if image := self._image_link():
+            if image := self._cover_link(Rel.IMAGE):
                 result += [image]
 
             if self.obj.group == "c" and not self.fake:

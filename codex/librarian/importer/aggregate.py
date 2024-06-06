@@ -2,13 +2,7 @@
 
 from collections.abc import Mapping
 from pathlib import Path
-from zipfile import BadZipFile
 
-from comicbox.box import Comicbox
-from comicbox.exceptions import UnsupportedArchiveTypeError
-from rarfile import BadRarFile
-
-from codex.librarian.importer.clean_metadata import CleanMetadataMixin
 from codex.librarian.importer.const import (
     COMIC_FK_FIELD_NAMES,
     COMIC_M2M_FIELD_NAMES,
@@ -24,14 +18,15 @@ from codex.librarian.importer.const import (
     MDS,
     VOLUME_COUNT,
 )
-from codex.librarian.importer.status import ImportStatusTypes, status_notify
+from codex.librarian.importer.extract import ExtractMetadataImporter
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Imprint, Publisher, Series, Volume
 from codex.models.admin import AdminFlag
 from codex.status import Status
 from codex.util import max_none
 
 
-class AggregateMetadataMixin(CleanMetadataMixin):
+class AggregateMetadataImporter(ExtractMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
 
     _BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
@@ -87,37 +82,13 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         m2m_md[FOLDERS_FIELD] = Path(path).parents
         return m2m_md
 
-    def _get_path_metadata(self, path, import_metadata):
+    def _get_path_metadata(self, md, path):
         """Get the metadata from comicbox and munge it a little."""
-        md = {}
-        fk_md = {}
-        group_tree_md = {}
-        m2m_md = {}
-        failed_import = {}
-        try:
-            if import_metadata:
-                with Comicbox(path) as cb:
-                    md = cb.to_dict()
-                    md = md.get("comicbox", {})
-                    if "file_type" not in md:
-                        md["file_type"] = cb.get_file_type()
-                    if "page_count" not in md:
-                        md["page_count"] = cb.get_page_count()
+        group_tree_md = self._get_group_tree(md)
+        fk_md = self._get_fk_metadata(md)
+        m2m_md = self._get_m2m_metadata(md, path)
 
-            md["path"] = path
-            md = self.clean_md(md)
-
-            group_tree_md = self._get_group_tree(md)
-            fk_md = self._get_fk_metadata(md)
-            m2m_md = self._get_m2m_metadata(md, path)
-
-        except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
-            self.log.warning(f"Failed to import {path}: {exc}")
-            failed_import = {path: exc}
-        except Exception as exc:
-            self.log.exception(f"Failed to import: {path}")
-            failed_import = {path: exc}
-        return md, m2m_md, fk_md, group_tree_md, failed_import
+        return md, m2m_md, fk_md, group_tree_md
 
     @staticmethod
     def _aggregate_m2m_metadata_dict_value(names, key, values, all_fks):
@@ -207,72 +178,79 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             cls._set_max_group_count(common_args, Series, 3, VOLUME_COUNT)
             cls._set_max_group_count(common_args, Volume, 4, ISSUE_COUNT)
 
-    def _aggregate_path(self, data, path, import_metadata):
+    def _aggregate_path(self, md, path, status):
         """Aggregate metadata for one path."""
+        md, m2m_md, fk_md, group_tree_md = self._get_path_metadata(md, path)
+
         path_str = str(path)
-        md, m2m_md, fk_md, group_tree_md, failed_import = self._get_path_metadata(
-            path_str, import_metadata
-        )
+        if md:
+            all_mds = self.metadata[MDS]
+            all_mds[path_str] = md
 
-        all_failed_imports, all_mds, all_m2m_mds, all_fks, status = data
-        if failed_import:
-            all_failed_imports.update(failed_import)
-        else:
-            if md:
-                all_mds[path_str] = md
+        all_fks = self.metadata[FKS]
+        if m2m_md:
+            all_m2m_mds = self.metadata[M2M_MDS]
+            self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path_str)
 
-            if m2m_md:
-                self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path_str)
+        if fk_md:
+            self._aggregate_fk_metadata(all_fks, fk_md)
 
-            if fk_md:
-                self._aggregate_fk_metadata(all_fks, fk_md)
-
-            if group_tree_md:
-                self._aggregate_group_tree_metadata(all_fks, group_tree_md)
+        if group_tree_md:
+            self._aggregate_group_tree_metadata(all_fks, group_tree_md)
 
         if status:
             status.complete += 1
             self.status_controller.update(status)
 
-    @status_notify(status_type=ImportStatusTypes.AGGREGATE_TAGS)
-    def get_aggregate_metadata(  # noqa: PLR0913
+    def get_aggregate_metadata(
         self,
-        all_paths,
-        library_path,
-        metadata,
-        force_import_metadata,
         status=None,
     ):
         """Get aggregated metadata for the paths given."""
+        all_paths = self.task.files_modified | self.task.files_created
         total_paths = len(all_paths)
+
         if not total_paths:
             return 0
-        self.log.info(f"Reading tags from {total_paths} comics in {library_path}...")
-        all_mds = metadata[MDS]
-        all_m2m_mds = metadata[M2M_MDS]
-        all_fks = metadata[FKS]
-        all_fks[GROUP_TREES] = {cls: {} for cls in self._BROWSER_GROUPS}
-        all_failed_imports = metadata[FIS]
+        self.log.info(
+            f"Reading tags from {total_paths} comics in {self.library.path}..."
+        )
+        status = Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths)
+        self.status_controller.start(status, notify=False)
 
-        if status and status.complete is None:
-            status.complete = 0
-        key = AdminFlag.FlagChoices.IMPORT_METADATA.value  # type: ignore
-        if force_import_metadata:
+        # Set import_metadata flag
+        if self.task.force_import_metadata:
             import_metadata = True
         else:
+            key = AdminFlag.FlagChoices.IMPORT_METADATA.value  # type: ignore
             import_metadata = AdminFlag.objects.get(key=key).on
         if not import_metadata:
             self.log.warn("Admin flag set to NOT import metadata.")
-        data = (all_failed_imports, all_mds, all_m2m_mds, all_fks, status)
-        for path in all_paths:
-            self._aggregate_path(data, path, import_metadata)
 
-        all_fks[COMIC_PATHS] = frozenset(all_mds.keys())
-        fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(all_failed_imports))
+        # Init metadata, extract and aggregate
+        self.metadata[MDS] = {}
+        self.metadata[M2M_MDS] = {}
+        self.metadata[FKS] = {GROUP_TREES: {cls: {} for cls in self._BROWSER_GROUPS}}
+        self.metadata[FIS] = {}
+        for path in all_paths:
+            md = self.extract_and_clean(path, import_metadata)
+            if md:
+                self._aggregate_path(md, path, status)
+
+        # Aggregate further
+        self.metadata[FKS][COMIC_PATHS] = frozenset(self.metadata[MDS].keys())
+        fis = self.metadata[FIS]
+        self.task.files_modified -= fis.keys()
+        self.task.files_created -= fis.keys()
+
+        # Set statii
+        fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(fis))
         self.status_controller.update(
             fi_status,
             notify=False,
         )
         count = status.complete if status else 0
         self.log.info(f"Aggregated tags from {count} comics.")
+
+        self.status_controller.finish(status)
         return count

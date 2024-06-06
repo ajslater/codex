@@ -2,7 +2,6 @@
 
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
-from rest_framework.parsers import JSONParser
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
@@ -21,7 +20,6 @@ _ADMIN_FLAG_KEYS = frozenset(
 class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     """Get admin flags relevant to auth."""
 
-    parser_classes = (JSONParser,)
     serializer_class = AuthAdminFlagsSerializer
     queryset = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only("key", "on")
 

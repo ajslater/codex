@@ -8,7 +8,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
+from codex.librarian.importer.const import (
+    COMIC_M2M_FIELD_NAMES,
+)
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.serializers.browser.metadata import MetadataSerializer
@@ -51,6 +53,11 @@ class MetadataView(BrowserAnnotationsView):
             AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
         }
     )
+
+    def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
+        """Limited allowed nav groups for metadata."""
+        group = self.kwargs["group"]
+        self.valid_nav_groups = (group,)
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -153,6 +160,8 @@ class MetadataView(BrowserAnnotationsView):
             if field_name in _GROUP_RELS:
                 group_by = "name" if field_name == "volume" else "sort_name"
                 intersection_qs = intersection_qs.group_by(group_by)
+            if field_name == "identifiers":
+                intersection_qs = intersection_qs.select_related("identifier_type")
             intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
                 count=comic_pks_count
             )
@@ -185,18 +194,18 @@ class MetadataView(BrowserAnnotationsView):
     def _get_optimized_m2m_query(key, qs):
         # XXX The prefetch gets removed by field.set() :(
         if key == "contributors":
-            optimized_qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS).only(
+            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS).only(
                 *_CONTRIBUTOR_RELATIONS
             )
         elif key == "story_arc_numbers":
-            optimized_qs = qs.prefetch_related("story_arc").only("story_arc", "number")
+            qs = qs.prefetch_related("story_arc")
+            qs = qs.only("story_arc", "number")
         elif key == "identifiers":
-            optimized_qs = qs.prefetch_related("identifier_type").only(
-                "identifier_type", "nss", "url"
-            )
+            qs = qs.prefetch_related("identifier_type")
+            qs = qs.only("identifier_type", "nss", "url")
         else:
-            optimized_qs = qs.only("name")
-        return optimized_qs
+            qs = qs.only("name")
+        return qs
 
     @classmethod
     def _copy_m2m_intersections(cls, obj, m2m_intersections):
@@ -244,26 +253,17 @@ class MetadataView(BrowserAnnotationsView):
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.
 
-        if self.model is None:
-            # TODO this looks redundant after set_browse_model
-            group = self.kwargs["group"]
-            raise NotFound(detail=f"Cannot get metadata for {group=}")
+        qs = self.get_filtered_queryset(self.model)
 
-        object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
-        pks = self.kwargs["pks"]
-        qs = self.model.objects.filter(object_filter, pk__in=pks)
-        qs = self.filter_by_annotations(qs, self.model, binary=True)
         filtered_qs = qs
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
+        qs = self._annotate_values_and_fks(qs, filtered_qs)
         group_by = self.get_group_by()
         qs = qs.group_by(group_by)
-        qs = self._annotate_values_and_fks(qs, filtered_qs)
-
-        qs_list = self.re_cover_multi_groups(qs)
 
         try:
-            obj = qs_list[0]
+            obj = qs[0]
             if not obj:
                 reason = "Empty obj"
                 raise ValueError(reason)  # noqa TRY301
@@ -272,11 +272,6 @@ class MetadataView(BrowserAnnotationsView):
 
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
-
-    def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
-        """Limited allowed nav groups for metadata."""
-        group = self.kwargs["group"]
-        self.valid_nav_groups = (group,)
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):

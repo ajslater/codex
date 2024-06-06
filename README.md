@@ -288,12 +288,13 @@ index, a Django cache and comic book cover thumbnails.
 
 Codex contains some experimental throttling controls. The value supplied to
 these variables will be interpreted as the maximum number of allowed requests
-per minute.
+per minute. For example, the following settings would limit each described group
+to 2 queries per second.
 
-- `CODEX_THROTTLE_ANON=60` Anonymous users
-- `CODEX_THROTTLE_USER=60` Authenticated users
-- `CODEX_THROTTLE_OPDS=60` The OPDS v1 & v2 APIs
-- `CODEX_THROTTLE_OPENSEARCH=60` The OPDS v1 Opensearch API
+- `CODEX_THROTTLE_ANON=30` Anonymous users
+- `CODEX_THROTTLE_USER=30` Authenticated users
+- `CODEX_THROTTLE_OPDS=30` The OPDS v1 & v2 APIs (Panels uses this for search)
+- `CODEX_THROTTLE_OPENSEARCH=30` The OPDS v1 Opensearch API
 
 ### Reverse Proxy
 
