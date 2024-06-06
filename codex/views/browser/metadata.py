@@ -160,6 +160,8 @@ class MetadataView(BrowserAnnotationsView):
             if field_name in _GROUP_RELS:
                 group_by = "name" if field_name == "volume" else "sort_name"
                 intersection_qs = intersection_qs.group_by(group_by)
+            if field_name == "identifiers":
+                intersection_qs = intersection_qs.select_related("identifier_type")
             intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
                 count=comic_pks_count
             )
@@ -192,18 +194,18 @@ class MetadataView(BrowserAnnotationsView):
     def _get_optimized_m2m_query(key, qs):
         # XXX The prefetch gets removed by field.set() :(
         if key == "contributors":
-            optimized_qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS).only(
+            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS).only(
                 *_CONTRIBUTOR_RELATIONS
             )
         elif key == "story_arc_numbers":
-            optimized_qs = qs.prefetch_related("story_arc").only("story_arc", "number")
+            qs = qs.prefetch_related("story_arc")
+            qs = qs.only("story_arc", "number")
         elif key == "identifiers":
-            optimized_qs = qs.prefetch_related("identifier_type").only(
-                "identifier_type", "nss", "url"
-            )
+            qs = qs.prefetch_related("identifier_type")
+            qs = qs.only("identifier_type", "nss", "url")
         else:
-            optimized_qs = qs.only("name")
-        return optimized_qs
+            qs = qs.only("name")
+        return qs
 
     @classmethod
     def _copy_m2m_intersections(cls, obj, m2m_intersections):
