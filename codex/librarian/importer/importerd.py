@@ -3,6 +3,7 @@
 from django.utils.timezone import datetime
 
 from codex.librarian.importer.importer import ComicImporter
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
     ImportDBDiffTask,
@@ -11,6 +12,7 @@ from codex.librarian.importer.tasks import (
 )
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Folder, Library
+from codex.status import Status
 from codex.threads import QueuedThread
 
 
@@ -46,9 +48,11 @@ class ComicImporterThread(QueuedThread):
 
     def _adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
+        status = Status(ImportStatusTypes.ADOPT_FOLDERS)
         libraries = Library.objects.filter(covers_only=False).only("path")
         for library in libraries.iterator():
             while True:
+                self.status_controller.start(status)
                 # Run until there are no orphan folders
                 orphan_folder_paths = (
                     Folder.objects.filter(library=library, parent_folder=None)
@@ -58,6 +62,7 @@ class ComicImporterThread(QueuedThread):
                 if not orphan_folder_paths:
                     self.log.debug(f"No orphan folders in {library.path}")
                     break
+                self.status_controller.finish(status)
 
                 self.log.debug(
                     f"{len(orphan_folder_paths)} orphan folders found in {library.path}"
@@ -74,6 +79,7 @@ class ComicImporterThread(QueuedThread):
                 importer = self._create_importer(task)
                 # Only run the moved task.
                 importer.bulk_folders_moved()
+        self.status_controller.finish(status)
 
     def _update_groups_first_comic(self, task):
         pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)

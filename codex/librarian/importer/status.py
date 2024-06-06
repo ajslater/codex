@@ -26,3 +26,4 @@ class ImportStatusTypes(Choices):
     COVERS_DELETED = "ICD"
     COVERS_LINK = "ICL"
     GROUP_UPDATE = "IGU"
+    ADOPT_FOLDERS = "IAF"

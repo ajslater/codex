@@ -11,7 +11,10 @@ from codex.librarian.covers.tasks import (
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
 )
-from codex.librarian.importer.tasks import UpdateGroupsFirstComic
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+    UpdateGroupsFirstComic,
+)
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
@@ -99,6 +102,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
             "janitor_nightly": JanitorNightlyTask(),
             "update_first_covers": UpdateGroupsFirstComic(),
+            "adopt_folders": AdoptOrphanFoldersTask()
         }
     )
 

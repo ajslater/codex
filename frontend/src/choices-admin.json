@@ -35,7 +35,8 @@
     "SIU": "Search Index Update",
     "SID": "Search Index Remove Stale Records",
     "SIM": "Search Index Optimize",
-    "WPO": "Poll Library"
+    "WPO": "Poll Library",
+    "IAF": "Adopt Orphan Folders"
   },
   "tasks": [
     {
@@ -209,6 +210,11 @@
           "value": "cleanup_covers",
           "title": "Remove Orphan Cover Thumbnails",
           "desc": "no longer have source comics or custom images. Runs nightly."
+        },
+        {
+          "value": "adopt_folders",
+          "title": "Adopt Orphan Folders",
+          "desc": "Move orphaned folders from the top of the folder tree to under their correct parent. Runs nightly and at startup."
         },
         {
           "value": "librarian_clear_status",
