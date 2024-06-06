@@ -20,6 +20,11 @@ class MtimeView(AuthGenericAPIView, BookmarkFilterMixin):
     serializer_class = GroupsMtimeSerializer
     response_serializer_class = MtimeSerializer
 
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize."""
+        super().__init__(*args, **kwargs)
+        self.init_bookmark_data()
+
     def _parse_params(self):
         params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
         self.groups = params.get("groups", "")
@@ -38,8 +43,7 @@ class MtimeView(AuthGenericAPIView, BookmarkFilterMixin):
         updated_at_max = qs.aggregate(max=Max("updated_at"))["max"]
 
         if self.use_bookmark_filter:
-            bm_rel = self.get_bm_rel(model)
-            bm_filter = self.get_my_bookmark_filter(bm_rel)
+            bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
             qs = qs.filter(bm_filter)
             bookmark_updated_at_max = qs.aggregate(max=(Max(f"{bm_rel}__updated_at")))[
                 "max"

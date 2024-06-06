@@ -39,7 +39,6 @@ class BrowserBaseView(SearchFilterView):
         super().__init__(*args, **kwargs)
         self._is_admin: bool = False
         self.params: MappingProxyType[str, Any] = MappingProxyType({})
-        self.bm_annotation_data = {}
         self.rel_prefix: str = ""
         self.model: type[BrowserGroupModel] | None = None
         self.group_class: type[BrowserGroupModel] | None = None

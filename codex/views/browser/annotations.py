@@ -161,9 +161,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def get_bookmark_updated_at_aggregate(self, model, always_max=False):
         """Get The aggregate function for relevant bookmark.updated_at."""
-        bm_rel = self.get_bm_rel(model)
-        bm_filter = self.get_my_bookmark_filter(bm_rel)
-        self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
 
         updated_at_rel = f"{bm_rel}__updated_at"
         agg_func = Max if always_max else self.order_agg_func
@@ -240,11 +238,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
-        if model in self.bm_annotation_data:  # type: ignore
-            bm_rel, bm_filter = self.bm_annotation_data[model]  # type: ignore
-        else:
-            bm_rel = self.get_bm_rel(model)
-            bm_filter = self.get_my_bookmark_filter(bm_rel)
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
 
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
@@ -317,16 +311,16 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
-    def _annotate_mtime(self, qs, model):
+    def _annotate_mtime(self, qs):
         """Annotations mtime."""
-        bm_rel = self.get_bm_rel(model)
-        bm_ua_rel = bm_rel + "__updated_at"
-        when_filter = {bm_ua_rel + "__gt": F("updated_at")}
-        mtime = Case(
-            When(**when_filter),
-            then=F(bm_ua_rel),
-            default=F("updated_at"),
-        )
+        if self.is_bookmark_filtered:
+            mtime = Case(
+                When(bookmark_updated_at__gt=F("updated_at")),
+                then=F("bookmark_updated_at"),
+                default=F("updated_at"),
+            )
+        else:
+            mtime = F("updated_at")
         return qs.annotate(mtime=mtime)
 
     def annotate_card_aggregates(self, qs, model):
@@ -339,4 +333,4 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_bookmarks(qs, model)
         qs = self._annotate_progress(qs)
-        return self._annotate_mtime(qs, model)
+        return self._annotate_mtime(qs)

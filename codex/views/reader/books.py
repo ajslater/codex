@@ -169,7 +169,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         Yields 1 to 3 books
         """
         comics, arc_group = self._get_comics_list()
-        bookmark_filter = self.get_bookmark_filter()
+        bookmark_filter = self.get_bookmark_search_kwargs()
         books = {}
         prev_book = None
         pk = self.kwargs.get("pk")

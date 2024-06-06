@@ -31,23 +31,13 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
     _BOOKMARK_ONLY_FIELDS = (*_BOOKMARK_UPDATE_FIELDS, "pk", "comic")
     _COMIC_ONLY_FIELDS = ("pk", "page_count")
 
-    def get_bookmark_filter(self):
-        """Get search kwargs for the reader."""
-        search_kwargs = {}
-        if self.request.user.is_authenticated:
-            search_kwargs["user"] = self.request.user
-        else:
-            if not self.request.session or not self.request.session.session_key:
-                LOG.debug("no session, make one")
-                self.request.session.save()
-            search_kwargs["session_id"] = self.request.session.session_key
-        return search_kwargs
-
-    def get_bookmark_search_kwargs(self, comic_filter):
+    def get_bookmark_search_kwargs(self, comic_filter=None):
         """Get the search kwargs for a user's authentication state."""
         search_kwargs = {}
-        for key, value in comic_filter.items():
-            search_kwargs[f"comic__{key}"] = value
+
+        if comic_filter:
+            for key, value in comic_filter.items():
+                search_kwargs[f"comic__{key}"] = value
 
         if self.request.user.is_authenticated:
             search_kwargs["user"] = self.request.user
@@ -55,7 +45,7 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             if not self.request.session or not self.request.session.session_key:
                 LOG.debug("no session, make one")
                 self.request.session.save()
-            search_kwargs["session_id"] = self.request.session.session_key
+            search_kwargs["session__session_key"] = self.request.session.session_key
         return search_kwargs
 
     @staticmethod

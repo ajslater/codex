@@ -10,6 +10,11 @@ from codex.views.browser.validate import BrowserValidateView
 class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
     """Annotations that also filter."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize."""
+        super().__init__(*args, **kwargs)
+        self.init_bookmark_data()
+
     def get_query_filters(self, model):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
