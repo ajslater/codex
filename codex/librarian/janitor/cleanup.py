@@ -6,7 +6,7 @@ from time import time
 from types import MappingProxyType
 
 from django.contrib.sessions.models import Session
-from django.utils.timezone import now
+from django.db.models.functions.datetime import Now
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import (
@@ -137,7 +137,7 @@ class CleanupMixin(WorkerBaseMixin):
         status = Status(JanitorStatusTypes.CLEANUP_SESSIONS)
         try:
             self.status_controller.start(status)
-            count, _ = Session.objects.filter(expire_date__lt=now()).delete()
+            count, _ = Session.objects.filter(expire_date__lt=Now()).delete()
             if count:
                 self.log.info(f"Deleted {count} expired sessions.")
 

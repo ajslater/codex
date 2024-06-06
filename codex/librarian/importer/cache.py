@@ -3,7 +3,7 @@
 import os
 
 from django.db.models.aggregates import Count
-from django.utils import timezone
+from django.db.models.functions.datetime import Now
 from django.db.models.query import Q
 
 from codex.librarian.importer.init import InitImporter
@@ -139,7 +139,7 @@ class CacheUpdateImporter(InitImporter):
             updated = []
             for obj in model_qs:
                 cls._update_first_cover(model, obj)
-                obj.updated_at = timezone.now()
+                obj.updated_at = Now()
                 updated.append(obj)
 
             count = len(updated)
