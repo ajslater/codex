@@ -78,8 +78,13 @@
         },
         {
           "value": "update_first_covers",
+          "title": "Ensure First Covers",
+          "desc": "Link first covers to groups missing first covers for the non-dynamic covers view."
+        },
+        {
+          "value": "force_update_first_covers",
           "title": "Force Update First Covers",
-          "desc": "Relink first covers to groups for the non-dynamic covers view."
+          "desc": "Force the recalculation and relink of first covers to groups for the non-dynamic covers view."
         }
       ]
     },

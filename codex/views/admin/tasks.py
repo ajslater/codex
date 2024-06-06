@@ -1,5 +1,6 @@
 """Librarian Status View."""
 
+from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 LOG = get_logger(__name__)
+_EPOCH_START = datetime.fromtimestamp(0, tz=timezone.utc)
 
 
 class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
@@ -102,6 +104,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
             "janitor_nightly": JanitorNightlyTask(),
             "update_first_covers": UpdateGroupsFirstComic(),
+            "force_update_first_covers": UpdateGroupsFirstComic(start_time=_EPOCH_START),
             "adopt_folders": AdoptOrphanFoldersTask()
         }
     )
