@@ -2,30 +2,6 @@ import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
 
-const _trimObject = (obj) => {
-  // Remove empty and undefined objects because they're default values.
-  if (obj === undefined || obj === null) {
-    return {};
-  }
-  const isArray = Array.isArray(obj);
-  const result = isArray ? [] : {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (val === undefined || val === null) {
-      continue;
-    }
-    const isValObject = val && typeof val === "object";
-    const trimmedVal = isValObject ? _trimObject(val) : val;
-    if (!isValObject || Object.keys(trimmedVal).length > 0) {
-      if (isArray) {
-        result.push(trimmedVal);
-      } else {
-        result[key] = trimmedVal;
-      }
-    }
-  }
-  return result;
-};
-
 const _json_serialize = (params) => {
   // Since axios 1.0 I have to manually serialize complex objects
   for (const [key, value] of Object.entries(params)) {
@@ -42,9 +18,8 @@ const _addTimestamp = (params, ts) => {
   params.ts = ts;
 };
 
-// TODO Try removing trimObjects
 export const serializeParams = (data, ts) => {
-  const params = _trimObject(data);
+  const params = { ...data };
   _json_serialize(params);
   _addTimestamp(params, ts);
   return params;
