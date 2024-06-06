@@ -96,6 +96,7 @@ export default {
       if (this.subtitle) {
         height *= 2;
       }
+      height += 4;
       return height;
     },
   },
@@ -172,6 +173,9 @@ export default {
   text-align: center;
   white-space: nowrap;
   overflow: scroll;
+}
+.readerTitle {
+  padding-bottom: 4px;
 }
 #title {
   font-size: clamp(18px, 3vw, 20px);

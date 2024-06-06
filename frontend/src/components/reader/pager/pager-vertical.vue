@@ -170,6 +170,6 @@ $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
   */
 }
 .pageTrackerToolbars {
-  height: calc(($pageTrackerBaseHeight - 150px) * .95) !important;
+  height: calc(($pageTrackerBaseHeight - 154px - 32px) * .95) !important;
 }
 </style>
