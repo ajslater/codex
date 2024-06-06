@@ -45,6 +45,7 @@ BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
 ######################
 # DEBUG CIRCLECI ENV #
 ######################
+pwd
 ls || true
 ls ./dist || true
 #####################
