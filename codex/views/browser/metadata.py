@@ -8,11 +8,14 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
+from codex.librarian.importer.const import (
+    COMIC_M2M_FIELD_NAMES,
+)
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
+from codex.views.const import ALL_GROUPS
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -51,6 +54,16 @@ class MetadataView(BrowserAnnotationsView):
             AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
         }
     )
+
+
+    def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
+        """Limited allowed nav groups for metadata."""
+        group = self.kwargs["group"]
+        if group not in ALL_GROUPS:
+            msg = f"Metadata not possible for illegal {group=}"
+            raise NotFound(msg)
+
+        self.valid_nav_groups = (group,)
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -244,11 +257,6 @@ class MetadataView(BrowserAnnotationsView):
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.
 
-        if self.model is None:
-            # TODO this looks redundant after set_browse_model
-            group = self.kwargs["group"]
-            raise NotFound(detail=f"Cannot get metadata for {group=}")
-
         qs = self.get_filtered_queryset(self.model)
 
         filtered_qs = qs
@@ -268,11 +276,6 @@ class MetadataView(BrowserAnnotationsView):
 
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
-
-    def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
-        """Limited allowed nav groups for metadata."""
-        group = self.kwargs["group"]
-        self.valid_nav_groups = (group,)
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
