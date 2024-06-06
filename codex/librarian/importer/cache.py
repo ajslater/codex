@@ -19,40 +19,24 @@ class CacheUpdateImporter(InitImporter):
     """Update Groups timestamp for cover cache busting."""
 
     @staticmethod
-    def _walk_up_folders(model_qs):
-        """Ugly iteration to collect parent folders without folders linking to children."""
-        # XXX Probably this can be optimized
-        folder_qs = model_qs
-        all_folder_pks = set()
-        while folder_qs.count():
-            folder_pks = folder_qs.values_list("pk", flat=True)
-            all_folder_pks |= set(folder_pks)
-            parent_pks = (
-                folder_qs.filter(parent_folder__isnull=False)
-                .distinct()
-                .values_list("parent_folder__pk", flat=True)
-            )
-            folder_qs = Folder.objects.filter(pk__in=parent_pks)
+    def _get_folder_batches(model_qs):
+        """Create batches of folders by folder depth level."""
+        # Collect all related folders
+        folder_pks = model_qs.values_list("pk", flat=True)
+        all_folders = Folder.objects.filter(Q(folder__pk__in=folder_pks) | Q(pk__in=folder_pks)).select_related("first_comic").only('path', *_UPDATE_FIELDS)
 
-        # update deepest paths first for first comic aggregation
+        # Create a map of each folder by path depth level
         batch_map = {}
-        all_folders = (
-            Folder.objects.filter(pk__in=all_folder_pks).order_by("-path").only("path")
-        )
         for folder in all_folders:
             depth = folder.path.count(os.sep)
             if depth not in batch_map:
                 batch_map[depth] = set()
-            batch_map[depth].add(folder.pk)
+            batch_map[depth].add(folder)
 
+        # Order batches by reverse depth level to update bottom up.
         batches = []
-        for _, pks in sorted(batch_map.items(), reverse=True):
-            qs = (
-                Folder.objects.filter(pk__in=pks)
-                .select_related("first_comic")
-                .only(*_UPDATE_FIELDS)
-            )
-            batches.append(qs)
+        for _, folders in sorted(batch_map.items(), reverse=True):
+            batches.append(folders)
 
         return tuple(batches)
 
@@ -141,7 +125,7 @@ class CacheUpdateImporter(InitImporter):
         model_qs = model_qs.filter(child_count__gt=0)
         model_qs = model_qs.distinct()
         if model == Folder:
-            batches = cls._walk_up_folders(model_qs)
+            batches = cls._get_folder_batches(model_qs)
         else:
             model_qs.select_related("first_comic").only(*_UPDATE_FIELDS)
             batches = (model_qs,)
