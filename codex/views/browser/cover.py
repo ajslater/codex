@@ -102,12 +102,12 @@ class CoverView(BrowserAnnotationsView):
     def _get_first_cover(self):
         """Get first cover."""
         pks = self.kwargs["pks"]
-        custom_covers = self.params.get("custom_covers")
-        order_by = "path" if self.model == Folder else "sort_name"
+        order_by = "path" if self.model == Folder else "name" if self.model == Volume else "sort_name"
         group_qs = self.model.objects.filter(pk__in=pks)  # type: ignore
         group_qs = group_qs.order_by(order_by)
         select_related = ["first_comic"]
-        if custom_covers:
+        custom_covers = self.params.get("custom_covers")
+        if custom_covers and self.model != Volume:
             select_related.append("custom_cover")
         group_qs = group_qs.select_related(*select_related)
         group_qs = group_qs.group_by("id")  # type: ignore
