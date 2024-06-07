@@ -5,10 +5,16 @@
     :extension-height="24"
     elevation="8"
   >
+    <div style="width: 48px;'" />
     <v-toolbar-title id="browserTitle" class="browserTitle">
       {{ title }}
     </v-toolbar-title>
-    <v-btn :icon="mdiReload" title="Refresh" @click.stop="onUpdate" />
+    <v-btn
+      :icon="mdiReload"
+      style="color: orange"
+      title="Refresh"
+      @click.stop="onUpdate"
+    />
     <template v-if="subtitle" #extension>
       <v-toolbar-title id="browserSubtitle" class="browserTitle">
         {{ subtitle }}
