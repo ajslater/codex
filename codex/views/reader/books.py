@@ -1,6 +1,5 @@
 """Get Books methods."""
 
-from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from django.db.models import F, IntegerField, Value
@@ -26,6 +25,10 @@ _COMIC_FIELDS = (
     "reading_direction",
     "updated_at",
 )
+_SHOW = {
+    "series": True,
+    "volume": True,
+}
 
 
 class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
@@ -134,13 +137,8 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         )
         qs = self.annotate_group_names(qs, Comic)
         if arc_group == "s":
-            show = deepcopy(
-                self.get_from_session("show", session_key=self.BROWSER_SESSION_KEY)
-            )
-            show.pop("p", None)
-            show.pop("i", None)
             qs, comic_sort_names = self.alias_sort_names(
-                qs, Comic, pks=arc_pks, model_group="i", show=show
+                qs, Comic, pks=arc_pks, model_group="i", show=_SHOW
             )
             ordering = (
                 *comic_sort_names,
