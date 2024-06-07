@@ -1,7 +1,6 @@
 """Bulk import and move comics and folders."""
 
 from django.utils import timezone
-from django.utils.timezone import datetime
 
 from codex.librarian.importer.importer import ComicImporter
 from codex.librarian.importer.status import ImportStatusTypes
