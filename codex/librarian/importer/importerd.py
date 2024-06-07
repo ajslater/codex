@@ -1,5 +1,6 @@
 """Bulk import and move comics and folders."""
 
+from django.utils import timezone
 from django.utils.timezone import datetime
 
 from codex.librarian.importer.importer import ComicImporter
@@ -91,7 +92,7 @@ class ComicImporterThread(QueuedThread):
 
     def _update_groups_first_comic(self, task):
         pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
-        start_time = task.start_time if task.start_time else datetime.now()
+        start_time = task.start_time if task.start_time else timezone.now()
         for pk in pks:
             task = ImportDBDiffTask(library_id=pk)
             importer = self._create_importer(task)
