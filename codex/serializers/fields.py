@@ -22,13 +22,13 @@ VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 class TimestampField(IntegerField):
     """IntegerTimestampField."""
 
-    def to_representation(self, value):
+    def to_representation(self, value) -> int:
         """Convert to Jascript millisecond int timestamp from datetime, or castable."""
         if isinstance(value, datetime):
             value = value.timestamp()
         return int(float(value) * 1000)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> datetime:  # type: ignore
         """Convert from castable, likely string to datetime."""
         return datetime.fromtimestamp(float(data) / 1000, tz=timezone.utc)
 
