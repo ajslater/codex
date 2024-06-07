@@ -73,6 +73,8 @@ LOG = get_logger(__name__)
 
 LOG = get_logger(__name__)
 
+LOG = get_logger(__name__)
+
 
 class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
