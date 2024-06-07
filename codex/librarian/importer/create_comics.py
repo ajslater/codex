@@ -20,7 +20,7 @@ from codex.status import Status
 class CreateComicsImporter(LinkComicsImporter):
     """Create comics methods."""
 
-    def _bulk_update_comics_add_comic(self, now, comic, results):
+    def _bulk_update_comics_add_comic(self, comic, results):
         """Add one comic and stats to the bulk update list."""
         try:
             md = self.metadata[MDS].pop(comic.path)
@@ -33,7 +33,7 @@ class CreateComicsImporter(LinkComicsImporter):
                         value = default_value
                 setattr(comic, field_name, value)
             comic.presave()
-            comic.updated_at = now
+            comic.updated_at = Now()
             update_comics, comic_pks, comic_update_paths = results
             update_comics.append(comic)
             comic_pks.append(comic.pk)
@@ -59,12 +59,11 @@ class CreateComicsImporter(LinkComicsImporter):
 
         # set attributes for each comic
         update_comics = []
-        now = Now()
         comic_pks = []
         comic_update_paths = set()
         results = update_comics, comic_pks, comic_update_paths
         for comic in comics.iterator():
-            self._bulk_update_comics_add_comic(now, comic, results)
+            self._bulk_update_comics_add_comic(comic, results)
 
         converted_create_paths = frozenset(
             set(self.task.files_modified) - comic_update_paths

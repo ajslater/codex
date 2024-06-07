@@ -30,11 +30,9 @@ class CreateCoversImporter(CreateComicsImporter):
         status = Status(ImportStatusTypes.COVERS_MODIFIED, 0, update_covers_count)
         self.status_controller.start(status)
 
-        now = Now()
-
         update_covers = []
         for cover in update_covers_qs.only(*CUSTOM_COVER_UPDATE_FIELDS):
-            cover.updated_at = now
+            cover.updated_at = Now()
             cover.presave()
             update_covers.append(cover)
 

@@ -1,9 +1,12 @@
 """Common view constants."""
 
+from datetime import datetime, timezone
 from types import MappingProxyType
 
 from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
+from django.db.models.expressions import Value
+from django.db.models.fields import DateTimeField, PositiveSmallIntegerField
 
 from codex.models import (
     AgeRating,
@@ -127,3 +130,8 @@ CONFIG_MODELS = (
 )
 MAX_OBJ_PER_PAGE = 100
 GROUP_MTIME_MODEL_MAP = MappingProxyType({"r": Publisher, "a": StoryArc, "f": Folder})
+EPOCH_START = datetime.fromtimestamp(0, tz=timezone.utc)
+ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
+NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
+NONE_DATETIMEFIELD = Value(None, DateTimeField())
+EPOCH_START_DATETIMEFILED = Value(EPOCH_START)

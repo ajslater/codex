@@ -42,7 +42,6 @@ class MovedImporter(AggregateMetadataImporter):
         ).only("pk", "path", PARENT_FOLDER, FOLDERS_FIELD)
 
         folder_m2m_links = {}
-        now = Now()
         updated_comics = []
         for comic in comics.iterator():
             try:
@@ -52,7 +51,7 @@ class MovedImporter(AggregateMetadataImporter):
                 comic.parent_folder = Folder.objects.get(  # type: ignore
                     path=new_path.parent
                 )
-                comic.updated_at = now
+                comic.updated_at = Now()
                 comic.presave()
                 folder_m2m_links[comic.pk] = Folder.objects.filter(
                     path__in=new_path.parents
@@ -83,7 +82,6 @@ class MovedImporter(AggregateMetadataImporter):
         if status:
             status.total = covers.count()
 
-        now = Now()
         moved_covers = []
         unlink_pks = set()
         for cover in covers.iterator():
@@ -91,7 +89,7 @@ class MovedImporter(AggregateMetadataImporter):
                 new_path = self.task.covers_moved[cover.path]
                 cover.path = new_path
                 new_path = Path(new_path)
-                cover.updated_at = now
+                cover.updated_at = Now()
                 cover.presave()
                 moved_covers.append(cover)
                 unlink_pks.add(cover.pk)
@@ -186,7 +184,6 @@ class MovedImporter(AggregateMetadataImporter):
         ).order_by("path")
 
         update_folders = []
-        now = Now()
         for folder in folders_to_move.iterator():
             new_path = self.task.dirs_moved[folder.path]
             folder.name = Path(new_path).name
@@ -194,7 +191,7 @@ class MovedImporter(AggregateMetadataImporter):
             parent_path_str = str(Path(new_path).parent)
             folder.parent_folder = dest_parent_folders.get(parent_path_str)
             folder.presave()
-            folder.updated_at = now  # type: ignore
+            folder.updated_at = Now()
             update_folders.append(folder)
         self.task.dirs_moved = {}
 
@@ -220,10 +217,9 @@ class MovedImporter(AggregateMetadataImporter):
         ).only("stat", "updated_at")
         self.task.dirs_modified = frozenset()
         update_folders = []
-        now = Now()
         for folder in folders.iterator():
             if Path(folder.path).exists():
-                folder.updated_at = now
+                folder.updated_at = Now()
                 folder.presave()
                 update_folders.append(folder)
         Folder.objects.bulk_update(

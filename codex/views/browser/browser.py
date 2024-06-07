@@ -22,7 +22,6 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
-from codex.util import max_none
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -157,16 +156,13 @@ class BrowserView(BrowserTitleView):
             count = 0
         return qs, count
 
-    def _get_page_mtime(self, group_qs):
-        if self.group_instance:
-            page_updated_at_max = self.group_instance.updated_at
-        else:
-            page_updated_at_max = group_qs.aggregate(max=Max("updated_at"))["max"]
+    def _get_page_mtime(self):
+        if not self.is_bookmark_filtered and self.group_instance:
+            # Nice optimization if we can get get it.
+            return self.group_instance.updated_at
 
-        agg_func = self.get_bookmark_updated_at_aggregate(self.model, True)
-        page_bookmark_updated_at = group_qs.aggregate(max=agg_func)["max"]
-
-        return max_none(page_updated_at_max, page_bookmark_updated_at)
+        group_model = self.group_class if self.group_class else self.model
+        return self.get_group_mtime(group_model)
 
     @staticmethod
     def _get_zero_pad(book_qs):
@@ -200,6 +196,7 @@ class BrowserView(BrowserTitleView):
         # print(group_qs.query)
 
         total_count = page_group_count + page_book_count
+        mtime = self._get_page_mtime()
         return group_qs, book_qs, num_pages, total_count, zero_pad, mtime
 
     def get_object(self):

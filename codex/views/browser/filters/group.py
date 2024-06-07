@@ -12,11 +12,14 @@ class GroupFilterView(SessionView):
 
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
-    def get_group_filter(self, model):
+    def get_group_filter(self, model, group=None, pks=None):
         """Get filter for the displayed group."""
-        group = self.kwargs["group"]  # type: ignore
-        pks = self.kwargs["pks"]  # type: ignore
-        if pks:  # type: ignore
+        if group is None:
+            group = self.kwargs["group"]
+        if pks is None:
+            pks = self.kwargs["pks"]
+
+        if pks and 0 not in pks:  # type: ignore
             if model == GROUP_MODEL_MAP.get(group):
                 # metadata only
                 rel = "pk"

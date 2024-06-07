@@ -15,10 +15,11 @@ from codex.logger.logging import get_logger
 from codex.serializers.reader import ReaderArcSerializer, ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.reader.arcs import ReaderArcsView
-from codex.views.util import pop_name
+from codex.views.util import pop_name, reparse_json_query_params
 
 LOG = get_logger(__name__)
 _VALID_ARC_GROUPS = frozenset({"f", "s", "a"})
+_JSON_KEYS = frozenset({"arc"})
 
 
 class ReaderView(
@@ -47,26 +48,8 @@ class ReaderView(
         }
         raise NotFound(detail=detail)
 
-    def _parse_params(self):
-        data = self.request.GET
-        # Hack for query_parm parser
-        arc_data = MappingProxyType(
-            {"group": data.get("arc[group]"), "pks": data.get("arc[pks]")}
-        )
-        serializer = self.input_serializer_class(data=arc_data)
-        arc = {}
-        try:
-            serializer.is_valid()
-            arc: dict = serializer.validated_data  # type: ignore
-        except ValidationError:
-            pass
-
-        # PARAMS
-        top_group = self.get_from_session(
-            "top_group", "s", session_key=self.BROWSER_SESSION_KEY
-        )
-
-        # arc.group validation
+    def _validate_params(self, arc, top_group):
+        """arc.group validation."""
         # Can't be in the serializer
         arc_group = arc.get("group", "")
         if not arc_group:
@@ -78,6 +61,26 @@ class ReaderView(
             arc_group = top_group
         if arc_group not in _VALID_ARC_GROUPS:
             arc_group = None
+
+    def _parse_params(self):
+        data = self.request.GET
+        arc = {}
+        data = reparse_json_query_params(self.request.GET, _JSON_KEYS)
+        arc_data = data.get("arc", [])
+        if arc_data:
+            serializer = self.input_serializer_class(data=arc_data)
+            try:
+                serializer.is_valid()
+                arc: dict = serializer.validated_data  # type: ignore
+            except ValidationError:
+                pass
+
+        # From Browser Session
+        top_group = self.get_from_session(
+            "top_group", "s", session_key=self.BROWSER_SESSION_KEY
+        )
+
+        self._validate_params(arc, top_group)
 
         params = MappingProxyType(
             {

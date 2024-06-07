@@ -406,6 +406,9 @@ export const useBrowserStore = defineStore("browser", {
         }, SEARCH_HIDE_TIMEOUT);
       }
     },
+    setPageMtime(mtime) {
+      self.mtime = mtime;
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
@@ -513,7 +516,7 @@ export const useBrowserStore = defineStore("browser", {
       const group =
         route.params.group != "r" ? route.params.group : this.page.modelGroup;
       const pks = route.params.pks;
-      return await COMMON_API.getMtime([{ group, pks }], true)
+      return await COMMON_API.getMtime([{ group, pks }], this.choicesSettings)
         .then((response) => {
           const newMtime = response.data.maxMtime;
           // console.log(`new ${newMtime} !== old ${this.page.mtime}`);

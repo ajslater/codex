@@ -49,6 +49,7 @@ from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
 from codex.views.admin.auth import AdminAPIView, AdminReadOnlyModelViewSet
+from codex.views.const import EPOCH_START
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -104,9 +105,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
             "janitor_nightly": JanitorNightlyTask(),
             "update_first_covers": UpdateGroupsFirstComic(),
-            "force_update_first_covers": UpdateGroupsFirstComic(
-                start_time=_EPOCH_START
-            ),
+            "force_update_first_covers": UpdateGroupsFirstComic(start_time=EPOCH_START),
             "adopt_folders": AdoptOrphanFoldersTask(),
         }
     )

@@ -48,7 +48,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../../book-cover.scss";
 .cardControls {
   height: 100%;
   width: 100%;

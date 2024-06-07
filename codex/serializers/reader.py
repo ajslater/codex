@@ -11,7 +11,7 @@ from rest_framework.serializers import (
 
 from codex.models import Bookmark
 from codex.serializers.fields import TimestampField
-from codex.serializers.route import RouteSerializer
+from codex.serializers.route import RouteSerializer, SimpleRouteSerializer
 
 
 class ReaderSettingsSerializer(Serializer):
@@ -38,12 +38,12 @@ class ReaderComicSerializer(Serializer):
     mtime = TimestampField(read_only=True)
 
 
-class ReaderArcSerializer(RouteSerializer):
+class ReaderArcSerializer(SimpleRouteSerializer):
     """Information about the current Arc."""
 
-    page = None
-    index = IntegerField(read_only=True, required=False)
-    count = IntegerField(read_only=True, required=False)
+    name = CharField(required=False)
+    index = IntegerField(required=False)
+    count = IntegerField(required=False)
     mtime = TimestampField(read_only=True)
 
 

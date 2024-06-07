@@ -180,12 +180,14 @@ export const useReaderStore = defineStore("reader", {
       const route = { name: "browser" };
       let params = state.routes.close;
       if (params) {
+        /*
         for (const arc of state.arcs) {
           if (params.group === arc.group && arc.mtime) {
-            route.query = { ts: arc.mtime };
+            //route.query = { ts: arc.mtime };
             break;
           }
         }
+        */
         const cardPk = state.books?.current?.pk;
         if (cardPk) {
           route.hash = `#card-${cardPk}`;
@@ -496,7 +498,7 @@ export const useReaderStore = defineStore("reader", {
       return `${prefix} ${suffix}`;
     },
     async updateMtimes() {
-      return await COMMON_API.getMtime(this.arcs, false)
+      return await COMMON_API.getMtime(this.arcs, {})
         .then((response) => {
           const newMtime = response.data.maxMtime;
           if (newMtime !== this.mtime) {
