@@ -7,6 +7,7 @@ import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginJsonc from "eslint-plugin-jsonc";
 import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
+//import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 //import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 //import prettier from "eslint-plugin-prettier";
 //import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
@@ -51,6 +52,24 @@ const ignores = [
   "typings",
 ];
 
+const securityRules = {
+  // Adding recommended and then turning off rules does not work.
+  "security/detect-buffer-noassert": "warn",
+  "security/detect-child-process": "warn",
+  "security/detect-disable-mustache-escape": "warn",
+  "security/detect-eval-with-expression": "warn",
+  "security/detect-new-buffer": "warn",
+  "security/detect-no-csrf-before-method-override": "warn",
+  "security/detect-non-literal-fs-filename": "warn",
+  "security/detect-non-literal-regexp": "warn",
+  "security/detect-non-literal-require": "warn",
+  //'security/detect-object-injection': 'warn',
+  "security/detect-possible-timing-attacks": "warn",
+  "security/detect-pseudoRandomBytes": "warn",
+  "security/detect-unsafe-regex": "warn",
+  "security/detect-bidi-characters": "warn",
+};
+
 export default [
   {
     languageOptions: {
@@ -68,42 +87,12 @@ export default [
       markdown: eslintPluginMarkdown,
       "no-secrets": eslintPluginNoSecrets,
       // "no-use-extend-native": eslintPluginNoUseExtendNative,
+      // "no-unsantized": eslintPluginNoUnsanitized,
       security: eslintPluginSecurity,
       "simple-import-sort": eslintPluginSimpleImportSort,
-      // sonarjs: eslintPluginSonarjs,
       toml: eslintPluginToml,
       unicorn: eslintPluginUnicorn,
       yml: eslintPluginYml,
-    },
-    rules: {
-      "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
-      "max-params": ["warn", 4],
-      "no-console": "warn",
-      "no-debugger": "warn",
-      "no-constructor-bind/no-constructor-bind": "error",
-      "no-constructor-bind/no-constructor-state": "error",
-      "no-secrets/no-secrets": "error",
-      "prettier-vue/prettier": "warn",
-      "security/detect-object-injection": "off",
-      "simple-import-sort/imports": "warn",
-      "simple-import-sort/exports": "warn",
-      "space-before-function-paren": "off",
-      "unicorn/switch-case-braces": ["warn", "avoid"],
-      "unicorn/prefer-node-protocol": 0,
-      "unicorn/prevent-abbreviations": "off",
-      "unicorn/filename-case": [
-        "error",
-        { case: "kebabCase", ignore: [".*.md"] },
-      ],
-      /*
-     ...importPlugin.configs["recommended"].rules,
-     "import/no-unresolved": [
-       "error",
-       {
-         ignore: ["^[@]"],
-       },
-     ],
-     */
     },
     /*
     settings: {
@@ -117,13 +106,38 @@ export default [
       },
     },
      */
+    rules: {
+      "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
+      // "import/no-unresolved": ["error", { ignore: ["^[@]"] } ],
+      "max-params": ["warn", 4],
+      "no-console": "warn",
+      "no-debugger": "warn",
+      "no-constructor-bind/no-constructor-bind": "error",
+      "no-constructor-bind/no-constructor-state": "error",
+      "no-secrets/no-secrets": "error",
+      "prettier-vue/prettier": "warn",
+      //"security/detect-object-injection": "off",
+      ...securityRules,
+      "simple-import-sort/exports": "warn",
+      "simple-import-sort/imports": "warn",
+      "space-before-function-paren": "off",
+      "unicorn/switch-case-braces": ["warn", "avoid"],
+      "unicorn/prefer-node-protocol": "off",
+      "unicorn/prevent-abbreviations": "off",
+      "unicorn/filename-case": [
+        "error",
+        { case: "kebabCase", ignore: [".*.md"] },
+      ],
+    },
     ignores,
   },
   js.configs.recommended,
   eslintPluginArrayFunc.configs.all,
+  //...eslintPluginImportPlugin.configs["recommended"].rules,
   ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
   //eslintPluginNoUseExtendNative.configs.recommended,
+  //eslintPluginNoUnsanitized.configs.recommended,
   //eslintPluginPrettierRecommended,
   //eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
@@ -168,7 +182,7 @@ export default [
       "plugin:eslint-comments/recommended",
       // "plugin:import/recommended",
       "plugin:optimize-regex/all",
-      //"plugin:promise/recommended",
+      // "plugin:promise/recommended",
       "plugin:switch-case/recommended",
       // PRETTIER
       "plugin:prettier-vue/recommended",
