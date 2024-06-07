@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
 import BrowserEmptyState from "@/components/browser/empty.vue";
@@ -96,20 +96,15 @@ export default {
       return res;
     },
   },
-  methods: {
-    ...mapActions(useBrowserStore, ["loadBrowserPage"]),
-    refresh() {
-      this.loadBrowserPage();
-    },
-  },
 };
 </script>
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../book-cover.scss";
+$top-toolbar-margin: 94px;
 $card-margin: 32px;
-$browse-pane-margin-top: calc(94px + $card-margin);
+$browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
 #browsePane {
   margin-top: $browse-pane-margin-top;
   margin-left: max($card-margin, env(safe-area-inset-left));
@@ -144,6 +139,7 @@ $browse-pane-margin-top: calc(94px + $card-margin);
   font-size: 14px;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
   #browsePane {
@@ -157,11 +153,5 @@ $browse-pane-margin-top: calc(94px + $card-margin);
     grid-gap: $small-card-margin;
     justify-content: space-evenly;
   }
-}
-
-@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
-  #browsePane {
-  margin-top: 108px;
-}
 }
 </style>
