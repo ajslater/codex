@@ -1,6 +1,5 @@
 """Librarian Status View."""
 
-from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -55,7 +54,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 LOG = get_logger(__name__)
-_EPOCH_START = datetime.fromtimestamp(0, tz=timezone.utc)
 
 
 class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):

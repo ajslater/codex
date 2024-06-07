@@ -178,7 +178,6 @@ class BrowserView(BrowserTitleView):
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
-        mtime = self._get_page_mtime(group_qs)
         book_qs, book_count = self._get_book_queryset()
         # Paginate
         group_qs, book_qs, num_pages, page_group_count, page_book_count = self.paginate(
