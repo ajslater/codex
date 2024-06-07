@@ -1,5 +1,7 @@
 """Bookmark views."""
 
+from django.db.models.expressions import F
+from django.db.models.functions import Now
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -16,20 +18,20 @@ from codex.views.const import GROUP_RELATION
 
 LOG = get_logger(__name__)
 VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
-
-
-class BookmarkBaseView(AuthFilterGenericAPIView):
-    """Bookmark Updater."""
-
-    _BOOKMARK_UPDATE_FIELDS = (
+_BOOKMARK_UPDATE_FIELDS = frozenset(
+    {
         "page",
         "finished",
         "fit_to",
         "two_pages",
         "reading_direction",
-    )
-    _BOOKMARK_ONLY_FIELDS = (*_BOOKMARK_UPDATE_FIELDS, "pk", "comic")
-    _COMIC_ONLY_FIELDS = ("pk", "page_count")
+    }
+)
+_COMIC_ONLY_FIELDS = ("pk", "page_count")
+
+
+class BookmarkBaseView(AuthFilterGenericAPIView):
+    """Bookmark Updater."""
 
     def get_bookmark_search_kwargs(self, comic_filter=None):
         """Get the search kwargs for a user's authentication state."""
@@ -54,8 +56,9 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
         page = updates.get("page")
         if page is None:
             return
-        page = max(min(page, bm.comic.max_page), 0)
-        if page == bm.comic.max_page:
+        max_page = bm.page_count + 1
+        page = max(min(page, max_page), 0)
+        if page == max_page:
             # Auto finish on bookmark last page
             bm.finished = True
         updates["page"] = page
@@ -74,22 +77,30 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
     def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
         group_acl_filter = self.get_group_acl_filter(Bookmark)
-        existing_bookmarks = (
-            Bookmark.objects.filter(group_acl_filter)
-            .filter(**search_kwargs)
-            .select_related("comic")
-            .only(*self._BOOKMARK_ONLY_FIELDS)
+        update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
+        update_fields.add("updated_at")
+        only_fields = (*update_fields, "pk")
+        existing_bookmarks = Bookmark.objects.filter(group_acl_filter).filter(
+            **search_kwargs
         )
+        if updates.get("page") is not None:
+            existing_bookmarks = existing_bookmarks.annotate(
+                page_count=F("comic__page_count")
+            )
+            # only_fields = (*only_fields, "page_count")
+        existing_bookmarks = existing_bookmarks.only(*only_fields)
         update_bookmarks = []
         for bm in existing_bookmarks:
             self._update_bookmarks_validate_page(bm, updates)
             self._update_bookmarks_validate_two_pages(bm, updates)
             for key, value in updates.items():
                 setattr(bm, key, value)
+            bm.updated_at = Now()
             update_bookmarks.append(bm)
-        if update_bookmarks:
-            update_fields = list(self._BOOKMARK_UPDATE_FIELDS | updates.keys())
-            Bookmark.objects.bulk_update(update_bookmarks, update_fields)
+        count = len(update_bookmarks)
+        if count:
+            Bookmark.objects.bulk_update(update_bookmarks, tuple(update_fields))
+        LOG.debug(f"Updated {count} bookmarks.")
 
     @staticmethod
     def _create_bookmarks_validate_two_pages(updates):
@@ -119,7 +130,7 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             Comic.objects.filter(group_acl_filter)
             .filter(**comic_filter)
             .exclude(**exclude)
-            .only(*self._COMIC_ONLY_FIELDS)
+            .only(*_COMIC_ONLY_FIELDS)
         )
         for comic in create_bookmark_comics:
             defaults = {"comic": comic}
@@ -134,11 +145,14 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
                 # This almost never happens. Possibly never.
                 bm.finished = True
             create_bookmarks.append(bm)
-        Bookmark.objects.bulk_create(
-            create_bookmarks,
-            update_fields=self._BOOKMARK_UPDATE_FIELDS,
-            unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
-        )
+        count = len(create_bookmarks)
+        if count:
+            Bookmark.objects.bulk_create(
+                create_bookmarks,
+                update_fields=tuple(_BOOKMARK_UPDATE_FIELDS),
+                unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
+            )
+            LOG.debug(f"Create {count} bookmarks.")
 
     def update_bookmarks(self, updates, comic_filter):
         """Update a user bookmark."""

@@ -22,8 +22,6 @@ LOG = get_logger(__name__)
 if TYPE_CHECKING:
     from codex.models.groups import BrowserGroupModel
 
-_REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
-
 
 class BrowserBaseView(SearchFilterView):
     """Browse comics with a variety of filters and sorts."""
@@ -31,6 +29,7 @@ class BrowserBaseView(SearchFilterView):
     input_serializer_class = BrowserSettingsSerializer
 
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
+    REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
 
     _GET_JSON_KEYS = frozenset({"filters", "show"})
 
@@ -75,7 +74,9 @@ class BrowserBaseView(SearchFilterView):
 
     def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
-        query_params = reparse_json_query_params(self.request.GET, _REPARSE_JSON_FIELDS)
+        query_params = reparse_json_query_params(
+            self.request.GET, self.REPARSE_JSON_FIELDS
+        )
         if "q" not in query_params and (query := query_params.get("query")):
             # parse query param for opds v2
             query_params["q"] = query
@@ -88,6 +89,7 @@ class BrowserBaseView(SearchFilterView):
         serializer.is_valid(raise_exception=True)
         self.load_params_from_session(serializer.validated_data)
         self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
+        return serializer.validated_data
 
     def set_order_key(self):
         """Unused until browser."""

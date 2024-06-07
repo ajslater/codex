@@ -58,8 +58,8 @@ export const getBookInBrowserURL = ({ pk, mtime }) => {
   return `${BASE_URL}/book.pdf?ts=${mtime}`;
 };
 
-export const getMtime = (groups, useBookmarkFilter) => {
-  const params = serializeParams({ groups, useBookmarkFilter }, Date.now());
+export const getMtime = (groups, settings) => {
+  const params = serializeParams({ groups, ...settings }, Date.now());
   return HTTP.get("/mtime", { params });
 };
 const getOPDSURLs = () => {

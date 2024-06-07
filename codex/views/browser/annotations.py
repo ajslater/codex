@@ -7,7 +7,6 @@ from django.db.models import (
     Avg,
     BooleanField,
     Case,
-    DateTimeField,
     F,
     FilteredRelation,
     Max,
@@ -17,7 +16,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.aggregates import Count
+from django.db.models.expressions import OuterRef
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Coalesce, Least, Reverse, Right, StrIndex
 from django.db.models.functions.comparison import Greatest
@@ -34,11 +33,14 @@ from codex.models.functions import JsonGroupArray
 from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
-from codex.views.const import EPOCH_START, STORY_ARC_GROUP
+from codex.views.const import (
+    EPOCH_START,
+    NONE_DATETIMEFIELD,
+    NONE_INTEGERFIELD,
+    STORY_ARC_GROUP,
+)
 from codex.views.mixins import SharedAnnotationsMixin
 
-_NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
-_NONE_DATETIMEFIELD = Value(None, DateTimeField())
 _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # These are annotated to order_value because they're simple relations
     {
@@ -65,7 +67,6 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
 _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {Comic: "id", Volume: "name"}
 )
-_ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
 
 LOG = get_logger(__name__)
 
@@ -142,7 +143,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             story_arc_number = self.order_agg_func("selected_story_arc_number__number")
         else:
-            story_arc_number = _NONE_INTEGERFIELD
+            story_arc_number = NONE_INTEGERFIELD
 
         return qs.alias(story_arc_number=story_arc_number)
 
@@ -164,13 +165,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Get The aggregate function for relevant bookmark.updated_at."""
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
 
-        updated_at_rel = f"{bm_rel}__updated_at"
+        bm_updated_at_rel = f"{bm_rel}__updated_at"
         agg_func = Max if always_max else self.order_agg_func
-        return agg_func(
-            updated_at_rel,
-            default=_NONE_DATETIMEFIELD,
-            filter=bm_filter,
-        )
+        return agg_func(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
 
     def _annotate_bookmark_updated_at(self, qs, model):
         if (
@@ -226,17 +223,6 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         value = "c" if model == Comic else self.model_group  # type: ignore
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _annotate_child_count(self, qs, model):
-        """Annotate Child Count."""
-        if self.TARGET == "opds2":
-            return qs
-
-        if model == Comic:
-            child_count_sum = _ONE_INTEGERFIELD
-        else:
-            child_count_sum = Count(self.rel_prefix + "pk", distinct=True)
-        return qs.annotate(child_count=child_count_sum)
-
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
@@ -280,7 +266,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
                 output_field=PositiveSmallIntegerField(),
                 distinct=True,
             )
-            qs = qs.alias(finished_count=finished_count)
+            qs = qs.annotate(finished_count=finished_count)
             finished_aggregate = Case(
                 When(finished_count=F("child_count"), then=True),
                 When(finished_count=0, then=False),
@@ -296,8 +282,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(page=bookmark_page)
 
         if self.TARGET in frozenset({"metadata", "browser"}):
-            # Only used for progress and progress is only for metadata and browser anyway
-            qs.annotate(finished=finished_aggregate)
+            qs = qs.annotate(finished=finished_aggregate)
         return qs
 
     def _annotate_progress(self, qs):
@@ -312,12 +297,20 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
-    def _annotate_mtime(self, qs):
+    def _annotate_mtime(self, qs, model):
         """Annotations mtime."""
         if self.is_bookmark_filtered:
-            mtime = Greatest(
-                Coalesce("bookmark_updated_at", Value(EPOCH_START)), "updated_at"
+            sub_qs = self.get_filtered_queryset(model, bookmark_filter=False)
+            bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
+            ua_rel = bm_rel + "__updated_at"
+            qs = qs.annotate(
+                bmu_max=Max(
+                    sub_qs.filter(pk=OuterRef("pk")).values_list(ua_rel, flat=True),
+                    default=NONE_DATETIMEFIELD,
+                    filter=bm_filter,
+                )
             )
+            mtime = Greatest(Coalesce("bmu_max", Value(EPOCH_START)), "updated_at")
         else:
             mtime = F("updated_at")
         return qs.annotate(mtime=mtime)
@@ -329,7 +322,6 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = self._annotate_order_value(qs, model)
         qs = self._annotate_group(qs, model)
         qs = self.annotate_group_names(qs, model)
-        qs = self._annotate_child_count(qs, model)
         qs = self._annotate_bookmarks(qs, model)
         qs = self._annotate_progress(qs)
-        return self._annotate_mtime(qs)
+        return self._annotate_mtime(qs, model)

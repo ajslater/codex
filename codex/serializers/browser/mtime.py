@@ -1,22 +1,18 @@
 """Group Mtimes."""
 
-from rest_framework.serializers import BooleanField, Serializer
+from rest_framework.serializers import CharField, Serializer
 
-from codex.serializers.fields import IntListField, TimestampField
-
-
-class GroupMtimeSerializer(Serializer):
-    """Group Mtimes."""
-
-    pks = IntListField(read_only=True)
-    mtime = TimestampField(read_only=True)
+from codex.serializers.browser.settings import BrowserSettingsFilterSerializer
+from codex.serializers.fields import TimestampField
+from codex.serializers.route import SimpleRouteSerializer
 
 
 class GroupsMtimeSerializer(Serializer):
     """Groups Mtimes."""
 
-    groups = GroupMtimeSerializer(many=True)
-    use_bookmark_filter = BooleanField(read_only=True)
+    filters = BrowserSettingsFilterSerializer(required=False)
+    q = CharField(allow_blank=True, required=False)
+    groups = SimpleRouteSerializer(many=True, required=True)
 
 
 class MtimeSerializer(Serializer):

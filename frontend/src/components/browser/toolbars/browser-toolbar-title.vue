@@ -8,6 +8,7 @@
     <v-toolbar-title id="browserTitle" class="browserTitle">
       {{ title }}
     </v-toolbar-title>
+    <v-btn :icon="mdiReload" title="Refresh" @click.stop="onUpdate" />
     <template v-if="subtitle" #extension>
       <v-toolbar-title id="browserSubtitle" class="browserTitle">
         {{ subtitle }}
@@ -17,7 +18,8 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mdiReload } from "@mdi/js";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import { useAuthStore } from "@/stores/auth";
@@ -25,6 +27,11 @@ import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserHeader",
+  data() {
+    return {
+      mdiReload,
+    };
+  },
   head() {
     const names = [
       "browse comics",
@@ -72,6 +79,12 @@ export default {
       return this.$route.params.group === "f"
         ? ""
         : this.groupNames[this.modelGroup];
+    },
+  },
+  methods: {
+    ...mapActions(useBrowserStore, ["updateMtimes"]),
+    onUpdate() {
+      this.updateMtimes();
     },
   },
 };

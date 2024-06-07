@@ -6,13 +6,11 @@ from rest_framework.serializers import Serializer
 from codex.views.util import Route
 
 
-class RouteSerializer(Serializer):
-    """A vue route for the browser."""
+class SimpleRouteSerializer(Serializer):
+    """A an abbreviated vue route for the browser."""
 
     group = CharField()
     pks = CharField()
-    page = IntegerField()
-    name = CharField(required=False)
 
     def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""
@@ -38,3 +36,10 @@ class RouteSerializer(Serializer):
         except ValueError:
             instance["pks"] = ()
         return instance
+
+
+class RouteSerializer(SimpleRouteSerializer):
+    """A vue route for the browser."""
+
+    page = IntegerField()
+    name = CharField(required=False)

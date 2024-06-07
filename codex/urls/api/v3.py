@@ -3,7 +3,7 @@
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from codex.views.mtime import MtimeView
+from codex.views.browser.mtime import MtimeView
 from codex.views.opds.urls import OPDSURLsView
 from codex.views.version import VersionView
 
