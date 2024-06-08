@@ -34,13 +34,10 @@ _SHOW = {
 class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
     """Get Books methods."""
 
-    def get_series_pks_from_breadcrumbs(self):
+    def get_series_pks_from_breadcrumbs(self, breadcrumbs):
         """Get Multi-Group pks from the breadcrumbs."""
         if self.series_pks:
             return self.series_pks
-        breadcrumbs = self.get_from_session(
-            "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
-        )
         if breadcrumbs:
             crumb = breadcrumbs[-1]
             crumb_group = crumb.get("group")
@@ -68,7 +65,9 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
                 arc_pk = 0
 
             if arc_pk_rel == "series__pk":
-                multi_arc_pks = self.get_series_pks_from_breadcrumbs()
+                multi_arc_pks = self.get_series_pks_from_breadcrumbs(
+                    self.params["breadcrumbs"]  # type: ignore
+                )
                 if not arc_pk or arc_pk in multi_arc_pks:
                     arc_pks = multi_arc_pks
             if not arc_pks:

@@ -29,9 +29,7 @@ class BrowserBaseView(SearchFilterView):
     input_serializer_class = BrowserSettingsSerializer
 
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
-    REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
-
-    _GET_JSON_KEYS = frozenset({"filters", "show"})
+    REPARSE_JSON_FIELDS = frozenset({"breadcrumbs", "filters", "show"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -87,9 +85,15 @@ class BrowserBaseView(SearchFilterView):
         data = self._parse_query_params()
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        self.load_params_from_session(serializer.validated_data)
+
+        params: dict[str, Any] = {}
+        defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
+        params.update(defaults)
+        validated_data = serializer.validated_data
+        if validated_data:
+            params.update(validated_data)  # type: ignore
+        self.params = MappingProxyType(params)
         self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
-        return serializer.validated_data
 
     def set_order_key(self):
         """Unused until browser."""

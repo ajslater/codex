@@ -42,11 +42,11 @@ export default {
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
         const crumbs = [];
-        if (!state.page.breadcrumbs) {
+        if (!state.settings.breadcrumbs) {
           return crumbs;
         }
         let parentPks = "";
-        for (const crumb of state.page.breadcrumbs) {
+        for (const crumb of state.settings.breadcrumbs) {
           const to = this.getTo(crumb, parentPks);
           const title = crumb.name ? crumb.name : "";
           const group = crumb.group;

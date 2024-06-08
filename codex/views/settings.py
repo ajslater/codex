@@ -5,27 +5,31 @@ from abc import ABC
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.serializers.settings import SettingsSerializer
 from codex.views.session import SessionView
+from codex.views.util import reparse_json_query_params
+
+_JSON_PARAMS = frozenset({"only"})
 
 
 class SettingsView(SessionView, ABC):
     """Settings View."""
 
+    input_serializer_class = SettingsSerializer
+
     def get(self, *args, **kwargs):
         """Get session settings."""
-        defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
-        session = self.request.session.get(self.SESSION_KEY, defaults)
-        params = self._get_source_values_or_set_defaults(defaults, session, {})
-        data = {}
-        for key, filter_name in params.get("filters", {}).items():
-            if filter_name:
-                data[key] = filter_name
-        params["filters"] = data
+        data = self.request.GET
+        data = reparse_json_query_params(data, _JSON_PARAMS)
+        serializer = self.input_serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        only = serializer.validated_data.get("only")  # type: ignore
+        params = self.load_params_from_session(only=only)
         serializer = self.get_serializer(params)
         return Response(serializer.data)
 
     @extend_schema(responses=None)
-    def put(self, *args, **kwargs):
+    def patch(self, *args, **kwargs):
         """Update session settings."""
         data = self.request.data  # type: ignore
         serializer = self.get_serializer(data=data)

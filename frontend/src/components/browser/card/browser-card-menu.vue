@@ -40,7 +40,6 @@ import { mapActions, mapState } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "BrowserContainerMenu",
@@ -84,7 +83,6 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
-    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     toggleRead: function () {
       this.setBookmarkFinished(this.item, !this.item.finished);
       this.showMenu = false;

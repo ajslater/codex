@@ -234,5 +234,4 @@ class BrowserView(BrowserTitleView):
         self.init_request()
         data = self.get_object()
         serializer = self.get_serializer(data)
-        self.save_params_to_session(self.params)
         return Response(serializer.data)

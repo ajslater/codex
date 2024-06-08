@@ -98,7 +98,7 @@ export const useAdminStore = defineStore("admin", {
       if (!this.isUserAdmin) {
         return false;
       }
-      const apiFn = "create" + table;
+      const apiFn = "post" + table;
       const commonStore = useCommonStore();
       await API[apiFn](data)
         .then(() => {

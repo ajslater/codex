@@ -40,7 +40,7 @@ class ReaderArcsView(ReaderBooksView):
         """Create the series arc."""
         series = book.series
         if series:
-            arc_pks = self.get_series_pks_from_breadcrumbs()
+            arc_pks = self.get_series_pks_from_breadcrumbs(self.params["breadcrumbs"])
             if book.series.pk not in arc_pks:
                 arc_pks = (book.series.pk,)
             arc = (

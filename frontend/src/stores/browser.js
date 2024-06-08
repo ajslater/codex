@@ -34,6 +34,8 @@ const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse"];
 Object.freeze(DYNAMIC_COVER_KEYS);
 const CHOICES_KEYS = ["filters", "q"];
 Object.freeze(CHOICES_KEYS);
+const PAGE_LOAD_KEYS = ["breadcrumbs"];
+Object.freeze(PAGE_LOAD_KEYS);
 
 const redirectRoute = function (route) {
   if (route && route.params) {
@@ -63,17 +65,18 @@ export const useBrowserStore = defineStore("browser", {
       dynamic: undefined,
     },
     settings: {
+      breadcrumbs: CHOICES.browser.breadcrumbs,
+      customCovers: true,
+      dynamicCovers: false,
       filters: {},
-      q: undefined,
-      topGroup: undefined,
       orderBy: undefined,
       orderReverse: undefined,
-      show: { ...SETTINGS_SHOW_DEFAULTS },
+      q: undefined,
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
+      show: { ...SETTINGS_SHOW_DEFAULTS },
+      topGroup: undefined,
       twentyFourHourTime: false,
-      dynamicCovers: false,
-      customCovers: true,
     },
     page: {
       adminFlags: {
@@ -81,7 +84,6 @@ export const useBrowserStore = defineStore("browser", {
         folderView: undefined,
         importMetadata: undefined,
       },
-      breadcrumbs: CHOICES.browser.breadcrumbs,
       title: {
         groupName: undefined,
         groupCount: undefined,
@@ -191,12 +193,13 @@ export const useBrowserStore = defineStore("browser", {
       const usedSettings = {};
       const group = router.currentRoute.value.params?.group;
       if (group != "c") {
-        for (const [key, value] of Object.entries(state.settings)) {
-          if (
-            COVER_KEYS.includes(key) ||
-            (state.settings.dynamicCovers && DYNAMIC_COVER_KEYS.includes(key))
-          ) {
-            usedSettings[key] = value;
+        for (const key of COVER_KEYS) {
+          const value = state.settings[key];
+          usedSettings[key] = value;
+        }
+        if (state.settings.dynamicCovers) {
+          for (const key of DYNAMIC_COVER_KEYS) {
+            usedSettings[key] = state.settings[key];
           }
         }
       }
@@ -204,10 +207,15 @@ export const useBrowserStore = defineStore("browser", {
     },
     choicesSettings(state) {
       const usedSettings = {};
-      for (const [key, value] of Object.entries(state.settings)) {
-        if (CHOICES_KEYS.includes(key)) {
-          usedSettings[key] = value;
-        }
+      for (const key of CHOICES_KEYS) {
+        usedSettings[key] = state.settings[key];
+      }
+      return usedSettings;
+    },
+    pageLoadSettings(state) {
+      const usedSettings = {};
+      for (const key of PAGE_LOAD_KEYS) {
+        usedSettings[key] = state.settings[key];
       }
       return usedSettings;
     },
@@ -324,7 +332,10 @@ export const useBrowserStore = defineStore("browser", {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
           let newValue;
-          if (typeof state.settings[key] === "object") {
+          if (
+            typeof state.settings[key] === "object" &&
+            !Array.isArray(state.settings[key])
+          ) {
             newValue = { ...state.settings[key], ...value };
           } else {
             newValue = value;
@@ -360,9 +371,9 @@ export const useBrowserStore = defineStore("browser", {
       const redirect = this._validateAndSaveSettings(data);
       this.browserPageLoaded = true;
       if (redirect) {
-        await redirectRoute(redirect);
+        redirectRoute(redirect);
       } else {
-        await this.loadBrowserPage();
+        this.loadBrowserPage(undefined, true);
       }
     },
     async clearFilters(clearSearch = false) {
@@ -376,13 +387,13 @@ export const useBrowserStore = defineStore("browser", {
         }
         state.browserPageLoaded = true;
       });
-      await this.loadBrowserPage();
+      await this.loadBrowserPage(undefined, true);
     },
     async setBookmarkFinished(params, finished) {
       if (!this.isAuthorized) {
         return;
       }
-      await COMMON_API.setGroupBookmarks(params, { finished }).then(() => {
+      await COMMON_API.updateGroupBookmarks(params, { finished }).then(() => {
         this.loadBrowserPage(getTimestamp());
         return true;
       });
@@ -408,6 +419,17 @@ export const useBrowserStore = defineStore("browser", {
     },
     setPageMtime(mtime) {
       self.mtime = mtime;
+    },
+    async updateBreadcrumbs(oldBreadcrumbs) {
+      const breadcrumbs = this.settings.breadcrumbs;
+      for (const index of _.range(breadcrumbs.length).reverse()) {
+        const oldCrumb = oldBreadcrumbs[index];
+        const newCrumb = breadcrumbs[index];
+        if (!_.isEqual(oldCrumb, newCrumb)) {
+          API.updateSettings({ breadcrumbs });
+          break;
+        }
+      }
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
@@ -457,7 +479,7 @@ export const useBrowserStore = defineStore("browser", {
           return this.handlePageError(error);
         });
     },
-    async loadBrowserPage(mtime) {
+    async loadBrowserPage(mtime, updateSettings = false) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
         return;
@@ -474,10 +496,13 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         this.browserPageLoaded = false;
       }
-      await API.loadBrowserPage(route.params, this.settings, mtime)
+      const oldBreadcrumbs = this.settings.breadcrumbs;
+      await API.getBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
-          const page = Object.freeze({ ...response.data });
+          const { breadcrumbs, ...page } = response.data;
+          Object.freeze({ page });
           this.$patch((state) => {
+            state.settings.breadcrumbs = breadcrumbs;
             state.page = page;
             state.choices.dynamic = undefined;
             state.browserPageLoaded = true;
@@ -485,6 +510,11 @@ export const useBrowserStore = defineStore("browser", {
           return true;
         })
         .catch(this.handlePageError);
+      if (updateSettings) {
+        API.updateSettings(this.settings);
+      } else {
+        this.updateBreadcrumbs(oldBreadcrumbs);
+      }
     },
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
@@ -511,7 +541,7 @@ export const useBrowserStore = defineStore("browser", {
         })
         .catch(console.error);
     },
-    async updateMtimes() {
+    async loadMtimes() {
       const route = router.currentRoute.value;
       const group =
         route.params.group != "r" ? route.params.group : this.page.modelGroup;

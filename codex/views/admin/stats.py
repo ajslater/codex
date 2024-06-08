@@ -24,6 +24,15 @@ from codex.views.admin.auth import AdminGenericAPIView
 from codex.views.const import CONFIG_MODELS, GROUP_MODELS, METADATA_MODELS
 
 LOG = get_logger(__name__)
+_KEY_MODELS_MAP = MappingProxyType(
+    {
+        "config": CONFIG_MODELS,
+        "groups": GROUP_MODELS,
+        "metadata": METADATA_MODELS,
+    }
+)
+_DOCKERENV_PATH = Path("/.dockerenv")
+_CGROUP_PATH = Path("/proc/self/cgroup")
 
 
 class AdminStatsView(AdminGenericAPIView):
@@ -33,24 +42,11 @@ class AdminStatsView(AdminGenericAPIView):
     serializer_class = AdminStatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
-    _KEY_MODELS_MAP = MappingProxyType(
-        {
-            "config": CONFIG_MODELS,
-            "groups": GROUP_MODELS,
-            "metadata": METADATA_MODELS,
-        }
-    )
-    _DOCKERENV_PATH = Path("/.dockerenv")
-    _CGROUP_PATH = Path("/proc/self/cgroup")
-
     @classmethod
     def _is_docker(cls):
         """Test if we're in a docker container."""
         try:
-            return (
-                cls._DOCKERENV_PATH.is_file()
-                or "docker" in cls._CGROUP_PATH.read_text()
-            )
+            return _DOCKERENV_PATH.is_file() or "docker" in _CGROUP_PATH.read_text()
         except Exception:
             return False
 
@@ -66,7 +62,7 @@ class AdminStatsView(AdminGenericAPIView):
     def _get_models(self, key):
         """Get models from request params."""
         request_model_list = self.request.GET.get(key)
-        all_models = self._KEY_MODELS_MAP[key]
+        all_models = _KEY_MODELS_MAP[key]
         if request_model_list:
             models = []
             for model_name in request_model_list.split(","):

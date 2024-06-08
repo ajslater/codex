@@ -52,7 +52,7 @@ class TimezoneView(AuthGenericAPIView):
     serializer_class = OKSerializer
 
     @extend_schema(request=input_serializer_class)
-    def post(self, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """Get the user info for the current user."""
         data = self.request.data  # type: ignore
         serializer = self.input_serializer_class(data=data)

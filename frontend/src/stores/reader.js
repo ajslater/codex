@@ -2,6 +2,7 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import titleize from "titleize";
 
+import BROWSER_API from "@/api/v3/browser";
 // import { reactive } from "vue";
 import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
@@ -46,6 +47,14 @@ Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
 const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CHOICES);
+const READER_INFO_KEYS = ["breadcrumbs", "topGroup"];
+Object.freeze(READER_INFO_KEYS);
+const camelToSnakeCase = (str) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) =>
+  camelToSnakeCase(key),
+);
+Object.freeze(READER_INFO_ONLY_KEYS);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -82,6 +91,10 @@ export const useReaderStore = defineStore("reader", {
       readingDirection: "ltr",
       readRtlInReverse: false,
     },
+    browserSettings: {
+      breadcrumbs: CHOICES.browser.breadcrumbs,
+      topGroup: "r",
+    },
     books: {
       current: undefined,
       prev: false,
@@ -90,6 +103,7 @@ export const useReaderStore = defineStore("reader", {
     arcs: [],
     arc: {},
     mtime: 0,
+    browserTopGroup: undefined,
 
     // local reader
     empty: false,
@@ -197,6 +211,13 @@ export const useReaderStore = defineStore("reader", {
       }
       route.params = params;
       return route;
+    },
+    readerInfoSettings(state) {
+      const usedKeys = {};
+      for (const key in READER_INFO_KEYS) {
+        usedKeys[key] = state.browserSettings[key];
+      }
+      return usedKeys;
     },
   },
   actions: {
@@ -393,11 +414,17 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadReaderSettings() {
-      return API.getReaderSettings()
+      API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
           this.empty = false;
+          return true;
+        })
+        .catch(console.error);
+      return BROWSER_API.getSettings(READER_INFO_ONLY_KEYS)
+        .then((response) => {
+          this.browserSettings = response.data;
           return true;
         })
         .catch(console.error);
@@ -413,7 +440,7 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await API.getReaderInfo(params, mtime)
+      await API.getReaderInfo(params, this.readerInfoSettings, mtime)
         .then((response) => {
           const data = response.data;
           const books = data.books;
@@ -459,17 +486,27 @@ export const useReaderStore = defineStore("reader", {
           this.empty = true;
         });
     },
+    async loadMtimes() {
+      return await COMMON_API.getMtime(this.arcs, {})
+        .then((response) => {
+          const newMtime = response.data.maxMtime;
+          if (newMtime !== this.mtime) {
+            this.loadBooks(undefined, newMtime);
+          }
+        })
+        .catch(console.error);
+    },
     async _setBookmarkPage(page) {
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
-      await COMMON_API.setGroupBookmarks(groupParams, updates);
+      await COMMON_API.updateGroupBookmarks(groupParams, updates);
     },
     async setSettingsLocal(data) {
       this._updateSettings(data, true);
 
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await COMMON_API.setGroupBookmarks(
+      await COMMON_API.updateGroupBookmarks(
         groupParams,
         this.books.current.settings,
       );
@@ -486,7 +523,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async setSettingsGlobal(data) {
       this._updateSettings(data, false);
-      await API.setReaderSettings(this.readerSettings);
+      await API.udpateReaderSettings(this.readerSettings);
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
@@ -496,16 +533,6 @@ export const useReaderStore = defineStore("reader", {
     linkLabel(direction, suffix) {
       const prefix = direction === "prev" ? "Previous" : "Next";
       return `${prefix} ${suffix}`;
-    },
-    async updateMtimes() {
-      return await COMMON_API.getMtime(this.arcs, {})
-        .then((response) => {
-          const newMtime = response.data.maxMtime;
-          if (newMtime !== this.mtime) {
-            this.loadBooks(undefined, newMtime);
-          }
-        })
-        .catch(console.error);
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE

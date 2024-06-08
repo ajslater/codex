@@ -25,7 +25,7 @@ export const serializeParams = (data, ts) => {
   return params;
 };
 
-const downloadIOSPWAFix = (href, fileName) => {
+const getDownloadIOSPWAFix = (href, fileName) => {
   // iOS has a download bug inside PWAs. The user is trapped in the
   // download screen and cannot return to the app.
   // https://developer.apple.com/forums/thread/95911
@@ -71,7 +71,7 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
-const setGroupBookmarks = ({ group, ids }, data) => {
+const updateGroupBookmarks = ({ group, ids }, data) => {
   if (data.fitTo === null) {
     data.fitTo = "";
   }
@@ -80,13 +80,12 @@ const setGroupBookmarks = ({ group, ids }, data) => {
 };
 
 export default {
-  downloadIOSPWAFix,
+  getDownloadIOSPWAFix,
   getBookInBrowserURL,
   getMtime,
   getOPDSURLs,
   getReaderBasePath,
   getReaderPath,
   getVersions,
-  serializeParams,
-  setGroupBookmarks,
+  updateGroupBookmarks,
 };

@@ -102,17 +102,6 @@ class SessionView(AuthFilterGenericAPIView, ABC):
 
         return last_route
 
-    def load_params_from_session(self, validated_data=None, session_key=None):
-        """Load params from the session with defaults."""
-        session_key = session_key if session_key else self.SESSION_KEY
-        params = deepcopy(dict(self.SESSION_DEFAULTS[session_key]))
-        session_params = self.request.session.get(session_key)
-        if session_params:
-            params.update(session_params)
-        if validated_data:
-            params.update(validated_data)
-        self.params = MappingProxyType(params)
-
     @classmethod
     def _get_source_values_or_set_defaults(cls, defaults_dict, source_dict, data):
         """Recursively copy source_dict values into data or use defaults."""
@@ -127,6 +116,21 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                     default_value, source_dict.get(key, {}), result[key]
                 )
         return result
+
+    def load_params_from_session(self, session_key=None, only=None):
+        """Get session settings with defaults."""
+        if not session_key:
+            session_key = self.SESSION_KEY
+        if only:
+            defaults = {}
+            for key in only:
+                if key:
+                    defaults[key] = self.SESSION_DEFAULTS[session_key][key]
+        else:
+            defaults = self.SESSION_DEFAULTS[session_key]
+
+        session = self.request.session.get(session_key, defaults)
+        return self._get_source_values_or_set_defaults(defaults, session, {})
 
     def save_params_to_session(self, params):  # reader session & browser final
         """Save the session from params with defaults for missing values."""

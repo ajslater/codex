@@ -14,7 +14,7 @@ from codex.serializers.models.bookmark import (
 from codex.views.auth import (
     AuthFilterGenericAPIView,
 )
-from codex.views.const import GROUP_RELATION
+from codex.views.const import FOLDER_GROUP, GROUP_RELATION
 
 LOG = get_logger(__name__)
 VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
@@ -187,7 +187,9 @@ class BookmarkView(BookmarkBaseView):
 
         pks = self.kwargs.get("pks")
 
-        relation = "folders__in" if group == "f" else GROUP_RELATION[group] + "__in"
+        relation = (
+            "folders__in" if group == FOLDER_GROUP else GROUP_RELATION[group] + "__in"
+        )
         comic_filter = {relation: pks}
 
         self.update_bookmarks(updates, comic_filter=comic_filter)

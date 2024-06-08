@@ -102,7 +102,7 @@ const getStats = () => {
 };
 
 const updateAPIKey = async () => {
-  return await HTTP.post("/admin/api_key");
+  return await HTTP.put("/admin/api_key");
 };
 
 export default {

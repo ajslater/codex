@@ -18,8 +18,8 @@ const getReaderSettings = () => {
   return HTTP.get(`c/settings`, { params });
 };
 
-const setReaderSettings = (data) => {
-  return HTTP.put(`c/settings`, data);
+const updateReaderSettings = (data) => {
+  return HTTP.patch(`c/settings`, data);
 };
 
 export const getDownloadURL = ({ pk, mtime }) => {
@@ -47,5 +47,5 @@ export default {
   getReaderBasePath,
   getReaderInfo,
   getReaderSettings,
-  setReaderSettings,
+  updateReaderSettings,
 };

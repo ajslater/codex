@@ -88,9 +88,9 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["updateMtimes"]),
+    ...mapActions(useBrowserStore, ["loadMtimes"]),
     onUpdate() {
-      this.updateMtimes();
+      this.loadMtimes();
     },
   },
 };

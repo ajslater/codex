@@ -42,4 +42,4 @@ class RouteSerializer(SimpleRouteSerializer):
     """A vue route for the browser."""
 
     page = IntegerField()
-    name = CharField(required=False)
+    name = CharField(allow_blank=True, required=False)

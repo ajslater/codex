@@ -9,12 +9,14 @@ from rest_framework.fields import Field
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    ChoiceField,
     FloatField,
     IntegerField,
     ListField,
 )
 
-from codex.serializers.choices import VUETIFY_NULL_CODE
+from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
+from codex.serializers.route import RouteSerializer
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
@@ -120,3 +122,19 @@ class BooleanListField(FilterListField):
 
     CHILD_CLASS = BooleanField  # type: ignore
     VALIDATORS = (validate_int_null,)
+
+
+class BreadcrumbsField(ListField):
+    """And Array of Routes."""
+
+    child = RouteSerializer()
+
+
+class TopGroupField(ChoiceField):
+    """Valid Top Groups Only."""
+
+    class_choices = tuple(CHOICES["topGroup"].keys())
+
+    def __init__(self, *args, **kwargs):
+        """Initialize with choices."""
+        super().__init__(*args, choices=self.class_choices, **kwargs)

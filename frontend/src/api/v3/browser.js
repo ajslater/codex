@@ -12,7 +12,7 @@ const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
   return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, { params });
 };
 
-const loadBrowserPage = ({ group, pks, page }, data, ts) => {
+const getBrowserPage = ({ group, pks, page }, data, ts) => {
   const params = serializeParams(data, ts);
   return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
@@ -34,9 +34,15 @@ const getMetadata = ({ group, pks }, settings) => {
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
-const getSettings = () => {
-  const params = serializeParams({});
+const getSettings = (only) => {
+  const data = only ? { only } : {};
+  const params = serializeParams(data);
   return HTTP.get("/r/settings", { params });
+};
+
+const updateSettings = (settings) => {
+  const params = serializeParams(settings);
+  return HTTP.patch("/r/settings", { params });
 };
 
 export default {
@@ -45,5 +51,6 @@ export default {
   getFilterChoices,
   getMetadata,
   getSettings,
-  loadBrowserPage,
+  getBrowserPage,
+  updateSettings,
 };

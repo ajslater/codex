@@ -171,7 +171,10 @@ class CoverView(BrowserAnnotationsView):
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *args, **kwargs):  # type: ignore
         """Get comic cover."""
-        self.init_request()
-        pk, custom = self._get_cover_pk()
-        thumb_image_data, content_type = self._get_cover_data(pk, custom)
-        return HttpResponse(thumb_image_data, content_type=content_type)
+        try:
+            self.init_request()
+            pk, custom = self._get_cover_pk()
+            thumb_image_data, content_type = self._get_cover_data(pk, custom)
+            return HttpResponse(thumb_image_data, content_type=content_type)
+        except Exception:
+            LOG.exception("get")

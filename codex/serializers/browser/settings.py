@@ -10,7 +10,7 @@ from rest_framework.serializers import (
 
 from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
-from codex.serializers.fields import TimestampField
+from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
@@ -28,9 +28,9 @@ class BrowserSettingsSerializer(Serializer):
     """Browser Settings that the user can change.
 
     This is the only browse serializer that's submitted.
-    It is also sent to the browser as part of BrowserOpenedSerializer.
     """
 
+    breadcrumbs = BreadcrumbsField(required=False)
     filters = BrowserSettingsFilterSerializer(required=False)
     order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
     order_reverse = BooleanField(required=False)
@@ -41,7 +41,7 @@ class BrowserSettingsSerializer(Serializer):
     custom_covers = BooleanField(required=False)
     # search_results_limit = IntegerField(required=False)
     twenty_four_hour_time = BooleanField(required=False)
-    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
+    top_group = TopGroupField(required=False)
     opds_metadata = BooleanField(required=False)
     limit = IntegerField(required=False)
     mtime = TimestampField(read_only=True)
