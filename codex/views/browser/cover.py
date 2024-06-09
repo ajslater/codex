@@ -102,28 +102,29 @@ class CoverView(BrowserAnnotationsView):
     def _get_first_cover(self):
         """Get first cover."""
         pks = self.kwargs["pks"]
-        order_by = (
-            "path"
-            if self.model == Folder
-            else "name"
-            if self.model == Volume
-            else "sort_name"
-        )
-        group_qs = self.model.objects.filter(pk__in=pks)  # type: ignore
-        group_qs = group_qs.order_by(order_by)
-        select_related = ["first_comic"]
-        custom_covers = self.params.get("custom_covers")
-        if custom_covers and self.model != Volume:
-            select_related.append("custom_cover")
-        group_qs = group_qs.select_related(*select_related)
-        group_qs = group_qs.group_by("id")  # type: ignore
-        group_obj = group_qs.first()
-        if custom_covers and self.model != Volume and group_obj.custom_cover:
-            return group_obj.custom_cover.pk, True
-        cover_pk = (
-            group_obj.first_comic.pk if group_obj and group_obj.first_comic else 0
-        )
-        return cover_pk, False
+        if len(pks) == 1:
+            group_qs = self.get_filtered_queryset(self.model)  # type: ignore
+            select_related = ["first_comic"]
+            custom_covers = self.params.get("custom_covers")
+            if custom_covers and self.model != Volume:
+                select_related.append("custom_cover")
+            group_qs = group_qs.select_related(*select_related)
+            group_qs = group_qs.group_by("id")  # type: ignore
+            group_qs = group_qs.only(*select_related)
+            group_obj = group_qs.first()
+            if custom_covers and self.model != Volume and group_obj.custom_cover:
+                cover_pk = group_obj.custom_cover.pk
+                custom = True
+            else:
+                cover_pk = (
+                    group_obj.first_comic.pk if group_obj and group_obj.first_comic else 0
+                )
+                custom = False
+        else:
+            cover_pk, custom = self._get_dynamic_cover()
+
+
+        return cover_pk, custom
 
     def _get_cover_pk(self) -> tuple[int, bool]:
         """Get Cover Pk queryset for comic queryset."""
