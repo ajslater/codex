@@ -89,16 +89,17 @@ class BrowserBaseView(SearchFilterView):
         params: dict[str, Any] = {}
         defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
         params.update(defaults)
-        group = self.kwargs["group"]
-        # order_by has a dynamic group based default
-        order_defaults = {
-            "order_by": "filename"
-            if group == FOLDER_GROUP
-            else "story_arc_number"
-            if group == STORY_ARC_GROUP
-            else "sort_name"
-        }
-        params.update(order_defaults)
+        group = self.kwargs.get("group")
+        if group:
+            # order_by has a dynamic group based default
+            order_defaults = {
+                "order_by": "filename"
+                if group == FOLDER_GROUP
+                else "story_arc_number"
+                if group == STORY_ARC_GROUP
+                else "sort_name"
+            }
+            params.update(order_defaults)
         validated_data = serializer.validated_data
 
         if validated_data:
