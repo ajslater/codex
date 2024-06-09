@@ -178,7 +178,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     */
     lastRoute(state) {
-      const bc = state.page.breadcrumbs;
+      const bc = state.settings.breadcrumbs;
       const params = bc[bc.length - 1];
       const route = {};
       if (params) {
