@@ -14,7 +14,7 @@ from codex.models import (
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.search import SearchFilterView
-from codex.views.const import GROUP_MODEL_MAP, ROOT_GROUP
+from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, ROOT_GROUP, STORY_ARC_GROUP
 from codex.views.util import reparse_json_query_params
 
 LOG = get_logger(__name__)
@@ -86,10 +86,16 @@ class BrowserBaseView(SearchFilterView):
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
 
+
         params: dict[str, Any] = {}
         defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
         params.update(defaults)
+        group = self.kwargs["group"]
+        # order_by has a dynamic group based default
+        order_defaults = { "order_by": "filename" if group == FOLDER_GROUP else "story_arc_number" if group == STORY_ARC_GROUP else "sort_name"}
+        params.update(order_defaults)
         validated_data = serializer.validated_data
+
         if validated_data:
             params.update(validated_data)  # type: ignore
         self.params = MappingProxyType(params)

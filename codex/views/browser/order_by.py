@@ -6,7 +6,6 @@ from codex.models import Comic
 from codex.views.browser.filters.annotations import (
     BrowserAnnotationsFilterView,
 )
-from codex.views.const import FOLDER_GROUP
 
 
 class BrowserOrderByView(BrowserAnnotationsFilterView):
@@ -14,11 +13,7 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
 
     def set_order_key(self):
         """Get the default order key for the view."""
-        order_key: str = self.params.get("order_by", "")  # type: ignore
-        if not order_key:
-            group = self.kwargs.get("group")
-            order_key = "filename" if group == FOLDER_GROUP else "sort_name"
-        self.order_key: str = order_key
+        self.order_key: str = self.params["order_by"]
         order_reverse = self.params.get("order_reverse")
         self.order_agg_func = Max if order_reverse else Min
 
