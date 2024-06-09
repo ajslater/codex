@@ -117,12 +117,13 @@ class CoverView(BrowserAnnotationsView):
                 custom = True
             else:
                 cover_pk = (
-                    group_obj.first_comic.pk if group_obj and group_obj.first_comic else 0
+                    group_obj.first_comic.pk
+                    if group_obj and group_obj.first_comic
+                    else 0
                 )
                 custom = False
         else:
             cover_pk, custom = self._get_dynamic_cover()
-
 
         return cover_pk, custom
 
