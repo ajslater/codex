@@ -125,6 +125,7 @@ export const useReaderStore = defineStore("reader", {
       scale: SCALE_DEFAULT,
     },
     showToolbars: false,
+    settingsLoaded: false,
   }),
   getters: {
     groupBooks(state) {
@@ -215,8 +216,14 @@ export const useReaderStore = defineStore("reader", {
     },
     readerInfoSettings(state) {
       const usedKeys = {};
-      for (const key in READER_INFO_KEYS) {
-        usedKeys[key] = state.browserSettings[key];
+      for (const key of READER_INFO_KEYS) {
+        const value = state.browserSettings[key];
+        if (value) {
+          usedKeys[key] = value;
+        }
+      }
+      if (state.arc && Object.keys(state.arc).length) {
+        usedKeys.arc = state.arc;
       }
       return usedKeys;
     },
@@ -423,17 +430,29 @@ export const useReaderStore = defineStore("reader", {
           return true;
         })
         .catch(console.error);
-      return BROWSER_API.getSettings({ only: READER_INFO_ONLY_KEYS })
+      BROWSER_API.getSettings({ only: READER_INFO_ONLY_KEYS })
         .then((response) => {
           this.browserSettings = response.data;
           return true;
         })
         .catch(console.error);
+      if (!this.settingsLoaded) {
+        this.settingsLoaded = true;
+        this.loadBooks({});
+      }
     },
-    async loadBooks(params, mtime) {
+    async loadBooks({ params, arc, mtime }) {
+      if (!this.settingsLoaded) {
+        this.loadReaderSettings();
+      }
       const route = router.currentRoute.value;
       if (!params) {
         params = route.params;
+      }
+      const pk = params.pk;
+      const settings = this.readerInfoSettings;
+      if (arc) {
+        settings.arc = arc;
       }
       if (!mtime) {
         mtime = route.query?.ts;
@@ -441,7 +460,7 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await API.getReaderInfo(params, this.readerInfoSettings, mtime)
+      await API.getReaderInfo(pk, settings, mtime)
         .then((response) => {
           const data = response.data;
           const books = data.books;
@@ -492,7 +511,7 @@ export const useReaderStore = defineStore("reader", {
         .then((response) => {
           const newMtime = response.data.maxMtime;
           if (newMtime !== this.mtime) {
-            this.loadBooks(undefined, newMtime);
+            this.loadBooks({ mtime: newMtime });
           }
         })
         .catch(console.error);

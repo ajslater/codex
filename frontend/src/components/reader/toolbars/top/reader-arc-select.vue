@@ -86,16 +86,8 @@ export default {
       return value === this.arc ? mdiCheck : "";
     },
     onUpdate(selectedArc) {
-      const routeParams = this.$route.params;
-      if (!routeParams) {
-        return;
-      }
       const arc = { group: selectedArc.group, pks: selectedArc.pks };
-      const params = {
-        ...routeParams,
-        arc,
-      };
-      this.loadBooks(params);
+      this.loadBooks({ arc });
     },
   },
 };
