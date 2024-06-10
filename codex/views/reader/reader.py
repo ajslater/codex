@@ -10,9 +10,7 @@ from rest_framework.response import Response
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.serializers.reader import (
-    ReaderComicsSerializer,
-)
+from codex.serializers.reader import ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.reader.arcs import ReaderArcsView
 from codex.views.reader.init import VALID_ARC_GROUPS
@@ -21,9 +19,7 @@ from codex.views.util import pop_name
 LOG = get_logger(__name__)
 
 
-class ReaderView(
-    ReaderArcsView,
-):
+class ReaderView(ReaderArcsView):
     """Get info for displaying comic pages."""
 
     serializer_class = ReaderComicsSerializer

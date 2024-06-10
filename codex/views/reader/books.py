@@ -173,5 +173,3 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
                 # Haven't matched yet, so set the previous comic
                 prev_book = book
         return books
-
-    #####
