@@ -30,6 +30,7 @@ _BROWSER_SESSION_DEFAULTS = ReaderArcsView.SESSION_DEFAULTS[
 ]
 _DEFAULT_PARAMS = {
     "breadcrumbs": _BROWSER_SESSION_DEFAULTS["breadcrumbs"],
+    "show": _BROWSER_SESSION_DEFAULTS["show"],
     "top_group": _BROWSER_SESSION_DEFAULTS["top_group"],
 }
 
