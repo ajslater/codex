@@ -67,6 +67,13 @@ GROUP_RELATION = MappingProxyType(
         STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
+FILTER_ONLY_GROUP_RELATION = MappingProxyType(
+    {
+        **GROUP_NAME_MAP,
+        FOLDER_GROUP: "folders",
+        STORY_ARC_GROUP: "story_arc_numbers__story_arc",
+    }
+)
 CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
     {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
 )

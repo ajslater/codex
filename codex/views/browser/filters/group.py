@@ -2,8 +2,8 @@
 
 from django.db.models import Q
 
-from codex.models import Comic
-from codex.views.const import FOLDER_GROUP, GROUP_RELATION
+from codex.models import Comic, Folder
+from codex.views.const import FILTER_ONLY_GROUP_RELATION, FOLDER_GROUP, GROUP_RELATION
 from codex.views.session import SessionView
 
 
@@ -16,15 +16,9 @@ class GroupFilterView(SessionView):
         """Get the relation from the model to the pks."""
         # XXX these TARGET refs might be better as subclass get rel methods.
         target: str = self.TARGET  # type: ignore
-        if (
-            target in frozenset({"choices", "cover"})
-            and model == Comic
-            and group == FOLDER_GROUP
-        ):
-            rel = "folders"
-        elif target in frozenset({"metadata", "mtime"}) or (
-            target == "cover" and model != Comic
-        ):
+        if target in frozenset({"choices", "cover"}):
+            rel = FILTER_ONLY_GROUP_RELATION[group]
+        elif target == "metadata" or model not in (Comic, Folder):
             rel = "pk"
         else:
             rel = GROUP_RELATION[group]
