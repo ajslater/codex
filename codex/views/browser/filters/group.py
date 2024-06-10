@@ -2,7 +2,6 @@
 
 from django.db.models import Q
 
-from codex.models import Comic, Folder
 from codex.views.const import FILTER_ONLY_GROUP_RELATION, FOLDER_GROUP, GROUP_RELATION
 from codex.views.session import SessionView
 
@@ -18,12 +17,13 @@ class GroupFilterView(SessionView):
         target: str = self.TARGET  # type: ignore
         if target in frozenset({"choices", "cover"}):
             rel = FILTER_ONLY_GROUP_RELATION[group]
-        elif target == "metadata" or model not in (Comic, Folder):
+        elif target == "metadata":
             rel = "pk"
         else:
             rel = GROUP_RELATION[group]
 
         rel += "__in"
+        print(model, group, rel)
         return rel
 
     def get_group_filter(self, model, group=None, pks=None):
