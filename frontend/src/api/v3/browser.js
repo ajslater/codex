@@ -40,7 +40,6 @@ const getSettings = (data) => {
 };
 
 const updateSettings = (settings) => {
-  console.log(settings);
   return HTTP.patch("/r/settings", settings);
 };
 
