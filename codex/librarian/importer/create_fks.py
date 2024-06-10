@@ -211,8 +211,10 @@ class CreateForeignKeysImporter(CreateCoversImporter):
             folder_path_dict[path_length].add(path)
 
         # create each depth level first to ensure we can assign parents
-        for paths in sorted(folder_path_dict.values()):
+        for depth_level in sorted(folder_path_dict):
+            paths = sorted(folder_path_dict[depth_level])
             count += self._bulk_folders_create_depth_level(paths, status)
+            self.log.debug(f"Created {count} Folders at depth level {depth_level}")
 
         if count:
             self.log.info(f"Created {count} Folders.")
