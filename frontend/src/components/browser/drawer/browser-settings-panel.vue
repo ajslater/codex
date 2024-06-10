@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="showShowSettings"
     id="showSettings"
     v-tooltip="{
       openDelay,
@@ -83,6 +84,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+const SHOW_SETTINGS_GROUPS = "rpisv";
 
 export default {
   name: "BrowserSettingsPanel",
@@ -110,6 +112,9 @@ export default {
       dynamicCovers: (state) => state.settings?.dynamicCovers || false,
       customCovers: (state) => state.settings?.customCovers || false,
     }),
+    showShowSettings() {
+      return SHOW_SETTINGS_GROUPS.includes(this.$route?.params?.group);
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
