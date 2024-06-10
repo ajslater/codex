@@ -187,6 +187,7 @@ export const useBrowserStore = defineStore("browser", {
       const route = {};
       if (params) {
         route.name = "browser";
+        delete params.name;
         route.params = params;
       } else {
         route.name = "home";
