@@ -23,7 +23,7 @@ class BrowserSettingsView(SettingsView):
                 params["top_group"] = group
             else:
                 show = params["show"]
-                if not show[top_group] or (
+                if not show.get(top_group) or (
                     group != "r"
                     and GROUP_ORDER.index(top_group) > GROUP_ORDER.index(group)
                 ):

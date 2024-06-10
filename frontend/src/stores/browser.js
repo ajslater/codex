@@ -478,7 +478,8 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      await API.getSettings({ group: router?.currentRoute?.params?.group })
+      const group = router?.currentRoute?.value.params?.group;
+      await API.getSettings({ group })
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
@@ -486,7 +487,7 @@ export const useBrowserStore = defineStore("browser", {
           if (redirect) {
             return redirectRoute(redirect);
           }
-          return this.loadBrowserPage();
+          return this.loadBrowserPage(undefined, true);
         })
         .catch((error) => {
           this.browserPageLoaded = true;
