@@ -184,7 +184,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         return tuple(new_breadcrumbs), changed
 
-    def get_parent_breadcrumbs(
+    def get_breadcrumbs(
         self,
     ) -> tuple[Route, ...]:
         """Graft or create breadcrumbs by browser mode."""
@@ -199,4 +199,4 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         if changed:
             self._breadcrumbs_save(breadcrumbs)
 
-        return breadcrumbs[:-1] if breadcrumbs else ()
+        return breadcrumbs

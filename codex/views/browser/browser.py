@@ -205,7 +205,7 @@ class BrowserView(BrowserTitleView):
         )
 
         # get additional context
-        parent_breadcrumbs = self.get_parent_breadcrumbs()
+        breadcrumbs = self.get_breadcrumbs()
         title = self.get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
@@ -214,7 +214,7 @@ class BrowserView(BrowserTitleView):
         # construct final data structure
         return MappingProxyType(
             {
-                "breadcrumbs": parent_breadcrumbs,
+                "breadcrumbs": breadcrumbs,
                 "title": title,
                 "model_group": self.model_group,
                 "groups": group_qs,
