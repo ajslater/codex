@@ -62,7 +62,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
             arc_pk = 0
 
         if arc_pk_rel == "series__pk":
-            breadcrumbs = self.params["breadcrumbs"] # type: ignore
+            breadcrumbs = self.params["breadcrumbs"]  # type: ignore
             multi_arc_pks = self.get_series_pks_from_breadcrumbs(breadcrumbs)
             if not arc_pk or arc_pk in multi_arc_pks:
                 arc_pks = multi_arc_pks
@@ -133,8 +133,6 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         qs = self.annotate_group_names(qs, Comic)
         if arc_group == "s":
             show = self.params["show"]  # type: ignore
-            from pprint import pprint
-            pprint(show)
             qs, comic_sort_names = self.alias_sort_names(
                 qs, Comic, pks=arc_pks, model_group="i", show=show
             )
@@ -144,7 +142,6 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
                 "issue_suffix",
                 "sort_name",
             )
-        print(f"{ordering=}")
         return qs.order_by(*ordering), arc_group
 
     def _append_with_settings(self, book, bookmark_filter):
@@ -171,7 +168,6 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         prev_book = None
         pk = self.kwargs.get("pk")
         for index, book in enumerate(comics):
-            print(index, book)
             if books:
                 # after match set next comic and break
                 books["next"] = self._append_with_settings(book, bookmark_filter)

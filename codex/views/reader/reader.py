@@ -24,7 +24,7 @@ from codex.views.util import pop_name, reparse_json_query_params
 
 LOG = get_logger(__name__)
 _VALID_ARC_GROUPS = frozenset({"f", "s", "a"})
-_JSON_KEYS = frozenset({"arc", "breadcrumbs"})
+_JSON_KEYS = frozenset({"arc", "breadcrumbs", "show"})
 _BROWSER_SESSION_DEFAULTS = ReaderArcsView.SESSION_DEFAULTS[
     ReaderArcsView.BROWSER_SESSION_KEY
 ]
