@@ -40,5 +40,7 @@ class SettingsView(SessionView, ABC):
         data = self.request.data  # type: ignore
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        self.save_params_to_session(serializer.validated_data)
+        params = self.load_params_from_session()
+        params.update(serializer.validated_data)
+        self.save_params_to_session(params)
         return Response()

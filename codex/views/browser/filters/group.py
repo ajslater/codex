@@ -11,7 +11,7 @@ class GroupFilterView(SessionView):
 
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
-    def _get_rel_for_pks(self, model, group):
+    def _get_rel_for_pks(self, group):
         """Get the relation from the model to the pks."""
         # XXX these TARGET refs might be better as subclass get rel methods.
         target: str = self.TARGET  # type: ignore
@@ -23,10 +23,9 @@ class GroupFilterView(SessionView):
             rel = GROUP_RELATION[group]
 
         rel += "__in"
-        print(model, group, rel)
         return rel
 
-    def get_group_filter(self, model, group=None, pks=None):
+    def get_group_filter(self, group=None, pks=None):
         """Get filter for the displayed group."""
         if group is None:
             group = self.kwargs["group"]
@@ -34,7 +33,7 @@ class GroupFilterView(SessionView):
             pks = self.kwargs["pks"]
 
         if pks and 0 not in pks:
-            rel = self._get_rel_for_pks(model, group)
+            rel = self._get_rel_for_pks(group)
             group_filter_dict = {rel: pks}
         elif group == FOLDER_GROUP:
             group_filter_dict = {"parent_folder": None}

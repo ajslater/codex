@@ -23,39 +23,32 @@ class ReaderArcsView(ReaderBooksView):
             .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
             .on
         )
+        if not efv_flag:
+            return None
 
-        if efv_flag:
-            folder = book.parent_folder
-            folder_arc = {
-                "group": FOLDER_GROUP,
-                "pks": (folder.pk,),
-                "name": folder.name,
-                "mtime": folder.updated_at,
-            }
-        else:
-            folder_arc = None
-        return folder_arc
+        folder = book.parent_folder
+        return {
+            "group": FOLDER_GROUP,
+            "pks": (folder.pk,),
+            "name": folder.name,
+            "mtime": folder.updated_at,
+        }
 
     def _get_series_arc(self, book):
         """Create the series arc."""
         series = book.series
-        if series:
-            arc_pks = self.get_series_pks_from_breadcrumbs(self.params["breadcrumbs"])
-            if book.series.pk not in arc_pks:
-                arc_pks = (book.series.pk,)
-            arc = (
-                {
-                    "group": "s",
-                    "pks": arc_pks,
-                    "name": series.name,
-                    "mtime": series.updated_at,
-                }
-                if series
-                else None
-            )
-        else:
-            arc = None
-        return arc
+        if not series:
+            return None
+
+        arc_pks = self.get_series_pks_from_breadcrumbs(self.params["breadcrumbs"])
+        if book.series.pk not in arc_pks:
+            arc_pks = (book.series.pk,)
+        return  {
+            "group": "s",
+            "pks": arc_pks,
+            "name": series.name,
+            "mtime": series.updated_at,
+        }
 
     def _get_story_arcs(self, book):
         """Create story arcs."""

@@ -23,7 +23,7 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
     def _get_query_filters(self, model, group, pks, bookmark_filter):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
-        object_filter &= self.get_group_filter(model, group, pks)
+        object_filter &= self.get_group_filter(group, pks)
         object_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             # not needed because OuterRef is applied next

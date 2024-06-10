@@ -2,11 +2,11 @@
 
 from typing import TYPE_CHECKING
 
-from django.db.models import F, IntegerField, Value
+from django.db.models import F
 
 from codex.models import Bookmark, Comic
 from codex.views.bookmark import BookmarkBaseView
-from codex.views.const import FOLDER_GROUP
+from codex.views.const import FOLDER_GROUP, NONE_INTEGERFIELD
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.session import SessionView
 
@@ -49,25 +49,25 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel
     ):
         """Get the nav filter."""
-        arc_pks = arc.get("pks", ())
-        if not arc_pks:
-            comic_pk = self.kwargs["pk"]
-            try:
-                arc_pk_qs = Comic.objects.filter(pk=comic_pk)
-                arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
-                arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
-                arc_pk = arc_pk_qs.values_list(arc_pk_rel, flat=True)[0]
-            except IndexError:
-                arc_pk = 0
+        if arc_pks := arc.get("pks", ()):
+            return arc_pks
 
-            if arc_pk_rel == "series__pk":
-                multi_arc_pks = self.get_series_pks_from_breadcrumbs(
-                    self.params["breadcrumbs"]  # type: ignore
-                )
-                if not arc_pk or arc_pk in multi_arc_pks:
-                    arc_pks = multi_arc_pks
-            if not arc_pks:
-                arc_pks = (arc_pk,)
+        comic_pk = self.kwargs["pk"]
+        try:
+            arc_pk_qs = Comic.objects.filter(pk=comic_pk)
+            arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
+            arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
+            arc_pk = arc_pk_qs.values_list(arc_pk_rel, flat=True)[0]
+        except IndexError:
+            arc_pk = 0
+
+        if arc_pk_rel == "series__pk":
+            breadcrumbs = self.params["breadcrumbs"] # type: ignore
+            multi_arc_pks = self.get_series_pks_from_breadcrumbs(breadcrumbs)
+            if not arc_pk or arc_pk in multi_arc_pks:
+                arc_pks = multi_arc_pks
+        if not arc_pks:
+            arc_pks = (arc_pk,)
 
         return arc_pks
 
@@ -86,7 +86,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
             arc_pk_rel = "story_arc_numbers__story_arc__pk"
             prefetch_related = (*prefetch_related, "story_arc_numbers__story_arc")
             arc_index = F("story_arc_numbers__number")
-            ordering = ("arc_index", "date")
+            ordering = ("arc_index", "date", "pk")
             arc_pk_select_related = ()
         elif arc_group == FOLDER_GROUP:
             # folder mode
@@ -94,7 +94,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
             fields = (*_COMIC_FIELDS, "parent_folder")
             arc_pk_rel = "parent_folder__pk"
             select_related = (*select_related, "parent_folder")
-            arc_index = Value(None, IntegerField())
+            arc_index = NONE_INTEGERFIELD
             ordering = ("path", "pk")
             arc_pk_select_related = ("parent_folder",)
         else:
@@ -102,7 +102,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
             rel = "series"
             fields = _COMIC_FIELDS
             arc_pk_rel = "series__pk"
-            arc_index = Value(None, IntegerField())
+            arc_index = NONE_INTEGERFIELD
             ordering = ()
             arc_pk_select_related = ("series",)
 
@@ -133,6 +133,8 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         qs = self.annotate_group_names(qs, Comic)
         if arc_group == "s":
             show = self.params["show"]  # type: ignore
+            from pprint import pprint
+            pprint(show)
             qs, comic_sort_names = self.alias_sort_names(
                 qs, Comic, pks=arc_pks, model_group="i", show=show
             )
@@ -142,6 +144,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
                 "issue_suffix",
                 "sort_name",
             )
+        print(f"{ordering=}")
         return qs.order_by(*ordering), arc_group
 
     def _append_with_settings(self, book, bookmark_filter):
@@ -168,6 +171,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         prev_book = None
         pk = self.kwargs.get("pk")
         for index, book in enumerate(comics):
+            print(index, book)
             if books:
                 # after match set next comic and break
                 books["next"] = self._append_with_settings(book, bookmark_filter)
