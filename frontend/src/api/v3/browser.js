@@ -41,8 +41,7 @@ const getSettings = (only) => {
 };
 
 const updateSettings = (settings) => {
-  const params = serializeParams(settings);
-  return HTTP.patch("/r/settings", { params });
+  return HTTP.patch("/r/settings", settings);
 };
 
 export default {

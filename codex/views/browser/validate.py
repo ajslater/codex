@@ -15,6 +15,7 @@ from codex.views.const import (
 )
 
 LOG = get_logger(__name__)
+_NO_TOP_GROUP_VALIDATE = frozenset({"metadata"})
 
 
 class BrowserValidateView(BrowserBaseView):
@@ -55,6 +56,8 @@ class BrowserValidateView(BrowserBaseView):
         return valid_top_groups
 
     def _validate_top_group(self, valid_top_groups):
+        # if self.TARGET in _NO_TOP_GROUP_VALIDATE:
+        #    return
         nav_group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
         if top_group not in valid_top_groups:

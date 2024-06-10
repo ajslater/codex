@@ -9,7 +9,7 @@ from codex.serializers.settings import SettingsSerializer
 from codex.views.session import SessionView
 from codex.views.util import reparse_json_query_params
 
-_JSON_PARAMS = frozenset({"only"})
+_GET_JSON_PARAMS = frozenset({"only"})
 
 
 class SettingsView(SessionView, ABC):
@@ -20,7 +20,7 @@ class SettingsView(SessionView, ABC):
     def get(self, *args, **kwargs):
         """Get session settings."""
         data = self.request.GET
-        data = reparse_json_query_params(data, _JSON_PARAMS)
+        data = reparse_json_query_params(data, _GET_JSON_PARAMS)
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         only = serializer.validated_data.get("only")  # type: ignore

@@ -8,7 +8,7 @@ from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
     ImportDBDiffTask,
     LazyImportComicsTask,
-    UpdateGroupsFirstComic,
+    UpdateGroupsTask,
 )
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Folder, Library
@@ -89,13 +89,13 @@ class ComicImporterThread(QueuedThread):
 
         self.status_controller.finish_many((moved_status, status))
 
-    def _update_groups_first_comic(self, task):
+    def _update_groups(self, task):
         pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
         start_time = task.start_time if task.start_time else timezone.now()
         for pk in pks:
             task = ImportDBDiffTask(library_id=pk)
             importer = self._create_importer(task)
-            importer.update_all_groups_first_comics({}, start_time)
+            importer.update_all_groups({}, start_time)
         self.librarian_queue.put(LIBRARY_CHANGED_TASK)
 
     def process_item(self, item):
@@ -107,7 +107,7 @@ class ComicImporterThread(QueuedThread):
             self._lazy_import_metadata(task)
         elif isinstance(task, AdoptOrphanFoldersTask):
             self._adopt_orphan_folders()
-        elif isinstance(task, UpdateGroupsFirstComic):
-            self._update_groups_first_comic(task)
+        elif isinstance(task, UpdateGroupsTask):
+            self._update_groups(task)
         else:
             self.log.warning(f"Bad task sent to library updater {task}")

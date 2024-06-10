@@ -28,21 +28,21 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
-const COVER_KEYS = ["customCovers", "dynamicCovers", "q"];
+const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
-const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse"];
+const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse", "q"];
 Object.freeze(DYNAMIC_COVER_KEYS);
 const CHOICES_KEYS = ["filters", "q"];
 Object.freeze(CHOICES_KEYS);
 const PAGE_LOAD_KEYS = ["breadcrumbs"];
 Object.freeze(PAGE_LOAD_KEYS);
 
-const redirectRoute = function (route) {
+const redirectRoute = (route) => {
   if (route && route.params) {
     router.push(route).catch(console.warn);
   }
 };
-const createReadingDirection = function () {
+const createReadingDirection = () => {
   const rd = {};
   for (const obj of CHOICES.reader.readingDirection) {
     if (obj.value) {
@@ -50,6 +50,10 @@ const createReadingDirection = function () {
     }
   }
   return rd;
+};
+
+const notEmptyOrBool = (value) => {
+  return (value && Object.keys(value).length) || typeof value === "boolean";
 };
 
 export const useBrowserStore = defineStore("browser", {
@@ -75,7 +79,7 @@ export const useBrowserStore = defineStore("browser", {
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
       show: { ...SETTINGS_SHOW_DEFAULTS },
-      topGroup: undefined,
+      topGroup: router?.currentRoute.value?.params?.group,
       twentyFourHourTime: false,
     },
     page: {
@@ -193,13 +197,23 @@ export const useBrowserStore = defineStore("browser", {
       const usedSettings = {};
       const group = router.currentRoute.value.params?.group;
       if (group != "c") {
-        for (const key of COVER_KEYS) {
-          const value = state.settings[key];
-          usedSettings[key] = value;
-        }
+        let keys = COVER_KEYS;
         if (state.settings.dynamicCovers) {
-          for (const key of DYNAMIC_COVER_KEYS) {
-            usedSettings[key] = state.settings[key];
+          keys = keys.concat(DYNAMIC_COVER_KEYS);
+        }
+        for (const key of keys) {
+          let value = state.settings[key];
+          if (key === "filters") {
+            const usedFilters = {};
+            for (const [subkey, subvalue] of Object.entries(value)) {
+              if (notEmptyOrBool(subvalue)) {
+                usedFilters[subkey] = subvalue;
+              }
+            }
+            value = usedFilters;
+          }
+          if (notEmptyOrBool(value)) {
+            usedSettings[key] = value;
           }
         }
       }
@@ -421,7 +435,7 @@ export const useBrowserStore = defineStore("browser", {
       self.mtime = mtime;
     },
     async updateBreadcrumbs(oldBreadcrumbs) {
-      const breadcrumbs = this.settings.breadcrumbs;
+      const breadcrumbs = this.settings.breadcrumbs || [];
       for (const index of _.range(breadcrumbs.length).reverse()) {
         const oldCrumb = oldBreadcrumbs[index];
         const newCrumb = breadcrumbs[index];

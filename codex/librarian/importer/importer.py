@@ -88,7 +88,7 @@ class ComicImporter(MovedImporter):
 
             deleted_comic_groups = self.delete()
 
-            self.update_all_groups_first_comics(deleted_comic_groups, self.start_time)
+            self.update_all_groups(deleted_comic_groups, self.start_time)
 
         finally:
             self._finish_apply_status()

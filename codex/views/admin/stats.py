@@ -21,13 +21,13 @@ from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
 from codex.version import VERSION
 from codex.views.admin.auth import AdminGenericAPIView
-from codex.views.const import CONFIG_MODELS, GROUP_MODELS, METADATA_MODELS
+from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
 
 LOG = get_logger(__name__)
 _KEY_MODELS_MAP = MappingProxyType(
     {
         "config": CONFIG_MODELS,
-        "groups": GROUP_MODELS,
+        "groups": STATS_GROUP_MODELS,
         "metadata": METADATA_MODELS,
     }
 )

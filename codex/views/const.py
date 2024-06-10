@@ -67,6 +67,9 @@ GROUP_RELATION = MappingProxyType(
         STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
+CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
+    {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
+)
 GROUP_ORDER = "rpisv"
 MODEL_REL_MAP = MappingProxyType(
     {
@@ -98,8 +101,12 @@ GROUP_MODELS = (
     Imprint,
     Series,
     Volume,
-    Comic,
     Folder,
+    StoryArc,
+)
+STATS_GROUP_MODELS = (
+    *GROUP_MODELS,
+    Comic,
 )
 METADATA_MODELS = (
     AgeRating,

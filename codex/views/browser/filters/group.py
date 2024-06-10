@@ -3,7 +3,7 @@
 from django.db.models import Q
 
 from codex.models import Comic
-from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, GROUP_RELATION
+from codex.views.const import FOLDER_GROUP, GROUP_RELATION
 from codex.views.session import SessionView
 
 
@@ -20,12 +20,17 @@ class GroupFilterView(SessionView):
             pks = self.kwargs["pks"]
 
         if pks and 0 not in pks:  # type: ignore
-            if model == GROUP_MODEL_MAP.get(group):
-                # metadata only
-                rel = "pk"
-            elif model == Comic and group == FOLDER_GROUP:
-                # choices & covers
+            target: str = self.TARGET  # type: ignore
+            if (
+                target in frozenset({"choices", "cover"})
+                and model == Comic
+                and group == FOLDER_GROUP
+            ):
                 rel = "folders"
+            elif target in frozenset({"metadata", "mtime"}) or (
+                target == "cover" and model != Comic
+            ):
+                rel = "pk"
             else:
                 rel = GROUP_RELATION[group]
 

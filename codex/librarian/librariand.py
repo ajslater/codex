@@ -14,7 +14,6 @@ from codex.librarian.importer.importerd import ComicImporterThread
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
     ImportTask,
-    UpdateGroupsFirstComic,
 )
 from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.janitord import JanitorThread
@@ -74,7 +73,6 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.broadcast_queue = broadcast_queue
         startup_tasks = (
             AdoptOrphanFoldersTask(),
-            UpdateGroupsFirstComic(),
             WatchdogSyncTask(),
             SearchIndexRebuildIfDBChangedTask(),
         )

@@ -19,6 +19,7 @@ class MtimeView(BrowserAnnotationsFilterView):
     serializer_class = MtimeSerializer
 
     REPARSE_JSON_FIELDS = frozenset({"groups", "filters"})
+    TARGET = "mtime"
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize."""

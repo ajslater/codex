@@ -9,12 +9,11 @@ from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.models import Comic, Folder, Volume
+from codex.models import Comic, Volume
 from codex.models.paths import CustomCover
-from codex.serializers.choices import DEFAULTS
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import (
-    GROUP_RELATION,
+    CUSTOM_COVER_GROUP_RELATION,
     MISSING_COVER_FN,
     MISSING_COVER_NAME_MAP,
     STATIC_IMG_PATH,
@@ -56,39 +55,21 @@ class CoverView(BrowserAnnotationsView):
         pks = self.kwargs["pks"]
         return pks[0], False
 
-    def _use_dynamic_cover(self):
-        if not self.params.get("dynamic_covers"):
-            return False
-        filters = self.params.get("filters", {})
-        for key, value in filters.items():
-            if key == "bookmark" and value != DEFAULTS["bookmarkFilter"]:
-                return True
-            if value:
-                return True
-
-        order_by = self.params.get("order_by")
-        default_order_by = "filename" if self.model == Folder else "sort_name"
-        if order_by != default_order_by:
-            return True
-
-        if self.params.get("order_reverse"):
-            return True
-
-        return False
+    def _get_custom_cover(self):
+        """Get Custom Cover."""
+        if self.model == Volume or not self.params.get("custom_covers"):
+            return None
+        group = self.kwargs["group"]
+        group_rel = CUSTOM_COVER_GROUP_RELATION[group]
+        pks = self.kwargs["pks"]
+        comic_filter = {f"{group_rel}__in": pks}
+        qs = CustomCover.objects.filter(**comic_filter)
+        qs = qs.only("pk")
+        return qs.first()
 
     def _get_dynamic_cover(self):
         """Get dynamic cover."""
         self.set_order_key()
-        pks = self.kwargs["pks"]
-
-        if self.model != Volume and self.params.get("custom_covers"):
-            group = self.kwargs["group"]
-            group_rel = "folder" if self.model == Folder else GROUP_RELATION[group]  # type: ignore
-            comic_filter = {f"{group_rel}__in": pks}
-            custom_cover = CustomCover.objects.filter(**comic_filter).only("pk").first()
-            if custom_cover:
-                return custom_cover.pk, True
-
         comic_qs = self.get_filtered_queryset(Comic)
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
         comic_qs = self.add_order_by(comic_qs, Comic)
@@ -99,42 +80,15 @@ class CoverView(BrowserAnnotationsView):
         cover_pk = comic.pk if comic else 0
         return cover_pk, False
 
-    def _get_first_cover(self):
-        """Get first cover."""
-        pks = self.kwargs["pks"]
-        if len(pks) == 1:
-            group_qs = self.get_filtered_queryset(self.model)  # type: ignore
-            select_related = ["first_comic"]
-            custom_covers = self.params.get("custom_covers")
-            if custom_covers and self.model != Volume:
-                select_related.append("custom_cover")
-            group_qs = group_qs.select_related(*select_related)
-            group_qs = group_qs.group_by("id")  # type: ignore
-            group_qs = group_qs.only(*select_related)
-            group_obj = group_qs.first()
-            if custom_covers and self.model != Volume and group_obj.custom_cover:
-                cover_pk = group_obj.custom_cover.pk
-                custom = True
-            else:
-                cover_pk = (
-                    group_obj.first_comic.pk
-                    if group_obj and group_obj.first_comic
-                    else 0
-                )
-                custom = False
-        else:
-            cover_pk, custom = self._get_dynamic_cover()
-
-        return cover_pk, custom
-
     def _get_cover_pk(self) -> tuple[int, bool]:
         """Get Cover Pk queryset for comic queryset."""
         if self.model == Comic:
             cover_pk, custom = self._get_comic_cover()
-        elif self._use_dynamic_cover():
-            cover_pk, custom = self._get_dynamic_cover()
+        elif custom_cover := self._get_custom_cover():
+            cover_pk = custom_cover.pk
+            custom = True
         else:
-            cover_pk, custom = self._get_first_cover()
+            cover_pk, custom = self._get_dynamic_cover()
         return cover_pk, custom
 
     def _get_missing_cover_path(self):

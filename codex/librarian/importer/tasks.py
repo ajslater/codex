@@ -47,7 +47,7 @@ class AdoptOrphanFoldersTask(ImportTask):
 
 
 @dataclass
-class UpdateGroupsFirstComic(ImportTask):
-    """Force the update of the first comics."""
+class UpdateGroupsTask(ImportTask):
+    """Force the update of group timestamp."""
 
     start_time: datetime | None = None
