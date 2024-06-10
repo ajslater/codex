@@ -47,7 +47,7 @@ Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
 const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CHOICES);
-const READER_INFO_KEYS = ["breadcrumbs", "topGroup"];
+const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup"];
 Object.freeze(READER_INFO_KEYS);
 const camelToSnakeCase = (str) =>
   str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -93,6 +93,7 @@ export const useReaderStore = defineStore("reader", {
     },
     browserSettings: {
       breadcrumbs: CHOICES.browser.breadcrumbs,
+      show: CHOICES.browser.show,
       topGroup: "r",
     },
     books: {
@@ -422,7 +423,7 @@ export const useReaderStore = defineStore("reader", {
           return true;
         })
         .catch(console.error);
-      return BROWSER_API.getSettings(READER_INFO_ONLY_KEYS)
+      return BROWSER_API.getSettings({ only: READER_INFO_ONLY_KEYS })
         .then((response) => {
           this.browserSettings = response.data;
           return true;
