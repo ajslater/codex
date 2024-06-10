@@ -17,14 +17,20 @@ class SettingsView(SessionView, ABC):
 
     input_serializer_class = SettingsSerializer
 
+    def validate_settings_get(self, _validated_data, params):
+        """Change bad settings."""
+        return params
+
     def get(self, *args, **kwargs):
         """Get session settings."""
         data = self.request.GET
         data = reparse_json_query_params(data, _GET_JSON_PARAMS)
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        only = serializer.validated_data.get("only")  # type: ignore
+        validated_data = serializer.validated_data
+        only = validated_data.get("only") if validated_data else None  # type: ignore
         params = self.load_params_from_session(only=only)
+        params = self.validate_settings_get(validated_data, params)
         serializer = self.get_serializer(params)
         return Response(serializer.data)
 

@@ -79,7 +79,7 @@ export const useBrowserStore = defineStore("browser", {
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
       show: { ...SETTINGS_SHOW_DEFAULTS },
-      topGroup: router?.currentRoute.value?.params?.group,
+      topGroup: undefined,
       twentyFourHourTime: false,
     },
     page: {
@@ -478,7 +478,7 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      await API.getSettings()
+      await API.getSettings({ group: router?.currentRoute?.params?.group })
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);

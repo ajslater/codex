@@ -8,3 +8,4 @@ class SettingsSerializer(Serializer):
     """For requesting settings."""
 
     only = ListSerializer(child=CharField(), required=False)
+    group = CharField(required=False)
