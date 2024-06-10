@@ -25,10 +25,6 @@ _COMIC_FIELDS = (
     "reading_direction",
     "updated_at",
 )
-_SHOW = {
-    "series": True,
-    "volume": True,
-}
 
 
 class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
@@ -136,8 +132,9 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         )
         qs = self.annotate_group_names(qs, Comic)
         if arc_group == "s":
+            show = self.params["show"]  # type: ignore
             qs, comic_sort_names = self.alias_sort_names(
-                qs, Comic, pks=arc_pks, model_group="i", show=_SHOW
+                qs, Comic, pks=arc_pks, model_group="i", show=show
             )
             ordering = (
                 *comic_sort_names,
