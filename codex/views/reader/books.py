@@ -8,12 +8,11 @@ from codex.models import Bookmark, Comic
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FOLDER_GROUP, NONE_INTEGERFIELD
 from codex.views.mixins import SharedAnnotationsMixin
-from codex.views.session import SessionView
+from codex.views.reader.init import ReaderInitView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-_MIN_CRUMB_WALKBACK_LEN = 3
 _SETTINGS_ATTRS = ("fit_to", "two_pages", "reading_direction")
 _COMIC_FIELDS = (
     "file_type",
@@ -27,23 +26,8 @@ _COMIC_FIELDS = (
 )
 
 
-class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
+class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
     """Get Books methods."""
-
-    def get_series_pks_from_breadcrumbs(self, breadcrumbs):
-        """Get Multi-Group pks from the breadcrumbs."""
-        if self.series_pks:
-            return self.series_pks
-        if breadcrumbs:
-            crumb = breadcrumbs[-1]
-            crumb_group = crumb.get("group")
-            if crumb_group == "v" and len(breadcrumbs) >= _MIN_CRUMB_WALKBACK_LEN:
-                crumb = breadcrumbs[-2]
-                crumb_group = crumb.get("group")
-            if crumb_group == "s":
-                self.series_pks = crumb.get("pks", ())
-
-        return self.series_pks
 
     def _get_reader_arc_pks(
         self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel
@@ -62,7 +46,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
             arc_pk = 0
 
         if arc_pk_rel == "series__pk":
-            breadcrumbs = self.params["breadcrumbs"]  # type: ignore
+            breadcrumbs = self.params["breadcrumbs"]
             multi_arc_pks = self.get_series_pks_from_breadcrumbs(breadcrumbs)
             if not arc_pk or arc_pk in multi_arc_pks:
                 arc_pks = multi_arc_pks
@@ -132,7 +116,7 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
         )
         qs = self.annotate_group_names(qs, Comic)
         if arc_group == "s":
-            show = self.params["show"]  # type: ignore
+            show = self.params["show"]
             qs, comic_sort_names = self.alias_sort_names(
                 qs, Comic, pks=arc_pks, model_group="i", show=show
             )
@@ -179,9 +163,9 @@ class ReaderBooksView(BookmarkBaseView, SessionView, SharedAnnotationsMixin):
                         prev_book, bookmark_filter
                     )
                 # create extra current book attrs:
-                if book.arc_index is None:  # type: ignore
-                    book.arc_index = index + 1  # type: ignore
-                book.filename = book.get_filename()  # type: ignore
+                if book.arc_index is None:
+                    book.arc_index = index + 1
+                book.filename = book.get_filename()
                 book.arc_group = arc_group
                 book.arc_count = comics.count()
                 books["current"] = self._append_with_settings(book, bookmark_filter)

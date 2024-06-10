@@ -17,8 +17,9 @@ class BrowserSettingsView(SettingsView):
     def _validate_browse_top_group(params, group, top_group):
         """Validate top group for browse groups."""
         show = params["show"]
-        if group == "r" or (show.get(top_group) and
-            GROUP_ORDER.index(top_group) < GROUP_ORDER.index(group)
+        if group == "r" or (
+            show.get(top_group)
+            and GROUP_ORDER.index(top_group) < GROUP_ORDER.index(group)
         ):
             return
 
