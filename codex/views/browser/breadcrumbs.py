@@ -18,10 +18,10 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Load breadcrumbs and determine if they should be searched for a graft."""
         breadcrumbs: list[Route] = list(self.params.get("breadcrumbs", []))
         old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]
-        changed = bool(old_breadcrumbs) and old_breadcrumbs[-1].group in valid_groups
-        if changed:
+        invalid = not old_breadcrumbs or old_breadcrumbs[-1].group not in valid_groups
+        if invalid:
             old_breadcrumbs = []
-        return old_breadcrumbs, changed
+        return old_breadcrumbs, invalid
 
     def _breadcrumbs_save(self, breadcrumbs):
         """Save the breadcrumbs to params."""
