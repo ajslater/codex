@@ -43,7 +43,7 @@ class ReaderArcsView(ReaderBooksView):
         arc_pks = self.get_series_pks_from_breadcrumbs(self.params["breadcrumbs"])
         if book.series.pk not in arc_pks:
             arc_pks = (book.series.pk,)
-        return  {
+        return {
             "group": "s",
             "pks": arc_pks,
             "name": series.name,
