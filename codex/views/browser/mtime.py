@@ -1,5 +1,6 @@
 """Get the mtimes for the submitted groups."""
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
@@ -46,6 +47,7 @@ class MtimeView(BrowserAnnotationsFilterView):
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime
 
+    @extend_schema(parameters=[GroupsMtimeSerializer])
     def get(self, *args, **kwargs):
         """Get the mtimes for the submitted groups."""
         # Parse Request

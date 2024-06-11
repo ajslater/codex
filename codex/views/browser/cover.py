@@ -11,6 +11,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models import Comic, Volume
 from codex.models.paths import CustomCover
+from codex.serializers.browser.settings import BrowserCoverInputSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import (
     CUSTOM_COVER_GROUP_RELATION,
@@ -38,6 +39,7 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(BrowserAnnotationsView):
     """ComicCover View."""
 
+    input_serializer_class = BrowserCoverInputSerializer
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
     TARGET = "cover"
@@ -124,7 +126,10 @@ class CoverView(BrowserAnnotationsView):
                 thumb_image_data = f.read()
         return thumb_image_data, content_type
 
-    @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
+    @extend_schema(
+        parameters=[BrowserAnnotationsView.input_serializer_class],
+        responses={(200, content_type): OpenApiTypes.BINARY},
+    )
     def get(self, *args, **kwargs):  # type: ignore
         """Get comic cover."""
         try:

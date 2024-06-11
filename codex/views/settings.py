@@ -21,6 +21,7 @@ class SettingsView(SessionView, ABC):
         """Change bad settings."""
         return params
 
+    @extend_schema(parameters=[SettingsSerializer])
     def get(self, *args, **kwargs):
         """Get session settings."""
         data = self.request.GET

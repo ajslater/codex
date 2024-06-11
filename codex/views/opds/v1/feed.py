@@ -11,10 +11,10 @@ from rest_framework.throttling import ScopedRateThrottle
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
+from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
-from codex.views.browser.browser import BrowserView
 from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSTemplateView
 from codex.views.opds.const import BLANK_TITLE, MimeType
@@ -56,6 +56,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
+    input_serializer_class = OPDSSettingsSerializer
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "opds"
     TARGET = "opds1"
@@ -254,10 +255,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         self._set_user_agent_variables()
         self.skip_order_facets |= self.kwargs.get("group") == "c"
 
-    @extend_schema(
-        request=BrowserView.input_serializer_class,
-        parameters=[BrowserView.input_serializer_class],
-    )
+    @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the feed."""
         self.init_request()

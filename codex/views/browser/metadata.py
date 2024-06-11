@@ -312,7 +312,7 @@ class MetadataView(BrowserAnnotationsView):
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, groups, m2m_intersections)  # type: ignore
 
-    @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
+    @extend_schema(parameters=[BrowserAnnotationsView.input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get metadata for a filtered browse group."""
         # Init

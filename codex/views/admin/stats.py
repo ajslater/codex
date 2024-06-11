@@ -172,10 +172,7 @@ class AdminStatsView(AdminGenericAPIView):
             self._get_metadata(obj)
         return obj
 
-    @extend_schema(
-        parameters=[input_serializer_class],
-        request=input_serializer_class,
-    )
+    @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the stats object and serialize it."""
         input_serializer = self.input_serializer_class(data=self.request.GET)

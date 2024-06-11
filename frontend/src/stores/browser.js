@@ -556,7 +556,9 @@ export const useBrowserStore = defineStore("browser", {
         this.page.mtime,
       )
         .then((response) => {
-          this.choices.dynamic[fieldName] = Object.freeze(response.data);
+          this.choices.dynamic[fieldName] = Object.freeze(
+            response.data.choices,
+          );
           return true;
         })
         .catch(console.error);

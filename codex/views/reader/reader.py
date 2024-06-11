@@ -2,18 +2,16 @@
 
 from comicbox.box import Comicbox
 from django.urls import reverse
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.serializers.reader import ReaderComicsSerializer
+from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.reader.arcs import ReaderArcsView
-from codex.views.reader.init import VALID_ARC_GROUPS
 from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
@@ -102,14 +100,7 @@ class ReaderView(ReaderArcsView):
             "mtime": mtime,
         }
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "arc[group]", OpenApiTypes.STR, enum=sorted(VALID_ARC_GROUPS)
-            ),
-            OpenApiParameter("arc[pks]", OpenApiTypes.STR),
-        ]
-    )
+    @extend_schema(parameters=[ReaderViewInputSerializer])
     def get(self, *args, **kwargs):
         """Get the book info."""
         self._parse_params()

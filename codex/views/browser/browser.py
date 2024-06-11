@@ -228,7 +228,7 @@ class BrowserView(BrowserTitleView):
             }
         )
 
-    @extend_schema(request=BrowserTitleView.input_serializer_class)
+    @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
         self.init_request()
