@@ -441,6 +441,10 @@ export const useBrowserStore = defineStore("browser", {
         const oldCrumb = oldBreadcrumbs[index];
         const newCrumb = breadcrumbs[index];
         if (!_.isEqual(oldCrumb, newCrumb)) {
+          if (newCrumb.name === null) {
+            // For volumes
+            newCrumb.name = "";
+          }
           API.updateSettings({ breadcrumbs });
           break;
         }
