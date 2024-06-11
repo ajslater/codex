@@ -74,6 +74,15 @@ FILTER_ONLY_GROUP_RELATION = MappingProxyType(
         STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
+METADATA_GROUP_RELATION = MappingProxyType(
+    {
+        **GROUP_NAME_MAP,
+        COMIC_GROUP: "pk",
+        # Possible to list all groups in a non group view, but could get crazy.
+        # FOLDER_GROUP: "comic__folder",
+        # STORY_ARC_GROUP: "comic__story_arc_number__story_arc"
+    }
+)
 CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
     {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
 )

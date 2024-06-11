@@ -16,7 +16,7 @@ from codex.models import AdminFlag, Comic
 from codex.models.functions import JsonGroupArray
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
-from codex.views.const import GROUP_NAME_MAP
+from codex.views.const import METADATA_GROUP_RELATION
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -149,9 +149,11 @@ class MetadataView(BrowserAnnotationsView):
         if not self.model:
             return groups
         group = self.kwargs["group"]
-        pks = self.kwargs["pks"]
-        rel = GROUP_NAME_MAP[group]
+        rel = METADATA_GROUP_RELATION.get(group)
+        if not rel:
+            return groups
         rel = rel + "__in"
+        pks = self.kwargs["pks"]
         group_filter = {rel: pks}
 
         for field_name in _GROUP_RELS:
@@ -168,6 +170,7 @@ class MetadataView(BrowserAnnotationsView):
             group_by = self.get_group_by(model)
             qs = qs.group_by(group_by)
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+            qs = qs.values("ids", "name")
             groups[field_name] = qs
         return groups
 
