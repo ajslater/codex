@@ -64,7 +64,9 @@ class ReaderInitView(SessionView):
 
     def _ensure_arc_contains_comic(self, params):
         """Arc sanity check."""
-        arc = params.get("arc", {})
+        arc = params.get("arc")
+        if not arc:
+            return
         pk = self.kwargs["pk"]
         arc_group = arc.get("group")
         arc_pk = arc.get("pk")
