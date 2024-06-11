@@ -1,5 +1,5 @@
 <template>
-  <v-btn :density="density" :size="size">
+  <v-btn :density="density">
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />
     </template>
@@ -19,10 +19,7 @@ export default {
       return this.$vuetify.display.xs;
     },
     density() {
-      return this.scale && this.breakPoint ? "compact" : "default";
-    },
-    size() {
-      return this.scale && this.breakPoint ? "small" : "default";
+      return this.breakPoint ? "compact" : "default";
     },
   },
 };

@@ -163,7 +163,7 @@ export default {
   z-index: 20;
 }
 .closeBook {
-  padding-left: max(20px, calc(env(safe-area-inset-left) / 2));
+  padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
 }
 
 .readerTitle
@@ -184,5 +184,10 @@ export default {
   font-size: clamp(16px, 3vw, 18px);
   color: rgb(var(--v-theme-textSecondary));
   padding-bottom: 10px;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+.closeBook {
+  padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
+}
 }
 </style>
