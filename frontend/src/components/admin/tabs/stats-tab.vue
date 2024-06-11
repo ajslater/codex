@@ -62,6 +62,10 @@
             <td>{{ nf(stats.groups.foldersCount) }}</td>
           </tr>
           <tr>
+            <td>Story Arcs</td>
+            <td>{{ nf(stats.groups.storyArcsCount) }}</td>
+          </tr>
+          <tr>
             <td>Publishers</td>
             <td>{{ nf(stats.groups.publishersCount) }}</td>
           </tr>
