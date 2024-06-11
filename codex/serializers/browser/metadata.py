@@ -29,3 +29,8 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     imprint = None
     series = None
     volume = None
+
+    class Meta(ComicSerializer.Meta):
+        """Configure the model."""
+
+        exclude = (*ComicSerializer.Meta.exclude, "publisher", "imprint", "series", "volume")
