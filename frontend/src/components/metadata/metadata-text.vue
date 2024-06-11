@@ -70,7 +70,10 @@ export default {
   },
   computed: {
     computedValue() {
-      let value = this.value.name !== undefined ? this.value.name : this.value;
+      let value =
+        this.value && this.value.name !== undefined
+          ? this.value.name
+          : this.value;
       if (this.group && value === "") {
         value = "(Empty)";
       }
