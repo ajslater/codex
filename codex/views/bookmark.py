@@ -47,7 +47,7 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             if not self.request.session or not self.request.session.session_key:
                 LOG.debug("no session, make one")
                 self.request.session.save()
-            search_kwargs["session__session_key"] = self.request.session.session_key
+            search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs
 
     @staticmethod
@@ -87,7 +87,6 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             existing_bookmarks = existing_bookmarks.annotate(
                 page_count=F("comic__page_count")
             )
-            # only_fields = (*only_fields, "page_count")
         existing_bookmarks = existing_bookmarks.only(*only_fields)
         update_bookmarks = []
         for bm in existing_bookmarks:
@@ -100,7 +99,7 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
         count = len(update_bookmarks)
         if count:
             Bookmark.objects.bulk_update(update_bookmarks, tuple(update_fields))
-        LOG.debug(f"Updated {count} bookmarks.")
+        # LOG.debug(f"Updated {count} bookmarks.")
 
     @staticmethod
     def _create_bookmarks_validate_two_pages(updates):
@@ -118,14 +117,9 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             return
         create_bookmarks = []
         group_acl_filter = self.get_group_acl_filter(Comic)
+        exclude = {}
         for key, value in search_kwargs.items():
-            exclude = {"bookmark__" + key: value}
-            break
-        else:
-            reason = (
-                f"No user or session_id found for creating bookmarks: {search_kwargs}"
-            )
-            raise ValueError(reason)
+            exclude["bookmark__" + key] = value
         create_bookmark_comics = (
             Comic.objects.filter(group_acl_filter)
             .filter(**comic_filter)
@@ -152,7 +146,7 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
                 update_fields=tuple(_BOOKMARK_UPDATE_FIELDS),
                 unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
             )
-            LOG.debug(f"Create {count} bookmarks.")
+            # LOG.debug(f"Create {count} bookmarks.")
 
     def update_bookmarks(self, updates, comic_filter):
         """Update a user bookmark."""
