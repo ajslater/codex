@@ -325,14 +325,18 @@ REST_REGISTRATION = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Codex API",
     "DESCRIPTION": "Comic Library Browser and Reader",
-    "OAS_VERSION": '3.1.0',
+    "OAS_VERSION": "3.1.0",
     "VERSION": "3.0.0",
-    "CONTACT": {"name": "Support", "url": "https://github.com/ajslater/codex?tab=readme-ov-file#-support"},
+    "CONTACT": {
+        "name": "Support",
+        "url": "https://github.com/ajslater/codex?tab=readme-ov-file#-support",
+    },
     "PREPROCESSING_HOOKS": ["codex.urls.spectacular.allow_list"],
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
-    "EXTERNAL_DOCS":  {
-        "url": "https://github.com/ajslater/codex/", "description": "Codex Docs"
-    }
+    "EXTERNAL_DOCS": {
+        "url": "https://github.com/ajslater/codex/",
+        "description": "Codex Docs",
+    },
 }
 
 CORS_ALLOW_CREDENTIALS = True

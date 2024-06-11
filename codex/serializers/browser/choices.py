@@ -71,7 +71,7 @@ class BrowserChoicesFilterSerializer(Serializer):
 
     choices = SerializerMethodField(read_only=True)
 
-    def get_choices(self, obj) -> ReturnList:#[dict[str|int|bool|float, str]]:
+    def get_choices(self, obj) -> ReturnList:  # [dict[str|int|bool|float, str]]:
         """Dynamic Serializer response by field type."""
         key = obj.get("field_name", "")
         choices = obj.get("choices", [])
@@ -79,4 +79,4 @@ class BrowserChoicesFilterSerializer(Serializer):
             key, BrowserChoicesCharPkSerializer
         )
         serializer = serializer_class(choices, many=True)
-        return serializer.data # type: ignore
+        return serializer.data  # type: ignore

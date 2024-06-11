@@ -33,4 +33,10 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     class Meta(ComicSerializer.Meta):
         """Configure the model."""
 
-        exclude = (*ComicSerializer.Meta.exclude, "publisher", "imprint", "series", "volume")
+        exclude = (
+            *ComicSerializer.Meta.exclude,
+            "publisher",
+            "imprint",
+            "series",
+            "volume",
+        )
