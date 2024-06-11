@@ -1,12 +1,12 @@
 <template>
   <div v-if="isUserAdmin">
     <v-divider />
-    <v-list-item @click="librarianTask('poll')">
-      <v-list-item-title id="poll" title="for updated comics">
-        <v-icon>{{ mdiDatabaseClockOutline }}</v-icon
-        >Poll All Libraries
-      </v-list-item-title>
-    </v-list-item>
+    <DrawerItem
+      v-tooltip="{ openDelay: 2000, text: 'for updated comics' }"
+      title="Poll All Libraries"
+      :prepend-icon="mdiDatabaseClockOutline"
+      @click="onPoll"
+    />
     <div v-if="showAdminPanelLink">
       <v-list-item :to="{ name: 'admin' }">
         <v-list-item-title>
@@ -36,6 +36,7 @@ import {
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminStatusList from "@/components/admin/drawer/status-list.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
@@ -43,6 +44,7 @@ export default {
   name: "AdminMenu",
   components: {
     AdminStatusList,
+    DrawerItem,
   },
   data() {
     return {
@@ -61,6 +63,9 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFailedImports", "librarianTask"]),
+    onPoll() {
+      this.librarianTask("poll");
+    },
   },
 };
 </script>

@@ -77,11 +77,19 @@
     label="Force 24 Hour Time"
     @update:model-value="set24HourTime($event)"
   />
+  <v-divider />
+  <DrawerItem
+    :prepend-icon="mdiReload"
+    title="Refresh"
+    @click.stop="onRefresh"
+  />
 </template>
 <script>
+import { mdiReload } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import SearchHelp from "@/components/browser/drawer/search-help.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 const SHOW_SETTINGS_GROUPS = "rpisv";
@@ -90,9 +98,11 @@ export default {
   name: "BrowserSettingsPanel",
   components: {
     SearchHelp,
+    DrawerItem,
   },
   data() {
     return {
+      mdiReload,
       openDelay: 2000, // for tooltips
     };
   },
@@ -117,7 +127,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserStore, ["loadMtimes", "setSettings"]),
     setShow(group, value) {
       const data = { show: { [group]: value === true } };
       this.setSettings(data);
@@ -141,6 +151,9 @@ export default {
       this.setSettings(data);
     },
     */
+    onRefresh() {
+      this.loadMtimes();
+    },
   },
 };
 </script>
