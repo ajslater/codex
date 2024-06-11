@@ -70,9 +70,11 @@ export default {
   },
   computed: {
     computedValue() {
-      return this.value != undefined && this.value instanceof Object
-        ? this.value.name
-        : this.value;
+      let value = this.value.name !== undefined ? this.value.name : this.value;
+      if (this.group && value === "") {
+        value = "(Empty)";
+      }
+      return value;
     },
     linkValue() {
       if (this.link === true) {
@@ -111,8 +113,7 @@ export default {
       ) {
         return;
       }
-      const pksList =
-        this.obj?.group == this.group ? this.obj.ids : [this.value.pk];
+      const pksList = this.value.ids ? this.value.ids : [this.value.pk];
       const pks = pksList.join(",");
 
       if (!pks) {

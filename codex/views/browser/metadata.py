@@ -13,8 +13,10 @@ from codex.librarian.importer.const import (
 )
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
+from codex.models.functions import JsonGroupArray
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
+from codex.views.const import GROUP_NAME_MAP
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -86,6 +88,7 @@ class MetadataView(BrowserAnnotationsView):
     ):
         """Annotate the intersection of value and fk fields."""
         (filtered_qs, qs) = querysets
+
         for field in fields:
             # Annotate variant counts
             # If 1 variant, annotate value, otherwise None
@@ -140,6 +143,34 @@ class MetadataView(BrowserAnnotationsView):
         )
         return qs
 
+    def _query_groups(self):
+        """Query the through models to show group lists."""
+        groups = {}
+        if not self.model:
+            return groups
+        group = self.kwargs["group"]
+        pks = self.kwargs["pks"]
+        rel = GROUP_NAME_MAP[group]
+        rel = rel + "__in"
+        group_filter = {rel: pks}
+
+        for field_name in _GROUP_RELS:
+            try:
+                field = self.model._meta.get_field(field_name)
+            except FieldDoesNotExist:
+                continue
+            model = field.related_model
+            if not model:
+                continue
+
+            qs = model.objects.filter(**group_filter)
+            qs = qs.only("name").distinct()
+            group_by = self.get_group_by(model)
+            qs = qs.group_by(group_by)
+            qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+            groups[field_name] = qs
+        return groups
+
     def _query_m2m_intersections(self, filtered_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
@@ -147,17 +178,7 @@ class MetadataView(BrowserAnnotationsView):
         pk_field = self.rel_prefix + "pk"
         comic_pks = filtered_qs.values_list(pk_field, flat=True)
         comic_pks_count = comic_pks.count()
-        for field_name in COMIC_M2M_FIELD_NAMES | _GROUP_RELS:
-            try:
-                if (
-                    field_name in _GROUP_RELS
-                    and self.model
-                    and not self.model._meta.get_field(field_name)
-                ):
-                    continue
-            except FieldDoesNotExist:
-                continue
-
+        for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
             if not model:
                 reason = f"No model found for comic field: {field_name}"
@@ -192,9 +213,10 @@ class MetadataView(BrowserAnnotationsView):
         """Values for highlighting the current group."""
         if self.model and not self.is_model_comic:
             # move the name of the group to the correct field
-            group_field = self.model.__name__.lower()
+            field = self.model.__name__.lower() + "_list"
             group_obj = {"pk": obj.pk, "name": obj.name}
-            setattr(obj, group_field, group_obj)
+            group_list = [group_obj]
+            setattr(obj, field, group_list)
             obj.name = None
 
     @staticmethod
@@ -219,15 +241,20 @@ class MetadataView(BrowserAnnotationsView):
         """Copy the m2m intersections into the object."""
         for key, value in m2m_intersections.items():
             optimized_qs = cls._get_optimized_m2m_query(key, value)
-            if hasattr(obj, key) and key not in _GROUP_RELS:
+            if hasattr(obj, key):  # and key not in _GROUP_RELS:
                 # real db fields need to use their special set method.
                 field = getattr(obj, key)
                 field.set(optimized_qs)
             else:
                 # fake db field is just a queryset attached.
-                if key in _GROUP_RELS:
-                    optimized_qs = optimized_qs[0] if len(optimized_qs) else None
+                # if key in _GROUP_RELS:
+                #    optimized_qs = optimized_qs[0] if len(optimized_qs) else None
                 setattr(obj, key, optimized_qs)
+
+    @staticmethod
+    def _copy_groups(obj, groups):
+        for field, group_qs in groups.items():
+            setattr(obj, field + "_list", group_qs)
 
     @staticmethod
     def _copy_conflicting_simple_fields(obj):
@@ -237,10 +264,11 @@ class MetadataView(BrowserAnnotationsView):
             val = getattr(obj, conflict_field)
             setattr(obj, field, val)
 
-    def _copy_annotations_into_comic_fields(self, obj, m2m_intersections):
+    def _copy_annotations_into_comic_fields(self, obj, groups, m2m_intersections):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
         self._path_security(obj)
         self._highlight_current_group(obj)
+        self._copy_groups(obj, groups)
         self._copy_m2m_intersections(obj, m2m_intersections)
         if not self.is_model_comic:
             self._copy_conflicting_simple_fields(obj)
@@ -277,8 +305,9 @@ class MetadataView(BrowserAnnotationsView):
         except (IndexError, ValueError) as exc:
             self._raise_not_found(exc)
 
+        groups = self._query_groups()
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
-        return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
+        return self._copy_annotations_into_comic_fields(obj, groups, m2m_intersections)  # type: ignore
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
