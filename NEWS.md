@@ -24,7 +24,7 @@ border-radius: 128px;
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
   - Clean up all orphan folders on startup instead of first pass
-  - Fix creating bookmarks for anonymous sessions.
+  - Fix creating bookmarks.
 
 ## v1.5.19
 
