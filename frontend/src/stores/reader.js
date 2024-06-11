@@ -222,7 +222,10 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       if (state.arc && Object.keys(state.arc).length) {
-        usedKeys.arc = state.arc;
+        usedKeys.arc = {
+          group: state.arc.group,
+          pk: state.arc.pk,
+        };
       }
       return usedKeys;
     },
@@ -443,7 +446,10 @@ export const useReaderStore = defineStore("reader", {
           return true;
         })
         .catch(console.error);
-      BROWSER_API.getSettings({ only: READER_INFO_ONLY_KEYS })
+      BROWSER_API.getSettings({
+        only: READER_INFO_ONLY_KEYS,
+        breadcrumbNames: false,
+      })
         .then((response) => {
           this.browserSettings = response.data;
           return true;

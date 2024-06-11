@@ -17,7 +17,7 @@ class SettingsView(SessionView, ABC):
 
     input_serializer_class = SettingsSerializer
 
-    def validate_settings_get(self, _validated_data, params):
+    def validate_settings_get(self, _validated_data, params: dict) -> dict:
         """Change bad settings."""
         return params
 
