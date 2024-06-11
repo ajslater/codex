@@ -35,32 +35,38 @@ class ReaderInitView(SessionView):
         super().__init__(*args, **kwargs)
         self.group_pks: dict[str, tuple[int, ...]] = {}
 
-    def get_group_pks_from_breadcrumbs(self, groups):
-        """Get Multi-Group pks from the breadcrumbs."""
-        for group in groups:
-            if pks := self.group_pks.get(group):
-                return group, pks
-        breadcrumbs: tuple = self.params.get("breadcrumbs")  # type: ignore
-        if not breadcrumbs:
-            return None, ()
-
+    def _set_group_pks_from_breadcrumbs(self, groups, breadcrumbs):
+        """Set Multi-Group pks from breadcrumbs to the cache."""
         index = len(breadcrumbs) - 1
         min_index = max(index - 1, 0) if FOLDER_GROUP in groups else 0
-        crumb_group = None
         while index > min_index:
             crumb = breadcrumbs[index]
             crumb_group = crumb.get("group")
             if crumb_group in groups:
-                self.group_pks[crumb_group] = crumb.get("pks", ())
+                pks = crumb.get("pks", ())
+                self.group_pks[crumb_group] = pks
                 break
             index -= 1
         else:
+            crumb_group = ""
+            pks = ()
             for group in groups:
-                self.group_pks[group] = ()
+                self.group_pks[group] = pks
+        return crumb_group, pks
 
-        if crumb_group and (pks := self.group_pks.get(crumb_group)):
-            return crumb_group, pks
-        return None, ()
+    def get_group_pks_from_breadcrumbs(self, groups):
+        """Get Multi-Group pks from the breadcrumbs."""
+        # Return cached values
+        for group in groups:
+            if pks := self.group_pks.get(group):
+                return group, pks
+
+        # Validate input
+        breadcrumbs: tuple = self.params.get("breadcrumbs")  # type: ignore
+        if not breadcrumbs:
+            return "", ()
+
+        return self._set_group_pks_from_breadcrumbs(groups, breadcrumbs)
 
     def _ensure_arc_contains_comic(self, params):
         """Arc sanity check."""
