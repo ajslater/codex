@@ -9,6 +9,7 @@ from rest_framework.serializers import (
     ChoiceField,
     FloatField,
     IntegerField,
+    ReturnList,
     Serializer,
 )
 
@@ -70,7 +71,7 @@ class BrowserChoicesFilterSerializer(Serializer):
 
     choices = SerializerMethodField(read_only=True)
 
-    def get_choices(self, obj):
+    def get_choices(self, obj) -> ReturnList:#[dict[str|int|bool|float, str]]:
         """Dynamic Serializer response by field type."""
         key = obj.get("field_name", "")
         choices = obj.get("choices", [])
@@ -78,4 +79,4 @@ class BrowserChoicesFilterSerializer(Serializer):
             key, BrowserChoicesCharPkSerializer
         )
         serializer = serializer_class(choices, many=True)
-        return serializer.data
+        return serializer.data # type: ignore
