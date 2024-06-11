@@ -29,8 +29,8 @@ _COMIC_FIELDS = (
 class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
     """Get Books methods."""
 
-    def _get_reader_arc_pks(
-        self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel
+    def _get_reader_arc_pks(  # noqa: PLR0913
+        self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
     ):
         """Get the nav filter."""
         if arc_pks := arc.get("pks", ()):
@@ -41,15 +41,15 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
             arc_pk_qs = Comic.objects.filter(pk=comic_pk)
             arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
             arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
-            arc_pk = arc_pk_qs.values_list(arc_pk_rel, flat=True)[0]
+            arc_pk_qs = arc_pk_qs.values_list(arc_pk_rel, flat=True)
+            arc_pk = arc_pk_qs.first()
         except IndexError:
             arc_pk = 0
 
-        if arc_pk_rel == "series__pk":
-            breadcrumbs = self.params["breadcrumbs"]
-            multi_arc_pks = self.get_series_pks_from_breadcrumbs(breadcrumbs)
-            if not arc_pk or arc_pk in multi_arc_pks:
-                arc_pks = multi_arc_pks
+        _, multi_arc_pks = self.get_group_pks_from_breadcrumbs([arc_group])
+        if not arc_pk or arc_pk in multi_arc_pks:
+            arc_pks = multi_arc_pks
+
         if not arc_pks:
             arc_pks = (arc_pk,)
 
@@ -81,8 +81,16 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
             arc_index = NONE_INTEGERFIELD
             ordering = ("path", "pk")
             arc_pk_select_related = ("parent_folder",)
+        elif arc_group == "v":
+            # volume
+            rel = "volume"
+            fields = _COMIC_FIELDS
+            arc_pk_rel = "volume__pk"
+            arc_index = NONE_INTEGERFIELD
+            ordering = ()
+            arc_pk_select_related = ("volume",)
         else:
-            # browser mode.
+            # series
             rel = "series"
             fields = _COMIC_FIELDS
             arc_pk_rel = "series__pk"
@@ -91,10 +99,7 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
             arc_pk_select_related = ("series",)
 
         arc_pks = self._get_reader_arc_pks(
-            arc,
-            arc_pk_select_related,
-            prefetch_related,
-            arc_pk_rel,
+            arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
         )
         nav_filter = {f"{rel}__in": arc_pks}
         group_acl_filter = self.get_group_acl_filter(Comic)
@@ -115,10 +120,11 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
             .annotate(mtime=F("updated_at"))
         )
         qs = self.annotate_group_names(qs, Comic)
-        if arc_group == "s":
+        if arc_group in ("v", "s"):
             show = self.params["show"]
+            model_group = "i" if arc_group == "s" else "s"
             qs, comic_sort_names = self.alias_sort_names(
-                qs, Comic, pks=arc_pks, model_group="i", show=show
+                qs, Comic, pks=arc_pks, model_group=model_group, show=show
             )
             ordering = (
                 *comic_sort_names,
@@ -126,7 +132,8 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
                 "issue_suffix",
                 "sort_name",
             )
-        return qs.order_by(*ordering), arc_group
+        qs = qs.order_by(*ordering)
+        return qs, arc_group
 
     def _append_with_settings(self, book, bookmark_filter):
         """Append bookmark to book list."""

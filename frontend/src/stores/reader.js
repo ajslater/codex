@@ -94,7 +94,7 @@ export const useReaderStore = defineStore("reader", {
     browserSettings: {
       breadcrumbs: CHOICES.browser.breadcrumbs,
       show: CHOICES.browser.show,
-      topGroup: "r",
+      topGroup: "p",
     },
     books: {
       current: undefined,
@@ -104,7 +104,6 @@ export const useReaderStore = defineStore("reader", {
     arcs: [],
     arc: {},
     mtime: 0,
-    browserTopGroup: undefined,
 
     // local reader
     empty: false,
@@ -357,6 +356,20 @@ export const useReaderStore = defineStore("reader", {
     },
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;
+    },
+    reset() {
+      // HACK because $reset doesn't seem to.
+      this.$patch((state) => {
+        state.arc = undefined;
+        state.arcs = [];
+        state.mtime = 0;
+        state.settingsLoaded = false;
+        state.books = {
+          current: undefined,
+          prev: false,
+          next: false,
+        };
+      });
     },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
