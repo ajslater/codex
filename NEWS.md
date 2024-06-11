@@ -17,6 +17,7 @@ border-radius: 128px;
   - Granular caching for covers in the browser.
   - Experimental API throttling support. Search the README for "throttle".
   - More compact UI controls.
+  - Add websocket updates for anonymous sessions
 - Fixes
   - OPDS http basic authorization fixed.
   - Groups with the same name case insensitively collapsed in the browser.
@@ -25,6 +26,7 @@ border-radius: 128px;
   - Fixed cleanup of some foreign keys when no longer used.
   - Clean up all orphan folders on startup instead of first pass
   - Fix creating bookmarks.
+  - Update all browser sessions for user when users finish a book.
 
 ## v1.5.19
 
