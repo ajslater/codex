@@ -174,6 +174,21 @@ class MetadataView(BrowserAnnotationsView):
             groups[field_name] = qs
         return groups
 
+    @staticmethod
+    def _get_optimized_m2m_query(key, qs):
+        if key == "contributors":
+            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS)
+            qs = qs.only(*_CONTRIBUTOR_RELATIONS)
+        elif key == "story_arc_numbers":
+            qs = qs.select_related("story_arc")
+            qs = qs.only("story_arc", "number")
+        elif key == "identifiers":
+            qs = qs.select_related("identifier_type")
+            qs = qs.only("identifier_type", "nss", "url")
+        else:
+            qs = qs.only("name")
+        return qs
+
     def _query_m2m_intersections(self, filtered_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
@@ -188,13 +203,10 @@ class MetadataView(BrowserAnnotationsView):
                 raise ValueError(reason)
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            # if field_name == "identifiers":
-            #    intersection_qs = intersection_qs.select_related("identifier_type")
-            # elif field_name == "contributors":
-            #    intersection_qs = intersection_qs.select_related("person", "role")
             intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
                 count=comic_pks_count
             )
+            intersection_qs = self._get_optimized_m2m_query(field_name, intersection_qs)
 
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
@@ -221,43 +233,26 @@ class MetadataView(BrowserAnnotationsView):
             setattr(obj, field, group_list)
             obj.name = None
 
-    @staticmethod
-    def _get_optimized_m2m_query(key, qs):
-        # XXX The prefetch gets removed by field.set() :(
-        if key == "contributors":
-            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS)
-            qs = qs.only(*_CONTRIBUTOR_RELATIONS)
-        elif key == "story_arc_numbers":
-            qs = qs.select_related("story_arc")
-            qs = qs.only("story_arc", "number")
-        elif key == "identifiers":
-            qs = qs.select_related("identifier_type")
-            qs = qs.only("identifier_type", "nss", "url")
-        else:
-            qs = qs.only("name")
-        return qs
-
     @classmethod
     def _copy_m2m_intersections(cls, obj, m2m_intersections):
         """Copy the m2m intersections into the object."""
-        for key, value in m2m_intersections.items():
-            optimized_qs = cls._get_optimized_m2m_query(key, value)
+        # XXX It might even be faster to copy everything to a dict and not use the obj.
+        for key, qs in m2m_intersections.items():
             serializer_key = (
                 f"{PREFETCH_PREFIX}{key}"
                 if key in ("identifiers", "contributors", "story_arc_numbers")
                 else key
             )
-            # XXX It might even be faster to copy everything to a dict and not use the obj.
             if hasattr(obj, serializer_key):
                 # real db fields need to use their special set method.
                 field = getattr(obj, serializer_key)
                 field.set(
-                    optimized_qs,
+                    qs,
                     clear=True,
                 )
             else:
                 # fake db field is just a queryset attached.
-                setattr(obj, serializer_key, optimized_qs)
+                setattr(obj, serializer_key, qs)
 
     @staticmethod
     def _copy_groups(obj, groups):
