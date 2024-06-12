@@ -58,4 +58,5 @@ class BrowserAggregateSerializerMixin(Serializer):
         if obj.max_bookmark_updated_at:
             mtime = max(mtime, obj.max_bookmark_updated_at)
 
+        # print(obj.group, obj.pk, obj.name, obj.updated_ats, obj.max_bookmark_updated_at, "max:", mtime)
         return int(mtime.timestamp() * 1000)

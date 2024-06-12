@@ -15,7 +15,6 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.aggregates import Max
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 
@@ -282,23 +281,6 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
-    def _annotate_updated_ats_arrays(self, qs, model):
-        """Aggregate bookmark timestamps."""
-        # These are compared in the serializer
-        if self.is_bookmark_filtered:
-            # If multi groups are detected after the query this is re-queried.
-            bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
-            bm_updated_at_rel = f"{bm_rel}__updated_at"
-            max_bmua = Max(
-                bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter
-            )
-        else:
-            max_bmua = NONE_INTEGERFIELD
-        return qs.annotate(
-            updated_ats=JsonGroupArray("updated_at", distinct=True),
-            max_bookmark_updated_at=max_bmua,
-        )
-
     def annotate_card_aggregates(self, qs, model):
         """Annotate aggregates that appear the browser card."""
         if model == Comic:
@@ -308,4 +290,4 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self.annotate_group_names(qs, model)
         qs = self._annotate_bookmarks(qs, model)
         qs = self._annotate_progress(qs)
-        return self._annotate_updated_ats_arrays(qs, model)
+        return qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))

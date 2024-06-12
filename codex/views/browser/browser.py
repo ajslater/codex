@@ -151,7 +151,7 @@ class BrowserView(BrowserTitleView):
         return qs, count
 
     def _requery_max_bookmark_updated_at(self, group_qs):
-        """HACK because I can't filter or aggregate with a JsonGroupArray."""
+        """Get max updated at without bookmark filter and aware of multi-groups."""
         if not self.is_bookmark_filtered:
             return group_qs
 
@@ -161,11 +161,10 @@ class BrowserView(BrowserTitleView):
 
         group_list = []
         for group in group_qs:
-            if len(group.ids) > 1:
-                qs = self.get_filtered_queryset(
-                    self.model, bookmark_filter=False, group_filter=False
-                )
-                group.max_bookmark_updated_at = qs.aggregate(max=max_bmua)["max"]
+            qs = self.get_filtered_queryset(
+                self.model, bookmark_filter=False, group_filter=False
+            )
+            group.max_bookmark_updated_at = qs.aggregate(max=max_bmua)["max"]
             group_list.append(group)
         return group_list
 
