@@ -25,9 +25,6 @@ class BrowserGroupModel(BaseModel):
     custom_cover = ForeignKey(
         CustomCover, on_delete=SET_DEFAULT, null=True, default=None
     )
-    first_comic = ForeignKey(
-        "Comic", on_delete=SET_DEFAULT, null=True, default=None, related_name="+"
-    )
 
     def set_sort_name(self):
         """Create sort_name for model."""

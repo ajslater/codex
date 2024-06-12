@@ -73,7 +73,6 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.broadcast_queue = broadcast_queue
         startup_tasks = (
             AdoptOrphanFoldersTask(),
-            UpdateGroupsFirstComic(),
             WatchdogSyncTask(),
             SearchIndexRebuildIfDBChangedTask(),
         )

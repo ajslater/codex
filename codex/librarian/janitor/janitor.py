@@ -40,7 +40,6 @@ _JANITOR_STATII = (
     Status(JanitorStatusTypes.DB_OPTIMIZE),
     Status(JanitorStatusTypes.DB_BACKUP),
     Status(JanitorStatusTypes.CODEX_UPDATE),
-    Status(ImportStatusTypes.GROUP_UPDATE),
     Status(CoverStatusTypes.FIND_ORPHAN),
     Status(CoverStatusTypes.PURGE_COVERS),
     Status(ImportStatusTypes.ADOPT_FOLDERS),

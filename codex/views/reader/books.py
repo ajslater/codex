@@ -24,10 +24,6 @@ _COMIC_FIELDS = (
     "reading_direction",
     "updated_at",
 )
-_SHOW = {
-    "series": True,
-    "volume": True,
-}
 
 
 class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
@@ -61,7 +57,7 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        select_related = ("series",)
+        select_related = ("series", "volume")
         prefetch_related = ()
 
         arc: Mapping = self.params.get("arc", {})  # type: ignore

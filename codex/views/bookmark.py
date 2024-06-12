@@ -49,7 +49,7 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             if not self.request.session or not self.request.session.session_key:
                 LOG.debug("no session, make one")
                 self.request.session.save()
-            search_kwargs["session__session_key"] = self.request.session.session_key
+            search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs
 
     @staticmethod
