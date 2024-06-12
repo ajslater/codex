@@ -1,5 +1,7 @@
 """Serializer mixins."""
 
+from datetime import datetime
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -7,11 +9,13 @@ from rest_framework.serializers import (
     DecimalField,
     IntegerField,
     Serializer,
+    SerializerMethodField,
 )
 
+from codex.logger.logging import get_logger
 from codex.serializers.browser.filters import IntListField
-from codex.serializers.fields import TimestampField
 
+LOG = get_logger(__name__)
 
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser, opds & metadata serializers."""
@@ -21,7 +25,7 @@ class BrowserAggregateSerializerMixin(Serializer):
 
     # Aggregate Annotations
     child_count = IntegerField(read_only=True)
-    mtime = TimestampField(read_only=True)
+    mtime = SerializerMethodField(read_only=True)
 
     # Bookmark annotations
     page = IntegerField(read_only=True)
@@ -30,3 +34,19 @@ class BrowserAggregateSerializerMixin(Serializer):
     progress = DecimalField(
         max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
     )
+
+
+    def get_mtime(self, obj):
+        """Compute mtime from json array aggregates."""
+        dt_strs = obj.updated_ats + obj.bookmark_updated_ats
+        mtime = 0
+        for dt_str in dt_strs:
+            if not dt_str:
+                continue
+            try:
+                ts = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").timestamp() # noqa: DTZ007
+                if ts > mtime:
+                    mtime = ts
+            except ValueError:
+                LOG.warning(f"computing group mtime: {dt_str} is not a valid datetime string.")
+        return mtime

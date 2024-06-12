@@ -34,7 +34,7 @@ from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
 from codex.views.const import (
-    EPOCH_START,
+    EPOCH_START_DATETIMEFIELD,
     NONE_DATETIMEFIELD,
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
@@ -208,7 +208,6 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
-        # ids coming first or before cover_qs works.
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._alias_sort_names(qs, model)
         qs = self._alias_filename(qs, model)
@@ -299,23 +298,14 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return qs.annotate(progress=progress)
 
-    def _annotate_mtime(self, qs, model):
-        """Annotations mtime."""
-        if self.is_bookmark_filtered:
-            sub_qs = self.get_filtered_queryset(model, bookmark_filter=False)
-            bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
-            ua_rel = bm_rel + "__updated_at"
-            qs = qs.annotate(
-                bmu_max=Max(
-                    sub_qs.filter(pk=OuterRef("pk")).values_list(ua_rel, flat=True),
-                    default=NONE_DATETIMEFIELD,
-                    filter=bm_filter,
-                )
-            )
-            mtime = Greatest(Coalesce("bmu_max", Value(EPOCH_START)), "updated_at")
-        else:
-            mtime = F("updated_at")
-        return qs.annotate(mtime=mtime)
+    def _annotate_updated_ats_arrays(self, qs, model):
+        """Aggregate bookmark timestamps."""
+        # These are compared in the serializer
+        bm_rel, _ = self.get_bookmark_rel_and_filter(model)
+        bm_updated_at_rel = f"{bm_rel}__updated_at"
+        return qs.annotate(
+            updated_ats=JsonGroupArray("updated_at", distinct=True),
+            bookmark_updated_ats=JsonGroupArray(bm_updated_at_rel, distinct=True))
 
     def annotate_card_aggregates(self, qs, model):
         """Annotate aggregates that appear the browser card."""
@@ -326,4 +316,4 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self.annotate_group_names(qs, model)
         qs = self._annotate_bookmarks(qs, model)
         qs = self._annotate_progress(qs)
-        return self._annotate_mtime(qs, model)
+        return self._annotate_updated_ats_arrays(qs, model)
