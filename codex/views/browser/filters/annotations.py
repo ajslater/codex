@@ -20,10 +20,10 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
         super().__init__(*args, **kwargs)
         self.init_bookmark_data()
 
-    def _get_query_filters(self, model, group, pks, bookmark_filter):
+    def _get_query_filters(self, model, group, pks, bookmark_filter, page_mtime=False):  # noqa: PLR0913
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
-        object_filter &= self.get_group_filter(model, group, pks)
+        object_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
         object_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             # not needed because OuterRef is applied next
@@ -45,17 +45,25 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
             qs = qs.filter(**{f"{ann_name}__gt": 0})
         return qs
 
-    def get_filtered_queryset(self, model, group=None, pks=None, bookmark_filter=True):
+    def get_filtered_queryset(  # noqa: PLR0913
+        self, model, group=None, pks=None, bookmark_filter=True, page_mtime=False
+    ):
         """Get a filtered queryset for the model."""
-        object_filter = self._get_query_filters(model, group, pks, bookmark_filter)
+        object_filter = self._get_query_filters(
+            model, group, pks, bookmark_filter, page_mtime=page_mtime
+        )
         qs = model.objects.filter(object_filter)
         qs = self.apply_search_filter(qs, model)
         return self._filter_by_child_count(qs, model)
 
-    def get_group_mtime(self, model, group=None, pks=None):
+    def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""
         qs = self.get_filtered_queryset(
-            model, group=group, pks=pks, bookmark_filter=self.is_bookmark_filtered
+            model,
+            group=group,
+            pks=pks,
+            bookmark_filter=self.is_bookmark_filtered,
+            page_mtime=page_mtime,
         )
         qs = qs.annotate(max_updated_at=Max("updated_at"))
 

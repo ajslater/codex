@@ -162,7 +162,7 @@ class BrowserView(BrowserTitleView):
             return self.group_instance.updated_at
 
         group_model = self.group_class if self.group_class else self.model
-        return self.get_group_mtime(group_model)
+        return self.get_group_mtime(group_model, page_mtime=True)
 
     @staticmethod
     def _get_zero_pad(book_qs):
