@@ -9,13 +9,13 @@ from django.db.models import (
     Case,
     F,
     FilteredRelation,
-    Max,
     Min,
     Q,
     Sum,
     Value,
     When,
 )
+from django.db.models.aggregates import Max
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 
@@ -158,28 +158,15 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(page_count=page_count_sum)
         return qs
 
-    def get_bookmark_updated_at_aggregate(self, model, always_max=False):
-        """Get The aggregate function for relevant bookmark.updated_at."""
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
-
-        bm_updated_at_rel = f"{bm_rel}__updated_at"
-        agg_func = Max if always_max else self.order_agg_func
-        return agg_func(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
-
     def _annotate_bookmark_updated_at(self, qs, model):
-        if (
-            self.is_opds_1_acquisition
-            or self.order_key == "bookmark_updated_at"
-            or self.is_bookmark_filtered
-        ):
-            bookmark_updated_at_aggregate = self.get_bookmark_updated_at_aggregate(
-                model
-            )
-            if self.TARGET == "opds1" or self.is_bookmark_filtered:
-                qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
-            else:
-                qs = qs.alias(bookmark_updated_at=bookmark_updated_at_aggregate)
-        return qs
+        if not self.is_opds_1_acquisition and self.order_key != "bookmark_updated_at":
+            return qs
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
+        bm_updated_at_rel = f"{bm_rel}__updated_at"
+        bmua_agg = self.order_agg_func(
+            bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter
+        )
+        return qs.annotate(bookmark_updated_at=bmua_agg)
 
     def _annotate_order_value(self, qs, model):
         """Annotate a main key for sorting and browser card display."""
@@ -298,11 +285,18 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_updated_ats_arrays(self, qs, model):
         """Aggregate bookmark timestamps."""
         # These are compared in the serializer
-        bm_rel, _ = self.get_bookmark_rel_and_filter(model)
-        bm_updated_at_rel = f"{bm_rel}__updated_at"
+        if self.is_bookmark_filtered:
+            # If multi groups are detected after the query this is re-queried.
+            bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
+            bm_updated_at_rel = f"{bm_rel}__updated_at"
+            max_bmua = Max(
+                bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter
+            )
+        else:
+            max_bmua = NONE_INTEGERFIELD
         return qs.annotate(
             updated_ats=JsonGroupArray("updated_at", distinct=True),
-            bookmark_updated_ats=JsonGroupArray(bm_updated_at_rel, distinct=True),
+            max_bookmark_updated_at=max_bmua,
         )
 
     def annotate_card_aggregates(self, qs, model):

@@ -23,6 +23,7 @@ from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
     FOLDER_GROUP,
+    NONE_DATETIMEFIELD,
     STORY_ARC_GROUP,
 )
 
@@ -149,6 +150,25 @@ class BrowserView(BrowserTitleView):
             count = 0
         return qs, count
 
+    def _requery_max_bookmark_updated_at(self, group_qs):
+        """HACK because I can't filter or aggregate with a JsonGroupArray."""
+        if not self.is_bookmark_filtered:
+            return group_qs
+
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(self.model)
+        bm_updated_at_rel = f"{bm_rel}__updated_at"
+        max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
+
+        group_list = []
+        for group in group_qs:
+            if len(group.ids) > 1:
+                qs = self.get_filtered_queryset(
+                    self.model, bookmark_filter=False, group_filter=False
+                )
+                group.max_bookmark_updated_at = qs.aggregate(max=max_bmua)["max"]
+            group_list.append(group)
+        return group_list
+
     @staticmethod
     def _get_zero_pad(book_qs):
         """Get the zero padding for the display."""
@@ -178,6 +198,7 @@ class BrowserView(BrowserTitleView):
         )
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
+            group_qs = self._requery_max_bookmark_updated_at(group_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs, Comic)

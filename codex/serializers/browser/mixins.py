@@ -1,6 +1,6 @@
 """Serializer mixins."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rest_framework.serializers import (
     BooleanField,
@@ -14,6 +14,7 @@ from rest_framework.serializers import (
 
 from codex.logger.logging import get_logger
 from codex.serializers.browser.filters import IntListField
+from codex.views.const import EPOCH_START
 
 LOG = get_logger(__name__)
 
@@ -36,19 +37,25 @@ class BrowserAggregateSerializerMixin(Serializer):
         max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
     )
 
-    def get_mtime(self, obj):
+    def get_mtime(self, obj) -> int:
         """Compute mtime from json array aggregates."""
-        dt_strs = obj.updated_ats + obj.bookmark_updated_ats
-        mtime = 0
-        for dt_str in dt_strs:
+        mtime = EPOCH_START
+        for dt_str in obj.updated_ats:
             if not dt_str:
                 continue
             try:
-                ts = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").timestamp()  # noqa: DTZ007
-                if ts > mtime:
-                    mtime = ts
+                dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").replace(
+                    tzinfo=timezone.utc
+                )
             except ValueError:
                 LOG.warning(
                     f"computing group mtime: {dt_str} is not a valid datetime string."
                 )
-        return mtime
+                continue
+
+            if dt > mtime:
+                mtime = dt
+        if obj.max_bookmark_updated_at:
+            mtime = max(mtime, obj.max_bookmark_updated_at)
+
+        return int(mtime.timestamp() * 1000)

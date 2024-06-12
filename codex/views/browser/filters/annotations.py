@@ -20,13 +20,17 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
         super().__init__(*args, **kwargs)
         self.init_bookmark_data()
 
-    def _get_query_filters(self, model, group, pks, bookmark_filter, page_mtime=False):  # noqa: PLR0913
+    def _get_query_filters(  # noqa: PLR0913
+        self, model, group, pks, bookmark_filter, page_mtime=False, group_filter=True
+    ):
         """Return all the filters except the group filter."""
+        # TODO all these ifs and flags are awful
         object_filter = self.get_group_acl_filter(model)
-        object_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
+        if group_filter:
+            object_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
         object_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
-            # not needed because OuterRef is applied next
+            # not needed when used by outerrefl OuterRef is applied next
             object_filter &= self.get_bookmark_filter(model)
         return object_filter
 
@@ -46,11 +50,22 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
         return qs
 
     def get_filtered_queryset(  # noqa: PLR0913
-        self, model, group=None, pks=None, bookmark_filter=True, page_mtime=False
+        self,
+        model,
+        group=None,
+        pks=None,
+        bookmark_filter=True,
+        page_mtime=False,
+        group_filter=True,
     ):
         """Get a filtered queryset for the model."""
         object_filter = self._get_query_filters(
-            model, group, pks, bookmark_filter, page_mtime=page_mtime
+            model,
+            group,
+            pks,
+            bookmark_filter,
+            page_mtime=page_mtime,
+            group_filter=group_filter,
         )
         qs = model.objects.filter(object_filter)
         qs = self.apply_search_filter(qs, model)
