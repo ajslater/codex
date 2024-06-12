@@ -149,14 +149,6 @@ class BrowserView(BrowserTitleView):
             count = 0
         return qs, count
 
-    def _get_page_mtime(self):
-        if not self.is_bookmark_filtered and self.group_instance:
-            # Nice optimization if we can get get it.
-            return self.group_instance.updated_at
-
-        group_model = self.group_class if self.group_class else self.model
-        return self.get_group_mtime(group_model, page_mtime=True)
-
     @staticmethod
     def _get_zero_pad(book_qs):
         """Get the zero padding for the display."""
@@ -167,6 +159,14 @@ class BrowserView(BrowserTitleView):
         if issue_number_max:
             zero_pad += floor(log10(issue_number_max))
         return zero_pad
+
+    def _get_page_mtime(self):
+        if not self.is_bookmark_filtered and self.group_instance:
+            # Nice optimization if we can get get it.
+            return self.group_instance.updated_at
+
+        group_model = self.group_class if self.group_class else self.model
+        return self.get_group_mtime(group_model, page_mtime=True)
 
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
