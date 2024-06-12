@@ -16,9 +16,6 @@ from codex.models import (
     Folder,
     Imprint,
     Library,
-    Publisher,
-    Series,
-    StoryArc,
     Volume,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
@@ -34,6 +31,15 @@ if TYPE_CHECKING:
 
 
 LOG = get_logger(__name__)
+_GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
+    type[BrowserGroupModel], tuple[str | None, ...]
+] = MappingProxyType(
+    {
+        Comic: ("series", "volume"),
+        Volume: ("series",),
+        Imprint: ("publisher",),
+    }
+)
 
 
 class BrowserView(BrowserTitleView):
@@ -48,19 +54,6 @@ class BrowserView(BrowserTitleView):
         }
     )
     TARGET = "browser"
-    _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
-        type[BrowserGroupModel], tuple[str | None, ...]
-    ] = MappingProxyType(
-        {
-            Comic: ("series", "volume"),
-            Volume: ("series",),
-            Series: (None,),
-            Imprint: ("publisher",),
-            Publisher: (None,),
-            Folder: ("parent_folder",),
-            StoryArc: (None,),
-        }
-    )
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -75,7 +68,7 @@ class BrowserView(BrowserTitleView):
         if pks and self.group_class:
             try:
                 select_related: tuple[str | None, ...] = (
-                    self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
+                    _GROUP_INSTANCE_SELECT_RELATED.get(self.group_class, (None,))
                 )
                 self.group_query = self.group_class.objects.select_related(
                     *select_related
