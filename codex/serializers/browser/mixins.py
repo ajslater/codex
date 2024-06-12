@@ -17,6 +17,7 @@ from codex.serializers.browser.filters import IntListField
 
 LOG = get_logger(__name__)
 
+
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser, opds & metadata serializers."""
 
@@ -35,7 +36,6 @@ class BrowserAggregateSerializerMixin(Serializer):
         max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
     )
 
-
     def get_mtime(self, obj):
         """Compute mtime from json array aggregates."""
         dt_strs = obj.updated_ats + obj.bookmark_updated_ats
@@ -44,9 +44,11 @@ class BrowserAggregateSerializerMixin(Serializer):
             if not dt_str:
                 continue
             try:
-                ts = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").timestamp() # noqa: DTZ007
+                ts = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").timestamp()  # noqa: DTZ007
                 if ts > mtime:
                     mtime = ts
             except ValueError:
-                LOG.warning(f"computing group mtime: {dt_str} is not a valid datetime string.")
+                LOG.warning(
+                    f"computing group mtime: {dt_str} is not a valid datetime string."
+                )
         return mtime

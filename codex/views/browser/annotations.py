@@ -16,10 +16,8 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.expressions import OuterRef
 from django.db.models.fields import CharField, PositiveSmallIntegerField
-from django.db.models.functions import Coalesce, Least, Reverse, Right, StrIndex
-from django.db.models.functions.comparison import Greatest
+from django.db.models.functions import Least, Reverse, Right, StrIndex
 
 from codex.logger.logging import get_logger
 from codex.models import (
@@ -34,7 +32,6 @@ from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
 from codex.views.const import (
-    EPOCH_START_DATETIMEFIELD,
     NONE_DATETIMEFIELD,
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
@@ -305,7 +302,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         return qs.annotate(
             updated_ats=JsonGroupArray("updated_at", distinct=True),
-            bookmark_updated_ats=JsonGroupArray(bm_updated_at_rel, distinct=True))
+            bookmark_updated_ats=JsonGroupArray(bm_updated_at_rel, distinct=True),
+        )
 
     def annotate_card_aggregates(self, qs, model):
         """Annotate aggregates that appear the browser card."""
