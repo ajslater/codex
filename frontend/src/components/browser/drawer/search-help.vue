@@ -7,12 +7,11 @@
     transition="dialog-bottom-transition"
   >
     <template #activator="{ props }">
-      <v-list-item v-bind="props">
-        <v-list-item-title>
-          <v-icon>{{ mdiArchiveSearchOutline }}</v-icon
-          >Search Help
-        </v-list-item-title>
-      </v-list-item>
+      <DrawerItem
+        v-bind="props"
+        :prepend-icon="mdiArchiveSearchOutline"
+        title="Search Help"
+      />
     </template>
     <div id="searchHelp">
       <CloseButton
@@ -166,6 +165,7 @@
 import { mdiArchiveSearchOutline, mdiOpenInNew } from "@mdi/js";
 
 import CloseButton from "@/components/close-button.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 
 const FIELD_ROWS = [
   ["characters", "CSV", "category"],
@@ -217,7 +217,7 @@ const FIELD_ROWS = [
 
 export default {
   name: "SearchHelp",
-  components: { CloseButton },
+  components: { CloseButton, DrawerItem },
   data() {
     return {
       mdiOpenInNew,

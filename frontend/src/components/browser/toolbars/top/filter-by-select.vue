@@ -34,12 +34,10 @@
         density="compact"
         variant="plain"
         class="clearFilter"
+        title="Clear Filter"
+        :append-icon="mdiCloseCircleOutline"
         @click="onClear"
-      >
-        Clear Filter<v-icon class="clearIcon">{{
-          mdiCloseCircleOutline
-        }}</v-icon>
-      </v-list-item>
+      />
     </template>
     <template #append-item>
       <v-divider />
@@ -57,9 +55,13 @@
         :name="filterName"
         @selected="onSubMenuSelected"
       />
-      <v-list-item v-else class="noChoices" density="compact" variant="plain">
-        No filters available
-      </v-list-item>
+      <v-list-item
+        v-else
+        class="noChoices"
+        density="compact"
+        variant="plain"
+        title="No filters available"
+      />
     </template>
   </ToolbarSelect>
 </template>
@@ -166,8 +168,5 @@ export default {
 .clearFilter {
   color: black;
   background-color: rgb(var(--v-theme-primary))
-}
-.clearIcon {
-  float: right;
 }
 </style>

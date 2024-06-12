@@ -17,12 +17,12 @@
       >
         <v-icon> {{ mdiLockPlusOutline }}</v-icon>
       </v-btn>
-      <v-list-item v-else v-bind="props">
-        <v-list-item-title>
-          <v-icon>{{ mdiLockReset }}</v-icon
-          >Change Password
-        </v-list-item-title>
-      </v-list-item>
+      <DrawerItem
+        v-else
+        :prepend-icon="mdiLockReset"
+        v-bind="props"
+        title="Change Password"
+      />
     </template>
     <div v-if="formSuccess" class="codexFormSuccess">
       {{ formSuccess }}
@@ -86,6 +86,7 @@ import { mdiLockPlusOutline, mdiLockReset } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
@@ -96,6 +97,7 @@ export default {
   components: {
     SubmitFooter,
     CloseButton,
+    DrawerItem,
   },
   props: {
     user: { type: Object, required: true },

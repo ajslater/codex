@@ -16,17 +16,17 @@
       </v-btn>
     </template>
     <div class="background-soft-highlight">
-      <v-list-item v-if="item.group === 'c'" @click="toggleRead">
-        <v-list-item-title>
-          {{ markReadText }}
-        </v-list-item-title>
-      </v-list-item>
+      <v-list-item
+        v-if="item.group === 'c'"
+        :title="markReadText"
+        @click="toggleRead"
+      />
       <ConfirmDialog
         v-else
         :button-text="markReadText"
         :title-text="markReadText"
         :confirm-text="confirmText"
-        :object-name="item.name"
+        :object-name="itemName"
         @confirm="toggleRead"
         @cancel="showMenu = false"
       />
@@ -79,6 +79,9 @@ export default {
       }
       words.push(groupName, this.verb);
       return words.join(" ");
+    },
+    itemName() {
+      return this.item.name ? this.item.name : "(Empty)";
     },
   },
   methods: {
