@@ -57,7 +57,7 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        select_related = ("series",)
+        select_related = ("series", "volume")
         prefetch_related = ()
 
         arc: Mapping = self.params.get("arc", {})  # type: ignore
@@ -77,7 +77,6 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
             rel = "parent_folder"
             fields = (*_COMIC_FIELDS, "parent_folder")
             arc_pk_rel = "parent_folder__pk"
-            select_related = (*select_related, "parent_folder")
             arc_index = NONE_INTEGERFIELD
             ordering = ("path", "pk")
             arc_pk_select_related = ("parent_folder",)
