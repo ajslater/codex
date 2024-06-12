@@ -1,7 +1,6 @@
 """Get the mtimes for the submitted groups."""
 
-from types import MappingProxyType
-
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
@@ -21,23 +20,12 @@ class MtimeView(BrowserAnnotationsFilterView):
     serializer_class = MtimeSerializer
 
     REPARSE_JSON_FIELDS = frozenset({"groups", "filters"})
+    TARGET = "mtime"
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize."""
         super().__init__(*args, **kwargs)
         self.init_bookmark_data()
-
-    def parse_params(self):
-        """Parse GET params."""
-        try:
-            validated_data = super().parse_params()
-            params = dict(self.params)
-            params["groups"] = validated_data["groups"]  # type: ignore
-            self.params = MappingProxyType(params)
-
-        except Exception:
-            LOG.exception("parse")
-            raise
 
     def _get_group_mtime(self, item):
         """Get one group's mtimes."""
@@ -59,6 +47,7 @@ class MtimeView(BrowserAnnotationsFilterView):
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime
 
+    @extend_schema(parameters=[GroupsMtimeSerializer])
     def get(self, *args, **kwargs):
         """Get the mtimes for the submitted groups."""
         # Parse Request

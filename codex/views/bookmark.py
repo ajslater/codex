@@ -5,6 +5,8 @@ from django.db.models.functions import Now
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import NotifierTask
 from codex.logger.logging import get_logger
 from codex.models import Bookmark, Comic
 from codex.serializers.models.bookmark import (
@@ -14,7 +16,7 @@ from codex.serializers.models.bookmark import (
 from codex.views.auth import (
     AuthFilterGenericAPIView,
 )
-from codex.views.const import GROUP_RELATION
+from codex.views.const import FOLDER_GROUP, GROUP_RELATION
 
 LOG = get_logger(__name__)
 VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
@@ -74,8 +76,20 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
         ):
             updates["two_pages"] = None
 
+    def notify_library_changed(self):
+        """Notify one user that their library changed."""
+        if user := self.request.user:
+            uid = user.id  # type: ignore
+        else:
+            uid = self.request.session.session_key
+        group = f"user_{uid}"
+        task = NotifierTask("LIBRARY_CHANGED", group)
+        LIBRARIAN_QUEUE.put(task)
+
     def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
+        if not updates:
+            return 0
         group_acl_filter = self.get_group_acl_filter(Bookmark)
         update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
         update_fields.add("updated_at")
@@ -87,7 +101,6 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
             existing_bookmarks = existing_bookmarks.annotate(
                 page_count=F("comic__page_count")
             )
-            # only_fields = (*only_fields, "page_count")
         existing_bookmarks = existing_bookmarks.only(*only_fields)
         update_bookmarks = []
         for bm in existing_bookmarks:
@@ -100,7 +113,8 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
         count = len(update_bookmarks)
         if count:
             Bookmark.objects.bulk_update(update_bookmarks, tuple(update_fields))
-        LOG.debug(f"Updated {count} bookmarks.")
+        return count
+        # LOG.debug(f"Updated {count} bookmarks.")
 
     @staticmethod
     def _create_bookmarks_validate_two_pages(updates):
@@ -115,17 +129,12 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
         """Create new bookmarks for comics that don't exist yet."""
         self._create_bookmarks_validate_two_pages(updates)
         if not updates:
-            return
+            return 0
         create_bookmarks = []
         group_acl_filter = self.get_group_acl_filter(Comic)
+        exclude = {}
         for key, value in search_kwargs.items():
-            exclude = {"bookmark__" + key: value}
-            break
-        else:
-            reason = (
-                f"No user or session_id found for creating bookmarks: {search_kwargs}"
-            )
-            raise ValueError(reason)
+            exclude["bookmark__" + key] = value
         create_bookmark_comics = (
             Comic.objects.filter(group_acl_filter)
             .filter(**comic_filter)
@@ -152,13 +161,16 @@ class BookmarkBaseView(AuthFilterGenericAPIView):
                 update_fields=tuple(_BOOKMARK_UPDATE_FIELDS),
                 unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
             )
-            LOG.debug(f"Create {count} bookmarks.")
+            # LOG.debug(f"Create {count} bookmarks.")
+        return count
 
     def update_bookmarks(self, updates, comic_filter):
         """Update a user bookmark."""
         search_kwargs = self.get_bookmark_search_kwargs(comic_filter)
-        self._update_bookmarks(search_kwargs, updates)
-        self._create_bookmarks(comic_filter, search_kwargs, updates)
+        count = self._update_bookmarks(search_kwargs, updates)
+        count += self._create_bookmarks(comic_filter, search_kwargs, updates)
+        if count and "finished" in updates:
+            self.notify_library_changed()
 
 
 class BookmarkView(BookmarkBaseView):
@@ -187,7 +199,9 @@ class BookmarkView(BookmarkBaseView):
 
         pks = self.kwargs.get("pks")
 
-        relation = "folders__in" if group == "f" else GROUP_RELATION[group] + "__in"
+        relation = (
+            "folders__in" if group == FOLDER_GROUP else GROUP_RELATION[group] + "__in"
+        )
         comic_filter = {relation: pks}
 
         self.update_bookmarks(updates, comic_filter=comic_filter)

@@ -13,9 +13,9 @@ const libraryChanged = function () {
   useCommonStore().setTimestamp();
   const route = router.currentRoute.value;
   if (route.name === "browser") {
-    useBrowserStore().updateMtimes();
+    useBrowserStore().loadMtimes();
   } else if (route.name == "reader") {
-    useReaderStore().updateMtimes();
+    useReaderStore().loadMtimes();
   } else if (route.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }

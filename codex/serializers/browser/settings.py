@@ -10,7 +10,7 @@ from rest_framework.serializers import (
 
 from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
-from codex.serializers.fields import TimestampField
+from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
@@ -24,24 +24,44 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     v = BooleanField()
 
 
-class BrowserSettingsSerializer(Serializer):
+class BrowserFilterChoicesInputSerilalizer(Serializer):
+    """Browser Settings for the filter choices response."""
+
+    filters = BrowserSettingsFilterSerializer(required=False)
+    q = CharField(allow_blank=True, required=False)
+
+
+class BrowserCoverInputSerializer(BrowserFilterChoicesInputSerilalizer):
+    """Browser Settings for the cover response."""
+
+    custom_covers = BooleanField(required=False)
+    dynamic_covers = BooleanField(required=False)
+    order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
+    order_reverse = BooleanField(required=False)
+    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+
+
+class BrowserSettingsSerializerBase(BrowserCoverInputSerializer):
+    """Base Serializer for Browser & OPDS Settings."""
+
+    # search_results_limit = IntegerField(required=False)
+    top_group = TopGroupField(required=False)
+
+
+class OPDSSettingsSerializer(BrowserSettingsSerializerBase):
+    """Browser Settings for the OPDS."""
+
+    limit = IntegerField(required=False)
+    opds_metadata = BooleanField(required=False)
+    query = CharField(allow_blank=True, required=False)  # OPDS 2.0
+
+
+class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     """Browser Settings that the user can change.
 
     This is the only browse serializer that's submitted.
-    It is also sent to the browser as part of BrowserOpenedSerializer.
     """
 
-    filters = BrowserSettingsFilterSerializer(required=False)
-    order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
-    order_reverse = BooleanField(required=False)
-    q = CharField(allow_blank=True, required=False)
-    query = CharField(allow_blank=True, required=False)  # OPDS 2.0
-    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
-    dynamic_covers = BooleanField(required=False)
-    custom_covers = BooleanField(required=False)
-    # search_results_limit = IntegerField(required=False)
-    twenty_four_hour_time = BooleanField(required=False)
-    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
-    opds_metadata = BooleanField(required=False)
-    limit = IntegerField(required=False)
+    breadcrumbs = BreadcrumbsField(required=False)
     mtime = TimestampField(read_only=True)
+    twenty_four_hour_time = BooleanField(required=False)

@@ -13,7 +13,7 @@ from codex.librarian.covers.tasks import (
 )
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
-    UpdateGroupsFirstComic,
+    UpdateGroupsTask,
 )
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -102,8 +102,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             "poll": WatchdogPollLibrariesTask(frozenset(), False),
             "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
             "janitor_nightly": JanitorNightlyTask(),
-            "update_first_covers": UpdateGroupsFirstComic(),
-            "force_update_first_covers": UpdateGroupsFirstComic(start_time=EPOCH_START),
+            "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
             "adopt_folders": AdoptOrphanFoldersTask(),
         }
     )

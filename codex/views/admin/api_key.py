@@ -14,8 +14,11 @@ class AdminAPIKey(AdminGenericAPIView):
     serializer_class = APIKeySerializer
     input_serializer_class = None
 
-    @extend_schema(request=input_serializer_class)
-    def post(self, *_args, **_kwargs):
+    @extend_schema(
+        # parameters=[input_serializer_class],
+        request=input_serializer_class
+    )
+    def put(self, *_args, **_kwargs):
         """Regenerate the API Key."""
         ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.API_KEY.value)
         ts.save_uuid_version()

@@ -26,7 +26,13 @@
   </ToolbarSelect>
 </template>
 <script>
-import { mdiBookshelf, mdiCheck, mdiFolderOutline, mdiRedo } from "@mdi/js";
+import {
+  mdiBookMultiple,
+  mdiBookshelf,
+  mdiCheck,
+  mdiFolderOutline,
+  mdiRedo,
+} from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/toolbar-select.vue";
@@ -36,12 +42,14 @@ const ARC_ICONS = {
   a: mdiRedo,
   f: mdiFolderOutline,
   s: mdiBookshelf,
+  v: mdiBookMultiple,
 };
 
 const LABELS = {
   a: "Story Arc",
   f: "Folder",
   s: "Series",
+  v: "Volume",
 };
 
 export default {
@@ -86,16 +94,8 @@ export default {
       return value === this.arc ? mdiCheck : "";
     },
     onUpdate(selectedArc) {
-      const routeParams = this.$route.params;
-      if (!routeParams) {
-        return;
-      }
       const arc = { group: selectedArc.group, pks: selectedArc.pks };
-      const params = {
-        ...routeParams,
-        arc,
-      };
-      this.loadBooks(params);
+      this.loadBooks({ arc });
     },
   },
 };

@@ -73,30 +73,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="folder",
-            name="first_comic",
-            field=models.ForeignKey(
-                default=None,
-                null=True,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                related_name="+",
-                to="codex.comic",
-            ),
-        ),
-        migrations.AddField(
-            model_name="folder",
             name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="imprint",
-            name="first_comic",
-            field=models.ForeignKey(
-                default=None,
-                null=True,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                related_name="+",
-                to="codex.comic",
-            ),
         ),
         migrations.AddField(
             model_name="imprint",
@@ -110,30 +88,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="publisher",
-            name="first_comic",
-            field=models.ForeignKey(
-                default=None,
-                null=True,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                related_name="+",
-                to="codex.comic",
-            ),
-        ),
-        migrations.AddField(
-            model_name="publisher",
             name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="series",
-            name="first_comic",
-            field=models.ForeignKey(
-                default=None,
-                null=True,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                related_name="+",
-                to="codex.comic",
-            ),
         ),
         migrations.AddField(
             model_name="series",
@@ -142,30 +98,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="storyarc",
-            name="first_comic",
-            field=models.ForeignKey(
-                default=None,
-                null=True,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                related_name="+",
-                to="codex.comic",
-            ),
-        ),
-        migrations.AddField(
-            model_name="storyarc",
             name="sort_name",
             field=models.CharField(db_index=True, default="", max_length=128),
-        ),
-        migrations.AddField(
-            model_name="volume",
-            name="first_comic",
-            field=models.ForeignKey(
-                default=None,
-                null=True,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                related_name="+",
-                to="codex.comic",
-            ),
         ),
         migrations.AlterField(
             model_name="adminflag",
@@ -211,6 +145,7 @@ class Migration(migrations.Migration):
                     ("ICD", "Covers Deleted"),
                     ("ICL", "Covers Link"),
                     ("IGU", "Group Update"),
+                    ("IAF", "Adopt Folders"),
                     ("JTD", "Cleanup Fk"),
                     ("JCU", "Codex Update"),
                     ("JCR", "Codex Restart"),

@@ -55,13 +55,13 @@ export default {
   watch: {
     $route(to, from) {
       if (!from || !from.params || +to.params.pk !== +from.params.pk) {
-        this.loadBooks(to.params);
+        this.loadBooks({ params: to.params });
       }
     },
   },
   beforeMount() {
     this.setBookChangeFlag();
-    this.loadBooks();
+    this.loadBooks({});
   },
   methods: {
     ...mapActions(useReaderStore, [

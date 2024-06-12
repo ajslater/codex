@@ -2,8 +2,11 @@
 
 from django.db.models import Q
 
-from codex.models import Comic
-from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, GROUP_RELATION
+from codex.views.const import (
+    FILTER_ONLY_GROUP_RELATION,
+    FOLDER_GROUP,
+    GROUP_RELATION,
+)
 from codex.views.session import SessionView
 
 
@@ -12,25 +15,31 @@ class GroupFilterView(SessionView):
 
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
-    def get_group_filter(self, model, group=None, pks=None):
+    def _get_rel_for_pks(self, group, page_mtime=False):
+        """Get the relation from the model to the pks."""
+        # XXX these TARGET refs might be better as subclass get rel methods.
+        target: str = self.TARGET  # type: ignore
+        if target in ("metadata", "mtime") or page_mtime:
+            # metadata, mtime, browser.page_mtime
+            rel = "pk"
+        elif target in ("choices", "cover"):
+            rel = FILTER_ONLY_GROUP_RELATION[group]
+        else:
+            rel = GROUP_RELATION[group]
+
+        rel += "__in"
+        return rel
+
+    def get_group_filter(self, group=None, pks=None, page_mtime=False):
         """Get filter for the displayed group."""
         if group is None:
             group = self.kwargs["group"]
         if pks is None:
             pks = self.kwargs["pks"]
 
-        if pks and 0 not in pks:  # type: ignore
-            if model == GROUP_MODEL_MAP.get(group):
-                # metadata only
-                rel = "pk"
-            elif model == Comic and group == FOLDER_GROUP:
-                # choices & covers
-                rel = "folders"
-            else:
-                rel = GROUP_RELATION[group]
-
-            rel += "__in"
-            group_filter_dict = {rel: pks}  # type: ignore
+        if pks and 0 not in pks:
+            rel = self._get_rel_for_pks(group, page_mtime)
+            group_filter_dict = {rel: pks}
         elif group == FOLDER_GROUP:
             group_filter_dict = {"parent_folder": None}
         else:

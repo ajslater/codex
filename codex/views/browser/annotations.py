@@ -187,6 +187,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_order_value(self, qs, model):
         """Annotate a main key for sorting and browser card display."""
         # Determine order func
+        if self.TARGET == "metadata":
+            return qs
         if model == Folder and self.order_key == "filename":
             order_value = F("name")
         elif model == Comic or self.order_key in _ANNOTATED_ORDER_FIELDS:

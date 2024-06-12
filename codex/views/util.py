@@ -26,6 +26,7 @@ class Route(dict):
             bool(cmp is not None)
             and (self.group == cmp.group)
             and (set(self.pks) == set(cmp.pks))
+            and (self.page == cmp.page)
         )
 
     def __and__(self, cmp):
@@ -33,7 +34,7 @@ class Route(dict):
         return (
             bool(cmp is not None)
             and (self.group == cmp.group)
-            and (set(self.pks) & set(cmp.pks))
+            and (self.pks == cmp.pks or (set(self.pks) & set(cmp.pks)))
         )
 
     dict = asdict

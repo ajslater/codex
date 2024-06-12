@@ -7,8 +7,8 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
+from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
-from codex.views.browser.browser import BrowserView
 from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
@@ -36,6 +36,7 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
     throttle_scope = "opds"
 
     serializer_class = OPDS2FeedSerializer
+    input_serializer_class = OPDSSettingsSerializer
 
     def _title(self, browser_title):
         """Create the feed title."""
@@ -233,8 +234,7 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
         # self._detect_user_agent()
 
     @extend_schema(
-        request=BrowserView.input_serializer_class,
-        parameters=[BrowserView.input_serializer_class],
+        parameters=[input_serializer_class],
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""

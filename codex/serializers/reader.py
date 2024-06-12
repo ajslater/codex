@@ -10,7 +10,8 @@ from rest_framework.serializers import (
 )
 
 from codex.models import Bookmark
-from codex.serializers.fields import TimestampField
+from codex.serializers.browser.settings import BrowserSettingsShowGroupFlagsSerializer
+from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
 from codex.serializers.route import RouteSerializer, SimpleRouteSerializer
 
 
@@ -45,6 +46,15 @@ class ReaderArcSerializer(SimpleRouteSerializer):
     index = IntegerField(required=False)
     count = IntegerField(required=False)
     mtime = TimestampField(read_only=True)
+
+
+class ReaderViewInputSerializer(Serializer):
+    """Input for the reader serailizer."""
+
+    arc = ReaderArcSerializer(required=False)
+    breadcrumbs = BreadcrumbsField(required=False)
+    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+    top_group = TopGroupField(required=False)
 
 
 class ReaderCurrentComicSerializer(ReaderComicSerializer):

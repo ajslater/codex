@@ -135,11 +135,10 @@ class SearchFilterView(ComicFieldFilterView):
             if comic_ids:
                 # Prefilter comic ids. If nothing is allowed, don't search.
                 sqs = sqs.filter_comic_ids(comic_ids)
-                binary = (
+                if (
                     self.TARGET in frozenset({"cover", "choices"})
-                    or self.params.get("order_by", "") != "search_score"
-                )
-                if binary:
+                    or self.params.get("order_by", "") != "search_score"  # type: ignore
+                ):
                     scored_pks = self._get_binary_search_scores(sqs)
                 else:
                     score_pairs, prev_pks, next_pks, scored_pks = (

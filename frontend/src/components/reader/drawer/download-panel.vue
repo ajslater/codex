@@ -1,18 +1,15 @@
 <template>
   <div v-if="currentBook" id="downloadPanel">
-    <v-list-item @click="downloadPage">
-      <v-list-item-title>
-        <v-icon>{{ mdiFileImage }}</v-icon
-        >Download Page
-        {{ storePage }}
-      </v-list-item-title>
-    </v-list-item>
-    <v-list-item @click="downloadBook">
-      <v-list-item-title>
-        <v-icon>{{ mdiDownload }}</v-icon
-        >Download Book
-      </v-list-item-title>
-    </v-list-item>
+    <DrawerItem
+      :prepend-icon="mdiFileImage"
+      :title="downloadPageTitle"
+      @click="downloadPage"
+    />
+    <DrawerItem
+      :prepend-icon="mdiDownload"
+      title="Download Book"
+      @click="downloadBook"
+    />
   </div>
 </template>
 
@@ -21,11 +18,15 @@ import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
+import DrawerItem from "@/components/drawer-item.vue";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "DownloadPanel",
+  components: {
+    DrawerItem,
+  },
   data() {
     return {
       mdiDownload,
@@ -50,6 +51,9 @@ export default {
     },
     pageName() {
       return `${this.activeTitle} - page ${this.storePage}.jpg`;
+    },
+    downloadPageTitle() {
+      return `Download Page ${this.storePage}`;
     },
   },
   methods: {

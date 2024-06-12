@@ -15,11 +15,13 @@ from codex.models import (
     StoryArc,
 )
 from codex.models.named import IdentifierType
-from codex.serializers.browser.choices import CHOICES_SERIALIZER_CLASS_MAP
+from codex.serializers.browser.choices import (
+    BrowserChoicesFilterSerializer,
+)
 from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
-    CharListField,
 )
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.serializers.models.pycountry import PyCountrySerializer
 from codex.views.browser.filters.annotations import (
     BrowserAnnotationsFilterView,
@@ -56,8 +58,14 @@ _NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
 class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
     """Get choices for filter dialog."""
 
-    SERIALIZER_MANY = False
+    input_serializer_class = BrowserFilterChoicesInputSerilalizer
     TARGET = "choices"
+
+    def init_request(self):
+        """Initialieze request."""
+        self.parse_params()
+        self.set_model()
+        self.set_rel_prefix()
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -97,12 +105,12 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
         """Get the comic subquery use for the choices."""
         return self.get_filtered_queryset(Comic)
 
-    @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
+    @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Return choices."""
         self.init_request()
         obj = self.get_object()
-        serializer = self.get_serializer(obj, many=self.SERIALIZER_MANY)
+        serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
 
@@ -160,10 +168,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 class BrowserChoicesView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
-    # serializer_class = Dynamic class determined in get()
-    SERIALIZER_MANY = True
-    # HACK get_serializer(data, many=True) requires this to be set for the debug API view
-    queryset = Comic.objects.none()
+    serializer_class = BrowserChoicesFilterSerializer
 
     def _get_field_choices(self, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""
@@ -202,11 +207,6 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
 
-    def get_serializer_class(self):  # type: ignore
-        """Dynamic serializer class."""
-        field_name = self._get_field_name()
-        return CHOICES_SERIALIZER_CLASS_MAP.get(field_name, CharListField)
-
     def get_object(self):
         """Return choices with more than one choice."""
         qs = super().get_object()
@@ -217,4 +217,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             choices = self._get_m2m_field_choices(m2m_model, qs, rel)
         else:
             choices = self._get_field_choices(qs, rel)
-        return choices
+        return {
+            "field_name": field_name,
+            "choices": choices,
+        }

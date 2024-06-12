@@ -5,15 +5,13 @@ from rest_framework.serializers import (
     CharField,
     DecimalField,
     IntegerField,
-    ListSerializer,
     Serializer,
 )
 
 from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
-from codex.serializers.fields import TimestampField
-from codex.serializers.route import RouteSerializer
+from codex.serializers.fields import BreadcrumbsField, TimestampField
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin):
@@ -54,7 +52,7 @@ class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
-    breadcrumbs = ListSerializer(child=RouteSerializer())
+    breadcrumbs = BreadcrumbsField(read_only=True)
     title = BrowserTitleSerializer(read_only=True)
     zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)

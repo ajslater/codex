@@ -47,6 +47,7 @@ export default {
     }),
     ...mapState(useReaderStore, {
       empty: (state) => state.empty,
+      arc: (state) => state.arc,
     }),
   },
   watch: {
@@ -58,11 +59,12 @@ export default {
     },
   },
   beforeMount() {
-    useReaderStore().$reset;
+    // useReaderStore().$reset; // Not working
+    this.reset(); // HACK
     this.loadReaderSettings();
   },
   methods: {
-    ...mapActions(useReaderStore, ["loadReaderSettings"]),
+    ...mapActions(useReaderStore, ["loadReaderSettings", "reset"]),
   },
 };
 </script>

@@ -67,7 +67,7 @@ export const useCommonStore = defineStore("common", {
         .catch(console.error);
     },
     downloadIOSPWAFix(href, filename) {
-      API.downloadIOSPWAFix(href, filename);
+      API.getDownloadIOSPWAFix(href, filename);
     },
     setErrors(axiosError) {
       const errors = getErrors(axiosError);

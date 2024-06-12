@@ -16,9 +16,6 @@ from codex.models import (
     Folder,
     Imprint,
     Library,
-    Publisher,
-    Series,
-    StoryArc,
     Volume,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
@@ -34,6 +31,15 @@ if TYPE_CHECKING:
 
 
 LOG = get_logger(__name__)
+_GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
+    type[BrowserGroupModel], tuple[str | None, ...]
+] = MappingProxyType(
+    {
+        Comic: ("series", "volume"),
+        Volume: ("series",),
+        Imprint: ("publisher",),
+    }
+)
 
 
 class BrowserView(BrowserTitleView):
@@ -48,19 +54,6 @@ class BrowserView(BrowserTitleView):
         }
     )
     TARGET = "browser"
-    _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
-        type[BrowserGroupModel], tuple[str | None, ...]
-    ] = MappingProxyType(
-        {
-            Comic: ("series", "volume"),
-            Volume: ("series",),
-            Series: (None,),
-            Imprint: ("publisher",),
-            Publisher: (None,),
-            Folder: ("parent_folder",),
-            StoryArc: (None,),
-        }
-    )
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -75,7 +68,7 @@ class BrowserView(BrowserTitleView):
         if pks and self.group_class:
             try:
                 select_related: tuple[str | None, ...] = (
-                    self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
+                    _GROUP_INSTANCE_SELECT_RELATED.get(self.group_class, (None,))
                 )
                 self.group_query = self.group_class.objects.select_related(
                     *select_related
@@ -162,7 +155,7 @@ class BrowserView(BrowserTitleView):
             return self.group_instance.updated_at
 
         group_model = self.group_class if self.group_class else self.model
-        return self.get_group_mtime(group_model)
+        return self.get_group_mtime(group_model, page_mtime=True)
 
     @staticmethod
     def _get_zero_pad(book_qs):
@@ -205,7 +198,7 @@ class BrowserView(BrowserTitleView):
         )
 
         # get additional context
-        parent_breadcrumbs = self.get_parent_breadcrumbs()
+        breadcrumbs = self.get_breadcrumbs()
         title = self.get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
@@ -214,7 +207,7 @@ class BrowserView(BrowserTitleView):
         # construct final data structure
         return MappingProxyType(
             {
-                "breadcrumbs": parent_breadcrumbs,
+                "breadcrumbs": breadcrumbs,
                 "title": title,
                 "model_group": self.model_group,
                 "groups": group_qs,
@@ -228,11 +221,10 @@ class BrowserView(BrowserTitleView):
             }
         )
 
-    @extend_schema(request=BrowserTitleView.input_serializer_class)
+    @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
         self.init_request()
         data = self.get_object()
         serializer = self.get_serializer(data)
-        self.save_params_to_session(self.params)
         return Response(serializer.data)

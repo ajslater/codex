@@ -6,10 +6,8 @@ import {
 
 import { HTTP } from "./base";
 
-const getReaderInfo = (data, ts) => {
-  const pk = data.pk;
+const getReaderInfo = (pk, data, ts) => {
   const params = serializeParams(data, ts);
-  delete params.pk;
   return HTTP.get(`c/${pk}`, { params });
 };
 
@@ -18,8 +16,8 @@ const getReaderSettings = () => {
   return HTTP.get(`c/settings`, { params });
 };
 
-const setReaderSettings = (data) => {
-  return HTTP.put(`c/settings`, data);
+const updateReaderSettings = (data) => {
+  return HTTP.patch(`c/settings`, data);
 };
 
 export const getDownloadURL = ({ pk, mtime }) => {
@@ -47,5 +45,5 @@ export default {
   getReaderBasePath,
   getReaderInfo,
   getReaderSettings,
-  setReaderSettings,
+  updateReaderSettings,
 };

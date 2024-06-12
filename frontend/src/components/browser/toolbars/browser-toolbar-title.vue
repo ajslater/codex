@@ -25,7 +25,7 @@
 
 <script>
 import { mdiReload } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import { useAuthStore } from "@/stores/auth";

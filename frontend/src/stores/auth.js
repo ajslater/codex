@@ -81,7 +81,7 @@ export const useAuthStore = defineStore("auth", {
         password: credentials.password,
       };
       const commonStore = useCommonStore();
-      await API.changePassword(credentials)
+      await API.updatePassword(credentials)
         .then((response) => {
           commonStore.setSuccess(response.data.detail);
           return this.login(changedCredentials, false);
@@ -89,7 +89,7 @@ export const useAuthStore = defineStore("auth", {
         .catch(commonStore.setErrors);
     },
     async setTimezone() {
-      await API.setTimezone().catch(console.error);
+      await API.updateTimezone().catch(console.error);
     },
   },
 });

@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 from codex.models import AdminFlag
 from codex.util import max_none
-from codex.views.const import FOLDER_GROUP
+from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 from codex.views.reader.books import ReaderBooksView
 
 
@@ -16,6 +16,22 @@ class ReaderArcsView(ReaderBooksView):
         super().__init__(*args, **kwargs)
         self.params: MappingProxyType = MappingProxyType({})
 
+    def _get_group_arc(self, book, attr):
+        """Create the volume arc."""
+        group = getattr(book, attr, None)
+        if not group:
+            return None
+
+        _, arc_pks = self.get_group_pks_from_breadcrumbs([group])
+        if group.pk not in arc_pks:
+            arc_pks = (group.pk,)
+        return {
+            "group": attr[0],
+            "pks": arc_pks,
+            "name": group.name,
+            "mtime": group.updated_at,
+        }
+
     def _get_folder_arc(self, book):
         """Create the folder arc."""
         efv_flag = (
@@ -23,39 +39,16 @@ class ReaderArcsView(ReaderBooksView):
             .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
             .on
         )
+        if not efv_flag:
+            return None
 
-        if efv_flag:
-            folder = book.parent_folder
-            folder_arc = {
-                "group": FOLDER_GROUP,
-                "pks": (folder.pk,),
-                "name": folder.name,
-                "mtime": folder.updated_at,
-            }
-        else:
-            folder_arc = None
-        return folder_arc
-
-    def _get_series_arc(self, book):
-        """Create the series arc."""
-        series = book.series
-        if series:
-            arc_pks = self.get_series_pks_from_breadcrumbs()
-            if book.series.pk not in arc_pks:
-                arc_pks = (book.series.pk,)
-            arc = (
-                {
-                    "group": "s",
-                    "pks": arc_pks,
-                    "name": series.name,
-                    "mtime": series.updated_at,
-                }
-                if series
-                else None
-            )
-        else:
-            arc = None
-        return arc
+        folder = book.parent_folder
+        return {
+            "group": FOLDER_GROUP,
+            "pks": (folder.pk,),
+            "name": folder.name,
+            "mtime": folder.updated_at,
+        }
 
     def _get_story_arcs(self, book):
         """Create story arcs."""
@@ -74,26 +67,24 @@ class ReaderArcsView(ReaderBooksView):
     def get_arcs(self, book):
         """Get all series/folder/story arcs."""
         # create top arcs
-        folder_arc = self._get_folder_arc(book)
-        series_arc = self._get_series_arc(book)
-
-        # order top arcs
-        top_group = self.params.get("top_group")
-        if top_group == FOLDER_GROUP and folder_arc:
-            arc = folder_arc
-            other_arc = series_arc
-        else:
-            arc = series_arc
-            other_arc = folder_arc
-
         arcs = []
-        arcs.append(arc)
-        if other_arc:
-            arcs.append(other_arc)
-
-        # story arcs
-        sas = self._get_story_arcs(book)
-        arcs += sas
+        top_group = self.params.get("top_group")
+        arc = None
+        if series_arc := self._get_group_arc(book, "series"):
+            arcs.append(series_arc)
+            arc = series_arc
+        if volume_arc := self._get_group_arc(book, "volume"):
+            arcs.append(volume_arc)
+            if not arc:
+                arc = volume_arc
+        if folder_arc := self._get_folder_arc(book):
+            arcs.append(folder_arc)
+            if top_group == FOLDER_GROUP:
+                arc = folder_arc
+        if story_arcs := self._get_story_arcs(book):
+            arcs = [*arcs, *story_arcs]
+            if top_group == STORY_ARC_GROUP:
+                arc = story_arcs[0]
 
         max_mtime = None
         for arc in arcs:

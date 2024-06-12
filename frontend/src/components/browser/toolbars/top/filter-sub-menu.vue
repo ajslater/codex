@@ -5,28 +5,20 @@
         v-if="filterMode === 'base'"
         density="compact"
         variant="plain"
+        :title="title"
+        :append-icon="filterMenuIcon"
         @click="setUIFilterMode(name)"
-      >
-        <v-list-item-title class="filterMenu">
-          {{ title }}
-          <v-icon v-if="filter && filter.length > 0" class="nameChevron">
-            {{ mdiChevronRightCircle }}
-          </v-icon>
-          <v-icon v-else class="nameChevron">
-            {{ mdiChevronRight }}
-          </v-icon>
-        </v-list-item-title>
-      </v-list-item>
+      />
     </v-slide-x-transition>
     <v-slide-x-reverse-transition hide-on-leave>
       <div v-if="filterMode === name">
         <header class="filterHeader">
-          <v-list-item @click="setUIFilterMode('base')">
-            <v-list-item-title class="filterTitle">
-              <v-icon>{{ mdiChevronLeft }}</v-icon
-              >{{ lowerTitle }}
-            </v-list-item-title>
-          </v-list-item>
+          <v-list-item
+            class="filterHeaderTitle"
+            :prepend-icon="mdiChevronLeft"
+            :title="lowerTitle"
+            @click="setUIFilterMode('base')"
+          />
           <v-text-field
             v-if="typeof choices === 'object'"
             v-model="query"
@@ -105,8 +97,6 @@ export default {
   data() {
     return {
       mdiChevronLeft,
-      mdiChevronRight,
-      mdiChevronRightCircle,
       query: "",
       nullCode: VUETIFY_NULL_CODE,
     };
@@ -134,11 +124,16 @@ export default {
     vuetifyItems() {
       return toVuetifyItems(this.choices, this.query);
     },
-    title: function () {
+    title() {
       return camelToTitleCase(this.name);
     },
-    lowerTitle: function () {
+    lowerTitle() {
       return this.title.toLowerCase();
+    },
+    filterMenuIcon() {
+      return this.filter && this.filter.length > 0
+        ? mdiChevronRightCircle
+        : mdiChevronRight;
     },
   },
   methods: {
@@ -172,13 +167,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.filterMenu {
-  line-height: 24px !important;
+.filterHeaderTitle :deep(.v-list-item__prepend > .v-list-item__spacer) {
+  display: none;
 }
-.nameChevron {
-  float: right;
-}
-.filterTitle {
+.filterHeaderTitle :deep(.v-list-item-title) {
   font-variant: small-caps;
   color: rbg(var(--v-theme-textDisabled));
   font-weight: bold;

@@ -41,22 +41,26 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
-        const crumbs = [];
-        if (!state.page.breadcrumbs) {
-          return crumbs;
+        const vueCrumbs = [];
+        const parentBreadcrumbs = state.settings.breadcrumbs.slice(
+          0,
+          state.settings.breadcrumbs.length - 1,
+        );
+        if (!parentBreadcrumbs) {
+          return vueCrumbs;
         }
         let parentPks = "";
-        for (const crumb of state.page.breadcrumbs) {
+        for (const crumb of parentBreadcrumbs) {
           const to = this.getTo(crumb, parentPks);
           const title = crumb.name ? crumb.name : "";
           const group = crumb.group;
           const icon = this.getIcon(crumb.pks, title, group);
           const tooltip = crumb.pks === "0" ? "Top" : GROUP_NAME_MAP[group];
           const displayCrumb = { to, title, icon, tooltip };
-          crumbs.push(displayCrumb);
+          vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;
         }
-        return crumbs;
+        return vueCrumbs;
       },
     }),
   },
@@ -93,7 +97,7 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
   padding-top: 0px;
   padding-bottom: 0px;
-  padding-left: max(10px, calc(env(safe-area-inset-left)/2));
+  padding-left: max(18px, calc(env(safe-area-inset-left)/2));
   padding-right: 0px;
 }
 #browserBreadcrumbs :deep(.v-breadcrumbs-item) {
@@ -110,7 +114,7 @@ export default {
 }
 @media #{map-get(vuetify.$display-breakpoints, 'xs')} {
 #browserBreadcrumbs {
-  padding-left: max(5px, calc(env(safe-area-inset-left)/2));
+  padding-left: max(10px, calc(env(safe-area-inset-left)/2));
 }
 }
 </style>

@@ -1,28 +1,37 @@
 <template>
-  <AuthLogoutItem v-if="user" />
-  <ChangePasswordDialog v-if="user" :user="user" />
+  <DrawerItem v-if="user" :prepend-icon="mdiLogout" :title="logoutTitle" />
+  <ChangePasswordDialog v-if="user" :user="user" @click.stop="logout" />
   <AuthLoginDialog v-else />
 </template>
 
 <script>
+import { mdiLogout } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
-import AuthLogoutItem from "@/components/auth/logout-item.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AuthMenu",
   components: {
-    ChangePasswordDialog,
     AuthLoginDialog,
-    AuthLogoutItem,
+    ChangePasswordDialog,
+    DrawerItem,
+  },
+  data() {
+    return {
+      mdiLogout,
+    };
   },
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
+    logoutTitle() {
+      return `Logout ${this.user.username}`;
+    },
   },
   methods: {
     ...mapActions(useAuthStore, ["logout"]),

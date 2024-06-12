@@ -8,11 +8,11 @@ const getAdminFlags = async () => {
 
 const get_tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const setTimezone = async () => {
+const updateTimezone = async () => {
   const data = {
     timezone: get_tz(),
   };
-  return await HTTP.post("/auth/timezone/", data);
+  return await HTTP.put("/auth/timezone/", data);
 };
 
 const register = async (credentials) => {
@@ -34,16 +34,16 @@ const logout = async () => {
   return await HTTP.post("/auth/logout/");
 };
 
-const changePassword = async (credentials) => {
+const updatePassword = async (credentials) => {
   return await HTTP.post("/auth/change-password/", credentials);
 };
 
 export default {
-  changePassword,
+  updatePassword,
   getAdminFlags,
   getProfile,
+  updateTimezone,
   login,
   logout,
   register,
-  setTimezone,
 };

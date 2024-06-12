@@ -2,6 +2,7 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import titleize from "titleize";
 
+import BROWSER_API from "@/api/v3/browser";
 // import { reactive } from "vue";
 import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
@@ -46,6 +47,14 @@ Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
 const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CHOICES);
+const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup"];
+Object.freeze(READER_INFO_KEYS);
+const camelToSnakeCase = (str) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) =>
+  camelToSnakeCase(key),
+);
+Object.freeze(READER_INFO_ONLY_KEYS);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -82,6 +91,11 @@ export const useReaderStore = defineStore("reader", {
       readingDirection: "ltr",
       readRtlInReverse: false,
     },
+    browserSettings: {
+      breadcrumbs: CHOICES.browser.breadcrumbs,
+      show: CHOICES.browser.show,
+      topGroup: "p",
+    },
     books: {
       current: undefined,
       prev: false,
@@ -110,6 +124,7 @@ export const useReaderStore = defineStore("reader", {
       scale: SCALE_DEFAULT,
     },
     showToolbars: false,
+    settingsLoaded: false,
   }),
   getters: {
     groupBooks(state) {
@@ -197,6 +212,22 @@ export const useReaderStore = defineStore("reader", {
       }
       route.params = params;
       return route;
+    },
+    readerInfoSettings(state) {
+      const usedKeys = {};
+      for (const key of READER_INFO_KEYS) {
+        const value = state.browserSettings[key];
+        if (value) {
+          usedKeys[key] = value;
+        }
+      }
+      if (state.arc && Object.keys(state.arc).length) {
+        usedKeys.arc = {
+          group: state.arc.group,
+          pk: state.arc.pk,
+        };
+      }
+      return usedKeys;
     },
   },
   actions: {
@@ -329,6 +360,20 @@ export const useReaderStore = defineStore("reader", {
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;
     },
+    reset() {
+      // HACK because $reset doesn't seem to.
+      this.$patch((state) => {
+        state.arc = undefined;
+        state.arcs = [];
+        state.mtime = 0;
+        state.settingsLoaded = false;
+        state.books = {
+          current: undefined,
+          prev: false,
+          next: false,
+        };
+      });
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
     _getBookRoutePage(book, isPrev) {
@@ -393,7 +438,7 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadReaderSettings() {
-      return API.getReaderSettings()
+      API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
@@ -401,11 +446,32 @@ export const useReaderStore = defineStore("reader", {
           return true;
         })
         .catch(console.error);
+      BROWSER_API.getSettings({
+        only: READER_INFO_ONLY_KEYS,
+        breadcrumbNames: false,
+      })
+        .then((response) => {
+          this.browserSettings = response.data;
+          return true;
+        })
+        .catch(console.error);
+      if (!this.settingsLoaded) {
+        this.settingsLoaded = true;
+        this.loadBooks({});
+      }
     },
-    async loadBooks(params, mtime) {
+    async loadBooks({ params, arc, mtime }) {
+      if (!this.settingsLoaded) {
+        this.loadReaderSettings();
+      }
       const route = router.currentRoute.value;
       if (!params) {
         params = route.params;
+      }
+      const pk = params.pk;
+      const settings = this.readerInfoSettings;
+      if (arc) {
+        settings.arc = arc;
       }
       if (!mtime) {
         mtime = route.query?.ts;
@@ -413,7 +479,7 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await API.getReaderInfo(params, mtime)
+      await API.getReaderInfo(pk, settings, mtime)
         .then((response) => {
           const data = response.data;
           const books = data.books;
@@ -459,17 +525,27 @@ export const useReaderStore = defineStore("reader", {
           this.empty = true;
         });
     },
+    async loadMtimes() {
+      return await COMMON_API.getMtime(this.arcs, {})
+        .then((response) => {
+          const newMtime = response.data.maxMtime;
+          if (newMtime !== this.mtime) {
+            this.loadBooks({ mtime: newMtime });
+          }
+        })
+        .catch(console.error);
+    },
     async _setBookmarkPage(page) {
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
-      await COMMON_API.setGroupBookmarks(groupParams, updates);
+      await COMMON_API.updateGroupBookmarks(groupParams, updates);
     },
     async setSettingsLocal(data) {
       this._updateSettings(data, true);
 
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await COMMON_API.setGroupBookmarks(
+      await COMMON_API.updateGroupBookmarks(
         groupParams,
         this.books.current.settings,
       );
@@ -486,7 +562,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async setSettingsGlobal(data) {
       this._updateSettings(data, false);
-      await API.setReaderSettings(this.readerSettings);
+      await API.udpateReaderSettings(this.readerSettings);
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
@@ -496,16 +572,6 @@ export const useReaderStore = defineStore("reader", {
     linkLabel(direction, suffix) {
       const prefix = direction === "prev" ? "Previous" : "Next";
       return `${prefix} ${suffix}`;
-    },
-    async updateMtimes() {
-      return await COMMON_API.getMtime(this.arcs, {})
-        .then((response) => {
-          const newMtime = response.data.maxMtime;
-          if (newMtime !== this.mtime) {
-            this.loadBooks(undefined, newMtime);
-          }
-        })
-        .catch(console.error);
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE

@@ -49,15 +49,19 @@
         </div>
         <div class="inlineRow">
           <MetadataText
+            v-for="publisher of md.publisherList"
             id="publisher"
-            :value="md.publisher"
+            :key="publisher.ids"
+            :value="publisher"
             group="p"
             label="Publisher"
             :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText
+            v-for="imprint of md.imprintList"
             id="imprint"
-            :value="md.imprint"
+            :key="imprint.ids"
+            :value="imprint"
             group="i"
             label="Imprint"
             :obj="{ ids: md.ids, group: md.group }"
@@ -65,8 +69,10 @@
         </div>
         <div class="inlineRow">
           <MetadataText
+            v-for="series of md.seriesList"
             id="series"
-            :value="md.series"
+            :key="series.ids"
+            :value="series"
             label="Series"
             group="s"
             :obj="{ ids: md.ids, group: md.group }"
@@ -74,8 +80,10 @@
         </div>
         <div class="inlineRow">
           <MetadataText
+            v-for="volume of md.volumeList"
             id="volume"
-            :value="md.volume"
+            :key="volume.ids"
+            :value="volume"
             label="Volume"
             group="v"
             :obj="{ ids: md.ids, group: md.group }"

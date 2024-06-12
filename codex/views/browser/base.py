@@ -14,7 +14,7 @@ from codex.models import (
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.search import SearchFilterView
-from codex.views.const import GROUP_MODEL_MAP, ROOT_GROUP
+from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, ROOT_GROUP, STORY_ARC_GROUP
 from codex.views.util import reparse_json_query_params
 
 LOG = get_logger(__name__)
@@ -29,9 +29,7 @@ class BrowserBaseView(SearchFilterView):
     input_serializer_class = BrowserSettingsSerializer
 
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
-    REPARSE_JSON_FIELDS = frozenset({"filters", "show"})
-
-    _GET_JSON_KEYS = frozenset({"filters", "show"})
+    REPARSE_JSON_FIELDS = frozenset({"breadcrumbs", "filters", "show"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -87,7 +85,26 @@ class BrowserBaseView(SearchFilterView):
         data = self._parse_query_params()
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        self.load_params_from_session(serializer.validated_data)
+
+        params: dict[str, Any] = {}
+        defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
+        params.update(defaults)
+        group = self.kwargs.get("group")
+        if group:
+            # order_by has a dynamic group based default
+            order_defaults = {
+                "order_by": "filename"
+                if group == FOLDER_GROUP
+                else "story_arc_number"
+                if group == STORY_ARC_GROUP
+                else "sort_name"
+            }
+            params.update(order_defaults)
+        validated_data = serializer.validated_data
+
+        if validated_data:
+            params.update(validated_data)  # type: ignore
+        self.params = MappingProxyType(params)
         self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
         return serializer.validated_data
 

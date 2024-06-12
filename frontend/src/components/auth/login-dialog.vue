@@ -6,12 +6,7 @@
     max-width="20em"
   >
     <template #activator="{ props }">
-      <v-list-item v-bind="props">
-        <v-list-item-title>
-          <v-icon>{{ mdiLogin }}</v-icon>
-          {{ loginLabel }}
-        </v-list-item-title>
-      </v-list-item>
+      <DrawerItem v-bind="props" :prepend-icon="mdiLogin" :title="loginLabel" />
     </template>
     <v-form id="authDialog" ref="form">
       <v-text-field
@@ -74,6 +69,7 @@
 import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import DrawerItem from "@/components/drawer-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -82,6 +78,7 @@ export default {
   name: "AuthLoginDialog",
   components: {
     SubmitFooter,
+    DrawerItem,
   },
   data() {
     return {

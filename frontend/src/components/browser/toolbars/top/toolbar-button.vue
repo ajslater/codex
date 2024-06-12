@@ -14,8 +14,3 @@ export default {
   },
 };
 </script>
-<style scoped lang="scss">
-.toolbarButton {
-  padding-bottom: 7px;
-}
-</style>

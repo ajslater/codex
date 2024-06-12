@@ -2,18 +2,20 @@
 
 from types import MappingProxyType
 
+from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
     FloatField,
     IntegerField,
+    ReturnList,
     Serializer,
 )
 
-from codex.serializers.browser.filters import (
+from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
+from codex.serializers.fields import (
     BooleanListField,
-    BrowserSettingsFilterSerializer,
     CharListField,
     DecadeListField,
     FloatListField,
@@ -56,11 +58,25 @@ _CHOICES_TYPE_SERIALIZER_MAP = MappingProxyType(
         IntListField: BrowserChoicesIntPkSerializer,
     }
 )
-
-_BSFS = BrowserSettingsFilterSerializer
-CHOICES_SERIALIZER_CLASS_MAP = MappingProxyType(
+_CHOICES_SERIALIZER_CLASS_MAP = MappingProxyType(
     {
         name: _CHOICES_TYPE_SERIALIZER_MAP[field.__class__]
-        for name, field in _BSFS().fields.items()  # type: ignore
+        for name, field in BrowserSettingsFilterSerializer().fields.items()  # type: ignore
     }
 )
+
+
+class BrowserChoicesFilterSerializer(Serializer):
+    """Dynamic Serializer response by field type."""
+
+    choices = SerializerMethodField(read_only=True)
+
+    def get_choices(self, obj) -> ReturnList:  # [dict[str|int|bool|float, str]]:
+        """Dynamic Serializer response by field type."""
+        key = obj.get("field_name", "")
+        choices = obj.get("choices", [])
+        serializer_class = _CHOICES_SERIALIZER_CLASS_MAP.get(
+            key, BrowserChoicesCharPkSerializer
+        )
+        serializer = serializer_class(choices, many=True)
+        return serializer.data  # type: ignore

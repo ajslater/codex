@@ -77,14 +77,9 @@
           "confirm": "Are you sure?"
         },
         {
-          "value": "update_first_covers",
-          "title": "Ensure First Covers",
-          "desc": "Link first covers to groups missing first covers for the non-dynamic covers view."
-        },
-        {
-          "value": "force_update_first_covers",
-          "title": "Force Update First Covers",
-          "desc": "Force the recalculation and relink of first covers to groups for the non-dynamic covers view."
+          "value": "force_update_groups",
+          "title": "Update Group Timestamps",
+          "desc": "Force the update of group timestamps. Will bust the browser cache for browser views and covers."
         }
       ]
     },

@@ -28,19 +28,21 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
-const COVER_KEYS = ["customCovers", "dynamicCovers", "q"];
+const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
-const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse"];
+const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse", "q"];
 Object.freeze(DYNAMIC_COVER_KEYS);
 const CHOICES_KEYS = ["filters", "q"];
 Object.freeze(CHOICES_KEYS);
+const PAGE_LOAD_KEYS = ["breadcrumbs"];
+Object.freeze(PAGE_LOAD_KEYS);
 
-const redirectRoute = function (route) {
+const redirectRoute = (route) => {
   if (route && route.params) {
     router.push(route).catch(console.warn);
   }
 };
-const createReadingDirection = function () {
+const createReadingDirection = () => {
   const rd = {};
   for (const obj of CHOICES.reader.readingDirection) {
     if (obj.value) {
@@ -48,6 +50,10 @@ const createReadingDirection = function () {
     }
   }
   return rd;
+};
+
+const notEmptyOrBool = (value) => {
+  return (value && Object.keys(value).length) || typeof value === "boolean";
 };
 
 export const useBrowserStore = defineStore("browser", {
@@ -63,17 +69,18 @@ export const useBrowserStore = defineStore("browser", {
       dynamic: undefined,
     },
     settings: {
+      breadcrumbs: CHOICES.browser.breadcrumbs,
+      customCovers: true,
+      dynamicCovers: false,
       filters: {},
-      q: undefined,
-      topGroup: undefined,
       orderBy: undefined,
       orderReverse: undefined,
-      show: { ...SETTINGS_SHOW_DEFAULTS },
+      q: undefined,
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
+      show: { ...SETTINGS_SHOW_DEFAULTS },
+      topGroup: undefined,
       twentyFourHourTime: false,
-      dynamicCovers: false,
-      customCovers: true,
     },
     page: {
       adminFlags: {
@@ -81,7 +88,6 @@ export const useBrowserStore = defineStore("browser", {
         folderView: undefined,
         importMetadata: undefined,
       },
-      breadcrumbs: CHOICES.browser.breadcrumbs,
       title: {
         groupName: undefined,
         groupCount: undefined,
@@ -176,11 +182,12 @@ export const useBrowserStore = defineStore("browser", {
     },
     */
     lastRoute(state) {
-      const bc = state.page.breadcrumbs;
+      const bc = state.settings.breadcrumbs;
       const params = bc[bc.length - 1];
       const route = {};
       if (params) {
         route.name = "browser";
+        delete params.name;
         route.params = params;
       } else {
         route.name = "home";
@@ -191,11 +198,22 @@ export const useBrowserStore = defineStore("browser", {
       const usedSettings = {};
       const group = router.currentRoute.value.params?.group;
       if (group != "c") {
-        for (const [key, value] of Object.entries(state.settings)) {
-          if (
-            COVER_KEYS.includes(key) ||
-            (state.settings.dynamicCovers && DYNAMIC_COVER_KEYS.includes(key))
-          ) {
+        let keys = COVER_KEYS;
+        if (state.settings.dynamicCovers) {
+          keys = keys.concat(DYNAMIC_COVER_KEYS);
+        }
+        for (const key of keys) {
+          let value = state.settings[key];
+          if (key === "filters") {
+            const usedFilters = {};
+            for (const [subkey, subvalue] of Object.entries(value)) {
+              if (notEmptyOrBool(subvalue)) {
+                usedFilters[subkey] = subvalue;
+              }
+            }
+            value = usedFilters;
+          }
+          if (notEmptyOrBool(value)) {
             usedSettings[key] = value;
           }
         }
@@ -204,10 +222,15 @@ export const useBrowserStore = defineStore("browser", {
     },
     choicesSettings(state) {
       const usedSettings = {};
-      for (const [key, value] of Object.entries(state.settings)) {
-        if (CHOICES_KEYS.includes(key)) {
-          usedSettings[key] = value;
-        }
+      for (const key of CHOICES_KEYS) {
+        usedSettings[key] = state.settings[key];
+      }
+      return usedSettings;
+    },
+    pageLoadSettings(state) {
+      const usedSettings = {};
+      for (const key of PAGE_LOAD_KEYS) {
+        usedSettings[key] = state.settings[key];
       }
       return usedSettings;
     },
@@ -324,7 +347,10 @@ export const useBrowserStore = defineStore("browser", {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
           let newValue;
-          if (typeof state.settings[key] === "object") {
+          if (
+            typeof state.settings[key] === "object" &&
+            !Array.isArray(state.settings[key])
+          ) {
             newValue = { ...state.settings[key], ...value };
           } else {
             newValue = value;
@@ -360,9 +386,9 @@ export const useBrowserStore = defineStore("browser", {
       const redirect = this._validateAndSaveSettings(data);
       this.browserPageLoaded = true;
       if (redirect) {
-        await redirectRoute(redirect);
+        redirectRoute(redirect);
       } else {
-        await this.loadBrowserPage();
+        this.loadBrowserPage(undefined, true);
       }
     },
     async clearFilters(clearSearch = false) {
@@ -376,13 +402,13 @@ export const useBrowserStore = defineStore("browser", {
         }
         state.browserPageLoaded = true;
       });
-      await this.loadBrowserPage();
+      await this.loadBrowserPage(undefined, true);
     },
     async setBookmarkFinished(params, finished) {
       if (!this.isAuthorized) {
         return;
       }
-      await COMMON_API.setGroupBookmarks(params, { finished }).then(() => {
+      await COMMON_API.updateGroupBookmarks(params, { finished }).then(() => {
         this.loadBrowserPage(getTimestamp());
         return true;
       });
@@ -408,6 +434,21 @@ export const useBrowserStore = defineStore("browser", {
     },
     setPageMtime(mtime) {
       self.mtime = mtime;
+    },
+    async updateBreadcrumbs(oldBreadcrumbs) {
+      const breadcrumbs = this.settings.breadcrumbs || [];
+      for (const index of _.range(breadcrumbs.length).reverse()) {
+        const oldCrumb = oldBreadcrumbs[index];
+        const newCrumb = breadcrumbs[index];
+        if (!_.isEqual(oldCrumb, newCrumb)) {
+          if (newCrumb.name === null) {
+            // For volumes
+            newCrumb.name = "";
+          }
+          API.updateSettings({ breadcrumbs });
+          break;
+        }
+      }
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
@@ -442,7 +483,8 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      await API.getSettings()
+      const group = router?.currentRoute?.value.params?.group;
+      await API.getSettings({ group })
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
@@ -450,14 +492,14 @@ export const useBrowserStore = defineStore("browser", {
           if (redirect) {
             return redirectRoute(redirect);
           }
-          return this.loadBrowserPage();
+          return this.loadBrowserPage(undefined, true);
         })
         .catch((error) => {
           this.browserPageLoaded = true;
           return this.handlePageError(error);
         });
     },
-    async loadBrowserPage(mtime) {
+    async loadBrowserPage(mtime, updateSettings = false) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
         return;
@@ -474,10 +516,13 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         this.browserPageLoaded = false;
       }
-      await API.loadBrowserPage(route.params, this.settings, mtime)
+      const oldBreadcrumbs = this.settings.breadcrumbs;
+      await API.getBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
-          const page = Object.freeze({ ...response.data });
+          const { breadcrumbs, ...page } = response.data;
+          Object.freeze({ page });
           this.$patch((state) => {
+            state.settings.breadcrumbs = breadcrumbs;
             state.page = page;
             state.choices.dynamic = undefined;
             state.browserPageLoaded = true;
@@ -485,6 +530,11 @@ export const useBrowserStore = defineStore("browser", {
           return true;
         })
         .catch(this.handlePageError);
+      if (updateSettings) {
+        API.updateSettings(this.settings);
+      } else {
+        this.updateBreadcrumbs(oldBreadcrumbs);
+      }
     },
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
@@ -506,12 +556,14 @@ export const useBrowserStore = defineStore("browser", {
         this.page.mtime,
       )
         .then((response) => {
-          this.choices.dynamic[fieldName] = Object.freeze(response.data);
+          this.choices.dynamic[fieldName] = Object.freeze(
+            response.data.choices,
+          );
           return true;
         })
         .catch(console.error);
     },
-    async updateMtimes() {
+    async loadMtimes() {
       const route = router.currentRoute.value;
       const group =
         route.params.group != "r" ? route.params.group : this.page.modelGroup;
