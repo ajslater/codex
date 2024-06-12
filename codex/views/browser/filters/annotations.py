@@ -7,7 +7,7 @@ from codex.models.comic import Comic
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.validate import BrowserValidateView
 from codex.views.const import (
-    EPOCH_START_DATETIMEFILED,
+    EPOCH_START_DATETIMEFIELD,
     ONE_INTEGERFIELD,
 )
 
@@ -73,12 +73,12 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
             ua_rel = bm_rel + "__updated_at"
             mbua = Max(ua_rel)
         else:
-            mbua = EPOCH_START_DATETIMEFILED
+            mbua = EPOCH_START_DATETIMEFIELD
         qs = qs.annotate(max_bookmark_updated_at=mbua)
 
         mtime = qs.aggregate(
             max=Greatest(
-                Coalesce("max_bookmark_updated_at", EPOCH_START_DATETIMEFILED),
+                Coalesce("max_bookmark_updated_at", EPOCH_START_DATETIMEFIELD),
                 "max_updated_at",
             )
         )["max"]
