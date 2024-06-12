@@ -10,14 +10,15 @@ border-radius: 128px;
 
 - Features
   - Breadcrumbs in the browser
-  - Browser setting to choose Dynamic or First group covers. Thanks @Thakk.
   - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
+  - Browser setting to choose Dynamic or First group covers. Thanks @Thakk.
   - Metadata tags can click to browse filtered on that tag.
   - Browser, search, and cover speed optimizations.
   - Granular caching for covers in the browser.
   - Experimental API throttling support. Search the README for "throttle".
-  - More compact UI controls.
   - Add websocket updates for anonymous sessions
+  - Reader can read by Volumes as well as by Series, Folder and StoryArc.
+  - More compact UI controls.
 - Fixes
   - OPDS http basic authorization fixed.
   - Groups with the same name case insensitively collapsed in the browser.
