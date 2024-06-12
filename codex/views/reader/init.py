@@ -75,10 +75,11 @@ class ReaderInitView(SessionView):
             return
         pk = self.kwargs["pk"]
         arc_group = arc.get("group")
-        arc_pk = arc.get("pk")
+        arc_pks = arc.get("pks")
         valid = False
         if rel := GROUP_RELATION.get(arc_group):
-            valid = Comic.objects.filter(pk=pk, **{rel: arc_pk}).exists()
+            arc_filter = {rel: arc_pks}
+            valid = Comic.objects.filter(pk=pk, **arc_filter).exists()
         if not valid:
             LOG.warning(f"Invalid arc {arc} submitted to reader for comic {pk}.")
             params.pop("arc", None)
