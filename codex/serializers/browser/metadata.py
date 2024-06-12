@@ -4,6 +4,13 @@ from rest_framework.serializers import CharField, IntegerField, ListField, Seria
 
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
+from codex.serializers.models.named import (
+    ContributorSerializer,
+    IdentifierSeralizer,
+    StoryArcNumberSerializer,
+)
+
+PREFETCH_PREFIX = "attached_"
 
 
 class GroupSerializer(Serializer):
@@ -29,6 +36,16 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     imprint = None
     series = None
     volume = None
+
+    identifiers = IdentifierSeralizer(
+        source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
+    )
+    contributors = ContributorSerializer(
+        source=f"{PREFETCH_PREFIX}contributors", many=True, allow_null=True
+    )
+    stroy_arc_numbers = StoryArcNumberSerializer(
+        source=f"{PREFETCH_PREFIX}story_arc_numbers", many=True, allow_null=True
+    )
 
     class Meta(ComicSerializer.Meta):
         """Configure the model."""

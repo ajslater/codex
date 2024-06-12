@@ -14,7 +14,7 @@ from codex.librarian.importer.const import (
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.models.functions import JsonGroupArray
-from codex.serializers.browser.metadata import MetadataSerializer
+from codex.serializers.browser.metadata import PREFETCH_PREFIX, MetadataSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import METADATA_GROUP_RELATION
 
@@ -188,11 +188,10 @@ class MetadataView(BrowserAnnotationsView):
                 raise ValueError(reason)
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            if field_name in _GROUP_RELS:
-                group_by = "name" if field_name == "volume" else "sort_name"
-                intersection_qs = intersection_qs.group_by(group_by)
-            if field_name == "identifiers":
-                intersection_qs = intersection_qs.select_related("identifier_type")
+            # if field_name == "identifiers":
+            #    intersection_qs = intersection_qs.select_related("identifier_type")
+            # elif field_name == "contributors":
+            #    intersection_qs = intersection_qs.select_related("person", "role")
             intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
                 count=comic_pks_count
             )
@@ -226,14 +225,13 @@ class MetadataView(BrowserAnnotationsView):
     def _get_optimized_m2m_query(key, qs):
         # XXX The prefetch gets removed by field.set() :(
         if key == "contributors":
-            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS).only(
-                *_CONTRIBUTOR_RELATIONS
-            )
+            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS)
+            qs = qs.only(*_CONTRIBUTOR_RELATIONS)
         elif key == "story_arc_numbers":
-            qs = qs.prefetch_related("story_arc")
+            qs = qs.select_related("story_arc")
             qs = qs.only("story_arc", "number")
         elif key == "identifiers":
-            qs = qs.prefetch_related("identifier_type")
+            qs = qs.select_related("identifier_type")
             qs = qs.only("identifier_type", "nss", "url")
         else:
             qs = qs.only("name")
@@ -244,15 +242,22 @@ class MetadataView(BrowserAnnotationsView):
         """Copy the m2m intersections into the object."""
         for key, value in m2m_intersections.items():
             optimized_qs = cls._get_optimized_m2m_query(key, value)
-            if hasattr(obj, key):  # and key not in _GROUP_RELS:
+            serializer_key = (
+                f"{PREFETCH_PREFIX}{key}"
+                if key in ("identifiers", "contributors", "story_arc_numbers")
+                else key
+            )
+            # XXX It might even be faster to copy everything to a dict and not use the obj.
+            if hasattr(obj, serializer_key):
                 # real db fields need to use their special set method.
-                field = getattr(obj, key)
-                field.set(optimized_qs)
+                field = getattr(obj, serializer_key)
+                field.set(
+                    optimized_qs,
+                    clear=True,
+                )
             else:
                 # fake db field is just a queryset attached.
-                # if key in _GROUP_RELS:
-                #    optimized_qs = optimized_qs[0] if len(optimized_qs) else None
-                setattr(obj, key, optimized_qs)
+                setattr(obj, serializer_key, optimized_qs)
 
     @staticmethod
     def _copy_groups(obj, groups):
