@@ -1,10 +1,12 @@
 """Utility functions."""
 
 
-def max_none(a, b):
+def max_none(*args):
     """None aware math.max."""
-    if a is not None and b is not None:
-        return max(a, b)
-    if a is None:
-        return b
-    return a
+    max_arg = None
+    for arg in args:
+        if max_arg is None:
+            max_arg = arg
+        elif arg is not None:
+            max_arg = max(max_arg, arg)
+    return max_arg
