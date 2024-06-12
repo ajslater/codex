@@ -9,9 +9,9 @@ from rest_framework.serializers import (
     ChoiceField,
     FloatField,
     IntegerField,
-    ReturnList,
     Serializer,
 )
+from rest_framework.utils.serializer_helpers import ReturnList
 
 from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
 from codex.serializers.fields import (
@@ -71,7 +71,7 @@ class BrowserChoicesFilterSerializer(Serializer):
 
     choices = SerializerMethodField(read_only=True)
 
-    def get_choices(self, obj) -> ReturnList:  # [dict[str|int|bool|float, str]]:
+    def get_choices(self, obj) -> ReturnList:
         """Dynamic Serializer response by field type."""
         key = obj.get("field_name", "")
         choices = obj.get("choices", [])
