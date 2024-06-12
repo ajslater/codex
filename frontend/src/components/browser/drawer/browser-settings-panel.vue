@@ -106,11 +106,6 @@ export default {
       openDelay: 2000, // for tooltips
     };
   },
-  data() {
-    return {
-      openDelay: 2000, // for tooltips
-    };
-  },
   computed: {
     ...mapGetters(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
