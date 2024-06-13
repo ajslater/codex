@@ -11,6 +11,7 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models import Comic, Volume
+from codex.models.groups import Folder
 from codex.models.paths import CustomCover
 from codex.serializers.browser.settings import BrowserCoverInputSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
@@ -52,7 +53,7 @@ class CoverView(BrowserAnnotationsView):
 
     def get_group_filter(self, group=None, pks=None, page_mtime=False):
         """Get group filter for First Cover View."""
-        if self.params.get("dynamic_covers") or self.model == Volume:
+        if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
 
         # First cover group filter relies on sort names to look outside the browser supplied pks
