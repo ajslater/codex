@@ -26,17 +26,17 @@ class CoverCreateMixin(CoverPathMixin):
     @classmethod
     def _create_cover_thumbnail(cls, cover_image_data):
         """Isolate the save thumbnail function for leak detection."""
-        with BytesIO() as cover_thumb_buffer:
-            with BytesIO(cover_image_data) as image_io:
-                with Image.open(image_io) as cover_image:
-                    cover_image.thumbnail(
-                        cls._THUMBNAIL_SIZE,
-                        Image.Resampling.LANCZOS,  # type: ignore
-                        reducing_gap=3.0,
-                    )
-                    cover_image.save(cover_thumb_buffer, "WEBP", method=6)
-                cover_image.close()  # extra close for animated sequences
-            return cover_thumb_buffer.getvalue()
+        cover_thumb_buffer = BytesIO()
+        with BytesIO(cover_image_data) as image_io:
+            with Image.open(image_io) as cover_image:
+                cover_image.thumbnail(
+                    cls._THUMBNAIL_SIZE,
+                    Image.Resampling.LANCZOS,  # type: ignore
+                    reducing_gap=3.0,
+                )
+                cover_image.save(cover_thumb_buffer, "WEBP", method=6)
+            cover_image.close()  # extra close for animated sequences
+        return cover_thumb_buffer
 
     @classmethod
     def _get_comic_cover_image(cls, comic_path):
@@ -73,11 +73,11 @@ class CoverCreateMixin(CoverPathMixin):
                 cover_image = cls._get_comic_cover_image(db_path)
             data = cls._create_cover_thumbnail(cover_image)
         except Exception as exc:
-            data = b""
+            data = BytesIO(b"")
             cover_str = db_path if db_path else f"{pk=}"
             log.warning(f"Could not create cover thumbnail for {cover_str}: {exc}")
 
-        task = CoverSaveToCache(cover_path, data)
+        task = CoverSaveToCache(cover_path, data.getvalue())
         librarian_queue.put(task)
         return data
 
@@ -110,9 +110,10 @@ class CoverCreateMixin(CoverPathMixin):
                     status.decrement_total()
                 else:
                     # bulk contributor creates covers inline
-                    self.create_cover_from_path(
+                    data = self.create_cover_from_path(
                         pk, cover_path, self.log, self.librarian_queue
                     )
+                    data.close()
                     status.increment_complete()
                 self.status_controller.update(status)
 

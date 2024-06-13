@@ -1,7 +1,7 @@
 """Comic cover thumbnail view."""
 
 from django.db.models.query import Q
-from django.http import HttpResponse
+from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
@@ -21,6 +21,7 @@ from codex.views.const import (
     MISSING_COVER_NAME_MAP,
     STATIC_IMG_PATH,
 )
+from codex.views.util import chunker
 
 LOG = get_logger(__name__)
 
@@ -133,24 +134,23 @@ class CoverView(BrowserAnnotationsView):
         return cover_path, content_type
 
     def _get_cover_data(self, pk, custom):
-        thumb_image_data = None
+        thumb_image_bytesio = None
         content_type = "image/webp"
 
         cover_path = CoverPathMixin.get_cover_path(pk, custom)
         if not cover_path.exists():
-            thumb_image_data = CoverCreateMixin.create_cover_from_path(
+            thumb_image_bytesio = CoverCreateMixin.create_cover_from_path(
                 pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
             )
-            if not thumb_image_data:
+            if not thumb_image_bytesio:
                 cover_path, content_type = self._get_missing_cover_path()
         elif cover_path.stat().st_size == 0:
             cover_path, content_type = self._get_missing_cover_path()
 
-        if not thumb_image_data:
-            # if not thumb_image_data:
-            with cover_path.open("rb") as f:
-                thumb_image_data = f.read()
-        return thumb_image_data, content_type
+        cover_file = (
+            thumb_image_bytesio if thumb_image_bytesio else cover_path.open("rb")
+        )
+        return cover_file, content_type
 
     @extend_schema(
         parameters=[BrowserAnnotationsView.input_serializer_class],
@@ -161,7 +161,8 @@ class CoverView(BrowserAnnotationsView):
         try:
             self.init_request()
             pk, custom = self._get_cover_pk()
-            thumb_image_data, content_type = self._get_cover_data(pk, custom)
-            return HttpResponse(thumb_image_data, content_type=content_type)
+            cover_file, content_type = self._get_cover_data(pk, custom)
+
+            return StreamingHttpResponse(chunker(cover_file), content_type=content_type)
         except Exception:
             LOG.exception("get")
