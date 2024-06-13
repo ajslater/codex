@@ -1,9 +1,9 @@
 <template>
-  <div v-if="computedValue" class="text" :class="{ highlight}">
+  <div v-if="computedValue" class="text" :class="{ highlight }">
     <div class="textLabel">
       {{ label }}
     </div>
-    <div class="textValue" :class="{empty}">
+    <div class="textValue" :class="{ empty }">
       <router-link
         v-if="groupTo && group === 'f'"
         id="folderPath"
