@@ -56,11 +56,11 @@ class VuetifyNullCodeFieldMixin:
         return None if data == self.NULL_CODE else data
 
 
-class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):
+class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField): # type: ignore
     """Float Field with null code conversion."""
 
 
-class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):
+class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField): # type: ignore
     """Integer Field with null code conversion."""
 
 
@@ -70,7 +70,7 @@ class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore
     NULL_CODE = VUETIFY_NULL_CODE_STR
 
 
-class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):
+class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField): # type: ignore
     """Boolean Field with null code conversion."""
 
 
