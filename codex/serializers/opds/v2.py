@@ -11,8 +11,6 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
-from codex.serializers.fields import CharListField
-
 
 class OPDS2LinkPropertiesSerializer(Serializer):
     """Link Properties.
@@ -51,9 +49,9 @@ class OPDS2LinkSerializer(Serializer):
     width = IntegerField(read_only=True, required=False)
     # bitrate = IntegerField(read_only=True, required=False)
     # duration = IntegerField(read_only=True, required=False)
-    # language = CharListField(read_only=True, required=False)
-    alternate = CharListField(read_only=True, required=False)
-    children = CharListField(read_only=True, required=False)
+    # language = CharField(many=True, read_only=True, required=False)
+    alternate = ListField(child=CharField(), read_only=True, required=False)
+    children = ListField(child=CharField(), read_only=True, required=False)
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
     def get_rel(self, obj) -> str | None:
@@ -127,7 +125,7 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     #####################
     # Extended metadata #
     #####################
-    subject = CharListField(read_only=True, required=False)
+    subject = ListField(child=CharField(), read_only=True, required=False)
     author = OPDS2ContributorObjectSerializer(many=True, required=False)
     # translator = OPDS2ContributorObjectSerializer(many=True, required=False)
     editor = OPDS2ContributorObjectSerializer(many=True, required=False)

@@ -9,8 +9,7 @@ export const useMetadataStore = defineStore("metadata", {
   }),
   actions: {
     async loadMetadata({ group, pks }) {
-      const browserStore = useBrowserStore();
-      await API.getMetadata({ group, pks }, browserStore.settings)
+      await API.getMetadata({ group, pks }, useBrowserStore().metadataSettings)
         .then((response) => {
           const md = { ...response.data };
           md.loaded = true;

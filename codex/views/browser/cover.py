@@ -52,17 +52,16 @@ class CoverView(BrowserAnnotationsView):
 
     def get_group_filter(self, group=None, pks=None, page_mtime=False):
         """Get group filter for First Cover View."""
-        if self.params.get("dynamic_covers"):
+        if self.params.get("dynamic_covers") or self.model == Volume:
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
 
         # First cover group filter relies on sort names to look outside the browser supplied pks
         # For multi_groups not in the browser query.
         pks = self.kwargs["pks"]
-        name_rel = "name" if self.model == Volume else "sort_name"
         qs = self.model.objects.filter(pk__in=pks)  # type: ignore
-        sort_names = qs.values_list(name_rel, flat=True).distinct()
+        sort_names = qs.values_list("sort_name", flat=True).distinct()
         model_rel = GROUP_RELATION[self.model_group]
-        group_filter = {f"{model_rel}__{name_rel}__in": sort_names}
+        group_filter = {f"{model_rel}__sort_name__in": sort_names}
 
         parent = self.params["parent"]
         parent_pks = parent.get("pks", ())
@@ -134,22 +133,20 @@ class CoverView(BrowserAnnotationsView):
         return cover_path, content_type
 
     def _get_cover_data(self, pk, custom):
-        thumb_image_bytesio = None
+        thumb_buffer = None
         content_type = "image/webp"
 
         cover_path = CoverPathMixin.get_cover_path(pk, custom)
         if not cover_path.exists():
-            thumb_image_bytesio = CoverCreateMixin.create_cover_from_path(
+            thumb_buffer = CoverCreateMixin.create_cover_from_path(
                 pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
             )
-            if not thumb_image_bytesio:
+            if not thumb_buffer:
                 cover_path, content_type = self._get_missing_cover_path()
         elif cover_path.stat().st_size == 0:
             cover_path, content_type = self._get_missing_cover_path()
 
-        cover_file = (
-            thumb_image_bytesio if thumb_image_bytesio else cover_path.open("rb")
-        )
+        cover_file = thumb_buffer if thumb_buffer else cover_path.open("rb")
         return cover_file, content_type
 
     @extend_schema(

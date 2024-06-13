@@ -20,7 +20,7 @@
             @click="setUIFilterMode('base')"
           />
           <v-list-item
-            v-if="choices && choices.length"
+            v-if="isClearable"
             density="compact"
             class="clearFilter"
             title="Clear Filter"
@@ -68,7 +68,6 @@
             :key="item.value"
             :title="itemTitle(item)"
             :value="item.value"
-            :class="{ noneItem: +item.value == nullCode }"
             density="compact"
             variant="plain"
           />
@@ -88,11 +87,8 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
-import CHOICES from "@/choices";
 import { useBrowserStore } from "@/stores/browser";
 import { camelToTitleCase } from "@/to-case";
-
-const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -108,7 +104,6 @@ export default {
       mdiChevronLeft,
       mdiCloseCircleOutline,
       query: "",
-      nullCode: VUETIFY_NULL_CODE,
     };
   },
   computed: {
@@ -125,7 +120,10 @@ export default {
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     hasNone() {
       for (const item of this.choices) {
-        if (NULL_PKS.has(item.pk)) {
+        if (
+          NULL_PKS.has(item) ||
+          (item instanceof Object && NULL_PKS.has(item.pk))
+        ) {
           return true;
         }
       }
@@ -145,12 +143,16 @@ export default {
         ? mdiChevronRightCircle
         : mdiChevronRight;
     },
+    isClearable() {
+      return this.filter?.length;
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, [
-      "identifierTypeTitle",
-      "loadFilterChoices",
       "clearOneFilter",
+      "identifierTypeTitle",
+      "loadAvailableFilterChoices",
+      "loadFilterChoices",
     ]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
@@ -174,7 +176,10 @@ export default {
       return item.title;
     },
     onClear() {
-      this.clearOneFilter(this.name);
+      this.clearOneFilter(this.name).then(() => {
+        this.loadAvailableFilterChoices();
+        this.loadFilterChoices(this.name);
+      });
     },
   },
 };

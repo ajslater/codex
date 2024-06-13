@@ -36,6 +36,8 @@ const CHOICES_KEYS = ["filters", "q"];
 Object.freeze(CHOICES_KEYS);
 const PAGE_LOAD_KEYS = ["breadcrumbs"];
 Object.freeze(PAGE_LOAD_KEYS);
+const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
+Object.freeze(METADATA_LOAD_KEYS);
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -195,55 +197,60 @@ export const useBrowserStore = defineStore("browser", {
       return route;
     },
     coverSettings(state) {
-      const usedSettings = {};
       const params = router.currentRoute.value.params;
       const group = params.group;
-      if (group != "c") {
-        let keys = COVER_KEYS;
-        if (state.settings.dynamicCovers) {
-          keys = keys.concat(DYNAMIC_COVER_KEYS);
-        } else {
-          usedSettings["parent"] = {
-            group,
-            pks: params.pks,
-          };
-        }
-        for (const key of keys) {
-          let value = state.settings[key];
-          if (key === "filters") {
-            const usedFilters = {};
-            for (const [subkey, subvalue] of Object.entries(value)) {
-              if (notEmptyOrBool(subvalue)) {
-                usedFilters[subkey] = subvalue;
-              }
-            }
-            value = usedFilters;
-          }
-          if (notEmptyOrBool(value)) {
-            usedSettings[key] = value;
-          }
-        }
+      if (group == "c") {
+        return {};
       }
-      return usedSettings;
+      let keys = COVER_KEYS;
+      const dc = state.settings.dynamicCovers;
+      if (dc) {
+        keys = keys.concat(DYNAMIC_COVER_KEYS);
+      }
+
+      const settings = this._filterSettings(state, keys);
+      if (!dc) {
+        settings["parent"] = {
+          group,
+          pks: params.pks,
+        };
+      }
+      return settings;
     },
     choicesSettings(state) {
-      const usedSettings = {};
-      for (const key of CHOICES_KEYS) {
-        usedSettings[key] = state.settings[key];
-      }
-      return usedSettings;
+      return this._filterSettings(state, CHOICES_KEYS);
     },
     pageLoadSettings(state) {
-      const usedSettings = {};
-      for (const key of PAGE_LOAD_KEYS) {
-        usedSettings[key] = state.settings[key];
-      }
-      return usedSettings;
+      return this._filterSettings(state, PAGE_LOAD_KEYS);
+    },
+    metadataSettings(state) {
+      return this._filterSettings(state, METADATA_LOAD_KEYS);
     },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
     // UTILITY
+    _filterSettings(state, keys) {
+      return Object.fromEntries(
+        Object.entries(state.settings).filter(([k, v]) => {
+          if (!keys.includes(k)) {
+            return null;
+          }
+          if (k === "filters") {
+            const usedFilters = {};
+            for (const [subkey, subvalue] of Object.entries(v)) {
+              if (notEmptyOrBool(subvalue)) {
+                usedFilters[subkey] = subvalue;
+              }
+            }
+            v = usedFilters;
+          }
+          if (notEmptyOrBool(v)) {
+            return [k, v];
+          }
+        }),
+      );
+    },
     _maxLenChoices(choices) {
       let maxLen = 0;
       for (const item of choices) {

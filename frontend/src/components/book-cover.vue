@@ -1,11 +1,11 @@
 <template>
   <div class="bookCover">
-    <v-img :src="coverSrc" class="coverImg" />
+    <v-img :src="coverSrc" class="coverImg" :class="multiPkClasses" />
     <div
       v-if="finished !== true"
       :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
     />
-    <span v-if="group !== 'c'" :class="childCountClasses">
+    <span v-if="group !== 'c'" class="childCount">
       {{ childCount }}
     </span>
   </div>
@@ -54,11 +54,15 @@ export default {
         this.mtime,
       );
     },
-    childCountClasses() {
-      return {
-        childCount: true,
-        multiGroup: this.pks.length > 1,
-      };
+    multiPkClasses() {
+      const len = this.pks.length;
+      const classes = {};
+      if (len >= 5) {
+        classes["stack5"] = true;
+      } else if (len > 1) {
+        classes[`stack${len}`] = true;
+      }
+      return classes;
     },
   },
   mounted: function () {
@@ -100,9 +104,6 @@ export default {
   background-color: rgb(var(--v-theme-background));
   color: rbg(var(--v-theme-textPrimary));
 }
-.multiGroup {
-  border: thin dashed white;
-}
 /* Flags */
 $bookCoverShadow: rgba(0, 0, 0, 0.75);
 $primary: rgb(var(--v-theme-primary));
@@ -133,6 +134,26 @@ $primary: rgb(var(--v-theme-primary));
     transparent 90%
   );
 }
+.stack2 {
+  box-shadow: 2px 2px gray;
+}
+.stack3 {
+  box-shadow: 2px 2px gray,
+              4px 4px #606060;
+}
+.stack4 {
+  box-shadow: 2px 2px gray,
+              4px 4px #606060,
+              6px 6px #404040;
+}
+.stack5 {
+  box-shadow: 2px 2px gray,
+              4px 4px #606060,
+              6px 6px #404040,
+              6px 6px #202020;
+}
+
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .coverImg {
     height: $small-cover-height;

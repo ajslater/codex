@@ -14,6 +14,7 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.models.functions import JsonGroupArray
 from codex.serializers.browser.metadata import PREFETCH_PREFIX, MetadataSerializer
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import METADATA_GROUP_RELATION
 
@@ -62,6 +63,7 @@ class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
     serializer_class = MetadataSerializer
+    input_serializer_class = BrowserFilterChoicesInputSerilalizer
     TARGET = "metadata"
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
@@ -177,8 +179,7 @@ class MetadataView(BrowserAnnotationsView):
 
             qs = model.objects.filter(**group_filter)
             qs = qs.only("name").distinct()
-            group_by = self.get_group_by(model)
-            qs = qs.group_by(group_by)
+            qs = qs.group_by("name")
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
             qs = qs.values("ids", "name")
             groups[field_name] = qs
@@ -238,8 +239,7 @@ class MetadataView(BrowserAnnotationsView):
         if self.model and not self.is_model_comic:
             # move the name of the group to the correct field
             field = self.model.__name__.lower() + "_list"
-            group_obj = {"pk": obj.pk, "name": obj.name}
-            group_list = [group_obj]
+            group_list = self.model.objects.filter(pk__in=obj.ids).values("name")
             setattr(obj, field, group_list)
             obj.name = None
 
@@ -322,7 +322,7 @@ class MetadataView(BrowserAnnotationsView):
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, groups, m2m_intersections)  # type: ignore
 
-    @extend_schema(parameters=[BrowserAnnotationsView.input_serializer_class])
+    @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get metadata for a filtered browse group."""
         # Init

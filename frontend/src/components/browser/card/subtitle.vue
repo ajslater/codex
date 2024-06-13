@@ -102,7 +102,6 @@ export default {
 <style scoped lang="scss">
 .cardSubtitle {
   width: 100%;
-  margin-top: 10px;
   text-align: center;
 }
 .seriesCaption, .volumeCaption {
