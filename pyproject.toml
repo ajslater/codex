@@ -4,7 +4,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
+<<<<<<< HEAD
 version = "1.6.0rc0"
+=======
+version = "1.6.0rc1"
+>>>>>>> pre-release
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
