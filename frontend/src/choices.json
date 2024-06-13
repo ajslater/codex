@@ -161,7 +161,7 @@
       "isbn": "ISBN",
       "upc": "UPC"
     },
-    "dynamicCovers": false,
+    "dynamicCovers": true,
     "customCovers": true,
     "twentyFourHourTime": false
   },
