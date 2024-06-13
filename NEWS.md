@@ -20,7 +20,8 @@ border-radius: 128px;
   - Speed and caching optimizations.
 - Fixes
   - OPDS http basic authorization fixed.
-  - Groups with the same name in different cases collapse into one group in the browser.
+  - Groups with the same name in different cases collapse into one group in the
+    browser.
   - Order By respects browser show groups settings.
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
