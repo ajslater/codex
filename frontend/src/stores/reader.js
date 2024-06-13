@@ -225,7 +225,7 @@ export const useReaderStore = defineStore("reader", {
       if (state.arc && Object.keys(state.arc).length) {
         usedKeys.arc = {
           group: state.arc.group,
-          pk: state.arc.pk,
+          pks: state.arc.pks,
         };
       }
       return usedKeys;

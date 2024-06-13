@@ -107,15 +107,19 @@ class ReaderInitView(SessionView):
         params["arc"] = arc
 
     def _parse_params(self):
-        data = self.request.GET
-        data = reparse_json_query_params(self.request.GET, _JSON_KEYS)
-        serializer = self.input_serializer_class(data=data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            data = self.request.GET
+            data = reparse_json_query_params(self.request.GET, _JSON_KEYS)
+            serializer = self.input_serializer_class(data=data)
+            serializer.is_valid(raise_exception=True)
 
-        params = deepcopy(_DEFAULT_PARAMS)
-        if serializer.validated_data:
-            params.update(serializer.validated_data)  # type: ignore
-        self._ensure_arc_contains_comic(params)
-        self._ensure_arc(params)
+            params = deepcopy(_DEFAULT_PARAMS)
+            if serializer.validated_data:
+                params.update(serializer.validated_data)  # type: ignore
+            self._ensure_arc_contains_comic(params)
+            self._ensure_arc(params)
 
-        self.params = MappingProxyType(params)
+            self.params = MappingProxyType(params)
+        except Exception:
+            LOG.exception("validate")
+            raise
