@@ -1,5 +1,5 @@
 <template>
-  <DrawerItem to="lastRoute" :prepend-icon="mdiBookshelf" title="Browser" />
+  <DrawerItem :to="lastRoute" :prepend-icon="mdiBookshelf" title="Browser" />
 </template>
 <script>
 import { mdiBookshelf } from "@mdi/js";
