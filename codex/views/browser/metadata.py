@@ -41,12 +41,21 @@ _COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_
 _PATH_GROUPS = frozenset({"c", "f"})
 _CONTRIBUTOR_RELATIONS = ("role", "person")
 _SUM_FIELDS = frozenset({"page_count", "size"})
-_GROUP_RELS = MappingProxyType({
-    "i": ("publisher",),
-    "s": ("publisher", "imprint",),
-    "v": ("publisher", "imprint", "series",),
-    "c": ("publisher", "imprint", "series", "volume"),
-})
+_GROUP_RELS = MappingProxyType(
+    {
+        "i": ("publisher",),
+        "s": (
+            "publisher",
+            "imprint",
+        ),
+        "v": (
+            "publisher",
+            "imprint",
+            "series",
+        ),
+        "c": ("publisher", "imprint", "series", "volume"),
+    }
+)
 
 
 class MetadataView(BrowserAnnotationsView):
