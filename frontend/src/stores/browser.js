@@ -209,10 +209,11 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       const settings = this._filterSettings(state, keys);
-      if (!dc) {
+      const pks = params.pks;
+      if (!dc && group !== "r" && pks) {
         settings["parent"] = {
           group,
-          pks: params.pks,
+          pks,
         };
       }
       return settings;
