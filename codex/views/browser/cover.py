@@ -63,9 +63,8 @@ class CoverView(BrowserAnnotationsView):
         model_rel = GROUP_RELATION[self.model_group]
         group_filter = {f"{model_rel}__sort_name__in": sort_names}
 
-        parent = self.params["parent"]
-        parent_pks = parent.get("pks", ())
-        if parent_pks:
+        parent = self.params.get("parent", {})
+        if parent_pks := parent.get("pks"):
             parent_rel = GROUP_RELATION[parent["group"]]
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
