@@ -52,17 +52,16 @@ class CoverView(BrowserAnnotationsView):
 
     def get_group_filter(self, group=None, pks=None, page_mtime=False):
         """Get group filter for First Cover View."""
-        if self.params.get("dynamic_covers"):
+        if self.params.get("dynamic_covers") or self.model == Volume:
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
 
         # First cover group filter relies on sort names to look outside the browser supplied pks
         # For multi_groups not in the browser query.
         pks = self.kwargs["pks"]
-        name_rel = "name" if self.model == Volume else "sort_name"
         qs = self.model.objects.filter(pk__in=pks)  # type: ignore
-        sort_names = qs.values_list(name_rel, flat=True).distinct()
+        sort_names = qs.values_list("sort_name", flat=True).distinct()
         model_rel = GROUP_RELATION[self.model_group]
-        group_filter = {f"{model_rel}__{name_rel}__in": sort_names}
+        group_filter = {f"{model_rel}__sort_name__in": sort_names}
 
         parent = self.params["parent"]
         parent_pks = parent.get("pks", ())
