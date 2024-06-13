@@ -80,7 +80,7 @@ export default {
           hn = "";
       }
       if (hn && this.item.ids && this.item.ids.length > 1) {
-        return "Multiple";
+        return "(Multiple)";
       }
       return hn;
     },
