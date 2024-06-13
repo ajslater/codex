@@ -1,6 +1,6 @@
 <template>
   <div class="bookCover">
-    <v-img :src="coverSrc" :lazy-src="lazySrc" class="coverImg" />
+    <v-img :src="coverSrc" class="coverImg" />
     <div
       v-if="finished !== true"
       :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
@@ -16,17 +16,6 @@ import { mapGetters } from "pinia";
 
 import { getCoverSrc } from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
-
-const GROUP_NAME = {
-  p: "publisher",
-  i: "imprint",
-  s: "series",
-  v: "volume",
-  c: "missing-cover",
-  f: "folder",
-  a: "story-arc",
-};
-const IMG_ROOT = window.CODEX.STATIC + "img/";
 
 export default {
   name: "BookCover",
@@ -70,10 +59,6 @@ export default {
         childCount: true,
         multiGroup: this.pks.length > 1,
       };
-    },
-    lazySrc() {
-      const groupName = GROUP_NAME[this.group];
-      return `${IMG_ROOT}${groupName}.svg`;
     },
   },
   mounted: function () {
