@@ -15,6 +15,7 @@ border-radius: 128px;
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of publishers, imprints, series, volumes, or your own folder
   hierarchy.
+- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Read comics in a variety of aspect ratios and directions that fit your screen.
 - Per user bookmarking. Per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
