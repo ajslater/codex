@@ -57,8 +57,8 @@ export default {
     multiPkClasses() {
       const len = this.pks.length;
       const classes = {};
-      if (len >= 5) {
-        classes["stack5"] = true;
+      if (len >= 4) {
+        classes["stack4"] = true;
       } else if (len > 1) {
         classes[`stack${len}`] = true;
       }
@@ -135,22 +135,16 @@ $primary: rgb(var(--v-theme-primary));
   );
 }
 .stack2 {
-  box-shadow: 2px 2px gray;
+  box-shadow: 3px 3px #606060;
 }
 .stack3 {
-  box-shadow: 2px 2px gray,
-              4px 4px #606060;
-}
-.stack4 {
-  box-shadow: 2px 2px gray,
-              4px 4px #606060,
+  box-shadow: 3px 3px #606060,
               6px 6px #404040;
 }
-.stack5 {
-  box-shadow: 2px 2px gray,
-              4px 4px #606060,
+.stack4 {
+  box-shadow: 3px 3px #606060,
               6px 6px #404040,
-              6px 6px #202020;
+              9px 9px #202020;
 }
 
 
