@@ -36,6 +36,8 @@ const CHOICES_KEYS = ["filters", "q"];
 Object.freeze(CHOICES_KEYS);
 const PAGE_LOAD_KEYS = ["breadcrumbs"];
 Object.freeze(PAGE_LOAD_KEYS);
+const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
+Object.freeze(METADATA_LOAD_KEYS);
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -240,6 +242,13 @@ export const useBrowserStore = defineStore("browser", {
       }
       return usedSettings;
     },
+    metadataSettings(state) {
+      const usedSettings = {};
+      for (const key of METADATA_LOAD_KEYS) {
+        usedSettings[key] = state.settings[key];
+      }
+      return usedSettings;
+    }
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////

@@ -14,6 +14,7 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.models.functions import JsonGroupArray
 from codex.serializers.browser.metadata import PREFETCH_PREFIX, MetadataSerializer
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import METADATA_GROUP_RELATION
 
@@ -62,6 +63,7 @@ class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
     serializer_class = MetadataSerializer
+    input_serializer_class = BrowserFilterChoicesInputSerilalizer
     TARGET = "metadata"
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
@@ -320,7 +322,7 @@ class MetadataView(BrowserAnnotationsView):
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, groups, m2m_intersections)  # type: ignore
 
-    @extend_schema(parameters=[BrowserAnnotationsView.input_serializer_class])
+    @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get metadata for a filtered browse group."""
         # Init
