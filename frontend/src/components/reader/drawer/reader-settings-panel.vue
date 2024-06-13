@@ -1,15 +1,16 @@
 <template>
-  <div v-if="validBook" id="readerSettings">
-    <v-radio-group
-      v-model="isGlobalScope"
-      density="compact"
-      label="Scope"
-      hide-details="auto"
-    >
-      <v-radio label="Only this comic" :value="false" />
-      <v-radio label="Default for all comics" :value="true" />
-    </v-radio-group>
-    <div id="readerScopedSettings">
+  <v-radio-group
+    v-model="isGlobalScope"
+    class="scopeRadioButton readerDrawerItem"
+    density="compact"
+    label="Scope"
+    hide-details="auto"
+  >
+    <v-radio label="Only this comic" :value="false" />
+    <v-radio label="Default for all comics" :value="true" />
+  </v-radio-group>
+  <v-expand-transition>
+    <div id="readerScopedSettings" class="readerDrawerItem">
       <v-radio-group
         class="displayRadioGroup"
         density="compact"
@@ -56,41 +57,6 @@
           :value="item.value"
         />
       </v-radio-group>
-      <v-checkbox
-        v-tooltip="{
-          openDelay,
-          text: 'Cache all pages from this book in the browser',
-        }"
-        :model-value="cacheBook"
-        class="cacheBook"
-        density="compact"
-        :disabled="disableCacheBook"
-        label="Cache Entire Book"
-        hide-details="auto"
-        :true-value="true"
-        @update:model-value="setSettingsClient({ cacheBook: $event })"
-      />
-      <a
-        v-if="isPDF"
-        id="readPDFInBrowser"
-        :href="bookInBrowserURL"
-        target="_blank"
-      >
-        <v-icon>{{ mdiOpenInNew }}</v-icon
-        >Read PDF in Browser
-      </a>
-      <v-checkbox
-        v-if="isGlobalScope"
-        :model-value="selectedSettings.readRtlInReverse"
-        class="readRtlInReverse"
-        density="compact"
-        label="Read RTL Comics as LTR"
-        hide-details="auto"
-        :true-value="true"
-        @update:model-value="
-          settingsDialogChanged({ readRtlInReverse: $event })
-        "
-      />
       <v-btn
         v-if="!isGlobalScope"
         id="clearSettingsButton"
@@ -104,7 +70,50 @@
         Clear Settings
       </v-btn>
     </div>
-  </div>
+  </v-expand-transition>
+  <v-divider />
+  <v-checkbox
+    class="readerDrawerItem"
+    :model-value="finishOnLastPage"
+    density="compact"
+    label="Finish Book On Last Page"
+    hide-details="auto"
+    :true-value="true"
+    @update:model-value="settingsDialogChanged({ finishOnLastPage: $event })"
+  />
+  <v-checkbox
+    :model-value="selectedSettings.readRtlInReverse"
+    class="readerDrawerItem"
+    density="compact"
+    label="Read RTL Comics as LTR"
+    hide-details="auto"
+    :true-value="true"
+    @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
+  />
+  <v-checkbox
+    v-tooltip="{
+      openDelay,
+      text: 'Cache all pages from this book in the browser',
+    }"
+    :model-value="cacheBook"
+    class="readerDrawerItem cacheBook"
+    density="compact"
+    :disabled="disableCacheBook"
+    label="Cache Entire Book"
+    hide-details="auto"
+    :true-value="true"
+    @update:model-value="setSettingsClient({ cacheBook: $event })"
+  />
+  <a
+    v-if="isPDF"
+    id="readPDFInBrowser"
+    class="readerDrawerItem"
+    :href="bookInBrowserURL"
+    target="_blank"
+  >
+    <v-icon>{{ mdiOpenInNew }}</v-icon
+    >Read PDF in Browser
+  </a>
 </template>
 
 <script>
@@ -157,6 +166,7 @@ export default {
           return "";
         }
       },
+      finishOnLastPage: (state) => state.readerSettings.finishOnLastPage,
     }),
     ...mapWritableState(useReaderStore, ["readRtlInReverse"]),
     fitToChoices() {
@@ -259,12 +269,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#readerSettings {
+.scopeRadioButton {
   padding-top: 10px;
+}
+.readerDrawerItem {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
-  padding-bottom: 10px;
-  background-color: inherit;
 }
 
 .displayTwoPages {
@@ -272,14 +282,9 @@ export default {
   margin-bottom: 10px;
 }
 
-.readRtlInReverse {
-  transition: visibility 0.25s, opacity 0.25s;
-}
-
 #clearSettingsButton {
-  margin-top: 4px;
+  margin-top: 6px;
   margin-bottom: 4px;
-  transition: visibility 0.25s, opacity 0.25s;
 }
 
 #readPDFInBrowser {
@@ -291,8 +296,10 @@ export default {
   // halfway between background (18) and surface (33) color
   background-color: rgb(25,25,25); //rgba(var(--v-theme-surface));
   margin-top: 4px;
-  padding-left: 4px;
+  margin-left: 10px;
+  padding-left: 5px;
   padding-top: 4px;
   margin-right: 8px;
+  margin-bottom: 5px;
 }
 </style>

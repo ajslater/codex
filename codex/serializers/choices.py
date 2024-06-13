@@ -53,10 +53,13 @@ _SINGLE_VALUE_KEYS = frozenset(
     {
         "customCovers",
         "dynamicCovers",
+        "finishOnLastPage",
         "orderReverse",
         "q",
+        "readRtlInReverse",
         "searchResultsLimit",
         "twentyFourHourTime",
+        "twoPages",
     }
 )
 
