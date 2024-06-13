@@ -3,6 +3,7 @@
 from abc import ABC
 from datetime import datetime, timezone
 
+import pycountry
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import Field
@@ -15,10 +16,12 @@ from rest_framework.serializers import (
     ListField,
 )
 
-from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
+from codex.logger.logging import get_logger
+from codex.serializers.choices import CHOICES, DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.serializers.route import RouteSerializer
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
+LOG = get_logger(__name__)
 
 
 class TimestampField(IntegerField):
@@ -138,3 +141,42 @@ class TopGroupField(ChoiceField):
     def __init__(self, *args, **kwargs):
         """Initialize with choices."""
         super().__init__(*args, choices=self.class_choices, **kwargs)
+
+
+class PyCountryField(CharField, ABC):
+    """Serialize to a long pycountry name."""
+
+    LOOKUP_MODULE = pycountry.countries
+    _ALPHA_2_LEN = 2
+
+    def to_representation(self, value):
+        """Lookup the name with pycountry, just copy the value on fail."""
+        if not value:
+            return ""
+        if value == DUMMY_NULL_NAME:
+            return value
+        try:
+            # fix for https://github.com/flyingcircusio/pycountry/issues/41
+            lookup_obj = (
+                self.LOOKUP_MODULE.get(alpha_2=value)
+                if len(value) == self._ALPHA_2_LEN
+                else self.LOOKUP_MODULE.lookup(value)
+            )
+            # If lookup fails, return the key as the name
+        except Exception:
+            LOG.warning(f"Could not serialize name with pycountry {value}")
+            return value
+        else:
+            return lookup_obj.name if lookup_obj else value
+
+
+class CountryField(PyCountryField):
+    """Serializer to long country name."""
+
+    LOOKUP_MODULE = pycountry.countries
+
+
+class LanguageField(PyCountryField):
+    """Serializer to long language name."""
+
+    LOOKUP_MODULE = pycountry.languages

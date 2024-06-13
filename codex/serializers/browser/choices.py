@@ -21,10 +21,11 @@ from codex.serializers.fields import (
     FloatListField,
     IntListField,
 )
+from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
 
 class BrowserChoicesCharPkSerializer(Serializer):
-    """Named Model Serailizer with pk = char hack for languages & countries."""
+    """Named Model Serializer."""
 
     pk = CharField(read_only=True)
     name = CharField(read_only=True)
@@ -58,12 +59,23 @@ _CHOICES_TYPE_SERIALIZER_MAP = MappingProxyType(
         IntListField: BrowserChoicesIntPkSerializer,
     }
 )
-_CHOICES_SERIALIZER_CLASS_MAP = MappingProxyType(
-    {
-        name: _CHOICES_TYPE_SERIALIZER_MAP[field.__class__]
-        for name, field in BrowserSettingsFilterSerializer().fields.items()  # type: ignore
-    }
+_CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
+    {"country": CountrySerializer, "language": LanguageSerializer}
 )
+
+
+def _create_choices_field_serializer_map():
+    serializer_map = {}
+    for name, field in BrowserSettingsFilterSerializer().fields.items():  # type: ignore
+        serializer_class = _CHOICES_NAME_SERIALIZER_MAP.get(name)
+        if not serializer_class:
+            serializer_class = _CHOICES_TYPE_SERIALIZER_MAP[field.__class__]
+        serializer_map[name] = serializer_class
+
+    return MappingProxyType(serializer_map)
+
+
+_CHOICES_SERIALIZER_CLASS_MAP = _create_choices_field_serializer_map()
 
 
 class BrowserChoicesFilterSerializer(Serializer):
