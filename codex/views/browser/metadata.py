@@ -177,8 +177,7 @@ class MetadataView(BrowserAnnotationsView):
 
             qs = model.objects.filter(**group_filter)
             qs = qs.only("name").distinct()
-            group_by = self.get_group_by(model)
-            qs = qs.group_by(group_by)
+            qs = qs.group_by("name")
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
             qs = qs.values("ids", "name")
             groups[field_name] = qs
@@ -238,8 +237,7 @@ class MetadataView(BrowserAnnotationsView):
         if self.model and not self.is_model_comic:
             # move the name of the group to the correct field
             field = self.model.__name__.lower() + "_list"
-            group_obj = {"pk": obj.pk, "name": obj.name}
-            group_list = [group_obj]
+            group_list = self.model.objects.filter(pk__in=obj.ids).values("name")
             setattr(obj, field, group_list)
             obj.name = None
 
