@@ -71,17 +71,18 @@ class CoverCreateMixin(CoverPathMixin):
                 cover_image = cls._get_custom_cover_image(db_path)
             else:
                 cover_image = cls._get_comic_cover_image(db_path)
-            buffer = cls._create_cover_thumbnail(cover_image)
-            raw_bytes = buffer.getvalue()
+            thumb_buffer = cls._create_cover_thumbnail(cover_image)
+            thumb_bytes = thumb_buffer.getvalue()
+            thumb_buffer.seek(0)
         except Exception as exc:
-            raw_bytes = b""
-            buffer = None
+            thumb_bytes = b""
+            thumb_buffer = None
             cover_str = db_path if db_path else f"{pk=}"
             log.warning(f"Could not create cover thumbnail for {cover_str}: {exc}")
 
-        task = CoverSaveToCache(cover_path, raw_bytes)
+        task = CoverSaveToCache(cover_path, thumb_bytes)
         librarian_queue.put(task)
-        return buffer
+        return thumb_buffer
 
     def save_cover_to_cache(self, cover_path, data):
         """Save cover thumb image to the disk cache."""
