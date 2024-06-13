@@ -196,11 +196,17 @@ export const useBrowserStore = defineStore("browser", {
     },
     coverSettings(state) {
       const usedSettings = {};
-      const group = router.currentRoute.value.params?.group;
+      const params = router.currentRoute.value.params;
+      const group = params.group;
       if (group != "c") {
         let keys = COVER_KEYS;
         if (state.settings.dynamicCovers) {
           keys = keys.concat(DYNAMIC_COVER_KEYS);
+        } else {
+          usedSettings["parent"] = {
+            group,
+            pks: params.pks,
+          };
         }
         for (const key of keys) {
           let value = state.settings[key];
