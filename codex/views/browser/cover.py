@@ -134,22 +134,20 @@ class CoverView(BrowserAnnotationsView):
         return cover_path, content_type
 
     def _get_cover_data(self, pk, custom):
-        thumb_image_bytesio = None
+        thumb_buffer = None
         content_type = "image/webp"
 
         cover_path = CoverPathMixin.get_cover_path(pk, custom)
         if not cover_path.exists():
-            thumb_image_bytesio = CoverCreateMixin.create_cover_from_path(
+            thumb_buffer = CoverCreateMixin.create_cover_from_path(
                 pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
             )
-            if not thumb_image_bytesio:
+            if not thumb_buffer:
                 cover_path, content_type = self._get_missing_cover_path()
         elif cover_path.stat().st_size == 0:
             cover_path, content_type = self._get_missing_cover_path()
 
-        cover_file = (
-            thumb_image_bytesio if thumb_image_bytesio else cover_path.open("rb")
-        )
+        cover_file = thumb_buffer if thumb_buffer else cover_path.open("rb")
         return cover_file, content_type
 
     @extend_schema(
