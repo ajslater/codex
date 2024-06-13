@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import pycountry
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from rest_framework.fields import Field
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -38,93 +37,61 @@ class TimestampField(IntegerField):
         return datetime.fromtimestamp(float(data) / 1000, tz=timezone.utc)
 
 
-def validate_decades(decades):
+def validate_decade(decade):
     """Validate decades."""
-    if not decades:
-        return
     # * We don't need a whole db call just to be perfectly accurate
     # * -1s are decoded back into None before validation
-    exists = False
-    for decade in decades:
-        if decade is None or decade % 10 == 0:
-            exists = True
-            break
-    if not exists:
-        raise ValidationError(_(f"Invalid decade in: {decades}"))
+    if decade is not None and decade % 10 != 0:
+        raise ValidationError(_(f"Invalid decade: {decade}"))
+    return True
 
 
-def validate_int_null(values):
-    """Use a special code for null.
+class VuetifyNullCodeFieldMixin:
+    """Convert Vuetify null codes to None."""
 
-    Because if a vuetify component has a null key it changes it to the
-    array index.
-    """
-    for index, value in enumerate(values):
-        if value == VUETIFY_NULL_CODE:
-            values[index] = None
-    return values
+    NULL_CODE = VUETIFY_NULL_CODE
+
+    def to_internal_value(self, data):
+        """Convert numeric null code to None."""
+        return None if data == self.NULL_CODE else data
 
 
-def validate_str_null(values):
-    """Use a special code for null.
-
-    Because if a vuetify component has a null key it changes it to the
-    array index. This is the version for CharFields.
-    """
-    for index, value in enumerate(values):
-        if value == VUETIFY_NULL_CODE_STR:
-            values[index] = None
-    return values
+class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):
+    """Float Field with null code conversion."""
 
 
-class FilterListField(ListField, ABC):
-    """Filter List field with custom arguments."""
+class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):
+    """Integer Field with null code conversion."""
 
-    CHILD_CLASS = Field
-    VALIDATORS = ()
+
+class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore
+    """Char Field with null code conversion."""
+
+    NULL_CODE = VUETIFY_NULL_CODE_STR
+
+
+class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):
+    """Boolean Field with null code conversion."""
+
+
+class BookmarkFilterField(ChoiceField):
+    """Bookmark Choice Field."""
 
     def __init__(self, *args, **kwargs):
-        """Apply the subclass's arguments."""
+        """Use bookmark filter choices."""
         super().__init__(
-            *args,
-            child=self.CHILD_CLASS(allow_null=True, **kwargs),
-            required=False,
-            validators=self.VALIDATORS,
+            *args, choices=tuple(CHOICES["bookmarkFilter"].keys()), **kwargs
         )
 
 
-class FloatListField(FilterListField):
-    """Decimal List Field with validation."""
+class VuetifyDecadeField(VuetifyIntegerField):
+    """Integer field with null code conversion and decade validation."""
 
-    CHILD_CLASS = FloatField  # type: ignore
-    VALIDATORS = (validate_int_null,)
+    VALIDATORS = (validate_decade,)
 
-
-class IntListField(FilterListField):
-    """Integer List Field with validation."""
-
-    CHILD_CLASS = IntegerField  # type: ignore
-    VALIDATORS = (validate_int_null,)
-
-
-class DecadeListField(IntListField):
-    """Integer List Field with validation for decades."""
-
-    VALIDATORS = (validate_int_null, validate_decades)
-
-
-class CharListField(FilterListField):
-    """Char List Field with validation."""
-
-    CHILD_CLASS = CharField  # type: ignore
-    VALIDATORS = (validate_str_null,)
-
-
-class BooleanListField(FilterListField):
-    """Bool List Field with validation."""
-
-    CHILD_CLASS = BooleanField  # type: ignore
-    VALIDATORS = (validate_int_null,)
+    def __init__(self, *args, **kwargs):
+        """Use decade validator."""
+        super().__init__(*args, validators=self.VALIDATORS, **kwargs)
 
 
 class BreadcrumbsField(ListField):

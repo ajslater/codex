@@ -8,12 +8,12 @@ from rest_framework.serializers import (
     DateTimeField,
     DecimalField,
     IntegerField,
+    ListField,
     Serializer,
     SerializerMethodField,
 )
 
 from codex.logger.logging import get_logger
-from codex.serializers.browser.filters import IntListField
 from codex.views.const import COMIC_GROUP, EPOCH_START
 
 LOG = get_logger(__name__)
@@ -23,7 +23,7 @@ class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser, opds & metadata serializers."""
 
     group = CharField(read_only=True, max_length=1)
-    ids = IntListField(read_only=True)
+    ids = ListField(child=IntegerField(), read_only=True)
 
     # Aggregate Annotations
     child_count = IntegerField(read_only=True)
