@@ -397,6 +397,14 @@ export const useBrowserStore = defineStore("browser", {
         this.loadBrowserPage(undefined, true);
       }
     },
+    async clearOneFilter(filterName) {
+      this.$patch((state) => {
+        state.filterMode = "base";
+        state.settings.filters[filterName] = [];
+        state.browserPageLoaded = true;
+      });
+      await this.loadBrowserPage(undefined, true);
+    },
     async clearFilters(clearSearch = false) {
       this.$patch((state) => {
         state.settings.filters = { bookmark: "" };

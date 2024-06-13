@@ -19,6 +19,14 @@
             :title="lowerTitle"
             @click="setUIFilterMode('base')"
           />
+          <v-list-item
+            v-if="choices && choices.length"
+            density="compact"
+            class="clearFilter"
+            title="Clear Filter"
+            :append-icon="mdiCloseCircleOutline"
+            @click="onClear"
+          />
           <v-text-field
             v-if="typeof choices === 'object'"
             v-model="query"
@@ -75,6 +83,7 @@ import {
   mdiChevronLeft,
   mdiChevronRight,
   mdiChevronRightCircle,
+  mdiCloseCircleOutline,
 } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
@@ -97,6 +106,7 @@ export default {
   data() {
     return {
       mdiChevronLeft,
+      mdiCloseCircleOutline,
       query: "",
       nullCode: VUETIFY_NULL_CODE,
     };
@@ -140,6 +150,7 @@ export default {
     ...mapActions(useBrowserStore, [
       "identifierTypeTitle",
       "loadFilterChoices",
+      "clearOneFilter",
     ]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
@@ -161,6 +172,9 @@ export default {
         return this.identifierTypeTitle(item.title);
       }
       return item.title;
+    },
+    onClear() {
+      this.clearOneFilter(this.name);
     },
   },
 };
@@ -190,5 +204,13 @@ export default {
 }
 .noneItem {
   opacity: 0.5;
+}
+.clearFilter {
+  color: black;
+  background-color: rgb(var(--v-theme-primary));
+  opacity: .7;
+}
+.clearFilter:hover {
+  opacity: 1.0;
 }
 </style>
