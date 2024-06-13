@@ -17,8 +17,9 @@ from codex.views.util import chunker
 
 LOG = get_logger(__name__)
 _PDF_MIME_TYPE = "application/pdf"
+# Most pages seem to be 2.5 Mb
 # largest pages I've seen were 9 Mb
-_PAGE_CHUNK_SIZE = (1024**2) * 5  # 5 Mb
+_PAGE_CHUNK_SIZE = (1024**2) * 3  # 3 Mb
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
