@@ -61,7 +61,7 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
     }
 )
 _ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
-    {Comic: "id", Volume: "name"}
+    {Comic: "id", Volume: "name", Folder: "name"}
 )
 
 LOG = get_logger(__name__)
