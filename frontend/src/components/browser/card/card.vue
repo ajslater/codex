@@ -10,28 +10,25 @@
           :finished="item.finished"
         />
         <router-link
-          v-if="toRoute"
           class="cardCoverOverlay"
           :to="toRoute"
           :aria-label="linkLabel"
         >
-          <BrowserCardControls :item="item" :eye-open="true" />
+          <BrowserCardControls :item="item" :eye-open="Boolean(toRoute)" />
         </router-link>
-        <div v-else class="cardCoverOverlay">
-          <BrowserCardControls :item="item" :eye-open="false" />
-        </div>
-        <v-progress-linear
-          v-show="item.progress"
-          class="bookCoverProgress"
-          :background-color="progressBackgroundColor"
-          :model-value="item.progress"
-          :aria-label="`${item.progress}% read`"
-          rounded
-          height="2"
-        />
-        <BrowserCardSubtitle :item="item" />
       </div>
-      <OrderByCaption :item="item" />
+      <v-progress-linear
+        class="bookCoverProgress"
+        :background-color="progressBackgroundColor"
+        :model-value="item.progress"
+        :aria-label="`${item.progress}% read`"
+        rounded
+        height="2"
+      />
+      <footer class="cardFooter">
+        <BrowserCardSubtitle :item="item" />
+        <OrderByCaption :item="item" />
+      </footer>
     </div>
   </v-lazy>
 </template>
@@ -147,7 +144,6 @@ export default {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 .cardCoverOverlay {
   position: absolute;
@@ -170,6 +166,11 @@ export default {
 }
 .bookCoverProgress {
   margin-top: 1px;
+}
+.cardFooter {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {
