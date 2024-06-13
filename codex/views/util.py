@@ -10,6 +10,9 @@ from urllib.parse import unquote_plus
 from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 
+# Maximum cover size is around 24 Kb
+DEFAULT_CHUNK_SIZE = 64 * 1024  # 64 Kb
+
 
 @dataclass()
 class Route(dict):
@@ -62,3 +65,13 @@ def pop_name(kwargs: Mapping):
     kwargs = dict(kwargs)
     kwargs.pop("name", None)
     return kwargs
+
+
+async def chunker(open_file, chunk_size=DEFAULT_CHUNK_SIZE):
+    """Asynchronous iterator for serving files."""
+    while True:
+        chunk = open_file.read(chunk_size)
+        if not chunk:
+            open_file.close()
+            break
+        yield chunk
