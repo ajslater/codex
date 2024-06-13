@@ -209,18 +209,11 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       const settings = this._filterSettings(state, keys);
-<<<<<<< HEAD
-      if (!dc) {
-        settings["parent"] = {
-          group,
-          pks: params.pks,
-=======
       const pks = params.pks;
       if (!dc && group !== "r" && pks) {
         settings["parent"] = {
           group,
           pks,
->>>>>>> pre-release
         };
       }
       return settings;
