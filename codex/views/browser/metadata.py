@@ -2,7 +2,6 @@
 
 from types import MappingProxyType
 
-from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, IntegerField, Sum, Value
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
@@ -42,7 +41,21 @@ _COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_
 _PATH_GROUPS = frozenset({"c", "f"})
 _CONTRIBUTOR_RELATIONS = ("role", "person")
 _SUM_FIELDS = frozenset({"page_count", "size"})
-_GROUP_RELS = frozenset({"publisher", "imprint", "series", "volume"})
+_GROUP_RELS = MappingProxyType(
+    {
+        "i": ("publisher",),
+        "s": (
+            "publisher",
+            "imprint",
+        ),
+        "v": (
+            "publisher",
+            "imprint",
+            "series",
+        ),
+        "c": ("publisher", "imprint", "series", "volume"),
+    }
+)
 
 
 class MetadataView(BrowserAnnotationsView):
@@ -156,11 +169,8 @@ class MetadataView(BrowserAnnotationsView):
         pks = self.kwargs["pks"]
         group_filter = {rel: pks}
 
-        for field_name in _GROUP_RELS:
-            try:
-                field = self.model._meta.get_field(field_name)
-            except FieldDoesNotExist:
-                continue
+        for field_name in _GROUP_RELS.get(group, ()):
+            field = self.model._meta.get_field(field_name)
             model = field.related_model
             if not model:
                 continue

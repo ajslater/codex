@@ -2,7 +2,6 @@
 
 from types import MappingProxyType
 
-import pycountry
 from caseconverter import snakecase
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
@@ -22,7 +21,7 @@ from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
-from codex.serializers.models.pycountry import PyCountrySerializer
+from codex.serializers.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.views.browser.filters.annotations import (
     BrowserAnnotationsFilterView,
 )
@@ -52,7 +51,7 @@ _BACK_REL_MAP = MappingProxyType(
         IdentifierType: "identifier__",
     }
 )
-_NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
+_NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
 
 
 class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
@@ -170,24 +169,6 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
     serializer_class = BrowserChoicesFilterSerializer
 
-    def _get_field_choices(self, comic_qs, field_name):
-        """Create a pk:name object for fields without tables."""
-        qs = self.get_field_choices_query(comic_qs, field_name)
-
-        if field_name == "country":
-            lookup = pycountry.countries
-        elif field_name == "language":
-            lookup = pycountry.languages
-        else:
-            lookup = None
-
-        choices = []
-        for val in qs:
-            name = PyCountrySerializer.lookup_name(lookup, val) if lookup else val
-            choices.append({"pk": val, "name": name})
-
-        return choices
-
     def _get_m2m_field_choices(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
         qs = self.get_m2m_field_query(model, comic_qs)
@@ -216,7 +197,8 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         if m2m_model:
             choices = self._get_m2m_field_choices(m2m_model, qs, rel)
         else:
-            choices = self._get_field_choices(qs, rel)
+            choices = self.get_field_choices_query(qs, field_name)
+
         return {
             "field_name": field_name,
             "choices": choices,

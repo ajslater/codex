@@ -87,9 +87,10 @@ export const useReaderStore = defineStore("reader", {
     // server
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
-      twoPages: false,
+      twoPages: CHOICES.reader.twoPages,
       readingDirection: "ltr",
-      readRtlInReverse: false,
+      readRtlInReverse: CHOICES.reader.readRtlInReverse,
+      finishOnLastPage: CHOICES.reader.finishOnLastPage,
     },
     browserSettings: {
       breadcrumbs: CHOICES.browser.breadcrumbs,
@@ -224,7 +225,7 @@ export const useReaderStore = defineStore("reader", {
       if (state.arc && Object.keys(state.arc).length) {
         usedKeys.arc = {
           group: state.arc.group,
-          pk: state.arc.pk,
+          pks: state.arc.pks,
         };
       }
       return usedKeys;
@@ -539,6 +540,12 @@ export const useReaderStore = defineStore("reader", {
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
+      if (
+        this.readerSettings.finishOnLastPage &&
+        page >= this.books.current.maxPage
+      ) {
+        updates["finished"] = true;
+      }
       await COMMON_API.updateGroupBookmarks(groupParams, updates);
     },
     async setSettingsLocal(data) {

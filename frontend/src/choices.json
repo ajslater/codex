@@ -161,11 +161,12 @@
       "isbn": "ISBN",
       "upc": "UPC"
     },
-    "dynamicCovers": false,
+    "dynamicCovers": true,
     "customCovers": true,
     "twentyFourHourTime": false
   },
   "reader": {
+    "finishOnLastPage": true,
     "fitTo": [
       {
         "title": "Fit to Screen",
@@ -211,7 +212,9 @@
         "title": "",
         "value": ""
       }
-    ]
+    ],
+    "readRtlInReverse": false,
+    "twoPages": false
   },
   "websockets": {
     "LIBRARY_CHANGED": "LIBRARY_CHANGED",

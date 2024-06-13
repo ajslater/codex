@@ -1,5 +1,6 @@
 """Comic cover thumbnail view."""
 
+from django.db.models.query import Q
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
@@ -15,6 +16,7 @@ from codex.serializers.browser.settings import BrowserCoverInputSerializer
 from codex.views.browser.annotations import BrowserAnnotationsView
 from codex.views.const import (
     CUSTOM_COVER_GROUP_RELATION,
+    GROUP_RELATION,
     MISSING_COVER_FN,
     MISSING_COVER_NAME_MAP,
     STATIC_IMG_PATH,
@@ -43,6 +45,30 @@ class CoverView(BrowserAnnotationsView):
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
     TARGET = "cover"
+    REPARSE_JSON_FIELDS = frozenset(
+        BrowserAnnotationsView.REPARSE_JSON_FIELDS | {"parent"}
+    )
+
+    def get_group_filter(self, group=None, pks=None, page_mtime=False):
+        """Get group filter for First Cover View."""
+        if self.params.get("dynamic_covers"):
+            return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
+
+        # First cover group filter relies on sort names to look outside the browser supplied pks
+        # For multi_groups not in the browser query.
+        pks = self.kwargs["pks"]
+        name_rel = "name" if self.model == Volume else "sort_name"
+        qs = self.model.objects.filter(pk__in=pks)  # type: ignore
+        sort_names = qs.values_list(name_rel, flat=True).distinct()
+        model_rel = GROUP_RELATION[self.model_group]
+        group_filter = {f"{model_rel}__{name_rel}__in": sort_names}
+
+        parent = self.params["parent"]
+        parent_pks = parent.get("pks", ())
+        if parent_pks:
+            parent_rel = GROUP_RELATION[parent["group"]]
+            group_filter[f"{parent_rel}__pk__in"] = parent_pks
+        return Q(**group_filter)
 
     def get_model_group(self):
         """Return the url group."""

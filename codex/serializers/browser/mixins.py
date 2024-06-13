@@ -56,8 +56,10 @@ class BrowserAggregateSerializerMixin(Serializer):
             if dt > mtime:
                 mtime = dt
 
-        if obj.group != COMIC_GROUP and obj.max_bookmark_updated_at:
-            mtime = max(mtime, obj.max_bookmark_updated_at)
+        if obj.group != COMIC_GROUP and (
+            mbua := getattr(obj, "max_bookmark_updated_at", None)
+        ):
+            mtime = max(mtime, mbua)
 
         # print(obj.group, obj.pk, obj.name, obj.updated_ats, obj.max_bookmark_updated_at, "max:", mtime)
         return int(mtime.timestamp() * 1000)

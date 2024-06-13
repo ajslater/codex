@@ -11,6 +11,7 @@ from rest_framework.serializers import (
 from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
 from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
+from codex.serializers.route import SimpleRouteSerializer
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
@@ -31,8 +32,8 @@ class BrowserFilterChoicesInputSerilalizer(Serializer):
     q = CharField(allow_blank=True, required=False)
 
 
-class BrowserCoverInputSerializer(BrowserFilterChoicesInputSerilalizer):
-    """Browser Settings for the cover response."""
+class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerilalizer):
+    """Base Serializer for Cover and Settings."""
 
     custom_covers = BooleanField(required=False)
     dynamic_covers = BooleanField(required=False)
@@ -41,7 +42,13 @@ class BrowserCoverInputSerializer(BrowserFilterChoicesInputSerilalizer):
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
 
 
-class BrowserSettingsSerializerBase(BrowserCoverInputSerializer):
+class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
+    """Browser Settings for the cover response."""
+
+    parent = SimpleRouteSerializer(required=False)
+
+
+class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
     # search_results_limit = IntegerField(required=False)

@@ -48,6 +48,6 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         """Send message to client."""
         text = event.get("text")
         if not text:
-            LOG.warning("No text in message")
+            LOG.warning(f"No text in websockets message: {event}")
             return
         await self.send(text)

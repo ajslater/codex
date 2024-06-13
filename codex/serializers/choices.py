@@ -53,10 +53,13 @@ _SINGLE_VALUE_KEYS = frozenset(
     {
         "customCovers",
         "dynamicCovers",
+        "finishOnLastPage",
         "orderReverse",
         "q",
+        "readRtlInReverse",
         "searchResultsLimit",
         "twentyFourHourTime",
+        "twoPages",
     }
 )
 
@@ -65,6 +68,7 @@ CHOICES = {}
 DEFAULTS = {}
 WEBSOCKET_MESSAGES = {}
 VUETIFY_NULL_CODE = -1
+DUMMY_NULL_NAME = "_none_"
 
 
 def _find_filename_regex(js_root, module_name):

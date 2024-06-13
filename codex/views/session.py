@@ -69,8 +69,10 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                 "top_group": DEFAULTS["topGroup"],
             },
             READER_SESSION_KEY: {
+                "finish_on_last_page": DEFAULTS["finishOnLastPage"],
                 "fit_to": DEFAULTS["fitTo"],
-                "two_pages": False,
+                "two_pages": DEFAULTS["twoPages"],
+                "read_rtl_in_reverse": DEFAULTS["readRtlInReverse"],
                 "reading_direction": DEFAULTS["readingDirection"],
             },
         }

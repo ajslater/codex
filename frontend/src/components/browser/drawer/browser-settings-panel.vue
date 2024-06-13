@@ -26,7 +26,7 @@
     <v-checkbox
       v-tooltip="{
         openDelay,
-        text: 'Adjust cover with filters and order by',
+        text: 'Choose covers by filters, search, and order',
       }"
       class="browserGroupCheckbox"
       density="compact"

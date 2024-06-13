@@ -34,7 +34,7 @@
         density="compact"
         variant="plain"
         class="clearFilter"
-        title="Clear Filter"
+        title="Clear All Filters"
         :append-icon="mdiCloseCircleOutline"
         @click="onClear"
       />

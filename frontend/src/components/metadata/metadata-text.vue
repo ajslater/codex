@@ -3,7 +3,7 @@
     <div class="textLabel">
       {{ label }}
     </div>
-    <div class="textValue">
+    <div class="textValue" :class="{ empty }">
       <router-link
         v-if="groupTo && group === 'f'"
         id="folderPath"
@@ -38,6 +38,8 @@
 import { mdiOpenInNew } from "@mdi/js";
 
 import { useBrowserStore } from "@/stores/browser";
+
+const EMPTY_VALUE = "(Empty)";
 
 export default {
   name: "MetadataTextBox",
@@ -75,9 +77,12 @@ export default {
           ? this.value.name
           : this.value;
       if (this.group && value === "") {
-        value = "(Empty)";
+        value = EMPTY_VALUE;
       }
       return value;
+    },
+    empty() {
+      return this.computedValue === EMPTY_VALUE;
     },
     linkValue() {
       if (this.link === true) {
@@ -162,5 +167,8 @@ export default {
 // eslint-disable-next-line vue-scoped-css/no-unused-selector
 .highlight a.textContent:hover {
   border: solid thin rgb(var(--v-theme-textPrimary));
+}
+.empty {
+  opacity: 0.5;
 }
 </style>

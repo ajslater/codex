@@ -196,11 +196,17 @@ export const useBrowserStore = defineStore("browser", {
     },
     coverSettings(state) {
       const usedSettings = {};
-      const group = router.currentRoute.value.params?.group;
+      const params = router.currentRoute.value.params;
+      const group = params.group;
       if (group != "c") {
         let keys = COVER_KEYS;
         if (state.settings.dynamicCovers) {
           keys = keys.concat(DYNAMIC_COVER_KEYS);
+        } else {
+          usedSettings["parent"] = {
+            group,
+            pks: params.pks,
+          };
         }
         for (const key of keys) {
           let value = state.settings[key];
@@ -390,6 +396,14 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         this.loadBrowserPage(undefined, true);
       }
+    },
+    async clearOneFilter(filterName) {
+      this.$patch((state) => {
+        state.filterMode = "base";
+        state.settings.filters[filterName] = [];
+        state.browserPageLoaded = true;
+      });
+      await this.loadBrowserPage(undefined, true);
     },
     async clearFilters(clearSearch = false) {
       this.$patch((state) => {
