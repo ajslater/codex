@@ -144,7 +144,9 @@ export default {
       this.filterMode = "base";
     },
     onClear() {
-      this.clearFilters();
+      this.clearFilters().then(() => {
+        this.loadAvailableFilterChoices();
+      });
     },
     onMenu(to) {
       if (to && this.dynamicChoiceNames === undefined) {

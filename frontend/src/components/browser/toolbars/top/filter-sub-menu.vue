@@ -20,7 +20,7 @@
             @click="setUIFilterMode('base')"
           />
           <v-list-item
-            v-if="choices && choices.length"
+            v-if="isClearable"
             density="compact"
             class="clearFilter"
             title="Clear Filter"
@@ -143,12 +143,16 @@ export default {
         ? mdiChevronRightCircle
         : mdiChevronRight;
     },
+    isClearable() {
+      return this.filter?.length;
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, [
-      "identifierTypeTitle",
-      "loadFilterChoices",
       "clearOneFilter",
+      "identifierTypeTitle",
+      "loadAvailableFilterChoices",
+      "loadFilterChoices",
     ]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
@@ -172,7 +176,10 @@ export default {
       return item.title;
     },
     onClear() {
-      this.clearOneFilter(this.name);
+      this.clearOneFilter(this.name).then(() => {
+        this.loadAvailableFilterChoices();
+        this.loadFilterChoices(this.name);
+      });
     },
   },
 };
