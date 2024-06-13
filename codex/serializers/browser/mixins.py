@@ -14,7 +14,7 @@ from rest_framework.serializers import (
 
 from codex.logger.logging import get_logger
 from codex.serializers.browser.filters import IntListField
-from codex.views.const import EPOCH_START
+from codex.views.const import COMIC_GROUP, EPOCH_START
 
 LOG = get_logger(__name__)
 
@@ -55,7 +55,8 @@ class BrowserAggregateSerializerMixin(Serializer):
 
             if dt > mtime:
                 mtime = dt
-        if obj.max_bookmark_updated_at:
+
+        if obj.group != COMIC_GROUP and obj.max_bookmark_updated_at:
             mtime = max(mtime, obj.max_bookmark_updated_at)
 
         # print(obj.group, obj.pk, obj.name, obj.updated_ats, obj.max_bookmark_updated_at, "max:", mtime)
