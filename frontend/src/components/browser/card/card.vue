@@ -169,8 +169,6 @@ export default {
 }
 .cardFooter {
   margin-top: 10px;
-  display: flex;
-  justify-content: space-between;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {

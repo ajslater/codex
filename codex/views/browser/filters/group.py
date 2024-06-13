@@ -19,12 +19,13 @@ class GroupFilterView(SessionView):
         """Get the relation from the model to the pks."""
         # XXX these TARGET refs might be better as subclass get rel methods.
         target: str = self.TARGET  # type: ignore
-        if target in ("metadata", "mtime") or page_mtime:
+        if target in ("cover", "choices"):
+            rel = FILTER_ONLY_GROUP_RELATION[group]
+        elif target in ("metadata", "mtime") or page_mtime:
             # metadata, mtime, browser.page_mtime
             rel = "pk"
-        elif target in ("choices", "cover"):
-            rel = FILTER_ONLY_GROUP_RELATION[group]
         else:
+            # browser.group, opds
             rel = GROUP_RELATION[group]
 
         rel += "__in"

@@ -9,25 +9,25 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
-  - Breadcrumbs in the browser
   - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
   - Browser setting to choose Dynamic or First group covers. Thanks @Thakk.
-  - Metadata tags can click to browse filtered on that tag.
-  - Browser, search, and cover speed optimizations.
-  - Granular caching for covers in the browser.
-  - Experimental API throttling support. Search the README for "throttle".
-  - Add websocket updates for anonymous sessions
+  - Breadcrumbs in the browser
   - Reader can read by Volumes as well as by Series, Folder and StoryArc.
   - More compact UI controls.
+  - Metadata tags can click to browse filtered on that tag.
+  - Experimental API throttling support. Search the README for "throttle".
+  - Add websocket updates for anonymous sessions
+  - Speed and caching optimizations.
 - Fixes
   - OPDS http basic authorization fixed.
-  - Groups with the same name case insensitively collapsed in the browser.
+  - Groups with the same name in different cases collapse into one group in the
+    browser.
   - Order By respects browser show groups settings.
   - Fixed re-import of urls and identifiers.
   - Fixed cleanup of some foreign keys when no longer used.
   - Clean up all orphan folders on startup instead of first pass
   - Fix creating bookmarks.
-  - Update all browser sessions for user when users finish a book.
+  - Update browser sessions for user when users finish a book.
 
 ## v1.5.19
 
