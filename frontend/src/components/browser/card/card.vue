@@ -19,7 +19,7 @@
       </div>
       <v-progress-linear
         class="bookCoverProgress"
-        :background-color="progressBackgroundColor"
+        :bg-opacity="progressBGOpacity"
         :model-value="item.progress"
         :aria-label="`${item.progress}% read`"
         rounded
@@ -96,10 +96,8 @@ export default {
             query: { ts: this.item.mtime },
           };
     },
-    progressBackgroundColor() {
-      return this.item.progress
-        ? this.$vuetify.theme.current.colors.row
-        : "inherit";
+    progressBGOpacity() {
+      return this.item.progress ? 0.1 : 0.0;
     },
   },
   mounted() {
