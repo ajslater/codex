@@ -1,15 +1,18 @@
 """OPDS v1 Entry Links Methods."""
 
+from datetime import datetime
+from math import floor
 from urllib.parse import quote_plus
 
-from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
-from codex.models import Comic
+from codex.logger.logging import get_logger
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+
+LOG = get_logger(__name__)
 
 
 class OPDS1EntryLinksMixin:
@@ -23,63 +26,61 @@ class OPDS1EntryLinksMixin:
         self.fake = isinstance(self.obj, OPDS1EntryObject)
         self.query_params = query_params
         self.acquision_groups = data.acquisition_groups
-        self.issue_number_max = data.issue_number_max
+        self.zero_pad = data.zero_pad
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
 
-    def _thumb_link(self):
+    def _cover_link(self, rel):
         if self.fake:
             return None
-        cover_pk = self.obj.cover_pk
-        if cover_pk:
-            kwargs = {"pk": cover_pk}
+        # cover_pk = getattr(self.obj, "cover_pk", None)
+        try:
+            kwargs = {"group": self.obj.group, "pks": self.obj.ids}
+            ts = floor(datetime.timestamp(self.obj.updated_at))
+            query_params = {
+                "customCovers": True,
+                "dynamicCovers": False,
+                "ts": ts,
+            }
             href = reverse("opds:bin:cover", kwargs=kwargs)
-        elif cover_pk == 0:
-            href = staticfiles_storage.url("img/missing_cover.webp")
-        else:
-            return None
-        return OPDS1Link(Rel.THUMBNAIL, href, "image/webp")
-
-    def _image_link(self):
-        if self.fake:
-            return None
-        cover_pk = self.obj.cover_pk
-        if cover_pk:
-            kwargs = {"pk": cover_pk, "page": 0}
-            href = reverse("opds:bin:page", kwargs=kwargs)
-            mime_type = "image/jpeg"
-        elif cover_pk == 0:
-            href = staticfiles_storage.url("img/missing_cover.webp")
+            href = update_href_query_params(href, query_params)
             mime_type = "image/webp"
-        else:
-            return None
-        return OPDS1Link(Rel.IMAGE, href, mime_type)
+            return OPDS1Link(rel, href, mime_type)
+        except Exception:
+            LOG.exception("create thumb")
 
     def _nav_href(self, metadata=False):
-        kwargs = {"group": self.obj.group, "pk": self.obj.pk, "page": 1}
-        href = reverse("opds:v1:feed", kwargs=kwargs)
-        qps = {}
-        if (
-            self.obj.group == "a"
-            and self.obj.pk
-            and not self.query_params.get("orderBy")
-        ):
-            # story arcs get ordered by story_arc_number by default
-            qps.update({"orderBy": "story_arc_number"})
-        if metadata:
-            qps.update({"opdsMetadata": 1})
-        return update_href_query_params(href, self.query_params, qps)
+        try:
+            pks = sorted(self.obj.ids)
+            kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
+            href = reverse("opds:v1:feed", kwargs=kwargs)
+            qps = {}
+            if (
+                self.obj.group == "a"
+                and self.obj.ids
+                and 0 not in self.obj.ids
+                and not self.query_params.get("orderBy")
+            ):
+                # story arcs get ordered by story_arc_number by default
+                qps.update({"orderBy": "story_arc_number"})
+            if metadata:
+                qps.update({"opdsMetadata": 1})
+            return update_href_query_params(href, self.query_params, qps)
+        except Exception:
+            msg = f"creating nav href for entry {self.obj}"
+            LOG.exception(msg)
+            raise
 
     def _nav_link(self, metadata=False):
-        group = self.obj.group
+        href = self._nav_href(metadata)
 
+        group = self.obj.group
         if group in self.acquision_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
-        href = self._nav_href(metadata)
         thr_count = 0 if self.fake else self.obj.child_count
         rel = Rel.ALTERNATE if metadata else "subsection"
 
@@ -89,8 +90,7 @@ class OPDS1EntryLinksMixin:
         pk = self.obj.pk
         if not pk:
             return None
-        fn = Comic.get_filename(self.obj)
-        fn = quote_plus(fn)
+        fn = quote_plus(self.obj.get_filename())
         kwargs = {"pk": pk, "filename": fn}
         href = reverse("opds:bin:download", kwargs=kwargs)
         mime_type = self.mime_type_map.get(self.obj.file_type, MimeType.OCTET)
@@ -118,23 +118,33 @@ class OPDS1EntryLinksMixin:
             pse_last_read_date=bookmark_updated_at,
         )
 
+    def _links_comic(self):
+        """Links for comics."""
+        result = []
+        if download := self._download_link():
+            result += [download]
+        if stream := self._stream_link():
+            result += [stream]
+        if not self.metadata and (metadata := self._nav_link(metadata=True)):
+            result += [metadata]
+        return result
+
     @property
     def links(self):
         """Create all entry links."""
         result = []
-        if thumb := self._thumb_link():
-            result += [thumb]
-        if image := self._image_link():
-            result += [image]
+        try:
+            if thumb := self._cover_link(Rel.THUMBNAIL):
+                result += [thumb]
+            if image := self._cover_link(Rel.IMAGE):
+                result += [image]
 
-        if self.obj.group == "c" and not self.fake:
-            if download := self._download_link():
-                result += [download]
-            if stream := self._stream_link():
-                result += [stream]
-            if not self.metadata and (metadata := self._nav_link(metadata=True)):
-                result += [metadata]
-        elif nav := self._nav_link():
-            result += [nav]
+            if self.obj.group == "c" and not self.fake:
+                result += self._links_comic()
+            elif nav := self._nav_link():
+                result += [nav]
 
+        except Exception:
+            msg = f"Getting entry links for {self.obj}"
+            LOG.exception(msg)
         return result

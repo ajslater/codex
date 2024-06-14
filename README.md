@@ -1,4 +1,4 @@
-Codex
+# Codex
 
 A comic archive browser and reader.
 
@@ -15,6 +15,7 @@ border-radius: 128px;
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of publishers, imprints, series, volumes, or your own folder
   hierarchy.
+- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Read comics in a variety of aspect ratios and directions that fit your screen.
 - Per user bookmarking. Per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
@@ -260,10 +261,8 @@ index, a Django cache and comic book cover thumbnails.
 
 ### Environment Variables
 
-### Codex
+#### General
 
-- `LOGLEVEL` will change how verbose codex's logging is. Valid values are
-  `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
 - `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
@@ -273,16 +272,30 @@ index, a Django cache and comic book cover thumbnails.
   when codex starts.
 - `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that
   runs when codex starts.
+- `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
+  reads all archive metadata sources and transforms it into a the comicbox
+  schema.
+
+#### Logging
+
+- `LOGLEVEL` will change how verbose codex's logging is. Valid values are
+  `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
 - `CODEX_LOG_DIR` sets a custom directory for saving logfiles. Defaults to
   `$CODEX_CONFIG_DIR/logs`
 - `CODEX_LOG_TO_FILE=0` will not log to files.
 - `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
 
-#### Comicbox
+#### Throttling
 
-- `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
-  reads all archive metadata sources and transforms it into a the comicbox
-  schema.
+Codex contains some experimental throttling controls. The value supplied to
+these variables will be interpreted as the maximum number of allowed requests
+per minute. For example, the following settings would limit each described group
+to 2 queries per second.
+
+- `CODEX_THROTTLE_ANON=30` Anonymous users
+- `CODEX_THROTTLE_USER=30` Authenticated users
+- `CODEX_THROTTLE_OPDS=30` The OPDS v1 & v2 APIs (Panels uses this for search)
+- `CODEX_THROTTLE_OPENSEARCH=30` The OPDS v1 Opensearch API
 
 ### Reverse Proxy
 
@@ -368,13 +381,16 @@ OPDS 2.0 book readers exist, but I am not yet aware of an OPDS 2.0 comic reader.
 
 #### Clients
 
-- iOS has [Panels](https://panels.app/), [KYBook 3](http://kybook-reader.com/),
-  and
+- iOS has [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
+  [KYBook 3](http://kybook-reader.com/), and
   [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
 - Android has
   [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
   and
   [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
+
+Kybook 3 does not seem to support http basic authentication, so Cbbodex users
+are not supported.
 
 #### HTTP Basic Authentication
 

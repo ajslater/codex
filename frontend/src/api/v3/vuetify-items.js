@@ -10,15 +10,20 @@ export const NULL_PKS = new Set([
 
 const toVuetifyItem = function (item) {
   // Translates an raw value or an item item into a vuetify item.
+  // Removes nulls, they're detected directly from the choices source.
   let vuetifyItem;
-  if (item === undefined) {
+  if (NULL_PKS.has(item)) {
     vuetifyItem = item;
   } else if (item instanceof Object) {
-    vuetifyItem = { value: item.pk, title: item.name };
+    if (NULL_PKS.has(item.pk)) {
+      vuetifyItem = undefined;
+    } else {
+      vuetifyItem = { value: item.pk, title: item.name };
+    }
   } else {
     vuetifyItem = { value: item, title: item.toString() };
   }
-  if (item.url) {
+  if (item?.url) {
     vuetifyItem.url = item.url;
   }
   return vuetifyItem;
@@ -44,15 +49,11 @@ export const toVuetifyItems = function (items, filter, numeric = false) {
 
   let computedItems = [];
   for (const item of sourceItems) {
-    if (!item || NULL_PKS.has(item.pk)) {
-      continue;
-    }
     const vuetifyItem = toVuetifyItem(item);
     if (
-      vuetifyItem &&
+      vuetifyItem != undefined &&
       (!lowerCaseFilter ||
-        (vuetifyItem.title &&
-          vuetifyItem.title.toLowerCase().includes(lowerCaseFilter)))
+        vuetifyItem?.title?.toLowerCase().includes(lowerCaseFilter))
     ) {
       computedItems.push(vuetifyItem);
     }

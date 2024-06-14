@@ -7,6 +7,7 @@
     :location="drawerLocation"
     :model-value="isDrawerOpen"
     :scrim="false"
+    :class="{ drawerActivated: isDrawerOpen }"
     temporary
     touchless
   >
@@ -89,17 +90,20 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+.bookChangeDrawer {
+  opacity: 0.75 !important;
+  z-index: 15 !important;
+}
+.drawerActivated {
+  // Deactivated drawers with custom width don't move off the screen enough
+  width: 33vw !important;
+}
+
 .prevCursor {
   cursor: n-resize;
-  /*
-  left: 0px;
-  */
 }
 .nextCursor {
   cursor: s-resize;
-  /*
-  right: 0px;
-  */
 }
 .navLink {
   display: block;
@@ -113,13 +117,5 @@ $iconSize: 25%;
   height: $iconSize;
   width: $iconSize;
   color: white;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.bookChangeDrawer {
-  width: 33vw !important;
-  opacity: 0.75 !important;
-  z-index: 15 !important;
 }
 </style>

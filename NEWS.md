@@ -6,6 +6,29 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.0
+
+- Features
+  - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
+  - Browser setting to choose Dynamic or First group covers. Thanks @Thakk.
+  - Breadcrumbs in the browser
+  - Reader can read by Volumes as well as by Series, Folder and StoryArc.
+  - More compact UI controls.
+  - Metadata tags can click to browse filtered on that tag.
+  - Experimental API throttling support. Search the README for "throttle".
+  - Add websocket updates for anonymous sessions
+  - Speed and caching optimizations.
+- Fixes
+  - OPDS http basic authorization fixed.
+  - Groups with the same name in different cases collapse into one group in the
+    browser.
+  - Order By respects browser show groups settings.
+  - Fixed re-import of urls and identifiers.
+  - Fixed cleanup of some foreign keys when no longer used.
+  - Clean up all orphan folders on startup instead of first pass
+  - Fix creating bookmarks.
+  - Update browser sessions for user when users finish a book.
+
 ## v1.5.19
 
 - Fixes
@@ -1044,7 +1067,7 @@ Yanked. Crash loading admin page.
   - Reader swiping navigation
   - Reader keyboard shortcut help dialog
   - Tentative linux/armhf support. No way for me to test this
-  - Vacuum the sqllite database once a day to prevent bloat
+  - Vacuum the sqlite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
 
 ## v0.6.7

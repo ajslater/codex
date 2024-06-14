@@ -69,6 +69,10 @@ a {
   border-radius: 5px;
 }
 
+.v-tooltip > .v-overlay__content {
+  color: rgb(var(--v-theme-textDisabled)) !important;
+}
+
 .highlight-table tbody > tr > td {
   border: 0;
 }

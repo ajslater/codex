@@ -12,22 +12,26 @@
 </template>
 
 <script>
+import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import { camelToTitleCase } from "@/to-case";
 
 export default {
   name: "MetadataContributorsTable",
+  components: {
+    MetadataTags,
+  },
   props: {
     value: {
       type: Array,
       default: undefined,
     },
   },
-  data() {
-    return {};
-  },
   computed: {
     contributorsDict() {
       const contributors = {};
+      if (!this.value) {
+        return contributors;
+      }
       for (const { role, person } of this.value) {
         const roleName = camelToTitleCase(role.name) + "s";
         if (!contributors[roleName]) {

@@ -41,6 +41,11 @@ class JanitorCleanFKsTask(JanitorTask):
 
 
 @dataclass
+class JanitorCleanCoversTask(JanitorTask):
+    """Clean unused custom covers."""
+
+
+@dataclass
 class JanitorClearStatusTask(JanitorTask):
     """Clear all librarian statuses."""
 

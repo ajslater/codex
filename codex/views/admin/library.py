@@ -2,20 +2,20 @@
 
 from pathlib import Path
 from time import time
-from typing import ClassVar
 
 from django.core.cache import cache
+from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.tasks import DelayedTasks
-from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.librarian.watchdog.tasks import (
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
 from codex.logger.logging import get_logger
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin import (
@@ -24,20 +24,34 @@ from codex.serializers.admin import (
     FailedImportSerializer,
     LibrarySerializer,
 )
+from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 LOG = get_logger(__name__)
 
 
-class AdminLibraryViewSet(ModelViewSet):
+class AdminLibraryViewSet(AdminModelViewSet):
     """Admin Library Viewset."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
+    _WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
+
     queryset = Library.objects.prefetch_related("groups").defer(
         "update_in_progress", "created_at", "updated_at"
     )
     serializer_class = LibrarySerializer
 
-    WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
+    @classmethod
+    def _sync_watchdog(cls, validated_keys=None):
+        if validated_keys is None or validated_keys.intersection(
+            cls._WATCHDOG_SYNC_FIELDS
+        ):
+            task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
+            LIBRARIAN_QUEUE.put(task)
+
+    @staticmethod
+    def _on_change():
+        cache.clear()
+        task = LIBRARY_CHANGED_TASK
+        LIBRARIAN_QUEUE.put(task)
 
     def _create_library_folder(self, library):
         folder = Folder(
@@ -46,35 +60,15 @@ class AdminLibraryViewSet(ModelViewSet):
         folder.save()
 
     @staticmethod
-    def _sync_watchdog():
-        task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
-        LIBRARIAN_QUEUE.put(task)
-
-    @staticmethod
-    def _on_change():
-        cache.clear()
-        task = LIBRARY_CHANGED_TASK
-        LIBRARIAN_QUEUE.put(task)
-
-    @staticmethod
     def _poll(pk, force):
         task = WatchdogPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
 
-    def perform_update(self, serializer):
-        """Perform update an run hooks."""
-        validated_keys = set(serializer.validated_data.keys())
-        super().perform_update(serializer)
-        if "groupSet" in validated_keys:
-            self._on_change()
-        if validated_keys.intersection(self.WATCHDOG_SYNC_FIELDS):
-            self._sync_watchdog()
-        pk = self.kwargs.get("pk")
-        self._poll(pk, False)
-
     def perform_create(self, serializer):
         """Perform create and run hooks."""
         super().perform_create(serializer)
+        if serializer.validated_data.get("covers_only"):
+            raise NotSupportedError
         library = Library.objects.only("pk", "path").get(
             path=serializer.validated_data["path"]
         )
@@ -82,25 +76,38 @@ class AdminLibraryViewSet(ModelViewSet):
         self._sync_watchdog()
         self._poll(library.pk, False)
 
+    def perform_update(self, serializer):
+        """Perform update an run hooks."""
+        validated_keys = frozenset(serializer.validated_data.keys())
+        pk = self.kwargs["pk"]
+        library = Library.objects.get(pk=pk)
+        if library.covers_only and serializer.validated_data.get("path"):
+            raise NotSupportedError
+        super().perform_update(serializer)
+        if "groupSet" in validated_keys:
+            self._on_change()
+        self._sync_watchdog(validated_keys)
+        self._poll(pk, False)
+
     def perform_destroy(self, instance):
         """Perform destroy and run hooks."""
+        if instance.covers_only:
+            raise NotSupportedError
         super().perform_destroy(instance)
         self._sync_watchdog()
         self._on_change()
 
 
-class AdminFailedImportViewSet(ModelViewSet):
+class AdminFailedImportViewSet(AdminModelViewSet):
     """Admin FailedImport Viewset."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = FailedImport.objects.defer("updated_at")
     serializer_class = FailedImportSerializer
 
 
-class AdminFolderListView(GenericAPIView):
+class AdminFolderListView(AdminGenericAPIView):
     """List server directories."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type:ignore
     serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 
@@ -108,10 +115,10 @@ class AdminFolderListView(GenericAPIView):
     def get(self, *_args, **_kwargs):
         """Get subdirectories for a path."""
         try:
-            serializer = self.input_serializer_class(data=self.request.query_params)
+            serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            path = Path(serializer.validated_data.get("path", "."))
-            show_hidden = serializer.validated_data.get("show_hidden", False)
+            path = Path(serializer.validated_data.get("path", "."))  # type: ignore
+            show_hidden = serializer.validated_data.get("show_hidden", False)  # type: ignore
             root_path = path.resolve()
 
             dirs = []

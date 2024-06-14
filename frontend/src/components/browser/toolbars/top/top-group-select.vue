@@ -1,17 +1,21 @@
 <template>
   <ToolbarSelect
-    v-bind="$attrs"
     v-model="topGroup"
     class="topGroupSelect"
     select-label="top group"
     :items="topGroupChoices"
-    :max-select-len="topGroupChoicesMaxLen - 2"
-    :mobile-len-adj="-1"
+    :max-select-len="topGroupChoicesMaxLen - 2.25"
   >
     <template #item="{ item, props }">
       <!-- Divider in items not implemented yet in Vuetify 3 -->
       <v-divider v-if="DIVIDED_VALUES.has(item.value)" />
-      <v-list-item v-bind="props" :title="item.title" :value="item.value" />
+      <v-list-item
+        v-bind="props"
+        density="compact"
+        variant="plain"
+        :title="item.title"
+        :value="item.value"
+      />
     </template>
   </ToolbarSelect>
 </template>
@@ -19,10 +23,9 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
+import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
-const FOLDER_ROUTE = { params: { group: "f", pk: 0, page: 1 } };
 const DIVIDED_VALUES = new Set(["a", "f"]);
 
 export default {
@@ -33,7 +36,6 @@ export default {
   extends: ToolbarSelect,
   data() {
     return {
-      FOLDER_ROUTE,
       DIVIDED_VALUES,
     };
   },
@@ -50,17 +52,8 @@ export default {
         return this.topGroupSetting;
       },
       set(value) {
-        const group = DIVIDED_VALUES.has(value) ? value : "r";
-        const topRoute = {
-          params: { group, pk: 0, page: 1 },
-        };
         const settings = { topGroup: value };
-        this.$router
-          .push(topRoute)
-          .then(() => {
-            return this.setSettings(settings);
-          })
-          .catch(console.error);
+        this.setSettings(settings);
       },
     },
   },
@@ -69,9 +62,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-:deep(.v-field-label--floating) {
-  padding-left: calc(env(safe-area-inset-left) / 3);
-}
-</style>

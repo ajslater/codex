@@ -3,7 +3,7 @@
     <div class="textLabel">
       {{ label }}
     </div>
-    <div class="textValue">
+    <div class="textValue" :class="{ empty }">
       <router-link
         v-if="groupTo && group === 'f'"
         id="folderPath"
@@ -39,6 +39,8 @@ import { mdiOpenInNew } from "@mdi/js";
 
 import { useBrowserStore } from "@/stores/browser";
 
+const EMPTY_VALUE = "(Empty)";
+
 export default {
   name: "MetadataTextBox",
   props: {
@@ -70,9 +72,17 @@ export default {
   },
   computed: {
     computedValue() {
-      return this.value != undefined && this.value instanceof Object
-        ? this.value.name
-        : this.value;
+      let value =
+        this.value && this.value.name !== undefined
+          ? this.value.name
+          : this.value;
+      if (this.group && value === "") {
+        value = EMPTY_VALUE;
+      }
+      return value;
+    },
+    empty() {
+      return this.computedValue === EMPTY_VALUE;
     },
     linkValue() {
       if (this.link === true) {
@@ -111,15 +121,17 @@ export default {
       ) {
         return;
       }
-      const pk = this.obj?.group == this.group ? this.obj.pk : this.value.pk;
-      if (!pk) {
+      const pksList = this.value.ids ? this.value.ids : [this.value.pk];
+      const pks = pksList.join(",");
+
+      if (!pks) {
         return;
       }
       const params = this.$router.currentRoute.value.params;
-      if (params.group === this.group && +params.pk === pk) {
+      if (params.group === this.group && params.pks === pks) {
         return;
       }
-      return { name: "browser", params: { group: this.group, pk } };
+      return { name: "browser", params: { group: this.group, pks } };
     },
   },
 };
@@ -155,5 +167,8 @@ export default {
 // eslint-disable-next-line vue-scoped-css/no-unused-selector
 .highlight a.textContent:hover {
   border: solid thin rgb(var(--v-theme-textPrimary));
+}
+.empty {
+  opacity: 0.5;
 }
 </style>

@@ -16,17 +16,17 @@
       </v-btn>
     </template>
     <div class="background-soft-highlight">
-      <v-list-item v-if="item.group === 'c'" @click="toggleRead">
-        <v-list-item-title>
-          {{ markReadText }}
-        </v-list-item-title>
-      </v-list-item>
+      <v-list-item
+        v-if="item.group === 'c'"
+        :title="markReadText"
+        @click="toggleRead"
+      />
       <ConfirmDialog
         v-else
         :button-text="markReadText"
         :title-text="markReadText"
         :confirm-text="confirmText"
-        :object-name="item.name"
+        :object-name="itemName"
         @confirm="toggleRead"
         @cancel="showMenu = false"
       />
@@ -40,7 +40,6 @@ import { mapActions, mapState } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "BrowserContainerMenu",
@@ -81,10 +80,12 @@ export default {
       words.push(groupName, this.verb);
       return words.join(" ");
     },
+    itemName() {
+      return this.item.name ? this.item.name : "(Empty)";
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
-    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     toggleRead: function () {
       this.setBookmarkFinished(this.item, !this.item.finished);
       this.showMenu = false;
@@ -92,5 +93,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss"></style>

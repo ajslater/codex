@@ -42,6 +42,14 @@ BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
 # It'd be nicer if i could bake --load and --push at the same time
 # but that requires docker buildx bake to allow multiple outputs:
 # https://github.com/moby/buildkit/issues/1555
+######################
+# DEBUG CIRCLECI ENV #
+######################
+pwd
+ls -a || true
+ls ./dist || true
+cat .dockerignore || true
+#####################
 docker buildx bake \
   "${BAKE_ARGS[@]-}" \
   --load \

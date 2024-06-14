@@ -22,9 +22,14 @@ export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
   return dttm_date + divider + dttm_time;
 };
 
+export const getTimestamp = function () {
+  return Math.floor(Date.now() / 1000);
+};
+
 export default {
   DATE_FORMAT,
   NUMBER_FORMAT,
   getDateTime,
   getTimeFormat,
+  getTimestamp,
 };

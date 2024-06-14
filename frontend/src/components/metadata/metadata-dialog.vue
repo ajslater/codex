@@ -4,23 +4,22 @@
       <v-btn
         aria-label="tags"
         class="tagButton cardControlButton"
-        icon
+        :variant="buttonVariant"
+        :icon="mdiTagOutline"
         title="Tags"
-        variant="text"
         v-bind="props"
         @click.prevent
-      >
-        <v-icon>
-          {{ mdiTagOutline }}
-        </v-icon>
-      </v-btn>
+      />
     </template>
-    <div v-if="md" id="metadataContainer" @keyup.esc="dialog = false">
+    <div
+      v-if="showContainer"
+      id="metadataContainer"
+      @keyup.esc="dialog = false"
+    >
       <header id="metadataHeader">
         <CloseButton
           class="closeButton"
           title="Close Metadata (esc)"
-          size="x-large"
           @click="dialog = false"
         />
         <MetadataText
@@ -33,10 +32,11 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-pk="md.coverPk"
             :group="group"
+            :pks="md.ids"
             :child-count="md.childCount"
             :finished="md.finished"
+            :mtime="md.mtime"
           />
           <v-progress-linear
             class="bookCoverProgress"
@@ -49,36 +49,44 @@
         </div>
         <div class="inlineRow">
           <MetadataText
+            v-for="publisher of md.publisherList"
             id="publisher"
-            :value="md.publisher"
+            :key="publisher.ids"
+            :value="publisher"
             group="p"
             label="Publisher"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText
+            v-for="imprint of md.imprintList"
             id="imprint"
-            :value="md.imprint"
+            :key="imprint.ids"
+            :value="imprint"
             group="i"
             label="Imprint"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
         </div>
         <div class="inlineRow">
           <MetadataText
+            v-for="series of md.seriesList"
             id="series"
-            :value="md.series"
+            :key="series.ids"
+            :value="series"
             label="Series"
             group="s"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
         </div>
         <div class="inlineRow">
           <MetadataText
+            v-for="volume of md.volumeList"
             id="volume"
-            :value="md.volume"
+            :key="volume.ids"
+            :value="volume"
             label="Volume"
             group="v"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText :value="md.seriesVolumeCount" label="Volume Count" />
           <MetadataText
@@ -86,7 +94,7 @@
             :value="formattedIssue"
             label="Issue"
             group="c"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
           <MetadataText :value="md.name" label="Title" />
@@ -163,14 +171,30 @@
           <MetadataText :value="md.ageRating" label="Age Rating" />
         </section>
         <section class="mdSection">
-          <MetadataTags :values="md.genres" label="Genres" />
-          <MetadataTags :values="md.characters" label="Characters" />
-          <MetadataTags :values="md.teams" label="Teams" />
-          <MetadataTags :values="md.locations" label="Locations" />
-          <MetadataTags :values="md.seriesGroups" label="Series Groups" />
-          <MetadataTags :values="md.stories" label="Stories" />
-          <MetadataTags :values="md.storyArcNumbers" label="Story Arcs" />
-          <MetadataTags :values="md.tags" label="Tags" />
+          <MetadataTags :values="md.genres" label="Genres" filter="genres" />
+          <MetadataTags
+            :values="md.characters"
+            label="Characters"
+            filter="characters"
+          />
+          <MetadataTags :values="md.teams" label="Teams" filter="teams" />
+          <MetadataTags
+            :values="md.locations"
+            label="Locations"
+            filter="locations"
+          />
+          <MetadataTags
+            :values="md.seriesGroups"
+            label="Series Groups"
+            filter="seriesGroups"
+          />
+          <MetadataTags :values="md.stories" label="Stories" filter="stories" />
+          <MetadataTags
+            :values="md.storyArcNumbers"
+            label="Story Arcs"
+            filter="storyArcs"
+          />
+          <MetadataTags :values="md.tags" label="Tags" filter="tags" />
         </section>
         <section class="mdSection">
           <MetadataContributorsTable :value="md.contributors" />
@@ -208,7 +232,6 @@
           <CloseButton
             class="closeButton"
             title="Close Metadata (esc)"
-            size="x-large"
             @click="dialog = false"
           />
         </span>
@@ -278,6 +301,10 @@ export default {
       type: Number,
       default: 1,
     },
+    toolbar: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -290,46 +317,66 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useBrowserStore, {
-      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
       identifierTypes: (state) => state.choices.static.identifierType,
-      importMetadata: (state) => state.page.adminFlags.importMetadata,
+      importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
-      downloadFileName: (state) => {
-        const md = state.md;
-        return state.md.path
-          ? md.path.split("/").at(-1)
-          : getFullComicName({
-              seriesName: md.series.name,
-              volumeName: md.volume.name,
-              issueNumber: md.issueNumber,
-              issueSuffix: md.issueSuffix,
-            }) +
-              "." +
-              this.fileType.toLowerCase();
-      },
     }),
     ...mapState(useBrowserStore, {
       q: (state) => state.settings.q,
     }),
+    showContainer() {
+      return this.md?.loaded || false;
+    },
+    downloadFileName() {
+      const md = this.md;
+      if (!md) {
+        return "Unknown.cbz";
+      }
+      return this.md?.filename
+        ? md.filename
+        : getFullComicName({
+            seriesName: md.series.name || "",
+            volumeName: md.volume.name || "",
+            issueNumber: md.issueNumber,
+            issueSuffix: md.issueSuffix,
+          }) +
+            "." +
+            this.fileType.toLowerCase();
+    },
+    buttonVariant() {
+      return this.toolbar ? "plain" : "text";
+    },
     downloadURL() {
-      return getDownloadURL(this.book);
+      if (this.book) {
+        return getDownloadURL(this.book);
+      } else {
+        return "";
+      }
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
     },
     isReadButtonEnabled() {
-      return this.$route.name === "browser" && Boolean(this.readerRoute);
+      return Boolean(this.readerRoute);
     },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
-      return getReaderRoute(this.md, this.importMetadata);
+      if (this.md?.ids) {
+        return getReaderRoute(this.md, this.importMetadata);
+      } else {
+        return {};
+      }
     },
     formattedIssue() {
+      if (!this.md) {
+        return "Unknown";
+      }
       if (
         (this.md.issueNumber === null || this.md.issueNumber === undefined) &&
         !this.md.issueSuffix
@@ -340,10 +387,16 @@ export default {
       return formattedIssue(this.md);
     },
     readingDirectionText() {
+      if (!this.md) {
+        return "Unknown";
+      }
       return this.readingDirectionTitles[this.md.readingDirection];
     },
     pages() {
       let pages = "";
+      if (!this.md) {
+        return pages;
+      }
       if (this.md.page) {
         const humanBookmark = NUMBER_FORMAT.format(this.md.page);
         pages += `Read ${humanBookmark} of `;
@@ -356,16 +409,16 @@ export default {
       return pages;
     },
     size() {
-      return this.md.size > 0 ? prettyBytes(this.md.size) : 0;
+      return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
     },
     fileType() {
-      return this.md.fileType || "Unknown";
+      return this?.md?.fileType || "Unknown";
     },
     titledIdentifiers() {
-      if (!this.md.identifiers) {
-        return this.md.identifiers;
-      }
       const titledIdentifiers = [];
+      if (!this?.md?.identifiers) {
+        return titledIdentifiers;
+      }
       for (const identifier of this.md.identifiers) {
         const parts = identifier.name.split(":");
         const idType = parts[0];
@@ -380,6 +433,9 @@ export default {
         titledIdentifiers.push({ ...identifier, name });
       }
       return titledIdentifiers;
+    },
+    multiGroup() {
+      return this.md?.ids ? this.md.ids.length > 1 : false;
     },
   },
   watch: {
@@ -396,10 +452,12 @@ export default {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
     dialogOpened() {
-      this.loadMetadata({
+      const pks = this.book.ids ? this.book.ids : [this.book.pk];
+      const data = {
         group: this.group,
-        pk: this.book.pk,
-      });
+        pks,
+      };
+      this.loadMetadata(data);
       this.startProgress();
     },
     startProgress() {
@@ -490,22 +548,19 @@ export default {
 }
 
 #footerLinks {
-  margin-top: 20px;
+  padding-top: 20px;
 }
 
 #downloadButton {
   margin-right: 10px;
 }
 
-#bottomRightButtons {
-  float: right;
-}
-
 #metadataContainer,
 #placeholderContainer {
-  padding-top: calc(20px + env(safe-area-inset-top));
-  padding-left: calc(20px + env(safe-area-inset-left));
-  padding-right: calc(20px + env(safe-area-inset-right));
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px,env(safe-area-inset-bottom));
 }
 
 .placeholder {

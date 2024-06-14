@@ -1,12 +1,6 @@
 """Librarian Status for imports."""
 
-from collections.abc import Callable
-from enum import Enum
-from time import time
-
 from django.db.models import Choices
-
-from codex.status import Status
 
 
 class ImportStatusTypes(Choices):
@@ -25,36 +19,11 @@ class ImportStatusTypes(Choices):
     DIRS_DELETED = "IDD"
     FILES_DELETED = "IFD"
     FAILED_IMPORTS = "IFI"
-
-
-def status_notify(status_type: str | Enum = "", updates=True):
-    """Wrap a function with status changes."""
-    # https://stackoverflow.com/questions/5929107/decorators-with-parameters
-
-    def decorator(func) -> Callable[..., int]:
-        def wrapper(self, data, *args, status=None, **kwargs) -> int:
-            """Run a function bracketed by status changes."""
-            num_elements = len(data)
-            if not num_elements:
-                return 0
-
-            if status:
-                finish = False
-            else:
-                complete = 0 if updates else None
-                status = Status(status_type, complete, num_elements, time())
-                self.status_controller.start(status)
-                finish = True
-
-            kwargs["status"] = status
-            try:
-                count = func(self, data, *args, **kwargs)
-            finally:
-                if finish:
-                    self.status_controller.finish(status)
-
-            return count
-
-        return wrapper
-
-    return decorator
+    QUERY_MISSING_COVERS = "ICQ"
+    COVERS_MOVED = "ICM"
+    COVERS_MODIFIED = "ICU"
+    COVERS_CREATED = "ICC"
+    COVERS_DELETED = "ICD"
+    COVERS_LINK = "ICL"
+    GROUP_UPDATE = "IGU"
+    ADOPT_FOLDERS = "IAF"

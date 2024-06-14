@@ -1,24 +1,19 @@
 """Admin Flag View."""
 
-from typing import ClassVar
-
-from rest_framework.permissions import IsAdminUser
-from rest_framework.viewsets import ModelViewSet
-
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.registration import patch_registration_setting
 from codex.serializers.admin import AdminFlagSerializer
+from codex.views.admin.auth import AdminModelViewSet
 
 LOG = get_logger(__name__)
 
 
-class AdminFlagViewSet(ModelViewSet):
+class AdminFlagViewSet(AdminModelViewSet):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = AdminFlag.objects.all()
     serializer_class = AdminFlagSerializer
     lookup_field = "key"

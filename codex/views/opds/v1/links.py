@@ -14,7 +14,8 @@ from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
-from codex.views.opds.v1.facets import FacetsMixin
+from codex.views.opds.v1.facets import OPDS1FacetsView
+from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
@@ -22,11 +23,11 @@ LOG = get_logger(__name__)
 class TopRoutes:
     """Routes for top groups."""
 
-    PUBLISHER = MappingProxyType({"group": "p", "pk": 0, "page": 1})
-    SERIES = MappingProxyType({"group": "s", "pk": 0, "page": 1})
-    FOLDER = MappingProxyType({"group": "f", "pk": 0, "page": 1})
-    ROOT = MappingProxyType({"group": "r", "pk": 0, "page": 1})
-    STORY_ARC = MappingProxyType({"group": "a", "pk": 0, "page": 1})
+    PUBLISHER = MappingProxyType({"group": "p", "pks": {}, "page": 1})
+    SERIES = MappingProxyType({"group": "s", "pks": {}, "page": 1})
+    FOLDER = MappingProxyType({"group": "f", "pks": {}, "page": 1})
+    ROOT = MappingProxyType({"group": "r", "pks": {}, "page": 1})
+    STORY_ARC = MappingProxyType({"group": "a", "pks": {}, "page": 1})
 
 
 @dataclass
@@ -101,13 +102,13 @@ class RootTopLinks:
     ALL = (NEW, FEATURED, LAST_READ)
 
 
-class LinksMixin(FacetsMixin):
+class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
     # overwritten in get_object()
     DEFAULT_ROUTE = MappingProxyType(
         {
-            **FacetsMixin.DEFAULT_ROUTE,
+            **OPDS1FacetsView.DEFAULT_ROUTE,
             "name": "opds:v1:feed",
         }
     )
@@ -120,7 +121,7 @@ class LinksMixin(FacetsMixin):
                 return False
 
         for key, value in top_link.query_params.items():
-            if str(self.request.query_params.get(key)) != str(value):
+            if str(self.request.GET.get(key)) != str(value):
                 return False
 
         return True
@@ -128,7 +129,8 @@ class LinksMixin(FacetsMixin):
     def _link(self, kwargs, rel, query_params=None, mime_type=MimeType.NAV):
         """Create a link."""
         if query_params is None:
-            query_params = self.request.query_params
+            query_params = self.request.GET
+        kwargs = pop_name(kwargs)
         href = reverse("opds:v1:feed", kwargs=kwargs)
         href = update_href_query_params(href, query_params)
         return OPDS1Link(rel, href, mime_type)
@@ -142,15 +144,15 @@ class LinksMixin(FacetsMixin):
     def _root_links(self):
         """Navigation Root Links."""
         links = []
-        if route := self.obj.get("up_route"):
-            links += [self._link(route, Rel.UP)]
+        if up_route := self.get_last_route():
+            links += [self._link(up_route, Rel.UP)]
         page = self.kwargs.get("page", 1)
         if page > 1:
-            route = {**self.kwargs, "page": page - 1}
-            links += [self._link(route, Rel.PREV)]
+            prev_route = {**self.kwargs, "page": page - 1}
+            links += [self._link(prev_route, Rel.PREV)]
         if page < self.obj.get("num_pages", 1):
-            route = {**self.kwargs, "page": page + 1}
-            links += [self._link(route, Rel.NEXT)]
+            next_route = {**self.kwargs, "page": page + 1}
+            links += [self._link(next_route, Rel.NEXT)]
         return links
 
     @property
@@ -186,13 +188,13 @@ class LinksMixin(FacetsMixin):
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
         entry_obj = OPDS1EntryObject(
             group=top_link.kwargs["group"],
-            pk=top_link.kwargs["pk"],
+            ids=top_link.kwargs["pks"],
             name=name,
             summary=top_link.desc,
         )
-        issue_number_max = self.obj.get("issue_number_max", 0)
+        zero_pad = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.acquisition_groups, issue_number_max, False, self.mime_type_map
+            self.acquisition_groups, zero_pad, False, self.mime_type_map
         )
         return OPDS1Entry(entry_obj, top_link.query_params, data)
 

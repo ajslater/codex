@@ -13,9 +13,14 @@ urlpatterns = [
     #
     # Browser
     path(
-        "<group:group>/<int:pk>/<int:page>",
+        "<group:group>/<int_list:pks>/<int:page>",
         cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
         name="feed",
+    ),
+    path(
+        "c/<str:pk>/<int:page>",
+        cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
+        name="acq",
     ),
     #
     # Catch All

@@ -1,85 +1,54 @@
-import { useCommonStore } from "@/stores/common";
+import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
-const JSON_KEYS = ["filters", "show"];
-Object.freeze(JSON_KEYS);
-
-// REST ENDPOINTS
-//
-const trimObject = (obj) => {
-  // Remove empty and undefined objects because they're default values.
-  const isArray = Array.isArray(obj);
-  const result = isArray ? [] : {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (val === undefined || val === null) {
-      continue;
-    }
-    const isValObject = val && typeof val === "object";
-    const trimmedVal = isValObject ? trimObject(val) : val;
-    if (!isValObject || Object.keys(trimmedVal).length > 0) {
-      if (isArray) {
-        result.push(trimmedVal);
-      } else {
-        result[key] = trimmedVal;
-      }
-    }
-  }
-  return result;
+const getAvailableFilterChoices = ({ group, pks }, data, ts) => {
+  const params = serializeParams(data, ts);
+  return HTTP.get(`/${group}/${pks}/choices_available`, { params });
 };
 
-const preSerialize = (data) => {
-  const params = trimObject(data);
-  if (params.q === "") {
-    delete params.q;
-  }
-  // Since axios 1.0 I have to manually serialize complex objects
-  for (const key of JSON_KEYS) {
-    if (params[key]) {
-      params[key] = JSON.stringify(params[key]);
-    }
-  }
-  params.ts = useCommonStore().timestamp;
-  return params;
+const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
+  const params = serializeParams(data, ts);
+  return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, { params });
 };
 
-const getAvailableFilterChoices = ({ group, pk }, data) => {
-  const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/choices_available`, { params });
+const getBrowserPage = ({ group, pks, page }, data, ts) => {
+  const params = serializeParams(data, ts);
+  return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
-const getFilterChoices = ({ group, pk }, fieldName, data) => {
-  const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/choices/${fieldName}`, { params });
+export const getCoverSrc = ({ group, pks }, data, ts) => {
+  const base = window.CODEX.API_V3_PATH;
+  const pks_str = pks.join(",");
+  const params = serializeParams(data, ts);
+  const queryString = new URLSearchParams(params).toString();
+  return `${base}${group}/${pks_str}/cover.webp?${queryString}`;
 };
 
-const loadBrowserPage = ({ group, pk, page }, data) => {
-  const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/${page}`, { params });
+const getMetadata = ({ group, pks }, settings) => {
+  const pkList = pks.join(",");
+  const mtime = Math.max(group.mtime, settings.mtime);
+  const data = { ...settings };
+  delete data.mtime;
+  const params = serializeParams(data, mtime);
+  return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
-const getMetadata = ({ group, pk }, data) => {
-  const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/metadata`, { params });
-};
-
-const getSettings = () => {
-  const params = preSerialize({});
+const getSettings = (data) => {
+  const params = serializeParams(data);
   return HTTP.get("/r/settings", { params });
 };
 
-const setGroupBookmarks = ({ group, pk }, data) => {
-  if (data.fitTo === null) {
-    data.fitTo = "";
-  }
-  return HTTP.patch(`${group}/${pk}/bookmark`, data);
+const updateSettings = (settings) => {
+  return HTTP.patch("/r/settings", settings);
 };
 
 export default {
   getAvailableFilterChoices,
+  getCoverSrc,
   getFilterChoices,
   getMetadata,
   getSettings,
-  loadBrowserPage,
-  setGroupBookmarks,
+  getBrowserPage,
+  updateSettings,
 };

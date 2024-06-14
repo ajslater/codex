@@ -5,7 +5,7 @@
     :model-value="currentBookPk"
     :reverse="isBTT"
     show-arrows
-    @click="click"
+    @click="toggleToolbars"
   >
     <template #prev>
       <BookChangeActivator direction="prev" />
@@ -40,7 +40,6 @@ export default {
     BookChangeActivator,
     Pager,
   },
-  emits: ["click"],
   computed: {
     ...mapGetters(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
@@ -56,19 +55,23 @@ export default {
   watch: {
     $route(to, from) {
       if (!from || !from.params || +to.params.pk !== +from.params.pk) {
-        this.loadBooks(to.params);
+        this.loadBooks({ params: to.params });
       }
     },
   },
   beforeMount() {
     this.setBookChangeFlag();
-    this.loadBooks(this.$route.params);
+    this.loadBooks({});
   },
   methods: {
-    ...mapActions(useReaderStore, ["setBookChangeFlag", "loadBooks"]),
+    ...mapActions(useReaderStore, [
+      "setBookChangeFlag",
+      "loadBooks",
+      "toggleToolbars",
+    ]),
     click() {
+      this.toggleToolbars();
       this.setBookChangeFlag();
-      this.$emit("click");
     },
     eager(pk) {
       return (

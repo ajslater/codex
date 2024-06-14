@@ -10,9 +10,9 @@ class NotifierTask:
     """Handle with the Notifier."""
 
     text: str
-    group: ChannelGroups
+    group: str
 
 
-LIBRARY_CHANGED_TASK = NotifierTask("LIBRARY_CHANGED", ChannelGroups.ALL)
-LIBRARIAN_STATUS_TASK = NotifierTask("LIBRARIAN_STATUS", ChannelGroups.ADMIN)
-FAILED_IMPORTS_TASK = NotifierTask("FAILED_IMPORTS", ChannelGroups.ADMIN)
+LIBRARY_CHANGED_TASK = NotifierTask("LIBRARY_CHANGED", ChannelGroups.ALL.name)
+LIBRARIAN_STATUS_TASK = NotifierTask("LIBRARIAN_STATUS", ChannelGroups.ADMIN.name)
+FAILED_IMPORTS_TASK = NotifierTask("FAILED_IMPORTS", ChannelGroups.ADMIN.name)

@@ -27,7 +27,9 @@ LOG = get_logger(__name__)
 class UserSerializer(BaseModelSerializer):
     """User Serializer."""
 
-    last_active = DateTimeField(read_only=True, allow_null=True)
+    last_active = DateTimeField(
+        read_only=True, source="useractive.updated_at", allow_null=True
+    )
 
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
@@ -99,8 +101,17 @@ class LibrarySerializer(BaseModelSerializer):
         """Specify Model."""
 
         model = Library
-        fields = ("pk", "events", "groups", "last_poll", "path", "poll", "poll_every")
-        read_only_fields = ("last_poll", "pk")
+        fields = (
+            "pk",
+            "path",
+            "events",
+            "last_poll",
+            "poll",
+            "poll_every",
+            "groups",
+            "covers_only",
+        )
+        read_only_fields = ("last_poll", "pk", "covers_only")
 
     def validate_path(self, path):
         """Validate new library paths."""
@@ -162,8 +173,7 @@ class AdminFolderSerializer(Serializer):
     def validate_show_hidden(self, show_hidden):
         """Snakecase the showHidden field."""
         return (
-            show_hidden == "true"
-            or self.initial_data.get("showHidden", False) == "true"
+            show_hidden == "true" or self.initial_data.get("showHidden") == "true"  # type: ignore
         )
 
 
@@ -171,67 +181,68 @@ class AdminGroupSerializer(Serializer):
     """Group Counts."""
 
     publishers_count = IntegerField(required=False, read_only=True)
-    imprints_count = IntegerField(required=False)
-    series_count = IntegerField(required=False)
-    volumes_count = IntegerField(required=False)
-    issues_count = IntegerField(required=False)
-    folders_count = IntegerField(required=False)
+    imprints_count = IntegerField(required=False, read_only=True)
+    series_count = IntegerField(required=False, read_only=True)
+    volumes_count = IntegerField(required=False, read_only=True)
+    issues_count = IntegerField(required=False, read_only=True)
+    folders_count = IntegerField(required=False, read_only=True)
+    story_arcs_count = IntegerField(required=False, read_only=True)
 
 
 class AdminFileTypeSerializer(Serializer):
     """File Type Counts."""
 
-    pdf_count = IntegerField(required=False)
-    cbz_count = IntegerField(required=False)
-    cbr_count = IntegerField(required=False)
-    cbt_count = IntegerField(required=False)
-    unknown_count = IntegerField(required=False)
+    pdf_count = IntegerField(required=False, read_only=True)
+    cbz_count = IntegerField(required=False, read_only=True)
+    cbr_count = IntegerField(required=False, read_only=True)
+    cbt_count = IntegerField(required=False, read_only=True)
+    unknown_count = IntegerField(required=False, read_only=True)
 
 
 class AdminComicMetadataSerializer(Serializer):
     """Metadata Counts."""
 
-    age_ratings_count = IntegerField(required=False)
-    characters_count = IntegerField(required=False)
-    contributors_count = IntegerField(required=False)
-    contributor_persons_count = IntegerField(required=False)
-    contributor_roles_count = IntegerField(required=False)
-    countries_count = IntegerField(required=False)
-    genres_count = IntegerField(required=False)
-    identifiers_count = IntegerField(required=False)
-    identifier_types_count = IntegerField(required=False)
-    languages_count = IntegerField(required=False)
-    locations_count = IntegerField(required=False)
-    original_formats_count = IntegerField(required=False)
-    series_groups_count = IntegerField(required=False)
-    scan_infos_count = IntegerField(required=False)
+    age_ratings_count = IntegerField(required=False, read_only=True)
+    characters_count = IntegerField(required=False, read_only=True)
+    contributors_count = IntegerField(required=False, read_only=True)
+    contributor_persons_count = IntegerField(required=False, read_only=True)
+    contributor_roles_count = IntegerField(required=False, read_only=True)
+    countries_count = IntegerField(required=False, read_only=True)
+    genres_count = IntegerField(required=False, read_only=True)
+    identifiers_count = IntegerField(required=False, read_only=True)
+    identifier_types_count = IntegerField(required=False, read_only=True)
+    languages_count = IntegerField(required=False, read_only=True)
+    locations_count = IntegerField(required=False, read_only=True)
+    original_formats_count = IntegerField(required=False, read_only=True)
+    series_groups_count = IntegerField(required=False, read_only=True)
+    scan_infos_count = IntegerField(required=False, read_only=True)
     story_arcs_count = IntegerField(required=False)
-    story_arc_numbers_count = IntegerField(required=False)
-    tags_count = IntegerField(required=False)
-    taggers_count = IntegerField(required=False)
-    teams_count = IntegerField(required=False)
+    story_arc_numbers_count = IntegerField(required=False, read_only=True)
+    tags_count = IntegerField(required=False, read_only=True)
+    taggers_count = IntegerField(required=False, read_only=True)
+    teams_count = IntegerField(required=False, read_only=True)
 
 
 class AdminConfigSerializer(Serializer):
     """Config Information."""
 
-    api_key = CharField(required=False)
-    groups_count = IntegerField(required=False)
-    libraries_count = IntegerField(required=False)
-    sessions_anon_count = IntegerField(required=False)
-    sessions_count = IntegerField(required=False)
-    users_count = IntegerField(required=False)
+    api_key = CharField(required=False, read_only=True)
+    groups_count = IntegerField(required=False, read_only=True)
+    libraries_count = IntegerField(required=False, read_only=True)
+    sessions_anon_count = IntegerField(required=False, read_only=True)
+    sessions_count = IntegerField(required=False, read_only=True)
+    users_count = IntegerField(required=False, read_only=True)
 
 
 class AdminPlatformSerializer(Serializer):
     """Platform Information."""
 
-    docker = BooleanField()
-    machine = CharField()
-    system = CharField()
-    system_release = CharField()
-    python = CharField()
-    codex = CharField()
+    docker = BooleanField(read_only=True)
+    machine = CharField(read_only=True)
+    system = CharField(read_only=True)
+    system_release = CharField(read_only=True)
+    python = CharField(read_only=True)
+    codex = CharField(read_only=True)
 
 
 class AdminStatsSerializer(Serializer):

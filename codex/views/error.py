@@ -22,8 +22,8 @@ def codex_exception_handler(exc, context):
             status.HTTP_400_BAD_REQUEST,
             status.HTTP_404_NOT_FOUND,
         ):
-            opds_start = reverse(name)
-            response = redirect(opds_start, permanent=False)
+            url = reverse(name)
+            response = redirect(url, permanent=False)
 
     if not response:
         response = exception_handler(exc, context)

@@ -2,7 +2,7 @@
   <v-toolbar
     id="titleBar"
     class="codexToolbar"
-    :class="{ drawerMargin: !$vuetify.display.mdAndDown }"
+    :class="{ drawerMargin: !mdAndDown }"
     density="compact"
     elevation="8"
   >
@@ -10,25 +10,23 @@
       Codex Administration
     </v-toolbar-title>
     <SettingsDrawerButton
-      :class="{ invisible: isSettingsDrawerOpen }"
-      :disabled="isSettingsDrawerOpen"
-      :plain="isSettingsDrawerOpen"
-      @click="isSettingsDrawerOpen = true"
+      :key="mdAndDown"
+      :class="{ invisible: !mdAndDown }"
+      :disabled="!mdAndDown"
     />
   </v-toolbar>
 </template>
 <script>
-import { mapWritableState } from "pinia";
-
 import SettingsDrawerButton from "@/components/settings/button.vue";
-import { useCommonStore } from "@/stores/common";
 export default {
   name: "AdminTitleToolbar",
   components: {
     SettingsDrawerButton,
   },
   computed: {
-    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
+    mdAndDown() {
+      return this.$vuetify.display.mdAndDown;
+    },
   },
 };
 </script>
@@ -41,8 +39,8 @@ export default {
   top: 0px;
   width: 100%;
   padding-top: env(safe-area-inset-top);
-  padding-right: calc(env(safe-area-inset-right) / 2);
   padding-left: calc(48px + calc(env(safe-area-inset-left) / 2));
+  padding-right: 0px; // given to settings button.
   z-index: 10;
 }
 .drawerMargin {

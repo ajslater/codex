@@ -1,20 +1,15 @@
 """Binary views with Basic Authentication added."""
 
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
-
-from codex.views.cover import CoverView
+from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView
+from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.reader.page import ReaderPageView
 
 
-class OPDSAuthMixin:
-    """Add Basic Auth."""
-
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
-
-
-class OPDSCoverView(OPDSAuthMixin, CoverView):
+class OPDSCoverView(CoverView):
     """Cover View with Basic Auth."""
+
+    # Panels sometimes doesn't send auth with cover requests.
 
 
 class OPDSDownloadView(OPDSAuthMixin, DownloadView):

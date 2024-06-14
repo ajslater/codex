@@ -11,13 +11,23 @@ export const useAuthStore = defineStore("auth", {
     },
     user: undefined,
     MIN_PASSWORD_LENGTH: 4,
+    showLoginDialog: false,
+    showChangePasswordDialog: false,
   }),
   getters: {
-    isCodexViewable() {
+    isAuthorized() {
       return Boolean(this.user || this.adminFlags.nonUsers);
+    },
+    isAuthChecked() {
+      return (
+        this.user !== undefined || this.adminFlags.registration !== undefined
+      );
     },
     isUserAdmin() {
       return this.user && (this.user.isStaff || this.user.isSuperuser);
+    },
+    isAuthDialogOpen() {
+      return this.showLoginDialog || this.showChangePasswordDialog;
     },
   },
   actions: {
@@ -71,7 +81,7 @@ export const useAuthStore = defineStore("auth", {
         password: credentials.password,
       };
       const commonStore = useCommonStore();
-      await API.changePassword(credentials)
+      await API.updatePassword(credentials)
         .then((response) => {
           commonStore.setSuccess(response.data.detail);
           return this.login(changedCredentials, false);
@@ -79,7 +89,7 @@ export const useAuthStore = defineStore("auth", {
         .catch(commonStore.setErrors);
     },
     async setTimezone() {
-      await API.setTimezone().catch(console.error);
+      await API.updateTimezone().catch(console.error);
     },
   },
 });

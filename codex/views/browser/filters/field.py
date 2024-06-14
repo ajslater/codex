@@ -4,18 +4,19 @@ from types import MappingProxyType
 
 from django.db.models import Q
 
-from codex.views.session import BrowserSessionViewBase
+from codex.models.comic import Comic
+from codex.views.browser.filters.group import GroupFilterView
 
 _FILTER_REL_MAP = MappingProxyType(
     {
-        BrowserSessionViewBase.CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
-        BrowserSessionViewBase.STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
-        BrowserSessionViewBase.IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
+        GroupFilterView.CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
+        GroupFilterView.STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
+        GroupFilterView.IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
     }
 )
 
 
-class ComicFieldFilter(BrowserSessionViewBase):
+class ComicFieldFilterView(GroupFilterView):
     """Comic field filters."""
 
     def _filter_by_comic_field(self, field, rel_prefix):
@@ -36,9 +37,10 @@ class ComicFieldFilter(BrowserSessionViewBase):
             filter_query |= Q(**{f"{rel}__in": filter_list})
         return filter_query
 
-    def get_comic_field_filter(self, rel_prefix):
+    def get_comic_field_filter(self, model):
         """Filter the comics based on the form filters."""
         comic_field_filter = Q()
+        rel_prefix = "" if model == Comic else self.rel_prefix  # type: ignore
         for attribute in self.FILTER_ATTRIBUTES:
             comic_field_filter &= self._filter_by_comic_field(attribute, rel_prefix)
         return comic_field_filter

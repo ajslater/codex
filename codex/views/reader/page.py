@@ -1,7 +1,9 @@
 """Views for reading comic books."""
 
+from io import BytesIO
+
 from comicbox.box import Comicbox
-from django.http import HttpResponse
+from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import NotFound
@@ -11,9 +13,13 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FALSY
+from codex.views.util import chunker
 
 LOG = get_logger(__name__)
-PDF_MIME_TYPE = "application/pdf"
+_PDF_MIME_TYPE = "application/pdf"
+# Most pages seem to be 2.5 Mb
+# largest pages I've seen were 9 Mb
+_PAGE_CHUNK_SIZE = (1024**2) * 3  # 3 Mb
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -63,11 +69,15 @@ class ReaderPageView(BookmarkBaseView):
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
         if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
-            content_type = PDF_MIME_TYPE
+            content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type
+
         with Comicbox(comic.path) as cb:
             page_image = cb.get_page_by_index(page, to_pixmap=to_pixmap)
+        if not page_image:
+            page_image = b""
+
         return page_image, content_type
 
     @extend_schema(
@@ -77,7 +87,7 @@ class ReaderPageView(BookmarkBaseView):
         ],
         responses={
             (200, content_type): OpenApiTypes.BINARY,
-            (200, PDF_MIME_TYPE): OpenApiTypes.BINARY,
+            (200, _PDF_MIME_TYPE): OpenApiTypes.BINARY,
         },
     )
     def get(self, *_args, **_kwargs):
@@ -98,4 +108,5 @@ class ReaderPageView(BookmarkBaseView):
             LOG.warning(exc)
             raise NotFound(detail="comic page not found") from exc
         else:
-            return HttpResponse(page_image, content_type=content_type)
+            page_chunker = chunker(BytesIO(page_image), _PAGE_CHUNK_SIZE)
+            return StreamingHttpResponse(page_chunker, content_type=content_type)

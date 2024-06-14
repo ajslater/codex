@@ -1,85 +1,70 @@
 <template>
-  <v-main id="readerWrapper">
-    <BookChangeDrawer direction="prev" />
-    <div v-if="isCodexViewable" id="readerContainer">
-      <v-slide-y-transition>
-        <ReaderTitleToolbar v-show="showToolbars" />
-      </v-slide-y-transition>
-      <BooksWindow @click="toggleToolbars" />
-      <v-slide-y-reverse-transition>
-        <ReaderNavToolbar v-show="showToolbars" />
-      </v-slide-y-reverse-transition>
+  <v-main v-if="isAuthorized" id="readerWrapper">
+    <div v-if="!empty">
+      <div id="readerContainer">
+        <ReaderTopToolbar />
+        <BooksWindow />
+        <ReaderNavToolbar />
+      </div>
     </div>
-    <div v-else id="announcement">
-      <h1>
-        <router-link :to="{ name: 'home' }"> Log in </router-link> to read
-        comics
-      </h1>
-    </div>
+    <ReaderEmpty v-else />
+    <ReaderSettingsDrawer />
   </v-main>
-  <BookChangeDrawer direction="next" />
-  <SettingsDrawer
-    title="Reader Settings"
-    :panel="ReaderSettingsSuperPanel"
-    temporary
-  />
+  <Unauthorized v-else />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
-import { markRaw } from "vue";
 
-import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import BooksWindow from "@/components/reader/books-window.vue";
-import ReaderSettingsSuperPanel from "@/components/reader/drawer/reader-settings-super-panel.vue";
-import ReaderNavToolbar from "@/components/reader/toolbars/reader-nav-toolbar.vue";
-import ReaderTitleToolbar from "@/components/reader/toolbars/reader-title-toolbar.vue";
-import SettingsDrawer from "@/components/settings/settings-drawer.vue";
+import ReaderSettingsDrawer from "@/components/reader/drawer/reader-settings-drawer.vue";
+import ReaderEmpty from "@/components/reader/empty.vue";
+import ReaderNavToolbar from "@/components/reader/toolbars/nav/reader-toolbar-nav.vue";
+import ReaderTopToolbar from "@/components/reader/toolbars/top/reader-toolbar-top.vue";
+import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "MainReader",
   components: {
-    BookChangeDrawer,
     BooksWindow,
+    ReaderEmpty,
     ReaderNavToolbar,
-    ReaderTitleToolbar,
-    SettingsDrawer,
+    ReaderTopToolbar,
+    ReaderSettingsDrawer,
+    Unauthorized,
   },
   data() {
     return {
       showToolbars: false,
-      ReaderSettingsSuperPanel: markRaw(ReaderSettingsSuperPanel),
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
+    }),
+    ...mapState(useReaderStore, {
+      empty: (state) => state.empty,
+      arc: (state) => state.arc,
     }),
   },
   watch: {
     user() {
       this.loadReaderSettings();
     },
-    isCodexViewable() {
+    isAuthorized() {
       this.loadReaderSettings();
     },
   },
-  created() {
-    useCommonStore().isSettingsDrawerOpen = false;
-  },
   beforeMount() {
-    useReaderStore().$reset;
+    // useReaderStore().$reset; // Not working
+    this.reset(); // HACK
     this.loadReaderSettings();
   },
   methods: {
-    ...mapActions(useReaderStore, ["loadReaderSettings"]),
-    toggleToolbars() {
-      this.showToolbars = !this.showToolbars;
-    },
+    ...mapActions(useReaderStore, ["loadReaderSettings", "reset"]),
   },
 };
 </script>
@@ -88,8 +73,5 @@ export default {
 #readerContainer {
   max-width: 100%;
   position: relative;
-}
-#announcement {
-  text-align: center;
 }
 </style>

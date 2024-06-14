@@ -1,4 +1,4 @@
-import { getTSParams } from "@/api/v3/common";
+import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
@@ -8,11 +8,11 @@ const getAdminFlags = async () => {
 
 const get_tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const setTimezone = async () => {
+const updateTimezone = async () => {
   const data = {
     timezone: get_tz(),
   };
-  return await HTTP.post("/auth/timezone/", data);
+  return await HTTP.put("/auth/timezone/", data);
 };
 
 const register = async (credentials) => {
@@ -26,7 +26,7 @@ const login = async (credentials) => {
 };
 
 const getProfile = async () => {
-  const params = getTSParams();
+  const params = serializeParams();
   return await HTTP.get("/auth/profile/", { params });
 };
 
@@ -34,16 +34,16 @@ const logout = async () => {
   return await HTTP.post("/auth/logout/");
 };
 
-const changePassword = async (credentials) => {
+const updatePassword = async (credentials) => {
   return await HTTP.post("/auth/change-password/", credentials);
 };
 
 export default {
-  changePassword,
+  updatePassword,
   getAdminFlags,
   getProfile,
+  updateTimezone,
   login,
   logout,
   register,
-  setTimezone,
 };

@@ -50,7 +50,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                 elif group == "c":
                     title = Comic.get_title(
                         self.obj,
-                        issue_number_max=self.issue_number_max,
+                        zero_pad=self.zero_pad,
                         filename_fallback=self.title_filename_fallback,
                     )
                     parts.append(title)
@@ -122,7 +122,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @staticmethod
     def _add_url_to_obj(objs, filter_key):
         """Add filter urls to objects."""
-        kwargs = {"group": "s", "pk": 0, "page": 1}
+        kwargs = {"group": "s", "pks": {}, "page": 1}
         url_base = reverse("opds:v1:feed", kwargs=kwargs)
         result = []
         for obj in objs:
@@ -137,7 +137,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.pk, AUTHOR_ROLES)
+        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES)
         return self._add_url_to_obj(people, "contributors")
 
     @property
@@ -145,7 +145,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Contributor names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.pk, AUTHOR_ROLES, exclude=True)
+        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
         return self._add_url_to_obj(people, "contributors")
 
     @property
@@ -153,4 +153,4 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Category labels."""
         if not self.metadata:
             return {}
-        return get_m2m_objects(self.obj.pk)
+        return get_m2m_objects(self.obj.ids)

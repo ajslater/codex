@@ -5,12 +5,13 @@ const MainAdmin = () => import("@/admin.vue");
 const MainBrowser = () => import("@/browser.vue");
 const HttpError = () => import("@/http-error.vue");
 const MainReader = () => import("@/reader.vue");
-const AdminFlagsTab = () => import("@/components/admin/flag-tab.vue");
-const AdminUsersTab = () => import("@/components/admin/user-tab.vue");
-const AdminGroupsTab = () => import("@/components/admin/group-tab.vue");
-const AdminLibrariesTab = () => import("@/components/admin/library-tab.vue");
-const AdminTasksTab = () => import("@/components/admin/task-tab.vue");
-const AdminStatsTab = () => import("@/components/admin/stats-tab.vue");
+const AdminFlagsTab = () => import("@/components/admin/tabs/flag-tab.vue");
+const AdminUsersTab = () => import("@/components/admin/tabs/user-tab.vue");
+const AdminGroupsTab = () => import("@/components/admin/tabs/group-tab.vue");
+const AdminLibrariesTab = () =>
+  import("@/components/admin/tabs/library-tab.vue");
+const AdminTasksTab = () => import("@/components/admin/tabs/task-tab.vue");
+const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 
 const LAST_ROUTE = {
   name: "browser",
@@ -30,7 +31,7 @@ const routes = [
   },
   {
     name: "browser",
-    path: "/:group/:pk/:page",
+    path: "/:group/:pks/:page",
     component: MainBrowser,
   },
   {

@@ -2,13 +2,13 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import titleize from "titleize";
 
-// import { reactive } from "vue";
 import BROWSER_API from "@/api/v3/browser";
+// import { reactive } from "vue";
+import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
-import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -47,6 +47,14 @@ Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
 const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CHOICES);
+const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup"];
+Object.freeze(READER_INFO_KEYS);
+const camelToSnakeCase = (str) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) =>
+  camelToSnakeCase(key),
+);
+Object.freeze(READER_INFO_ONLY_KEYS);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -79,9 +87,15 @@ export const useReaderStore = defineStore("reader", {
     // server
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
-      twoPages: false,
+      twoPages: CHOICES.reader.twoPages,
       readingDirection: "ltr",
-      readRtlInReverse: false,
+      readRtlInReverse: CHOICES.reader.readRtlInReverse,
+      finishOnLastPage: CHOICES.reader.finishOnLastPage,
+    },
+    browserSettings: {
+      breadcrumbs: CHOICES.browser.breadcrumbs,
+      show: CHOICES.browser.show,
+      topGroup: "p",
     },
     books: {
       current: undefined,
@@ -90,8 +104,10 @@ export const useReaderStore = defineStore("reader", {
     },
     arcs: [],
     arc: {},
+    mtime: 0,
 
     // local reader
+    empty: false,
     page: undefined,
     routes: {
       prev: false,
@@ -100,6 +116,7 @@ export const useReaderStore = defineStore("reader", {
         prev: false,
         next: false,
       },
+      close: CHOICES.browser.breadcrumbs[0],
     },
     bookChange: undefined,
     reactWithScroll: false,
@@ -107,6 +124,8 @@ export const useReaderStore = defineStore("reader", {
       cacheBook: false,
       scale: SCALE_DEFAULT,
     },
+    showToolbars: false,
+    settingsLoaded: false,
   }),
   getters: {
     groupBooks(state) {
@@ -127,13 +146,15 @@ export const useReaderStore = defineStore("reader", {
     activeTitle(state) {
       const book = state.books.current;
       let title;
-      if (state.arcs[0]?.group === "f") {
-        // this 0 index will break if we start including series
-        //  with file group.
-        title = book?.filename;
-      }
-      if (!title) {
-        title = book ? getFullComicName(book) : "";
+      if (book) {
+        if (state.arcs[0]?.group != "f") {
+          title = getFullComicName(book);
+        }
+        if (!title) {
+          title = book.filename || "";
+        }
+      } else {
+        title = "";
       }
       return title;
     },
@@ -170,6 +191,44 @@ export const useReaderStore = defineStore("reader", {
       const adj = state.activeSettings.twoPages ? 1 : 0;
       const limit = maxPage - adj;
       return this.page >= limit;
+    },
+    closeBookRoute(state) {
+      const route = { name: "browser" };
+      let params = state.routes.close;
+      if (params) {
+        /*
+        for (const arc of state.arcs) {
+          if (params.group === arc.group && arc.mtime) {
+            //route.query = { ts: arc.mtime };
+            break;
+          }
+        }
+        */
+        const cardPk = state.books?.current?.pk;
+        if (cardPk) {
+          route.hash = `#card-${cardPk}`;
+        }
+      } else {
+        params = window.CODEX.LAST_ROUTE || CHOICES.browser.breadcrumbs[0];
+      }
+      route.params = params;
+      return route;
+    },
+    readerInfoSettings(state) {
+      const usedKeys = {};
+      for (const key of READER_INFO_KEYS) {
+        const value = state.browserSettings[key];
+        if (value) {
+          usedKeys[key] = value;
+        }
+      }
+      if (state.arc && Object.keys(state.arc).length) {
+        usedKeys.arc = {
+          group: state.arc.group,
+          pks: state.arc.pks,
+        };
+      }
+      return usedKeys;
     },
   },
   actions: {
@@ -299,6 +358,23 @@ export const useReaderStore = defineStore("reader", {
         };
       }
     },
+    toggleToolbars() {
+      this.showToolbars = !this.showToolbars;
+    },
+    reset() {
+      // HACK because $reset doesn't seem to.
+      this.$patch((state) => {
+        state.arc = undefined;
+        state.arcs = [];
+        state.mtime = 0;
+        state.settingsLoaded = false;
+        state.books = {
+          current: undefined,
+          prev: false,
+          next: false,
+        };
+      });
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
     _getBookRoutePage(book, isPrev) {
@@ -363,25 +439,54 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadReaderSettings() {
-      return API.getReaderSettings()
+      API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
+          this.empty = false;
           return true;
         })
         .catch(console.error);
+      BROWSER_API.getSettings({
+        only: READER_INFO_ONLY_KEYS,
+        breadcrumbNames: false,
+      })
+        .then((response) => {
+          this.browserSettings = response.data;
+          return true;
+        })
+        .catch(console.error);
+      if (!this.settingsLoaded) {
+        this.settingsLoaded = true;
+        this.loadBooks({});
+      }
     },
-    async loadBooks(params) {
-      await API.getReaderInfo(params)
+    async loadBooks({ params, arc, mtime }) {
+      if (!this.settingsLoaded) {
+        this.loadReaderSettings();
+      }
+      const route = router.currentRoute.value;
+      if (!params) {
+        params = route.params;
+      }
+      const pk = params.pk;
+      const settings = this.readerInfoSettings;
+      if (arc) {
+        settings.arc = arc;
+      }
+      if (!mtime) {
+        mtime = route.query?.ts;
+        if (!mtime) {
+          mtime = this.mtime;
+        }
+      }
+      await API.getReaderInfo(pk, settings, mtime)
         .then((response) => {
           const data = response.data;
+          const books = data.books;
 
           // Undefined settings breaks code.
-          const allBooks = [
-            data.books.prevBook,
-            data.books.current,
-            data.books.nextBook,
-          ];
+          const allBooks = [books?.prevBook, books?.current, books?.nextBook];
           for (const book of allBooks) {
             if (book && !book.settings) {
               book.settings = {};
@@ -389,14 +494,14 @@ export const useReaderStore = defineStore("reader", {
           }
           // Generate routes.
           const routesBooks = this._getBookRoutes(
-            data.books.prevBook,
-            data.books.nextBook,
+            books.prevBook,
+            books.nextBook,
           );
 
           this.$patch((state) => {
-            state.books.current = data.books.current;
-            state.books.prev = data.books.prevBook;
-            state.books.next = data.books.nextBook;
+            state.books.current = books.current;
+            state.books.prev = books.prevBook;
+            state.books.next = books.nextBook;
             state.arcs = data.arcs;
             state.arc = data.arc;
             state.routes.prev = this._getRouteParams(
@@ -410,31 +515,45 @@ export const useReaderStore = defineStore("reader", {
               "next",
             );
             state.routes.books = routesBooks;
+            state.routes.close = data.closeRoute;
+            state.empty = false;
+            state.mtime = data.mtime;
           });
           return true;
         })
         .catch((error) => {
           console.debug(error);
-          const page = useBrowserStore().page;
-          const route =
-            page && page.routes ? page.routes.last : { name: "home" };
-          return router.push(route);
+          this.empty = true;
         });
     },
+    async loadMtimes() {
+      return await COMMON_API.getMtime(this.arcs, {})
+        .then((response) => {
+          const newMtime = response.data.maxMtime;
+          if (newMtime !== this.mtime) {
+            this.loadBooks({ mtime: newMtime });
+          }
+        })
+        .catch(console.error);
+    },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "c", pk: this.books.current.pk };
+      const groupParams = { group: "c", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
-      await BROWSER_API.setGroupBookmarks(groupParams, updates);
+      if (
+        this.readerSettings.finishOnLastPage &&
+        page >= this.books.current.maxPage
+      ) {
+        updates["finished"] = true;
+      }
+      await COMMON_API.updateGroupBookmarks(groupParams, updates);
     },
     async setSettingsLocal(data) {
       this._updateSettings(data, true);
 
-      await BROWSER_API.setGroupBookmarks(
-        {
-          group: "c",
-          pk: +this.books.current.pk,
-        },
+      const groupParams = { group: "c", ids: [+this.books.current.pk] };
+      await COMMON_API.updateGroupBookmarks(
+        groupParams,
         this.books.current.settings,
       );
     },
@@ -450,12 +569,16 @@ export const useReaderStore = defineStore("reader", {
     },
     async setSettingsGlobal(data) {
       this._updateSettings(data, false);
-      await API.setReaderSettings(this.readerSettings);
+      await API.udpateReaderSettings(this.readerSettings);
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
       direction = this.normalizeDirection(direction);
       this.bookChange = this.routes.books[direction] ? direction : undefined;
+    },
+    linkLabel(direction, suffix) {
+      const prefix = direction === "prev" ? "Previous" : "Next";
+      return `${prefix} ${suffix}`;
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
@@ -527,6 +650,10 @@ export const useReaderStore = defineStore("reader", {
     routeToBook(direction) {
       this._routeTo(this.routes.books[direction], this.books[direction]);
     },
+    toRoute(params) {
+      return params ? { params } : {};
+    },
+    // PREFETCH
     _prefetchSrc(params, direction, bookChange = false, secondPage = false) {
       if (!params) {
         return false;
@@ -579,13 +706,6 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       return { link };
-    },
-    toRoute(params) {
-      return params ? { params } : {};
-    },
-    linkLabel(direction, suffix) {
-      const prefix = direction === "prev" ? "Previous" : "Next";
-      return `${prefix} ${suffix}`;
     },
   },
 });

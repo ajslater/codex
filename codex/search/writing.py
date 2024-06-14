@@ -16,7 +16,7 @@ class CodexWriter(BufferedWriter):
     """MP safe Buffered Writer that locks the index writer much more granularly.
 
     XXX The period and limit args are ignored and this writer behaves more like the
-    AsycnWriter. The AsyncWriter could possibly be extended to not lock until commit
+    AsycWriter. The AsyncWriter could possibly be extended to not lock until commit
     time like this one and use less code.
     """
 
