@@ -13,15 +13,16 @@ border-radius: 128px;
 - Codex is a web server.
 - Full text search of metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of publishers, imprints, series, volumes, or your own folder
-  hierarchy.
-- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
+- Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
+  hierarchy, or by tagged Story Arc.
 - Read comics in a variety of aspect ratios and directions that fit your screen.
-- Per user bookmarking. Per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
+- Anonymous browsing and reading or reigistered users only, to your preference.
+- Per user bookmarking & settings, even before you make an account.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
+- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Runs in 1GB of RAM, faster with more.
 
 ### Examples
