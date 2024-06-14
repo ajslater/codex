@@ -13,7 +13,7 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
     format = "xml"
 
 
-class SimpleAPIView(APIView):
+class CodexAPIView(APIView):
     """APIView with a simple getter and no data."""
 
     content_type = "application/json"
@@ -26,14 +26,14 @@ class SimpleAPIView(APIView):
         )
 
 
-class CodexTemplateView(SimpleAPIView):
+class CodexTemplateView(CodexAPIView):
     """HTML Template View."""
 
     renderer_classes = (TemplateHTMLRenderer,)
     content_type = "text/html"
 
 
-class CodexXMLTemplateView(SimpleAPIView):
+class CodexXMLTemplateView(CodexAPIView):
     """XML Template View."""
 
     renderer_classes = (TemplateXMLRenderer,)

@@ -9,11 +9,6 @@
       :height="innerHeight"
       :width="innerWidth"
     >
-      <!--
-    :item-height="itemHeight"
-    dynamic itemHeight solves the jumpy scroll issue,
-    but throws a recursive warning.
-    -->
       <template #default="{ item }">
         <BookPage :book="book" :page="item" class="verticalPage" />
         <div
@@ -22,6 +17,7 @@
             options: { threshold: [0.75] },
           }"
           class="pageTracker"
+          :class="{ pageTrackerToolbars: showToolbars }"
           :data-page="item"
         />
       </template>
@@ -62,6 +58,7 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
+      showToolbars: (state) => state.showToolbars,
     }),
     ...mapWritableState(useReaderStore, ["reactWithScroll"]),
     settings() {
@@ -156,22 +153,23 @@ export default {
 :deep(.v-virtual-scroll__item) {
   position: relative;
 }
-
+$pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
 .pageTracker {
   position: absolute;
   top: 0;
-  left: 2.5%;
+  //left: 2.5%;
   z-index: 15;
-  width: 95vw;
-  height: 85vh;
-  z-index: 10;
-  // TODO, somehow get it horizontally fixed
-  //       for wide images.
+  width: 100%;
+  // viewport height - toolbars - mobile buffer.
+  height: calc($pageTrackerBaseHeight * .95);
   // For debugging
   /*
   background-color: green;
   opacity: 0.25;
   border: dashed 10px red;
   */
+}
+.pageTrackerToolbars {
+  height: calc(($pageTrackerBaseHeight - 154px - 32px) * .95) !important;
 }
 </style>

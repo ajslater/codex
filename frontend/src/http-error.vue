@@ -1,5 +1,5 @@
 <template>
-  <v-main id="main">
+  <v-main v-if="isAuthorized" id="httpError">
     <h1 id="httpCode">
       {{ code }}
     </h1>
@@ -10,9 +10,15 @@
       <h2>Codex Home</h2>
     </router-link>
   </v-main>
+  <Unauthorized v-else />
 </template>
 
 <script>
+import { mapGetters } from "pinia";
+
+import Unauthorized from "@/components/unauthorized.vue";
+import { useAuthStore } from "@/stores/auth";
+
 const TITLES = {
   400: "Bad Request",
   403: "Forbidden",
@@ -23,10 +29,14 @@ Object.freeze(TITLES);
 
 export default {
   name: "HttpError",
+  components: {
+    Unauthorized,
+  },
   data() {
     return {};
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
     code: function () {
       return +this.$route.params.code;
     },
@@ -43,6 +53,12 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+#httpError {
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px,env(safe-area-inset-bottom));
+}
 #httpCode,
 #title,
 #link {

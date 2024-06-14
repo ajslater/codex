@@ -3,15 +3,15 @@
 from rest_framework.serializers import (
     BooleanField,
     CharField,
-    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
 )
 
-from codex.serializers.mixins import (
+from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
+from codex.serializers.fields import BreadcrumbsField, TimestampField
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin):
@@ -32,15 +32,6 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     order_value = CharField(read_only=True)
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
-    mtime = DateTimeField(format="%s", read_only=True)
-
-
-class BrowserRouteSerializer(Serializer):
-    """A vue route for the browser."""
-
-    group = CharField(read_only=True)
-    pk = IntegerField(read_only=True)
-    page = IntegerField(read_only=True)
 
 
 class BrowserAdminFlagsSerializer(Serializer):
@@ -53,7 +44,6 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    parent_name = CharField(read_only=True)
     group_name = CharField(read_only=True)
     group_count = IntegerField(read_only=True, allow_null=True)
 
@@ -62,17 +52,12 @@ class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
-    browser_title = BrowserTitleSerializer(read_only=True)
-    covers_timestamp = IntegerField(read_only=True)
-    issue_number_max = DecimalField(
-        max_digits=16,
-        decimal_places=3,
-        read_only=True,
-        coerce_to_string=False,
-    )
+    breadcrumbs = BreadcrumbsField(read_only=True)
+    title = BrowserTitleSerializer(read_only=True)
+    zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)
     model_group = CharField(read_only=True)
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
-    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
+    mtime = TimestampField(read_only=True)

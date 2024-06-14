@@ -107,4 +107,3 @@ services:
       - "80:9811"
     volumes:
       - ./docker/nginx/http.d/codex:/etc/nginx/http.d/codex:ro
-version: "3.8"

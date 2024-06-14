@@ -10,6 +10,7 @@ from codex.views.browser.browser import BrowserView
 from codex.views.const import FALSY
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
+from codex.views.util import pop_name
 
 
 @dataclass
@@ -39,7 +40,7 @@ class LinkData:
     num_items: int | None = None
 
 
-class LinksMixin(BrowserView):
+class OPDS2LinksView(BrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
     num_pages = 0  # For pyright. Overwritten every run.
@@ -58,7 +59,7 @@ class LinksMixin(BrowserView):
         elif hasattr(self, "request"):
             # if request link and not init static links
             href = update_href_query_params(
-                href, self.request.query_params, new_query_params=data.query_params
+                href, self.request.GET, new_query_params=data.query_params
             )
         return href
 
@@ -69,6 +70,7 @@ class LinksMixin(BrowserView):
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
+        kwargs = pop_name(kwargs)
         href = reverse(url_name, kwargs=kwargs)
         return self._href_update_query_params(href, data)
 

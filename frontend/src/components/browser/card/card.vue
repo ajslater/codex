@@ -1,36 +1,34 @@
 <template>
-  <v-lazy :id="`card-${item.pk}`" transition="scale-transition">
+  <v-lazy :id="`card-${ids}`" transition="scale-transition">
     <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
       <div class="browserCardTop">
         <BookCover
-          :cover-pk="item.coverPk"
           :group="item.group"
+          :pks="item.ids"
+          :mtime="item.mtime"
           :child-count="item.childCount"
           :finished="item.finished"
         />
         <router-link
-          v-if="toRoute"
           class="cardCoverOverlay"
           :to="toRoute"
           :aria-label="linkLabel"
         >
-          <BrowserCardControls :item="item" :eye-open="true" />
+          <BrowserCardControls :item="item" :eye-open="Boolean(toRoute)" />
         </router-link>
-        <div v-else class="cardCoverOverlay">
-          <BrowserCardControls :item="item" :eye-open="false" />
-        </div>
-        <v-progress-linear
-          v-show="item.progress"
-          class="bookCoverProgress"
-          :background-color="progressBackgroundColor"
-          :model-value="item.progress"
-          :aria-label="`${item.progress}% read`"
-          rounded
-          height="2"
-        />
-        <BrowserCardSubtitle :item="item" />
       </div>
-      <OrderByCaption :item="item" />
+      <v-progress-linear
+        class="bookCoverProgress"
+        :bg-opacity="progressBGOpacity"
+        :model-value="item.progress"
+        :aria-label="`${item.progress}% read`"
+        rounded
+        height="2"
+      />
+      <footer class="cardFooter">
+        <BrowserCardSubtitle :item="item" />
+        <OrderByCaption :item="item" />
+      </footer>
     </div>
   </v-lazy>
 </template>
@@ -76,8 +74,11 @@ export default {
     linkLabel() {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
-      label += " " + this.item.headerName;
+      label += " " + this.item.name;
       return label;
+    },
+    ids() {
+      return this.item.ids.join(",");
     },
     toRoute() {
       if (!this.doubleTapHovered) {
@@ -87,13 +88,16 @@ export default {
         ? getReaderRoute(this.item, this.importMetadata)
         : {
             name: "browser",
-            params: { group: this.item.group, pk: this.item.pk, page: 1 },
+            params: {
+              group: this.item.group,
+              pks: this.ids,
+              page: 1,
+            },
+            query: { ts: this.item.mtime },
           };
     },
-    progressBackgroundColor() {
-      return this.item.progress
-        ? this.$vuetify.theme.current.colors.row
-        : "inherit";
+    progressBGOpacity() {
+      return this.item.progress ? 0.1 : 0.0;
     },
   },
   mounted() {
@@ -103,7 +107,7 @@ export default {
     scrollToMe: function () {
       if (
         !this.$route.hash ||
-        this.$route.hash.split("-")[1] !== String(this.item.pk)
+        this.$route.hash.split("-")[1] !== String(this.ids)
       ) {
         return;
       }
@@ -138,7 +142,6 @@ export default {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 .cardCoverOverlay {
   position: absolute;
@@ -156,10 +159,14 @@ export default {
   border-color: rbg(var(--v-theme-primary));
 }
 .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
+  background-color: transparent;
   opacity: 1;
 }
 .bookCoverProgress {
   margin-top: 1px;
+}
+.cardFooter {
+  margin-top: 10px;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {

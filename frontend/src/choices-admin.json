@@ -13,13 +13,21 @@
     "IFC": "Create Books",
     "IMQ": "Prepare Tags for Linking",
     "IMC": "Link Books to Tags",
+    "ICQ": "Discover Missing Custom Covers",
+    "ICM": "Custom Covers Moved",
+    "ICU": "Modify Custom Covers",
+    "ICC": "Create Custom Covers",
+    "ICD": "Delete Custom Covers",
+    "ICL": "Link Custom Covers",
     "IDD": "Remove Folders",
     "IFD": "Remove Books",
     "IFI": "Record Failed Imports",
+    "IGU": "Update First Covers",
     "JTD": "Cleanup Stale Tags",
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",
+    "JCD": "Cleanup Custom Covers",
     "JDO": "Optimize Database",
     "JDB": "Backup Database",
     "JSD": "Cleanup Expired Sessions",
@@ -27,7 +35,8 @@
     "SIU": "Search Index Update",
     "SID": "Search Index Remove Stale Records",
     "SIM": "Search Index Optimize",
-    "WPO": "Poll Library"
+    "WPO": "Poll Library",
+    "IAF": "Adopt Orphan Folders"
   },
   "tasks": [
     {
@@ -64,8 +73,13 @@
         {
           "value": "create_all_comic_covers",
           "title": "Create All Comic Covers",
-          "desc": "Pre-generate covers for every comic in every library",
+          "desc": "Pre-generate covers for every comic in every library and all custom covers",
           "confirm": "Are you sure?"
+        },
+        {
+          "value": "force_update_groups",
+          "title": "Update Group Timestamps",
+          "desc": "Force the update of group timestamps. Will bust the browser cache for browser views and covers."
         }
       ]
     },
@@ -117,7 +131,7 @@
         {
           "value": "db_vacuum",
           "title": "Optimize & Compact Database",
-          "desc": "Run the sqlite3 optimize & vacuum and pragmas. Runs nightly"
+          "desc": "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly"
         },
         {
           "value": "db_backup",
@@ -183,14 +197,24 @@
           "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly."
         },
         {
+          "value": "cleanup_db_custom_covers",
+          "title": "Remove Orphan Database Custom Covers",
+          "desc": "Remove Custom Covers from the db that no longer represent custom cover images on disk. Runs nightly."
+        },
+        {
           "value": "cleanup_sessions",
           "title": "Cleanup Sessions",
           "desc": "Remove corrupt and expired sessions. Runs nightly."
         },
         {
           "value": "cleanup_covers",
-          "title": "Remove Orphan Covers",
-          "desc": "from comics that no longer exist. Runs nightly."
+          "title": "Remove Orphan Cover Thumbnails",
+          "desc": "no longer have source comics or custom images. Runs nightly."
+        },
+        {
+          "value": "adopt_folders",
+          "title": "Adopt Orphan Folders",
+          "desc": "Move orphaned folders from the top of the folder tree to under their correct parent. Runs nightly and at startup."
         },
         {
           "value": "librarian_clear_status",

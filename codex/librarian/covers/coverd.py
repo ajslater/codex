@@ -11,7 +11,7 @@ from codex.librarian.covers.tasks import (
 )
 
 
-class CoverContributorThread(CoverCreateMixin, CoverPurgeMixin):
+class CoverThread(CoverCreateMixin, CoverPurgeMixin):
     """Create comic covers in it's own thread."""
 
     def process_item(self, item):
@@ -22,7 +22,7 @@ class CoverContributorThread(CoverCreateMixin, CoverPurgeMixin):
         elif isinstance(task, CoverRemoveAllTask):
             self.purge_all_comic_covers(self.librarian_queue)
         elif isinstance(task, CoverRemoveTask):
-            self.purge_comic_covers(task.comic_pks)
+            self.purge_comic_covers(task.pks, task.custom)
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
         elif isinstance(task, CoverCreateAllTask):

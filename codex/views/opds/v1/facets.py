@@ -12,6 +12,7 @@ from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
+from codex.views.util import pop_name
 
 
 @dataclass
@@ -77,7 +78,7 @@ DEFAULT_FACETS = {
 }
 
 
-class FacetsMixin(BrowserView):
+class OPDS1FacetsView(BrowserView):
     """OPDS 1 Facets methods."""
 
     OPDS = 1
@@ -89,15 +90,14 @@ class FacetsMixin(BrowserView):
     obj = MappingProxyType({})
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
+        kwargs = pop_name(kwargs)
         href = reverse("opds:v1:feed", kwargs=kwargs)
         facet_active = False
         for key, val in new_query_params.items():
-            if self.request.query_params.get(key) == val:
+            if self.request.GET.get(key) == val:
                 facet_active = True
                 break
-        href = update_href_query_params(
-            href, self.request.query_params, new_query_params
-        )
+        href = update_href_query_params(href, self.request.GET, new_query_params)
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(
@@ -115,14 +115,14 @@ class FacetsMixin(BrowserView):
         ).strip()
         entry_obj = OPDS1EntryObject(
             group=item.get("group"),
-            pk=item.get("pk"),
+            ids=item.get("pks"),
             name=name,
         )
-        qps = {**self.request.query_params}
+        qps = {**self.request.GET}
         qps.update(query_params)
-        issue_number_max = self.obj.get("issue_number_max", 0)
+        zero_pad = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.acquisition_groups, issue_number_max, False, self.mime_type_map
+            self.acquisition_groups, zero_pad, False, self.mime_type_map
         )
         return OPDS1Entry(entry_obj, qps, data)
 
@@ -131,7 +131,7 @@ class FacetsMixin(BrowserView):
         default_val = DEFAULT_FACETS.get(facet_group.query_param)
         if facet.value == default_val:
             compare += [None]
-        return self.request.query_params.get(facet_group.query_param) in compare
+        return self.request.GET.get(facet_group.query_param) in compare
 
     @staticmethod
     def _did_special_group_change(group, facet_group):
@@ -156,7 +156,7 @@ class FacetsMixin(BrowserView):
         if facet_group.query_param == "topGroup" and self._did_special_group_change(
             group, facet.value
         ):
-            kwargs = {"group": facet.value, "pk": 0, "page": 1}
+            kwargs = {"group": facet.value, "pks": {}, "page": 1}
         else:
             kwargs = self.kwargs
 

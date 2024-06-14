@@ -1,3 +1,11 @@
+SHELL := /usr/bin/env bash
+
+.PHONY: activate
+## Activate local virtual environment
+## @category Env
+activate:
+	source .venv/bin/activate
+
 .PHONY: update
 ## Update dependencies
 ## @category Update
@@ -89,12 +97,6 @@ lint-frontend:
 ## @category Lint
 lint: lint-frontend lint-backend
 
-.PHONY: kill-eslint_d
-## Kill eslint daemon
-## @category Lint
-kill-eslint_d:
-	bin/kill-eslint_d.sh
-
 .PHONY: check
 ## Check django is ok
 ## @category Lint
@@ -146,7 +148,7 @@ build-frontend: clean-frontend
 ## Build all icons from source
 ## @category Build
 icons:
-	bin/create-icons.sh
+	bin/icons_transform.py
 
 .PHONY: collectstatic
 ## Collect static files for django
@@ -174,7 +176,7 @@ kill:
 .PHONY: dev-server
 ## Run the dev webserver
 ## @category Run Server
-dev-server: kill
+dev-server: kill 
 	./bin/dev-server.sh
 
 .PHONY: dev-prod-server

@@ -8,9 +8,10 @@ from django.urls import include, path, register_converter, set_script_prefix
 from django.views.generic.base import RedirectView
 
 from codex.settings.settings import ROOT_PATH
-from codex.urls.converters import GroupConverter
+from codex.urls.converters import GroupConverter, IntListConverter
 
 register_converter(GroupConverter, "group")
+register_converter(IntListConverter, "int_list")
 
 if ROOT_PATH:
     # Django 5 bug https://code.djangoproject.com/ticket/35169#comment:11

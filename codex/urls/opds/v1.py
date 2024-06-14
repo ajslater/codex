@@ -15,7 +15,7 @@ urlpatterns = [
     #
     # Browser
     path(
-        "<group:group>/<int:pk>/<int:page>",
+        "<group:group>/<int_list:pks>/<int:page>",
         cache_page(BROWSER_TIMEOUT)(OPDS1FeedView.as_view()),
         name="feed",
     ),

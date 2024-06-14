@@ -22,8 +22,7 @@ class TimezoneMiddleware:
 
     def __call__(self, request):
         """Fix timeszone from the django session."""
-        tzname = request.session.get("django_timezone")
-        if tzname:
+        if tzname := request.session.get("django_timezone"):
             timezone.activate(tzname)
         else:
             timezone.deactivate()

@@ -67,7 +67,6 @@ export default {
         case "i":
           hn = this.item.publisherName;
           break;
-
         case "v":
           hn = this.item.seriesName;
           break;
@@ -79,6 +78,9 @@ export default {
           break;
         default:
           hn = "";
+      }
+      if (hn && this.item.ids && this.item.ids.length > 1) {
+        return "(Multiple)";
       }
       return hn;
     },
@@ -100,7 +102,6 @@ export default {
 <style scoped lang="scss">
 .cardSubtitle {
   width: 100%;
-  margin-top: 10px;
   text-align: center;
 }
 .seriesCaption, .volumeCaption {

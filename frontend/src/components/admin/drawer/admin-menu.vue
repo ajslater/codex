@@ -1,26 +1,20 @@
 <template>
   <div v-if="isUserAdmin">
-    <v-list-item @click="librarianTask('poll')">
-      <v-list-item-title id="poll" title="for updated comics">
-        <v-icon>{{ mdiDatabaseClockOutline }}</v-icon
-        >Poll All Libraries
-      </v-list-item-title>
-    </v-list-item>
-    <div v-if="menu">
-      <v-list-item :to="{ name: 'admin' }">
-        <v-list-item-title>
-          <v-icon>{{ mdiCogOutline }}</v-icon
-          >Admin Panel
-          <v-icon
-            v-if="unseenFailedImports"
-            id="failedImportsIcon"
-            title="New Failed Imports"
-          >
-            {{ mdiBookAlert }}
-          </v-icon>
-        </v-list-item-title>
-      </v-list-item>
-    </div>
+    <v-divider />
+    <DrawerItem
+      v-tooltip="{ openDelay: 2000, text: 'for updated comics' }"
+      title="Poll All Libraries"
+      :prepend-icon="mdiDatabaseClockOutline"
+      @click="onPoll"
+    />
+    <DrawerItem
+      v-if="showAdminPanelLink"
+      class="adminPanelLink"
+      :to="{ name: 'admin' }"
+      :prepend-icon="mdiCrownOutline"
+      title="Admin Panel"
+      :append-icon="failedImportsIcon"
+    />
     <AdminStatusList />
   </div>
 </template>
@@ -28,13 +22,14 @@
 <script>
 import {
   mdiBookAlert,
-  mdiCogOutline,
+  mdiCrownOutline,
   mdiDatabaseClockOutline,
   mdiOpenInNew,
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminStatusList from "@/components/admin/drawer/status-list.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
@@ -42,39 +37,33 @@ export default {
   name: "AdminMenu",
   components: {
     AdminStatusList,
-  },
-  props: {
-    menu: { type: Boolean, default: true },
+    DrawerItem,
   },
   data() {
     return {
-      mdiBookAlert,
       mdiOpenInNew,
       mdiDatabaseClockOutline,
-      mdiCogOutline,
+      mdiCrownOutline,
     };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useAdminStore, ["unseenFailedImports"]),
+    showAdminPanelLink() {
+      return !this.$router.currentRoute?.value?.name?.startsWith("admin");
+    },
+    failedImportsIcon() {
+      //return this.unseenFailedIimports ? mdiBookAlert : undefined;
+      return mdiBookAlert;
+    },
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFailedImports", "librarianTask"]),
+    onPoll() {
+      this.librarianTask("poll");
+    },
   },
 };
 </script>
 
-<style scoped lang="scss">
-#failedImportsIcon {
-  padding-left: 0.25em;
-  color: rgb(var(--v-theme-error)) !important;
-}
-// Delaying title appearance works sometimes.
-[title]:after{
-  opacity: 0;
-  transition: opacity 2s ease-in-out;
-}
-[title]:hover {
-  opacity: 1;
-}
-</style>
+<style scoped lang="scss"></style>

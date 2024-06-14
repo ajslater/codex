@@ -46,17 +46,15 @@ urlpatterns = [
         AdminGroupViewSet.as_view({**UPDATE, **DELETE}),
         name="group_update",
     ),
-    # It's very strange that pyright complains about one instantiation of
-    # AdminLibraryViewSet.as_view() and not the other.
-    path("flag", AdminFlagViewSet.as_view(READ), name="flag"),  # type: ignore
+    path("flag", AdminFlagViewSet.as_view({**READ}), name="flag"),
     path(
         "flag/<str:key>/",
-        AdminFlagViewSet.as_view(UPDATE),  # type: ignore
+        AdminFlagViewSet.as_view({**UPDATE}),
         name="flag_update",
     ),
     path(
         "library",
-        AdminLibraryViewSet.as_view({**CREATE, **READ}),  # type: ignore
+        AdminLibraryViewSet.as_view({**CREATE, **READ}),
         name="library",
     ),
     path(
@@ -67,12 +65,12 @@ urlpatterns = [
     path("folders", AdminFolderListView.as_view(), name="folders"),
     path(
         "failed-import",
-        AdminFailedImportViewSet.as_view(READ),  # type: ignore
+        AdminFailedImportViewSet.as_view({**READ}),
         name="failed_import",
     ),
     path(
         "librarian/status",
-        never_cache(AdminLibrarianStatusViewSet.as_view(READ)),  # type: ignore
+        never_cache(AdminLibrarianStatusViewSet.as_view({**READ})),
         name="librarian_status",
     ),
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),

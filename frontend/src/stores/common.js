@@ -46,6 +46,7 @@ export const useCommonStore = defineStore("common", {
     },
     timestamp: Date.now(),
     isSettingsDrawerOpen: false,
+    opdsURLs: undefined,
   }),
   getters: {
     isMobile: function () {
@@ -66,7 +67,7 @@ export const useCommonStore = defineStore("common", {
         .catch(console.error);
     },
     downloadIOSPWAFix(href, filename) {
-      API.downloadIOSPWAFix(href, filename);
+      API.getDownloadIOSPWAFix(href, filename);
     },
     setErrors(axiosError) {
       const errors = getErrors(axiosError);
@@ -89,6 +90,19 @@ export const useCommonStore = defineStore("common", {
     },
     setTimestamp() {
       this.timestamp = Date.now();
+    },
+    setSettingsDrawerOpen(value) {
+      this.isSettingsDrawerOpen = value;
+    },
+    async loadOPDSURLs() {
+      if (this.opdsURLs) {
+        return;
+      }
+      await API.getOPDSURLs()
+        .then((response) => {
+          return (this.opdsURLs = Object.freeze({ ...response.data }));
+        })
+        .catch(console.error);
     },
   },
 });

@@ -1,6 +1,6 @@
 <template>
   <div class="bookCover">
-    <v-img :src="coverSrc" class="coverImg" />
+    <v-img :src="coverSrc" class="coverImg" :class="multiPkClasses" />
     <div
       v-if="finished !== true"
       :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
@@ -12,9 +12,9 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapGetters } from "pinia";
 
-import { getCoverSource } from "@/api/v3/cover.js";
+import { getCoverSrc } from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
@@ -24,6 +24,10 @@ export default {
       type: String,
       required: true,
     },
+    pks: {
+      type: Array,
+      required: true,
+    },
     childCount: {
       type: Number,
       default: 1,
@@ -31,9 +35,9 @@ export default {
     finished: {
       type: Boolean,
     },
-    coverPk: {
+    mtime: {
       type: Number,
-      required: true,
+      default: Date.now(),
     },
   },
   data() {
@@ -42,11 +46,24 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      coverSrc: function (state) {
-        return getCoverSource(this.coverPk, state.page.coversTimestamp);
-      },
-    }),
+    ...mapGetters(useBrowserStore, ["coverSettings"]),
+    coverSrc() {
+      return getCoverSrc(
+        { group: this.group, pks: this.pks },
+        this.coverSettings,
+        this.mtime,
+      );
+    },
+    multiPkClasses() {
+      const len = this.pks.length;
+      const classes = {};
+      if (len >= 4) {
+        classes["stack4"] = true;
+      } else if (len > 1) {
+        classes[`stack${len}`] = true;
+      }
+      return classes;
+    },
   },
   mounted: function () {
     this.delayPlaceholder();
@@ -71,7 +88,7 @@ export default {
 .coverImg {
   border-radius: 5px;
 }
-:deep(.coverImg .v-img__img) {
+.coverImg :deep(.v-img__img) {
   object-position: top;
 }
 
@@ -117,6 +134,20 @@ $primary: rgb(var(--v-theme-primary));
     transparent 90%
   );
 }
+.stack2 {
+  box-shadow: 3px 3px #606060;
+}
+.stack3 {
+  box-shadow: 3px 3px #606060,
+              6px 6px #404040;
+}
+.stack4 {
+  box-shadow: 3px 3px #606060,
+              6px 6px #404040,
+              9px 9px #202020;
+}
+
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .coverImg {
     height: $small-cover-height;

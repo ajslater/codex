@@ -2,12 +2,17 @@
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+)
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
+    JanitorCleanCoversTask,
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
@@ -30,12 +35,15 @@ from codex.status import Status
 
 _JANITOR_STATII = (
     Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES),
+    Status(JanitorStatusTypes.CLEANUP_COVERS),
     Status(JanitorStatusTypes.CLEANUP_SESSIONS),
     Status(JanitorStatusTypes.DB_OPTIMIZE),
     Status(JanitorStatusTypes.DB_BACKUP),
     Status(JanitorStatusTypes.CODEX_UPDATE),
     Status(CoverStatusTypes.FIND_ORPHAN),
     Status(CoverStatusTypes.PURGE_COVERS),
+    Status(ImportStatusTypes.ADOPT_FOLDERS),
+    Status(ImportStatusTypes.DIRS_MOVED),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE),
@@ -59,10 +67,12 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             tasks = (
                 SearchIndexAbortTask(),
                 JanitorCleanFKsTask(),
+                JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
                 JanitorVacuumTask(),
                 JanitorBackupTask(),
                 JanitorUpdateTask(force=False),
+                AdoptOrphanFoldersTask(),
                 CoverRemoveOrphansTask(),
                 SearchIndexUpdateTask(False),
                 SearchIndexMergeTask(optimize),
@@ -73,7 +83,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
 
-    def run(self, task):
+    def run(self, task):  # noqa: PLR0912,C901
         """Run Janitor tasks as the librarian process directly."""
         try:
             match task:
@@ -89,6 +99,8 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                     self.shutdown_codex()
                 case JanitorCleanFKsTask():
                     self.cleanup_fks()
+                case JanitorCleanCoversTask():
+                    self.cleanup_custom_covers()
                 case JanitorCleanupSessionsTask():
                     self.cleanup_sessions()
                 case JanitorClearStatusTask():

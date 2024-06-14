@@ -9,7 +9,7 @@ class OPDS1EntryObject:
     """Fake entry db object for top link & facet entries."""
 
     group: str = ""
-    pk: int = 0
+    ids: frozenset[int] = frozenset()
     name: str = ""
     summary: str = ""
     fake: bool = True
@@ -20,6 +20,6 @@ class OPDS1EntryData:
     """Entry Data class to avoid to many args."""
 
     acquisition_groups: frozenset
-    issue_number_max: int
+    zero_pad: int
     metadata: bool
     mime_type_map: Mapping[str, str]

@@ -1,69 +1,47 @@
 """Publication Methods for OPDS v2.0 feed."""
 
+from datetime import datetime
+from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
-
-from django.contrib.staticfiles.storage import staticfiles_storage
 
 from codex.librarian.covers.create import CoverCreateMixin
 from codex.models import Comic
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_contributors, get_m2m_objects
-from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
+from codex.views.opds.v2.top_links import HrefData, LinkData, OPDS2TopLinksView
+
+_MD_CONTRIBUTOR_MAP = MappingProxyType(
+    {
+        "author": AUTHOR_ROLES,
+        # "translator": {},
+        "editor": {"Editor"},
+        "artist": {"CoverArtist"},
+        # "illustrator": {},
+        "letterer": {"Letterer"},
+        "penciller": {"Penciller"},
+        "colorist": {"Colorist"},
+        "inker": {"Inker"},
+    }
+)
+_CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
 
 
-class PublicationMixin(LinksMixin):
+class OPDS2PublicationView(OPDS2TopLinksView):
     """Publication Methods for OPDS 2.0 feed."""
 
-    _MD_CONTRIBUTOR_MAP = MappingProxyType(
-        {
-            "author": AUTHOR_ROLES,
-            # "translator": {},
-            "editor": {"Editor"},
-            "artist": {"CoverArtist"},
-            # "illustrator": {},
-            "letterer": {"Letterer"},
-            "penciller": {"Penciller"},
-            "colorist": {"Colorist"},
-            "inker": {"Inker"},
-        }
-    )
-    _CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
     is_opds_metadata = False
-
-    def _get_big_image_link(self, obj, cover_pk):
-        if cover_pk:
-            mime_type = MimeType.JPEG
-            url_name = "opds:bin:page"
-            href = None
-            min_page = 0
-            max_page = obj.max_page or 1
-        else:
-            mime_type = MimeType.WEBP
-            href = staticfiles_storage.url("img/missing_cover.webp")
-            url_name = None
-            min_page = None
-            max_page = None
-
-        kwargs = {"pk": obj.pk, "page": 0}
-        href_data = HrefData(
-            kwargs,
-            absolute_query_params=True,
-            url_name=url_name,
-            min_page=min_page,
-            max_page=max_page,
-        )
-        link_data = LinkData(Rel.IMAGE, href_data, href=href, mime_type=mime_type)
-        return self.link(link_data)
 
     def _images(self, obj):
         # Images
-        cover_pk = obj.cover_pk
-
-        kwargs = {"pk": cover_pk}
-        href_data = HrefData(
-            kwargs, url_name="opds:bin:cover", absolute_query_params=True
-        )
+        kwargs = {"group": obj.group, "pks": obj.ids}
+        ts = floor(datetime.timestamp(obj.updated_at))
+        query_params = {
+            "customCovers": True,
+            "dynamicCovers": False,
+            "ts": ts,
+        }
+        href_data = HrefData(kwargs, query_params, True, "opds:bin:cover")
         link_data = LinkData(
             Rel.THUMBNAIL,
             href_data,
@@ -74,7 +52,9 @@ class PublicationMixin(LinksMixin):
 
         cover_link = self.link(link_data)
 
-        image_link = self._get_big_image_link(obj, cover_pk)
+        link_data.rel = Rel.IMAGE
+
+        image_link = self.link(link_data)
 
         return [
             cover_link,
@@ -82,9 +62,9 @@ class PublicationMixin(LinksMixin):
         ]
 
     @staticmethod
-    def _add_contributors(md, pk, key, roles):
+    def _add_contributors(md, pks, key, roles):
         """Add contributors to metadata."""
-        if contributors := get_contributors(pk, roles):
+        if contributors := get_contributors(pks, roles):
             md[key] = contributors
 
     def _publication_optional_metadata(self, md, obj):
@@ -106,12 +86,12 @@ class PublicationMixin(LinksMixin):
 
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
-        for key, roles in self._MD_CONTRIBUTOR_MAP.items():
-            self._add_contributors(md, obj.pk, key, roles)
-        if contributors := get_contributors(obj.pk, self._CONTRIBUTOR_ROLES, True):
+        for key, roles in _MD_CONTRIBUTOR_MAP.items():
+            self._add_contributors(md, obj.ids, key, roles)
+        if contributors := get_contributors(obj.ids, _CONTRIBUTOR_ROLES, True):
             md["contributor"] = contributors
 
-        if m2m_objs := get_m2m_objects(obj.pk):
+        if m2m_objs := get_m2m_objects(obj.ids):
             # XXX Subjects can also have links
             # https://readium.org/webpub-manifest/schema/subject-object.schema.json
             subjects = []
@@ -120,12 +100,12 @@ class PublicationMixin(LinksMixin):
                     subjects.append(subj.name)
             md["subject"] = subjects
 
-    def _publication_metadata(self, obj, issue_number_max):
+    def _publication_metadata(self, obj, zero_pad):
         title = Comic.get_title(
             obj,
             volume=False,
             name=False,
-            issue_number_max=issue_number_max,
+            zero_pad=zero_pad,
             filename_fallback=self.title_filename_fallback,
         )
         md = {
@@ -139,15 +119,14 @@ class PublicationMixin(LinksMixin):
             self._publication_extended_metadata(md, obj)
         return md
 
-    def _publication(self, obj, issue_number_max):
+    def _publication(self, obj, zero_pad):
         pub = {}
-        pub["metadata"] = self._publication_metadata(obj, issue_number_max)
+        pub["metadata"] = self._publication_metadata(obj, zero_pad)
 
-        fn = Comic.get_filename(obj)
-        fn = quote_plus(fn)
+        fn = quote_plus(obj.get_filename())
 
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
-        self_kwargs = {"group": "c", "pk": obj.pk, "page": 1}
+        self_kwargs = {"pk": obj.pk, "page": 1}
 
         # This would be for comic streaming which is not supported by OPDS 2 yet?
         # self_href_data = HrefData(self_kwargs, absolute_query_params=True)
@@ -155,7 +134,10 @@ class PublicationMixin(LinksMixin):
 
         alt_kwargs = self_kwargs
         alt_href_data = HrefData(
-            alt_kwargs, {"opdsMetadata": 1}, absolute_query_params=True
+            alt_kwargs,
+            {"opdsMetadata": 1},
+            absolute_query_params=True,
+            url_name="opds:v2:acq",
         )
         alt_link_data = LinkData(
             Rel.ALTERNATE, alt_href_data, mime_type=MimeType.OPDS_PUB
@@ -186,13 +168,13 @@ class PublicationMixin(LinksMixin):
 
         return pub
 
-    def get_publications(self, book_qs, issue_number_max, title):
+    def get_publications(self, book_qs, zero_pad, title):
         """Get publications section."""
         groups = []
         publications = []
         self.title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         for obj in book_qs:
-            pub = self._publication(obj, issue_number_max)
+            pub = self._publication(obj, zero_pad)
             publications.append(pub)
 
         if publications:

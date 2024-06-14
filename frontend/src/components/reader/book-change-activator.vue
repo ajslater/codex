@@ -5,14 +5,19 @@
     :class="{ [positionClass]: true, [cursorClass]: true }"
     @click.stop="setBookChangeFlag(direction)"
   />
+  <BookChangeDrawer :direction="direction" />
 </template>
 <script>
 import { mapActions } from "pinia";
 
+import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BookChangeActivator",
+  components: {
+    BookChangeDrawer,
+  },
   props: {
     direction: {
       type: String,

@@ -10,6 +10,7 @@ from codex.librarian.importer.const import (
     DICT_MODEL_REL_LINK_MAP,
     FOLDERS_FIELD,
     IMPRINT,
+    M2M_MDS,
     PARENT_FOLDER,
     PUBLISHER,
     SERIES,
@@ -17,7 +18,8 @@ from codex.librarian.importer.const import (
     STORY_ARCS_METADATA_KEY,
     VOLUME,
 )
-from codex.librarian.importer.status import ImportStatusTypes, status_notify
+from codex.librarian.importer.link_covers import LinkCoversImporter
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Comic,
     Folder,
@@ -27,10 +29,10 @@ from codex.models import (
     Volume,
 )
 from codex.models.named import Identifier
-from codex.threads import QueuedThread
+from codex.status import Status
 
 
-class LinkComicsMixin(QueuedThread):
+class LinkComicsImporter(LinkCoversImporter):
     """Link comics methods."""
 
     @staticmethod
@@ -40,13 +42,12 @@ class LinkComicsMixin(QueuedThread):
         return md.get(field_name, group_class.DEFAULT_NAME)
 
     @classmethod
-    def get_comic_fk_links(cls, md, library, path):
+    def get_comic_fk_links(cls, md, path):
         """Get links for all foreign keys for creating and updating."""
         publisher_name = cls._get_group_name(Publisher, md)
         imprint_name = cls._get_group_name(Imprint, md)
         series_name = cls._get_group_name(Series, md)
         volume_name = cls._get_group_name(Volume, md)
-        md["library"] = library
         md[PUBLISHER] = Publisher.objects.get(name=publisher_name)
         md[IMPRINT] = Imprint.objects.get(
             publisher__name=publisher_name, name=imprint_name
@@ -122,13 +123,15 @@ class LinkComicsMixin(QueuedThread):
         result = frozenset(pks)
         all_m2m_links[key][comic_pk] = result
 
-    def _link_comic_m2m_fields(self, m2m_mds):
+    def _link_comic_m2m_fields(self):
         """Get the complete m2m field data to create."""
         all_m2m_links = {}
-        comic_paths = frozenset(m2m_mds.keys())
+        comic_paths = frozenset(self.metadata.get(M2M_MDS, {}).keys())
+        if not comic_paths:
+            return all_m2m_links
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
-            md = m2m_mds[comic_path]
+            md = self.metadata[M2M_MDS][comic_path]
             link_data = (all_m2m_links, md, comic_pk)
             self._link_prepare_special_m2ms(
                 link_data, FOLDERS_FIELD, Folder, self._get_link_folders_filter
@@ -141,6 +144,7 @@ class LinkComicsMixin(QueuedThread):
                 self._link_prepare_special_m2ms(link_data, field_name, model, method)
 
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
+        self.metadata.pop(M2M_MDS)
         return all_m2m_links
 
     def _query_relation_adjustments(
@@ -202,10 +206,9 @@ class LinkComicsMixin(QueuedThread):
         tms, all_del_pks = self._query_relation_adjustments(
             m2m_links, ThroughModel, through_field_id_name, status
         )
-        if status:
-            status.total = status.total or 0
-            status.total += len(tms) + len(all_del_pks)
-            self.status_controller.update(status)
+        status.total = status.total or 0
+        status.total += len(tms) + len(all_del_pks)
+        self.status_controller.update(status)
 
         update_fields = ("comic_id", through_field_id_name)
         ThroughModel.objects.bulk_create(
@@ -216,10 +219,9 @@ class LinkComicsMixin(QueuedThread):
         )
         if created_count := len(tms):
             self.log.info(f"Linked {created_count} new {field_name} to altered comics.")
-        if status:
-            status.complete = status.complete or 0
-            status.complete += created_count
-            self.status_controller.update(status)
+        status.complete = status.complete or 0
+        status.complete += created_count
+        self.status_controller.update(status)
 
         if del_count := len(all_del_pks):
             del_qs = ThroughModel.objects.filter(pk__in=all_del_pks)
@@ -227,19 +229,16 @@ class LinkComicsMixin(QueuedThread):
             self.log.info(
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )
-        if status:
-            status.complete = status.complete or 0
-            status.complete += del_count
-            self.status_controller.update(status)
+        status.complete = status.complete or 0
+        status.complete += del_count
+        self.status_controller.update(status)
         return created_count, del_count
 
-    @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS, updates=False)
-    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status=None):
+    def bulk_query_and_link_comic_m2m_fields(self):
         """Combine query and bulk link into a batch."""
-        if status:
-            status.complete = 0
-            status.total = 0
-        all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
+        status = Status(ImportStatusTypes.LINK_M2M_FIELDS)
+        self.status_controller.start(status)
+        all_m2m_links = self._link_comic_m2m_fields()
         created_total = 0
         del_total = 0
         for field_name, m2m_links in all_m2m_links.items():
@@ -256,4 +255,5 @@ class LinkComicsMixin(QueuedThread):
             self.log.info(f"Linked {created_total} comics to tags.")
         if del_total:
             self.log.info(f"Deleted {del_total} stale relations for altered comics.")
+        self.status_controller.finish(status)
         return created_total + del_total

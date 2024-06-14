@@ -1,27 +1,32 @@
 <template>
   <div>
     <v-slide-x-transition hide-on-leave>
-      <v-list-item v-if="filterMode === 'base'" @click="setUIFilterMode(name)">
-        <v-list-item-title class="filterMenu">
-          {{ title }}
-          <v-icon v-if="filter && filter.length > 0" class="nameChevron">
-            {{ mdiChevronRightCircle }}
-          </v-icon>
-          <v-icon v-else class="nameChevron">
-            {{ mdiChevronRight }}
-          </v-icon>
-        </v-list-item-title>
-      </v-list-item>
+      <v-list-item
+        v-if="filterMode === 'base'"
+        density="compact"
+        variant="plain"
+        :title="title"
+        :append-icon="filterMenuIcon"
+        @click="setUIFilterMode(name)"
+      />
     </v-slide-x-transition>
     <v-slide-x-reverse-transition hide-on-leave>
       <div v-if="filterMode === name">
         <header class="filterHeader">
-          <v-list-item @click="setUIFilterMode('base')">
-            <v-list-item-title class="filterTitle">
-              <v-icon>{{ mdiChevronLeft }}</v-icon
-              >{{ lowerTitle }}
-            </v-list-item-title>
-          </v-list-item>
+          <v-list-item
+            class="filterHeaderTitle"
+            :prepend-icon="mdiChevronLeft"
+            :title="lowerTitle"
+            @click="setUIFilterMode('base')"
+          />
+          <v-list-item
+            v-if="isClearable"
+            density="compact"
+            class="clearFilter"
+            title="Clear Filter"
+            :append-icon="mdiCloseCircleOutline"
+            @click="onClear"
+          />
           <v-text-field
             v-if="typeof choices === 'object'"
             v-model="query"
@@ -55,13 +60,16 @@
             title="None"
             :value="-1"
             class="noneItem"
+            density="compact"
+            variant="plain"
           />
           <v-list-item
             v-for="item of vuetifyItems"
             :key="item.value"
             :title="itemTitle(item)"
             :value="item.value"
-            :class="{ noneItem: +item.value == nullCode }"
+            density="compact"
+            variant="plain"
           />
         </v-list>
       </div>
@@ -74,15 +82,13 @@ import {
   mdiChevronLeft,
   mdiChevronRight,
   mdiChevronRightCircle,
+  mdiCloseCircleOutline,
 } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
-import CHOICES from "@/choices";
 import { useBrowserStore } from "@/stores/browser";
 import { camelToTitleCase } from "@/to-case";
-
-const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -96,10 +102,8 @@ export default {
   data() {
     return {
       mdiChevronLeft,
-      mdiChevronRight,
-      mdiChevronRightCircle,
+      mdiCloseCircleOutline,
       query: "",
-      nullCode: VUETIFY_NULL_CODE,
     };
   },
   computed: {
@@ -116,7 +120,10 @@ export default {
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     hasNone() {
       for (const item of this.choices) {
-        if (NULL_PKS.has(item.pk)) {
+        if (
+          NULL_PKS.has(item) ||
+          (item instanceof Object && NULL_PKS.has(item.pk))
+        ) {
           return true;
         }
       }
@@ -125,16 +132,26 @@ export default {
     vuetifyItems() {
       return toVuetifyItems(this.choices, this.query);
     },
-    title: function () {
+    title() {
       return camelToTitleCase(this.name);
     },
-    lowerTitle: function () {
+    lowerTitle() {
       return this.title.toLowerCase();
+    },
+    filterMenuIcon() {
+      return this.filter && this.filter.length > 0
+        ? mdiChevronRightCircle
+        : mdiChevronRight;
+    },
+    isClearable() {
+      return this.filter?.length;
     },
   },
   methods: {
     ...mapActions(useBrowserStore, [
+      "clearOneFilter",
       "identifierTypeTitle",
+      "loadAvailableFilterChoices",
       "loadFilterChoices",
     ]),
     setUIFilterMode(mode) {
@@ -158,18 +175,21 @@ export default {
       }
       return item.title;
     },
+    onClear() {
+      this.clearOneFilter(this.name).then(() => {
+        this.loadAvailableFilterChoices();
+        this.loadFilterChoices(this.name);
+      });
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.filterMenu {
-  line-height: 24px !important;
+.filterHeaderTitle :deep(.v-list-item__prepend > .v-list-item__spacer) {
+  display: none;
 }
-.nameChevron {
-  float: right;
-}
-.filterTitle {
+.filterHeaderTitle :deep(.v-list-item-title) {
   font-variant: small-caps;
   color: rbg(var(--v-theme-textDisabled));
   font-weight: bold;
@@ -180,7 +200,7 @@ export default {
 .filterGroup {
   max-height: 80vh; /* has to be less than the menu height */
 }
-:deep(.noneItem .v-item-title) {
+.noneItem :deep(.v-item-title) {
   color: rbg(var(--v-theme-textDisabled)) !important;
 }
 .filterValuesProgress {
@@ -189,5 +209,13 @@ export default {
 }
 .noneItem {
   opacity: 0.5;
+}
+.clearFilter {
+  color: black;
+  background-color: rgb(var(--v-theme-primary));
+  opacity: .7;
+}
+.clearFilter:hover {
+  opacity: 1.0;
 }
 </style>

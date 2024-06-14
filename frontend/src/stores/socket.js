@@ -6,13 +6,16 @@ import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
+import { useReaderStore } from "@/stores/reader";
 import { store } from "@/stores/store";
 
 const libraryChanged = function () {
   useCommonStore().setTimestamp();
   const route = router.currentRoute.value;
   if (route.name === "browser") {
-    useBrowserStore().loadBrowserPage({ showProgress: false });
+    useBrowserStore().loadMtimes();
+  } else if (route.name == "reader") {
+    useReaderStore().loadMtimes();
   } else if (route.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }
@@ -67,17 +70,14 @@ export const useSocketStore = defineStore("socket", {
           libraryChanged();
 
           break;
-
         case CHOICES.websockets.LIBRARIAN_STATUS:
           useAdminStore().loadTable("LibrarianStatus");
 
           break;
-
         case CHOICES.websockets.FAILED_IMPORTS:
           useAdminStore().unseenFailedImports = true;
 
           break;
-
         default:
           console.debug("Unhandled websocket message:", message);
       }

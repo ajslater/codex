@@ -4,13 +4,15 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
-    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
 )
 
 from codex.models import Bookmark
+from codex.serializers.browser.settings import BrowserSettingsShowGroupFlagsSerializer
+from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
+from codex.serializers.route import RouteSerializer, SimpleRouteSerializer
 
 
 class ReaderSettingsSerializer(Serializer):
@@ -24,14 +26,8 @@ class ReaderSettingsSerializer(Serializer):
     two_pages = BooleanField(allow_null=True, required=False)
     reading_direction = CharField(allow_null=True, required=False)
     read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
-
-
-class ReaderArcSerializer(Serializer):
-    """A group of comics or a story arc."""
-
-    group = CharField(read_only=True)
-    pk = IntegerField(read_only=True)
-    name = CharField(read_only=True)
+    finish_on_last_page = BooleanField(allow_null=True, required=False)
+    mtime = TimestampField(read_only=True)
 
 
 class ReaderComicSerializer(Serializer):
@@ -41,16 +37,25 @@ class ReaderComicSerializer(Serializer):
     settings = ReaderSettingsSerializer(read_only=True)
     max_page = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
-    mtime = DateTimeField(format="%s", read_only=True)
+    mtime = TimestampField(read_only=True)
 
 
-class ReaderCurrentArcSerializer(Serializer):
+class ReaderArcSerializer(SimpleRouteSerializer):
     """Information about the current Arc."""
 
-    group = CharField(read_only=True)
-    pk = IntegerField(read_only=True)
-    index = IntegerField(read_only=True)
-    count = IntegerField(read_only=True, required=False)
+    name = CharField(required=False)
+    index = IntegerField(required=False)
+    count = IntegerField(required=False)
+    mtime = TimestampField(read_only=True)
+
+
+class ReaderViewInputSerializer(Serializer):
+    """Input for the reader serailizer."""
+
+    arc = ReaderArcSerializer(required=False)
+    breadcrumbs = BreadcrumbsField(required=False)
+    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+    top_group = TopGroupField(required=False)
 
 
 class ReaderCurrentComicSerializer(ReaderComicSerializer):
@@ -74,6 +79,7 @@ class ReaderCurrentComicSerializer(ReaderComicSerializer):
 
     file_type = CharField(read_only=True, required=False)
     filename = CharField(read_only=True, required=False)
+    name = CharField(read_only=True, required=False)
 
 
 class ReaderBooksSerializer(Serializer):
@@ -89,4 +95,6 @@ class ReaderComicsSerializer(Serializer):
 
     books = ReaderBooksSerializer(read_only=True)
     arcs = ReaderArcSerializer(many=True, read_only=True)
-    arc = ReaderCurrentArcSerializer(read_only=True)
+    arc = ReaderArcSerializer(read_only=True)
+    close_route = RouteSerializer(read_only=True)
+    mtime = TimestampField(read_only=True)

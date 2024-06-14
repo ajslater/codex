@@ -1,58 +1,29 @@
 <template>
-  <v-main id="browsePane" :class="{ padFooter: padFooter }">
+  <v-main id="browsePane" :class="browsePaneClasses">
     <div v-if="showBrowseItems" id="browsePaneContainer">
       <BrowserCard
         v-for="item in cards"
-        :key="`${item.group}${item.pk}`"
+        :key="`${item.group}${item.ids}`"
         :item="item"
       />
     </div>
-    <div v-else-if="showPlaceHolder" id="announce">
-      <PlaceholderLoading class="placeholder" />
-    </div>
-    <div v-else-if="!isCodexViewable" id="announce">
-      <h1>
-        You may log in
-        <span v-if="adminFlags.registration">or register</span> with the top
-        right&emsp;<v-icon>{{ mdiMenu }}</v-icon
-        >&emsp;menu
-      </h1>
-      <h1 v-if="!adminFlags.registration">Registration is disabled</h1>
-    </div>
-    <div v-else-if="librariesExist" id="announce">
-      <div id="noComicsFound">No comics found for these filters</div>
-    </div>
-    <div v-else id="announce">
-      <h1>No libraries have been added to Codex yet</h1>
-      <h2 v-if="isUserAdmin">
-        Use the top right <v-icon>{{ mdiMenu }}</v-icon> menu to navigate to the
-        admin panel and add a comic library.
-      </h2>
-      <div v-else>
-        <h2>
-          An administrator must login to add some libraries that contain comics
-        </h2>
-        <h3>
-          You may log in or register with the top right
-          <v-icon>{{ mdiMenu }}</v-icon
-          >menu
-        </h3>
-      </div>
-      <a
-        href="https://github.com/ajslater/codex#-administration"
-        target="_blank"
-        >See the README <v-icon>{{ mdiOpenInNew }}</v-icon></a
-      >
-      for detailed instructions.
+    <PlaceholderLoading v-else-if="showPlaceHolder" class="placeholder" />
+    <BrowserEmptyState v-else />
+    <div
+      v-if="searchLimitMessage"
+      id="searchLimitMessage"
+      title="You may change this in the settings drawer"
+    >
+      {{ searchLimitMessage }}
     </div>
   </v-main>
 </template>
 
 <script>
-import { mdiMenu, mdiOpenInNew } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
+import BrowserEmptyState from "@/components/browser/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -61,44 +32,68 @@ export default {
   name: "BrowserMain",
   components: {
     BrowserCard,
+    BrowserEmptyState,
     PlaceholderLoading,
-  },
-  data() {
-    return {
-      mdiMenu,
-      mdiOpenInNew,
-    };
   },
   computed: {
     ...mapState(useAuthStore, {
-      adminFlags: (state) => state.adminFlags,
+      nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapGetters(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
         return (
-          this.adminFlags.nonUsers === undefined ||
-          (this.isCodexViewable &&
+          this.nonUsers === undefined ||
+          (this.isAuthorized &&
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
+      //searchResultsLimit: (state) => state.settings.searchResultsLimit,
       cards: (state) => [
         ...(state.page.groups ?? []),
         ...(state.page.books ?? []),
       ],
       numPages: (state) => state.page.numPages,
+      query: (state) => state.settings.q,
+      isSearchOpen: (state) => state.isSearchOpen,
     }),
-    padFooter() {
-      return this.numPages > 1;
+    browsePaneClasses() {
+      return {
+        padFooter: this.numPages > 1,
+        browsePaneSearch: this.isSearchOpen,
+      };
     },
     showBrowseItems() {
       return (
         this.cards &&
         this.cards.length > 0 &&
-        this.isCodexViewable &&
+        this.isAuthorized &&
         !this.showPlaceHolder
       );
+    },
+    searchLimitMessage() {
+      let res = "";
+      if (!this.query) {
+        return res;
+      }
+      // if (this.isSearchLimitedMode) {
+      const page = +this.$route.params.page;
+      // const limit = this.searchResultsLimit * page;
+      const limit = 100 * page;
+      if (this.showPlaceHolder) {
+        res += `Searching for ${limit} entries...`;
+      } else if (this.numPages > page) {
+        res += `Search results truncated to ${limit} entries.`;
+        res += " Advance the page to look for more.";
+      }
+      /*
+      } else if (this.isSearchMode) {
+        res = "Select incremental search in the side bar to search faster";
+      }
+      */
+      return res;
     },
   },
 };
@@ -107,13 +102,18 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../book-cover.scss";
+$top-toolbar-margin: 94px;
 $card-margin: 32px;
+$browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
 #browsePane {
-  margin-top: 160px;
+  margin-top: $browse-pane-margin-top;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));
   margin-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: auto;
+}
+.browsePaneSearch {
+  margin-top: calc($browse-pane-margin-top + 32px) !important;
 }
 #browsePaneContainer {
   margin-top: $card-margin;
@@ -121,14 +121,6 @@ $card-margin: 32px;
   grid-template-columns: repeat(auto-fit, $cover-width);
   grid-gap: $card-margin;
   align-content: flex-start;
-}
-#announce {
-  text-align: center;
-}
-#noComicsFound {
-  font-size: x-large;
-  padding: 1em;
-  color: rbg(var(--v-theme-textDisabled));
 }
 .padFooter {
   padding-bottom: 45px !important;
@@ -141,6 +133,13 @@ $card-margin: 32px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
+#searchLimitMessage {
+  padding-top: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: rgb(var(--v-theme-textDisabled));
+}
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
   #browsePane {
@@ -153,9 +152,6 @@ $card-margin: 32px;
     grid-template-columns: repeat(auto-fit, $small-cover-width);
     grid-gap: $small-card-margin;
     justify-content: space-evenly;
-  }
-  #noComicsFound {
-    font-size: large;
   }
 }
 </style>

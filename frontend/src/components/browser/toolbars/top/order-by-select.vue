@@ -4,8 +4,7 @@
     class="orderBySelect"
     select-label="order by"
     :items="orderByChoices"
-    :max-select-len="orderByChoicesMaxLen - 3.5"
-    :mobile-len-adj="-2"
+    :max-select-len="orderByChoicesMaxLen - 4"
     v-bind="$attrs"
   />
 </template>
@@ -13,7 +12,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ToolbarSelect from "@/components/browser/toolbars/toolbar-select.vue";
+import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {

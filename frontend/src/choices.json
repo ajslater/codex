@@ -3,7 +3,7 @@
     "bookmarkFilter": [
       {
         "title": "All",
-        "value": "ALL",
+        "value": "",
         "default": true
       },
       {
@@ -17,6 +17,13 @@
       {
         "title": "Read",
         "value": "READ"
+      }
+    ],
+    "breadcrumbs": [
+      {
+        "group": "r",
+        "pks": "0",
+        "page": 1
       }
     ],
     "q": "",
@@ -51,6 +58,7 @@
         "value": "a"
       }
     ],
+    "searchResultsLimit": 100,
     "settingsGroup": [
       {
         "title": "Publishers",
@@ -108,7 +116,7 @@
       },
       {
         "title": "Filename",
-        "value": "path"
+        "value": "filename"
       },
       {
         "title": "Critical Rating",
@@ -134,6 +142,7 @@
         "value": "story_arc_number"
       }
     ],
+    "orderReverse": false,
     "vuetifyNullCode": -1,
     "groupNames": {
       "p": "Publishers",
@@ -144,11 +153,6 @@
       "f": "Folders",
       "a": "Story Arcs"
     },
-    "route": {
-      "group": "r",
-      "pk": 0,
-      "page": 1
-    },
     "identifierTypes": {
       "comicvine": "Comic Vine",
       "comixology": "Comixology",
@@ -156,9 +160,13 @@
       "gtin": "GTIN",
       "isbn": "ISBN",
       "upc": "UPC"
-    }
+    },
+    "dynamicCovers": true,
+    "customCovers": true,
+    "twentyFourHourTime": false
   },
   "reader": {
+    "finishOnLastPage": true,
     "fitTo": [
       {
         "title": "Fit to Screen",
@@ -204,7 +212,9 @@
         "title": "",
         "value": ""
       }
-    ]
+    ],
+    "readRtlInReverse": false,
+    "twoPages": false
   },
   "websockets": {
     "LIBRARY_CHANGED": "LIBRARY_CHANGED",

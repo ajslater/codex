@@ -4,7 +4,7 @@ import { mount } from "@vue/test-utils";
 import { expect, test } from "vitest";
 import { createRouter, createWebHistory } from "vue-router";
 
-import ReaderNavButton from "@/components/reader/toolbars/reader-nav-button.vue";
+import ReaderNavButton from "@/components/reader/toolbars/nav/reader-nav-button.vue";
 import vuetify from "@/plugins/vuetify";
 import { useReaderStore } from "@/stores/reader";
 

@@ -22,7 +22,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         and do a group_send with it's message.
         """
         item = {
-            "group": task.group.name,
+            "group": task.group,
             "message": {
                 "type": "send_text",
                 "text": task.text,

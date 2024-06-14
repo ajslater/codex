@@ -1,61 +1,49 @@
 """Views for browsing comic library."""
 
-import json
-from copy import deepcopy
 from types import MappingProxyType
-from urllib.parse import unquote_plus
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import User
-from django.db.models import Q
-from djangorestframework_camel_case.settings import api_settings
-from djangorestframework_camel_case.util import underscoreize
+from django.db.models.aggregates import Max, Min
+from rest_framework.exceptions import NotFound
 
 from codex.logger.logging import get_logger
 from codex.models import (
+    AdminFlag,
     Comic,
-    Folder,
-    Imprint,
-    Publisher,
-    Series,
-    StoryArc,
-    Volume,
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
-from codex.views.browser.filters.bookmark import BookmarkFilterMixin
-from codex.views.browser.filters.field import ComicFieldFilter
-from codex.views.browser.filters.group import GroupFilterMixin
-from codex.views.browser.filters.search import SearchFilterMixin
+from codex.views.browser.filters.search import SearchFilterView
+from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, ROOT_GROUP, STORY_ARC_GROUP
+from codex.views.util import reparse_json_query_params
 
 LOG = get_logger(__name__)
 
+if TYPE_CHECKING:
+    from codex.models.groups import BrowserGroupModel
 
-class BrowserBaseView(
-    ComicFieldFilter, BookmarkFilterMixin, GroupFilterMixin, SearchFilterMixin
-):
+
+class BrowserBaseView(SearchFilterView):
     """Browse comics with a variety of filters and sorts."""
 
     input_serializer_class = BrowserSettingsSerializer
 
-    GROUP_MODEL_MAP = MappingProxyType(
-        {
-            GroupFilterMixin.ROOT_GROUP: None,
-            "p": Publisher,
-            "i": Imprint,
-            "s": Series,
-            "v": Volume,
-            GroupFilterMixin.COMIC_GROUP: Comic,
-            GroupFilterMixin.FOLDER_GROUP: Folder,
-            GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
-        }
-    )
-
-    _GET_JSON_KEYS = frozenset({"filters", "show"})
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
+    REPARSE_JSON_FIELDS = frozenset({"breadcrumbs", "filters", "show"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
-        self._is_admin = None
-        self.params = {}
+        self._is_admin: bool = False
+        self.params: MappingProxyType[str, Any] = MappingProxyType({})
+        self.rel_prefix: str = ""
+        self.model: type[BrowserGroupModel] | None = None
+        self.group_class: type[BrowserGroupModel] | None = None
+        self.model_group: str = ""
+        self.is_model_comic: bool = False
+        self.admin_flags: MappingProxyType[str, bool] = MappingProxyType({})
+        self.order_agg_func: type[Min | Max] = Min
+        self.order_key: str = ""
 
     def is_admin(self):
         """Is the current user an admin."""
@@ -64,63 +52,89 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(self, model, search_scores: dict):
-        """Return all the filters except the group filter."""
-        object_filter = self.get_group_acl_filter(model)
-        object_filter &= self.get_search_filter(model, search_scores)
-        object_filter &= self.get_bookmark_filter(model)
-        object_filter &= self.get_comic_field_filter(self.rel_prefix)
-        return object_filter
+    def set_admin_flags(self):
+        """Set browser relevant admin flags."""
+        admin_pairs = AdminFlag.objects.filter(
+            key__in=self.ADMIN_FLAG_VALUE_KEY_MAP.keys()
+        ).values_list("key", "on")
+        admin_flags = {}
+        for key, on in admin_pairs:
+            export_key = self.ADMIN_FLAG_VALUE_KEY_MAP[key]
+            admin_flags[export_key] = on
+        self.admin_flags = MappingProxyType(admin_flags)
 
-    def get_query_filters(self, model, search_scores: dict | None, choices=False):
-        """Return the main object filter and the one for aggregates."""
-        if search_scores is None:
-            return Q(False)
-        object_filter = self.get_query_filters_without_group(model, search_scores)
-        object_filter &= self.get_group_filter(choices)
-        return object_filter
+    def get_model_group(self):
+        """Determine model group for set_browse_model()."""
+        group = self.kwargs["group"]
+        if group == ROOT_GROUP:
+            group = self.params["top_group"]
+        return group
 
-    def _parse_query_params(self, query_params):
+    def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
-        result = {}
-        for key, val in query_params.items():
-            if key in self._GET_JSON_KEYS:
-                unquoted_val = unquote_plus(val)  # for pocketbooks reader
-                parsed_val = json.loads(unquoted_val)
-                if not parsed_val:
-                    continue
-                parsed_key = key
-            elif key in ("q", "query"):
-                # parse and strip query param
-                # "query" is used by opds v2
-                if "q" in result:
-                    continue
-                parsed_val = val.strip()
-                if not parsed_val:
-                    continue
-                parsed_key = "q"
-            else:
-                parsed_key = key
-                parsed_val = val
-
-            result[parsed_key] = parsed_val
-        return underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
+        query_params = reparse_json_query_params(
+            self.request.GET, self.REPARSE_JSON_FIELDS
+        )
+        if "q" not in query_params and (query := query_params.get("query")):
+            # parse query param for opds v2
+            query_params["q"] = query
+        return query_params
 
     def parse_params(self):
         """Validate sbmitted settings and apply them over the session settings."""
-        self.params = deepcopy(dict(self.SESSION_DEFAULTS))
-        if self.request.method == "GET":
-            data = self._parse_query_params(self.request.GET)
-        elif hasattr(self.request, "data"):
-            data = self._parse_query_params(self.request.data)
-        else:
-            return
-
+        data = self._parse_query_params()
         serializer = self.input_serializer_class(data=data)
-
         serializer.is_valid(raise_exception=True)
-        self.params.update(serializer.validated_data)
 
-    def set_rel_prefix(self, model):
+        params: dict[str, Any] = {}
+        defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
+        params.update(defaults)
+        group = self.kwargs.get("group")
+        if group:
+            # order_by has a dynamic group based default
+            order_defaults = {
+                "order_by": "filename"
+                if group == FOLDER_GROUP
+                else "story_arc_number"
+                if group == STORY_ARC_GROUP
+                else "sort_name"
+            }
+            params.update(order_defaults)
+        validated_data = serializer.validated_data
+
+        if validated_data:
+            params.update(validated_data)  # type: ignore
+        self.params = MappingProxyType(params)
+        self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
+
+    def set_order_key(self):
+        """Unused until browser."""
+
+    def validate_settings(self):
+        """Unused until browser."""
+
+    def set_model(self):
+        """Set the model for the browse list."""
+        group = self.kwargs["group"]
+        self.group_class = GROUP_MODEL_MAP[group]
+
+        self.model_group = self.get_model_group()
+        self.model = GROUP_MODEL_MAP.get(self.model_group)
+        if self.model is None:
+            detail = f"Cannot browse {group=}"
+            LOG.debug(detail)
+            raise NotFound(detail=detail)
+        self.is_model_comic = self.model == Comic
+
+    def set_rel_prefix(self):
         """Set the relation prefix for most fields."""
-        self.rel_prefix = self.get_rel_prefix(model)
+        self.rel_prefix = self.get_rel_prefix(self.model)
+
+    def init_request(self):
+        """Initialize request."""
+        self.set_admin_flags()
+        self.parse_params()
+        self.set_order_key()
+        self.validate_settings()
+        self.set_model()
+        self.set_rel_prefix()

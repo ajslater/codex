@@ -3,10 +3,10 @@
 from codex._vendor.haystack.backends import UnifiedIndex
 from codex._vendor.haystack.backends.whoosh_backend import (
     WhooshEngine,
-    WhooshSearchQuery,
 )
 from codex.search.backend import CodexSearchBackend
 from codex.search.indexes import ComicIndex
+from codex.search.query import CodexSearchQuery
 
 
 class CodexUnifiedIndex(UnifiedIndex):
@@ -16,14 +16,6 @@ class CodexUnifiedIndex(UnifiedIndex):
         """Replace auto app.search_index finding with one exact instance."""
         # Because I moved search_indexes into codex.search
         return [ComicIndex()]
-
-
-class CodexSearchQuery(WhooshSearchQuery):
-    """Custom search qeuery."""
-
-    def clean(self, query_fragment):
-        """Optimize to noop because RESERVED_ consts are empty in the backend."""
-        return query_fragment
 
 
 class CodexSearchEngine(WhooshEngine):

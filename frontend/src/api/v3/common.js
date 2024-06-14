@@ -2,7 +2,30 @@ import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
 
-const downloadIOSPWAFix = (href, fileName) => {
+const _json_serialize = (params) => {
+  // Since axios 1.0 I have to manually serialize complex objects
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "object" || Array.isArray(value)) {
+      params[key] = JSON.stringify(value);
+    }
+  }
+};
+
+const _addTimestamp = (params, ts) => {
+  if (!ts) {
+    ts = useCommonStore().timestamp;
+  }
+  params.ts = ts;
+};
+
+export const serializeParams = (data, ts) => {
+  const params = { ...data };
+  _json_serialize(params);
+  _addTimestamp(params, ts);
+  return params;
+};
+
+const getDownloadIOSPWAFix = (href, fileName) => {
   // iOS has a download bug inside PWAs. The user is trapped in the
   // download screen and cannot return to the app.
   // https://developer.apple.com/forums/thread/95911
@@ -32,11 +55,15 @@ export const getReaderBasePath = (pk) => {
 
 export const getBookInBrowserURL = ({ pk, mtime }) => {
   const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
-  return `${BASE_URL}/book.pdf?mtime=${mtime}`;
+  return `${BASE_URL}/book.pdf?ts=${mtime}`;
 };
 
-export const getTSParams = () => {
-  return { ts: useCommonStore().timestamp };
+export const getMtime = (groups, settings) => {
+  const params = serializeParams({ groups, ...settings }, Date.now());
+  return HTTP.get("/mtime", { params });
+};
+const getOPDSURLs = () => {
+  return HTTP.get("/opds-urls");
 };
 
 const getVersions = (ts) => {
@@ -44,11 +71,21 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
+const updateGroupBookmarks = ({ group, ids }, data) => {
+  if (data.fitTo === null) {
+    data.fitTo = "";
+  }
+  const pks = ids.join(",");
+  return HTTP.patch(`${group}/${pks}/bookmark`, data);
+};
+
 export default {
-  downloadIOSPWAFix,
+  getDownloadIOSPWAFix,
   getBookInBrowserURL,
+  getMtime,
+  getOPDSURLs,
   getReaderBasePath,
   getReaderPath,
-  getTSParams,
   getVersions,
+  updateGroupBookmarks,
 };

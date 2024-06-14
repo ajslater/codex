@@ -1,16 +1,21 @@
 """Bookmark filter view methods."""
 
+from typing import TYPE_CHECKING
+
 from django.db.models import Q
 
-from codex.serializers.choices import CHOICES
+if TYPE_CHECKING:
+    from codex.models import BrowserGroupModel
 
 
 class BookmarkFilterMixin:
     """BookmarkFilter view methods."""
 
-    _BOOKMARK_FILTERS = frozenset(set(CHOICES["bookmarkFilter"].keys()) - {"ALL"})
+    def init_bookmark_data(self):
+        """Initialize the bm_annotation_data."""
+        self._bm_annotation_data: dict[BrowserGroupModel, tuple[str, Q]] = {}
 
-    def get_bm_rel(self, model):
+    def _get_bm_rel(self, model):
         """Create bookmark relation."""
         rel_prefix = self.get_rel_prefix(model)  # type: ignore
         return rel_prefix + "bookmark"
@@ -26,13 +31,24 @@ class BookmarkFilterMixin:
             }
         return Q(**my_bookmarks_kwargs)
 
+    def get_bookmark_rel_and_filter(self, model):
+        """Get the bookmark rel and filter once."""
+        if model not in self._bm_annotation_data:
+            bm_rel = self._get_bm_rel(model)
+            bm_filter = self._get_my_bookmark_filter(bm_rel)
+            self._bm_annotation_data[model] = (bm_rel, bm_filter)
+        return self._bm_annotation_data[model]
+
     def get_bookmark_filter(self, model):
         """Build bookmark query."""
-        choice = self.params["filters"].get("bookmark", "ALL")  # type: ignore
-        if choice in self._BOOKMARK_FILTERS:
-            bm_rel = self.get_bm_rel(model)
-            my_bookmark_filter = self._get_my_bookmark_filter(bm_rel)
-            if choice in ("UNREAD", "IN_PROGRESS"):
+        choice: str = self.params.get("filters", {}).get("bookmark", "")  # type: ignore
+        if choice:
+            bm_rel, my_bookmark_filter = self.get_bookmark_rel_and_filter(model)
+            if choice == "READ":
+                bookmark_filter = my_bookmark_filter & Q(
+                    **{f"{bm_rel}__finished": True}
+                )
+            else:
                 my_not_finished_filter = my_bookmark_filter & Q(
                     **{f"{bm_rel}__finished__in": (False, None)}
                 )
@@ -42,10 +58,6 @@ class BookmarkFilterMixin:
                     bookmark_filter = my_not_finished_filter & Q(
                         **{f"{bm_rel}__page__gt": 0}
                     )
-            else:  # READ
-                bookmark_filter = my_bookmark_filter & Q(
-                    **{f"{bm_rel}__finished": True}
-                )
         else:
             bookmark_filter = Q()
         return bookmark_filter

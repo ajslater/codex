@@ -1,0 +1,193 @@
+<template>
+  <v-slide-y-transition>
+    <v-toolbar
+      v-show="showToolbars"
+      id="readerToolbarTop"
+      density="compact"
+      :extension-height="extensionHeight"
+    >
+      <v-toolbar-items>
+        <v-btn
+          ref="closeBook"
+          class="closeBook"
+          :to="closeBookRoute"
+          size="large"
+          density="compact"
+          variant="plain"
+          @click="onCloseBook"
+        >
+          close book
+        </v-btn>
+      </v-toolbar-items>
+      <v-spacer />
+      <v-toolbar-items v-if="!empty">
+        <ReaderArcSelect />
+        <MetadataDialog
+          ref="metadataDialog"
+          group="c"
+          :toolbar="true"
+          :book="currentBook"
+        />
+      </v-toolbar-items>
+      <v-toolbar-items>
+        <SettingsDrawerButton />
+      </v-toolbar-items>
+      <template v-if="title" #extension>
+        <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
+        <v-toolbar-title class="readerTitle">
+          <div id="title">{{ title }}</div>
+          <div v-if="subtitle" id="subtitle">{{ subtitle }}</div>
+        </v-toolbar-title>
+      </template>
+    </v-toolbar>
+  </v-slide-y-transition>
+</template>
+
+<script>
+import { mdiClose } from "@mdi/js";
+import { mapActions, mapGetters, mapState } from "pinia";
+
+import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
+import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
+import SettingsDrawerButton from "@/components/settings/button.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
+import { useReaderStore } from "@/stores/reader";
+
+export default {
+  name: "ReaderTitleToolbar",
+  components: {
+    MetadataDialog,
+    ReaderArcSelect,
+    SettingsDrawerButton,
+  },
+  data() {
+    return {
+      mdiClose,
+      routeChanged: false,
+    };
+  },
+  head() {
+    const content = `reader ${this.activeTitle} page ${this.storePage}`;
+    return {
+      meta: [
+        {
+          hid: "description",
+          name: "description",
+          content,
+        },
+      ],
+    };
+  },
+  computed: {
+    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
+    ...mapGetters(useReaderStore, ["activeTitle", "closeBookRoute"]),
+    ...mapState(useReaderStore, {
+      showToolbars: (state) => state.showToolbars,
+      currentBook: (state) => state.books?.current || {},
+      empty: (state) => state.empty,
+      subtitle: (state) => state.books?.current?.name || "",
+    }),
+    title() {
+      return this.activeTitle;
+    },
+    extensionHeight() {
+      let height = 32;
+      if (this.subtitle) {
+        height *= 2;
+      }
+      height += 4;
+      return height;
+    },
+  },
+  watch: {
+    $route(to, from) {
+      if (from) {
+        this.routeChanged = true;
+      }
+    },
+  },
+  mounted() {
+    document.addEventListener("keyup", this._keyUpListener);
+  },
+  beforeUnmount() {
+    document.removeEventListener("keyup", this._keyUpListener);
+  },
+  methods: {
+    ...mapActions(useCommonStore, ["setTimestamp"]),
+    ...mapActions(useReaderStore, [
+      "routeToDirection",
+      "routeToDirectionOne",
+      "routeToBook",
+      "setBookChangeFlag",
+    ]),
+    openMetadata() {
+      this.$refs.metadataDialog.dialog = true;
+    },
+    onCloseBook() {
+      if (this.routeChanged) {
+        this.setTimestamp();
+      }
+    },
+    _keyUpListener(event) {
+      event.stopPropagation();
+      if (this.isAuthDialogOpen) {
+        return;
+      }
+      switch (event.key) {
+        case "Escape":
+          this.$refs.closeBook.$el.click();
+          break;
+        case "m":
+          if (!this.empty) {
+            this.openMetadata();
+          }
+          break;
+        // No default
+      }
+    },
+  },
+};
+</script>
+
+<style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+
+#readerToolbarTop {
+  position: fixed;
+  top: 0px;
+  width: 100%;
+  padding-top: env(safe-area-inset-top);
+  padding-left: 0px; // given to button;
+  padding-right: 0px; // given to button.
+  z-index: 20;
+}
+.closeBook {
+  padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
+}
+
+.readerTitle
+{
+  padding-left: calc(env(safe-area-inset-left) / 2);
+  padding-right: calc(env(safe-area-inset-left) / 2);
+  text-align: center;
+  white-space: nowrap;
+  overflow: scroll;
+}
+.readerTitle {
+  padding-bottom: 4px;
+}
+#title {
+  font-size: clamp(18px, 3vw, 20px);
+}
+#subtitle {
+  font-size: clamp(16px, 3vw, 18px);
+  color: rgb(var(--v-theme-textSecondary));
+  padding-bottom: 10px;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+.closeBook {
+  padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
+}
+}
+</style>

@@ -7,11 +7,14 @@ from typing import NamedTuple
 
 from caseconverter import snakecase
 
-from codex.librarian.covers.coverd import CoverContributorThread
+from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.importer.importerd import ComicImporterThread
-from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, ImportTask
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+    ImportTask,
+)
 from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.janitord import JanitorThread
 from codex.librarian.janitor.tasks import JanitorTask
@@ -43,7 +46,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
     _THREAD_CLASSES = (
         NotifierThread,
         DelayedTasksThread,
-        CoverContributorThread,
+        CoverThread,
         SearchIndexerThread,
         ComicImporterThread,
         WatchdogEventBatcherThread,
@@ -73,15 +76,16 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             WatchdogSyncTask(),
             SearchIndexRebuildIfDBChangedTask(),
         )
+
         for task in startup_tasks:
             self.queue.put(task)
         self.search_indexer_abort_event = Manager().Event()
 
-    def _process_task(self, task):
+    def _process_task(self, task):  # noqa: PLR0912,C901
         """Process an individual task popped off the queue."""
         match task:
             case CoverTask():
-                self._threads.cover_contributor_thread.queue.put(task)
+                self._threads.cover_thread.queue.put(task)
             case WatchdogEventTask():
                 self._threads.watchdog_event_batcher_thread.queue.put(task)
             case ImportTask():

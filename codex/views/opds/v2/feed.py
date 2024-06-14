@@ -1,18 +1,16 @@
 """OPDS v2.0 Feed."""
 
-from datetime import datetime, timezone
 from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
+from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
-from codex.views.browser.browser import BrowserView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import FALSY
+from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
+from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
     FACETS,
@@ -23,28 +21,30 @@ from codex.views.opds.v2.const import (
     NavigationGroup,
 )
 from codex.views.opds.v2.links import HrefData, LinkData
-from codex.views.opds.v2.publications import PublicationMixin
-from codex.views.opds.v2.top_links import TopLinksMixin
+from codex.views.opds.v2.publications import OPDS2PublicationView
 
 LOG = get_logger(__name__)
 
 
-class OPDS2FeedView(PublicationMixin, TopLinksMixin):
+class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
     """OPDS 2.0 Feed."""
 
     DEFAULT_ROUTE = MappingProxyType(
-        {**TopLinksMixin.DEFAULT_ROUTE, "name": "opds:v2:feed"}
+        {**OPDS2PublicationView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
+    TARGET = "opds2"
+    throttle_scope = "opds"
 
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
     serializer_class = OPDS2FeedSerializer
+    input_serializer_class = OPDSSettingsSerializer
 
     def _title(self, browser_title):
         """Create the feed title."""
         result = ""
         if browser_title:
             parent_name = browser_title.get("parent_name", "All")
-            if not parent_name and self.kwargs.get("pk") == 0:
+            pks = self.kwargs["pks"]
+            if not parent_name and not pks:
                 parent_name = "All"
             group_name = browser_title.get("group_name")
             result = " ".join(filter(None, (parent_name, group_name))).strip()
@@ -53,11 +53,11 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             result = BLANK_TITLE
         return result
 
-    def _detect_user_agent(self):
-        """Hacks for individual clients."""
-        user_agent = self.request.headers.get("User-Agent")
-        if not user_agent:
-            return
+    # def _detect_user_agent(self):
+    #    """Hacks for individual clients."""
+    #    user_agent = self.request.headers.get("User-Agent")
+    #    if not user_agent:
+    #        return
 
     @staticmethod
     def _is_allowed(link_spec):
@@ -81,13 +81,13 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Create link kwargs."""
         if data.group_kwarg:
             # Nav Groups
-            pk = getattr(link_spec, "pk", 0)
-            kwargs = {"group": link_spec.group, "pk": pk, "page": 1}
+            pks = getattr(link_spec, "ids", (0,))
+            kwargs = {"group": link_spec.group, "pks": pks, "page": 1}
         elif link_spec.query_param_value in ("f", "a"):
             # Special Facets
             kwargs = {
                 "group": link_spec.query_param_value,
-                "pk": 0,
+                "pks": (0,),
                 "page": 1,
             }
         else:
@@ -112,7 +112,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         if (
             kwargs
             and kwargs.get("group") == "a"
-            and kwargs.get("pk")
+            and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):
             if not qps:
@@ -155,7 +155,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
                 groups.append(group)
         return groups
 
-    def _get_groups(self, group_qs, book_qs, title, issue_number_max):
+    def _get_groups(self, group_qs, book_qs, title, zero_pad):
         groups = []
 
         # Top Nav Groups
@@ -167,7 +167,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         groups += self._create_links_section(tup, GROUPS_SECTION_DATA)
 
         # Publications
-        groups += self.get_publications(book_qs, issue_number_max, title)
+        groups += self.get_publications(book_qs, zero_pad, title)
 
         return groups
 
@@ -176,53 +176,69 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
 
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
-        group = self.kwargs.get("group")
-        if group in ("f", "a"):
-            pk = self.kwargs["pk"]
-            self.is_opds_2_acquisition = bool(pk)
-        else:
-            acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-            self.is_opds_2_acquisition = group in acquisition_groups
-        self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            self._get_group_and_books()
         )
-        browser_page = super().get_object()
-        groups = browser_page.get("groups")
-        books = browser_page.get("books")
+        title = self.get_browser_page_title()
+        # convert browser_page into opds page
 
-        self.is_aq_feed = browser_page.get("model_group") == "c"
+        # instance vars
+        self.is_aq_feed = self.model_group in ("c", "f")
+        self.num_pages = num_pages
 
-        ts: int = browser_page["covers_timestamp"]  # type: ignore
-        datetime.fromtimestamp(ts, tz=timezone.utc)
-        self.num_pages = browser_page["num_pages"]
-        number_of_items = browser_page["total_count"]
-        title = self._title(browser_page.get("browser_title"))
+        # opds page
+        title = self._title(title)
+        number_of_items = total_count
+        current_page = self.kwargs.get("page")
+        up_route = self.get_last_route()
+        links = self.get_links(up_route)
+        facets = self._get_facets()
+
+        # opds groups
+        page_groups = group_qs
+        page_books = book_qs
+        groups = self._get_groups(page_groups, page_books, title, zero_pad)
+
         return MappingProxyType(
             {
                 "metadata": {
                     "title": title,
+                    "modified": mtime,
                     "number_of_items": number_of_items,
                     "items_per_page": MAX_OBJ_PER_PAGE,
-                    "current_page": self.kwargs.get("page"),
+                    "current_page": current_page,
                 },
-                "links": self.get_links(browser_page["up_route"]),
-                "facets": self._get_facets(),
-                "groups": self._get_groups(
-                    groups, books, title, browser_page["issue_number_max"]
-                ),
+                "links": links,
+                "facets": facets,
+                "groups": groups,
             }
         )
 
+    def set_opds_request_type(self):
+        """Set opds request type variables."""
+        group = self.kwargs.get("group")
+        if group in {"f", "a"}:
+            pks = self.kwargs["pks"]
+            self.is_opds_2_acquisition = bool(pks)
+        else:
+            acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+            self.is_opds_2_acquisition = group in acquisition_groups
+        self.is_opds_metadata = (
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
+        )
+
+    def init_request(self):
+        """Initialize request."""
+        super().init_request()
+        self.set_opds_request_type()
+        # self._detect_user_agent()
+
     @extend_schema(
-        request=BrowserView.input_serializer_class,
-        parameters=[BrowserView.input_serializer_class],
+        parameters=[input_serializer_class],
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""
-        self.parse_params()
-        self.validate_settings()
-        # self._detect_user_agent()
-
+        self.init_request()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

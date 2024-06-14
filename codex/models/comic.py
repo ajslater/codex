@@ -22,7 +22,14 @@ from django.db.models import (
     TextField,
 )
 
-from codex.models.groups import Imprint, Publisher, Series, Volume
+from codex.models.groups import (
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+    WatchedPathBrowserGroup,
+)
 from codex.models.named import (
     AgeRating,
     Character,
@@ -41,7 +48,6 @@ from codex.models.named import (
     Tagger,
     Team,
 )
-from codex.models.paths import Folder, WatchedPath
 
 __all__ = ("Comic",)
 
@@ -55,7 +61,7 @@ class ReadingDirection(Choices):
     BTT = ReadingDirectionEnum.BTT.value
 
 
-class Comic(WatchedPath):
+class Comic(WatchedPathBrowserGroup):
     """Comic metadata."""
 
     class FileType(Choices):
@@ -66,13 +72,10 @@ class Comic(WatchedPath):
         CBT = "CBT"
         PDF = "PDF"
 
-    ORDERING = (
-        "series__name",
-        "volume__name",
+    _ORDERING = (
         "issue_number",
         "issue_suffix",
-        "name",
-        "pk",
+        "sort_name",
     )
     _RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 
@@ -171,10 +174,12 @@ class Comic(WatchedPath):
         default="",
     )
 
-    class Meta(WatchedPath.Meta):
+    # Not useful
+    custom_cover = None
+
+    class Meta(WatchedPathBrowserGroup.Meta):
         """Constraints."""
 
-        unique_together = ("library", "path")
         verbose_name = "Issue"
 
     def _set_date(self):
@@ -199,6 +204,7 @@ class Comic(WatchedPath):
 
     def presave(self):
         """Set computed values."""
+        super().presave()
         self._set_date()
         self._set_decade()
         self.size = Path(self.path).stat().st_size
@@ -207,11 +213,6 @@ class Comic(WatchedPath):
     def max_page(self):
         """Calculate max page from page_count."""
         return max(self.page_count - 1, 0)
-
-    def save(self, *args, **kwargs):
-        """Save computed fields."""
-        self.presave()
-        super().save(*args, **kwargs)
 
     @staticmethod
     def _compute_zero_pad(issue_number_max):
@@ -222,9 +223,31 @@ class Comic(WatchedPath):
             return 1
         return math.floor(math.log10(issue_number_max)) + 1
 
+    def get_filename(self):
+        """Return filename from path as a property."""
+        return Path(self.path).name
+
+    @classmethod
+    def _get_title_issue_str(cls, obj, zero_pad):
+        """Get the issue parts of the title."""
+        issue_str = ""
+        if obj.issue_number is not None:
+            issue_number = obj.issue_number.normalize()
+            if not zero_pad:
+                zero_pad = 3
+            if issue_number % 1 == 0:
+                precision = 0
+            else:
+                precision = 1
+                zero_pad += 2
+            issue_str = f"#{issue_number:0{zero_pad}.{precision}f}"
+        if issue_suffix := obj.issue_suffix:
+            issue_str += issue_suffix
+        return issue_str
+
     @classmethod
     def get_title(  # noqa: PLR0913
-        cls, obj, volume=True, issue_number_max=None, name=True, filename_fallback=False
+        cls, obj, volume=True, zero_pad=None, name=True, filename_fallback=False
     ):
         """Create the comic title for display."""
         names = []
@@ -239,19 +262,7 @@ class Comic(WatchedPath):
             names.append(vn)
 
         # Issue
-        issue_str = ""
-        if obj.issue_number is not None:
-            issue_number = obj.issue_number.normalize()
-            zero_pad = cls._compute_zero_pad(issue_number_max)
-            if issue_number % 1 == 0:
-                precision = 0
-            else:
-                precision = 1
-                zero_pad += 2
-            issue_str = f"#{issue_number:0{zero_pad}.{precision}f}"
-        if issue_suffix := obj.issue_suffix:
-            issue_str += issue_suffix
-        if issue_str:
+        if issue_str := cls._get_title_issue_str(obj, zero_pad):
             names.append(issue_str)
 
         # Title
@@ -261,18 +272,8 @@ class Comic(WatchedPath):
         title = " ".join(filter(None, names)).strip(" .")
         title = cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
         if filename_fallback and not title:
-            title = cls.get_filename(obj)
+            title = obj.get_filename()
         return title
-
-    @classmethod
-    def get_filename(cls, obj):
-        """Get the fileaname from dict."""
-        path = Path(obj.path)
-        return path.stem + path.suffix
-
-    def filename(self):
-        """Create a filename for download."""
-        return self.get_filename(self)
 
     def __str__(self):
         """Most common text representation for logging."""

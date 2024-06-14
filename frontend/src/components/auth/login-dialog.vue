@@ -1,17 +1,12 @@
 <template>
   <v-dialog
-    v-model="showDialog"
+    v-model="showLoginDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
   >
     <template #activator="{ props }">
-      <v-list-item v-bind="props">
-        <v-list-item-title>
-          <v-icon>{{ mdiLogin }}</v-icon>
-          Login
-        </v-list-item-title>
-      </v-list-item>
+      <DrawerItem v-bind="props" :prepend-icon="mdiLogin" :title="loginLabel" />
     </template>
     <v-form id="authDialog" ref="form">
       <v-text-field
@@ -64,7 +59,7 @@
         table=""
         :disabled="!submitButtonEnabled"
         @submit="submit"
-        @cancel="showDialog = false"
+        @cancel="showLoginDialog = false"
       />
     </v-form>
   </v-dialog>
@@ -72,8 +67,9 @@
 
 <script>
 import { mdiLogin } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
+import DrawerItem from "@/components/drawer-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -82,6 +78,7 @@ export default {
   name: "AuthLoginDialog",
   components: {
     SubmitFooter,
+    DrawerItem,
   },
   data() {
     return {
@@ -109,7 +106,6 @@ export default {
         passwordConfirm: "",
       },
       submitButtonEnabled: false,
-      showDialog: false,
       registerMode: false,
       mdiLogin,
     };
@@ -123,12 +119,20 @@ export default {
       adminFlags: (state) => state.adminFlags,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
-    submitButtonLabel: function () {
+    ...mapWritableState(useAuthStore, ["showLoginDialog"]),
+    submitButtonLabel() {
       return this.registerMode ? "Register" : "Login";
+    },
+    loginLabel() {
+      let label = "Login";
+      if (this.adminFlags.registration) {
+        label += " or Register";
+      }
+      return label;
     },
   },
   watch: {
-    showDialog(to) {
+    showLoginDialog(to) {
       if (to) {
         this.loadAdminFlags();
         const form = this.$refs.form;
@@ -155,17 +159,17 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("keyup", this._keyListener);
+    window.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    window.removeEventListener("keyup", this._keyListener);
+    window.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     doAuth(mode) {
       return this[mode](this.credentials)
         .then(() => {
-          return (this.showDialog =
+          return (this.showLoginDialog =
             this.formErrors && this.formErrors.length > 0);
         })
         .catch(console.error);
@@ -183,7 +187,7 @@ export default {
         })
         .catch(console.error);
     },
-    _keyListener(event) {
+    _keyUpListener(event) {
       // stop keys from activating reader shortcuts.
       event.stopImmediatePropagation();
     },

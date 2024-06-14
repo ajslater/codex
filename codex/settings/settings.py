@@ -9,11 +9,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-import socket
 from logging import WARN, getLogger
 from os import environ
 from pathlib import Path
 from sys import maxsize
+from types import MappingProxyType
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_loglevel
@@ -21,43 +21,58 @@ from codex.settings.secret_key import get_secret_key
 from codex.settings.timezone import get_time_zone
 from codex.settings.whitenoise import immutable_file_test
 
-# Base paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
-CONFIG_PATH.mkdir(exist_ok=True, parents=True)
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = get_secret_key(CONFIG_PATH)
-
+######################################
+# Undocumented Environment Variables #
+######################################
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get("DEBUG", "").lower() not in ("0", "false", ""))
-
-RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
-SKIP_INTEGRITY_CHECK = bool(environ.get("CODEX_SKIP_INTEGRITY_CHECK"))
-
-# Logging
-LOGLEVEL = get_loglevel(DEBUG)
-LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
-LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
-LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
 BUILD = environ.get("BUILD", False)
 # Slow query middleware
 # limit in seconds
 SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
 LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
-TZ = environ.get("TIMEZONE", environ.get("TZ"))
 # Search indexing memory controls
 MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
 WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
 CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", 1.25))
 CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", 250))
 MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
-# sqlite parser breaks with more than 1000 variables in a query and django only
-# fixes this in the bulk_create & bulk_update functions. So for complicated
-# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
-FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
-VITE_HOST = environ.get("VITE_HOST", socket.gethostname())
+# sqlite parser breaks with more than 1000 variables in a query and
+# django only fixes this in the bulk_create & bulk_update functions.
+# So for complicated queries I gotta batch them myself. Filter arg
+# count is a proxy, but it works. 990 errors sometimes.
+FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 900))
+VITE_HOST = environ.get("VITE_HOST")
+
+####################################
+# Documented Environment Variables #
+####################################
+LOGLEVEL = get_loglevel(DEBUG)
+TZ = environ.get("TIMEZONE", environ.get("TZ"))
+CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
+RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
+SKIP_INTEGRITY_CHECK = bool(environ.get("CODEX_SKIP_INTEGRITY_CHECK"))
+LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
+LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
+LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
+THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", 0))
+THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", 0))
+THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", 0))
+THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
+
+# Base paths
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+CODEX_PATH = BASE_DIR / "codex"
+CUSTOM_COVERS_SUBDIR = "custom-covers"
+CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
+CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
+for group_dir in CUSTOM_COVERS_GROUP_DIRS:
+    custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
+    custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = get_secret_key(CONFIG_PATH)
+
 
 if not DEBUG:
     LOGGING = {
@@ -247,6 +262,26 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+_THROTTLE_MAP = MappingProxyType(
+    {
+        "anon": ("rest_framework.throttling.AnonRateThrottle", THROTTLE_ANON),
+        "user": ("rest_framework.throttling.UserRateThrottle", THROTTLE_USER),
+        "opds": ("rest_framework.throttling.ScopedRateThrottle", THROTTLE_OPDS),
+        "opensearch": (
+            "rest_framework.throttling.ScopedRateThrottle",
+            THROTTLE_OPENSEARCH,
+        ),
+    }
+)
+_THROTTLE_CLASSES = set()
+_THROTTLE_RATES = {}
+for scope, value in _THROTTLE_MAP.items():
+    classname, rate_value = value
+    if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
+        _THROTTLE_CLASSES.add(classname)
+        rate = f"{rate_value}/min" if value[1] else None
+        _THROTTLE_RATES[scope] = rate
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
@@ -256,12 +291,14 @@ REST_FRAMEWORK = {
         "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
     ),
     "DEFAULT_PARSER_CLASSES": (
-        "djangorestframework_camel_case.parser.CamelCaseFormParser",
-        "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
+        # "djangorestframework_camel_case.parser.CamelCaseFormParser",
+        # "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
+    "DEFAULT_THROTTLE_CLASSES": tuple(_THROTTLE_CLASSES),
+    "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
 
 REST_REGISTRATION = {
@@ -288,9 +325,18 @@ REST_REGISTRATION = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Codex API",
     "DESCRIPTION": "Comic Library Browser and Reader",
+    "OAS_VERSION": "3.1.0",
     "VERSION": "3.0.0",
-    "CONTACT": {"name": "Repository", "url": "https://github.com/ajslater/codex/"},
+    "CONTACT": {
+        "name": "Support",
+        "url": "https://github.com/ajslater/codex?tab=readme-ov-file#-support",
+    },
     "PREPROCESSING_HOOKS": ["codex.urls.spectacular.allow_list"],
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+    "EXTERNAL_DOCS": {
+        "url": "https://github.com/ajslater/codex/",
+        "description": "Codex Docs",
+    },
 }
 
 CORS_ALLOW_CREDENTIALS = True
@@ -305,9 +351,7 @@ CACHES = {
     },
 }
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+INTERNAL_IPS = ("127.0.0.1",)
 
 SEARCH_INDEX_PATH = CONFIG_PATH / "whoosh_index"
 SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
@@ -325,10 +369,13 @@ CHANNEL_LAYERS = {
 }
 
 if DEBUG and not BUILD:
+    import socket
+
+    DEV_SERVER_HOST = VITE_HOST if VITE_HOST else socket.gethostname()
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,
-            "dev_server_host": VITE_HOST,
+            "dev_server_host": DEV_SERVER_HOST,
         }
     }
 

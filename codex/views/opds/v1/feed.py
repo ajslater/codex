@@ -1,32 +1,30 @@
 """OPDS v1 feed."""
 
-from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from comicbox.box import Comicbox
 from drf_spectacular.utils import extend_schema
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
+from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
-from codex.views.browser.browser import BrowserView
-from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.const import FALSY
+from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
+from codex.views.opds.auth import OPDSTemplateView
 from codex.views.opds.const import BLANK_TITLE, MimeType
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
-    LinksMixin,
+    OPDS1LinksView,
     RootTopLinks,
     TopLinks,
 )
-from codex.views.template import CodexXMLTemplateView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -43,22 +41,25 @@ class OpdsNs:
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
 
-class UserAgentPrefixes:
+class UserAgentNames:
     """Control whether to hack in facets with nav links."""
 
-    CLIENT_REORDERS = ("Chunky",)
-    FACET_SUPPORT = ("yar",)  # kybooks
-    SIMPLE_DOWNLOAD_MIME_TYPES = ("PocketBook",)
-    # Other known valid  prefixes:
+    CLIENT_REORDERS = frozenset({"Chunky"})
+    FACET_SUPPORT = frozenset({"yar"})  # kybooks
+    SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
+    # Other known valid  names:
     # "Panels", "Chunky"
 
 
-class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
+class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
     """OPDS 1 Feed."""
 
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
     template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
+    input_serializer_class = OPDSSettingsSerializer
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "opds"
+    TARGET = "opds1"
 
     @property
     def opds_ns(self):
@@ -86,10 +87,11 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Create the feed title."""
         result = ""
         try:
-            browser_title: Mapping[str, Any] = self.obj.get("browser_title")  # type: ignore
+            browser_title: Mapping[str, Any] = self.obj.get("title")  # type: ignore
             if browser_title:
                 parent_name = browser_title.get("parent_name", "All")
-                if not parent_name and self.kwargs.get("pk") == 0:
+                pks = self.kwargs["pks"]
+                if not parent_name and not pks:
                     parent_name = "All"
                 group_name = browser_title.get("group_name")
                 result = " ".join(filter(None, (parent_name, group_name))).strip()
@@ -102,10 +104,9 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
 
     @property
     def updated(self):
-        """Hack in feed update time from cover timestamp."""
+        """Use mtime for updated."""
         try:
-            if ts := self.obj.get("covers_timestamp"):
-                return datetime.fromtimestamp(ts, tz=timezone.utc)  # type: ignore
+            return self.obj.get("mtime", "")
         except Exception:
             LOG.exception("Getting OPDS v1 updated")
 
@@ -131,16 +132,16 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Get entries by key section."""
         entries = []
         if objs := self.obj.get(key):
-            issue_number_max: int = self.obj.get("issue_number_max", 0)  # type: ignore
+            zero_pad: int = self.obj["zero_pad"]  # type: ignore
             data = OPDS1EntryData(
-                self.acquisition_groups, issue_number_max, metadata, self.mime_type_map
+                self.acquisition_groups, zero_pad, metadata, self.mime_type_map
             )
             fallback = bool(self.admin_flags.get("folder_view"))
             for obj in objs:  # type: ignore
                 entries += [
                     OPDS1Entry(
                         obj,
-                        self.request.query_params,
+                        self.request.GET,
                         data,
                         title_filename_fallback=fallback,
                     )
@@ -152,17 +153,15 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Create all the entries."""
         entries = []
         try:
-            at_root = self.kwargs.get("pk") == 0
             if not self.use_facets and self.kwargs.get("page") == 1:
                 entries += self.add_top_links(TopLinks.ALL)
+                at_root = not self.kwargs["pks"]
                 if at_root:
                     entries += self.add_top_links(RootTopLinks.ALL)
                 entries += self.facets(entries=True, root=at_root)
 
             entries += self._get_entries_section("groups", False)
-            metadata = (
-                self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
-            )
+            metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
             entries += self._get_entries_section("books", metadata)
         except Exception:
             LOG.exception("Getting OPDS v1 entries")
@@ -170,14 +169,17 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
 
     def _ensure_page_counts(self):
         """Ensure page counts on books with just in time comicbox."""
+        if self.admin_flags.get("import_metadata"):
+            return
         books_qs: QuerySet = self.obj["books"]  # type: ignore
         import_pks = set()
         new_books = []
         for book in books_qs:
-            if not book.page_count:
-                with Comicbox(book.path) as cb:
-                    book.file_type = cb.get_file_type()
-                    book.page_count = cb.get_page_count()
+            if book.page_count is not None:
+                continue
+            with Comicbox(book.path) as cb:
+                book.file_type = cb.get_file_type()
+                book.page_count = cb.get_page_count()
             new_books.append(book)
             import_pks.add(book.pk)
         if new_books:
@@ -189,18 +191,24 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
 
     def get_object(self):  # type: ignore
         """Get the browser page and serialize it for this subclass."""
-        group = self.kwargs.get("group")
-        if group == "a":
-            self.acquisition_groups = frozenset({"a", "c"})
-            pk = self.kwargs.get("pk")
-            self.is_opds_1_acquisition = group in self.acquisition_groups and pk
-        else:
-            self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
-            self.is_opds_1_acquisition = group in self.acquisition_groups
-        self.is_opds_metadata = (
-            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            super()._get_group_and_books()
         )
-        self.obj = super().get_object()
+        book_qs = book_qs.select_related("series", "volume", "language")
+
+        title = self.get_browser_page_title()
+        self.obj = MappingProxyType(
+            {
+                "title": title,
+                "groups": group_qs,
+                "books": book_qs,
+                "zero_pad": zero_pad,
+                "num_pages": num_pages,
+                "total_count": total_count,
+                "mtime": mtime,
+            }
+        )
+
         self.is_aq_feed = self.model_group in ("c", "f")
 
         self._ensure_page_counts()
@@ -210,34 +218,47 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
 
     def _set_user_agent_variables(self):
         """Set User Agent variables."""
-        # defaults in FacetsMixin
         user_agent = self.request.headers.get("User-Agent")
         if not user_agent:
             return
-        for prefix in UserAgentPrefixes.FACET_SUPPORT:
-            if user_agent.startswith(prefix):
-                self.use_facets = True
-                break
-        for prefix in UserAgentPrefixes.CLIENT_REORDERS:
-            if user_agent.startswith(prefix):
-                self.skip_order_facets = True
-                break
-        for prefix in UserAgentPrefixes.SIMPLE_DOWNLOAD_MIME_TYPES:
-            if user_agent.startswith(prefix):
-                self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
-                break
+        user_agent_parts = user_agent.split("/", 1)
+        if user_agent_parts:
+            user_agent_name = user_agent_parts[0]
+        else:
+            return
 
-    @extend_schema(
-        request=BrowserView.input_serializer_class,
-        parameters=[BrowserView.input_serializer_class],
-    )
-    def get(self, *_args, **_kwargs):
-        """Get the feed."""
-        self.parse_params()
-        self.validate_settings()
+        if user_agent_name in UserAgentNames.FACET_SUPPORT:
+            self.use_facets = True
+        if user_agent_name in UserAgentNames.CLIENT_REORDERS:
+            self.skip_order_facets = True
+        if user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES:
+            self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
+
+    def set_opds_request_type(self):
+        """Set the opds request type variables."""
+        group = self.kwargs.get("group")
+        if group == "a":
+            self.acquisition_groups = frozenset({"a", "c"})
+            pks = self.kwargs["pks"]
+            self.is_opds_1_acquisition = group in self.acquisition_groups and pks
+        else:
+            self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
+            self.is_opds_1_acquisition = group in self.acquisition_groups
+        self.is_opds_metadata = (
+            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
+        )
+
+    def init_request(self):
+        """Initialize request."""
+        super().init_request()
+        self.set_opds_request_type()
         self._set_user_agent_variables()
         self.skip_order_facets |= self.kwargs.get("group") == "c"
 
+    @extend_schema(parameters=[input_serializer_class])
+    def get(self, *_args, **_kwargs):
+        """Get the feed."""
+        self.init_request()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data, content_type=self.content_type)

@@ -7,12 +7,11 @@
     transition="dialog-bottom-transition"
   >
     <template #activator="{ props }">
-      <v-list-item v-bind="props">
-        <v-list-item-title>
-          <v-icon>{{ mdiArchiveSearchOutline }}</v-icon
-          >Search Help
-        </v-list-item-title>
-      </v-list-item>
+      <DrawerItem
+        v-bind="props"
+        :prepend-icon="mdiArchiveSearchOutline"
+        title="Search Help"
+      />
     </template>
     <div id="searchHelp">
       <CloseButton
@@ -144,6 +143,14 @@
           clear the filter selector or the search field if you prefer to apply
           only one of them.
         </p>
+        <h2>Faster Browsing and Searching</h2>
+        <p>
+          Browsing large collections using the group tree and filter dropdown is
+          relatively fast. Searching with the search bar will always be slower.
+          To aid search speed there is a setting for limiting search results
+          which can help with large collections. To see all results, choose
+          Search Result Limit: "Unlimited".
+        </p>
       </div>
       <CloseButton
         class="closeButton"
@@ -158,6 +165,7 @@
 import { mdiArchiveSearchOutline, mdiOpenInNew } from "@mdi/js";
 
 import CloseButton from "@/components/close-button.vue";
+import DrawerItem from "@/components/drawer-item.vue";
 
 const FIELD_ROWS = [
   ["characters", "CSV", "category"],
@@ -209,7 +217,7 @@ const FIELD_ROWS = [
 
 export default {
   name: "SearchHelp",
-  components: { CloseButton },
+  components: { CloseButton, DrawerItem },
   data() {
     return {
       mdiOpenInNew,
