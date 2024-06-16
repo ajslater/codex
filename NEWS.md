@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.1
+
+- Fixes
+
+  - Metadata was showing incorrect groups for inividual comics
+
 ## v1.6.0
 
 - Features
