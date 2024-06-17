@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.2
+
+- Fixes
+  - Fix pagination with more than 100 comics in the browser.
+
 ## v1.6.1
 
 - Features
@@ -15,7 +20,7 @@ border-radius: 128px;
 - Fixes
   - Fix unable to login if anonymous users prohibited.
   - Fix filter crash.
-  - Metadata was showing incorrect groups for inividual comics
+  - Metadata was showing incorrect groups for individual comics
 
 ## v1.6.0
 

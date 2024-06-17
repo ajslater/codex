@@ -115,8 +115,9 @@ class BrowserView(BrowserTitleView):
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
-        count_group_by = self.get_group_by(model)
-        count = qs.group_by(count_group_by).count()
+        count_qs = self.add_group_by(qs, model)
+        count = count_qs.count()
+
         if count:
             qs = self.annotate_order_aggregates(qs, model)
             qs = self.add_order_by(qs, model)
@@ -137,8 +138,7 @@ class BrowserView(BrowserTitleView):
             count = 0
         else:
             qs, count = self._get_common_queryset(self.model)
-            group_by = self.get_group_by()
-            qs = qs.group_by(group_by)
+            qs = self.add_group_by(qs)
         return qs, count
 
     def _get_book_queryset(self):

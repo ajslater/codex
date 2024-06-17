@@ -102,8 +102,6 @@ class CoverView(BrowserAnnotationsView):
         comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
         comic_qs = self.add_order_by(comic_qs, Comic)
         comic_qs = comic_qs.only("pk")
-        group_by = self.get_group_by(Comic)
-        comic_qs.group_by(group_by)
         comic = comic_qs.first()
         cover_pk = comic.pk if comic else 0
         return cover_pk, False
