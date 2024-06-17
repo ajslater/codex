@@ -15,7 +15,7 @@ border-radius: 128px;
 - Fixes
   - Fix unable to login if anonymous users prohibited.
   - Fix filter crash.
-  - Metadata was showing incorrect groups for inividual comics
+  - Metadata was showing incorrect groups for individual comics
 
 ## v1.6.0
 
