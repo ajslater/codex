@@ -2,6 +2,7 @@
 
 from typing import ClassVar
 
+from rest_framework.permissions import AllowAny
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
@@ -14,6 +15,7 @@ class IndexView(SessionView):
 
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
+    permission_classes = (AllowAny,)
     renderer_classes: ClassVar[list] = [TemplateHTMLRenderer]  # type: ignore
     template_name = "index.html"
 
