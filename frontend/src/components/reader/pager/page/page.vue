@@ -1,6 +1,17 @@
 <template>
-  <div :id="`page${page}`" :data-page="page" class="page" :style="style">
-    <ErrorPage v-if="error" :two-pages="settings.twoPages" :type="error" />
+  <div
+    :id="`page${page}`"
+    :key="ts"
+    :data-page="page"
+    class="page"
+    :style="style"
+  >
+    <ErrorPage
+      v-if="error"
+      :two-pages="settings.twoPages"
+      :type="error"
+      @retry="onRetry"
+    />
     <LoadingPage
       v-else-if="showProgress && !loaded"
       :two-pages="settings.twoPages"
@@ -51,7 +62,8 @@ export default {
     return {
       showProgress: false,
       loaded: false,
-      error: false,
+      error: "",
+      ts: 0,
     };
   },
   computed: {
@@ -74,10 +86,11 @@ export default {
       return s;
     },
     src() {
+      const mtime = Math.max(this.book.mtime, this.ts);
       const params = {
         pk: this.book.pk,
         page: this.page,
-        mtime: this.book.mtime,
+        mtime,
       };
       return getComicPageSource(params);
     },
@@ -109,6 +122,9 @@ export default {
     onUnauthorized() {
       this.error = "unauthorized";
       this.showProgress = false;
+    },
+    onRetry() {
+      this.ts = Date.now();
     },
   },
 };

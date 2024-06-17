@@ -1,9 +1,11 @@
 <template>
-  <v-empty-state
-    class="empty"
+  <EmptyState
+    class="browserEmpty"
     :headline="empty.headline"
     :title="empty.title"
     :icon="empty.icon"
+    :action-text="actionText"
+    @click:action="clearFilters(true)"
   >
     <div v-if="showLinkToReadmeAdmin">
       See the
@@ -14,34 +16,29 @@
       >
       for help
     </div>
-    <v-btn
-      v-if="isFiltersClearable"
-      class="clearFilter"
-      @click="clearFilters(true)"
-    >
-      Clear Filters and Search<v-icon :icon="mdiCloseCircleOutline" />
-    </v-btn>
-  </v-empty-state>
+  </EmptyState>
 </template>
 
 <script>
 import {
   mdiBookSearchOutline,
-  mdiCloseCircleOutline,
   mdiOpenInNew,
   mdiShieldCrownOutline,
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import EmptyState from "@/components/empty.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "EmptyState",
+  name: "BrowserEmptyResults",
+  components: {
+    EmptyState,
+  },
   data() {
     return {
       mdiOpenInNew,
-      mdiCloseCircleOutline,
     };
   },
   computed: {
@@ -78,19 +75,12 @@ export default {
     showLinkToReadmeAdmin() {
       return !this.librariesExist && this.isUserAdmin;
     },
+    actionText() {
+      return this.isFiltersClearable ? "Clear Filters and Search" : "";
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["clearFilters"]),
   },
 };
 </script>
-
-<style scoped lang="scss">
-.empty {
-  color: rgb(var(--v-theme-textDisabled));
-}
-.clearFilter {
-  color: black;
-  background-color: rgb(var(--v-theme-primary))
-}
-</style>
