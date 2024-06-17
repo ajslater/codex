@@ -116,13 +116,11 @@ class MetadataView(BrowserAnnotationsView):
             else:
                 # group_by makes the filter work, but prevents its
                 # use as a subquery in the big query.
-                group_by = self.get_group_by()
-                sq = (
-                    filtered_qs.alias(filter_count=Count(full_field, distinct=True))
-                    .filter(filter_count=1)
-                    .group_by(group_by)
-                    .values_list(full_field + related_suffix, flat=True)
-                )
+                sq = filtered_qs.alias(
+                    filter_count=Count(full_field, distinct=True)
+                ).filter(filter_count=1)
+                sq = self.add_group_by(sq)
+                sq = sq.values_list(full_field + related_suffix, flat=True)
                 try:
                     val = sq[0]
                 except IndexError:
@@ -307,8 +305,7 @@ class MetadataView(BrowserAnnotationsView):
         qs = self.annotate_order_aggregates(qs, self.model)
         qs = self.annotate_card_aggregates(qs, self.model)
         qs = self._annotate_values_and_fks(qs, filtered_qs)
-        group_by = self.get_group_by()
-        qs = qs.group_by(group_by)
+        qs = self.add_group_by(qs)
 
         try:
             obj = qs[0]

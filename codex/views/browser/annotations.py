@@ -27,6 +27,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.functions import JsonGroupArray
+from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
@@ -60,8 +61,8 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
         "story_arc_number",
     }
 )
-_ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
-    {Comic: "id", Volume: "name", Folder: "name"}
+_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+    {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
 )
 
 LOG = get_logger(__name__)
@@ -77,11 +78,13 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
-    def get_group_by(self, model=None):
+    def add_group_by(self, qs, model=None):
         """Get the group by for the model."""
         if model is None:
             model = self.model
-        return _ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
+        if group_by := _GROUP_BY.get(model):  # type: ignore
+            qs = qs.group_by(group_by)
+        return qs
 
     def _alias_sort_names(self, qs, model):
         """Annotate sort_name."""

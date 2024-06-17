@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.2
+
+- Fixes
+  - Fix pagination with more than 100 comics in the browser.
+
 ## v1.6.1
 
 - Features
