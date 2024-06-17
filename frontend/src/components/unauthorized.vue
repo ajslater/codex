@@ -1,6 +1,6 @@
 <template>
   <v-main id="unauthorized">
-    <v-empty-state
+    <EmptyState
       v-if="isAuthChecked"
       class="empty"
       headline="Unauthorized"
@@ -10,7 +10,7 @@
       <div class="login">
         <AuthMenu />
       </div>
-    </v-empty-state>
+    </EmptyState>
     <PlaceholderLoading v-else id="unauthorizedPlaceholder" />
   </v-main>
 </template>
@@ -20,6 +20,7 @@ import { mdiLockOutline } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
 import AuthMenu from "@/components/auth/auth-menu.vue";
+import EmptyState from "@/components/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 
@@ -28,6 +29,7 @@ export default {
   components: {
     AuthMenu,
     PlaceholderLoading,
+    EmptyState,
   },
   props: {
     admin: {
@@ -61,17 +63,19 @@ export default {
   padding-top: max(20px, env(safe-area-inset-top));
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
-  padding-bottom: max(20px,env(safe-area-inset-bottom));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
+
 #unauthorizedPlaceholder {
   position: fixed;
   top: 25%;
   left: 25%;
 }
-.empty {
-  color: rgb(var(--v-theme-textDisabled));
-}
+
 .login {
   color: rgb(var(--v-theme-primary));
+}
+.login :deep(.v-list-item__prepend) {
+  margin-right: 0.25em;
 }
 </style>

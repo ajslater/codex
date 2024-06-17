@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.1
+
+- Features
+
+  - Add a retry button on book load error and page load error pages.
+
+- Fixes
+  - Fix unable to login if anonymous users prohibited.
+  - Fix filter crash.
+  - Metadata was showing incorrect groups for inividual comics
+
 ## v1.6.0
 
 - Features
