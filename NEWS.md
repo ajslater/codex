@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
 
+  - Fix filter crash.
   - Metadata was showing incorrect groups for inividual comics
 
 ## v1.6.0

@@ -4,7 +4,6 @@ from types import MappingProxyType
 
 from django.db.models import Q
 
-from codex.models.comic import Comic
 from codex.views.browser.filters.group import GroupFilterView
 
 _FILTER_REL_MAP = MappingProxyType(
@@ -40,7 +39,7 @@ class ComicFieldFilterView(GroupFilterView):
     def get_comic_field_filter(self, model):
         """Filter the comics based on the form filters."""
         comic_field_filter = Q()
-        rel_prefix = "" if model == Comic else self.rel_prefix  # type: ignore
+        rel_prefix = self.get_rel_prefix(model)
         for attribute in self.FILTER_ATTRIBUTES:
             comic_field_filter &= self._filter_by_comic_field(attribute, rel_prefix)
         return comic_field_filter
