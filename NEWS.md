@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.3
+
+- Features
+  - When browser page is empty, redirect to parent.
+
 ## v1.6.2
 
 - Fixes

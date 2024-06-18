@@ -81,7 +81,10 @@ class BrowserView(BrowserTitleView):
                     self.group_query = self.group_class.objects.none()
                 else:
                     reason = f"{group}__in={pks} does not exist!"
-                    self.raise_redirect(reason, route_mask={"group": group})
+                    settings_mask = {"breadcrumbs": []}
+                    self.raise_redirect(
+                        reason, route_mask={"group": group}, settings_mask=settings_mask
+                    )
         elif self.group_class:
             self.group_query = self.group_class.objects.none()
         else:
