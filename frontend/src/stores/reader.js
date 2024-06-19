@@ -47,7 +47,7 @@ Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
 const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CHOICES);
-const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup"];
+const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
 Object.freeze(READER_INFO_KEYS);
 const camelToSnakeCase = (str) =>
   str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -196,14 +196,6 @@ export const useReaderStore = defineStore("reader", {
       const route = { name: "browser" };
       let params = state.routes.close;
       if (params) {
-        /*
-        for (const arc of state.arcs) {
-          if (params.group === arc.group && arc.mtime) {
-            //route.query = { ts: arc.mtime };
-            break;
-          }
-        }
-        */
         const cardPk = state.books?.current?.pk;
         if (cardPk) {
           route.hash = `#card-${cardPk}`;
@@ -214,6 +206,29 @@ export const useReaderStore = defineStore("reader", {
       route.params = params;
       return route;
     },
+    browserArcFilters(state) {
+      const usedFilters = {};
+      for (const [key, value] of Object.entries(
+        state.browserSettings.filters,
+      )) {
+        if (key !== "bookmark" && value && value.length > 0) {
+          usedFilters[key] = value;
+        }
+      }
+      return usedFilters;
+    },
+    browserArc(state) {
+      const closeRoute = state.routes.close;
+      if (closeRoute && closeRoute.pks !== "0") {
+        return {
+          group: closeRoute.group,
+          pks: closeRoute.pks,
+          name: closeRoute.name,
+          mtime: closeRoute.mtime,
+          filters: state.browserArcFilters,
+        };
+      }
+    },
     readerInfoSettings(state) {
       const usedKeys = {};
       for (const key of READER_INFO_KEYS) {
@@ -222,11 +237,16 @@ export const useReaderStore = defineStore("reader", {
           usedKeys[key] = value;
         }
       }
+      if (state.browserArc) {
+        usedKeys["browser_arc"] = state.browserArc;
+      }
       if (state.arc && Object.keys(state.arc).length) {
         usedKeys.arc = {
           group: state.arc.group,
           pks: state.arc.pks,
         };
+      } else if (state.browserArc) {
+        usedKeys.arc = state.browserArc;
       }
       return usedKeys;
     },
@@ -444,22 +464,24 @@ export const useReaderStore = defineStore("reader", {
           const data = response.data;
           this._updateSettings(data, false);
           this.empty = false;
-          return true;
+          return BROWSER_API.getSettings({
+            only: READER_INFO_ONLY_KEYS,
+            breadcrumbNames: false,
+          })
+            .then((response) => {
+              // Get reader settings before getting books ensures closeRoute.
+              // Get browser settings before getting books gets filters & breadcrumbs.
+              // Ensures getting the reader arc from breadcrumbs.
+              this.browserSettings = response.data;
+              if (!this.settingsLoaded) {
+                this.settingsLoaded = true;
+                return this.loadBooks({});
+              }
+              return true;
+            })
+            .catch(console.error);
         })
         .catch(console.error);
-      BROWSER_API.getSettings({
-        only: READER_INFO_ONLY_KEYS,
-        breadcrumbNames: false,
-      })
-        .then((response) => {
-          this.browserSettings = response.data;
-          return true;
-        })
-        .catch(console.error);
-      if (!this.settingsLoaded) {
-        this.settingsLoaded = true;
-        this.loadBooks({});
-      }
     },
     async loadBooks({ params, arc, mtime }) {
       if (!this.settingsLoaded) {
