@@ -9,8 +9,8 @@ import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 //import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 //import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
-//import prettier from "eslint-plugin-prettier";
-//import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import eslintPluginPrettier from "eslint-plugin-prettier";
+import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginSecurity from "eslint-plugin-security";
 import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
 import eslintPluginSonarjs from "eslint-plugin-sonarjs";
@@ -88,6 +88,7 @@ export default [
       "no-secrets": eslintPluginNoSecrets,
       // "no-use-extend-native": eslintPluginNoUseExtendNative,
       // "no-unsantized": eslintPluginNoUnsanitized,
+      prettier: eslintPluginPrettier,
       security: eslintPluginSecurity,
       "simple-import-sort": eslintPluginSimpleImportSort,
       toml: eslintPluginToml,
@@ -115,7 +116,7 @@ export default [
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
       "no-secrets/no-secrets": "error",
-      "prettier-vue/prettier": "warn",
+      "prettier/prettier": "warn",
       //"security/detect-object-injection": "off",
       ...securityRules,
       "simple-import-sort/exports": "warn",
@@ -138,17 +139,23 @@ export default [
   ...eslintPluginMarkdown.configs.recommended,
   //eslintPluginNoUseExtendNative.configs.recommended,
   //eslintPluginNoUnsanitized.configs.recommended,
-  //eslintPluginPrettierRecommended,
+  eslintPluginPrettierRecommended,
   //eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
   ...eslintPluginToml.configs["flat/recommended"],
   ...eslintPluginYml.configs["flat/standard"],
   ...eslintPluginYml.configs["flat/prettier"],
   {
+    files: ["*.json", "*.json5", "*.jsonc"],
+    rules: {
+      "prettier/prettier": ["error", { parser: "json" }],
+    },
+  },
+  {
     files: ["**/*.md"],
     processor: "markdown/markdown",
     rules: {
-      "prettier-vue/prettier": ["warn", { parser: "markdown" }],
+      "prettier/prettier": ["warn", { parser: "markdown" }],
     },
   },
   {
@@ -161,7 +168,13 @@ export default [
   {
     files: ["**/*.md/*.sh"],
     rules: {
-      "prettier-vue/prettier": ["error", { parser: "sh" }],
+      "prettier/prettier": ["error", { parser: "sh" }],
+    },
+  },
+  {
+    files: ["*.toml"],
+    rules: {
+      "prettier/prettier": ["error", { parser: "toml" }],
     },
   },
   {
@@ -183,29 +196,11 @@ export default [
       // "plugin:import/recommended",
       "plugin:optimize-regex/all",
       // "plugin:promise/recommended",
-      "plugin:switch-case/recommended",
-      // PRETTIER
-      "plugin:prettier-vue/recommended",
       // SECURITY
       //https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
       //"plugin:no-unsanitized/DOM",
     ],
-    overrides: [
-      {
-        files: ["*.toml"],
-        // parser: "toml-eslint-parser",
-        rules: {
-          "prettier-vue/prettier": ["error", { parser: "toml" }],
-        },
-      },
-      {
-        files: ["*.json", "*.json5", "*.jsonc"],
-        parser: "jsonc-eslint-parser",
-        //rules: {
-        //  "prettier-vue/prettier": ["error", { parser: "json" }],
-        //},
-      },
-    ],
+    overrides: [],
     parserOptions: {
       ecmaFeatures: {
         impliedStrict: true,
@@ -217,21 +212,12 @@ export default [
       //"import",
       "no-constructor-bind",
       "optimize-regex",
-      "prettier-vue",
       //"promise",
-      "switch-case",
     ],
     rules: {
       "eslint-comments/no-unused-disable": 1,
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
-      "prettier-vue/prettier": [
-        "warn",
-        {
-          trailingComma: "all",
-        },
-      ],
-      "switch-case/newline-between-switch-case": "off", // Malfunctioning
     },
     ignorePatterns: ignores,
   }),
