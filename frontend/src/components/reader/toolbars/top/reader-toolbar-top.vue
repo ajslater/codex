@@ -35,8 +35,12 @@
       <template v-if="title" #extension>
         <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
         <v-toolbar-title class="readerTitle">
-          <div id="title">{{ title }}</div>
-          <div v-if="subtitle" id="subtitle">{{ subtitle }}</div>
+          <div id="title">
+            {{ title }}
+          </div>
+          <div v-if="subtitle" id="subtitle">
+            {{ subtitle }}
+          </div>
         </v-toolbar-title>
       </template>
     </v-toolbar>

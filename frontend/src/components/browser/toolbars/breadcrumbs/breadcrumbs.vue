@@ -2,7 +2,9 @@
   <v-breadcrumbs id="browserBreadcrumbs" density="compact" :items="breadcrumbs">
     <template #item="{ item }">
       <v-breadcrumbs-item :to="item.to" :title="item.tooltip">
-        <v-icon v-if="item.icon">{{ item.icon }}</v-icon>
+        <v-icon v-if="item.icon">
+          {{ item.icon }}
+        </v-icon>
         <span v-else>{{ item.title }}</span>
       </v-breadcrumbs-item>
     </template>

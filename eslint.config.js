@@ -1,5 +1,6 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
+import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 // import plugin broken for flag config
 // https://github.com/import-js/eslint-plugin-import/issues/2556
@@ -140,19 +141,14 @@ export default [
   ...eslintPluginMarkdown.configs.recommended,
   //eslintPluginNoUseExtendNative.configs.recommended,
   //eslintPluginNoUnsanitized.configs.recommended,
-  eslintPluginPrettierRecommended,
   eslintPluginRegexp.configs["flat/recommended"],
   //eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
   ...eslintPluginToml.configs["flat/recommended"],
   ...eslintPluginYml.configs["flat/standard"],
   ...eslintPluginYml.configs["flat/prettier"],
-  {
-    files: ["*.json", "*.json5", "*.jsonc"],
-    rules: {
-      "prettier/prettier": ["error", { parser: "json" }],
-    },
-  },
+  eslintPluginPrettierRecommended,
+  eslintConfigPrettier, // Best if last
   {
     files: ["**/*.md"],
     processor: "markdown/markdown",
@@ -193,12 +189,10 @@ export default [
       node: true,
     },
     extends: [
-      // PRACTICES
-      "plugin:eslint-comments/recommended",
       // "plugin:import/recommended",
       // "plugin:promise/recommended",
       // SECURITY
-      //https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
+      // https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
       //"plugin:no-unsanitized/DOM",
     ],
     overrides: [],
@@ -209,13 +203,11 @@ export default [
       ecmaVersion: "latest",
     },
     plugins: [
-      "eslint-comments",
       //"import",
       "no-constructor-bind",
       //"promise",
     ],
     rules: {
-      "eslint-comments/no-unused-disable": 1,
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
     },

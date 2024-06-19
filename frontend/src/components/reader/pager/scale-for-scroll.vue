@@ -6,9 +6,9 @@
     @dblclick="onDoubleClick"
   >
     <slot />
-    <v-icon v-if="showReset" class="resetIcon" @click.stop="scaleReset">{{
-      mdiMagnifyMinusOutline
-    }}</v-icon>
+    <v-icon v-if="showReset" class="resetIcon" @click.stop="scaleReset">
+      {{ mdiMagnifyMinusOutline }}
+    </v-icon>
   </div>
 </template>
 
