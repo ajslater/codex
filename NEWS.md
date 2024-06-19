@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Features
   - When browser page is empty, redirect to parent.
+  - Reader inherits the last browser view, with filters, as it's default reading
+    arc.
 
 ## v1.6.2
 
