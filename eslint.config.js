@@ -11,6 +11,7 @@ import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 //import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 import eslintPluginPrettier from "eslint-plugin-prettier";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import eslintPluginRegexp from "eslint-plugin-regexp";
 import eslintPluginSecurity from "eslint-plugin-security";
 import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
 import eslintPluginSonarjs from "eslint-plugin-sonarjs";
@@ -140,6 +141,7 @@ export default [
   //eslintPluginNoUseExtendNative.configs.recommended,
   //eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginPrettierRecommended,
+  eslintPluginRegexp.configs["flat/recommended"],
   //eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
   ...eslintPluginToml.configs["flat/recommended"],
@@ -194,7 +196,6 @@ export default [
       // PRACTICES
       "plugin:eslint-comments/recommended",
       // "plugin:import/recommended",
-      "plugin:optimize-regex/all",
       // "plugin:promise/recommended",
       // SECURITY
       //https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
@@ -211,7 +212,6 @@ export default [
       "eslint-comments",
       //"import",
       "no-constructor-bind",
-      "optimize-regex",
       //"promise",
     ],
     rules: {
