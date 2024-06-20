@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import _ from "lodash";
+import { cloneDeep } from "lodash";
 import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
@@ -89,7 +89,7 @@ export default {
           (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
         ],
       },
-      row: { ...EMPTY_ROW, ..._.cloneDeep(this.oldRow) },
+      row: { ...EMPTY_ROW, ...cloneDeep(this.oldRow) },
     };
   },
   computed: {
@@ -111,7 +111,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = _.cloneDeep(to);
+        this.row = cloneDeep(to);
       },
       deep: true,
     },

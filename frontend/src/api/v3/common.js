@@ -1,3 +1,5 @@
+import { cloneDeep } from "lodash";
+
 import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
@@ -19,7 +21,7 @@ const _addTimestamp = (params, ts) => {
 };
 
 export const serializeParams = (data, ts) => {
-  const params = { ...data };
+  const params = cloneDeep(data) || {};
   _json_serialize(params);
   _addTimestamp(params, ts);
   return params;

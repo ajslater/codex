@@ -28,7 +28,7 @@
 
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
-import _ from "lodash";
+import { snakeCase, startCase } from "lodash";
 import { mapActions, mapState } from "pinia";
 
 import StatsTable from "@/components/admin/tabs/stats-table.vue";
@@ -124,7 +124,7 @@ export default {
         for (const [typeKey, count] of Object.entries(countObj)) {
           let typeLabel;
           if (lookup) {
-            typeLabel = lookup[_.snakeCase(typeKey)];
+            typeLabel = lookup[snakeCase(typeKey)];
           } else {
             typeLabel = typeKey;
           }
@@ -179,7 +179,7 @@ export default {
     },
     keyToLabel(key) {
       key = key.replace(/Count$/, "");
-      return _.startCase(key);
+      return startCase(key);
     },
   },
 };

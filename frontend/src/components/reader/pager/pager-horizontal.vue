@@ -27,7 +27,7 @@
 
 <script>
 // 6 is the magic number to avoid disappearing items at the midpoint.
-import _ from "lodash";
+import { range } from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
@@ -119,8 +119,7 @@ export default {
         this.activePage + WINDOW_FORE_BOUND,
         this.book.maxPage,
       );
-      const range = _.range(backPages, forePages + 1);
-      this.pages = range;
+      this.pages = range(backPages, forePages + 1);
     },
   },
 };

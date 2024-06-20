@@ -21,7 +21,6 @@
     "lodash": "^4.17.21",
     "pinia": "^2.1.4",
     "pretty-bytes": "^6.1.1",
-    "titleize": "^4.0.0",
     "vue": "^3.4.11",
     "vue-drag-scroller": "^1.7.0",
     "vue-native-websocket-vue3": "^3.1.7",

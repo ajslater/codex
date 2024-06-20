@@ -22,6 +22,7 @@
 </template>
 
 <script>
+import { cloneDeep } from "lodash";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -51,7 +52,7 @@ export default {
         const annotatedItems = [];
         for (const library of state.libraries) {
           if (!library.coversOnly) {
-            const annotatedItem = { ...library };
+            const annotatedItem = cloneDeep(library);
             annotatedItem.label = annotatedItem.coversOnly
               ? "custom group cover"
               : "comic";

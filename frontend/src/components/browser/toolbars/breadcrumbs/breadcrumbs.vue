@@ -18,6 +18,7 @@ import {
   mdiFolderOutline,
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
+import { cloneDeep } from "lodash";
 import { mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
@@ -68,7 +69,7 @@ export default {
   },
   methods: {
     getTo(crumb, parentPks) {
-      const params = { ...crumb };
+      const params = cloneDeep(crumb);
       delete params["name"];
       const to = { name: "browser", params };
       if (parentPks) {
@@ -93,6 +94,7 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+
 #browserBreadcrumbs {
   max-width: 100vw;
   font-size: small;
@@ -102,21 +104,26 @@ export default {
   padding-left: max(18px, calc(env(safe-area-inset-left)/2));
   padding-right: 0px;
 }
+
 #browserBreadcrumbs :deep(.v-breadcrumbs-item) {
   padding: 0px;
 }
+
 #browserBreadcrumbs :deep(.v-breadcrumbs-divider) {
   padding: 3px;
 }
+
 #browserBreadcrumbs :deep(.v-breadcrumbs-item:first-child .v-icon) {
   font-size: xx-large !important;
 }
+
 #browserBreadcrumbs :deep(a:hover) {
   color: white;
 }
+
 @media #{map-get(vuetify.$display-breakpoints, 'xs')} {
-#browserBreadcrumbs {
-  padding-left: max(10px, calc(env(safe-area-inset-left)/2));
-}
+  #browserBreadcrumbs {
+    padding-left: max(10px, calc(env(safe-area-inset-left)/2));
+  }
 }
 </style>

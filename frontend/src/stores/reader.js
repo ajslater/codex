@@ -1,6 +1,7 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
+import { startCase } from "lodash";
+import { cloneDeep } from "lodash";
 import { defineStore } from "pinia";
-import titleize from "titleize";
 
 import BROWSER_API from "@/api/v3/browser";
 // import { reactive } from "vue";
@@ -263,7 +264,7 @@ export const useReaderStore = defineStore("reader", {
     },
     getSettings(book) {
       // Mask the book settings over the global settings.
-      const resultSettings = { ...SETTINGS_NULL_VALUES };
+      const resultSettings = cloneDeep(SETTINGS_NULL_VALUES);
       let bookSettings = book ? book.settings : {};
       bookSettings = this.setReadRTLInReverse(bookSettings);
       const allSettings = [this.readerSettings, bookSettings];
@@ -351,7 +352,7 @@ export const useReaderStore = defineStore("reader", {
       }
       if (fitTo) {
         let fitToClass = "fitTo";
-        fitToClass += titleize(fitTo);
+        fitToClass += startCase(fitTo);
         if (this.isVertical) {
           fitToClass += "Vertical";
         } else if (settings.twoPages) {

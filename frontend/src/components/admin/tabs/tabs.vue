@@ -29,8 +29,8 @@
 </template>
 
 <script>
+import { startCase } from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
-import titleize from "titleize";
 
 import { useAdminStore } from "@/stores/admin";
 export default {
@@ -54,7 +54,7 @@ export default {
     $route(to) {
       const parts = to.path.split("/");
       const lastPart = parts.at(-1);
-      this.activeTab = titleize(lastPart);
+      this.activeTab = startCase(lastPart);
     },
   },
   mounted() {
@@ -72,20 +72,25 @@ export default {
 #tabContainer {
   padding-top: 48px;
 }
-.adminTabs{
+
+.adminTabs {
   position: fixed;
   width: 100%;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
 }
+
 :deep(.tabHeader) {
   padding: 10px;
 }
+
 $task-width: 256px;
+
 #tabItems {
   margin-top: 54px;
 
 }
+
 .tabItemContainer {
   width: 100%;
   padding-left: max(10px, env(safe-area-inset-left));
@@ -93,10 +98,12 @@ $task-width: 256px;
   padding-bottom: max(10px, env(safe-area-inset-bottom));
 
 }
+
 #noLibraries {
   text-align: center;
   padding: 1em;
 }
+
 .drawerMargin {
   width: calc(100% - 256px) !important;
 }

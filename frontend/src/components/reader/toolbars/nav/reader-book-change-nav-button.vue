@@ -14,6 +14,7 @@
 </template>
 
 <script>
+import { cloneDeep } from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
@@ -34,7 +35,7 @@ export default {
     ...mapState(useReaderStore, {
       toRoute(state) {
         const params = state?.routes?.books[this.direction];
-        return params ? { params: { ...params } } : "";
+        return params ? { params: cloneDeep(params) } : "";
       },
     }),
     title() {
@@ -58,10 +59,10 @@ export default {
 </script>
 <style scoped lang="scss">
 .bookChangeNavButtonLeft {
-    padding-left: max(15px, calc(env(safe-area-inset-left) / 3));
+  padding-left: max(15px, calc(env(safe-area-inset-left) / 3));
 }
 
 .bookChangeNavButtonRight {
-    padding-right: max(15px, calc(env(safe-area-inset-right) / 3));
+  padding-right: max(15px, calc(env(safe-area-inset-right) / 3));
 }
 </style>

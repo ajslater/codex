@@ -1,4 +1,4 @@
-import _ from "lodash";
+import { cloneDeep, isEqual, range } from "lodash";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
@@ -80,7 +80,7 @@ export const useBrowserStore = defineStore("browser", {
       q: undefined,
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
-      show: { ...SETTINGS_SHOW_DEFAULTS },
+      show: cloneDeep(SETTINGS_SHOW_DEFAULTS),
       topGroup: undefined,
       twentyFourHourTime: false,
     },
@@ -369,7 +369,7 @@ export const useBrowserStore = defineStore("browser", {
           } else {
             newValue = value;
           }
-          if (!_.isEqual(state.settings[key], newValue)) {
+          if (!isEqual(state.settings[key], newValue)) {
             state.settings[key] = newValue;
           }
         }
@@ -382,7 +382,7 @@ export const useBrowserStore = defineStore("browser", {
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
       redirect = this._validateTopGroup(data, redirect);
-      if (_.isEqual(redirect?.params, router.currentRoute.value.params)) {
+      if (isEqual(redirect?.params, router.currentRoute.value.params)) {
         // not triggered if page is numeric, which is intended.
         redirect = undefined;
       }
@@ -459,10 +459,10 @@ export const useBrowserStore = defineStore("browser", {
     },
     async updateBreadcrumbs(oldBreadcrumbs) {
       const breadcrumbs = this.settings.breadcrumbs || [];
-      for (const index of _.range(breadcrumbs.length).reverse()) {
+      for (const index of range(breadcrumbs.length).reverse()) {
         const oldCrumb = oldBreadcrumbs[index];
         const newCrumb = breadcrumbs[index];
-        if (!_.isEqual(oldCrumb, newCrumb)) {
+        if (!isEqual(oldCrumb, newCrumb)) {
           if (newCrumb.name === null) {
             // For volumes
             newCrumb.name = "";
@@ -475,7 +475,7 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = _.cloneDeep(router.currentRoute.value);
+      const route = cloneDeep(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.warn);
     },
