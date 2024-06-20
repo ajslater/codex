@@ -57,10 +57,11 @@ class SeeOtherRedirectError(APIException):
         settings = detail.get("settings", {})
         for key in _REDIRECT_SETTINGS_KEYS:
             value = settings.get(key)
-            if value not in EMPTY_VALUES:
-                if value == "breadcrumbs":
-                    value = BreadcrumbsField().to_representation(value)
-                filtered_settings[key] = value
+            if value in EMPTY_VALUES:
+                continue
+            if key == "breadcrumbs":
+                value = BreadcrumbsField().to_representation(value)
+            filtered_settings[key] = value
         detail["settings"] = filtered_settings
 
         self.detail = detail
