@@ -13,6 +13,10 @@
             <td>{{ stats.platform.machine }}</td>
           </tr>
           <tr>
+            <td>Cores</td>
+            <td>{{ stats.platform.cores }}</td>
+          </tr>
+          <tr>
             <td>System</td>
             <td>
               {{ stats.platform.system }} {{ stats.platform.systemRelease }}

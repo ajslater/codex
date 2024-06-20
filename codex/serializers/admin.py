@@ -239,6 +239,7 @@ class AdminPlatformSerializer(Serializer):
 
     docker = BooleanField(read_only=True)
     machine = CharField(read_only=True)
+    cores = IntegerField(read_only=True)
     system = CharField(read_only=True)
     system_release = CharField(read_only=True)
     python = CharField(read_only=True)

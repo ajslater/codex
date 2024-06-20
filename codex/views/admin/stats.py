@@ -1,5 +1,6 @@
 """Admin Flag View."""
 
+from multiprocessing import cpu_count
 from pathlib import Path
 from platform import machine, python_version, release, system
 from types import MappingProxyType
@@ -110,6 +111,7 @@ class AdminStatsView(AdminGenericAPIView):
         platform = {
             "docker": self._is_docker(),
             "machine": machine(),
+            "cores": cpu_count(),
             "system": system(),
             "system_release": release(),
             "python": python_version(),
