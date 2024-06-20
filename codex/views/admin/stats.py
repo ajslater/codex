@@ -153,11 +153,13 @@ class AdminStatsView(AdminGenericAPIView):
         """Add dict of config informaation to object."""
         config = self._get_model_counts("config")
         request_counts = self._get_request_counts("config")
-        sessions, config["sessions_anon_count"] = self._get_session_stats()
+        sessions, config["anonymous_users_count"] = self._get_session_stats()
         if not request_counts or "apikey" in request_counts:
             config["api_key"] = Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.API_KEY.value
             ).version
+        config["registered_users_count"] = config.pop("users_count", 0)
+        config["user_groups_count"] = config.pop("groups_count", 0)
         obj["config"] = config
         obj["sessions"] = sessions
 

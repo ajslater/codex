@@ -61,11 +61,10 @@ class AdminConfigSerializer(Serializer):
     """Config Information."""
 
     api_key = CharField(required=False, read_only=True)
-    groups_count = IntegerField(required=False, read_only=True)
+    user_groups_count = IntegerField(required=False, read_only=True)
     libraries_count = IntegerField(required=False, read_only=True)
-    sessions_anon_count = IntegerField(required=False, read_only=True)
-    sessions_count = IntegerField(required=False, read_only=True)
-    users_count = IntegerField(required=False, read_only=True)
+    anonymous_users_count = IntegerField(required=False, read_only=True)
+    registered_users_count = IntegerField(required=False, read_only=True)
 
 
 class AdminSessionsSerializer(Serializer):
