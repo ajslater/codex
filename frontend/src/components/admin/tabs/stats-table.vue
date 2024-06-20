@@ -20,6 +20,7 @@
           <td>{{ nf(subvalue) }}</td>
         </tr>
       </tbody>
+      <slot />
     </v-table>
   </div>
 </template>
@@ -59,6 +60,7 @@ export default {
 .statBlock {
   display: inline-block;
   vertical-align: top;
+  margin-bottom: 20px;
   margin-right: 40px;
 }
 

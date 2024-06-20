@@ -1,28 +1,35 @@
 <template>
   <div v-if="stats" id="stats">
     <StatsTable title="Platform" :items="platformTable" />
-    <StatsTable title="Config" :items="configTable" />
+    <StatsTable title="Config" :items="configTable">
+      <tbody>
+        <tr id="schemaDoc">
+          <td colspan="2">
+            The only endpoint accessible by API Key is
+            <a
+              :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
+              target="_blank"
+              >/admin/stats</a
+            >
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <ConfirmDialog
+              button-text="Regenerate API Key"
+              title-text="Regenerate"
+              object-name="API Key"
+              confirm-text="Regenerate"
+              @confirm="regenAPIKey"
+            />
+          </td>
+        </tr>
+      </tbody>
+    </StatsTable>
     <StatsTable title="User Settings" :items="userSettingsTable" />
     <StatsTable title="Browser Groups" :items="browserGroupsTable" />
     <StatsTable title="File Types" :items="fileTypesTable" />
     <StatsTable title="Metadata" :items="metadataTable" />
-  </div>
-  <div id="apiBlock">
-    <ConfirmDialog
-      button-text="Regenerate API Key"
-      title-text="Regenerate"
-      object-name="API Key"
-      confirm-text="Regenerate"
-      @confirm="regenAPIKey"
-    />
-    <p id="schemaDoc">
-      The only endpoint accessible by API Key is
-      <a
-        :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
-        target="_blank"
-        >/admin/stats</a
-      >
-    </p>
   </div>
 </template>
 
@@ -105,15 +112,18 @@ export default {
     },
     configTable() {
       const table = {};
+      let apiKeyValue = "";
       for (const [key, value] of Object.entries(this.stats?.config)) {
         let label;
         if (key == "apiKey") {
-          label = "API Key";
+          apiKeyValue = value;
+          continue;
         } else {
           label = this.keyToLabel(key);
         }
         table[label] = value;
       }
+      table["API Key"] = apiKeyValue;
       return table;
     },
     userSettingsTable() {
@@ -186,15 +196,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#apiBlock {
-  display: inline-block;
-  vertical-align: top;
-  max-width: 200px;
-  margin-top: 30px;
+#schemaDoc {
+  font-size: small;
+  color: rgb(var(--v-theme-textSecondary));
+  background-color: rgb(var(--v-theme-background));
 }
 
-#schemaDoc {
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: small;
+#schemaDoc>td {
+  border-bottom: none !important;
 }
 </style>
