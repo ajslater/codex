@@ -51,9 +51,44 @@
             <td>{{ nf(stats.config.usersCount) }}</td>
           </tr>
           <tr>
-            <td>Groups</td>
+            <td>Auth Groups</td>
             <td>{{ nf(stats.config.groupsCount) }}</td>
           </tr>
+        </tbody>
+      </v-table>
+    </div>
+    <div class="statBlock">
+      <h3>User Settings</h3>
+      <v-table class="highlight-table">
+        <tbody>
+          <UserSettingsRow
+            title="Top Group"
+            :stats="stats?.sessions?.topGroup"
+            :lookup="topGroupLookup"
+          />
+          <UserSettingsRow
+            title="Order By"
+            :stats="stats?.sessions?.orderBy"
+            :lookup="orderByLookup"
+          />
+          <UserSettingsRow
+            title="Dynamic Covers"
+            :stats="stats?.sessions?.dynamicCovers"
+          />
+          <UserSettingsRow
+            title="Finish On Last Page"
+            :stats="stats?.sessions?.finishOnLastPage"
+          />
+          <UserSettingsRow
+            title="Fit To"
+            :stats="stats?.sessions?.fitTo"
+            :lookup="fitToLookup"
+          />
+          <UserSettingsRow
+            title="Reading Direction"
+            :stats="stats?.sessions?.readingDirection"
+            :lookup="readingDirectionLookup"
+          />
         </tbody>
       </v-table>
     </div>
@@ -182,6 +217,7 @@
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import UserSettingsRow from "@/components/admin/tabs/stats-user-settings-row.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { copyToClipboard } from "@/copy-to-clipboard";
 import { NUMBER_FORMAT } from "@/datetime";
@@ -191,16 +227,22 @@ import { camelToTitleCase } from "@/to-case";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
 const NB_INDENT = "&nbsp;&nbsp;&nbsp;&nbsp;";
+import CHOICES from "@/choices.json";
 
 export default {
   name: "AdminTasksTab",
   components: {
     ConfirmDialog,
+    UserSettingsRow,
   },
   data() {
     return {
       showTooltip: { show: false },
       apiSchemaURL: window.CODEX.API_V3_PATH,
+      topGroupLookup: CHOICES.browser.groupNames,
+      orderByLookup: this.vueToLookup(CHOICES.browser.orderBy),
+      fitToLookup: this.vueToLookup(CHOICES.reader.fitTo),
+      readingDirectionLookup: this.vueToLookup(CHOICES.reader.readingDirection),
     };
   },
   computed: {
@@ -243,6 +285,13 @@ export default {
       title = title.replace(/^Story\sArc\s/, NB_INDENT);
       return title;
     },
+    vueToLookup(choices) {
+      const lookup = {};
+      for (const choice of choices) {
+        lookup[choice.value] = choice.title;
+      }
+      return lookup;
+    },
   },
 };
 </script>
@@ -253,34 +302,43 @@ export default {
   vertical-align: top;
   margin-right: 40px;
 }
+
 h3 {
   margin-top: 1em;
   text-align: center;
 }
+
 .highlight-table {
   color: rgb(var(--v-theme-textSecondary));
 }
+
 tr td:nth-child(2) {
   text-align: right;
 }
+
 .indent {
   padding-left: 2em !important;
 }
+
 .copied {
   font-size: small;
   font-weight: normal;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 .clipBoardIcon {
   color: rgb(var(--v-theme-iconsInactive));
 }
+
 #apiKeyRow:hover {
   background-color: rgb(var(--v-theme-surface));
 }
+
 #apiKeyRow:hover .clipBoardIcon,
 #apiKeyRow:hover #apiKey {
   color: rgb(var(--v-theme-textPrimary));
 }
+
 #schemaDocValue {
   max-width: 15em;
 }

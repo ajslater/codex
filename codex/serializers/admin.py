@@ -9,6 +9,7 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DateTimeField,
+    DictField,
     IntegerField,
     ListField,
     Serializer,
@@ -234,6 +235,17 @@ class AdminConfigSerializer(Serializer):
     users_count = IntegerField(required=False, read_only=True)
 
 
+class AdminSessionsSerializer(Serializer):
+    """Session Settings."""
+
+    top_group = DictField(required=False, read_only=True)
+    order_by = DictField(required=False, read_only=True)
+    dynamic_covers = DictField(required=False, read_only=True)
+    finish_on_last_page = DictField(required=False, read_only=True)
+    fit_to = DictField(required=False, read_only=True)
+    reading_direction = DictField(required=False, read_only=True)
+
+
 class AdminPlatformSerializer(Serializer):
     """Platform Information."""
 
@@ -251,6 +263,7 @@ class AdminStatsSerializer(Serializer):
 
     platform = AdminPlatformSerializer(required=False)
     config = AdminConfigSerializer(required=False)
+    sessions = AdminSessionsSerializer(required=False)
     groups = AdminGroupSerializer(required=False)
     file_types = AdminFileTypeSerializer(required=False)
     metadata = AdminComicMetadataSerializer(required=False)
