@@ -5,7 +5,7 @@ from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.registration import patch_registration_setting
-from codex.serializers.admin import AdminFlagSerializer
+from codex.serializers.admin.flags import AdminFlagSerializer
 from codex.views.admin.auth import AdminModelViewSet
 
 LOG = get_logger(__name__)

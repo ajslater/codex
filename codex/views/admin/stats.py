@@ -19,7 +19,10 @@ from codex.models import (
     Timestamp,
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
-from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
+from codex.serializers.admin.stats import (
+    AdminStatsRequestSerializer,
+    AdminStatsSerializer,
+)
 from codex.version import VERSION
 from codex.views.admin.auth import AdminGenericAPIView
 from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS

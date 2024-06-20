@@ -44,7 +44,7 @@ from codex.librarian.watchdog.tasks import (
 )
 from codex.logger.logging import get_logger
 from codex.models import LibrarianStatus
-from codex.serializers.admin import AdminLibrarianTaskSerializer
+from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
 from codex.views.admin.auth import AdminAPIView, AdminReadOnlyModelViewSet

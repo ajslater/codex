@@ -10,6 +10,7 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
+    DictField,
     FloatField,
     IntegerField,
     ListField,
@@ -147,3 +148,9 @@ class LanguageField(PyCountryField):
     """Serializer to long language name."""
 
     LOOKUP_MODULE = pycountry.languages
+
+
+class CountDictField(DictField):
+    """Dict for counting things."""
+
+    child = IntegerField(read_only=True)
