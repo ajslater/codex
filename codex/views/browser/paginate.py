@@ -75,7 +75,7 @@ class BrowserPaginateView(BrowserAnnotationsView):
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
         num_pages = ceil(total_count / MAX_OBJ_PER_PAGE)
-        if (not pks and page == 1) or (page >= 1 and page <= num_pages):
+        if page == 1 or (page >= 1 and page <= num_pages):
             # Don't redirect if on the root page for the group.
             # Or page within valid range.
             return num_pages
@@ -88,6 +88,7 @@ class BrowserPaginateView(BrowserAnnotationsView):
             route_mask = self._get_back_one_page_route(num_pages)
             settings_mask = None
         else:
+            # This now only occurs when page < 1
             route_mask, settings_mask = self._get_up_page_redirect()
 
         return self.raise_redirect(
