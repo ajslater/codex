@@ -24,7 +24,7 @@ export const useAdminStore = defineStore("admin", {
     unseenFailedImports: false,
     users: [],
     groups: [],
-    libraries: [],
+    libraries: undefined,
     failedImports: [],
     flags: {},
     folderPicker: {
@@ -38,8 +38,8 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    comicLibrariesExist() {
-      let exist = false;
+    comicLibrariesEmpty() {
+      let exist = this.libraries === undefined;
       if (this.libraries) {
         for (const library of this.libraries) {
           if (!library.coversOnly) {

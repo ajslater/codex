@@ -84,11 +84,11 @@ import {
   mdiChevronRightCircle,
   mdiCloseCircleOutline,
 } from "@mdi/js";
+import { startCase } from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
-import { camelToTitleCase } from "@/to-case";
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -133,7 +133,7 @@ export default {
       return toVuetifyItems(this.choices, this.query);
     },
     title() {
-      return camelToTitleCase(this.name);
+      return startCase(this.name);
     },
     lowerTitle() {
       return this.title.toLowerCase();
@@ -189,32 +189,38 @@ export default {
 .filterHeaderTitle :deep(.v-list-item__prepend > .v-list-item__spacer) {
   display: none;
 }
+
 .filterHeaderTitle :deep(.v-list-item-title) {
   font-variant: small-caps;
   color: rbg(var(--v-theme-textDisabled));
   font-weight: bold;
   font-size: 1.6rem !important;
 }
-.filterHeader {
-}
+
 .filterGroup {
-  max-height: 80vh; /* has to be less than the menu height */
+  max-height: 80vh;
+  /* has to be less than the menu height */
 }
+
 .noneItem :deep(.v-item-title) {
   color: rbg(var(--v-theme-textDisabled)) !important;
 }
+
 .filterValuesProgress {
   margin: 10px;
   width: 88%;
 }
+
 .noneItem {
   opacity: 0.5;
 }
+
 .clearFilter {
   color: black;
   background-color: rgb(var(--v-theme-primary));
   opacity: .7;
 }
+
 .clearFilter:hover {
   opacity: 1.0;
 }

@@ -26,7 +26,7 @@
 </template>
 
 <script>
-import _ from "lodash";
+import { range } from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
@@ -69,7 +69,7 @@ export default {
     },
     items() {
       const len = this.book?.maxPage ? this.book.maxPage + 1 : 0;
-      const pages = _.range(0, len);
+      const pages = range(0, len);
       if (this.readInReverse) {
         pages.reverse();
       }
@@ -153,7 +153,9 @@ export default {
 :deep(.v-virtual-scroll__item) {
   position: relative;
 }
+
 $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
+
 .pageTracker {
   position: absolute;
   top: 0;
@@ -169,6 +171,7 @@ $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
   border: dashed 10px red;
   */
 }
+
 .pageTrackerToolbars {
   height: calc(($pageTrackerBaseHeight - 154px - 32px) * .95) !important;
 }

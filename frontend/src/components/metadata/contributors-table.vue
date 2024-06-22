@@ -12,8 +12,9 @@
 </template>
 
 <script>
+import { startCase } from "lodash";
+
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
-import { camelToTitleCase } from "@/to-case";
 
 export default {
   name: "MetadataContributorsTable",
@@ -33,7 +34,7 @@ export default {
         return contributors;
       }
       for (const { role, person } of this.value) {
-        const roleName = camelToTitleCase(role.name) + "s";
+        const roleName = startCase(role.name) + "s";
         if (!contributors[roleName]) {
           contributors[roleName] = [];
         }

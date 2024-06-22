@@ -358,5 +358,5 @@ class UpdateMixin(RemoveMixin):
         except Exception:
             self.log.exception("Update search index")
         finally:
-            until = start_time + 1
+            until = start_time + 2
             self.status_controller.finish_many(self._STATUS_FINISH_TYPES, until=until)

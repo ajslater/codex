@@ -17,7 +17,8 @@ from codex.serializers.opds.v1 import (
 )
 from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSTemplateView
-from codex.views.opds.const import BLANK_TITLE, MimeType
+from codex.views.opds.const import BLANK_TITLE, MimeType, UserAgentNames
+from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
@@ -39,16 +40,6 @@ class OpdsNs:
 
     CATALOG = "http://opds-spec.org/2010/catalog"
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
-
-
-class UserAgentNames:
-    """Control whether to hack in facets with nav links."""
-
-    CLIENT_REORDERS = frozenset({"Chunky"})
-    FACET_SUPPORT = frozenset({"yar"})  # kybooks
-    SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
-    # Other known valid  names:
-    # "Panels", "Chunky"
 
 
 class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
@@ -218,19 +209,10 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def _set_user_agent_variables(self):
         """Set User Agent variables."""
-        user_agent = self.request.headers.get("User-Agent")
-        if not user_agent:
-            return
-        user_agent_parts = user_agent.split("/", 1)
-        if user_agent_parts:
-            user_agent_name = user_agent_parts[0]
-        else:
-            return
+        user_agent_name = get_user_agent_name(self.request)
 
-        if user_agent_name in UserAgentNames.FACET_SUPPORT:
-            self.use_facets = True
-        if user_agent_name in UserAgentNames.CLIENT_REORDERS:
-            self.skip_order_facets = True
+        self.user_facets = user_agent_name in UserAgentNames.FACET_SUPPORT
+        self.skip_order_facets = user_agent_name in UserAgentNames.CLIENT_REORDERS
         if user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES:
             self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
 

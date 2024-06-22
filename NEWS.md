@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.3
+
+- Features
+  - Reader inherits the last browser view, with filters, as it's default reading
+    arc.
+  - When browser page is less than 1, redirect to parent. When 1 and empty, show
+    empty page.
+- Fix
+  - The cover api was not accepting http basic (opds) authentication.
+
 ## v1.6.2
 
 - Fixes

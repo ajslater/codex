@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.models import Timestamp
-from codex.serializers.admin import APIKeySerializer
+from codex.serializers.admin.stats import APIKeySerializer
 from codex.views.admin.auth import AdminGenericAPIView
 
 

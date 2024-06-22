@@ -74,6 +74,7 @@ import {
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
+import { cloneDeep } from "lodash";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -123,7 +124,7 @@ export default {
       items(state) {
         const annotatedItems = [];
         for (const library of state.libraries) {
-          const annotatedItem = { ...library };
+          const annotatedItem = cloneDeep(library);
           annotatedItem.label = annotatedItem.coversOnly
             ? "custom group cover"
             : "comic";

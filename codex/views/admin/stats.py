@@ -1,5 +1,6 @@
 """Admin Flag View."""
 
+from multiprocessing import cpu_count
 from pathlib import Path
 from platform import machine, python_version, release, system
 from types import MappingProxyType
@@ -18,10 +19,14 @@ from codex.models import (
     Timestamp,
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
-from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
+from codex.serializers.admin.stats import (
+    AdminStatsRequestSerializer,
+    AdminStatsSerializer,
+)
 from codex.version import VERSION
 from codex.views.admin.auth import AdminGenericAPIView
 from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
+from codex.views.session import SessionView
 
 LOG = get_logger(__name__)
 _KEY_MODELS_MAP = MappingProxyType(
@@ -33,6 +38,16 @@ _KEY_MODELS_MAP = MappingProxyType(
 )
 _DOCKERENV_PATH = Path("/.dockerenv")
 _CGROUP_PATH = Path("/proc/self/cgroup")
+_USER_STATS = MappingProxyType(
+    {
+        SessionView.BROWSER_SESSION_KEY: ("top_group", "order_by", "dynamic_covers"),
+        SessionView.READER_SESSION_KEY: (
+            "finish_on_last_page",
+            "fit_to",
+            "reading_direction",
+        ),
+    }
+)
 
 
 class AdminStatsView(AdminGenericAPIView):
@@ -94,22 +109,39 @@ class AdminStatsView(AdminGenericAPIView):
         return obj
 
     @staticmethod
-    def _get_anon_sessions():
+    def _aggregate_session_key(session, session_key, session_subkeys, user_stats):
+        session_dict = session.get(session_key, {})
+        for key in session_subkeys:
+            value = session_dict.get(key)
+            if value is None:
+                continue
+            if key not in user_stats:
+                user_stats[key] = {}
+            if value not in user_stats[key]:
+                user_stats[key][value] = 0
+            user_stats[key][value] += 1
+
+    @classmethod
+    def _get_session_stats(cls):
         """Return the number of anonymous sessions."""
         sessions = Session.objects.all()
-        anon_sessions = 0
+        anon_session_count = 0
+        user_stats = {}
         for encoded_session in sessions:
             session = encoded_session.get_decoded()
             if not session.get("_auth_user_id"):
-                anon_sessions += 1
+                anon_session_count += 1
+            for session_key, subkeys in _USER_STATS.items():
+                cls._aggregate_session_key(session, session_key, subkeys, user_stats)
 
-        return anon_sessions
+        return user_stats, anon_session_count
 
     def _get_platform(self, obj):
         """Add dict of platform information to object."""
         platform = {
             "docker": self._is_docker(),
             "machine": machine(),
+            "cores": cpu_count(),
             "system": system(),
             "system_release": release(),
             "python": python_version(),
@@ -121,13 +153,15 @@ class AdminStatsView(AdminGenericAPIView):
         """Add dict of config informaation to object."""
         config = self._get_model_counts("config")
         request_counts = self._get_request_counts("config")
-        if not request_counts or "sessionanon" in request_counts:
-            config["sessions_anon_count"] = self._get_anon_sessions()
+        sessions, config["anonymous_users_count"] = self._get_session_stats()
         if not request_counts or "apikey" in request_counts:
             config["api_key"] = Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.API_KEY.value
             ).version
+        config["registered_users_count"] = config.pop("users_count", 0)
+        config["user_groups_count"] = config.pop("groups_count", 0)
         obj["config"] = config
+        obj["sessions"] = sessions
 
     def _get_file_types(self):
         """Query for file types."""

@@ -13,8 +13,8 @@ from codex.views.session import SessionView
 from codex.views.util import reparse_json_query_params
 
 LOG = get_logger(__name__)
-VALID_ARC_GROUPS = frozenset({"s", "v", "f", "a"})
-_JSON_KEYS = frozenset({"arc", "breadcrumbs", "show"})
+VALID_ARC_GROUPS = "pisvfa"
+_JSON_KEYS = frozenset({"arc", "breadcrumbs", "browser_arc", "show"})
 _BROWSER_SESSION_DEFAULTS = SessionView.SESSION_DEFAULTS[
     SessionView.BROWSER_SESSION_KEY
 ]
@@ -89,12 +89,14 @@ class ReaderInitView(SessionView):
         # Can't be in the serializer
         arc = params.get("arc", {})
 
-        if arc.get("group") not in VALID_ARC_GROUPS:
+        arc_group = arc.get("group", "")
+        arc_pks = arc.get("pks", ())
+        if arc_group not in VALID_ARC_GROUPS or not arc_pks:
             top_group = params["top_group"]
-            if top_group in (FOLDER_GROUP, STORY_ARC_GROUP):
+            if top_group in FOLDER_GROUP + STORY_ARC_GROUP:
                 search_groups = (top_group,)
             else:
-                search_groups = ("v", "s")
+                search_groups = "vsip"
 
             group, pks = self.get_group_pks_from_breadcrumbs(search_groups)
             if not group:

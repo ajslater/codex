@@ -13,7 +13,7 @@
         density="compact"
         variant="plain"
         :prepend-icon="item.raw.prependIcon"
-        :subtitle="item.raw.subtitle"
+        :subtitle="subtitle(item.raw)"
         :append-icon="checkIcon(props.value)"
       />
     </template>
@@ -30,6 +30,9 @@ import {
   mdiBookMultiple,
   mdiBookshelf,
   mdiCheck,
+  mdiChessRook,
+  mdiFeather,
+  mdiFilterOutline,
   mdiFolderOutline,
   mdiRedo,
 } from "@mdi/js";
@@ -41,6 +44,8 @@ import { useReaderStore } from "@/stores/reader";
 const ARC_ICONS = {
   a: mdiRedo,
   f: mdiFolderOutline,
+  p: mdiChessRook,
+  i: mdiFeather,
   s: mdiBookshelf,
   v: mdiBookMultiple,
 };
@@ -48,6 +53,8 @@ const ARC_ICONS = {
 const LABELS = {
   a: "Story Arc",
   f: "Folder",
+  p: "Publisher",
+  i: "Imprint",
   s: "Series",
   v: "Volume",
 };
@@ -56,6 +63,11 @@ export default {
   name: "ReaderArcSelect",
   components: {
     ToolbarSelect,
+  },
+  data() {
+    return {
+      mdiFilterOutline,
+    };
   },
   computed: {
     ...mapState(useReaderStore, {
@@ -76,6 +88,7 @@ export default {
             value: arc,
             title: arc.name,
             group: arc.group,
+            filters: arc.filters,
             subtitle: LABELS[arc.group],
             prependIcon: ARC_ICONS[arc.group],
           };
@@ -91,7 +104,16 @@ export default {
       return ARC_ICONS[group];
     },
     checkIcon(value) {
-      return value === this.arc ? mdiCheck : "";
+      return value.group === this.arc.group && value.pks == this.arc.pks
+        ? mdiCheck
+        : "";
+    },
+    subtitle(item) {
+      let text = item.subtitle;
+      if (item.filters) {
+        text += " (filtered)";
+      }
+      return text;
     },
     onUpdate(selectedArc) {
       const arc = { group: selectedArc.group, pks: selectedArc.pks };
@@ -105,23 +127,28 @@ export default {
 .arcSelect {
   min-width: 74px;
 }
+
 #arcPos {
   height: 22.75px;
   padding-top: 4px;
   font-size: 16px;
   letter-spacing: -.15em;
 }
+
 :deep(.v-select__selection) {
   color: rgb(var(--v-theme-textSecondary)) !important;
 }
+
 :deep(.v-select__selection .arcSelectIcon) {
   top: 4px;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 :deep(.v-select__selection:hover) .arcSelectIcon {
   color: white;
 }
+
 :deep(.v-list-item__spacer) {
-  max-width: 12px; 
+  max-width: 12px;
 }
 </style>

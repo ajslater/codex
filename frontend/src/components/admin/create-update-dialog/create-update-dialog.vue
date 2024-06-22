@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import _ from "lodash";
+import { cloneDeep, isEqual } from "lodash";
 import { mapActions } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/create-update-button.vue";
@@ -95,7 +95,7 @@ export default {
     validate() {
       let changed = false;
       for (const [key, value] of Object.entries(this.row)) {
-        if (!_.isEqual(this.oldRow[key], value)) {
+        if (!isEqual(this.oldRow[key], value)) {
           changed = true;
           break;
         }
@@ -122,11 +122,11 @@ export default {
     },
     getRow(show) {
       if (!show || !this.oldRow) {
-        return _.cloneDeep(this.inputs.EMPTY_ROW);
+        return cloneDeep(this.inputs.EMPTY_ROW);
       }
       const updateRow = {};
       for (const key of this.inputs.UPDATE_KEYS) {
-        updateRow[key] = _.cloneDeep(this.oldRow[key]);
+        updateRow[key] = cloneDeep(this.oldRow[key]);
       }
       return updateRow;
     },
@@ -134,7 +134,7 @@ export default {
       // only pass diff from old user as update
       const updateRow = {};
       for (const [key, value] of Object.entries(this.row)) {
-        if (!_.isEqual(this.oldRow[key], value)) {
+        if (!isEqual(this.oldRow[key], value)) {
           updateRow[key] = value;
         }
       }

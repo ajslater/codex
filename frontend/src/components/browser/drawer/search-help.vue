@@ -35,7 +35,9 @@
             <tr v-for="row in FIELD_ROWS" :key="row[0]">
               <td>{{ row[0] }}</td>
               <td>{{ row[1] }}</td>
-              <td class="aliasCol">{{ row[2] || "" }}</td>
+              <td class="aliasCol">
+                {{ row[2] || "" }}
+              </td>
             </tr>
           </tbody>
         </v-table>
