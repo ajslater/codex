@@ -93,3 +93,13 @@ def full_redirect_view(url_name):
         return response
 
     return func
+
+
+def get_user_agent_name(request):
+    """Get the first part of the user agent."""
+    user_agent_name = ""
+    if (user_agent := request.headers.get("User-Agent")) and (
+        user_agent_parts := user_agent.split("/", 1)
+    ):
+        user_agent_name = user_agent_parts[0]
+    return user_agent_name
