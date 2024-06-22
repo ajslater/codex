@@ -13,6 +13,8 @@ border-radius: 128px;
     empty page.
   - Reader inherits the last browser view, with filters, as it's default reading
     arc.
+- Fix
+  - The cover api was not accepting http basic (opds) authentication.
 
 ## v1.6.2
 
