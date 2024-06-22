@@ -2,14 +2,11 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
-// import plugin broken for flag config
-// https://github.com/import-js/eslint-plugin-import/issues/2556
-// import importPlugin from "eslint-plugin-import";
 import eslintPluginJsonc from "eslint-plugin-jsonc";
 import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
-//import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
-//import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
+// import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
+// import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 import eslintPluginPrettier from "eslint-plugin-prettier";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginRegexp from "eslint-plugin-regexp";
@@ -119,7 +116,7 @@ export default [
       "no-constructor-bind/no-constructor-state": "error",
       "no-secrets/no-secrets": "error",
       "prettier/prettier": "warn",
-      //"security/detect-object-injection": "off",
+      // "security/detect-object-injection": "off",
       ...securityRules,
       "simple-import-sort/exports": "warn",
       "simple-import-sort/imports": "warn",
@@ -136,13 +133,12 @@ export default [
   },
   js.configs.recommended,
   eslintPluginArrayFunc.configs.all,
-  //...eslintPluginImportPlugin.configs["recommended"].rules,
   ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
-  //eslintPluginNoUseExtendNative.configs.recommended,
-  //eslintPluginNoUnsanitized.configs.recommended,
+  // eslintPluginNoUseExtendNative.configs.recommended,
+  // eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginRegexp.configs["flat/recommended"],
-  //eslintPluginSecurity.configs.recommended,
+  // eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
   ...eslintPluginToml.configs["flat/recommended"],
   ...eslintPluginYml.configs["flat/standard"],
@@ -188,25 +184,13 @@ export default [
       es2024: true,
       node: true,
     },
-    extends: [
-      // "plugin:import/recommended",
-      // "plugin:promise/recommended",
-      // SECURITY
-      // https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/234
-      //"plugin:no-unsanitized/DOM",
-    ],
-    overrides: [],
     parserOptions: {
       ecmaFeatures: {
         impliedStrict: true,
       },
       ecmaVersion: "latest",
     },
-    plugins: [
-      //"import",
-      "no-constructor-bind",
-      //"promise",
-    ],
+    plugins: ["no-constructor-bind"],
     rules: {
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
