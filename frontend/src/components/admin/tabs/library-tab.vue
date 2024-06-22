@@ -50,6 +50,9 @@ export default {
     ...mapState(useAdminStore, {
       libraryItems(state) {
         const annotatedItems = [];
+        if (!state.libraries) {
+          return annotatedItems;
+        }
         for (const library of state.libraries) {
           if (!library.coversOnly) {
             const annotatedItem = cloneDeep(library);
