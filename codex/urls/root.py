@@ -7,7 +7,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, register_converter, set_script_prefix
 from django.views.generic.base import RedirectView
 
-from codex.settings.settings import ROOT_PATH
+from codex.settings.settings import DEBUG, ROOT_PATH
 from codex.urls.converters import GroupConverter, IntListConverter
 
 register_converter(GroupConverter, "group")
@@ -17,7 +17,16 @@ if ROOT_PATH:
     # Django 5 bug https://code.djangoproject.com/ticket/35169#comment:11
     set_script_prefix(ROOT_PATH)
 
-urlpatterns = [
+
+urlpatterns = []
+if DEBUG:
+    from schema_graph.views import Schema
+
+    urlpatterns += [
+        path("schema/", Schema.as_view()),
+    ]
+
+urlpatterns += [
     path(
         "favicon.ico",
         RedirectView.as_view(url=staticfiles_storage.url("img/logo-32.webp")),

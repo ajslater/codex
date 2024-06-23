@@ -105,7 +105,7 @@ INSTALLED_APPS = [
 
 if DEBUG:
     # comes before static apps
-    INSTALLED_APPS += ["nplusone.ext.django"]
+    INSTALLED_APPS += ["nplusone.ext.django", "schema_graph"]
 
 INSTALLED_APPS += [
     "whitenoise.runserver_nostatic",
