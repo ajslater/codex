@@ -301,7 +301,7 @@ class UpdateMixin(RemoveMixin):
         except Exception:
             self.log.exception("Update search index with multiprocessing")
         finally:
-            until = start_time + 1
+            until = time() + 1
             self.status_controller.finish(status, until=until)
 
     def clear_search_index(self):

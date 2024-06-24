@@ -111,7 +111,6 @@ class CleanupMixin(WorkerBaseMixin):
 
     def cleanup_custom_covers(self):
         """Clean up unused custom covers."""
-        start = time()
         covers = CustomCover.objects.only("path")
         status = Status(JanitorStatusTypes.CLEANUP_COVERS, 0, covers.count())
         delete_pks = []
@@ -128,12 +127,11 @@ class CleanupMixin(WorkerBaseMixin):
             level = logging.INFO if status.complete else logging.DEBUG
             self.log.log(level, f"Deleted {count} CustomCovers without source images.")
         finally:
-            until = start + 2
+            until = time() + 1
             self.status_controller.finish(status, until=until)
 
     def cleanup_sessions(self):
         """Delete corrupt sessions."""
-        start = time()
         status = Status(JanitorStatusTypes.CLEANUP_SESSIONS)
         try:
             self.status_controller.start(status)
@@ -152,5 +150,5 @@ class CleanupMixin(WorkerBaseMixin):
                 count, _ = bad_sessions.delete()
                 self.log.info(f"Deleted {count} corrupt sessions.")
         finally:
-            until = start + 2
+            until = time() + 1
             self.status_controller.finish(status, until=until)
