@@ -313,50 +313,59 @@ class UpdateMixin(RemoveMixin):
         self.status_controller.finish(clear_status)
         self.log.info("Old search index cleared.")
 
+    def _update_search_index(self, start_time, rebuild):
+        """Update or Rebuild the search index."""
+        remove_stale = False
+        any_update_in_progress = Library.objects.filter(
+            covers_only=False, update_in_progress=True
+        ).exists()
+        if any_update_in_progress:
+            self.log.debug(
+                "Database update in progress, not updating search index yet."
+            )
+            return remove_stale
+
+        if not rebuild and not self.is_search_index_uuid_match():
+            rebuild = True
+
+        self._init_statuses(rebuild)
+
+        # Clear
+        if rebuild:
+            self.log.info("Rebuilding search index...")
+            self.clear_search_index()
+
+        # Update
+        backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
+        backend.setup(False)
+        if self.abort_event.is_set():
+            self.log.debug("Abort update search index.")
+            return remove_stale
+        qs = self._get_queryset(backend, rebuild)
+        self._mp_update(backend, qs)
+
+        # Finish
+        if rebuild:
+            self.set_search_index_version()
+        else:
+            remove_stale = True
+
+        elapsed_time = time() - start_time
+        elapsed = naturaldelta(elapsed_time)
+        self.log.info(f"Search index updated in {elapsed}.")
+        return remove_stale
+
     def update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
         start_time = time()
         self.abort_event.clear()
+        remove_stale = False
         try:
-            any_update_in_progress = Library.objects.filter(
-                covers_only=False, update_in_progress=True
-            ).exists()
-            if any_update_in_progress:
-                self.log.debug(
-                    "Database update in progress, not updating search index yet."
-                )
-                return
-
-            if not rebuild and not self.is_search_index_uuid_match():
-                rebuild = True
-
-            self._init_statuses(rebuild)
-
-            # Clear
-            if rebuild:
-                self.log.info("Rebuilding search index...")
-                self.clear_search_index()
-
-            # Update
-            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-            backend.setup(False)
-            if self.abort_event.is_set():
-                return
-            qs = self._get_queryset(backend, rebuild)
-            self._mp_update(backend, qs)
-
-            # Finish
-            if rebuild:
-                self.set_search_index_version()
-            else:
-                task = SearchIndexRemoveStaleTask()
-                self.librarian_queue.put(task)
-
-            elapsed_time = time() - start_time
-            elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Search index updated in {elapsed}.")
+            remove_stale = self._update_search_index(start_time, rebuild)
         except Exception:
             self.log.exception("Update search index")
         finally:
-            until = start_time + 2
-            self.status_controller.finish_many(self._STATUS_FINISH_TYPES, until=until)
+            self.status_controller.finish_many(self._STATUS_FINISH_TYPES)
+            if remove_stale:
+                task = SearchIndexRemoveStaleTask()
+                self.librarian_queue.put(task)
