@@ -74,12 +74,22 @@ brew install jpeg libffi libyaml libzip openssl python unrar webp
 
 ###### <a href="#debian">Debian</a>
 
-...and Ubuntu, Mint, MX and others.
+...and Ubuntu, Mint, MX and others (and WSL).
 
 <!-- eslint-skip -->
 
 ```sh
-apt install build-essential libimagequant0 libjpeg62-turbo libopenjp2-7 libssl3 libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
+```
+
+Versions of packages like libjpeg, libssl, libtiff may differ between flavors
+and versions of Debian. If the version above is not available, try searching for
+one that is with apt-cache or aptitude.
+
+<!-- eslint-skip -->
+
+```sh
+apt-cache search libjpeg-turbo
 ```
 
 ###### Alpine
