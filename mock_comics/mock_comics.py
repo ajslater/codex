@@ -103,9 +103,7 @@ def is_valid():
     n = random.random()
     if n < CHANCE_OF_NULL:
         return None
-    if n < CHANCE_OF_BAD_TYPE:
-        return False
-    return True
+    return n >= CHANCE_OF_BAD_TYPE
 
 
 def rand_string(length, choices=CHOICES_STR):

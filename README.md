@@ -36,8 +36,8 @@ border-radius: 128px;
 
 ## <a name="demonstration">👀 Demonstration</a>
 
-You may browse a [live demo server](https://demo.codex-reader.app/) to get a feel for
-Codex.
+You may browse a [live demo server](https://demo.codex-reader.app/) to get a
+feel for Codex.
 
 ## <a name="news">📜 News</a>
 

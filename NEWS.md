@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.4
+
+- Removed
+  - LOGLEVEL=VERBOSE deprecated for a long time. Use LOGLEVEL=DEBUG
+
 ## v1.6.3
 
 - Features
