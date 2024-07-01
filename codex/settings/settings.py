@@ -9,6 +9,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+import logging
 from logging import WARN, getLogger
 from os import environ
 from pathlib import Path
@@ -16,7 +17,6 @@ from sys import maxsize
 from types import MappingProxyType
 
 from codex.settings.hypercorn import load_hypercorn_config
-from codex.settings.logging import get_loglevel
 from codex.settings.secret_key import get_secret_key
 from codex.settings.timezone import get_time_zone
 from codex.settings.whitenoise import immutable_file_test
@@ -47,7 +47,7 @@ VITE_HOST = environ.get("VITE_HOST")
 ####################################
 # Documented Environment Variables #
 ####################################
-LOGLEVEL = get_loglevel(DEBUG)
+LOGLEVEL = environ.get("LOGLEVEL", logging.DEBUG if DEBUG else logging.INFO)
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
