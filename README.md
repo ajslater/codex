@@ -11,6 +11,7 @@ border-radius: 128px;
 ## <a name="features">✨ Features</a>
 
 - Codex is a web server.
+- GPLv3 Licenced.
 - Full text search of metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
@@ -35,7 +36,7 @@ border-radius: 128px;
 
 ## <a name="demonstration">👀 Demonstration</a>
 
-You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for
+You may browse a [live demo server](https://demo.codex-reader.app/) to get a feel for
 Codex.
 
 ## <a name="news">📜 News</a>
