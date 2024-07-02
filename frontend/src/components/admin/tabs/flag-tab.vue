@@ -32,18 +32,9 @@
 import { mapActions, mapState } from "pinia";
 
 import { adminFlags } from "@/choices-admin.json";
+import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
-
-const DESC = {
-  AU: "If enabled, codex will attempt to update the codex python package once a day and restart the server if an update occurred. Not advisable if running from Docker as running containers aren't meant to hold state and will be rebuilt if you update the image. Look into services that automatically update docker images instead.",
-  NU: "By default all Codex features, including bookmarking, are available to users who are not logged in. You may disable this feature and Codex will hide its browser and reader and disable its API from anyone who is not logged in as a user.",
-  RG: "By default users' bookmarks and preferences are saved in an anonymous browser session. Users can create a username and password to save their bookmarks between browsers. You may disable this feature. Admins may still create users.",
-  FV: 'By default, codex provides a "Folder View" which mimics the directory hierarchy of the libraries that you\'ve added to Codex. You may disable this feature. The database style browser view is always available. This flag also enables and disables the "Filename" sort option and the path from search indexing.',
-  SO: "Fully optimize the search index each night. Disabling this flag will instead run a partial optimization which only merges small files. You should only disable this if the nightly optimization stresses your system too much.",
-  IM: "If disabled, Codex will not bulk import metadata from comic libraries when they are scanned and only import folders and filenames. Instead, metadata will be loaded lazily as comics are read. This makes importing comics fast, but disables most of the metadata browser functionality, making codex mostly a file tree browser.",
-};
-Object.freeze(DESC);
 
 export default {
   name: "AdminFlagsTab",
@@ -89,9 +80,11 @@ export default {
   max-width: 100vw !important;
   margin-bottom: 24px;
 }
+
 .nameCol {
   padding-top: 0.5em !important;
 }
+
 .desc {
   margin-top: 1em;
   margin-bottom: 0.5em;

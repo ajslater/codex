@@ -1,6 +1,5 @@
 """Admin stats serializers."""
 
-from rest_framework.fields import MultipleChoiceField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -8,7 +7,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.fields import CountDictField
+from codex.serializers.fields import CountDictField, SerializerChoicesField
 
 
 class AdminGroupSerializer(Serializer):
@@ -104,8 +103,20 @@ class AdminStatsSerializer(Serializer):
 class AdminStatsRequestSerializer(Serializer):
     """Admin Stats Tab Request."""
 
-    PARAMS_CHOICES = ("groups", "fileTypes", "platform", "config", "groups", "metadata")
-    params = MultipleChoiceField(choices=PARAMS_CHOICES, required=False)
+    platform = SerializerChoicesField(
+        serializer=AdminPlatformSerializer, required=False
+    )
+    config = SerializerChoicesField(serializer=AdminConfigSerializer, required=False)
+    sessions = SerializerChoicesField(
+        serializer=AdminSessionsSerializer, required=False
+    )
+    groups = SerializerChoicesField(serializer=AdminGroupSerializer, required=False)
+    file_types = SerializerChoicesField(
+        serializer=AdminFileTypeSerializer, required=False
+    )
+    metadata = SerializerChoicesField(
+        serializer=AdminComicMetadataSerializer, required=False
+    )
 
 
 class APIKeySerializer(Serializer):

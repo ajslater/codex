@@ -37,7 +37,7 @@ export default {
   },
   methods: {
     valueTable(value) {
-      return typeof value === "object" ? value : {};
+      return value && typeof value === "object" ? value : {};
     },
     tdClasses(key) {
       return {
