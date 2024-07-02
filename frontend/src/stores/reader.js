@@ -459,28 +459,31 @@ export const useReaderStore = defineStore("reader", {
         window.scrollTo(0, 0);
       }
     },
+    async loadBrowserSettings() {
+      return BROWSER_API.getSettings({
+        only: READER_INFO_ONLY_KEYS,
+        breadcrumbNames: false,
+      })
+        .then((response) => {
+          // Get reader settings before getting books ensures closeRoute.
+          // Get browser settings before getting books gets filters & breadcrumbs.
+          // Ensures getting the reader arc from breadcrumbs.
+          this.browserSettings = response.data;
+          if (!this.settingsLoaded) {
+            this.settingsLoaded = true;
+            return this.loadBooks({});
+          }
+          return true;
+        })
+        .catch(console.error);
+    },
     async loadReaderSettings() {
       API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
           this.empty = false;
-          return BROWSER_API.getSettings({
-            only: READER_INFO_ONLY_KEYS,
-            breadcrumbNames: false,
-          })
-            .then((response) => {
-              // Get reader settings before getting books ensures closeRoute.
-              // Get browser settings before getting books gets filters & breadcrumbs.
-              // Ensures getting the reader arc from breadcrumbs.
-              this.browserSettings = response.data;
-              if (!this.settingsLoaded) {
-                this.settingsLoaded = true;
-                return this.loadBooks({});
-              }
-              return true;
-            })
-            .catch(console.error);
+          return this.loadBrowserSettings();
         })
         .catch(console.error);
     },
@@ -554,8 +557,9 @@ export const useReaderStore = defineStore("reader", {
         .then((response) => {
           const newMtime = response.data.maxMtime;
           if (newMtime !== this.mtime) {
-            this.loadBooks({ mtime: newMtime });
+            return this.loadBooks({ mtime: newMtime });
           }
+          return true;
         })
         .catch(console.error);
     },
