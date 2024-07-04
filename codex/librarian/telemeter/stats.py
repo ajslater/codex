@@ -76,19 +76,11 @@ class CodexStats:
         models = self._get_models(key)
         obj = {}
         for model in models:
-            vnp = model._meta.verbose_name_plural
-            if vnp:
-                title = vnp.title()
-            else:
-                LOG.warning(f"No verbose plural name for {model.__name__}")
-                title = model.__name__
-
-            vnp_name = snakecase(title)
-            vnp_name += "_count"
+            name = snakecase(model.__name__) + "_count"
             qs = model.objects
             if model == Library:
                 qs = qs.filter(covers_only=False)
-            obj[vnp_name] = qs.count()
+            obj[name] = qs.count()
         return obj
 
     @staticmethod
@@ -125,23 +117,31 @@ class CodexStats:
             "docker": self._is_docker(),
             "machine": machine(),
             "cores": cpu_count(),
-            "system": system(),
-            "system_release": release(),
-            "python": python_version(),
-            "codex": VERSION,
+            "system": {
+                "name": system(),
+                "release": release(),
+            },
+            "python_version": python_version(),
+            "codex_version": VERSION,
         }
         obj["platform"] = platform
 
     def _get_config(self, obj):
         """Add dict of config informaation to object."""
         config = self._get_model_counts("config")
-        sessions, config["anonymous_users_count"] = self._get_session_stats()
-        config["registered_users_count"] = config.pop("users_count", 0)
-        config["user_groups_count"] = config.pop("groups_count", 0)
+        sessions, config["user_anonymous_count"] = self._get_session_stats()
+        config["user_registered_count"] = config.pop("users_count", 0)
+        config["auth_group_count"] = config.pop("groups_count", 0)
         obj["config"] = config
         obj["sessions"] = sessions
 
-    def _get_file_types(self):
+    def _get_groups(self, obj):
+        """Add dict of groups information to object."""
+        groups = self._get_model_counts("groups")
+        obj["groups"] = groups
+
+    @staticmethod
+    def _get_file_types(obj):
         """Query for file types."""
         file_types = {}
         qs = (
@@ -152,19 +152,8 @@ class CodexStats:
         for query_group in qs:
             value = query_group["file_type"]
             name = value.lower() if value else "unknown"
-            field = f"{name}_count"
-            file_types[field] = query_group["count"]
-        return file_types
-
-    def _get_groups(self, obj):
-        """Add dict of groups information to object."""
-        if not self.params or "groups" in self.params:
-            groups = self._get_model_counts("groups")
-            obj["groups"] = groups
-
-        if not self.params or "fileTypes" in self.params:
-            file_types = self._get_file_types()
-            obj["file_types"] = file_types
+            file_types[name] = query_group["count"]
+        obj["file_types"] = file_types
 
     def _get_metadata(self, obj):
         """Add dict of metadata counts to object."""
@@ -180,6 +169,8 @@ class CodexStats:
             self._get_config(obj)
         if not self.params or "groups" in self.params:
             self._get_groups(obj)
+        if not self.params or "fileTypes" in self.params:
+            self._get_file_types(obj)
         if not self.params or "metadata" in self.params:
             self._get_metadata(obj)
         return obj

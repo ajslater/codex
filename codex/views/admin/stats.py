@@ -12,7 +12,7 @@ from codex.models.admin import Timestamp
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin.stats import (
     AdminStatsRequestSerializer,
-    AdminStatsSerializer,
+    StatsSerializer,
 )
 from codex.views.admin.auth import AdminGenericAPIView
 
@@ -23,7 +23,7 @@ class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
     permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]  # type: ignore
-    serializer_class = AdminStatsSerializer
+    serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
     def _parse_params(self):
