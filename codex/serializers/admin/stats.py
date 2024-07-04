@@ -37,10 +37,10 @@ class StatsPlatformSerializer(Serializer):
 class StatsConfigSerializer(Serializer):
     """Config Information."""
 
-    auth_group_count = IntegerField(required=False, read_only=True)
     library_count = IntegerField(required=False, read_only=True)
     user_anonymous_count = IntegerField(required=False, read_only=True)
     user_registered_count = IntegerField(required=False, read_only=True)
+    auth_group_count = IntegerField(required=False, read_only=True)
     # Only for api
     api_key = CharField(required=False, read_only=True)
 

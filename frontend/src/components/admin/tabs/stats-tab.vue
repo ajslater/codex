@@ -61,6 +61,13 @@ const LOOKUPS = {
   fitTo: vueToLookup(CHOICES.reader.fitTo),
   readingDirection: vueToLookup(CHOICES.reader.readingDirection),
 };
+const CONFIG_LABELS = {
+  authGroupCount: "Authorization Groups",
+  libraryCount: "Libraries",
+  userAnonymousCount: "Anonymous Users",
+  userRegisteredCount: "Registered Users",
+};
+Object.freeze(CONFIG_LABELS);
 Object.freeze(LOOKUPS);
 const INDENT_KEYS = new Set([
   "storyArcNumbersCount",
@@ -99,13 +106,9 @@ export default {
     platformTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.platform)) {
-        let labelValue = value;
-        if (key === "system") {
-          labelValue += " " + this.stats.platform.systemRelease;
-        } else if (key === "systemRelease") {
-          continue;
-        }
         const label = this.keyToLabel(key);
+        const labelValue =
+          key === "system" ? `${value.name} ${value.release}` : value;
         table[label] = labelValue;
       }
       return table;
@@ -119,7 +122,7 @@ export default {
           apiKeyValue = value;
           continue;
         } else {
-          label = this.keyToLabel(key);
+          label = CONFIG_LABELS[key];
         }
         table[label] = value;
       }
@@ -148,7 +151,7 @@ export default {
     browserGroupsTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.groups)) {
-        const label = this.keyToLabel(key);
+        const label = this.keyToLabel(key) + "s";
         table[label] = value;
       }
       return table;
@@ -164,7 +167,8 @@ export default {
     metadataTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.metadata)) {
-        let label = this.keyToLabel(key);
+        let label =
+          key === "countryCount" ? "Countries" : this.keyToLabel(key) + "s";
         if (INDENT_KEYS.has(key)) {
           label = label.replace(/^\w+ /, "+");
         }
