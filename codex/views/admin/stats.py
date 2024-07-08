@@ -1,218 +1,70 @@
-"""Admin Flag View."""
+"""Admin Stats View."""
 
-from multiprocessing import cpu_count
-from pathlib import Path
-from platform import machine, python_version, release, system
-from types import MappingProxyType
 from typing import ClassVar
 
-from caseconverter import snakecase
-from django.contrib.sessions.models import Session
-from django.db.models import Count
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import empty
 
+from codex.librarian.stats import CodexStats
 from codex.logger.logging import get_logger
-from codex.models import (
-    Comic,
-    Library,
-    Timestamp,
-)
+from codex.models.admin import Timestamp
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin.stats import (
     AdminStatsRequestSerializer,
-    AdminStatsSerializer,
+    StatsSerializer,
 )
-from codex.version import VERSION
 from codex.views.admin.auth import AdminGenericAPIView
-from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
-from codex.views.session import SessionView
 
 LOG = get_logger(__name__)
-_KEY_MODELS_MAP = MappingProxyType(
-    {
-        "config": CONFIG_MODELS,
-        "groups": STATS_GROUP_MODELS,
-        "metadata": METADATA_MODELS,
-    }
-)
-_DOCKERENV_PATH = Path("/.dockerenv")
-_CGROUP_PATH = Path("/proc/self/cgroup")
-_USER_STATS = MappingProxyType(
-    {
-        SessionView.BROWSER_SESSION_KEY: ("top_group", "order_by", "dynamic_covers"),
-        SessionView.READER_SESSION_KEY: (
-            "finish_on_last_page",
-            "fit_to",
-            "reading_direction",
-        ),
-    }
-)
 
 
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
     permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]  # type: ignore
-    serializer_class = AdminStatsSerializer
+    serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
-    @classmethod
-    def _is_docker(cls):
-        """Test if we're in a docker container."""
-        try:
-            return _DOCKERENV_PATH.is_file() or "docker" in _CGROUP_PATH.read_text()
-        except Exception:
-            return False
+    def _parse_params(self):
+        """Parse and input params."""
+        data = self.request.GET
 
-    def _get_request_counts(self, key):
-        """Get lowercase names of requested fields."""
-        request_count_list = self.request.GET.get(key, "")
-        request_counts = set()
-        for name in request_count_list.split(","):
-            if name:
-                request_counts.add(name.lower())
-        return request_counts
+        input_serializer = self.input_serializer_class(data=data)
+        input_serializer.is_valid(raise_exception=True)
+        params = {}
+        if input_serializer.validated_data and not isinstance(
+            input_serializer.validated_data, empty
+        ):
+            for key, value in input_serializer.validated_data.items():
+                if value:
+                    params[key] = value
+        return params
 
-    def _get_models(self, key):
-        """Get models from request params."""
-        request_model_list = self.request.GET.get(key)
-        all_models = _KEY_MODELS_MAP[key]
-        if request_model_list:
-            models = []
-            for model_name in request_model_list.split(","):
-                for model in all_models:
-                    if model.__name__.lower() == model_name.lower():
-                        models.append(model)
-        else:
-            models = all_models
-        return models
-
-    def _get_model_counts(self, key):
-        """Get database counts of each model group."""
-        models = self._get_models(key)
-        obj = {}
-        for model in models:
-            vnp = model._meta.verbose_name_plural
-            if vnp:
-                title = vnp.title()
-            else:
-                LOG.warning(f"No verbose plural name for {model.__name__}")
-                title = model.__name__
-
-            vnp_name = snakecase(title)
-            vnp_name += "_count"
-            qs = model.objects
-            if model == Library:
-                qs = qs.filter(covers_only=False)
-            obj[vnp_name] = qs.count()
-        return obj
-
-    @staticmethod
-    def _aggregate_session_key(session, session_key, session_subkeys, user_stats):
-        session_dict = session.get(session_key, {})
-        for key in session_subkeys:
-            value = session_dict.get(key)
-            if value is None:
-                continue
-            if key not in user_stats:
-                user_stats[key] = {}
-            if value not in user_stats[key]:
-                user_stats[key][value] = 0
-            user_stats[key][value] += 1
-
-    @classmethod
-    def _get_session_stats(cls):
-        """Return the number of anonymous sessions."""
-        sessions = Session.objects.all()
-        anon_session_count = 0
-        user_stats = {}
-        for encoded_session in sessions:
-            session = encoded_session.get_decoded()
-            if not session.get("_auth_user_id"):
-                anon_session_count += 1
-            for session_key, subkeys in _USER_STATS.items():
-                cls._aggregate_session_key(session, session_key, subkeys, user_stats)
-
-        return user_stats, anon_session_count
-
-    def _get_platform(self, obj):
-        """Add dict of platform information to object."""
-        platform = {
-            "docker": self._is_docker(),
-            "machine": machine(),
-            "cores": cpu_count(),
-            "system": system(),
-            "system_release": release(),
-            "python": python_version(),
-            "codex": VERSION,
-        }
-        obj["platform"] = platform
-
-    def _get_config(self, obj):
-        """Add dict of config informaation to object."""
-        config = self._get_model_counts("config")
-        request_counts = self._get_request_counts("config")
-        sessions, config["anonymous_users_count"] = self._get_session_stats()
-        if not request_counts or "apikey" in request_counts:
-            config["api_key"] = Timestamp.objects.get(
-                key=Timestamp.TimestampChoices.API_KEY.value
-            ).version
-        config["registered_users_count"] = config.pop("users_count", 0)
-        config["user_groups_count"] = config.pop("groups_count", 0)
-        obj["config"] = config
-        obj["sessions"] = sessions
-
-    def _get_file_types(self):
-        """Query for file types."""
-        file_types = {}
-        qs = (
-            Comic.objects.values("file_type")
-            .annotate(count=Count("file_type"))
-            .order_by()
-        )
-        for query_group in qs:
-            value = query_group["file_type"]
-            name = value.lower() if value else "unknown"
-            field = f"{name}_count"
-            file_types[field] = query_group["count"]
-        return file_types
-
-    def _get_groups(self, obj):
-        """Add dict of groups information to object."""
-        if not self.params or "groups" in self.params:
-            groups = self._get_model_counts("groups")
-            obj["groups"] = groups
-
-        if not self.params or "fileTypes" in self.params:
-            file_types = self._get_file_types()
-            obj["file_types"] = file_types
-
-    def _get_metadata(self, obj):
-        """Add dict of metadata counts to object."""
-        metadata = self._get_model_counts("metadata")
-        obj["metadata"] = metadata
+    def _add_api_key(self, obj):
+        """Add the api key to the config object if specified."""
+        request_counts = self.params.get("config", {})
+        if request_counts and ("apikey" not in request_counts):
+            return
+        api_key = Timestamp.objects.get(
+            key=Timestamp.TimestampChoices.API_KEY.value
+        ).version
+        if "config" not in obj:
+            obj["config"] = {}
+        obj["config"]["api_key"] = api_key
 
     def get_object(self):
-        """Construct the stats object."""
-        obj = {}
-        if not self.params or "platform" in self.params:
-            self._get_platform(obj)
-        if not self.params or "config" in self.params:
-            self._get_config(obj)
-        if not self.params or "groups" in self.params:
-            self._get_groups(obj)
-        if not self.params or "metadata" in self.params:
-            self._get_metadata(obj)
+        """Get the stats object with an api key."""
+        getter = CodexStats(self.params)
+        obj = getter.get()
+        self._add_api_key(obj)
         return obj
 
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the stats object and serialize it."""
-        input_serializer = self.input_serializer_class(data=self.request.GET)
-        input_serializer.is_valid()
-        self.params = frozenset(input_serializer.validated_data.get("params", {}))  # type: ignore
-
+        self.params = self._parse_params()
         obj = self.get_object()
+
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
