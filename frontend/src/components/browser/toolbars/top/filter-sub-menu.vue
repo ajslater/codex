@@ -175,10 +175,14 @@ export default {
       }
       return item.title;
     },
+    async _loadSubAvailableFilterChoices() {
+      return this.loadAvailableFilterChoices().then(() => {
+        return this.loadFilterChoices(this.name);
+      });
+    },
     onClear() {
-      this.clearOneFilter(this.name).then(() => {
-        this.loadAvailableFilterChoices();
-        this.loadFilterChoices(this.name);
+      return this.clearOneFilter(this.name).then(() => {
+        return this._loadSubAvailableFilterChoices();
       });
     },
   },

@@ -598,6 +598,7 @@ export const useBrowserStore = defineStore("browser", {
             this.choices.dynamic = undefined;
             this.loadBrowserPage(newMtime);
           }
+          return true;
         })
         .catch(console.error);
     },
