@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fixed:
   - Reader crash loading reader order arcs.
   - OPDS datetimes now uniformly served in iso format.
+  - Fix browser filter menus clearing and loading irregularities.
 - Removed
   - LOGLEVEL=VERBOSE deprecated for a long time. Use LOGLEVEL=DEBUG
 
