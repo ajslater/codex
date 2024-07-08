@@ -88,7 +88,8 @@ class ReaderArcsView(ReaderBooksView):
 
         if browser_arc := self.params.get("browser_arc", {}):
             arcs.append(browser_arc)
-            max_mtime = max_none(max_mtime, browser_arc.get("mtime", max_mtime))
+            browser_arc_mtime = browser_arc.get("mtime")
+            max_mtime = max_none(max_mtime, browser_arc_mtime)
 
         browser_arc_group = browser_arc.get("group", "")
         max_mtime = self._get_group_arc(
