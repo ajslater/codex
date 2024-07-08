@@ -12,6 +12,8 @@ border-radius: 128px;
   - Reader crash loading reader order arcs.
   - OPDS datetimes now uniformly served in iso format.
   - Fix browser filter menus clearing and loading irregularities.
+  - Fix parsing negative issue numbers in filenames.
+  - Log common non-ComicBookInfo archive comments with less alarm.
 - Removed
   - LOGLEVEL=VERBOSE deprecated for a long time. Use LOGLEVEL=DEBUG
 

@@ -542,20 +542,20 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "1.1.9"
+version = "1.1.10"
 description = "An API for reading comic archive contents and metadata: CBZ, CBR, CBT and PDF"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "comicbox-1.1.9-py3-none-any.whl", hash = "sha256:1417ac905cc250e89b9127b6789aec917ca8eab5516563a472ae5343cb784902"},
-    {file = "comicbox-1.1.9.tar.gz", hash = "sha256:c18c941c1c7c1f304ae64e0c7d2e31a91faf3e6576238b397acf1b372c154ea2"},
+    {file = "comicbox-1.1.10-py3-none-any.whl", hash = "sha256:99ef2beb105e23333815c31767ef86baec3ab9f2e70ffb9c9259e4e4bf111788"},
+    {file = "comicbox-1.1.10.tar.gz", hash = "sha256:110dfa04e691993b399a9efa096fbf975de3dffe368ab519a06ba70b6c4e3d73"},
 ]
 
 [package.dependencies]
 ansicolors = ">=1.1.8,<2.0.0"
 bidict = ">=0.23.0,<0.24.0"
-comicbox-pdffile = {version = ">=0.1.5,<0.2.0", optional = true, markers = "extra == \"pdf\""}
-comicfn2dict = ">=0.2.2,<0.3.0"
+comicbox-pdffile = {version = ">=0.1.7,<0.2.0", optional = true, markers = "extra == \"pdf\""}
+comicfn2dict = ">=0.2.4,<0.3.0"
 confuse = ">=2.0.0,<3.0.0"
 marshmallow = ">=3.19.0,<4.0.0"
 marshmallow-union = ">=0.1.15.post1,<0.2.0"
@@ -569,7 +569,7 @@ urnparse = ">=0.2.0,<0.3.0"
 xmltodict = ">=0.13.0,<0.14.0"
 
 [package.extras]
-pdf = ["comicbox-pdffile (>=0.1.5,<0.2.0)"]
+pdf = ["comicbox-pdffile (>=0.1.7,<0.2.0)"]
 
 [[package]]
 name = "comicbox-pdffile"
@@ -3028,4 +3028,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "430538458d249f0b50adb6479c7167173f064e03caa140b4ba0e03a92c2cf5dc"
+content-hash = "e04dae6c9907be714c460843503b9f4282375f2be07313d162a6a8c4ac759a34"
