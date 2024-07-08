@@ -9,6 +9,7 @@ import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 // import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 import eslintPluginPrettier from "eslint-plugin-prettier";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import eslintPluginPromise from "eslint-plugin-promise";
 import eslintPluginRegexp from "eslint-plugin-regexp";
 import eslintPluginSecurity from "eslint-plugin-security";
 import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
@@ -20,14 +21,16 @@ import globals from "globals";
 
 const compat = new FlatCompat();
 
-const ignores = [
-  "*~",
-  "**/__pycache__",
-  ".git",
+const IGNORES = [
   "!.circleci",
+  "**/__pycache__",
+  "**/*min.css",
+  "**/*min.js",
+  "*~",
+  ".git",
   ".mypy_cache",
-  ".ruff_cache",
   ".pytest_cache",
+  ".ruff_cache",
   ".venv*",
   "bin/docker/registry.yaml", // breaks prettier plugin idk why
   "cache/*",
@@ -50,26 +53,26 @@ const ignores = [
   "test-results",
   "typings",
 ];
-
-const securityRules = {
-  // Adding recommended and then turning off rules does not work.
-  "security/detect-buffer-noassert": "warn",
-  "security/detect-child-process": "warn",
-  "security/detect-disable-mustache-escape": "warn",
-  "security/detect-eval-with-expression": "warn",
-  "security/detect-new-buffer": "warn",
-  "security/detect-no-csrf-before-method-override": "warn",
-  "security/detect-non-literal-fs-filename": "warn",
-  "security/detect-non-literal-regexp": "warn",
-  "security/detect-non-literal-require": "warn",
-  //'security/detect-object-injection': 'warn',
-  "security/detect-possible-timing-attacks": "warn",
-  "security/detect-pseudoRandomBytes": "warn",
-  "security/detect-unsafe-regex": "warn",
-  "security/detect-bidi-characters": "warn",
-};
+Object.freeze(IGNORES);
+const FLAT_RECOMMENDED = "flat/recommended";
+Object.freeze(FLAT_RECOMMENDED);
 
 export default [
+  js.configs.recommended,
+  eslintPluginArrayFunc.configs.all,
+  ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
+  ...eslintPluginMarkdown.configs.recommended,
+  // eslintPluginNoUseExtendNative.configs.recommended,
+  // eslintPluginNoUnsanitized.configs.recommended,
+  eslintPluginPrettierRecommended,
+  eslintPluginPromise.configs[FLAT_RECOMMENDED],
+  eslintPluginRegexp.configs[FLAT_RECOMMENDED],
+  eslintPluginSecurity.configs.recommended,
+  eslintPluginSonarjs.configs.recommended,
+  ...eslintPluginToml.configs[FLAT_RECOMMENDED],
+  ...eslintPluginYml.configs["flat/standard"],
+  ...eslintPluginYml.configs["flat/prettier"],
+  eslintConfigPrettier, // Best if last
   {
     languageOptions: {
       globals: {
@@ -88,24 +91,13 @@ export default [
       // "no-use-extend-native": eslintPluginNoUseExtendNative,
       // "no-unsantized": eslintPluginNoUnsanitized,
       prettier: eslintPluginPrettier,
+      promise: eslintPluginPromise,
       security: eslintPluginSecurity,
       "simple-import-sort": eslintPluginSimpleImportSort,
       toml: eslintPluginToml,
       unicorn: eslintPluginUnicorn,
       yml: eslintPluginYml,
     },
-    /*
-    settings: {
-      "import/parsers": {
-        espree: [".js", ".cjs", ".mjs", ".jsx"],
-        "@typescript-eslint/parser": [".ts"],
-      },
-      "import/resolver": {
-        typescript: true, 
-        node: true,
-      },
-    },
-     */
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
       // "import/no-unresolved": ["error", { ignore: ["^[@]"] } ],
@@ -116,8 +108,7 @@ export default [
       "no-constructor-bind/no-constructor-state": "error",
       "no-secrets/no-secrets": "error",
       "prettier/prettier": "warn",
-      // "security/detect-object-injection": "off",
-      ...securityRules,
+      "security/detect-object-injection": "off",
       "simple-import-sort/exports": "warn",
       "simple-import-sort/imports": "warn",
       "space-before-function-paren": "off",
@@ -129,22 +120,8 @@ export default [
         { case: "kebabCase", ignore: [".*.md"] },
       ],
     },
-    ignores,
+    ignores: IGNORES,
   },
-  js.configs.recommended,
-  eslintPluginArrayFunc.configs.all,
-  ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
-  ...eslintPluginMarkdown.configs.recommended,
-  // eslintPluginNoUseExtendNative.configs.recommended,
-  // eslintPluginNoUnsanitized.configs.recommended,
-  eslintPluginRegexp.configs["flat/recommended"],
-  // eslintPluginSecurity.configs.recommended,
-  eslintPluginSonarjs.configs.recommended,
-  ...eslintPluginToml.configs["flat/recommended"],
-  ...eslintPluginYml.configs["flat/standard"],
-  ...eslintPluginYml.configs["flat/prettier"],
-  eslintPluginPrettierRecommended,
-  eslintConfigPrettier, // Best if last
   {
     files: ["**/*.md"],
     processor: "markdown/markdown",
@@ -166,7 +143,7 @@ export default [
     },
   },
   {
-    files: ["*.toml"],
+    files: ["**/*.toml"],
     rules: {
       "prettier/prettier": ["error", { parser: "toml" }],
     },
@@ -195,6 +172,6 @@ export default [
       "no-constructor-bind/no-constructor-bind": "error",
       "no-constructor-bind/no-constructor-state": "error",
     },
-    ignorePatterns: ignores,
+    ignorePatterns: IGNORES,
   }),
 ];
