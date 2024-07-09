@@ -1,11 +1,12 @@
 <template>
-  <DrawerItem
-    v-if="user"
-    :prepend-icon="mdiLogout"
-    :title="logoutTitle"
-    @click.stop="logout"
-  />
-  <ChangePasswordDialog v-if="user" :user="user" />
+  <div v-if="user">
+    <DrawerItem
+      :prepend-icon="mdiLogout"
+      :title="logoutTitle"
+      @click.stop="logout"
+    />
+    <ChangePasswordDialog v-if="showChangePassword" :user="user" />
+  </div>
   <AuthLoginDialog v-else />
 </template>
 
@@ -24,6 +25,12 @@ export default {
     AuthLoginDialog,
     ChangePasswordDialog,
     DrawerItem,
+  },
+  props: {
+    showChangePassword: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {

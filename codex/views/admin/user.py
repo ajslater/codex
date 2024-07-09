@@ -49,6 +49,19 @@ class AdminUserViewSet(AdminModelViewSet):
         super().perform_update(serializer)
         self._on_change()
 
+    def perform_create(self, serializer):
+        """Create user."""
+        validated_data = serializer.validated_data
+        password = validated_data["password"]
+        validate_password(password)
+        groups = validated_data.pop("groups")
+        validated_data["email"] = ""
+        user = User.objects.create_user(**validated_data)
+
+        if groups:
+            user.groups.set(groups)
+            user.save()
+
 
 class AdminUserChangePasswordView(AdminGenericAPIView):
     """Special View to hash user password."""

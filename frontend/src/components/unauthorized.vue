@@ -8,7 +8,8 @@
       :icon="mdiLockOutline"
     >
       <div class="login">
-        <AuthMenu />
+        <AdminBrowserLink />
+        <AuthMenu :show-change-password="false" />
       </div>
     </EmptyState>
     <PlaceholderLoading v-else id="unauthorizedPlaceholder" />
@@ -19,6 +20,7 @@
 import { mdiLockOutline } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
+import AdminBrowserLink from "@/components/admin/browser-link.vue";
 import AuthMenu from "@/components/auth/auth-menu.vue";
 import EmptyState from "@/components/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
@@ -27,6 +29,7 @@ import { useAuthStore } from "@/stores/auth";
 export default {
   name: "UnauthorizedEmptyState",
   components: {
+    AdminBrowserLink,
     AuthMenu,
     PlaceholderLoading,
     EmptyState,
@@ -75,6 +78,7 @@ export default {
 .login {
   color: rgb(var(--v-theme-primary));
 }
+
 .login :deep(.v-list-item__prepend) {
   margin-right: 0.25em;
 }
