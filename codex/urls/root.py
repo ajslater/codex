@@ -7,7 +7,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, register_converter, set_script_prefix
 from django.views.generic.base import RedirectView
 
-from codex.settings.settings import ROOT_PATH, SCHEMA_GRAPH
+from codex.settings.settings import DEBUG, ROOT_PATH
 from codex.urls.converters import GroupConverter, IntListConverter
 
 register_converter(GroupConverter, "group")
@@ -19,11 +19,12 @@ if ROOT_PATH:
 
 
 urlpatterns = []
-if SCHEMA_GRAPH:
-    from schema_graph.views import Schema
+if DEBUG:
+    # Pyright doesn't follow logic so will try to find these types.
+    from schema_graph.views import Schema  # type: ignore
 
     urlpatterns += [
-        path("schema/", Schema.as_view()),
+        path("schema/", Schema.as_view()),  # type: ignore
     ]
 
 urlpatterns += [
