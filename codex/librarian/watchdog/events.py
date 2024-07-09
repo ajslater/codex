@@ -191,8 +191,8 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
             events = self._transform_file_event(event)
 
             # Send it to the EventBatcher
-            for event in events:
-                task = WatchdogEventTask(self.library_pk, event)
+            for sub_event in events:
+                task = WatchdogEventTask(self.library_pk, sub_event)
                 self.librarian_queue.put(task)
 
             # Calls stub event dispatchers

@@ -168,6 +168,7 @@ class OPDS1LinksView(OPDS1FacetsView):
                     reverse("opds:authentication:v1"),
                     MimeType.AUTHENTICATION,
                 ),
+                OPDS1Link(Rel.START, reverse("opds:v1:start"), MimeType.NAV),
                 OPDS1Link(
                     "search", reverse("opds:v1:opensearch_v1"), MimeType.OPENSEARCH
                 ),

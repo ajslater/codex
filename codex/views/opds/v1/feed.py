@@ -96,10 +96,14 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
     @property
     def updated(self):
         """Use mtime for updated."""
+        datestr = ""
         try:
-            return self.obj.get("mtime", "")
+            mtime = self.obj.get("mtime")
+            if mtime:
+                datestr = mtime.isoformat()  # type: ignore
         except Exception:
             LOG.exception("Getting OPDS v1 updated")
+        return datestr
 
     @property
     def items_per_page(self):

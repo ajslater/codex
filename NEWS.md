@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.4
+
+- Fixed:
+  - Reader crash loading reader order arcs.
+  - OPDS datetimes now uniformly served in iso format.
+  - Fix browser filter menus clearing and loading irregularities.
+  - Fix parsing negative issue numbers in filenames.
+  - Log common non-ComicBookInfo archive comments with less alarm.
+- Removed
+  - LOGLEVEL=VERBOSE deprecated for a long time. Use LOGLEVEL=DEBUG
+
 ## v1.6.3
 
 - Features

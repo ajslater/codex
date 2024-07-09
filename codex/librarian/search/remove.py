@@ -38,39 +38,43 @@ class RemoveMixin(VersionMixin):
                     return delete_docnums
         return delete_docnums
 
+    def _remove_stale_records(self, backend: CodexSearchBackend | None, status):  # type: ignore
+        """Remove records not in the database from the index."""
+        start_time = time()
+        if not backend:
+            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
+        if not backend.setup_complete:
+            backend.setup(False)
+
+        delete_docnums = self._get_delete_docnums(backend)
+        num_delete_docnums = len(delete_docnums)
+        count = 0
+        if num_delete_docnums:
+            status.total = num_delete_docnums
+            self.status_controller.start(status)
+            count = backend.remove_docnums(delete_docnums)
+
+        # Finish
+        if count:
+            elapsed_time = time() - start_time
+            elapsed = naturaldelta(elapsed_time)
+            cps = int(count / elapsed_time)
+            self.log.info(
+                f"Removed {count} stale records from the search index"
+                f" in {elapsed} at {cps} per second."
+            )
+        else:
+            self.log.debug("No stale records to remove from the search index.")
+
     def remove_stale_records(
         self,
         backend: CodexSearchBackend | None = None,  # type: ignore
     ):
-        """Remove records not in the database from the index."""
+        """Remove records not in the database from the index, trapping exceptions."""
         self.abort_event.clear()
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         try:
-            start_time = time()
-            if not backend:
-                backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-            if not backend.setup_complete:
-                backend.setup(False)
-
-            delete_docnums = self._get_delete_docnums(backend)
-            num_delete_docnums = len(delete_docnums)
-            count = 0
-            if num_delete_docnums:
-                status.total = num_delete_docnums
-                self.status_controller.start(status)
-                count = backend.remove_docnums(delete_docnums)
-
-            # Finish
-            if count:
-                elapsed_time = time() - start_time
-                elapsed = naturaldelta(elapsed_time)
-                cps = int(count / elapsed_time)
-                self.log.info(
-                    f"Removed {count} stale records from the search index"
-                    f" in {elapsed} at {cps} per second."
-                )
-            else:
-                self.log.debug("No stale records to remove from the search index.")
+            self._remove_stale_records(backend, status)
         except Exception:
             self.log.exception("Removing stale records:")
         finally:

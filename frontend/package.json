@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -47,11 +47,11 @@
     "sass-loader": "^14.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^5.0.10",
-    "vite-plugin-checker": "^0.6.0",
+    "vite-plugin-checker": "^0.7.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-static-copy": "^1.0.0",
     "vite-plugin-vuetify": "^2.0.1",
-    "vitest": "^1.1.2",
+    "vitest": "^2.0.1",
     "vue-eslint-parser": "^9.0.2"
   }
 }

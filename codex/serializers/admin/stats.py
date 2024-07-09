@@ -1,6 +1,5 @@
 """Admin stats serializers."""
 
-from rest_framework.fields import MultipleChoiceField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -8,66 +7,45 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.fields import CountDictField
+from codex.serializers.fields import (
+    CountDictField,
+    SerializerChoicesField,
+    StringListMultipleChoiceField,
+)
+
+FILE_TYPES_CHOICES = ("CBZ", "CBR", "CBT", "PDF", "UNKNOWN")
 
 
-class AdminGroupSerializer(Serializer):
-    """Group Counts."""
+class StatsSystemSerializer(Serializer):
+    """Platform System Information."""
 
-    publishers_count = IntegerField(required=False, read_only=True)
-    imprints_count = IntegerField(required=False, read_only=True)
-    series_count = IntegerField(required=False, read_only=True)
-    volumes_count = IntegerField(required=False, read_only=True)
-    issues_count = IntegerField(required=False, read_only=True)
-    folders_count = IntegerField(required=False, read_only=True)
-    story_arcs_count = IntegerField(required=False, read_only=True)
+    name = CharField(required=False, read_only=True)
+    release = CharField(required=False, read_only=True)
 
 
-class AdminFileTypeSerializer(Serializer):
-    """File Type Counts."""
+class StatsPlatformSerializer(Serializer):
+    """Platform Information."""
 
-    pdf_count = IntegerField(required=False, read_only=True)
-    cbz_count = IntegerField(required=False, read_only=True)
-    cbr_count = IntegerField(required=False, read_only=True)
-    cbt_count = IntegerField(required=False, read_only=True)
-    unknown_count = IntegerField(required=False, read_only=True)
-
-
-class AdminComicMetadataSerializer(Serializer):
-    """Metadata Counts."""
-
-    age_ratings_count = IntegerField(required=False, read_only=True)
-    characters_count = IntegerField(required=False, read_only=True)
-    contributors_count = IntegerField(required=False, read_only=True)
-    contributor_persons_count = IntegerField(required=False, read_only=True)
-    contributor_roles_count = IntegerField(required=False, read_only=True)
-    countries_count = IntegerField(required=False, read_only=True)
-    genres_count = IntegerField(required=False, read_only=True)
-    identifiers_count = IntegerField(required=False, read_only=True)
-    identifier_types_count = IntegerField(required=False, read_only=True)
-    languages_count = IntegerField(required=False, read_only=True)
-    locations_count = IntegerField(required=False, read_only=True)
-    original_formats_count = IntegerField(required=False, read_only=True)
-    series_groups_count = IntegerField(required=False, read_only=True)
-    scan_infos_count = IntegerField(required=False, read_only=True)
-    story_arcs_count = IntegerField(required=False)
-    story_arc_numbers_count = IntegerField(required=False, read_only=True)
-    tags_count = IntegerField(required=False, read_only=True)
-    taggers_count = IntegerField(required=False, read_only=True)
-    teams_count = IntegerField(required=False, read_only=True)
+    docker = BooleanField(read_only=True)
+    machine = CharField(read_only=True)
+    cores = IntegerField(read_only=True)
+    system = StatsSystemSerializer(read_only=True)
+    python_version = CharField(read_only=True)
+    codex_version = CharField(read_only=True)
 
 
-class AdminConfigSerializer(Serializer):
+class StatsConfigSerializer(Serializer):
     """Config Information."""
 
+    library_count = IntegerField(required=False, read_only=True)
+    user_anonymous_count = IntegerField(required=False, read_only=True)
+    user_registered_count = IntegerField(required=False, read_only=True)
+    auth_group_count = IntegerField(required=False, read_only=True)
+    # Only for api
     api_key = CharField(required=False, read_only=True)
-    user_groups_count = IntegerField(required=False, read_only=True)
-    libraries_count = IntegerField(required=False, read_only=True)
-    anonymous_users_count = IntegerField(required=False, read_only=True)
-    registered_users_count = IntegerField(required=False, read_only=True)
 
 
-class AdminSessionsSerializer(Serializer):
+class StatsSessionsSerializer(Serializer):
     """Session Settings."""
 
     top_group = CountDictField(required=False, read_only=True)
@@ -78,34 +56,68 @@ class AdminSessionsSerializer(Serializer):
     reading_direction = CountDictField(required=False, read_only=True)
 
 
-class AdminPlatformSerializer(Serializer):
-    """Platform Information."""
+class StatsGroupSerializer(Serializer):
+    """Group Counts."""
 
-    docker = BooleanField(read_only=True)
-    machine = CharField(read_only=True)
-    cores = IntegerField(read_only=True)
-    system = CharField(read_only=True)
-    system_release = CharField(read_only=True)
-    python = CharField(read_only=True)
-    codex = CharField(read_only=True)
+    publisher_count = IntegerField(required=False, read_only=True)
+    imprint_count = IntegerField(required=False, read_only=True)
+    series_count = IntegerField(required=False, read_only=True)
+    volume_count = IntegerField(required=False, read_only=True)
+    issue_count = IntegerField(required=False, read_only=True)
+    folder_count = IntegerField(required=False, read_only=True)
+    story_arc_count = IntegerField(required=False, read_only=True)
 
 
-class AdminStatsSerializer(Serializer):
+class StatsComicMetadataSerializer(Serializer):
+    """Metadata Counts."""
+
+    age_rating_count = IntegerField(required=False, read_only=True)
+    character_count = IntegerField(required=False, read_only=True)
+    contributor_count = IntegerField(required=False, read_only=True)
+    contributor_person_count = IntegerField(required=False, read_only=True)
+    contributor_role_count = IntegerField(required=False, read_only=True)
+    country_count = IntegerField(required=False, read_only=True)
+    genre_count = IntegerField(required=False, read_only=True)
+    identifier_count = IntegerField(required=False, read_only=True)
+    identifier_type_count = IntegerField(required=False, read_only=True)
+    language_count = IntegerField(required=False, read_only=True)
+    location_count = IntegerField(required=False, read_only=True)
+    original_format_count = IntegerField(required=False, read_only=True)
+    series_group_count = IntegerField(required=False, read_only=True)
+    scan_info_count = IntegerField(required=False, read_only=True)
+    story_arc_count = IntegerField(required=False)
+    story_arc_number_count = IntegerField(required=False, read_only=True)
+    tag_count = IntegerField(required=False, read_only=True)
+    tagger_count = IntegerField(required=False, read_only=True)
+    team_count = IntegerField(required=False, read_only=True)
+
+
+class StatsSerializer(Serializer):
     """Admin Stats Tab."""
 
-    platform = AdminPlatformSerializer(required=False)
-    config = AdminConfigSerializer(required=False)
-    sessions = AdminSessionsSerializer(required=False)
-    groups = AdminGroupSerializer(required=False)
-    file_types = AdminFileTypeSerializer(required=False)
-    metadata = AdminComicMetadataSerializer(required=False)
+    platform = StatsPlatformSerializer(required=False)
+    config = StatsConfigSerializer(required=False)
+    sessions = StatsSessionsSerializer(required=False)
+    groups = StatsGroupSerializer(required=False)
+    file_types = CountDictField(required=False)
+    metadata = StatsComicMetadataSerializer(required=False)
 
 
 class AdminStatsRequestSerializer(Serializer):
     """Admin Stats Tab Request."""
 
-    PARAMS_CHOICES = ("groups", "fileTypes", "platform", "config", "groups", "metadata")
-    params = MultipleChoiceField(choices=PARAMS_CHOICES, required=False)
+    platform = SerializerChoicesField(
+        serializer=StatsPlatformSerializer, required=False
+    )
+    config = SerializerChoicesField(serializer=StatsConfigSerializer, required=False)
+    sessions = SerializerChoicesField(
+        serializer=StatsSessionsSerializer, required=False
+    )
+    groups = SerializerChoicesField(serializer=StatsGroupSerializer, required=False)
+    file_types = StringListMultipleChoiceField(choices=FILE_TYPES_CHOICES)
+    metadata = SerializerChoicesField(
+        serializer=StatsComicMetadataSerializer, required=False
+    )
 
 
 class APIKeySerializer(Serializer):

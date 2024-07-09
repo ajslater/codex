@@ -22,10 +22,10 @@ class ReaderArcsView(ReaderBooksView):
     def _get_group_arc(self, book, attr, browser_arc_group, arcs, max_mtime):  # noqa: PLR0913
         """Append the volume arc."""
         if browser_arc_group == attr[0]:
-            return None, max_mtime
+            return max_mtime
         group = getattr(book, attr, None)
         if not group:
-            return None, max_mtime
+            return max_mtime
 
         _, arc_pks = self.get_group_pks_from_breadcrumbs([group])
         if group.pk not in arc_pks:
@@ -48,7 +48,7 @@ class ReaderArcsView(ReaderBooksView):
             .on
         )
         if not efv_flag or browser_arc_group == FOLDER_GROUP:
-            return None, max_mtime
+            return max_mtime
 
         folder = book.parent_folder
         arcs.append(
@@ -88,7 +88,8 @@ class ReaderArcsView(ReaderBooksView):
 
         if browser_arc := self.params.get("browser_arc", {}):
             arcs.append(browser_arc)
-            max_mtime = max_none(max_mtime, browser_arc.get("mtime", max_mtime))
+            browser_arc_mtime = browser_arc.get("mtime")
+            max_mtime = max_none(max_mtime, browser_arc_mtime)
 
         browser_arc_group = browser_arc.get("group", "")
         max_mtime = self._get_group_arc(
