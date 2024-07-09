@@ -164,7 +164,7 @@ class StringListMultipleChoiceField(MultipleChoiceField):
         """Convert comma delimited strings to sets."""
         if isinstance(data, str):
             data = frozenset(data.split(","))
-        return super().to_internal_value(data)
+        return super().to_internal_value(data)  # type: ignore
 
 
 class SerializerChoicesField(StringListMultipleChoiceField):
