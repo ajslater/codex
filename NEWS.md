@@ -6,9 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.5
+
+- Fixes:
+  - Fix logout button not working.
+
 ## v1.6.4
 
-- Fixed:
+- Fixes:
   - Reader crash loading reader order arcs.
   - OPDS datetimes now uniformly served in iso format.
   - Fix browser filter menus clearing and loading irregularities.

@@ -1,6 +1,11 @@
 <template>
-  <DrawerItem v-if="user" :prepend-icon="mdiLogout" :title="logoutTitle" />
-  <ChangePasswordDialog v-if="user" :user="user" @click.stop="logout" />
+  <DrawerItem
+    v-if="user"
+    :prepend-icon="mdiLogout"
+    :title="logoutTitle"
+    @click.stop="logout"
+  />
+  <ChangePasswordDialog v-if="user" :user="user" />
   <AuthLoginDialog v-else />
 </template>
 
