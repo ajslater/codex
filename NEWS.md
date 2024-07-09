@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.6
+
+- Fixes
+  - There was confusing UI on admin panel unauthorized screen.
+
 ## v1.6.5
 
 - Fixes:

@@ -54,16 +54,19 @@ class TimezoneView(AuthGenericAPIView):
     @extend_schema(request=input_serializer_class)
     def put(self, request, *args, **kwargs):
         """Get the user info for the current user."""
-        data = self.request.data  # type: ignore
-        serializer = self.input_serializer_class(data=data)
-        serializer.is_valid(raise_exception=True)
-        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
-        request.session.save()
-        user = self.request.user
-        if user.is_authenticated:
-            UserActive.objects.update_or_create(user=user)
-        serializer = self.get_serializer()
-        return Response(serializer.data)
+        try:
+            data = self.request.data  # type: ignore
+            serializer = self.input_serializer_class(data=data)
+            serializer.is_valid(raise_exception=True)
+            request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
+            request.session.save()
+            user = self.request.user
+            if user.is_authenticated:
+                UserActive.objects.update_or_create(user=user)
+            serializer = self.get_serializer()
+            return Response(serializer.data)
+        except Exception:
+            LOG.exception("timezone put")
 
 
 class GroupACLMixin:
