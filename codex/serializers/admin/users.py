@@ -10,7 +10,13 @@ from rest_framework.serializers import (
 from codex.serializers.models.base import BaseModelSerializer
 
 
-class UserSerializer(BaseModelSerializer):
+class UserChangePasswordSerializer(Serializer):
+    """Special User Change Password Serializer."""
+
+    password = CharField(write_only=True)
+
+
+class UserSerializer(BaseModelSerializer, UserChangePasswordSerializer):
     """User Serializer."""
 
     last_active = DateTimeField(
@@ -24,6 +30,7 @@ class UserSerializer(BaseModelSerializer):
         fields = (
             "pk",
             "username",
+            "password",
             "groups",
             "is_staff",
             "is_active",
@@ -32,9 +39,3 @@ class UserSerializer(BaseModelSerializer):
             "date_joined",
         )
         read_only_fields = ("pk", "last_active", "last_login", "date_joined")
-
-
-class UserChangePasswordSerializer(Serializer):
-    """Special User Change Password Serializer."""
-
-    password = CharField(write_only=True)
