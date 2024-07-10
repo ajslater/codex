@@ -53,7 +53,7 @@ export default {
       return !this.$router.currentRoute?.value?.name?.startsWith("admin");
     },
     failedImportsIcon() {
-      return this.unseenFailedIimports ? mdiBookAlert : undefined;
+      return this.unseenFailedImports ? mdiBookAlert : undefined;
     },
   },
   methods: {

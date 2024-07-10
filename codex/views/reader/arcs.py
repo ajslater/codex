@@ -48,7 +48,7 @@ class ReaderArcsView(ReaderBooksView):
             .on
         )
         if not efv_flag or browser_arc_group == FOLDER_GROUP:
-            return None, max_mtime
+            return max_mtime
 
         folder = book.parent_folder
         arcs.append(

@@ -6,11 +6,31 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.7
+
+- Fixes
+  - OPDS authoriztaion for chunky
+  - Superfluous debug exception trace on timezone endpoint.
+
+## v1.6.6
+
+- Fixes
+  - User creation in admin panel broke.
+  - There was confusing UI on admin panel unauthorized screen.
+
+## v1.6.5
+
+- Fixes:
+  - Fix logout button not working.
+
 ## v1.6.4
 
-- Fixed:
+- Fixes:
+  - Reader crash loading reader order arcs.
   - OPDS datetimes now uniformly served in iso format.
-  - Crash loading reader reading orders.
+  - Fix browser filter menus clearing and loading irregularities.
+  - Fix parsing negative issue numbers in filenames.
+  - Log common non-ComicBookInfo archive comments with less alarm.
 - Removed
   - LOGLEVEL=VERBOSE deprecated for a long time. Use LOGLEVEL=DEBUG
 

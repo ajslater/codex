@@ -153,7 +153,8 @@ class CodexStats:
             value = query_group["file_type"]
             name = value.lower() if value else "unknown"
             file_types[name] = query_group["count"]
-        obj["file_types"] = file_types
+        sorted_fts = dict(sorted(file_types.items()))
+        obj["file_types"] = sorted_fts
 
     def _get_metadata(self, obj):
         """Add dict of metadata counts to object."""

@@ -20,10 +20,11 @@ if ROOT_PATH:
 
 urlpatterns = []
 if DEBUG:
-    from schema_graph.views import Schema
+    # Pyright doesn't follow logic so will try to find these types.
+    from schema_graph.views import Schema  # type: ignore
 
     urlpatterns += [
-        path("schema/", Schema.as_view()),
+        path("schema/", Schema.as_view()),  # type: ignore
     ]
 
 urlpatterns += [

@@ -45,6 +45,8 @@ import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
+import { capitalize } from "lodash";
+
 import CHOICES from "@/choices.json";
 
 const vueToLookup = (choices) => {
@@ -159,7 +161,10 @@ export default {
     fileTypesTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.fileTypes)) {
-        const label = this.keyToLabel(key).toUpperCase();
+        const label =
+          key === "unknown"
+            ? capitalize(key)
+            : this.keyToLabel(key).toUpperCase();
         table[label] = value;
       }
       return table;

@@ -1,25 +1,13 @@
 <template>
-  <DrawerItem :to="lastRoute" :prepend-icon="mdiBookshelf" title="Browser" />
+  <AdminBrowserLink />
 </template>
 <script>
-import { mdiBookshelf } from "@mdi/js";
-import { mapGetters } from "pinia";
-
-import DrawerItem from "@/components/drawer-item.vue";
-import { useBrowserStore } from "@/stores/browser";
+import AdminBrowserLink from "@/components/admin/browser-link.vue";
 
 export default {
   name: "AdminSettingsPanel",
   components: {
-    DrawerItem,
-  },
-  data() {
-    return {
-      mdiBookshelf,
-    };
-  },
-  computed: {
-    ...mapGetters(useBrowserStore, ["lastRoute"]),
+    AdminBrowserLink,
   },
 };
 </script>
