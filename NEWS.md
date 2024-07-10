@@ -9,7 +9,7 @@ border-radius: 128px;
 ## v1.6.7
 
 - Fixes
-  - OPDS authoriztaion for some readers
+  - OPDS authorization for some readers
   - Remove superfluous debug exception trace on timezone endpoint.
 
 ## v1.6.6
