@@ -4,6 +4,7 @@ from datetime import datetime
 from math import floor
 from urllib.parse import quote_plus
 
+from comicbox.box import Comicbox
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
@@ -96,6 +97,16 @@ class OPDS1EntryLinksMixin:
         mime_type = self.mime_type_map.get(self.obj.file_type, MimeType.OCTET)
         return OPDS1Link(Rel.ACQUISITION, href, mime_type, length=self.obj.size)
 
+    def lazy_metadata(self):
+        """Get barebones metadata lazily to make pse work for chunky-like readers."""
+        if self.obj.page_count and self.obj.file_type:
+            return False
+        with Comicbox(self.obj.path) as cb:
+            self.obj.page_count = cb.get_page_count()
+            self.obj.file_type = cb.get_file_type()
+        LOG.debug(f"Got lazy opds pse metadata for {self.obj.path}")
+        return True
+
     def _stream_link(self):
         pk = self.obj.pk
         if not pk:
@@ -107,13 +118,14 @@ class OPDS1EntryLinksMixin:
         href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
         # extra stupid pse chunky fix for no metadata
-        count = max(self.obj.page_count, 1)
+        self.lazy_metadata()
+        pse_count = self.obj.page_count
         bookmark_updated_at = self.obj.bookmark_updated_at
         return OPDS1Link(
             Rel.STREAM,
             href,
             MimeType.STREAM,
-            pse_count=count,
+            pse_count=pse_count,
             pse_last_read=page,
             pse_last_read_date=bookmark_updated_at,
         )
