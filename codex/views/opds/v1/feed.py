@@ -3,7 +3,6 @@
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from comicbox.box import Comicbox
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -30,7 +29,6 @@ from codex.views.opds.v1.links import (
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from django.db.models import QuerySet
 
 LOG = get_logger(__name__)
 
@@ -132,15 +130,20 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
                 self.acquisition_groups, zero_pad, metadata, self.mime_type_map
             )
             fallback = bool(self.admin_flags.get("folder_view"))
+            import_pks = set()
             for obj in objs:  # type: ignore
-                entries += [
-                    OPDS1Entry(
-                        obj,
-                        self.request.GET,
-                        data,
-                        title_filename_fallback=fallback,
-                    )
-                ]
+                entry = OPDS1Entry(
+                    obj,
+                    self.request.GET,
+                    data,
+                    title_filename_fallback=fallback,
+                )
+                if key == "books" and entry.lazy_metadata():
+                    import_pks.add(obj.pk)
+                entries.append(entry)
+            if import_pks:
+                task = LazyImportComicsTask(frozenset(import_pks))
+                LIBRARIAN_QUEUE.put(task)
         return entries
 
     @property
@@ -161,28 +164,6 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         except Exception:
             LOG.exception("Getting OPDS v1 entries")
         return entries
-
-    def _ensure_page_counts(self):
-        """Ensure page counts on books with just in time comicbox."""
-        if self.admin_flags.get("import_metadata"):
-            return
-        books_qs: QuerySet = self.obj["books"]  # type: ignore
-        import_pks = set()
-        new_books = []
-        for book in books_qs:
-            if book.page_count is not None:
-                continue
-            with Comicbox(book.path) as cb:
-                book.file_type = cb.get_file_type()
-                book.page_count = cb.get_page_count()
-            new_books.append(book)
-            import_pks.add(book.pk)
-        if new_books:
-            writable_obj = dict(self.obj)
-            writable_obj["books"] = new_books  # type: ignore
-            self.obj = MappingProxyType(writable_obj)
-            task = LazyImportComicsTask(frozenset(import_pks))
-            LIBRARIAN_QUEUE.put(task)
 
     def get_object(self):  # type: ignore
         """Get the browser page and serialize it for this subclass."""
@@ -205,8 +186,6 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         )
 
         self.is_aq_feed = self.model_group in ("c", "f")
-
-        self._ensure_page_counts()
 
         # Do not return a Mapping despite the type. Return self for the serializer.
         return self

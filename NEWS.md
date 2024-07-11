@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.8
+
+- Fixes
+
+  - Fix OPDS streaming in lazy metadata mode for Chunky-like readers which
+    require a page count.
+
 ## v1.6.7
 
 - Fixes
