@@ -8,6 +8,11 @@ border-radius: 128px;
 
 ## v1.6.9
 
+- Features
+
+  - Native Windows installation instructions in the README. Thanks to
+    @professionaltart.
+
 - Fixes
 
   - Fix iOS detection for special browser card tap behavior

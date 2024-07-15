@@ -55,27 +55,31 @@ the recommended way to run Codex.
 You'll then want to read the [Administration](#administration) section of this
 document.
 
+### Install & Run on <a href="homeassistant">HomeAssistant</a> server
+
+If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
+be installed with the following steps :
+
+- Add the `https://github.com/alexbelgium/hassio-addons` repository by
+  [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
+- Install the addon :
+  [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
+- Customize addon options, then then start the add-on.
+
 ### Install & Run as a Native Application
 
 You can also run Codex as a natively installed python application with pip.
 
-#### Wheel Build Dependencies
+#### Binary Dependencies
 
-You'll need to install these system dependencies before installing Codex.
+You'll need to install the appropriate system dependencies for your platform
+before installing Codex.
 
-##### macOS
+##### Linux Dependencies
 
-<!-- eslint-skip -->
+###### <a href="#debian">Debian</a> Dependencies
 
-```sh
-brew install jpeg libffi libyaml libzip openssl python unrar webp
-```
-
-##### Linux
-
-###### <a href="#debian">Debian</a>
-
-...and Ubuntu, Mint, MX and others (and WSL).
+...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
 <!-- eslint-skip -->
 
@@ -84,8 +88,9 @@ apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl li
 ```
 
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
-and versions of Debian. If the version above is not available, try searching for
-one that is with apt-cache or aptitude.
+and versions of your distribution. If the package versions listed in the example
+above are not available, try searching for ones that are with `apt-cache` or
+`aptitude`.
 
 <!-- eslint-skip -->
 
@@ -93,7 +98,7 @@ one that is with apt-cache or aptitude.
 apt-cache search libjpeg-turbo
 ```
 
-###### Alpine
+###### <a href="alpine">Alpine</a> Dependencies
 
 <!-- eslint-skip -->
 
@@ -109,21 +114,37 @@ packaged for Linux, but here are some instructions:
 
 Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15+
 
-#### Windows
+##### macOS Dependencies
 
-Windows users should use Docker to run Codex until this documentation section is
-complete.
+Using [Homebrew](https://brew.sh/):
 
-Codex can _probably_ run on the Windows Linux Subsystem but I haven't personally
-tested it yet. Try following the instructions for [Debian](#debian) above. There
-may be outstanding platform related bugs.
+<!-- eslint-skip -->
 
-Contributions to the Windows documentation will be gratefully accepted on
-[the outstanding issue](https://github.com/ajslater/codex/issues/76) or Discord.
+```sh
+brew install jpeg libffi libyaml libzip openssl python unrar webp
+```
+
+#### <a href="#windows">Windows</a> Dependencies
+
+I encourage Windows users to use Docker to run Codex, but it also will run
+natively on the Windows Subsystem for Linux.
+
+##### Install or Upgrade WSL
+
+[Use Microsoft's instructions to install the WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+If you have previously installed WSL 1, you will have the best luck
+[upgrading it to WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install#upgrade-version-from-wsl-1-to-wsl-2).
+
+##### Install Codex dependencies.
+
+The WSL, by default is an Ubuntu Linux distribution, which is a variety of
+Debian Linux. Open a shell in the WSL and use the
+[Debian Linux dependency instructions above](#debian)
 
 #### Install Codex with pip
 
-You may now install Codex with pip
+When you have installed the dependandancies for your platform, you may now
+install Codex with pip
 
 <!-- eslint-skip -->
 
@@ -141,18 +162,9 @@ pip should install the codex binary on your path. Run
 codex
 ```
 
-and then navigate to <http://localhost:9810/>
+### Use Codex
 
-### Install & Run on your preexisting HomeAssistant server
-
-If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
-be installed with the following steps :
-
-- Add the `https://github.com/alexbelgium/hassio-addons` repository by
-  [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
-- Install the addon :
-  [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
-- Customize addon options, then then start the add-on.
+Once installed and running you may navigate to <http://localhost:9810/>
 
 ## <a name="administration">👑 Administration</a>
 
