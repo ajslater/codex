@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.9
+
+- Fixes
+
+  - Fix iOS detection for special browser card tap behavior
+
 ## v1.6.8
 
 - Fixes
