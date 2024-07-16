@@ -133,15 +133,24 @@ natively on the Windows Subsystem for Linux.
 
 [Use Microsoft's instructions to install the WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 If you have previously installed WSL 1, you will have the best luck
-[upgrading it to WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install#upgrade-version-from-wsl-1-to-wsl-2).
+[upgrading it to WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install#upgrade-version-from-wsl-1-to-wsl-2)
+and using the most recently supported Ubuntu version.
 
-##### Install Codex dependencies.
+##### Install Codex dependencies
+
+Ensure python3 & pip3 are installed in the WSL:
+
+<!-- eslint-skip -->
+
+```sh
+apt install python3-pip
+```
 
 The WSL, by default is an Ubuntu Linux distribution, which is a variety of
 Debian Linux. Open a shell in the WSL and use the
 [Debian Linux dependency instructions above](#debian)
 
-#### Install Codex with pip
+##### Install Codex with pip for the whole system
 
 When you have installed the dependandancies for your platform, you may now
 install Codex with pip
@@ -149,12 +158,69 @@ install Codex with pip
 <!-- eslint-skip -->
 
 ```sh
+pip3 install codex --break-system-packages
+```
+
+##### Install Codex with pip in a python virtual environment
+
+Alternatively, if possibly overriding system packages in the WSL would not be
+good for you, you may create a
+[python virtual environment](https://docs.python.org/3/library/venv.html) that
+will be separate from the system. In the following example `.venv` is the name
+of the virtual environment, a directory where python will place an entire python
+environment separate from the system python environment. You can name this
+directory anything and place it anywhere you like. This directory is
+traditionally lead with a dot so it becomes a hidden directory but that is not
+required.
+
+<!-- eslint-skip -->
+
+```sh
+sudo apt update
+sudo apt install libpython3-dev
+sudo apt install python3-venv
+mkdir codex
+cd codex
+python -m venv .venv
+```
+
+Now you must activate the virtual environment:
+
+<!-- eslint-skip -->
+
+```sh
+source .venv/bin/activate
+```
+
+Once you have activated the virtual environment you may install codex and it's
+python dependencies in the virtual environment.
+
+<!-- eslint-skip -->
+
+```sh
 pip3 install codex
 ```
 
+To run Codex you will have to have this virtual environment activated. So in the
+future if you create a new shell to start codex, you must source the activate
+script again above before running Codex.
+
+It seems the codex script maye also be installed to `$HOME/.local/bin` which is
+not usually on the executable search path. To add this directory to the path:
+
+<!-- eslint-skip -->
+
+```sh
+export PATH=$PATH:$HOME/.local/bin
+```
+
+You will probably want to add this line to your `$HOME/.bashrc` or
+`$HOME/.profile` file to execute it every time you start a Linux shell.
+
 #### Run Codex Natively
 
-pip should install the codex binary on your path. Run
+Once you have installed codex, the codex binary should be on your path. To start
+codex, run:
 
 <!-- eslint-skip -->
 
