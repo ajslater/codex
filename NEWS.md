@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Features
 
-  - Native Windows installation instructions in the README. Thanks to
+  - Native Windows installation instructions in the README thanks to
     @professionaltart.
 
 - Fixes
