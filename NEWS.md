@@ -6,6 +6,19 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.9
+
+- Features
+
+  - Native Windows installation instructions in the README thanks to
+    @professionaltart.
+  - Anonymously send stats to improve Codex. See admin/flags for description and
+    opt-out.
+
+- Fixes
+
+  - Fix iOS detection for special browser card tap behavior
+
 ## v1.6.8
 
 - Fixes

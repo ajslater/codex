@@ -39,6 +39,7 @@ class AdminFlag(BaseModel):
         AUTO_UPDATE = "AU"
         SEARCH_INDEX_OPTIMIZE = "SO"
         IMPORT_METADATA = "IM"
+        SEND_TELEMETRY = "ST"
 
     FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
 
@@ -86,6 +87,7 @@ class Timestamp(BaseModel):
         CODEX_VERSION = "VR", _("Codex Version")
         SEARCH_INDEX_UUID = "SI", _("Search Index UUID")
         API_KEY = "AP", _("API Key")
+        TELEMETER_SENT = "TS", _("Telemeter Sent")
 
     key = CharField(db_index=True, max_length=2, choices=TimestampChoices.choices)
     version = CharField(max_length=MAX_FIELD_LEN, default="")

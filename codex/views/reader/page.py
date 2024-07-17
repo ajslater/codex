@@ -92,17 +92,16 @@ class ReaderPageView(BookmarkBaseView):
     )
     def get(self, *_args, **_kwargs):
         """Get the comic page from the archive."""
-        pk = self.kwargs.get("pk")
-        comic = None
         try:
             page_image, content_type = self._get_page_image()
             self._update_bookmark()
         except Comic.DoesNotExist as exc:
+            pk = self.kwargs.get("pk")
             detail = f"comic {pk} not found in db."
             raise NotFound(detail=detail) from exc
         except FileNotFoundError as exc:
-            path = comic.path if comic else f"path for {pk}"
-            detail = f"comic {path} not found."
+            pk = self.kwargs.get("pk")
+            detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
         except Exception as exc:
             LOG.warning(exc)

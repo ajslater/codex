@@ -9,6 +9,7 @@ from caseconverter import snakecase
 
 from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
+from codex.librarian.cron.crond import CronThread
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.importer.importerd import ComicImporterThread
 from codex.librarian.importer.tasks import (
@@ -16,7 +17,6 @@ from codex.librarian.importer.tasks import (
     ImportTask,
 )
 from codex.librarian.janitor.janitor import Janitor
-from codex.librarian.janitor.janitord import JanitorThread
 from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
@@ -26,7 +26,9 @@ from codex.librarian.search.tasks import (
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask
+from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask, WakeCronTask
+from codex.librarian.telemeter.tasks import TelemeterTask
+from codex.librarian.telemeter.telemeter import send_telemetry
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -52,7 +54,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         WatchdogEventBatcherThread,
         LibraryEventObserver,
         LibraryPollingObserver,
-        JanitorThread,
+        CronThread,
     )
     _THREAD_CLASS_MAP = MappingProxyType(
         {
@@ -105,6 +107,10 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                     self.log.debug("Told search indexers to stop for db updates.")
                 else:
                     self._threads.search_indexer_thread.queue.put(task)
+            case WakeCronTask():
+                self._threads.cron_thread.end_timeout()
+            case TelemeterTask():
+                send_telemetry(self.log)
             case JanitorTask():
                 self.janitor.run(task)
             case DelayedTasks():

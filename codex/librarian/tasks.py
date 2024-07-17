@@ -12,4 +12,8 @@ class DelayedTasks:
 
 
 class LibrarianShutdownTask:
-    """Empty task."""
+    """Signal task."""
+
+
+class WakeCronTask:
+    """Signal task."""

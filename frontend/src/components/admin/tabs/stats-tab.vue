@@ -153,7 +153,10 @@ export default {
     browserGroupsTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.groups)) {
-        const label = this.keyToLabel(key) + "s";
+        let label = this.keyToLabel(key);
+        if (label !== "Series") {
+          label += "s";
+        }
         table[label] = value;
       }
       return table;

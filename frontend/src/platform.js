@@ -1,13 +1,8 @@
 // Identify platform for special behaviors
-const IOS_PLATFORMS = new Set([
-  "iPad",
-  "iPad Simulator",
-  "iPhone",
-  "iPhone Simulator",
-  "iPod",
-  "iPod Simulator",
-]);
-export const IS_IOS = IOS_PLATFORMS.has(navigator.platform);
+const IOS_PLATFORMS = ["iPad", "iPhone", "iPod"];
+export const IS_IOS = IOS_PLATFORMS.some((word) =>
+  navigator.userAgent.includes(word),
+);
 export const IS_TOUCH =
   "ontouchstart" in window ||
   navigator.maxTouchPoints > 0 ||

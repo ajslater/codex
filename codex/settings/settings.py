@@ -25,7 +25,7 @@ from codex.settings.whitenoise import immutable_file_test
 # Undocumented Environment Variables #
 ######################################
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(environ.get("DEBUG", "").lower() not in ("0", "false", ""))
+DEBUG = bool(environ.get("DEBUG", "").lower() not in {"0", "false", ""})
 BUILD = environ.get("BUILD", False)
 # Slow query middleware
 # limit in seconds
