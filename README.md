@@ -124,125 +124,15 @@ Using [Homebrew](https://brew.sh/):
 brew install jpeg libffi libyaml libzip openssl python unrar webp
 ```
 
-#### <a href="#windows">Windows</a> Dependencies
+##### <a href="#windows">Windows</a> Dependencies
 
-I encourage Windows users to use Docker to run Codex, but it also will run
+Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
-##### Install or Upgrade WSL
+Installation instructions are in the <a href="/WINDOWS.md">Native Windows
+Dependencies Installation Document</a>.
 
-[Use Microsoft's instructions to install the WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
-If you have previously installed WSL 1, you will have the best luck
-[upgrading it to WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install#upgrade-version-from-wsl-1-to-wsl-2)
-and using the most recently supported Ubuntu version.
-
-##### Install Codex dependencies
-
-Ensure python3 & pip3 are installed in the WSL:
-
-<!-- eslint-skip -->
-
-```sh
-apt install python3-pip
-```
-
-The WSL, by default is an Ubuntu Linux distribution, which is a variety of
-Debian Linux. Open a shell in the WSL and use the
-[Debian Linux dependency instructions above](#debian)
-
-##### Install Codex with pip for the whole system
-
-When you have installed the dependandancies for your platform, you may now
-install Codex with pip
-
-<!-- eslint-skip -->
-
-```sh
-pip3 install codex --break-system-packages
-```
-
-##### Install Codex with pip in a python virtual environment
-
-Alternatively, if possibly overriding system packages in the WSL would not be
-good for you, you may create a
-[python virtual environment](https://docs.python.org/3/library/venv.html) that
-will be separate from the system. In the following example `.venv` is the name
-of the virtual environment, a directory where python will place an entire python
-environment separate from the system python environment. You can name this
-directory anything and place it anywhere you like. This directory is
-traditionally lead with a dot so it becomes a hidden directory but that is not
-required.
-
-<!-- eslint-skip -->
-
-```sh
-sudo apt update
-sudo apt install libpython3-dev
-sudo apt install python3-venv
-mkdir codex
-cd codex
-python -m venv .venv
-```
-
-Now you must activate the virtual environment:
-
-<!-- eslint-skip -->
-
-```sh
-source .venv/bin/activate
-```
-
-Once you have activated the virtual environment you may install codex and it's
-python dependencies in the virtual environment.
-
-<!-- eslint-skip -->
-
-```sh
-pip3 install codex
-```
-
-To run Codex you will have to have this virtual environment activated. So in the
-future if you create a new shell to start codex, you must source the activate
-script again above before running Codex.
-
-It seems the codex script maye also be installed to `$HOME/.local/bin` which is
-not usually on the executable search path. To add this directory to the path:
-
-<!-- eslint-skip -->
-
-```sh
-export PATH=$PATH:$HOME/.local/bin
-```
-
-You will probably want to add this line to your `$HOME/.bashrc` or
-`$HOME/.profile` file to execute it every time you start a Linux shell.
-
-##### Mounting Network Drives on WSL
-
-If your comics are on another machine, mounting network drives with the Samba 3
-driver may avoid problems that may occur if you mount drives with the DrvFs or
-CIFS drivers.
-
-To mount a drive from server named `server` to the /mnt/comics directory once
-for this session:
-
-<!-- eslint-skip -->
-
-```sh
-sudo mount -t smb3 //server/comics /mnt/comics -o vers=3.1.1,defaults,username='comics',password='password'
-```
-
-To mount the drive every time WSL starts up edit the `/etc/fstab` file with a
-line similar to:
-
-<!-- eslint-skip -->
-
-```sh
-# file system   dir         type options                                        dump pass
-//server/comics /mnt/comics smb3 vers=3.1.1,username='comics',password='comics' 0 0
-```
-
-#### Run Codex Natively
+#### <a href="#run">Run</a> Codex Natively
 
 Once you have installed codex, the codex binary should be on your path. To start
 codex, run:
@@ -622,6 +512,8 @@ questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me
   to use the PyPi name 'codex'.
+- To [ProfessionalTart](https://github.com/professionaltart) for providing
+  native Windows installation instructions.
 - Thanks to the good people of
   [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for
   continuous feedback and comic ecosystem education.
