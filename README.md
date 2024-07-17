@@ -217,6 +217,31 @@ export PATH=$PATH:$HOME/.local/bin
 You will probably want to add this line to your `$HOME/.bashrc` or
 `$HOME/.profile` file to execute it every time you start a Linux shell.
 
+##### Mounting Network Drives on WSL
+
+If your comics are on another machine, mounting network drives with the Samba 3
+driver may avoid problems that may occur if you mount drives with the DrvFs or
+CIFS drivers.
+
+To mount a drive from server named `server` to the /mnt/comics directory once
+for this session:
+
+<!-- eslint-skip -->
+
+```sh
+sudo mount -t smb3 //server/comics /mnt/comics -o vers=3.1.1,defaults,username='comics',password='password'
+```
+
+To mount the drive every time WSL starts up edit the `/etc/fstab` file with a
+line similar to:
+
+<!-- eslint-skip -->
+
+```sh
+# file system   dir         type options                                        dump pass
+//server/comics /mnt/comics smb3 vers=3.1.1,username='comics',password='comics' 0 0
+```
+
 #### Run Codex Natively
 
 Once you have installed codex, the codex binary should be on your path. To start
