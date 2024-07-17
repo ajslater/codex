@@ -236,6 +236,7 @@
     "NU": "Non Users",
     "AU": "Auto Update",
     "SO": "Search Index Full Optimization",
-    "IM": "Import Metadata on Library Scan"
+    "IM": "Import Metadata on Library Scan",
+    "ST": "Send Stats"
   }
 }

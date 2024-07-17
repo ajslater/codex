@@ -12,6 +12,8 @@ border-radius: 128px;
 
   - Native Windows installation instructions in the README thanks to
     @professionaltart.
+  - Anonymously send stats to improve Codex. See admin/flags for description and
+    opt-out.
 
 - Fixes
 

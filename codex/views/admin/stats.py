@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import empty
 
-from codex.librarian.stats import CodexStats
+from codex.librarian.telemeter.stats import CodexStats
 from codex.logger.logging import get_logger
 from codex.models.admin import Timestamp
 from codex.permissions import HasAPIKeyOrIsAdminUser

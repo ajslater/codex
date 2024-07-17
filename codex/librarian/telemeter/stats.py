@@ -138,6 +138,7 @@ class CodexStats:
     def _get_groups(self, obj):
         """Add dict of groups information to object."""
         groups = self._get_model_counts("groups")
+        groups["issue_count"] = groups.pop("comic_count", 0)
         obj["groups"] = groups
 
     @staticmethod
