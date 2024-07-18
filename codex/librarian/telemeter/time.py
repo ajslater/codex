@@ -45,4 +45,7 @@ def get_telemeter_time(log):
     seconds_after_week_start = uuid.int / _UUID_DIVISOR
     time_of_week = timedelta(seconds=seconds_after_week_start)
     telemeter_time = start_of_week + time_of_week
-    return telemeter_time.astimezone(tz=timezone.utc)
+    telemeter_time = telemeter_time.astimezone(tz=timezone.utc)
+    if telemeter_time < ts.updated_at:
+        telemeter_time = 0
+    return telemeter_time
