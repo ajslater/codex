@@ -58,7 +58,7 @@ hypercorn = { extras = ["h3"], version = "^0.17.3" }
 psutil = "^6.0.0"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
-setuptools = "^70.0.0"                                 # for vendored haystack
+setuptools = "^71.0.3"                                 # for vendored haystack
 tzlocal = "^5.0"
 watchdog = "^4.0"
 websocket_client = "^1.2"
