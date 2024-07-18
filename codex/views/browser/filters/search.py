@@ -150,7 +150,7 @@ class SearchFilterView(ComicFieldFilterView):
             LOG.exception("Getting Search Scores")
         return score_pairs, prev_pks, next_pks, scored_pks
 
-    def annotate_search_score(  # noqa: PLR0913
+    def annotate_search_score(
         self, qs, model, score_pairs, prev_pks=None, next_pks=None
     ):
         """Annotate the search score for ordering by search score.

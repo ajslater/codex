@@ -42,7 +42,7 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
                 order_fields_head += ["updated_at"]
         return order_fields_head
 
-    def add_order_by(  # noqa: PLR0913
+    def add_order_by(
         self, qs, model, order_key="", do_reverse=True, comic_sort_names=None
     ):
         """Create the order_by list."""

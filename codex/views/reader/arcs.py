@@ -19,7 +19,7 @@ class ReaderArcsView(ReaderBooksView):
         super().__init__(*args, **kwargs)
         self.params: MappingProxyType = MappingProxyType({})
 
-    def _get_group_arc(self, book, attr, browser_arc_group, arcs, max_mtime):  # noqa: PLR0913
+    def _get_group_arc(self, book, attr, browser_arc_group, arcs, max_mtime):
         """Append the volume arc."""
         if browser_arc_group == attr[0]:
             return max_mtime

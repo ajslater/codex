@@ -58,7 +58,7 @@ class CoverCreateMixin(CoverPathMixin):
             return f.read()
 
     @classmethod
-    def create_cover_from_path(cls, pk, cover_path, log, librarian_queue, custom=False):  # noqa: PLR0913
+    def create_cover_from_path(cls, pk, cover_path, log, librarian_queue, custom=False):
         """Create cover for path.
 
         Called from views/cover.
