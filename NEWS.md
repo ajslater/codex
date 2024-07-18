@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.10
+
+- Fixes
+
+  - Detect iOS devices in Desktop Mode for proper iOS tap behavior.
+
 ## v1.6.9
 
 - Features

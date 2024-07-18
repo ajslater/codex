@@ -36,7 +36,7 @@ _COMIC_FIELDS = (
 class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
     """Get Books methods."""
 
-    def _get_reader_arc_pks(  # noqa: PLR0913
+    def _get_reader_arc_pks(
         self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
     ):
         """Get the nav filter."""

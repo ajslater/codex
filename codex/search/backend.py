@@ -431,7 +431,7 @@ class CodexSearchBackend(CodexBackendSearchMixin, WhooshSearchBackend, WorkerBas
             raise
         return count
 
-    def update(  # noqa: PLR0913, # type: ignore
+    def update(  # type: ignore
         self,
         index,
         iterable,

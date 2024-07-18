@@ -246,7 +246,7 @@ class Comic(WatchedPathBrowserGroup):
         return issue_str
 
     @classmethod
-    def get_title(  # noqa: PLR0913
+    def get_title(
         cls, obj, volume=True, zero_pad=None, name=True, filename_fallback=False
     ):
         """Create the comic title for display."""

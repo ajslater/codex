@@ -137,12 +137,14 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
+
 .browserCardCoverWrapper {
   position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
+
 .cardCoverOverlay {
   position: absolute;
   top: 0px;
@@ -153,21 +155,25 @@ export default {
   border: solid thin transparent;
 }
 
-.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay {
+.browserCardCoverWrapper:hover>.browserCardTop>.cardCoverOverlay {
   background-color: rgba(0, 0, 0, 0.55);
   border: solid thin;
   border-color: rbg(var(--v-theme-primary));
 }
-.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
+
+.browserCardCoverWrapper:hover>.browserCardTop>.cardCoverOverlay * {
   background-color: transparent;
   opacity: 1;
 }
+
 .bookCoverProgress {
   margin-top: 1px;
 }
+
 .cardFooter {
   margin-top: 10px;
 }
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {
     height: $small-cover-height;

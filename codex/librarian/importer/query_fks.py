@@ -159,7 +159,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
         filter_args[key] = group_name
 
-    def _get_create_group_set(  # noqa: PLR0913
+    def _get_create_group_set(
         self, groups, group_cls, create_group_set, update_group_set, status
     ):
         """Create the create group set."""

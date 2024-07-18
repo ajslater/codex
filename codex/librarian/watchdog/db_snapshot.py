@@ -58,7 +58,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         i = (st.st_ino, st.st_dev)
         self._inode_to_path[i] = path
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         path,
         _recursive=True,  # unused, always recursive

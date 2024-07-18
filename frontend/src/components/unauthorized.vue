@@ -8,7 +8,7 @@
       :icon="mdiLockOutline"
     >
       <div class="login">
-        <AdminBrowserLink />
+        <AdminBrowserLink v-if="showBrowserLink" />
         <AuthMenu :show-change-password="false" />
       </div>
     </EmptyState>
@@ -50,10 +50,15 @@ export default {
       "isAuthChecked",
       "isAuthorized",
       "isUserAdmin",
+      "isAdminRoute",
     ]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
+      nonUsers: (state) => state.adminFlags.nonUsers,
     }),
+    showBrowserLink() {
+      return this.isAdminRoute && this.nonUsers;
+    },
     text() {
       return this.registration ? "" : "Registration is disabled";
     },
