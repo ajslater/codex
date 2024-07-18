@@ -24,6 +24,27 @@ def _get_utc_start_of_week():
     )
 
 
+def _is_created_recently(ts):
+    """Don't send if created recently."""
+    now = datetime.now(tz=timezone.utc)
+    since = ts.created_at - now
+    return abs(since.total_seconds()) < _ONE_DAY
+
+
+def _get_scheduled_time(ts):
+    """Compute the time of week to send from the uuid."""
+    start_of_week = _get_utc_start_of_week()
+    uuid = UUID(ts.version)
+    seconds_after_week_start = uuid.int / _UUID_DIVISOR
+    time_of_week = timedelta(seconds=seconds_after_week_start)
+    telemeter_time = start_of_week + time_of_week
+    telemeter_time = telemeter_time.astimezone(tz=timezone.utc)
+    if telemeter_time < ts.updated_at:
+        # Already ran this week, or created this week after run time.
+        telemeter_time = 0
+    return telemeter_time
+
+
 def get_telemeter_time(log):
     """Get the time to send telemetry."""
     # Should we schedule telemeter at all?
@@ -32,20 +53,9 @@ def get_telemeter_time(log):
         return 0
 
     ts = get_telemeter_timestamp()
-    now = datetime.now(tz=timezone.utc)
-    since = ts.created_at - now
-    if abs(since.total_seconds()) < _ONE_DAY:
-        # if created within a day it's not time again.
+
+    if _is_created_recently(ts):
         log.debug("Telemeter created recently. Not scheduled.")
         return 0
 
-    # Compute schedule time
-    start_of_week = _get_utc_start_of_week()
-    uuid = UUID(ts.version)
-    seconds_after_week_start = uuid.int / _UUID_DIVISOR
-    time_of_week = timedelta(seconds=seconds_after_week_start)
-    telemeter_time = start_of_week + time_of_week
-    telemeter_time = telemeter_time.astimezone(tz=timezone.utc)
-    if telemeter_time < ts.updated_at:
-        telemeter_time = 0
-    return telemeter_time
+    return _get_scheduled_time(ts)
