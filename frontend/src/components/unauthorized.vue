@@ -8,7 +8,7 @@
       :icon="mdiLockOutline"
     >
       <div class="login">
-        <AdminBrowserLink />
+        <AdminBrowserLink v-if="isAdminRoute" />
         <AuthMenu :show-change-password="false" />
       </div>
     </EmptyState>
@@ -50,6 +50,7 @@ export default {
       "isAuthChecked",
       "isAuthorized",
       "isUserAdmin",
+      "isAdminRoute",
     ]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,

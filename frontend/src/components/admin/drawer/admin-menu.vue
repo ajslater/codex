@@ -8,7 +8,7 @@
       @click="onPoll"
     />
     <DrawerItem
-      v-if="showAdminPanelLink"
+      v-if="!isAdminRoute"
       class="adminPanelLink"
       :to="{ name: 'admin' }"
       :prepend-icon="mdiCrownOutline"
@@ -47,11 +47,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapGetters(useAuthStore, ["isUserAdmin", "isAdminRoute"]),
     ...mapState(useAdminStore, ["unseenFailedImports"]),
-    showAdminPanelLink() {
-      return !this.$router.currentRoute?.value?.name?.startsWith("admin");
-    },
     failedImportsIcon() {
       return this.unseenFailedImports ? mdiBookAlert : undefined;
     },
