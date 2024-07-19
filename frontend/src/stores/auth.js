@@ -1,9 +1,10 @@
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/auth";
-import router from "@/plugins/router";
 import { useCommonStore } from "@/stores/common";
 
+// Don't use router in here, perhaps called to early.
+// Breaks the prod build.
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     adminFlags: {
@@ -29,9 +30,6 @@ export const useAuthStore = defineStore("auth", {
     },
     isAuthDialogOpen() {
       return this.showLoginDialog || this.showChangePasswordDialog;
-    },
-    isAdminRoute() {
-      return router.currentRoute?.value?.name?.startsWith("admin");
     },
   },
   actions: {

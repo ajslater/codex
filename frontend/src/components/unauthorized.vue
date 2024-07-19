@@ -50,14 +50,16 @@ export default {
       "isAuthChecked",
       "isAuthorized",
       "isUserAdmin",
-      "isAdminRoute",
     ]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    showBrowserLink() {
-      return this.isAdminRoute && this.nonUsers;
+    showAdminBrowserLink() {
+      return (
+        this.$router.currentRoute?.value?.name?.startsWith("admin") &&
+        this.nonUsers
+      );
     },
     text() {
       return this.registration ? "" : "Registration is disabled";
