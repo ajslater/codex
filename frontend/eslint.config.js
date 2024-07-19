@@ -1,12 +1,9 @@
-// import { FlatCompat } from "@eslint/eslintrc";
 import eslintConfigPrettier from "eslint-config-prettier";
 import vitest from "eslint-plugin-vitest";
 import pluginVue from "eslint-plugin-vue";
 import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 
-import baseConfig from "./../eslint.config.js";
-
-// const compat = new FlatCompat();
+import baseConfig from "../eslint.config.js";
 
 export default [
   ...baseConfig,
