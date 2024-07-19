@@ -25,7 +25,7 @@ export default [
   {
     ignores: [
       "!.circleci",
-      "**/__pycache__",
+      "**/__pycache__/",
       "**/*min.css",
       "**/*min.js",
       "*~",
@@ -66,6 +66,7 @@ export default [
   ...eslintPluginToml.configs[FLAT_RECOMMENDED],
   ...eslintPluginYml.configs["flat/standard"],
   ...eslintPluginYml.configs["flat/prettier"],
+  eslintConfigPrettier, // Best if last
   {
     languageOptions: {
       globals: {
@@ -144,5 +145,4 @@ export default [
       "yml/no-empty-mapping-value": "off",
     },
   },
-  eslintConfigPrettier, // Best if last
 ];
