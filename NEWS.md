@@ -14,7 +14,7 @@ border-radius: 128px;
 
 ## v1.6.10
 
-- Yanked. Build issue deployed broken javascript.
+- Yanked. Broken javascript.
 
 ## v1.6.9
 
