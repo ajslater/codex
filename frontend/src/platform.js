@@ -1,6 +1,5 @@
 // Identify platform for special behaviors
 const IOS_PLATFORMS = ["iPad", "iPhone", "iPod"];
-Object.freeze(IOS_PLATFORMS);
 export const IS_TOUCH =
   "ontouchstart" in window ||
   navigator.maxTouchPoints > 0 ||

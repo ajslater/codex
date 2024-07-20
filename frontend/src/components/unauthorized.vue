@@ -52,18 +52,16 @@ export default {
       "isUserAdmin",
     ]),
     ...mapState(useAuthStore, {
-      registration: (state) => state.adminFlags.registration,
-      nonUsers: (state) => state.adminFlags.nonUsers,
+      showAdminBrowserLink(state) {
+        return (
+          this.$router.currentRoute?.value?.name?.startsWith("admin") &&
+          state.adminFlags.nonUsers
+        );
+      },
+      text(state) {
+        return state.adminFlags.registration ? "" : "Registration is disabled";
+      },
     }),
-    showAdminBrowserLink() {
-      return (
-        this.$router.currentRoute?.value?.name?.startsWith("admin") &&
-        this.nonUsers
-      );
-    },
-    text() {
-      return this.registration ? "" : "Registration is disabled";
-    },
   },
 };
 </script>
