@@ -52,6 +52,9 @@ export default {
     failedImportsIcon() {
       return this.unseenFailedImports ? mdiBookAlert : undefined;
     },
+    showAdminPanelLink() {
+      return !this.$router.currentRoute?.value?.name?.startsWith("admin");
+    },
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFailedImports", "librarianTask"]),

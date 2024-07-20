@@ -49,7 +49,7 @@
 
 <script>
 import { mdiClose } from "@mdi/js";
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
@@ -105,8 +105,8 @@ export default {
       return height;
     },
     closeRoute() {
-      const route = cloneDeep(this.closeBookRoute);
-      const params = cloneDeep(route.params);
+      const route = deepClone(this.closeBookRoute);
+      const params = deepClone(route.params);
       delete params["name"];
       route.params = params;
       return route;

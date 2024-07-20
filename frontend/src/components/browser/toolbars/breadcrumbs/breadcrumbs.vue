@@ -18,7 +18,7 @@ import {
   mdiFolderOutline,
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 import { mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
@@ -69,7 +69,7 @@ export default {
   },
   methods: {
     getTo(crumb, parentPks) {
-      const params = cloneDeep(crumb);
+      const params = deepClone(crumb);
       delete params["name"];
       const to = { name: "browser", params };
       if (parentPks) {

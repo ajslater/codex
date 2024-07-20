@@ -12,10 +12,7 @@
       <template #default="{ item }">
         <BookPage :book="book" :page="item" class="verticalPage" />
         <div
-          v-intersect.quiet="{
-            handler: onIntersect,
-            options: { threshold: [0.75] },
-          }"
+          v-intersect.quiet="intersectOptions"
           class="pageTracker"
           :class="{ pageTrackerToolbars: showToolbars }"
           :data-page="item"
@@ -26,12 +23,12 @@
 </template>
 
 <script>
-import { range } from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
 import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
+import { range } from "@/util";
 
 const MAX_VISIBLE_PAGES = 12;
 const TIMEOUT = 250;
@@ -53,6 +50,10 @@ export default {
       innerWidth: window.innerWidth,
       intersectorOn: false,
       programmaticScroll: false,
+      intersectOptions: {
+        handler: this.onIntersect,
+        options: { threshold: [0.75] },
+      },
     };
   },
   computed: {

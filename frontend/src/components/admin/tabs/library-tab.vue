@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -55,7 +55,7 @@ export default {
         }
         for (const library of state.libraries) {
           if (!library.coversOnly) {
-            const annotatedItem = cloneDeep(library);
+            const annotatedItem = deepClone(library);
             annotatedItem.label = annotatedItem.coversOnly
               ? "custom group cover"
               : "comic";

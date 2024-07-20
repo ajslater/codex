@@ -66,7 +66,7 @@
   </v-expansion-panels>
 </template>
 <script>
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 import { mapState } from "pinia";
 
 import AdminLibraryTable from "@/components/admin/tabs/library-table.vue";
@@ -83,7 +83,7 @@ export default {
         const annotatedItems = [];
         for (const library of state.libraries) {
           if (library.coversOnly) {
-            const annotatedItem = cloneDeep(library);
+            const annotatedItem = deepClone(library);
             annotatedItem.label = annotatedItem.coversOnly
               ? "custom group cover"
               : "comic";

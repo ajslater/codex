@@ -1,6 +1,6 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { startCase } from "lodash";
-import { cloneDeep } from "lodash";
+import { capitalCase, snakeCase } from "change-case-all";
+import deepClone from "deep-clone";
 import { defineStore } from "pinia";
 
 import BROWSER_API from "@/api/v3/browser";
@@ -50,11 +50,7 @@ const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CHOICES);
 const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
 Object.freeze(READER_INFO_KEYS);
-const camelToSnakeCase = (str) =>
-  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) =>
-  camelToSnakeCase(key),
-);
+const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
 Object.freeze(READER_INFO_ONLY_KEYS);
 
 const getGlobalFitToDefault = () => {
@@ -264,7 +260,7 @@ export const useReaderStore = defineStore("reader", {
     },
     getSettings(book) {
       // Mask the book settings over the global settings.
-      const resultSettings = cloneDeep(SETTINGS_NULL_VALUES);
+      const resultSettings = deepClone(SETTINGS_NULL_VALUES);
       let bookSettings = book ? book.settings : {};
       bookSettings = this.setReadRTLInReverse(bookSettings);
       const allSettings = [this.readerSettings, bookSettings];
@@ -352,7 +348,7 @@ export const useReaderStore = defineStore("reader", {
       }
       if (fitTo) {
         let fitToClass = "fitTo";
-        fitToClass += startCase(fitTo);
+        fitToClass += capitalCase(fitTo);
         if (this.isVertical) {
           fitToClass += "Vertical";
         } else if (settings.twoPages) {

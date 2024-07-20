@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { startCase } from "lodash";
+import { capitalCase } from "change-case-all";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
@@ -54,7 +54,7 @@ export default {
     $route(to) {
       const parts = to.path.split("/");
       const lastPart = parts.at(-1);
-      this.activeTab = startCase(lastPart);
+      this.activeTab = capitalCase(lastPart);
     },
   },
   mounted() {

@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
@@ -35,7 +35,7 @@ export default {
     ...mapState(useReaderStore, {
       toRoute(state) {
         const params = state?.routes?.books[this.direction];
-        return params ? { params: cloneDeep(params) } : "";
+        return params ? { params: deepClone(params) } : "";
       },
     }),
     title() {

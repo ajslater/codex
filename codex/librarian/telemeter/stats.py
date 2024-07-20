@@ -111,8 +111,10 @@ class CodexStats:
 
         return user_stats, anon_session_count
 
-    def _get_platform(self, obj):
+    def _add_platform(self, obj):
         """Add dict of platform information to object."""
+        if self.params and "platform" not in self.params:
+            return
         platform = {
             "docker": self._is_docker(),
             "machine": machine(),
@@ -126,8 +128,10 @@ class CodexStats:
         }
         obj["platform"] = platform
 
-    def _get_config(self, obj):
+    def _add_config(self, obj):
         """Add dict of config informaation to object."""
+        if self.params and "config" not in self.params:
+            return
         config = self._get_model_counts("config")
         sessions, config["user_anonymous_count"] = self._get_session_stats()
         config["user_registered_count"] = config.pop("users_count", 0)
@@ -135,15 +139,18 @@ class CodexStats:
         obj["config"] = config
         obj["sessions"] = sessions
 
-    def _get_groups(self, obj):
+    def _add_groups(self, obj):
         """Add dict of groups information to object."""
+        if self.params and "groups" not in self.params:
+            return
         groups = self._get_model_counts("groups")
         groups["issue_count"] = groups.pop("comic_count", 0)
         obj["groups"] = groups
 
-    @staticmethod
-    def _get_file_types(obj):
+    def _add_file_types(self, obj):
         """Query for file types."""
+        if self.params and "fileTypes" not in self.params:
+            return
         file_types = {}
         qs = (
             Comic.objects.values("file_type")
@@ -157,22 +164,19 @@ class CodexStats:
         sorted_fts = dict(sorted(file_types.items()))
         obj["file_types"] = sorted_fts
 
-    def _get_metadata(self, obj):
+    def _add_metadata(self, obj):
         """Add dict of metadata counts to object."""
+        if self.params and "metadata" not in self.params:
+            return
         metadata = self._get_model_counts("metadata")
         obj["metadata"] = metadata
 
     def get(self):
         """Construct the stats object."""
         obj = {}
-        if not self.params or "platform" in self.params:
-            self._get_platform(obj)
-        if not self.params or "config" in self.params:
-            self._get_config(obj)
-        if not self.params or "groups" in self.params:
-            self._get_groups(obj)
-        if not self.params or "fileTypes" in self.params:
-            self._get_file_types(obj)
-        if not self.params or "metadata" in self.params:
-            self._get_metadata(obj)
+        self._add_platform(obj)
+        self._add_config(obj)
+        self._add_groups(obj)
+        self._add_file_types(obj)
+        self._add_metadata(obj)
         return obj

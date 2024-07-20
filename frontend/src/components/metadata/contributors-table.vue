@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { startCase } from "lodash";
+import { capitalCase } from "change-case-all";
 
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 
@@ -34,7 +34,7 @@ export default {
         return contributors;
       }
       for (const { role, person } of this.value) {
-        const roleName = startCase(role.name) + "s";
+        const roleName = capitalCase(role.name) + "s";
         if (!contributors[roleName]) {
           contributors[roleName] = [];
         }
