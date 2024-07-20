@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 
 import { serializeParams } from "@/api/v3/common";
 
@@ -30,7 +30,7 @@ export const getCoverSrc = ({ group, pks }, data, ts) => {
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
   const mtime = Math.max(group.mtime, settings.mtime);
-  const data = cloneDeep(settings);
+  const data = deepClone(settings);
   delete data.mtime;
   const params = serializeParams(data, mtime);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });

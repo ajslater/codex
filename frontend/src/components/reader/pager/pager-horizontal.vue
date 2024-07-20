@@ -26,13 +26,12 @@
 </template>
 
 <script>
-// 6 is the magic number to avoid disappearing items at the midpoint.
-import { range } from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
 import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
+import { range } from "@/util";
 
 const WINDOW_BACK_BOUND = 48;
 const WINDOW_FORE_BOUND = 48;

@@ -7,6 +7,13 @@
     "remark-check": "remark .",
     "remark-fix": "remark . --output"
   },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "Firefox ESR",
+    "not op_mini all",
+    "not dead"
+  ],
   "prettier": {
     "plugins": [
       "prettier-plugin-nginx",
@@ -52,6 +59,8 @@
     "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-array-func": "^5.0.1",
+    "eslint-plugin-compat": "^6.0.0",
+    "eslint-plugin-depend": "^0.9.0",
     "eslint-plugin-jsonc": "^2.13.0",
     "eslint-plugin-markdown": "^5.0.0",
     "eslint-plugin-no-secrets": "^1.0.2",

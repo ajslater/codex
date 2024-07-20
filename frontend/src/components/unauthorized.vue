@@ -8,7 +8,7 @@
       :icon="mdiLockOutline"
     >
       <div class="login">
-        <AdminBrowserLink v-if="showBrowserLink" />
+        <AdminBrowserLink v-if="showAdminBrowserLink" />
         <AuthMenu :show-change-password="false" />
       </div>
     </EmptyState>

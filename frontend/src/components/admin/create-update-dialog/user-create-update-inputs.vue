@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import { cloneDeep } from "lodash";
+import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
@@ -86,7 +86,7 @@ export default {
           (v) => v === this.row.password || "Passwords must match",
         ],
       },
-      row: cloneDeep(this.oldRow || EMPTY_ROW),
+      row: deepClone(this.oldRow || EMPTY_ROW),
     };
   },
   computed: {
@@ -107,7 +107,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = cloneDeep(to);
+        this.row = deepClone(to);
       },
       deep: true,
     },

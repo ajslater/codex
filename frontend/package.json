@@ -17,8 +17,10 @@
   "dependencies": {
     "@unhead/vue": "^1.7.2",
     "axios": "^1.4.0",
+    "change-case-all": "^2.1.0",
     "core-js": "^3.31",
-    "lodash": "^4.17.21",
+    "deep-clone": "^4.0.0",
+    "dequal": "^2.0.3",
     "pinia": "^2.1.4",
     "pretty-bytes": "^6.1.1",
     "vue": "^3.4.11",

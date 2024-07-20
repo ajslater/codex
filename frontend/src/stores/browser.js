@@ -1,4 +1,5 @@
-import { cloneDeep, isEqual, range } from "lodash";
+import deepClone from "deep-clone";
+import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
@@ -7,6 +8,7 @@ import CHOICES from "@/choices";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
+import { range } from "@/util";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
@@ -80,7 +82,7 @@ export const useBrowserStore = defineStore("browser", {
       q: undefined,
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
-      show: cloneDeep(SETTINGS_SHOW_DEFAULTS),
+      show: deepClone(SETTINGS_SHOW_DEFAULTS),
       topGroup: undefined,
       twentyFourHourTime: false,
     },
@@ -369,7 +371,7 @@ export const useBrowserStore = defineStore("browser", {
           } else {
             newValue = value;
           }
-          if (!isEqual(state.settings[key], newValue)) {
+          if (!dequal(state.settings[key], newValue)) {
             state.settings[key] = newValue;
           }
         }
@@ -382,7 +384,7 @@ export const useBrowserStore = defineStore("browser", {
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
       redirect = this._validateTopGroup(data, redirect);
-      if (isEqual(redirect?.params, router.currentRoute.value.params)) {
+      if (dequal(redirect?.params, router.currentRoute.value.params)) {
         // not triggered if page is numeric, which is intended.
         redirect = undefined;
       }
@@ -459,10 +461,11 @@ export const useBrowserStore = defineStore("browser", {
     },
     async updateBreadcrumbs(oldBreadcrumbs) {
       const breadcrumbs = this.settings.breadcrumbs || [];
-      for (const index of range(breadcrumbs.length).reverse()) {
+      const indexes = range(breadcrumbs.length).reverse();
+      for (const index of indexes) {
         const oldCrumb = oldBreadcrumbs[index];
         const newCrumb = breadcrumbs[index];
-        if (!isEqual(oldCrumb, newCrumb)) {
+        if (!dequal(oldCrumb, newCrumb)) {
           if (newCrumb.name === null) {
             // For volumes
             newCrumb.name = "";
@@ -475,7 +478,7 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = cloneDeep(router.currentRoute.value);
+      const route = deepClone(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.warn);
     },

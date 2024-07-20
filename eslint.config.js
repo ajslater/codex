@@ -1,6 +1,8 @@
 import js from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
+import eslintPluginCompat from "eslint-plugin-compat";
+import eslintPluginDepend from "eslint-plugin-depend";
 import eslintPluginJsonc from "eslint-plugin-jsonc";
 import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
@@ -54,6 +56,8 @@ export default [
   },
   js.configs.recommended,
   eslintPluginArrayFunc.configs.all,
+  eslintPluginCompat.configs[FLAT_RECOMMENDED],
+  eslintPluginDepend.configs[FLAT_RECOMMENDED],
   ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
   eslintPluginNoUseExtendNative.configs.recommended,
@@ -104,13 +108,13 @@ export default [
       "simple-import-sort/exports": "warn",
       "simple-import-sort/imports": "warn",
       "space-before-function-paren": "off",
-      "unicorn/switch-case-braces": ["warn", "avoid"],
-      "unicorn/prefer-node-protocol": "off",
-      "unicorn/prevent-abbreviations": "off",
       "unicorn/filename-case": [
         "error",
         { case: "kebabCase", ignore: [".*.md"] },
       ],
+      "unicorn/prefer-node-protocol": "off",
+      "unicorn/prevent-abbreviations": "off",
+      "unicorn/switch-case-braces": ["warn", "avoid"],
     },
   },
   {
@@ -123,8 +127,8 @@ export default [
   {
     files: ["**/*.md/*.js"], // Will match js code inside *.md files
     rules: {
-      "no-unused-vars": "off",
       "no-undef": "off",
+      "no-unused-vars": "off",
     },
   },
   {

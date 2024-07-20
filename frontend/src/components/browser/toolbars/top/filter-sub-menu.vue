@@ -84,7 +84,7 @@ import {
   mdiChevronRightCircle,
   mdiCloseCircleOutline,
 } from "@mdi/js";
-import { startCase } from "lodash";
+import { capitalCase } from "change-case-all";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
@@ -133,7 +133,7 @@ export default {
       return toVuetifyItems(this.choices, this.query);
     },
     title() {
-      return startCase(this.name);
+      return capitalCase(this.name);
     },
     lowerTitle() {
       return this.title.toLowerCase();

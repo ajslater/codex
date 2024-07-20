@@ -35,7 +35,7 @@
 
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
-import { snakeCase, startCase } from "lodash";
+import { capitalCase, snakeCase } from "change-case-all";
 import { mapActions, mapState } from "pinia";
 
 import StatsTable from "@/components/admin/tabs/stats-table.vue";
@@ -45,7 +45,6 @@ import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
-import { capitalize } from "lodash";
 
 import CHOICES from "@/choices.json";
 
@@ -166,7 +165,7 @@ export default {
       for (const [key, value] of Object.entries(this.stats?.fileTypes)) {
         const label =
           key === "unknown"
-            ? capitalize(key)
+            ? capitalCase(key)
             : this.keyToLabel(key).toUpperCase();
         table[label] = value;
       }
@@ -201,7 +200,7 @@ export default {
     },
     keyToLabel(key) {
       key = key.replace(/Count$/, "");
-      return startCase(key);
+      return capitalCase(key);
     },
   },
 };
