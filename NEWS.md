@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.13
+
+- Fixes
+
+  - Admin Panel Link was showing in the admin panel, not in the browser or reader.
+
 ## v1.6.12
 
 - Fixes
