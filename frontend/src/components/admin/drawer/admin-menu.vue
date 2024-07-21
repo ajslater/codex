@@ -8,7 +8,7 @@
       @click="onPoll"
     />
     <DrawerItem
-      v-if="!showAdminPanelLink"
+      v-if="showAdminPanelLink"
       class="adminPanelLink"
       :to="{ name: 'admin' }"
       :prepend-icon="mdiCrownOutline"

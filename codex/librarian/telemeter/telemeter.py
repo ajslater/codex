@@ -14,7 +14,7 @@ from codex.settings.settings import DEBUG
 
 # Version
 _APP_NAME = "codex"
-_VERSION = "0"
+_VERSION = "1"
 
 # Sending
 # this isn't meant to fool you. it's meant to discourage lazy scraper bots.
