@@ -19,8 +19,10 @@ LOG = get_logger(__name__)
 class AdminUserViewSet(AdminModelViewSet):
     """User ViewSet."""
 
-    queryset = User.objects.prefetch_related("groups").defer(
-        "first_name", "last_name", "email"
+    queryset = (
+        User.objects.prefetch_related("groups")
+        .select_related("useractive")
+        .defer("first_name", "last_name", "email")
     )
     serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")

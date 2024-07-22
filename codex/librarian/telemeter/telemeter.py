@@ -59,13 +59,13 @@ def _post_stats(log, data):
 def _send_telemetry(log):
     """Send telemetry to server."""
     if not AdminFlag.objects.get(key=AdminFlag.FlagChoices.SEND_TELEMETRY.value).on:
-        reason = "Send Telemetry flag set to off."
+        reason = "Send Telemetry flag is off."
         raise ValueError(reason)
     ts = get_telemeter_timestamp()
     stats = CodexStats().get()
     data = {"stats": stats, "uuid": ts.version}
     _post_stats(log, data)
-    log.debug("Sent anonymous telemetry")
+    # log.debug("Sent anonymous stats")
     ts.save()  # update updated_at
 
 
@@ -74,4 +74,4 @@ def send_telemetry(log):
     try:
         _send_telemetry(log)
     except Exception as exc:
-        log.debug(f"Failed to send anonyomous telemetry: {exc}")
+        log.debug(f"Failed to send anonyomous stats: {exc}")

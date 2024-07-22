@@ -4,18 +4,14 @@ https://docs.djangoproject.com/en/dev/topics/http/urls/
 """
 
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.urls import include, path, register_converter, set_script_prefix
+from django.urls import include, path, register_converter
 from django.views.generic.base import RedirectView
 
-from codex.settings.settings import DEBUG, ROOT_PATH
+from codex.settings.settings import DEBUG
 from codex.urls.converters import GroupConverter, IntListConverter
 
 register_converter(GroupConverter, "group")
 register_converter(IntListConverter, "int_list")
-
-if ROOT_PATH:
-    # Django 5 bug https://code.djangoproject.com/ticket/35169#comment:11
-    set_script_prefix(ROOT_PATH)
 
 
 urlpatterns = []

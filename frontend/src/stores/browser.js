@@ -12,7 +12,7 @@ import { range } from "@/util";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
-const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
+export const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
 Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of CHOICES.browser.settingsGroup) {
