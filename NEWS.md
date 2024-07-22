@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.14
+
+- Fixes
+
+  - Fix Metadata links to browser groups not resetting topGroup properly.
+
 ## v1.6.13
 
 - Fixes
