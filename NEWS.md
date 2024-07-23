@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.15
+
+- Fixes
+
+  - Fix more Metadata links to browser groups not computing and resolving properly.
+
+
 ## v1.6.14
 
 - Fixes
