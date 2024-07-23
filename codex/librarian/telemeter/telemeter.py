@@ -53,7 +53,9 @@ def _post_stats(log, data):
         log.debug(msg)
     else:
         with Session() as session:
-            response = session.post(_POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT)
+            response = session.post(
+                _POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT
+            )
             response.raise_for_status()
 
 

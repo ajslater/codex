@@ -10,8 +10,8 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix more Metadata links to browser groups not computing and resolving properly.
-
+  - Fix more Metadata links to browser groups not computing and resolving
+    properly.
 
 ## v1.6.14
 
