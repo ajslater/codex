@@ -91,14 +91,11 @@ class BrowserValidateView(BrowserBaseView):
                 # 'c' is obscured by the web reader url, but valid for opds
                 tail_top_groups = valid_top_groups[possible_index:]
                 valid_nav_groups += tail_top_groups
-
-                if nav_group not in valid_nav_groups:
-                    reason = (
-                        f"Nav group {nav_group} unavailable, "
-                        f"redirect to {ROOT_GROUP}"
-                    )
-                    self.raise_redirect(reason)
                 break
+        if nav_group not in valid_nav_groups:
+            reason = f"Nav group {nav_group} unavailable, redirect to {ROOT_GROUP}"
+            self.raise_redirect(reason)
+
         self.valid_nav_groups = tuple(valid_nav_groups)
 
     def _validate_folder_settings(self):
