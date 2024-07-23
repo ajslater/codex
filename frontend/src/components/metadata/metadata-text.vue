@@ -1,35 +1,19 @@
 <template>
-  <div v-if="computedValue" class="text" :class="{ highlight }">
+  <div v-if="displayValue" class="text" :class="{ highlight }">
     <div class="textLabel">
       {{ label }}
     </div>
     <div class="textValue" :class="{ empty }">
-      <router-link
-        v-if="groupTo && group === 'f'"
-        id="folderPath"
-        :to="groupTo"
-        title="Browse Folder"
-      >
-        {{ folderPath }}/
-      </router-link>
-      <router-link
-        v-else-if="groupTo"
-        class="textContent"
-        :to="groupTo"
-        :title="`Browse ${label}`"
-      >
-        {{ computedValue }}
-      </router-link>
-      <a v-else-if="link" :href="linkValue" target="_blank">
-        {{ computedValue }}
-        <v-icon size="small">
+      <a v-if="href" :href="href" :title="title" :target="target">
+        {{ displayValue }}
+        <v-icon v-if="link" size="small">
           {{ mdiOpenInNew }}
         </v-icon>
       </a>
       <div v-else class="textContent">
-        {{ computedValue }}
+        {{ displayValue }}
       </div>
-      <span v-if="groupTo && group === 'f'" id="basePath">{{ basePath }} </span>
+      <span v-if="baseName">{{ baseName }} </span>
     </div>
   </div>
 </template>
@@ -38,8 +22,8 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapState } from "pinia";
 
+import { getBrowserHref } from "@/api/v3/browser";
 import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
-
 const EMPTY_VALUE = "(Empty)";
 
 export default {
@@ -78,50 +62,33 @@ export default {
       folderViewEnabled: (state) => state.page.adminFlags.folderView,
     }),
     computedValue() {
-      let value =
-        this.value && this.value.name !== undefined
-          ? this.value.name
-          : this.value;
-      if (this.group && value === "") {
+      return this.value && this.value.name !== undefined
+        ? this.value.name
+        : this.value;
+    },
+    lastSlashIndex() {
+      return this.computedValue.lastIndexOf("/");
+    },
+    displayValue() {
+      let value;
+      if (this.group && this.computedValue === "") {
         value = EMPTY_VALUE;
+      } else if (this.group === "f") {
+        value = this.computedValue.substring(0, this.lastSlashIndex + 1);
+      } else {
+        value = this.computedValue;
       }
       return value;
     },
     empty() {
-      return this.computedValue === EMPTY_VALUE;
+      return this.displayValue === EMPTY_VALUE;
     },
-    linkValue() {
-      if (this.link === true) {
-        return this.computedValue;
-      } else if (this.link) {
-        return this.link;
-      }
-      return false;
-    },
-    highlight() {
-      return this.obj?.group === this.group;
-    },
-    pathArray() {
-      if (!this.computedValue) {
-        return;
-      }
-      return this.computedValue.split("/");
-    },
-    folderPath() {
-      if (!this.pathArray) {
-        return;
-      }
-      return this.pathArray.slice(0, -1).join("/");
-    },
-    basePath() {
-      if (!this.pathArray) {
-        return;
-      }
-      return this.pathArray.at(-1);
-    },
-    groupTo() {
+    _browserGroupHref() {
+      // Using router-link gets hijacked and topGroup is not submitted.
       const group = this.group;
       const params = this.$router.currentRoute.value.params;
+
+      // Validate Group
       if (
         !group ||
         params.group === group ||
@@ -130,14 +97,40 @@ export default {
       ) {
         return;
       }
-      const pksList = this.value.ids ? this.value.ids : [this.value.pk];
-      const pks = pksList.join(",");
 
-      if (!pks || params.pks === pks) {
+      // Get & validate pks
+      const pks = this.value.ids ? this.value.ids : [this.value.pk];
+      if (!pks || !pks.length) {
         return;
       }
       const topGroup = this.getTopGroup(group);
-      return { name: "browser", params: { group, pks }, query: { topGroup } };
+      const query = { topGroup };
+      return getBrowserHref({ group, pks, query });
+    },
+    _linkHref() {
+      if (this.link === true) {
+        return this.displayValue;
+      } else if (this.link) {
+        return this.link;
+      }
+      return false;
+    },
+    href() {
+      return this._browserGroupHref ? this._browserGroupHref : this._linkHref;
+    },
+    target() {
+      return this.link ? "_blank" : "";
+    },
+    title() {
+      return this._browserGroupHref ? `Browse to ${this.label}` : this.label;
+    },
+    baseName() {
+      return this.group === "f"
+        ? this.computedValue.substring(this.lastSlashIndex)
+        : "";
+    },
+    highlight() {
+      return this.obj?.group === this.group;
     },
   },
   methods: {
@@ -147,11 +140,12 @@ export default {
       if (this.browserTopGroup === group || ["a", "f"].includes(group)) {
         topGroup = group;
       } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group);
+        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
         // Determine browse top group
         for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup === "r" || this.browserShow[testGroup]) {
+          if (testGroup !== "r" && this.browserShow[testGroup]) {
             topGroup = testGroup;
+            break;
           }
         }
       }

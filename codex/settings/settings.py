@@ -81,6 +81,7 @@ if not DEBUG:
             "asyncio": {
                 "level": "INFO",
             },
+            "urllib3.connectionpool": {"level": "INFO"},
             "watchdog": {
                 "level": "INFO",
             },

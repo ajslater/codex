@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.15
+
+- Fixes
+
+  - Fix more Metadata links to browser groups not computing and resolving
+    properly.
+
 ## v1.6.14
 
 - Fixes
@@ -21,16 +28,6 @@ border-radius: 128px;
 
 ## v1.6.12
 
-- Fixes
-
-  - Detect iOS devices in Desktop Mode for proper iOS tap behavior.
-
-## v1.6.10 & v1.6.11
-
-- Yanked. Broken javascript.
-
-## v1.6.9
-
 - Features
 
   - Native Windows installation instructions in the README thanks to
@@ -40,7 +37,11 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix iOS detection for special browser card tap behavior
+  - Detect iOS devices in Desktop Mode for proper iOS tap behavior.
+
+## v1.6.9, v1.6.10, v1.6.11
+
+- Yanked. Bad network behavior. Broken javascript.
 
 ## v1.6.8
 
