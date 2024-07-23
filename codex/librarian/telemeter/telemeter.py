@@ -6,7 +6,7 @@ from logging import getLogger
 from lzma import compress
 from uuid import uuid4
 
-from requests import post
+from requests import Session
 
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import AdminFlag, Timestamp
@@ -52,8 +52,9 @@ def _post_stats(log, data):
         msg = f"{_POST} {len(compressed_data)}, {_HEADERS}, {_TIMEOUT}"
         log.debug(msg)
     else:
-        response = post(_POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT)
-        response.raise_for_status()
+        with Session() as session:
+            response = session.post(_POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT)
+            response.raise_for_status()
 
 
 def _send_telemetry(log):
