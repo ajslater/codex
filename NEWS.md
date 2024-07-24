@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.16
+
+- Fixes
+
+  - Admin Tab change password was opening all change password dialogs for every user.
+
 ## v1.6.15
 
 - Fixes
