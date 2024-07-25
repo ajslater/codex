@@ -66,11 +66,12 @@ class CronThread(NamedThread):
                 while not self._stop_event.is_set():
                     self._run_expired_jobs()
                     self._create_task_times()
+                    sleep(2)  # try to fix double jobs
                     timeout = self._get_timeout()
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break
-                    sleep(3)  # fixes any time rounding problems
+                    sleep(2)  # fix time rounding problems
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
         self.log.debug(f"Stopped {self.__class__.__name__}.")
