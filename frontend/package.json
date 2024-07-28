@@ -46,7 +46,7 @@
     "eslint-plugin-vue-scoped-css": "^2.2.0",
     "jsdom-global": "^3.0.2",
     "sass": "^1.55.0",
-    "sass-loader": "^15.0",
+    "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^5.0.10",
     "vite-plugin-checker": "^0.7.0",
