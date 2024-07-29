@@ -11,6 +11,8 @@ from codex.views.const import (
     ONE_INTEGERFIELD,
 )
 
+_CHILD_COUNT = "child_count"
+
 
 class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
     """Annotations that also filter."""
@@ -37,16 +39,15 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
     def _filter_by_child_count(self, qs, model):
         """Filter group by child count."""
         rel = self.rel_prefix + "pk"
-        ann_name = "child_count"
         count_func = ONE_INTEGERFIELD if model == Comic else Count(rel, distinct=True)
-        ann = {ann_name: count_func}
+        ann = {_CHILD_COUNT: count_func}
         if self.TARGET == "opds2":
             if model != Comic:
                 qs = qs.alias(**ann)
         else:
             qs = qs.annotate(**ann)
         if model != Comic:
-            qs = qs.filter(**{f"{ann_name}__gt": 0})
+            qs = qs.filter(**{f"{_CHILD_COUNT}__gt": 0})
         return qs
 
     def get_filtered_queryset(  # noqa: PLR0913
