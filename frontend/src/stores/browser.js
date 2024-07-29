@@ -589,14 +589,14 @@ export const useBrowserStore = defineStore("browser", {
         .catch(console.error);
     },
     async loadMtimes() {
-      const route = router.currentRoute.value;
+      const params = router?.currentRoute?.value?.params;
+      const routeGroup = params?.group;
       const group =
-        route.params.group != "r" ? route.params.group : this.page.modelGroup;
-      const pks = route.params.pks;
+        routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
+      const pks = params?.pks || "0";
       return await COMMON_API.getMtime([{ group, pks }], this.choicesSettings)
         .then((response) => {
-          const newMtime = response.data.maxMtime;
-          // console.log(`new ${newMtime} !== old ${this.page.mtime}`);
+          const newMtime = response?.data?.maxMtime;
           if (newMtime !== this.page.mtime) {
             this.choices.dynamic = undefined;
             this.loadBrowserPage(newMtime);
