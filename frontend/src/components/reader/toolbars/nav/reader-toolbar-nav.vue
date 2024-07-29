@@ -55,7 +55,8 @@ export default {
       showToolbars: (state) => state.showToolbars,
       storePage: (state) => state.page,
       key(state) {
-        return `${state.books?.current?.pk}:${this.step}:${this.isReadInReverse}`;
+        const pk = state.books?.current?.pk;
+        return `${pk}:${this.step}:${this.isReadInReverse}`;
       },
       maxPage: (state) => state.books?.current?.maxPage || 0,
     }),
