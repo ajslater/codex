@@ -9,7 +9,7 @@ export function setupNativeSock(app) {
   // store.appGlobalProperites = app.config.globalProperties;
 
   const SOCKET_OPTIONS = {
-    store: store,
+    store,
     reconnection: true,
   };
 
