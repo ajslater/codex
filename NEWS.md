@@ -13,6 +13,7 @@ border-radius: 128px;
   - Admin Tab change password was opening all change password dialogs for every
     user.
   - More robust ui cache busting on library update.
+  - Fix minor error on metadata text box's with null values.
 
 ## v1.6.15
 
