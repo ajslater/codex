@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fixes
 
+  - Import may have been marking mounted drive's comics modified
+    inappropriately.
   - Admin Tab change password was opening all change password dialogs for every
     user.
   - More robust ui cache busting on library update.
