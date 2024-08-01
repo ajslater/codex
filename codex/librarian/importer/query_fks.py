@@ -544,13 +544,12 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             base_cls = Comic
         fk_data = self.metadata[FK_CREATE][FKC_CREATE_FKS], base_cls, fk_field, "name"
         names = self.metadata[FKS].pop(fk_field)
-        status.add_complete(
-            self._query_missing_simple_models(
-                names,
-                fk_data,
-                status,
-            )
+        count = self._query_missing_simple_models(
+            names,
+            fk_data,
+            status,
         )
+        status.add_complete(count)
         self.status_controller.update(status, notify=False)
 
     ###########
