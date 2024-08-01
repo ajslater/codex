@@ -26,7 +26,7 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
         self, model, group, pks, bookmark_filter, page_mtime=False, group_filter=True
     ):
         """Return all the filters except the group filter."""
-        # TODO all these ifs and flags are awful
+        # XXX all these ifs and flags are awful
         object_filter = self.get_group_acl_filter(model)
         if group_filter:
             object_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
