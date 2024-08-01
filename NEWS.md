@@ -12,10 +12,12 @@ border-radius: 128px;
 
   - Import may have been marking mounted drive's comics modified
     inappropriately.
-  - Admin Tab change password was opening all change password dialogs for every
-    user.
+  - Import crash when moving comics.
+  - Relink deep orphan folders in the db instead of recreating them.
+  - Do not adopt orphan folders deleted from the filesystem.
+  - Admin Tab change password for user broke.
   - More robust ui cache busting on library update.
-  - Fix minor error on metadata text box's with null values.
+  - Fix minor error on metadata text boxes with null values.
 
 ## v1.6.15
 
