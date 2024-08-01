@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
-version = "1.6.15"
+version = "1.6.16"
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -58,7 +58,7 @@ hypercorn = { extras = ["h3"], version = "^0.17.3" }
 psutil = "^6.0.0"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
-setuptools = "^71.0.3"                                 # for vendored haystack
+setuptools = "^72.1.0"                                 # for vendored haystack
 tzlocal = "^5.0"
 watchdog = "^4.0"
 websocket_client = "^1.2"

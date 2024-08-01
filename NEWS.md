@@ -6,6 +6,19 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.16
+
+- Fixes
+
+  - Import may have been marking mounted drive's comics modified
+    inappropriately.
+  - Import crash when moving comics.
+  - Relink deep orphan folders in the db instead of recreating them.
+  - Do not adopt orphan folders deleted from the filesystem.
+  - Admin Tab change password for user broke.
+  - More robust ui cache busting on library update.
+  - Fix minor error on metadata text boxes with null values.
+
 ## v1.6.15
 
 - Fixes

@@ -11,13 +11,26 @@ import { store } from "@/stores/store";
 
 const libraryChanged = function () {
   useCommonStore().setTimestamp();
-  const route = router.currentRoute.value;
-  if (route.name === "browser") {
-    useBrowserStore().loadMtimes();
-  } else if (route.name == "reader") {
-    useReaderStore().loadMtimes();
-  } else if (route.name == "admin-libraries") {
-    useAdminStore().loadTables(["Library", "FailedImport"]);
+  const routeName = router?.currentRoute?.value?.name;
+  switch (routeName) {
+    case "browser":
+      useBrowserStore().loadMtimes();
+      break;
+    case "reader":
+      useReaderStore().loadMtimes();
+      break;
+    case "admin-libraries":
+      useAdminStore().loadTables(["Library", "FailedImport"]);
+      break;
+    case "admin-users":
+      useAdminStore().loadTables(["User"]);
+      break;
+    case "admin-groups":
+      useAdminStore().loadTables(["Group"]);
+      break;
+    case "admin-stats":
+      useAdminStore().loadStats();
+      break;
   }
 };
 

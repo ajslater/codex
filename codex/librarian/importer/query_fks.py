@@ -544,19 +544,22 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             base_cls = Comic
         fk_data = self.metadata[FK_CREATE][FKC_CREATE_FKS], base_cls, fk_field, "name"
         names = self.metadata[FKS].pop(fk_field)
-        status.add_complete(
-            self._query_missing_simple_models(
-                names,
-                fk_data,
-                status,
-            )
+        count = self._query_missing_simple_models(
+            names,
+            fk_data,
+            status,
         )
+        status.add_complete(count)
         self.status_controller.update(status, notify=False)
 
     ###########
     # FOLDERS #
     ###########
-    def query_missing_folder_paths(self, comic_paths, status):
+    def query_missing_folder_paths(
+        self,
+        comic_paths,
+        status,
+    ):
         """Find missing folder paths."""
         # Get the proposed folder_paths
         library_path = Path(self.library.path)
@@ -575,15 +578,18 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             status,
         )
         create_folder_paths = create_folder_paths_dict.get(Folder, set())
+        return frozenset(create_folder_paths)
+
+    def _add_missing_folder_paths(self, comic_paths, status):
+        create_folder_paths = self.query_missing_folder_paths(comic_paths, status)
+        """Add missing folder_paths to create fks."""
         if FK_CREATE not in self.metadata:
             self.metadata[FK_CREATE] = {}
         if FKC_FOLDER_PATHS not in self.metadata[FK_CREATE]:
             self.metadata[FK_CREATE][FKC_FOLDER_PATHS] = set()
         self.metadata[FK_CREATE][FKC_FOLDER_PATHS] |= create_folder_paths
-        count = len(create_folder_paths)
-        if count:
+        if count := len(create_folder_paths):
             self.log.info(f"Prepared {count} new Folders.")
-        return count
 
     def _get_create_fks_totals(self):
         fkc = self.metadata[FK_CREATE]
@@ -634,7 +640,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
                     status,
                 )
 
-            self.query_missing_folder_paths(
+            self._add_missing_folder_paths(
                 self.metadata[FKS].pop(COMIC_PATHS, ()), status
             )
 

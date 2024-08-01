@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-if="user"
-    v-model="showChangePasswordDialog"
+    v-model="showOnlyThisDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="22em"
@@ -26,7 +26,7 @@
     </template>
     <div v-if="formSuccess" class="codexFormSuccess">
       {{ formSuccess }}
-      <CloseButton @click="showChangePasswordDialog = false" />
+      <CloseButton @click="showOnlyThisDialog = false" />
     </div>
     <v-form v-else ref="form" class="changePasswordForm">
       <h2>User {{ user.username }}</h2>
@@ -75,7 +75,7 @@
         table="Password"
         :disabled="!submitButtonEnabled"
         @submit="submit"
-        @cancel="showChangePasswordDialog = false"
+        @cancel="showOnlyThisDialog = false"
       />
     </v-form>
   </v-dialog>
@@ -141,6 +141,7 @@ export default {
       submitButtonEnabled: false,
       mdiLockReset,
       mdiLockPlusOutline,
+      showOnlyThisDialog: false,
     };
   },
   computed: {
@@ -152,7 +153,8 @@ export default {
     ...mapWritableState(useAuthStore, ["showChangePasswordDialog"]),
   },
   watch: {
-    showChangePasswordDialog(to) {
+    showOnlyThisDialog(to) {
+      this.showChangePasswordDialog = to;
       if (to) {
         const form = this.$refs.form;
         if (form) {
@@ -227,12 +229,14 @@ export default {
 .changePasswordForm {
   padding: 20px;
 }
+
 .codexFormSuccess {
   padding: 10px;
   font-size: larger;
   color: rgb(var(--v-theme-success));
   text-align: center;
 }
+
 .hidden {
   display: none;
 }

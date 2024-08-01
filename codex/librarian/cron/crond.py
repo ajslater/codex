@@ -30,21 +30,23 @@ class CronThread(NamedThread):
         self._task_times = ()
         super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
 
-    def _update_task_times(self):
+    def _create_task_times(self):
         task_times = {}
         for task_class, func in _TASK_TIME_FUNCTION_MAP.items():
             if dttm := func(self.log):
                 task_times[dttm] = task_class
 
-        task_tuple = tuple(sorted(task_times.items()))
-
-        # There's always at least the janitor job
-        self._next_time = task_tuple[0][0]
-        self._task_times = task_tuple
+        self._task_times = tuple(sorted(task_times.items()))
 
     def _get_timeout(self):
+        if not self._task_times or not self._task_times[0]:
+            self.log.warning("No scheduled jobs found. Not normal! Waiting a minute.")
+            return 60
+
+        next_time = self._task_times[0][0]
         now = django_timezone.now()
-        delta = self._next_time - now
+        delta = next_time - now
+        self.log.debug(f"Next scheduled job at {next_time} in {delta}.")
         return max(0, int(delta.total_seconds()))
 
     def _run_expired_jobs(self):
@@ -53,6 +55,7 @@ class CronThread(NamedThread):
             if dttm < now:
                 self.librarian_queue.put(task_class())
             else:
+                # Times are always ordered so stop checking at the first future job.
                 break
 
     def run(self):
@@ -62,13 +65,13 @@ class CronThread(NamedThread):
             with self._cond:
                 while not self._stop_event.is_set():
                     self._run_expired_jobs()
-                    self._update_task_times()
+                    self._create_task_times()
+                    sleep(2)  # try to fix double jobs
                     timeout = self._get_timeout()
-                    self.log.debug(f"Next scheduled job at {self._next_time}.")
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break
-                    sleep(2)  # fixes any time rounding problems
+                    sleep(2)  # fix time rounding problems
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
         self.log.debug(f"Stopped {self.__class__.__name__}.")

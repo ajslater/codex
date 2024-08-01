@@ -73,7 +73,7 @@ export default {
       let value;
       if (this.group && this.computedValue === "") {
         value = EMPTY_VALUE;
-      } else if (this.group === "f") {
+      } else if (this.group === "f" && this.computedValue) {
         value = this.computedValue.substring(0, this.lastSlashIndex + 1);
       } else {
         value = this.computedValue;
