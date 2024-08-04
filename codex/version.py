@@ -66,16 +66,17 @@ def is_outdated(
     repo_url_template=PYPI_URL_TEMPLATE,
 ):
     """Is codex outdated."""
+    result = False
     try:
         latest_version = get_latest_version(package_name, repo_url_template)
         versio_latest_version = Version(latest_version)
 
-        if versio_latest_version.parts[1] and not VERSIO_VERSION.parts[1]:
-            LOG.warning("{latest_version=} is a prerelease. Not outdated.")
-
-        result = versio_latest_version > VERSIO_VERSION
-        LOG.info(f"{latest_version=} > {VERSION=} = {result}")
-    except Exception as exc:
-        LOG.warning(f"is outdated failed: {exc}")
-        result = False
+        if versio_latest_version.parts[1] and not VERSIO_VERSION.parts[1]:  # type: ignore
+            pre_blurb = "latest version is a prerelease. But installed version is not."
+        else:
+            result = versio_latest_version > VERSIO_VERSION
+            pre_blurb = ""
+        LOG.info(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
+    except Exception:
+        LOG.exception("is_outdated() failed")
     return result
