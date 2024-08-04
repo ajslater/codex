@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.17
+
+- Features
+
+  - Admin Action buttons now responsive to view size.
+
+- Fixes
+
+  - Auto update wasn't comparing versions well.
+  - Possible fix for initializing admin flags crash.
+
 ## v1.6.16
 
 - Fixes

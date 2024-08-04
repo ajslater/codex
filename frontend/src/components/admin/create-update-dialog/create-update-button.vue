@@ -1,9 +1,13 @@
 <template>
-  <v-btn rounded :icon="update" v-bind="$attrs" :size="size" :density="density">
-    <v-icon v-if="update">
-      {{ mdiPencil }}
-    </v-icon>
-    <span v-else>+ {{ table }}</span>
+  <v-btn
+    v-if="update"
+    :icon="mdiPencil"
+    v-bind="$attrs"
+    :size="size"
+    :density="density"
+  />
+  <v-btn v-else v-bind="$attrs" :size="size" :density="density">
+    <span>+ {{ table }}</span>
   </v-btn>
 </template>
 

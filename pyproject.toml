@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
-version = "1.6.16"
+version = "v1.6.17"
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -65,6 +65,7 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh-reloaded = "^2.7.5"
 Pillow = "^10.0.0"
+versio = "^0.5.0"
 
 [tool.poetry.group.dev.dependencies]
 django-schema-graph = "^3.1.0"
@@ -107,7 +108,7 @@ builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
 # https://github.com/codespell-project/codespell/issues/1212
-ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws,falsy'
+ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws,falsy,versio'
 
 [tool.coverage.html]
 directory = "test-results/coverage"
