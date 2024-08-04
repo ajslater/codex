@@ -30,6 +30,7 @@ def get_version():
 VERSION = get_version()
 VERSIO_VERSION = Version(VERSION)
 
+
 def _get_version_from_db():
     ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
     expired = timezone.now() - ts.updated_at > CACHE_EXPIRY
@@ -51,12 +52,12 @@ def get_latest_version(
     """Get the latest version from a remote repo using a cache."""
     ts, latest_version = _get_version_from_db()
     if latest_version is None:
-       latest_version = _fetch_latest_version(package_name, repo_url_template)
-       if not latest_version:
-           reason = "Bad latest version fetched."
-           raise ValueError(reason)
-       ts.version = latest_version
-       ts.save()
+        latest_version = _fetch_latest_version(package_name, repo_url_template)
+        if not latest_version:
+            reason = "Bad latest version fetched."
+            raise ValueError(reason)
+        ts.version = latest_version
+        ts.save()
     return latest_version
 
 
