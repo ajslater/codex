@@ -14,7 +14,7 @@ border-radius: 128px;
 
 - Fixes
 
-  - Compare codex versions with semver properly, in auto update.
+  - Compare codex versions with PEP 440 properly for auto update.
 
 ## v1.6.16
 

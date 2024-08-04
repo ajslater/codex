@@ -2488,17 +2488,6 @@ files = [
 ]
 
 [[package]]
-name = "semver"
-version = "3.0.2"
-description = "Python helper for Semantic Versioning (https://semver.org)"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "semver-3.0.2-py3-none-any.whl", hash = "sha256:b1ea4686fe70b981f85359eda33199d60c53964284e0cfb4977d243e37cf4bf4"},
-    {file = "semver-3.0.2.tar.gz", hash = "sha256:6253adb39c70f6e51afed2fa7152bcd414c411286088fb4b9effb133885ab4cc"},
-]
-
-[[package]]
 name = "service-identity"
 version = "24.1.0"
 description = "Service identity verification for pyOpenSSL & cryptography."
@@ -2891,6 +2880,17 @@ files = [
 ]
 
 [[package]]
+name = "versio"
+version = "0.5.0"
+description = "Version manipulation library."
+optional = false
+python-versions = "*"
+files = [
+    {file = "Versio-0.5.0-py3-none-any.whl", hash = "sha256:68fde9c516bf352d9912a401202555dd9d7c4e2626f578fe41a7079159e43003"},
+    {file = "Versio-0.5.0.tar.gz", hash = "sha256:64b3bb4cc285b5c7cf3afb3ea63bc6b0df1e7cb1db14e77a8b7ec81b8c8b058e"},
+]
+
+[[package]]
 name = "vulture"
 version = "2.11"
 description = "Find dead code"
@@ -3034,4 +3034,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f9e85af9427e05721c0e946c2955245f75f3b34a90dcb0147d0fd431a210948c"
+content-hash = "902d0812fe5215cd8d343cba43da65b834485caed38c859ef59a7b61c7343022"

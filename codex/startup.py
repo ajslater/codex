@@ -87,7 +87,7 @@ def init_admin_flags():
     _delete_orphans(AdminFlag, "key", AdminFlag.FlagChoices.values)
 
     for key in AdminFlag.FlagChoices.values:
-        defaults = {}
+        defaults = { "key": key}
         if key in AdminFlag.FALSE_DEFAULTS:
             defaults["on"] = False
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)

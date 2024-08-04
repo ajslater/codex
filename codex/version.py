@@ -6,7 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 import requests
 from django.utils import timezone
-from semver import Version
+from versio.version import Version
 
 from codex.logger.logging import get_logger
 from codex.models import Timestamp
@@ -28,7 +28,7 @@ def get_version():
 
 
 VERSION = get_version()
-SEMVER_VERSION = Version.parse(VERSION)
+VERSIO_VERSION = Version(VERSION)
 
 def _get_version_from_db():
     ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
@@ -67,12 +67,12 @@ def is_outdated(
     """Is codex outdated."""
     try:
         latest_version = get_latest_version(package_name, repo_url_template)
-        semver_latest_version = Version.parse(latest_version)
+        versio_latest_version = Version(latest_version)
 
-        if semver_latest_version.prerelease and not SEMVER_VERSION.prerelease:
+        if versio_latest_version.parts[1] and not VERSIO_VERSION.parts[1]:
             LOG.warning("{latest_version=} is a prerelease. Not outdated.")
 
-        result = semver_latest_version > SEMVER_VERSION
+        result = versio_latest_version > VERSIO_VERSION
         LOG.info(f"{latest_version=} > {VERSION=} = {result}")
     except Exception as exc:
         LOG.warning(f"is outdated failed: {exc}")
