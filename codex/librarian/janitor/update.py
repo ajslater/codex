@@ -27,7 +27,7 @@ class UpdateMixin(WorkerBaseMixin):
                 eau = AdminFlag.objects.only("on").get(
                     key=AdminFlag.FlagChoices.AUTO_UPDATE.value
                 )
-                if not eau.on or not is_outdated(PACKAGE_NAME):
+                if not eau.on or not is_outdated(PACKAGE_NAME, self.log):
                     self.log.info("Codex is up to date.")
                     return
 
