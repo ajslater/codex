@@ -12,6 +12,10 @@ border-radius: 128px;
 
   - Admin Action buttons now responsive to view size.
 
+- Fixes
+
+  - Compare codex versions with semver properly, in auto update.
+
 ## v1.6.16
 
 - Fixes
