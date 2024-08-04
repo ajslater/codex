@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.17
+
+- Features
+
+  - Admin Action buttons now responsive to view size.
+
 ## v1.6.16
 
 - Fixes
