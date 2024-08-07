@@ -272,7 +272,6 @@ class BrowserQueryParser(ComicFieldFilterView):
             elif part:
                 search_query_parts.append(part)
 
-        print(field_query)
         if field_query:
             qs = qs.filter(field_query)
         preparsed_search_query = shlex.join(search_query_parts).strip()
