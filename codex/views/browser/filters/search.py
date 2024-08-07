@@ -9,7 +9,7 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.search.query import CodexSearchQuerySet
 from codex.settings.settings import DEBUG
-from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.browser.filters.search_field import BrowserQueryParser
 from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
@@ -27,7 +27,7 @@ class SearchScorePks:
     next_pks: tuple[int, ...] = ()
 
 
-class SearchFilterView(ComicFieldFilterView):
+class SearchFilterView(BrowserQueryParser):
     """Search Filters Methods."""
 
     TARGET = ""
@@ -117,9 +117,8 @@ class SearchFilterView(ComicFieldFilterView):
 
         return tuple(scores_pairs), tuple(prev_pks), tuple(next_pks), tuple(scored_pks)
 
-    def _get_search_scores(self, model, qs):
+    def _get_search_scores(self, model, qs, text):
         """Perform the search and return the scores as a dict."""
-        text = self.params.get("q", "")  # type: ignore
         if not text:
             return (), (), (), ()
 
@@ -183,8 +182,9 @@ class SearchFilterView(ComicFieldFilterView):
     def apply_search_filter(self, qs, model):
         """Preparse search, search and return the filter and scores."""
         try:
+            qs, text = self.preparse_search_query(qs, model)
             score_pairs, prev_pks, next_pks, scored_pks = self._get_search_scores(
-                model, qs
+                model, qs, text
             )
             qs = self.annotate_search_score(qs, model, score_pairs, prev_pks, next_pks)
             if score_pairs or scored_pks:
