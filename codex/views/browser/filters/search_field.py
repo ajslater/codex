@@ -1,5 +1,6 @@
 """Parse the browser query by removing field queries and doing them with the ORM."""
 
+import shlex
 from decimal import Decimal
 from types import MappingProxyType
 
@@ -159,9 +160,7 @@ class BrowserQueryParser(ComicFieldFilterView):
         if not q:
             return qs, q
 
-        # TODO spaces in fields
-
-        parts = q.split()
+        parts = shlex.split(q)
         search_query_parts = []
         for part in parts:
             if ":" in part:
@@ -173,5 +172,5 @@ class BrowserQueryParser(ComicFieldFilterView):
             elif part:
                 search_query_parts.append(part)
 
-        preparsed_search_query = " ".join(search_query_parts).strip()
+        preparsed_search_query = shlex.join(search_query_parts).strip()
         return qs, preparsed_search_query
