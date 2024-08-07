@@ -51,7 +51,8 @@ class BrowserQueryParser(ComicFieldFilterView):
     @staticmethod
     def _parse_operator(token, operator, rel, value):
         """Move value operator out of value into relation operator."""
-        rel += "__" + operator
+        if operator:
+            rel += "__" + operator
         value = value[len(token) :]
         return rel, value
 
@@ -136,6 +137,8 @@ class BrowserQueryParser(ComicFieldFilterView):
     def _parse_issue_value(value):
         """Parse a compound issue value into number & suffix."""
         value = IssueField.parse_issue(value)
+        if not value:
+            return None, None
         matches = _PARSE_ISSUE_MATCHER.match(value)
         if not matches:
             return None, None
@@ -168,9 +171,9 @@ class BrowserQueryParser(ComicFieldFilterView):
         is_operator_query = True
         value = value.strip()
         if value.startswith("!"):
-            cls._parse_operator_not(rel_class, rel, value)
+            rel, value_str = cls._parse_operator_not(rel_class, rel, value)
             query_not = True
-        if value.startswith(">="):
+        elif value.startswith(">="):
             rel, value_str = cls._parse_operator(">=", "gte", rel, value)
         elif value.startswith(">"):
             rel, value_str = cls._parse_operator(">", "gt", rel, value)
@@ -185,13 +188,13 @@ class BrowserQueryParser(ComicFieldFilterView):
             cls._parse_operator_range("..", rel, rel_class, value, query_dict)
             value_str = ""
         elif rel_class in (CharField, TextField):
-            operator, value_str = cls._parse_operator_text(rel, value)
-            rel += operator
+            rel, value_str = cls._parse_operator_text(rel, value)
         else:
+            # Exact match for non-string fields
             is_operator_query = False
             value_str = value
 
-        return value_str, query_not, is_operator_query
+        return rel, value_str, query_not, is_operator_query
 
     @classmethod
     def _parse_value_special_fields(cls, rel, query_not, is_operator_query, query_dict):
@@ -204,7 +207,7 @@ class BrowserQueryParser(ComicFieldFilterView):
     @classmethod
     def _parse_value(cls, rel, rel_class, value_part, query_dict):
         """Parse the value side of the field query into the query dict."""
-        value_str, query_not, is_operator_query = cls._parse_value_operators(
+        rel, value_str, query_not, is_operator_query = cls._parse_value_operators(
             rel, rel_class, value_part, query_dict
         )
 
