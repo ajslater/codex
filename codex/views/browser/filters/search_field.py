@@ -107,24 +107,23 @@ class BrowserQueryParser(ComicFieldFilterView):
         return rel_class, rel
 
     @staticmethod
-    def _parse_operator_text(rel, value):
+    def _parse_operator_text(value):
         """Parse text value operators."""
         if "*" in value:
-            operator = "__iregex"
+            operator = "iregex"
             value = ".*" + value.replace("*", ".*") + ".*"
         else:
-            operator = "__icontains"
-        rel += operator
-        return rel, value
+            operator = "icontains"
+        return operator, value
 
     @classmethod
-    def _parse_operator_not(cls, rel_class, field, value):
+    def _parse_operator_not(cls, rel_class, rel, value):
         """Parse value not operator."""
         if rel_class in (CharField, TextField):
-            operator, value = cls._parse_operator_text(field, value)
+            operator, value = cls._parse_operator_text(value)
         else:
             operator = ""
-        return cls._parse_operator("!", operator, field, value)
+        return cls._parse_operator("!", operator, rel, value)
 
     @staticmethod
     def _parse_size_values(query_dict):
@@ -188,7 +187,8 @@ class BrowserQueryParser(ComicFieldFilterView):
             cls._parse_operator_range("..", rel, rel_class, value, query_dict)
             value_str = ""
         elif rel_class in (CharField, TextField):
-            rel, value_str = cls._parse_operator_text(rel, value)
+            operator, value_str = cls._parse_operator_text(value)
+            rel += "__" + operator
         else:
             # Exact match for non-string fields
             is_operator_query = False
@@ -263,6 +263,7 @@ class BrowserQueryParser(ComicFieldFilterView):
             elif part:
                 search_query_parts.append(part)
 
+        print(field_query)
         if field_query:
             qs = qs.filter(field_query)
         preparsed_search_query = shlex.join(search_query_parts).strip()
