@@ -1,5 +1,6 @@
 """Parse the browser query by removing field queries and doing them with the ORM."""
 
+import re
 import shlex
 from decimal import Decimal
 from types import MappingProxyType
@@ -37,6 +38,11 @@ _FIELD_TYPE_MAP = MappingProxyType(
     }
 )
 _EXCLUDE_FIELD_NAMES = frozenset({"stat", "parent_folder", "library"})
+_PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
+# TODO
+# comicbox issue comicbox/fields/fields.py:IssueField.parse_issue()
+# Then split with _PARSE_ISSUE_MATCHER
+# then inject another term into the parts (!)
 
 LOG = get_logger(__name__)
 
@@ -80,9 +86,8 @@ class BrowserQueryParser(ComicFieldFilterView):
         if not field_class:
             return None, None
 
-        # TODO
-        # full issue number
-
+        # TODO full issue number
+        # use the issue parser to search both columns
         if field_name == "role":
             field = "contributors__role__name"
         elif field_class in (ForeignKey, ManyToManyField):
@@ -101,11 +106,26 @@ class BrowserQueryParser(ComicFieldFilterView):
         prefix = "" if model == Comic else "comic__"  # type: ignore
         return field_class, prefix + field
 
+    def _parse_text_value(self, field, value):
+        if "*" in value:
+            operator = "__iregex"
+            value = ".*" + value.replace("*", ".*") + ".*"
+        else:
+            operator = "__icontains"
+        field = field + operator
+        return field, value
+
+    def _parse_not_value(self, field_class, field, value):
+            if field_class in (CharField, TextField):
+                operator, value = self._parse_text_value(field, value)
+            else:
+                operator = ""
+            return self._parse_operator("!", operator, field, value)
+
     def _parse_value(self, field, field_class, value_part, query_dict):
         query_not = False
         if value_part.startswith("!"):
-            operator = "__icontains" if field_class in (CharField, TextField) else ""
-            field, value_str = self._parse_operator("!", operator, field, value_part)
+            self._parse_not_value(field_class, field, value_part)
             query_not = True
         if value_part.startswith(">="):
             field, value_str = self._parse_operator(">=", "gte", field, value_part)
@@ -122,13 +142,12 @@ class BrowserQueryParser(ComicFieldFilterView):
             self._parse_range_filter("..", field, field_class, value_part, query_dict)
             value_str = ""
         elif field_class in (CharField, TextField):
-            field += "__icontains"
-            value_str = value_part
+            operator, value_str = self._parse_text_value(field, value_part)
+            field += operator
         elif field.endswith("size"):
             value_str = parse_size(value_part)
         else:
             value_str = value_part
-        # TODO regex operator & ! regex operator
 
         parsed_value = None if query_dict else self._cast_value(field_class, value_str)
         return field, parsed_value, query_not
