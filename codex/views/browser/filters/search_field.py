@@ -89,19 +89,28 @@ class BrowserQueryParser(ComicFieldFilterView):
         if not rel_class:
             return None, None
 
+        # Comic relations
         if field_name == "role":
             rel = "contributors__role__name"
-        elif rel_class in (ForeignKey, ManyToManyField):
-            rel = field_name + "__name"
+            rel_class = CharField
         elif field_name == "contributors":
             rel = "contributors__person__name"
+            rel_class = CharField
         elif field_name == "identifier":
             rel = "identifier__nss"
+            rel_class = CharField
         elif field_name == "identifier_type":
             rel = "identifier__identifier_type__name"
+            rel_class = CharField
         elif field_name == "story_arcs":
             rel = "story_arc_number__story_arc__name"
+            rel_class = CharField
+        elif rel_class in (ForeignKey, ManyToManyField):
+            # This must be next to last
+            rel = field_name + "__name"
+            rel_class = CharField
         else:
+            # Comic attribute
             rel = field_name
 
         return rel_class, rel
