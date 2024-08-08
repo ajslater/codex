@@ -9,6 +9,7 @@ from django.db.models import (
     Case,
     F,
     FilteredRelation,
+    FloatField,
     Min,
     Q,
     Sum,
@@ -26,7 +27,7 @@ from codex.models import (
     StoryArc,
     Volume,
 )
-from codex.models.functions import JsonGroupArray
+from codex.models.functions import FTSBM25, JsonGroupArray
 from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
@@ -192,8 +193,28 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
+    def _annotate_search_scores(self, qs):
+        """Annotate Search Scores."""
+        if self.params.get("order_by") != "search_score":  # type: ignore
+            return qs
+
+        # Create a map from only the filtered query.
+        # The JsonGroupArray ids & updated_ats break bm25()
+        # The bookmarks page & finished aggregates break bm25()
+        # At least how I use it now.
+        search_qs = qs.annotate(search_score=FTSBM25())
+        scores = search_qs.values_list("pk", "search_score")
+        search_score = Case(
+            *(When(pk=pk, then=Value(score * -1)) for pk, score in scores),
+            default=Value(0.0),  # Default score if pk not found
+            output_field=FloatField(),
+        )
+        return qs.annotate(search_score=search_score)
+
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
+        qs = self._annotate_search_scores(qs)
+
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._alias_sort_names(qs, model)
         qs = self._alias_filename(qs, model)
