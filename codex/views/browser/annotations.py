@@ -9,7 +9,6 @@ from django.db.models import (
     Case,
     F,
     FilteredRelation,
-    FloatField,
     Min,
     Q,
     Sum,
@@ -195,27 +194,17 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_search_scores(self, qs):
         """Annotate Search Scores."""
-        if self.params.get("order_by") != "search_score":  # type: ignore
+        if (
+            self.TARGET not in frozenset({"browser", "cover"})
+            or self.params.get("order_by") != "search_score"  # type: ignore
+        ):
             return qs
-
-        # Create a map from only the filtered query.
-        # The JsonGroupArray ids & updated_ats break bm25()
-        # The bookmarks page & finished aggregates break bm25()
-        # At least how I use it now.
-        search_qs = qs.annotate(search_score=FTSBM25())
-        scores = search_qs.values_list("pk", "search_score")
-        search_score = Case(
-            *(When(pk=pk, then=Value(score * -1)) for pk, score in scores),
-            default=Value(0.0),  # Default score if pk not found
-            output_field=FloatField(),
-        )
-        return qs.annotate(search_score=search_score)
+        return qs.annotate(search_score=FTSBM25() * -1)
 
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
-        qs = self._annotate_search_scores(qs)
-
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+        qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs, model)
         qs = self._alias_filename(qs, model)
         qs = self._alias_story_arc_number(qs)

@@ -34,6 +34,7 @@ class FTSBM25(Func):
 
     function = "bm25"
     # XXX this should accept a table, not be hardcoded
-    template = "%(function)s(codex_comicfts)"
+    # template = "%(function)s(codex_comicfts)"
+    template = '"codex_comicfts"."rank"'
     # template = "%(function)s(%(expression)s)"
     output_field = FloatField()  # type: ignore
