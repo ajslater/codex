@@ -1,5 +1,6 @@
 """Haystack Search index updater."""
 
+from codex.librarian.search.fts.update import FTSUpdateMixin
 from codex.librarian.search.merge import MergeMixin
 from codex.librarian.search.tasks import (
     SearchIndexClearTask,
@@ -11,7 +12,7 @@ from codex.librarian.search.tasks import (
 from codex.librarian.search.update import UpdateMixin
 
 
-class SearchIndexerThread(UpdateMixin, MergeMixin):
+class SearchIndexerThread(UpdateMixin, MergeMixin, FTSUpdateMixin):
     """A worker to handle search index update tasks."""
 
     def process_item(self, item):
@@ -20,7 +21,8 @@ class SearchIndexerThread(UpdateMixin, MergeMixin):
         if isinstance(task, SearchIndexRebuildIfDBChangedTask):
             self.rebuild_search_index_if_db_changed()
         elif isinstance(task, SearchIndexUpdateTask):
-            self.update_search_index(rebuild=task.rebuild)
+            # self.update_search_index(rebuild=task.rebuild)
+            self.update_search_index_fts(rebuild=task.rebuild)
         elif isinstance(task, SearchIndexMergeTask):
             self.merge_search_index(task.optimize)
         elif isinstance(task, SearchIndexRemoveStaleTask):

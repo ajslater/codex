@@ -7,7 +7,8 @@ from django.db.models import Case, Value, When
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
-from codex.search.query import CodexSearchQuerySet
+from codex.models.comic import ComicFTS
+from codex.models.functions import FTSBM25
 from codex.settings.settings import DEBUG
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import MAX_OBJ_PER_PAGE
@@ -49,7 +50,7 @@ class SearchFilterView(ComicFieldFilterView):
 
     def _get_binary_search_scores(self, sqs):
         """Get search scores for choices and metadata."""
-        sqs = sqs.values_list("pk", flat=True)
+        sqs = sqs.values_list("comic_id", flat=True)
         if self._is_search_results_limited():
             page = self.kwargs.get("page", 1)  # type: ignore
             limit = page * MAX_OBJ_PER_PAGE + 1
@@ -87,11 +88,15 @@ class SearchFilterView(ComicFieldFilterView):
         if DEBUG:
             start_time = time()
 
-        order_reverse = self.params.get("order_reverse", False)  # type: ignore
-        if not order_reverse:
-            sqs = sqs.order_reverse()
+        sqs = sqs.annotate(score=FTSBM25() * -1)
 
-        scores_values = sqs.values_list("pk", "score")
+        order_reverse = self.params.get("order_reverse", False)  # type: ignore
+        if order_reverse:
+            sqs = sqs.order_by("score")
+        if not order_reverse:
+            sqs = sqs.order_by("-score")
+
+        scores_values = sqs.values_list("comic_id", "score")
         if is_search_results_limited:
             scores_values = scores_values[:limit]
         for index, pair in enumerate(scores_values):
@@ -128,22 +133,23 @@ class SearchFilterView(ComicFieldFilterView):
         prev_pks = ()
         next_pks = ()
         try:
-            sqs = CodexSearchQuerySet()
-            sqs = sqs.auto_query(text)  # .filter(score__gt=0.0)
             prefix = "" if model == Comic else self.rel_prefix  # type: ignore
-            comic_ids = qs.values_list(prefix + "pk", flat=True)
-            if comic_ids:
-                # Prefilter comic ids. If nothing is allowed, don't search.
-                sqs = sqs.filter_comic_ids(comic_ids)
-                if (
-                    self.TARGET in frozenset({"cover", "choices"})
-                    or self.params.get("order_by", "") != "search_score"  # type: ignore
-                ):
-                    scored_pks = self._get_binary_search_scores(sqs)
-                else:
-                    score_pairs, prev_pks, next_pks, scored_pks = (
-                        self._get_browser_search_scores(sqs)
-                    )
+            filter_comic_ids = qs.values_list(prefix + "pk", flat=True)
+            sqs = ComicFTS.objects.filter(
+                comic_id__in=filter_comic_ids, body__match=text
+            )
+            # TODO WE CAN ANNOTATE AND FILTER THE MAIN QUERY INLINE and not do sqs
+            if (
+                self.TARGET in frozenset({"cover", "choices"})
+                or self.params.get("order_by", "") != "search_score"  # type: ignore
+            ):
+                # JUST FILTERED
+                scored_pks = self._get_binary_search_scores(sqs)
+            else:
+                # ORDER AND ANNOTATE
+                score_pairs, prev_pks, next_pks, scored_pks = (
+                    self._get_browser_search_scores(sqs)
+                )
         except MemoryError:
             LOG.warning("Search engine needs more memory, results truncated.")
         except Exception:
