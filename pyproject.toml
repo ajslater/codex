@@ -58,12 +58,10 @@ hypercorn = { extras = ["h3"], version = "^0.17.3" }
 psutil = "^6.0.0"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
-setuptools = "^72.1.0"                                 # for vendored haystack
 tzlocal = "^5.0"
 watchdog = "^4.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
-whoosh-reloaded = "^2.7.5"
 Pillow = "^10.0.0"
 versio = "^0.5.0"
 
@@ -103,7 +101,7 @@ codex = "codex.run:main"
 "Report Issues" = "https://github.com/ajslater/codex/issues"
 
 [tool.codespell]
-skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
+skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,poetry.lock,run.spec'
 builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
