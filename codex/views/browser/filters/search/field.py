@@ -5,7 +5,7 @@ import shlex
 from decimal import Decimal
 
 from comicbox.fields.fields import IssueField
-from dateutil import parser
+from dateparser import parse
 from django.db.models import (
     BooleanField,
     CharField,
@@ -51,7 +51,7 @@ class BrowserQueryFieldParser(ComicFieldFilterView):
         elif rel_class == BooleanField:
             value = value not in FALSY
         elif rel_class in (DateTimeField, DateField):
-            value = parser.parse(value)
+            value = parse(value)
         return value
 
     @classmethod
