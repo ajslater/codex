@@ -1,4 +1,5 @@
 """Search Filters Methods."""
+
 from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.views.browser.filters.search_field import BrowserQueryParser
