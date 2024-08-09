@@ -248,6 +248,7 @@ class BrowserQueryFieldParser(ComicFieldFilterView):
         parts = shlex.split(q)
         search_query_parts = []
         field_query = Q()
+        # TODO extract preparser into another method
         for part in parts:
             if ":" in part:
                 try:
@@ -255,9 +256,10 @@ class BrowserQueryFieldParser(ComicFieldFilterView):
                 except Exception:
                     LOG.exception(f"Parsing field query {part}")
             elif part:
-                search_query_parts.append(part)
+                preparsed_part = part.upper() if part.lower() in ("or", "not", "and") else part
+                search_query_parts.append(preparsed_part)
 
         if field_query:
             qs = qs.filter(field_query)
-        preparsed_search_query = shlex.join(search_query_parts).strip()
+        preparsed_search_query = " ".join(search_query_parts).strip()
         return qs, preparsed_search_query

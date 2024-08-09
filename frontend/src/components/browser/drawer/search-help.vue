@@ -43,47 +43,62 @@
         </v-table>
       </div>
       <div id="textContainer">
-        <h2>Whoosh Query Parser</h2>
+        <h2>Search Syntax</h2>
         <p>
-          Codex uses the Whoosh search engine to execute your text search
-          queries. Whoosh operates much like other familiar search engines. As
-          such, only some special features are documented on this page. To
-          understand its full power, users are encouraged to read the
-          <a
-            href="https://whoosh.readthedocs.io/en/latest/querylang.html"
-            target="_blank"
-            >Whoosh Query Language
-            <v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-          >
-          documentation.
+          Codex allows two different kinds of searching from the search bar.
+          Full Text Search and Field Search. For full text search just enter
+          some terms in the search bar. They will be added to the filters
+          selected with the "filter by" menu.
         </p>
-        <h2>Operators</h2>
-        Whoosh has the <code>and</code>, <code>or</code>, <code>not</code>,
-        <code>andnot</code>, <code>andmaybe</code>, and
-        <code>require</code> operators.
-        <h2>Searching Fields</h2>
+        <h2>Full Text Search Boolean Operators</h2>
+        Codex allows the <code>AND</code>, <code>OR</code>, and
+        <code>NOT</code> operators between search terms. By default terms are
+        concatenated with the <code>and</code> operator. For instance:
+        <code> frodo sam galadriel </code>
+        is the same as <code>frodo and sam and galadriel</code>.
+
+        <code> frodo or pippin not merry</code> searches for comics with
+        metadata that reference frodo or pippin but not merry. Parenthesis may
+        be used to group boolean operators.
+
+        <h2>Field Search Syntax</h2>
         <p>
           Like Codex's filter selector menu, but more powerful. You may search
           on individual comic metadata fields. using a search token like
-          <code>field:value</code>.
+          <code>field:value</code>. For numeric, datetime and boolean fields
+          this requests an exact match. For text fields, and field containing
+          the value will match. The field syntax is parsed and removed from the
+          search query <em>before</em> parsing the remaining search string as a
+          Full Text Search. Thus the field syntax is ignored by Full Text
+          Search.
         </p>
+        <h3>Field Search Operators</h3>
+        <p>
+          Field Search has it's own operators that prefix the value after the
+          <code>:</code> character.
+          <code>&gt;</code
+          >,<code>&gt;=</code>,<code>&lt;</code>,<code>&lt;=</code>,
+          <code>!</code>, and the range syntax <code>..</code>. The
+          <code>!</code> character indicates excluding the following value.
+          Examples: <code>pages:>30</code> comics with more than 30 pages.
+          <code>author:!frodo</code> comics not written by Frodo.
+          <code>year:1066..1215</code> comics published between the year 1066
+          and 1215.
+        </p>
+
         <h3>Dates and DateTimes</h3>
         <p>
-          Whoosh parses Dates and DateTime values liberally. Read
-          <a
-            href="https://whoosh.readthedocs.io/en/latest/dates.html#parsing-date-queries"
-            target="_blank"
-            >Whoosh Parsing Date Queries
-            <v-icon size="small">{{ mdiOpenInNew }}</v-icon>
-          </a>
+          Codex parses Dates and DateTime values very liberally. Read
           documentation for what formats and natural language phrases are
           accepted. If the format you try fails, the <code>YYYYMMDD</code> and
-          <code>YYYMMDDHHmmSS</code> formats are reliable.
+          <code>YYYMMDDHHmmSS</code> formats are reliable. For instance this
+          works:
+          <code>created_at:"3 days ago".."today"</code>
         </p>
         <h3>Single Quote complex field Queries</h3>
         <p>
-          Use <em>single</em> quotes to tell Codex that a complex or natural
-          language phrase should be applied to a specific field
+          Use quotes to tell Codex that a complex or natural language phrase
+          should be applied to a specific field
         </p>
         <code> created:'this year' </code>
         <h3>Size Byte Multipliers</h3>
@@ -93,65 +108,10 @@
           <code>kb</code> and <code>mb</code> as well as binary suffixes like
           <code>gib</code> and <code>tib</code>.
         </p>
-        <h3>Ranges of Fields</h3>
+        <h3>Multiple Values</h3>
         <p>
-          Whoosh uses brackets and the <em>uppercase</em>&ensp;<code>TO</code>
-          operator to delineate a range search.
-        </p>
-        <code>updated:[last sunday TO 10am]</code>.
-        <p>
-          You may leave out the upper or lower bound or use &gt;, &lt;, &gt;=,
-          &lt;= operators.
-        </p>
-        <code>size:&lt;50mb</code>.
-
-        <h3>Multi Value Fields</h3>
-        <p>
-          Fields marked type <code>CSV</code> in the table to the left may
-          contain comma separated values. This filters by all the supplied
-          values. Multi Value tokens look like:
-          <code>field:term1,term2,term3</code>
-        </p>
-        <h2>Grouped Queries</h2>
-        <p>Whoosh allows grouping of queries with parenthesis.</p>
-        <h2>Example Search</h2>
-        <p>
-          This example search is more convoluted than most searches but uses
-          many features for demonstration:
-        </p>
-        <code>
-          (Holmes and Tesla date:>=1999-1-2 size:[10mib TO 1gb] Gadzooks) or
-          "Captain Nemo" -Quartermain
-        </code>
-        <p style="margin-top: 1em">
-          Search for comics that contain Holmes and Tesla published after the
-          second day of 1999 that are between 10 Mebibytes and 10 Gigabytes that
-          also contain the word "Gadzooks" but also all comics with the the
-          phrase "Captain Nemo" but no comics will contain the word
-          "Quartermain".
-        </p>
-        <h2>Group and Sorting Behavior</h2>
-        <p>
-          If the search field is empty and then you supply a search query for
-          the first time, Codex navigates you to the to All Issues view and your
-          sets your Sorted By selection to Search Score. If you prefer a
-          different view you may change the group and sort selections after your
-          you make your first search.
-        </p>
-        <h2>Filter Behavior</h2>
-        <p>
-          Codex applies <em>both</em> the Filter selection menu filters
-          <em>and</em> the search query field filters to the search. Be sure to
-          clear the filter selector or the search field if you prefer to apply
-          only one of them.
-        </p>
-        <h2>Faster Browsing and Searching</h2>
-        <p>
-          Browsing large collections using the group tree and filter dropdown is
-          relatively fast. Searching with the search bar will always be slower.
-          To aid search speed there is a setting for limiting search results
-          which can help with large collections. To see all results, choose
-          Search Result Limit: "Unlimited".
+          Fields may have multiple values:
+          <code>field:term1,!term2,>=term3</code>
         </p>
       </div>
       <CloseButton
@@ -233,9 +193,11 @@ export default {
 
 <style scoped lang="scss">
 @import "../../anchors.scss";
+
 :deep(.browserSearchHelp) {
   overflow-y: auto !important;
 }
+
 #searchHelp {
   max-width: 850px;
   padding: 20px;
@@ -244,21 +206,26 @@ export default {
   margin: auto;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 h1,
 h2,
 h3 {
   margin-top: 0.5em;
   color: rgb(var(--v-theme-textHeader));
 }
+
 h1 {
   padding-bottom: 1em;
 }
+
 .closeButton {
   float: right;
 }
+
 #fieldTableContainer {
   float: left;
 }
+
 #fieldTable {
   width: fit-content;
   text-align: left;
@@ -266,18 +233,22 @@ h1 {
   margin-right: 2em;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 #fieldTable th {
   font-size: larger;
   font-weight: bold;
   color: rgb(var(--v-theme-textHeader));
 }
+
 #fieldTable th,
 #fieldTable td {
   padding: 5px;
 }
+
 #fieldTable .aliasCol {
   max-width: 10em;
 }
+
 code {
   width: fit-content;
   background-color: rgb(var(--v-theme-surface));

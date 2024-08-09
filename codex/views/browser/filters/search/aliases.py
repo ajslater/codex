@@ -2,6 +2,7 @@
 
 from types import MappingProxyType
 
+from bidict import bidict
 from django.db.models.fields import CharField
 from django.db.models.fields.related import ManyToManyField
 
@@ -70,7 +71,8 @@ FIELDMAP = MappingProxyType(
 
 
 ALIAS_FIELD_MAP = MappingProxyType(
-    {value: key for key, values in FIELDMAP.items() for value in values}
+    bidict(FIELDMAP).inverse
+    #{value: key for key, values in FIELDMAP.items() for value in values}
 )
 FIELD_TYPE_MAP = MappingProxyType(
     {

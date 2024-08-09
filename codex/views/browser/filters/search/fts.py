@@ -44,6 +44,7 @@ class SearchFilterView(BrowserQueryFieldParser):
         try:
             prefix = "" if model == Comic else "comic__"
             rel = prefix + "comicfts__body__match"
+            print(text)
             qs = qs.filter(**{rel: text})
         except Exception:
             LOG.exception("Getting Search Scores")
