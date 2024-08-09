@@ -30,7 +30,7 @@ _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>
 LOG = get_logger(__name__)
 
 
-class BrowserQueryFieldParser(ComicFieldFilterView):
+class BrowserFieldQueryFilter(ComicFieldFilterView):
     """Parse the browser query by removing field queries and doing them with the ORM."""
 
     @staticmethod
@@ -61,19 +61,8 @@ class BrowserQueryFieldParser(ComicFieldFilterView):
         query_dict[rel + "__gte"] = cls._cast_value(rel_class, range_from_value)
         query_dict[rel + "__lte"] = cls._cast_value(rel_class, range_to_value)
 
-    def _parse_field(self, field_name):
-        """Parse the field size of the query in to database relations."""
-        if field_name in _EXCLUDE_FIELD_NAMES:
-            return None, None
-        if field_name == "path" and not (
-            self.admin_flags["folder_view"] or self.is_admin()  # type: ignore
-        ):
-            return None, None
-        field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
-        rel_class = FIELD_TYPE_MAP.get(field_name)
-        if not rel_class:
-            return None, None
-
+    @staticmethod
+    def _parse_field_rel(field_name, rel_class):
         # Comic relations
         if field_name == "role":
             rel = "contributors__role__name"
@@ -99,6 +88,22 @@ class BrowserQueryFieldParser(ComicFieldFilterView):
             rel = field_name
 
         return rel_class, rel
+
+    def _parse_field(self, field_name: str):
+        """Parse the field size of the query in to database relations."""
+        if field_name in _EXCLUDE_FIELD_NAMES or (
+            field_name == "path"
+            and not (
+                self.admin_flags["folder_view"] or self.is_admin()  # type: ignore
+            )
+        ):
+            return None, None
+        field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
+        rel_class = FIELD_TYPE_MAP.get(field_name)
+        if not rel_class:
+            return None, None
+
+        return self._parse_field_rel(field_name, rel_class)
 
     @staticmethod
     def _parse_operator_text(value):
@@ -239,27 +244,36 @@ class BrowserQueryFieldParser(ComicFieldFilterView):
             query &= self._parse_field_query_value(rel, rel_class, value_part, prefix)
         return query
 
-    def preparse_search_query_fields(self, qs, model):
-        """Preparse search fields out of query text."""
-        q = self.params.get("q")  # type: ignore
-        if not q:
-            return qs, q
-
-        parts = shlex.split(q)
-        search_query_parts = []
+    def apply_field_query_filters(self, qs, model, field_tokens):
+        """Parse and apply field query filters."""
         field_query = Q()
-        # TODO extract preparser into another method
-        for part in parts:
-            if ":" in part:
-                try:
-                    field_query &= self._parse_field_query(part, model)
-                except Exception:
-                    LOG.exception(f"Parsing field query {part}")
-            elif part:
-                preparsed_part = part.upper() if part.lower() in ("or", "not", "and") else part
-                search_query_parts.append(preparsed_part)
-
+        for field_token in field_tokens:
+            try:
+                field_query &= self._parse_field_query(field_token, model)
+            except Exception:
+                LOG.exception(f"Parsing field query {field_token}")
         if field_query:
             qs = qs.filter(field_query)
-        preparsed_search_query = " ".join(search_query_parts).strip()
-        return qs, preparsed_search_query
+        return qs
+
+    def preparse_search_query(self):
+        """Preparse search fields out of query text."""
+        q = self.params.get("q")  # type: ignore
+        field_tokens = set()
+        if not q:
+            return field_tokens, q
+
+        parts = shlex.split(q)
+        # TODO extract preparser into another method
+        fts_tokens = []
+        for part in parts:
+            if ":" in part:
+                field_tokens.add(part)
+            elif part:
+                preparsed_part = (
+                    part.upper() if part.lower() in ("or", "not", "and") else part
+                )
+                fts_tokens.append(preparsed_part)
+
+        preparsed_search_query = " ".join(fts_tokens).strip()
+        return field_tokens, preparsed_search_query
