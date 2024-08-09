@@ -3,7 +3,6 @@
 import re
 import shlex
 from decimal import Decimal
-from types import MappingProxyType
 
 from comicbox.fields.fields import IssueField
 from dateutil import parser
@@ -21,24 +20,10 @@ from humanfriendly import parse_size
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic
-from codex.search.fields import FIELDMAP
 from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.browser.filters.search_field_map import ALIAS_FIELD_MAP, FIELD_TYPE_MAP
 from codex.views.const import FALSY
 
-_ALIAS_FIELD_MAP = MappingProxyType(
-    {
-        value: "path" if key == "search_path" else key
-        for key, values in FIELDMAP.items()
-        for value in values
-    }
-)
-_FIELD_TYPE_MAP = MappingProxyType(
-    {
-        **{field.name: field.__class__ for field in Comic._meta.get_fields()},
-        "role": ManyToManyField,
-        "issue": CharField,
-    }
-)
 _EXCLUDE_FIELD_NAMES = frozenset({"stat", "parent_folder", "library"})
 _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
 
@@ -84,8 +69,8 @@ class BrowserQueryParser(ComicFieldFilterView):
             self.admin_flags["folder_view"] or self.is_admin()  # type: ignore
         ):
             return None, None
-        field_name = _ALIAS_FIELD_MAP.get(field_name, field_name)
-        rel_class = _FIELD_TYPE_MAP.get(field_name)
+        field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
+        rel_class = FIELD_TYPE_MAP.get(field_name)
         if not rel_class:
             return None, None
 

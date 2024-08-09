@@ -1,6 +1,11 @@
-"""Search query fields."""
+"""Field aliases and types maps."""
 
 from types import MappingProxyType
+
+from django.db.models.fields import CharField
+from django.db.models.fields.related import ManyToManyField
+
+from codex.models.comic import Comic
 
 
 def gen_multipart_field_aliases(field):
@@ -48,8 +53,7 @@ FIELDMAP = MappingProxyType(
         "original_format": ("format",),
         "page_count": ("pages",),
         "reading_direction": ("direction",),
-        "search_path": (
-            "path",
+        "path": (
             "filename",
             *gen_multipart_field_aliases("folders"),
         ),
@@ -61,5 +65,17 @@ FIELDMAP = MappingProxyType(
         "tags": ("tag",),
         "teams": ("team",),
         "updated_at": ("updated",),
+    }
+)
+
+
+ALIAS_FIELD_MAP = MappingProxyType(
+    {value: key for key, values in FIELDMAP.items() for value in values}
+)
+FIELD_TYPE_MAP = MappingProxyType(
+    {
+        **{field.name: field.__class__ for field in Comic._meta.get_fields()},
+        "role": ManyToManyField,
+        "issue": CharField,
     }
 )
