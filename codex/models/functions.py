@@ -29,12 +29,9 @@ class FTS5Match(Lookup):
         return sql, params
 
 
-class FTSBM25(Func):
-    """Sqlite3 FTS5 BM25 function."""
+class ComicFTSRank(Func):
+    """Sqlite3 FTS5 inverse rank lookup."""
 
-    function = "bm25"
-    # XXX this should accept a table, not be hardcoded
-    # template = "%(function)s(codex_comicfts)"
-    template = '"codex_comicfts"."rank"'
-    # template = "%(function)s(%(expression)s)"
+    function = "rank"
+    template = '("codex_comicfts"."rank" * -1)'
     output_field = FloatField()  # type: ignore

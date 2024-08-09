@@ -26,7 +26,7 @@ from codex.models import (
     StoryArc,
     Volume,
 )
-from codex.models.functions import FTSBM25, JsonGroupArray
+from codex.models.functions import ComicFTSRank, JsonGroupArray
 from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
@@ -199,7 +199,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             or self.params.get("order_by") != "search_score"  # type: ignore
         ):
             return qs
-        return qs.annotate(search_score=FTSBM25() * -1)
+        return qs.annotate(search_score=ComicFTSRank())
 
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
