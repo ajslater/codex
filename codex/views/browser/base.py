@@ -13,7 +13,7 @@ from codex.models import (
     Comic,
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
-from codex.views.browser.filters.search import SearchFilterView
+from codex.views.browser.filters.search.search import SearchFilterView
 from codex.views.const import FOLDER_GROUP, GROUP_MODEL_MAP, ROOT_GROUP, STORY_ARC_GROUP
 from codex.views.util import reparse_json_query_params
 

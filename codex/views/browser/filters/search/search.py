@@ -2,7 +2,7 @@
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
-from codex.views.browser.filters.search_field import BrowserQueryParser
+from codex.views.browser.filters.search.field import BrowserQueryParser
 from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)

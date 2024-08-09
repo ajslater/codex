@@ -21,7 +21,7 @@ from humanfriendly import parse_size
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.views.browser.filters.field import ComicFieldFilterView
-from codex.views.browser.filters.search_field_map import ALIAS_FIELD_MAP, FIELD_TYPE_MAP
+from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP, FIELD_TYPE_MAP
 from codex.views.const import FALSY
 
 _EXCLUDE_FIELD_NAMES = frozenset({"stat", "parent_folder", "library"})
