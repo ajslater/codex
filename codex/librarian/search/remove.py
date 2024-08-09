@@ -5,7 +5,6 @@ from time import time
 from humanize import naturaldelta
 
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.models import Comic
 from codex.models.comic import ComicFTS
 from codex.status import Status
 from codex.threads import QueuedThread
@@ -30,7 +29,8 @@ class RemoveMixin(QueuedThread):
     def _remove_stale_records(self, status):  # type: ignore
         """Remove records not in the database from the index."""
         start_time = time()
-        delete_comicfts = ComicFTS.objects.exclude(comic__in=Comic.objects.all())
+        # delete_comicfts = ComicFTS.objects.exclude(comic__in=Comic.objects.all())
+        delete_comicfts = ComicFTS.objects.filter(comic__isnull=True)
         self.status_controller.update(status, notify=False)
         status.total = len(delete_comicfts)
         count, _ = delete_comicfts.delete()
@@ -45,7 +45,7 @@ class RemoveMixin(QueuedThread):
                 f" in {elapsed} at {cps} per second."
             )
         else:
-            self.log.debug("No stale records to remove from the search index.")
+            self.log.debug("Removed no stale records from the search index.")
 
     def remove_stale_records(self):
         """Remove records not in the database from the index, trapping exceptions."""
