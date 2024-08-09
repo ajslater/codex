@@ -97,13 +97,15 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
                 self.admin_flags["folder_view"] or self.is_admin()  # type: ignore
             )
         ):
-            return None, None
+            return None, None, False
         field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
         rel_class = FIELD_TYPE_MAP.get(field_name)
         if not rel_class:
-            return None, None
+            return None, None, False
 
-        return self._parse_field_rel(field_name, rel_class)
+        or_operator = rel_class == ManyToManyField
+        rel_class, rel = self._parse_field_rel(field_name, rel_class)
+        return rel_class, rel, or_operator
 
     @staticmethod
     def _parse_operator_text(value):
@@ -227,13 +229,13 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         for key in tuple(query_dict.keys()):
             prefixed_key = prefix + key
             prefixed_query_dict[prefixed_key] = query_dict[key]
-        return ~Q(**prefixed_query_dict) if query_not else Q(**prefixed_query_dict)
+        return prefixed_query_dict, query_not
 
     def _parse_field_query(self, field_filter, model):
         """Parse one field query."""
         key, value = field_filter.split(":")
 
-        rel_class, rel = self._parse_field(key)
+        rel_class, rel, or_operator = self._parse_field(key)
         query = Q()
         if not rel_class:
             LOG.debug(f"Unknown field specified in search query {key}")
@@ -244,13 +246,14 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             or_operator = True
         else:
             delim = ","
-            or_operator = False
 
         prefix = "" if model == Comic else "comic__"  # type: ignore
         for value_part in value.split(delim):
-            query_part = self._parse_field_query_value(
+            query_dict, query_not = self._parse_field_query_value(
                 rel, rel_class, value_part, prefix
             )
+            # TODO OPTIMIZE collect all icontains and iregex query_dict rel endings and make one regex.
+            query_part = ~Q(**query_dict) if query_not else Q(**query_dict)
             if or_operator:
                 query |= query_part
             else:
@@ -262,7 +265,9 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         field_query = Q()
         for field_token in field_tokens:
             try:
-                field_query &= self._parse_field_query(field_token, model)
+                field_query_part = self._parse_field_query(field_token, model)
+                if field_query_part:
+                    field_query &= field_query_part
             except Exception:
                 LOG.exception(f"Parsing field query {field_token}")
         if field_query:
