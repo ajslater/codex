@@ -24,7 +24,6 @@ from codex.librarian.search.searchd import SearchIndexerThread
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
     SearchIndexerTask,
-    SearchIndexRebuildIfDBChangedTask,
 )
 from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask, WakeCronTask
 from codex.librarian.telemeter.tasks import TelemeterTask
@@ -76,7 +75,6 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
-            SearchIndexRebuildIfDBChangedTask(),
         )
 
         for task in startup_tasks:

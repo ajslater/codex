@@ -118,6 +118,7 @@ class BrowserView(BrowserTitleView):
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
+        # TODO runs the whole query again here
         count_qs = self.add_group_by(qs, model)
         count = count_qs.count()
 
@@ -207,8 +208,8 @@ class BrowserView(BrowserTitleView):
         else:
             zero_pad = 1
 
-        # print(group_qs.explain())
-        # print(group_qs.query)
+        # print(book_qs.explain())
+        # print(book_qs.query)
 
         total_count = page_group_count + page_book_count
         mtime = self._get_page_mtime()

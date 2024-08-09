@@ -13,7 +13,6 @@ import logging
 from logging import WARN, getLogger
 from os import environ
 from pathlib import Path
-from sys import maxsize
 from types import MappingProxyType
 
 from codex.settings.hypercorn import load_hypercorn_config
@@ -101,7 +100,6 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "codex._vendor.haystack",
 ]
 
 if DEBUG:
@@ -354,17 +352,6 @@ CACHES = {
 
 INTERNAL_IPS = ("127.0.0.1",)
 
-SEARCH_INDEX_PATH = CONFIG_PATH / "whoosh_index"
-SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
-SEARCH_INDEX_UUID_PATH = SEARCH_INDEX_PATH / "codex_db.uuid"
-HAYSTACK_CONNECTIONS = {
-    "default": {
-        "ENGINE": "codex.search.engine.CodexSearchEngine",
-        "PATH": str(SEARCH_INDEX_PATH),
-        "BATCH_SIZE": maxsize,  # use whoosh multiprocessing not haystack's
-    },
-}
-HAYSTACK_LOGGING = False
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }

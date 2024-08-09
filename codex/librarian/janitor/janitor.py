@@ -27,10 +27,9 @@ from codex.librarian.janitor.vacuum import VacuumMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
-    SearchIndexMergeTask,
     SearchIndexUpdateTask,
 )
-from codex.models import AdminFlag, Timestamp
+from codex.models import Timestamp
 from codex.status import Status
 
 _JANITOR_STATII = (
@@ -46,7 +45,6 @@ _JANITOR_STATII = (
     Status(ImportStatusTypes.DIRS_MOVED),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE),
 )
 
 
@@ -60,9 +58,6 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
     def queue_tasks(self):
         """Queue all the janitor tasks."""
         try:
-            optimize = AdminFlag.objects.get(
-                key=AdminFlag.FlagChoices.SEARCH_INDEX_OPTIMIZE.value
-            ).on
             self.status_controller.start_many(_JANITOR_STATII)
             tasks = (
                 SearchIndexAbortTask(),
@@ -75,7 +70,6 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                 AdoptOrphanFoldersTask(),
                 CoverRemoveOrphansTask(),
                 SearchIndexUpdateTask(False),
-                SearchIndexMergeTask(optimize),
             )
             for task in tasks:
                 self.librarian_queue.put(task)

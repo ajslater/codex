@@ -33,8 +33,6 @@ from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGE
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
     SearchIndexClearTask,
-    SearchIndexMergeTask,
-    SearchIndexRebuildIfDBChangedTask,
     SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
@@ -78,15 +76,10 @@ class AdminLibrarianTaskView(AdminAPIView):
             "search_index_update": SearchIndexUpdateTask(False),
             "search_index_rebuild": SearchIndexUpdateTask(True),
             "search_index_remove_stale": SearchIndexRemoveStaleTask(),
-            "search_index_merge_small": SearchIndexMergeTask(
-                False,
-            ),
             "search_index_abort": SearchIndexAbortTask(),
-            "search_index_optimize": SearchIndexMergeTask(True),
             "search_index_clear": SearchIndexClearTask(),
             "db_vacuum": JanitorVacuumTask(),
             "db_backup": JanitorBackupTask(),
-            "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
             "watchdog_sync": WatchdogSyncTask(),
             "codex_update": JanitorUpdateTask(False),
             "codex_shutdown": JanitorShutdownTask(),

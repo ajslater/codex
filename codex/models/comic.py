@@ -17,11 +17,13 @@ from django.db.models import (
     DecimalField,
     ForeignKey,
     ManyToManyField,
+    OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     TextField,
 )
 
+from codex.models.base import BaseModel
 from codex.models.groups import (
     Folder,
     Imprint,
@@ -287,3 +289,8 @@ class Comic(WatchedPathBrowserGroup):
         if self.issue_suffix:
             res += self.issue_suffix
         return res
+
+
+class ComicFTS(BaseModel):
+    comic = OneToOneField(primary_key=True, to=Comic, on_delete=CASCADE)
+    body = TextField()

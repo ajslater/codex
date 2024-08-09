@@ -34,7 +34,6 @@
     "SIX": "Search Index Clear",
     "SIU": "Search Index Update",
     "SID": "Search Index Remove Stale Records",
-    "SIM": "Search Index Optimize",
     "WPO": "Poll Library",
     "IAF": "Adopt Orphan Folders"
   },
@@ -103,17 +102,6 @@
           "desc": "Remove search index entries that are no longer in the library."
         },
         {
-          "value": "search_index_merge_small",
-          "title": "Merge Small Search Index Segments",
-          "desc": "Improves search lookup times. Runs nightly if the Optimize Admin Flag is off."
-        },
-        {
-          "value": "search_index_optimize",
-          "title": "Merge Search Index Into One Segment",
-          "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
-          "confirm": "This can take a long time."
-        },
-        {
           "value": "search_index_abort",
           "title": "Abort Search Indexing",
           "desc": "Aborts search index update and remove tasks."
@@ -137,11 +125,6 @@
           "value": "db_backup",
           "title": "Backup Database",
           "desc": "Runs nightly"
-        },
-        {
-          "value": "db_search_sync",
-          "title": "Sync Search Index to DB",
-          "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup."
         },
         {
           "value": "watchdog_sync",

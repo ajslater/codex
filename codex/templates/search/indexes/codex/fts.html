@@ -1,0 +1,29 @@
+{{ comic.publisher.name }}
+{{ comic.imprint.name }}
+{{ comic.series.name }}
+{{ comic.volume.name }}
+{{ comic.issue }}
+{{ comic.name }}
+{{ comic.age_rating.name }}
+{{ comic.country.name }}
+{{ comic.language }}
+{{ comic.notes }}
+{{ comic.original_format.name }}
+{{ comic.review }}
+{{ comic.search_path }}
+{{ comic.scan_info.name }}
+{{ comic.summary }}
+{{ comic.tagger.name }}
+{% for character in comic.characters.all %}{{ character.name }}{% endfor %}
+{% for contributor in comic.contributors.all %}{{ contributor.person.name }}{% endfor %}
+{% for genre in comic.genres.all %}{{ genre.name }}{% endfor %}
+{% for identifier in comic.identifiers.all %}
+    {{ identifier.identifier_type.name }}
+    {{ identifier.nss }}
+{% endfor %}
+{% for location in comic.locations.all %}{{ location.name }}{% endfor %}
+{% for series_group in comic.series_groups.all %}{{ series_group.name }}{% endfor %}
+{% for story in comic.stories.all %}{{ story.name }}{% endfor %}
+{% for story_arc_number in comic.story_arc_numbers.all %}{{ story_arc_number.story_arc.name }}{% endfor %}
+{% for tag in comic.tags.all %}{{ tag.name }}{% endfor %}
+{% for team in comic.teams.all %}{{ team.name }}{% endfor %}

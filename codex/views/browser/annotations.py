@@ -26,7 +26,7 @@ from codex.models import (
     StoryArc,
     Volume,
 )
-from codex.models.functions import JsonGroupArray
+from codex.models.functions import ComicFTSRank, JsonGroupArray
 from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
@@ -192,9 +192,19 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
+    def _annotate_search_scores(self, qs):
+        """Annotate Search Scores."""
+        if (
+            self.TARGET not in frozenset({"browser", "cover"})
+            or self.params.get("order_by") != "search_score"  # type: ignore
+        ):
+            return qs
+        return qs.annotate(search_score=ComicFTSRank())
+
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+        qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs, model)
         qs = self._alias_filename(qs, model)
         qs = self._alias_story_arc_number(qs)
