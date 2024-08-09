@@ -239,9 +239,22 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             LOG.debug(f"Unknown field specified in search query {key}")
             return query
 
+        if "|" in value:
+            delim = "|"
+            or_operator = True
+        else:
+            delim = ","
+            or_operator = False
+
         prefix = "" if model == Comic else "comic__"  # type: ignore
-        for value_part in value.split(","):
-            query &= self._parse_field_query_value(rel, rel_class, value_part, prefix)
+        for value_part in value.split(delim):
+            query_part = self._parse_field_query_value(
+                rel, rel_class, value_part, prefix
+            )
+            if or_operator:
+                query |= query_part
+            else:
+                query &= query_part
         return query
 
     def apply_field_query_filters(self, qs, model, field_tokens):
