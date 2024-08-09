@@ -2,13 +2,13 @@
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
-from codex.views.browser.filters.search.field import BrowserQueryParser
+from codex.views.browser.filters.search.field import BrowserQueryFieldParser
 from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
 
 
-class SearchFilterView(BrowserQueryParser):
+class SearchFilterView(BrowserQueryFieldParser):
     """Search Filters Methods."""
 
     TARGET = ""
@@ -37,7 +37,7 @@ class SearchFilterView(BrowserQueryParser):
             qs = qs[:limit]
         return qs
 
-    def _apply_search_filter(self, qs, model, text):
+    def _apply_fts_filter(self, qs, model, text):
         """Perform the search and return the scores as a dict."""
         if not text:
             return qs
@@ -52,8 +52,8 @@ class SearchFilterView(BrowserQueryParser):
     def apply_search_filter(self, qs, model):
         """Preparse search, search and return the filter and scores."""
         try:
-            qs, text = self.preparse_search_query(qs, model)
-            qs = self._apply_search_filter(qs, model, text)
+            qs, text = self.preparse_search_query_fields(qs, model)
+            qs = self._apply_fts_filter(qs, model, text)
         except Exception:
             LOG.exception("Creating the search filter")
 

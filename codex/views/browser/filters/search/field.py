@@ -30,7 +30,7 @@ _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>
 LOG = get_logger(__name__)
 
 
-class BrowserQueryParser(ComicFieldFilterView):
+class BrowserQueryFieldParser(ComicFieldFilterView):
     """Parse the browser query by removing field queries and doing them with the ORM."""
 
     @staticmethod
@@ -239,7 +239,7 @@ class BrowserQueryParser(ComicFieldFilterView):
             query &= self._parse_field_query_value(rel, rel_class, value_part, prefix)
         return query
 
-    def preparse_search_query(self, qs, model):
+    def preparse_search_query_fields(self, qs, model):
         """Preparse search fields out of query text."""
         q = self.params.get("q")  # type: ignore
         if not q:
