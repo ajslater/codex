@@ -18,7 +18,7 @@ from codex.models.comic import ComicFTS
 from codex.settings.settings import CODEX_PATH
 from codex.status import Status
 
-_TEMPLATE_PATH = CODEX_PATH / "templates/search/indexes/codex/fts.html"
+_TEMPLATE_PATH = CODEX_PATH / "templates/search/comic.html"
 with _TEMPLATE_PATH.open("r") as f:
     _SEARCH_TEMPLATE = Template(f.read())
 
