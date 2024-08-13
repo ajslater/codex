@@ -47,10 +47,16 @@ class StatusController(LoggerBaseMixin):
     def _loggit(self, level, status):
         """Log with a ? in place of none."""
         type_title = STATUS_TITLES[status.status_type]
-        title = " ".join((type_title, status.subtitle)).strip()
-        count = "?" if status.complete is None else status.complete
-        total = "?" if status.total is None else status.total
-        self.log.log(level, f"{title}: {count}/{total}")
+        msg = " ".join((type_title, status.subtitle)).strip()
+        msg += ": "
+        if status.complete is None and status.total is None:
+            msg += "In progress"
+        else:
+            count = "?" if status.complete is None else status.complete
+            total = "?" if status.total is None else status.total
+            msg += f"{count}/{total}"
+
+        self.log.log(level, msg)
 
     @staticmethod
     def _to_status_type_value(status):
