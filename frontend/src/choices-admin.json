@@ -34,6 +34,7 @@
     "SIX": "Search Index Clear",
     "SIU": "Search Index Update",
     "SID": "Search Index Remove Stale Records",
+    "SIO": "Search Index Optimize",
     "WPO": "Poll Library",
     "IAF": "Adopt Orphan Folders"
   },
@@ -89,6 +90,11 @@
           "value": "search_index_update",
           "title": "Update Search Index",
           "desc": "with recently changed comics"
+        },
+        {
+          "value": "search_index_optimize",
+          "title": "Optimize Search Index",
+          "desc": "Merge Search Index for optimal lookup time. Runs nightly."
         },
         {
           "value": "search_index_rebuild",

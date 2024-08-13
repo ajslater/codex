@@ -27,6 +27,7 @@ from codex.librarian.janitor.vacuum import VacuumMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
+    SearchIndexOptimizeTask,
     SearchIndexUpdateTask,
 )
 from codex.models import Timestamp
@@ -45,6 +46,7 @@ _JANITOR_STATII = (
     Status(ImportStatusTypes.DIRS_MOVED),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
+    Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE),
 )
 
 
@@ -64,12 +66,13 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                 JanitorCleanFKsTask(),
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
-                JanitorVacuumTask(),
-                JanitorBackupTask(),
                 JanitorUpdateTask(force=False),
                 AdoptOrphanFoldersTask(),
                 CoverRemoveOrphansTask(),
                 SearchIndexUpdateTask(False),
+                SearchIndexOptimizeTask(),
+                JanitorVacuumTask(),
+                JanitorBackupTask(),
             )
             for task in tasks:
                 self.librarian_queue.put(task)

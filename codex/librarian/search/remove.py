@@ -4,19 +4,14 @@ from time import time
 
 from humanize import naturaldelta
 
+from codex.librarian.search.optimize import OptimizeMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.models.comic import ComicFTS
 from codex.status import Status
-from codex.threads import QueuedThread
 
 
-class RemoveMixin(QueuedThread):
+class RemoveMixin(OptimizeMixin):
     """Search Index cleanup methods."""
-
-    def __init__(self, abort_event, *args, **kwargs):
-        """Initialize search engine."""
-        self.abort_event = abort_event
-        super().__init__(*args, **kwargs)
 
     def clear_search_index(self):
         """Clear the search index."""

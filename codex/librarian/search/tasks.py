@@ -16,6 +16,11 @@ class SearchIndexUpdateTask(SearchIndexerTask):
 
 
 @dataclass
+class SearchIndexOptimizeTask(SearchIndexerTask):
+    """Optimize search index."""
+
+
+@dataclass
 class SearchIndexRemoveStaleTask(SearchIndexerTask):
     """Remove stale records."""
 

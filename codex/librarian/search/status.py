@@ -9,3 +9,4 @@ class SearchIndexStatusTypes(Choices):
     SEARCH_INDEX_CLEAR = "SIX"
     SEARCH_INDEX_UPDATE = "SIU"
     SEARCH_INDEX_REMOVE = "SID"
+    SEARCH_INDEX_OPTIMIZE = "SIO"
