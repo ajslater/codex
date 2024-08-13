@@ -2,6 +2,7 @@
 
 from time import time
 
+import sqlite_regex
 from django.core.cache import cache
 from django.db.backends.signals import connection_created
 from django.db.models.signals import m2m_changed
@@ -19,13 +20,33 @@ GROUP_CHANGE_ACTIONS = frozenset(
         "post_clear",
     )
 )
+LOG = get_logger(__name__)
+
+
+def _load_regex_extension(**kwargs):
+    """Load the sqlite-regexp extension."""
+    path = sqlite_regex.loadable_path()
+    try:
+        conn = kwargs["connection"].connection
+        conn.enable_load_extension(True)
+        conn.load_extension(path)
+    except Exception as exc:
+        LOG.warning(f"Unable to load sqlite-regex extension: {exc}. Tried with {path}")
 
 
 def _activate_wal_journal(**kwargs):
     """Enable sqlite WAL journal."""
-    connection = kwargs["connection"]
-    with connection.cursor() as cursor:
-        cursor.execute("PRAGMA journal_mode=wal;")
+    try:
+        conn = kwargs["connection"]
+        with conn.cursor() as cursor:
+            cursor.execute("PRAGMA journal_mode=wal")
+    except Exception as exc:
+        LOG.warning(f"Unable to activate journal_mode=wal: {exc}")
+
+
+def _db_connect(**kwargs):
+    _load_regex_extension(**kwargs)
+    _activate_wal_journal(**kwargs)
 
 
 def _user_group_change(**kwargs):
@@ -50,8 +71,6 @@ def _user_group_change(**kwargs):
 
 def connect_signals():
     """Connect actions to signals."""
-    logger = get_logger(__name__)
-    connection_created.connect(_activate_wal_journal)
-    logger.debug("sqlite journal_mode=wal")
+    connection_created.connect(_db_connect)
     m2m_changed.connect(_user_group_change)
     # post_invalidation.connect(_cache_invalidated)

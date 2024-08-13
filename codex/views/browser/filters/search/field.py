@@ -1,8 +1,9 @@
 """Parse the browser query by removing field queries and doing them with the ORM."""
 
 import re
-import shlex
 from decimal import Decimal
+from itertools import chain
+from types import MappingProxyType
 
 from comicbox.fields.fields import IssueField
 from dateparser import parse
@@ -24,6 +25,15 @@ from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP, FIELD_TYPE_MAP
 from codex.views.const import FALSY
 
+_FIELD_TO_REL_SPAN_MAP = MappingProxyType(
+    {
+        "role": "contributors__role__name",
+        "contributors": "contributors__person__name",
+        "identifier": "identifier__nss",
+        "identirier_type": "identifier__identifier_type__name",
+        "story_arcs": "story_arc_number__story_arc__name",
+    }
+)
 _EXCLUDE_FIELD_NAMES = frozenset({"stat", "parent_folder", "library"})
 _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
 
@@ -32,106 +42,6 @@ LOG = get_logger(__name__)
 
 class BrowserFieldQueryFilter(ComicFieldFilterView):
     """Parse the browser query by removing field queries and doing them with the ORM."""
-
-    @staticmethod
-    def _parse_operator(token, operator, rel, value):
-        """Move value operator out of value into relation operator."""
-        if operator:
-            rel += "__" + operator
-        value = value[len(token) :]
-        return rel, value
-
-    @staticmethod
-    def _cast_value(rel_class, value):
-        """Cast values by relation class."""
-        if rel_class == PositiveSmallIntegerField:
-            value = int(value)
-        elif rel_class == DecimalField:
-            value = Decimal(value)
-        elif rel_class == BooleanField:
-            value = value not in FALSY
-        elif rel_class in (DateTimeField, DateField):
-            value = parse(value)
-        return value
-
-    @classmethod
-    def _parse_operator_range(cls, token, rel, rel_class, value, query_dict):
-        """Parse range operator."""
-        range_from_value, range_to_value = value.split(token)
-        query_dict[rel + "__gte"] = cls._cast_value(rel_class, range_from_value)
-        query_dict[rel + "__lte"] = cls._cast_value(rel_class, range_to_value)
-
-    @staticmethod
-    def _parse_field_rel(field_name, rel_class):
-        # Comic relations
-        if field_name == "role":
-            rel = "contributors__role__name"
-            rel_class = CharField
-        elif field_name == "contributors":
-            rel = "contributors__person__name"
-            rel_class = CharField
-        elif field_name == "identifier":
-            rel = "identifier__nss"
-            rel_class = CharField
-        elif field_name == "identifier_type":
-            rel = "identifier__identifier_type__name"
-            rel_class = CharField
-        elif field_name == "story_arcs":
-            rel = "story_arc_number__story_arc__name"
-            rel_class = CharField
-        elif rel_class in (ForeignKey, ManyToManyField):
-            # This must be next to last
-            rel = field_name + "__name"
-            rel_class = CharField
-        else:
-            # Comic attribute
-            rel = field_name
-
-        return rel_class, rel
-
-    def _parse_field(self, field_name: str):
-        """Parse the field size of the query in to database relations."""
-        if field_name in _EXCLUDE_FIELD_NAMES or (
-            field_name == "path"
-            and not (
-                self.admin_flags["folder_view"] or self.is_admin()  # type: ignore
-            )
-        ):
-            return None, None, False
-        field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
-        rel_class = FIELD_TYPE_MAP.get(field_name)
-        if not rel_class:
-            return None, None, False
-
-        or_operator = rel_class == ManyToManyField
-        rel_class, rel = self._parse_field_rel(field_name, rel_class)
-        return rel_class, rel, or_operator
-
-    @staticmethod
-    def _parse_operator_text(value):
-        """Parse text value operators."""
-        if "*" in value:
-            operator = "iregex"
-            value = ".*" + value.replace("*", ".*") + ".*"
-        else:
-            operator = "icontains"
-        return operator, value
-
-    @classmethod
-    def _parse_operator_not(cls, rel_class, rel, value):
-        """Parse value not operator."""
-        if rel_class in (CharField, TextField):
-            operator, value = cls._parse_operator_text(value)
-        else:
-            operator = ""
-        return cls._parse_operator("!", operator, rel, value)
-
-    @staticmethod
-    def _parse_size_values(query_dict):
-        """Size values can be encoded with common size suffixes."""
-        for key in tuple(query_dict.keys()):
-            size_value = query_dict[key]
-            query_dict[key] = parse_size(size_value)
 
     @staticmethod
     def _parse_issue_value(value):
@@ -148,94 +58,273 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         return number_value, suffix_value
 
     @classmethod
-    def _parse_issue_values(cls, query_dict, query_not, is_operator_query):
+    def _parse_issue_values(  # noqa: PLR0913
+        cls, query_dicts, rel, value, is_operator_query, query_not, to_value=None
+    ):
         """Issue is not a column. Convert to issue_number and issue_suffix."""
-        issue_query_dict = {}
-        use_issue_number_only = query_not or is_operator_query
-        for key in tuple(query_dict.keys()):
-            value = query_dict.pop(key)
-            issue_number_value, issue_suffix_value = cls._parse_issue_value(value)
-            if issue_number_value is None:
-                continue
-            issue_number_field = key.replace("issue", "issue_number")
-            issue_query_dict[issue_number_field] = issue_number_value
-            if not use_issue_number_only and issue_suffix_value:
-                issue_suffix_field = key.replace("issue", "issue_suffix")
-                issue_query_dict[issue_suffix_field] = issue_suffix_value
-        query_dict.update(issue_query_dict)
+        use_issue_number_only = is_operator_query
+        issue_number_value, issue_suffix_value = cls._parse_issue_value(value)
+        if issue_number_value is None:
+            return
+        numeric_dict = query_dicts["numeric"]
+        issue_number_field = rel.replace("issue", "issue_number")
+        if to_value is not None:
+            to_issue_number_value, _ = cls._parse_issue_value(to_value)
+            use_issue_number_only = True
+            issue_number_value = (issue_number_value, to_issue_number_value)
+        if issue_number_field not in query_dicts["numeric"]:
+            numeric_dict[issue_number_field] = set()
+        numeric_dict[issue_number_field].add((issue_number_value, query_not))
+
+        # Suffixes are only queried if there's no leading operators.
+        if not use_issue_number_only and issue_suffix_value:
+            issue_suffix_field = rel.replace("issue", "issue_suffix")
+            cls._parse_operator_text(
+                issue_suffix_field, issue_suffix_value, query_dicts, query_not
+            )
 
     @classmethod
-    def _parse_value_operators(cls, rel, rel_class, value, query_dict):
-        """Parse the operators of the value size of the field query."""
-        query_not = False
-        is_operator_query = True
-        value = value.strip()
-        if value.startswith("!"):
-            rel, value_str = cls._parse_operator_not(rel_class, rel, value)
-            query_not = True
-        elif value.startswith(">="):
-            rel, value_str = cls._parse_operator(">=", "gte", rel, value)
-        elif value.startswith(">"):
-            rel, value_str = cls._parse_operator(">", "gt", rel, value)
-        elif value.startswith("<="):
-            rel, value_str = cls._parse_operator("<=", "lte", rel, value)
-        elif value.startswith("<"):
-            rel, value_str = cls._parse_operator("<", "lt", rel, value)
-        elif "..." in value:
-            cls._parse_operator_range("...", rel, rel_class, value, query_dict)
-            value_str = ""
-        elif ".." in value:
-            cls._parse_operator_range("..", rel, rel_class, value, query_dict)
-            value_str = ""
-        elif rel_class in (CharField, TextField):
-            operator, value_str = cls._parse_operator_text(value)
-            rel += "__" + operator
-        else:
-            # Exact match for non-string fields
-            is_operator_query = False
-            value_str = value
-
-        return rel, value_str, query_not, is_operator_query
-
-    @classmethod
-    def _parse_value_special_fields(cls, rel, query_not, is_operator_query, query_dict):
+    def _cast_value(cls, rel, rel_class, value):
+        """Cast values by relation class."""
         """Post process special values in query_dict."""
         if rel.startswith("size"):
-            cls._parse_size_values(query_dict)
-        elif rel.startswith("issue"):
-            cls._parse_issue_values(query_dict, query_not, is_operator_query)
+            value = parse_size(value)
+        elif rel_class == PositiveSmallIntegerField:
+            value = int(value)
+        elif rel_class == DecimalField:
+            value = Decimal(value)
+        elif rel_class == BooleanField:
+            value = value not in FALSY
+        elif rel_class in (DateTimeField, DateField):
+            value = parse(value)
+        return value
 
     @classmethod
-    def _parse_value(cls, rel, rel_class, value_part, query_dict):
-        """Parse the value side of the field query into the query dict."""
-        rel, value_str, query_not, is_operator_query = cls._parse_value_operators(
-            rel, rel_class, value_part, query_dict
-        )
-
-        if not query_dict:
-            parsed_value = cls._cast_value(rel_class, value_str)
-            query_dict[rel] = parsed_value
-
-        cls._parse_value_special_fields(rel, query_not, is_operator_query, query_dict)
-
-        return query_not
+    def _parse_operator(  # noqa: PLR0913
+        cls, token, operator, rel, rel_class, value, query_dicts, query_not
+    ):
+        """Move value operator out of value into relation operator."""
+        span_rel = f"{rel}__{operator}" if operator else rel
+        value = value[len(token) :]
+        if rel == "issue":
+            cls._parse_issue_values(query_dicts, span_rel, value, True, query_not)
+        else:
+            value = cls._cast_value(rel_class, rel_class, value)
+            if rel not in query_dicts[span_rel]:
+                query_dicts["numeric"][span_rel] = set()
+            query_dicts["numeric"][span_rel].add((value, query_not))
 
     @classmethod
-    def _parse_field_query_value(cls, rel, rel_class, value, prefix):
-        """Parse the value side of the field query into a query."""
-        query_dict = {}
-        query_not = cls._parse_value(rel, rel_class, value, query_dict)
-        prefixed_query_dict = {}
-        for key in tuple(query_dict.keys()):
-            prefixed_key = prefix + key
-            prefixed_query_dict[prefixed_key] = query_dict[key]
-        return prefixed_query_dict, query_not
+    def _parse_operator_range(  # noqa: PLR0913
+        cls, token, rel, rel_class, value, query_dicts, query_not
+    ):
+        """Parse range operator."""
+        range_from_value, range_to_value = value.split(token)
+        rel = f"{rel}__range"
+        if rel == ("issue__range"):
+            cls._parse_issue_values(
+                query_dicts,
+                rel,
+                range_from_value,
+                True,
+                query_not,
+                range_to_value,
+            )
+        else:
+            range_value = (
+                (
+                    cls._cast_value(rel, rel_class, range_from_value),
+                    cls._cast_value(rel, rel_class, range_to_value),
+                ),
+                query_not,
+            )
+            if range_value not in query_dicts["numeric"]:
+                query_dicts["numeric"][rel] = set()
+            query_dicts["numeric"][rel].add(range_value)
+
+    @staticmethod
+    def _parse_field_rel(field_name, rel_class):
+        """Set rel to comic attribute or relation span."""
+        rel = _FIELD_TO_REL_SPAN_MAP.get(field_name, "")
+        if not rel and rel_class in (ForeignKey, ManyToManyField):
+            # This must be after the special span maps
+            rel = field_name + "__name"
+
+        if rel.endswith("__name"):
+            rel_class = CharField
+
+        if not rel:
+            # Comic attribute
+            rel = field_name
+
+        return rel_class, rel
+
+    def _parse_field(self, field_name: str):
+        """Parse the field size of the query in to database relations."""
+        if field_name in _EXCLUDE_FIELD_NAMES or (
+            field_name == "path"
+            and not (
+                self.admin_flags["folder_view"] or self.is_admin()  # type: ignore
+            )
+        ):
+            return None, None, False
+        field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
+        rel_class = FIELD_TYPE_MAP.get(field_name)
+        many_to_many = rel_class == ManyToManyField
+        if not rel_class:
+            return None, None, False
+
+        rel_class, rel = self._parse_field_rel(field_name, rel_class)
+        return rel_class, rel, many_to_many
+
+    @classmethod
+    def _parse_operator_text(cls, rel, value, query_dicts, query_not):
+        """Parse text value operators."""
+        if rel == "issue":
+            cls._parse_issue_values(query_dicts, rel, value, True, query_not)
+            return
+
+        regex = False
+        if value.startswith("*") and value.endswith("*"):
+            value = value[1:-1]
+        elif value.startswith("*"):
+            value = value + "$"
+            regex = True
+            value = value[1:]
+        elif value.endswith("*"):
+            value = "^" + value
+            value = value[:-1]
+            regex = True
+
+        if "*" in value:
+            value = ".*" + value.replace("*", ".*") + ".*"
+            regex = True
+
+        dict_name = "regex" if regex else "contains"
+
+        if rel not in query_dicts[dict_name]:
+            query_dicts[dict_name][rel] = set()
+        query_dicts[dict_name][rel].add((value, query_not))
+
+    @classmethod
+    def _parse_operator_numeric(cls, rel, rel_class, value, query_dicts, query_not):
+        value = cls._cast_value(rel, rel_class, value)
+        if rel not in query_dicts["numeric"]:
+            query_dicts["numeric"][rel] = set()
+        query_dicts["numeric"][rel].add((value, query_not))
+
+    @classmethod
+    def _parse_field_query_value(cls, rel, rel_class, value, query_dicts):
+        """Parse the operators of the value size of the field query."""
+        value = value.strip()
+        if value.startswith("!"):
+            value = value[1:].strip()
+            query_not = True
+        else:
+            query_not = False
+
+        if value.startswith(">="):
+            cls._parse_operator(
+                ">=", "gte", rel, rel_class, value, query_dicts, query_not
+            )
+        elif value.startswith(">"):
+            cls._parse_operator(
+                ">", "gt", rel, rel_class, value, query_dicts, query_not
+            )
+        elif value.startswith("<="):
+            cls._parse_operator(
+                "<=", "lte", rel, rel_class, value, query_dicts, query_not
+            )
+        elif value.startswith("<"):
+            cls._parse_operator(
+                "<", "lt", rel, rel_class, value, query_dicts, query_not
+            )
+        elif "..." in value:
+            cls._parse_operator_range(
+                "...", rel, rel_class, value, query_dicts, query_not
+            )
+        elif ".." in value:
+            cls._parse_operator_range(
+                "..", rel, rel_class, value, query_dicts, query_not
+            )
+        elif rel_class in (CharField, TextField):
+            cls._parse_operator_text(rel, value, query_dicts, query_not)
+        else:
+            cls._parse_operator_numeric(rel, rel_class, value, query_dicts, query_not)
+
+    @classmethod
+    def _optimize_text_lookups(cls, query_dicts, or_operator):
+        """Optimize text lookups."""
+        contains_dict = query_dicts["contains"]
+        regex_dict = query_dicts["regex"]
+        numeric_dict = query_dicts["numeric"]
+
+        key_counts_dict = {}
+
+        # Count the number of text lookups per relation.
+        for key, data in chain(contains_dict.items(), regex_dict.items()):
+            if key not in key_counts_dict:
+                key_counts_dict[key] = 0
+            key_counts_dict[key] += len(data)
+
+        # Pop out the single contains lookups, optimal not to transform into regex
+        optimized_dict = {}
+        for key, count in key_counts_dict.items():
+            if count == 1:
+                rel = key + "__icontains"
+                optimized_dict[rel] = frozenset(contains_dict.pop(key))
+
+        # Transform multiple regex and contains lookups into long regexes
+        rel = ""
+        optimized_regex_parts = []
+        for key, data_set in contains_dict.items():
+            rel = key
+            for data in data_set:
+                value, query_not = data
+                lookahead = "!" if query_not else "="
+                optimized_regex_parts.append(rf"(?{lookahead}{value})")
+        for key, data_set in regex_dict.items():
+            rel = key
+            for data in data_set:
+                value, query_not = data
+                lookahead = "!" if query_not else "="
+                value = rf"(?{lookahead}{value})"
+                optimized_regex_parts.append(value)
+
+        # Set the final optimized regex in the optimized dict
+        if rel:
+            rel = rel + "__iregex"
+            regex_operator = "|" if or_operator else ""
+            optimized_regex = regex_operator.join(optimized_regex_parts)
+            optimized_dict[rel] = frozenset({(optimized_regex, False)})
+
+        optimized_dict.update(numeric_dict)
+        return optimized_dict
+
+    @staticmethod
+    def _add_query_dict_to_query(query, query_dict, or_operator, model):
+        """Convert the query dict into django orm queries."""
+        prefix = "" if model == Comic else "comic__"  # type: ignore
+        for key, data_set in query_dict.items():
+            rel = prefix + key
+            for data in data_set:
+                value, query_not = data
+                prefixed_query_dict = {rel: value}
+                query_part = (
+                    ~Q(**prefixed_query_dict) if query_not else Q(**prefixed_query_dict)
+                )
+                if or_operator:
+                    query |= query_part
+                else:
+                    query &= query_part
+
+        return query
 
     def _parse_field_query(self, field_filter, model):
         """Parse one field query."""
         key, value = field_filter.split(":")
 
-        rel_class, rel, or_operator = self._parse_field(key)
+        rel_class, rel, many_to_many = self._parse_field(key)
         query = Q()
         if not rel_class:
             LOG.debug(f"Unknown field specified in search query {key}")
@@ -246,19 +335,18 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             or_operator = True
         else:
             delim = ","
+            # ManyToMany char fields are forced into OR operation because AND
+            # is too difficult with regex & contains
+            or_operator = many_to_many and rel_class == CharField
 
-        prefix = "" if model == Comic else "comic__"  # type: ignore
+        query_dicts = {"contains": {}, "regex": {}, "numeric": {}}
+
         for value_part in value.split(delim):
-            query_dict, query_not = self._parse_field_query_value(
-                rel, rel_class, value_part, prefix
-            )
-            # TODO OPTIMIZE collect all icontains and iregex query_dict rel endings and make one regex.
-            query_part = ~Q(**query_dict) if query_not else Q(**query_dict)
-            if or_operator:
-                query |= query_part
-            else:
-                query &= query_part
-        return query
+            self._parse_field_query_value(rel, rel_class, value_part, query_dicts)
+
+        optimized_dict = self._optimize_text_lookups(query_dicts, or_operator)
+
+        return self._add_query_dict_to_query(query, optimized_dict, or_operator, model)
 
     def apply_field_query_filters(self, qs, model, field_tokens):
         """Parse and apply field query filters."""
@@ -273,25 +361,3 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         if field_query:
             qs = qs.filter(field_query)
         return qs
-
-    def preparse_search_query(self):
-        """Preparse search fields out of query text."""
-        q = self.params.get("q")  # type: ignore
-        field_tokens = set()
-        if not q:
-            return field_tokens, q
-
-        parts = shlex.split(q)
-        # TODO extract preparser into another method
-        fts_tokens = []
-        for part in parts:
-            if ":" in part:
-                field_tokens.add(part)
-            elif part:
-                preparsed_part = (
-                    part.upper() if part.lower() in ("or", "not", "and") else part
-                )
-                fts_tokens.append(preparsed_part)
-
-        preparsed_search_query = " ".join(fts_tokens).strip()
-        return field_tokens, preparsed_search_query

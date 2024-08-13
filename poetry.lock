@@ -2689,6 +2689,22 @@ files = [
 ]
 
 [[package]]
+name = "sqlite-regex"
+version = "0.2.3"
+description = ""
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "sqlite_regex-0.2.3-py3-none-macosx_10_6_x86_64.whl", hash = "sha256:4953e2c56fa2b54e6a8cafa59c027fd5e2fca41c2e74ba6fb611e38b3bc264c7"},
+    {file = "sqlite_regex-0.2.3-py3-none-macosx_11_0_arm64.whl", hash = "sha256:254527dabb2ef8336b1ffd8b70152c8a77186b6b3d4175776417576f7057dcf7"},
+    {file = "sqlite_regex-0.2.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux1_x86_64.whl", hash = "sha256:a6c9be1fdadf0e41da91214e5e9de7483e6eb57dda46c892c4029bd20f08f508"},
+    {file = "sqlite_regex-0.2.3-py3-none-win_amd64.whl", hash = "sha256:74cbca39b4b418fda46ddfd8ca486ed579ea1ca38d5fca664593c2f8cff86b15"},
+]
+
+[package.extras]
+test = ["pytest"]
+
+[[package]]
 name = "sqlparse"
 version = "0.5.1"
 description = "A non-validating SQL parser."
@@ -3063,4 +3079,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "7775a6f43254f3b6d097a26d35bf57f91ad4929707a8bd430f414763a11c5f7f"
+content-hash = "8edd8abe5b2a587dd19f966a2ae26f11a47dc3dc03bd8daea3ec3df3d327f405"
