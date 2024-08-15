@@ -63,7 +63,9 @@ class SearchFilterView(BrowserFTSFilter):
                 col, exp = column_parts
                 if col not in _VALID_COLUMNS:
                     return
-                if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(exp):
+                if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(
+                    exp
+                ):
                     field_tokens.add((col, exp))
                     return
                 # Else send the column token to fts
