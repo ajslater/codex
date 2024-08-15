@@ -26,7 +26,9 @@ class OptimizeMixin(QueuedThread):
             self.status_controller.update(status)
             self.log.info("Optimizing search index...")
             with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO codex_comicfts(body) VALUES('optimize')")
+                cursor.execute(
+                    "INSERT INTO codex_comicfts(codex_comicfts) VALUES('optimize')"
+                )
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Optimized search index in {elapsed}.")

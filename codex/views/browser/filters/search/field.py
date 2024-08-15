@@ -17,6 +17,7 @@ from django.db.models import (
 )
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
 from django.db.models.fields.related import ForeignKey, ManyToManyField
+from django.db.models.functions import Lower
 from humanfriendly import parse_size
 
 from codex.logger.logging import get_logger
@@ -97,6 +98,8 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             value = value not in FALSY
         elif rel_class in (DateTimeField, DateField):
             value = parse(value)
+        elif rel_class in (CharField, TextField):
+            value = value.lower()
         return value
 
     @classmethod
@@ -109,10 +112,11 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         if rel == "issue":
             cls._parse_issue_values(query_dicts, span_rel, value, True, query_not)
         else:
-            value = cls._cast_value(rel_class, rel_class, value)
-            if rel not in query_dicts[span_rel]:
-                query_dicts["numeric"][span_rel] = set()
-            query_dicts["numeric"][span_rel].add((value, query_not))
+            value = cls._cast_value(rel, rel_class, value)
+            numeric_dict = query_dicts["numeric"]
+            if rel not in numeric_dict:
+                numeric_dict[span_rel] = set()
+            numeric_dict[span_rel].add((value, query_not))
 
     @classmethod
     def _parse_operator_range(  # noqa: PLR0913
@@ -209,9 +213,10 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
     @classmethod
     def _parse_operator_numeric(cls, rel, rel_class, value, query_dicts, query_not):
         value = cls._cast_value(rel, rel_class, value)
-        if rel not in query_dicts["numeric"]:
-            query_dicts["numeric"][rel] = set()
-        query_dicts["numeric"][rel].add((value, query_not))
+        numeric_dict = query_dicts["numeric"]
+        if rel not in numeric_dict:
+            numeric_dict[rel] = set()
+        numeric_dict[rel].add((value, query_not))
 
     @classmethod
     def _parse_field_query_value(cls, rel, rel_class, value, query_dicts):
@@ -270,26 +275,19 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         # Pop out the single contains lookups, optimal not to transform into regex
         optimized_dict = {}
         for key, count in key_counts_dict.items():
-            if count == 1:
+            if count == 1 and contains_dict:
                 rel = key + "__icontains"
                 optimized_dict[rel] = frozenset(contains_dict.pop(key))
 
         # Transform multiple regex and contains lookups into long regexes
         rel = ""
         optimized_regex_parts = []
-        for key, data_set in contains_dict.items():
+        for key, data_set in chain(contains_dict.items(), regex_dict.items()):
             rel = key
             for data in data_set:
                 value, query_not = data
-                lookahead = "!" if query_not else "="
+                lookahead = "!" if query_not else ":"
                 optimized_regex_parts.append(rf"(?{lookahead}{value})")
-        for key, data_set in regex_dict.items():
-            rel = key
-            for data in data_set:
-                value, query_not = data
-                lookahead = "!" if query_not else "="
-                value = rf"(?{lookahead}{value})"
-                optimized_regex_parts.append(value)
 
         # Set the final optimized regex in the optimized dict
         if rel:
@@ -302,9 +300,10 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         return optimized_dict
 
     @staticmethod
-    def _add_query_dict_to_query(query, query_dict, or_operator, model):
+    def _add_query_dict_to_query(query_dict, or_operator, model):
         """Convert the query dict into django orm queries."""
         prefix = "" if model == Comic else "comic__"  # type: ignore
+        query = None
         for key, data_set in query_dict.items():
             rel = prefix + key
             for data in data_set:
@@ -313,24 +312,22 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
                 query_part = (
                     ~Q(**prefixed_query_dict) if query_not else Q(**prefixed_query_dict)
                 )
+                if not query:
+                    query = Q()
                 if or_operator:
                     query |= query_part
                 else:
                     query &= query_part
-
         return query
 
-    def _parse_field_query(self, field_filter, model):
+    def _parse_field_query(self, col, exp, model, qs):
         """Parse one field query."""
-        key, value = field_filter.split(":")
-
-        rel_class, rel, many_to_many = self._parse_field(key)
-        query = Q()
+        rel_class, rel, many_to_many = self._parse_field(col)
         if not rel_class:
-            LOG.debug(f"Unknown field specified in search query {key}")
-            return query
+            LOG.debug(f"Unknown field specified in search query {col}")
+            return qs, None
 
-        if "|" in value:
+        if "|" in exp:
             delim = "|"
             or_operator = True
         else:
@@ -339,25 +336,29 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             # is too difficult with regex & contains
             or_operator = many_to_many and rel_class == CharField
 
-        query_dicts = {"contains": {}, "regex": {}, "numeric": {}}
+        if rel_class in (CharField, TextField):
+            lower_annotation = f"lower_{col}"
+            qs = qs.alias(**{lower_annotation: Lower(rel)})
+            rel = lower_annotation
 
-        for value_part in value.split(delim):
+        query_dicts = {"contains": {}, "regex": {}, "numeric": {}}
+        for value_part in exp.split(delim):
             self._parse_field_query_value(rel, rel_class, value_part, query_dicts)
 
         optimized_dict = self._optimize_text_lookups(query_dicts, or_operator)
 
-        return self._add_query_dict_to_query(query, optimized_dict, or_operator, model)
+        return qs, self._add_query_dict_to_query(optimized_dict, or_operator, model)
 
-    def apply_field_query_filters(self, qs, model, field_tokens):
+    def apply_field_query_filters(self, qs, model, field_token_pairs):
         """Parse and apply field query filters."""
         field_query = Q()
-        for field_token in field_tokens:
+        for col, exp in field_token_pairs:
             try:
-                field_query_part = self._parse_field_query(field_token, model)
+                qs, field_query_part = self._parse_field_query(col, exp, model, qs)
                 if field_query_part:
                     field_query &= field_query_part
             except Exception:
-                LOG.exception(f"Parsing field query {field_token}")
+                LOG.exception(f"Parsing field query {col}:{exp}")
         if field_query:
             qs = qs.filter(field_query)
         return qs

@@ -39,12 +39,20 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     sql=(
-                        "CREATE VIRTUAL TABLE codex_comicfts USING fts5(body, comic_id UNINDEXED, created_at UNINDEXED, updated_at UNINDEXED)"
+                        "CREATE VIRTUAL TABLE codex_comicfts USING fts5("
+                        "comic_id UNINDEXED, created_at UNINDEXED, "
+                        "updated_at UNINDEXED, "
+                        "publisher, imprint, series, volume, issue, name, age_rating, "
+                        "country, language, "
+                        "notes, original_format, review, path, scan_info, summary, "
+                        "tagger, "
+                        "characters, contributors, genres, identifiers, "
+                        "identifier_types, locations, roles, series_groups, stories, "
+                        "story_arcs, tags, teams, "
+                        "reading_direction, file_type)"
                     ),
-                    reverse_sql=("DROP TABLE IF EXISTS codex_comicfts"),
-                ),
-                migrations.RunSQL(
-                    "CREATE TRIGGER delete_codex_comicfts AFTER DELETE ON codex_comic BEGIN DELETE FROM codex_comicfts WHERE comic=OLD.id; END"
+                    # , content='', contentless_delete=1)"
+                    reverse_sql="DROP TABLE IF EXISTS codex_comicfts",
                 ),
             ],
         )

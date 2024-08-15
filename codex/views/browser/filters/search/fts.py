@@ -43,8 +43,8 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
             return qs
         try:
             prefix = "" if model == Comic else "comic__"
-            rel = prefix + "comicfts__body__match"
-            # print(text)
+            # HACK publisher not really used by match lookup
+            rel = prefix + "comicfts__publisher__match"
             qs = qs.filter(**{rel: text})
         except Exception:
             LOG.exception("Getting Search Scores")
