@@ -33,7 +33,7 @@ _NON_FTS_COLUMNS = frozenset(
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
-_COLUMN_OPERATOR_RE = re.compile(r"^[\*\!\<\>]")
+_EXPRESSION_OPERATOR_RE = re.compile(r"^[\*\!\<\>]")
 _FTS_OPERATORS = frozenset({"or", "and", "not", "near"})
 
 
@@ -49,7 +49,7 @@ class SearchFilterView(BrowserFTSFilter):
             col, exp = parts
             if col not in _VALID_COLUMNS:
                 return
-            if col in _NON_FTS_COLUMNS or _COLUMN_OPERATOR_RE.search(exp):
+            if col in _NON_FTS_COLUMNS or _EXPRESSION_OPERATOR_RE.search(exp):
                 field_tokens.add((col, exp))
                 return
 
