@@ -181,6 +181,39 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         rel_class, rel = self._parse_field_rel(field_name, rel_class)
         return rel_class, rel, many_to_many
 
+    @staticmethod
+    def _glob_to_regex(value):
+        """Transform a glob into a safe regex for sqlite3."""
+        # Glob to regex
+        regex = False
+        star_parts = value.split("*")
+        if len(star_parts) <= 1:
+            return value, regex
+
+        while star_parts[0] == "*" and star_parts[-1] == "*":
+            star_parts = star_parts[1:-1]
+
+        prefix = suffix = ""
+
+        if star_parts[0] == "*":
+            star_parts = star_parts[1:]
+            suffix = "$"
+        elif star_parts[-1] == "*":
+            star_parts = star_parts[:-1]
+            prefix = "^"
+
+        if not star_parts:
+            return "", False
+        if len(star_parts) == 1 and not prefix and not suffix:
+            return star_parts[0], False
+
+        escaped_star_parts = (re.escape(part) for part in star_parts)
+
+        value = prefix + ".*".join(escaped_star_parts) + suffix
+        regex = prefix or suffix or len(star_parts) > 1
+
+        return value, regex
+
     @classmethod
     def _parse_operator_text(cls, rel, value, query_dicts, query_not):
         """Parse text value operators."""
@@ -188,21 +221,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             cls._parse_issue_values(query_dicts, rel, value, True, query_not)
             return
 
-        regex = False
-        if value.startswith("*") and value.endswith("*"):
-            value = value[1:-1]
-        elif value.startswith("*"):
-            value = value + "$"
-            regex = True
-            value = value[1:]
-        elif value.endswith("*"):
-            value = "^" + value
-            value = value[:-1]
-            regex = True
-
-        if "*" in value:
-            value = ".*" + value.replace("*", ".*") + ".*"
-            regex = True
+        value, regex = cls._glob_to_regex(value)
 
         dict_name = "regex" if regex else "contains"
 
@@ -337,9 +356,9 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             or_operator = many_to_many and rel_class == CharField
 
         if rel_class in (CharField, TextField):
-            lower_annotation = f"lower_{col}"
-            qs = qs.alias(**{lower_annotation: Lower(rel)})
-            rel = lower_annotation
+            lower_alias = f"lower_{col}"
+            qs = qs.alias(**{lower_alias: Lower(rel)})
+            rel = lower_alias
 
         query_dicts = {"contains": {}, "regex": {}, "numeric": {}}
         for value_part in exp.split(delim):
