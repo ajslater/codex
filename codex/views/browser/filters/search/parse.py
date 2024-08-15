@@ -36,7 +36,7 @@ _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
 _COLUMN_EXPRESSION_OPERATORS_RE = re.compile(r"^[\*\!\<\>]")
 _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
 _FTS_BARE_TOKENS = "(),"
-_FTS_PAREN_COMMAS_RE = re.compile(r"(\(|\)|,)")
+_FTS_PAREN_COMMAS_RE = re.compile(r"([()|])")
 _FTS_MULTI_COL_RE = re.compile(r"{.*}:")
 _QUOTED_RE = re.compile(r'^".*"$|^\'.*\'$')
 
@@ -72,7 +72,7 @@ class SearchFilterView(BrowserFTSFilter):
             elif _FTS_PAREN_COMMAS_RE.search(token):
                 # Not a column token, but has grouping chars
                 # Surround parents and commas with spaces and re shlex and parse them.
-                sub_phrase = _FTS_PAREN_COMMAS_RE.sub(" \1 ", token)
+                sub_phrase = _FTS_PAREN_COMMAS_RE.sub(r" \g<1> ", token)
                 tokens = shlex.split(sub_phrase)
                 for sub_token in tokens:
                     self._preparse_token(sub_token, field_tokens, fts_tokens)
