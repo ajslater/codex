@@ -77,7 +77,9 @@ class SearchFilterView(BrowserFTSFilter):
                 for sub_token in tokens:
                     self._preparse_token(sub_token, field_tokens, fts_tokens)
                 return
-            token = f'"{token}"'
+            else:
+                # quote most tokens to allow special characters
+                token = f'"{token}"'
 
         fts_tokens.append(token)
 
