@@ -273,9 +273,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             if self.model == StoryArc
             else self.model.__name__.lower()
         )
-        comic_qs = comic_qs.filter(**{group_rel: OuterRef("pk")}).values(
-            f"{group_rel}__pk"
-        )
+        group_rel_suffix = "name" if self.model == Volume else "sort_name"
+        group_rel += "__" + group_rel_suffix
+        comic_qs = comic_qs.filter(**{group_rel: OuterRef("pk")}).values(group_rel)
 
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
         page_rel = f"{bm_rel}__page"
