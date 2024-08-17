@@ -1,7 +1,7 @@
 """Search Filters Methods."""
 
 from codex.logger.logging import get_logger
-from codex.models import Comic
+from codex.models import Comic, StoryArc
 from codex.views.browser.filters.search.field import BrowserFieldQueryFilter
 from codex.views.const import MAX_OBJ_PER_PAGE
 
@@ -42,7 +42,13 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
         if not text:
             return qs
         try:
-            prefix = "" if model == Comic else "comic__"
+            prefix = (
+                ""
+                if model == Comic
+                else "storyarcnumber__comic__"
+                if model == StoryArc
+                else "comic__"
+            )
             # HACK publisher not really used by match lookup
             rel = prefix + "comicfts__publisher__match"
             query_dict = {rel: text}
