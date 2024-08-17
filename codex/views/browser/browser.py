@@ -156,6 +156,7 @@ class BrowserView(BrowserTitleView):
 
     def _requery_max_bookmark_updated_at(self, group_qs):
         """Get max updated at without bookmark filter and aware of multi-groups."""
+        # TODO make a subquery like fts mode bookmark annotations
         if not self.is_bookmark_filtered:
             return group_qs
 
