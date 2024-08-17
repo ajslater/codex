@@ -15,8 +15,8 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.expressions import ExpressionWrapper, Subquery
-from django.db.models.fields import BooleanField, CharField, PositiveSmallIntegerField
+from django.db.models.expressions import Subquery
+from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
 from django.db.models.functions.comparison import Coalesce
 
@@ -222,10 +222,12 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         value = "c" if model == Comic else self.model_group  # type: ignore
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _annotate_group_bookmarks(self, qs, bm_filter, page_rel, finished_rel):
-        """Aggregate bookmark and finished states."""
-        page_count = f"{self.rel_prefix}page_count"
+    @staticmethod
+    def _get_bookmark_page_and_finished_counts(
+        bm_filter, page_rel, finished_rel, page_count
+    ):
         bookmark_page_case = Case(
+            # When(**{bm_rel: None}, then=0),
             When(**{finished_rel: True}, then=page_count),
             default=page_rel,
             output_field=PositiveSmallIntegerField(),
@@ -247,13 +249,23 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             distinct=True,
         )
         finished_aggregate = Q(child_count=finished_count)
+        # finished_aggregate = ExpressionWrapper(
+        #    Q(child_count=finished_count), output_field=BooleanField()
+        # )
 
-        return qs, bookmark_page, finished_aggregate
+        return bookmark_page, finished_aggregate
 
-    def _annotate_group_bookmarks_with_fts(self, qs):
-        """Aggregate bookmark and finished states."""
+    def _annotate_group_bookmarks(self, bm_filter, page_rel, finished_rel):
+        """Aggregate bookmark and finished states for groups."""
+        page_count = f"{self.rel_prefix}page_count"
+        return self._get_bookmark_page_and_finished_counts(
+            bm_filter, page_rel, finished_rel, page_count
+        )
+
+    def _annotate_group_bookmarks_with_fts(self):
+        """Aggregate bookmark and finished states for groups using subqueries to not break with the FTS match filter."""
         if not self.model:
-            return qs, 0, 0
+            return 0, 0
 
         comic_qs = self.get_filtered_queryset(Comic)
         # Must group by the outer ref or it only does aggregates for one comic.
@@ -265,59 +277,38 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
-
         page_count = "page_count"
-        bookmark_page_case = Case(
-            When(**{bm_rel: None}, then=0),
-            When(**{finished_rel: True}, then=page_count),
-            default=page_rel,
-            output_field=PositiveSmallIntegerField(),
-        )
-
-        bookmark_page = Sum(
-            bookmark_page_case,
-            default=0,
-            filter=bm_filter,
-            output_field=PositiveSmallIntegerField(),
-            distinct=True,
-        )
-
-        finished_count = Sum(
-            finished_rel,
-            default=0,
-            filter=bm_filter,
-            output_field=PositiveSmallIntegerField(),
-            distinct=True,
-        )
-        finished_aggregate = ExpressionWrapper(
-            Q(child_count=finished_count), output_field=BooleanField()
+        bookmark_page, finished_aggregate = self._get_bookmark_page_and_finished_counts(
+            bm_filter, page_rel, finished_rel, page_count
         )
 
         comic_qs = comic_qs.annotate(page=bookmark_page, finished=finished_aggregate)
         bookmark_page = Subquery(comic_qs.values("page"))
         finished_aggregate = Subquery(comic_qs.values("finished"))
 
-        return qs, bookmark_page, finished_aggregate
+        return bookmark_page, finished_aggregate
 
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
-
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
         if model == Comic:
-            # Hoist up comic bookmark and finished states
+            # Hoist comic bookmark and finished states
             bookmark_page = F(page_rel)
             finished_aggregate = F(finished_rel)
-        # elif self.fts_mode:
-        else:
-            qs, bookmark_page, finished_aggregate = (
-                self._annotate_group_bookmarks_with_fts(qs)
+        elif self.fts_mode:
+            # Aggregate bookmark and finished states for groups using subqueries to
+            # not break with FTS match filter.
+            bookmark_page, finished_aggregate = (
+                self._annotate_group_bookmarks_with_fts()
             )
-        # else:
-        #    # Aggregate bookmark and finished states
-        #    qs, bookmark_page, finished_aggregate = self._annotate_group_bookmarks(qs, bm_filter, page_rel, finished_rel)
+        else:
+            # Aggregate bookmark and finished states for groups
+            bookmark_page, finished_aggregate = self._annotate_group_bookmarks(
+                bm_filter, page_rel, finished_rel
+            )
 
         if (
             self.is_opds_1_acquisition

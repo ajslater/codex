@@ -47,6 +47,7 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
             rel = prefix + "comicfts__publisher__match"
             query_dict = {rel: text}
             qs = qs.filter(**query_dict)
+            self.fts_mode = True
         except Exception:
             LOG.exception("Getting Search Scores")
         return qs
