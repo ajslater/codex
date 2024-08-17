@@ -249,9 +249,6 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             distinct=True,
         )
         finished_aggregate = Q(child_count=finished_count)
-        # finished_aggregate = ExpressionWrapper(
-        #    Q(child_count=finished_count), output_field=BooleanField()
-        # )
 
         return bookmark_page, finished_aggregate
 
