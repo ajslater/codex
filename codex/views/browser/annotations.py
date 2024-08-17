@@ -266,7 +266,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
         comic_qs = self.get_filtered_queryset(Comic)
         # Must group by the outer ref or it only does aggregates for one comic.
-        group_rel = self.model.__name__.lower()
+        group_rel = "parent_folder" if self.model == Folder else self.model.__name__.lower()
         comic_qs = comic_qs.filter(**{group_rel: OuterRef("pk")}).values(
             f"{group_rel}__pk"
         )
