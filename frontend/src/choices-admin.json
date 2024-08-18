@@ -58,6 +58,11 @@
           "title": "Update All Failed Imports",
           "desc": "Forcibly update all failed imports in all libraries",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "watchdog_sync",
+          "title": "Sync Watchdog with DB",
+          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
         }
       ]
     },
@@ -131,11 +136,6 @@
           "value": "db_backup",
           "title": "Backup Database",
           "desc": "Runs nightly"
-        },
-        {
-          "value": "watchdog_sync",
-          "title": "Sync Watchdog with DB",
-          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
         }
       ]
     },
