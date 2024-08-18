@@ -187,7 +187,10 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DB_PATH,
         "CONN_MAX_AGE": 600,
-        "OPTIONS": {"timeout": 120},
+        "OPTIONS": {
+            "init_command": "PRAGMA journal_mode=wal;",
+            "timeout": 120,
+        },
     },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"

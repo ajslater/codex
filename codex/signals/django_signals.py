@@ -34,19 +34,8 @@ def _load_regex_extension(**kwargs):
         LOG.warning(f"Unable to load sqlite-regex extension: {exc}. Tried with {path}")
 
 
-def _activate_wal_journal(**kwargs):
-    """Enable sqlite WAL journal."""
-    try:
-        conn = kwargs["connection"]
-        with conn.cursor() as cursor:
-            cursor.execute("PRAGMA journal_mode=wal")
-    except Exception as exc:
-        LOG.warning(f"Unable to activate journal_mode=wal: {exc}")
-
-
 def _db_connect(**kwargs):
     _load_regex_extension(**kwargs)
-    _activate_wal_journal(**kwargs)
 
 
 def _user_group_change(**kwargs):
