@@ -28,14 +28,13 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
         # return limited
         return True
 
-    def _limit_search_query(self, qs):
+    def get_search_limit(self):
         """Get search scores for choices and metadata."""
         # TODO if we reinvoke this, compine it with _get_common_queryset() limit
-        if self._is_search_results_limited():
-            page = self.kwargs.get("page", 1)  # type: ignore
-            limit = page * MAX_OBJ_PER_PAGE + 1
-            qs = qs[:limit]
-        return qs
+        if not self.fts_mode or not self._is_search_results_limited():
+            return 0
+        page = self.kwargs.get("page", 1)  # type: ignore
+        return page * MAX_OBJ_PER_PAGE + 1
 
     def apply_fts_filter(self, qs, model, text):
         """Perform the search and return the scores as a dict."""

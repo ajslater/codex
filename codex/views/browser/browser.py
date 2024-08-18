@@ -117,12 +117,27 @@ class BrowserView(BrowserTitleView):
     ################
     # MAIN QUERIES #
     ################
+
+    def _get_limit(self):
+        """Get the limit for the query."""
+        # query_limit only is set by some opds views
+        query_limit = self.params.get("limit", 0)
+        search_limit = self.get_search_limit()
+        if query_limit and search_limit:
+            limit = min(query_limit, search_limit)
+        else:
+            limit = max(query_limit, search_limit)
+        return limit
+
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
+        limit = self._get_limit()
         # TODO runs the whole query again here
         count_qs = self.add_group_by(qs, model)
         try:
+            if limit:
+                count_qs = count_qs[:limit]
             count = count_qs.count()
         except OperationalError as exc:
             LOG.warning(f"Query Error: {exc}")
@@ -132,10 +147,8 @@ class BrowserView(BrowserTitleView):
         if count:
             qs = self.annotate_order_aggregates(qs, model)
             qs = self.add_order_by(qs, model)
-            if limit := self.params.get("limit"):
-                # limit only is set by some opds views
+            if limit:
                 qs = qs[:limit]
-                count = min(count, limit)  # type: ignore
 
         return qs, count
 
