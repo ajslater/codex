@@ -14,11 +14,11 @@ from codex.logger.logging import get_logger
 
 GROUP_CHANGE_MODEL_NAMES = frozenset(("User", "Library"))
 GROUP_CHANGE_ACTIONS = frozenset(
-    (
+    {
         "post_add",
         "post_remove",
         "post_clear",
-    )
+    }
 )
 LOG = get_logger(__name__)
 
