@@ -5,6 +5,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from django.db.models import Max
+from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -121,7 +122,12 @@ class BrowserView(BrowserTitleView):
         qs = self.get_filtered_queryset(model)
         # TODO runs the whole query again here
         count_qs = self.add_group_by(qs, model)
-        count = count_qs.count()
+        try:
+            count = count_qs.count()
+        except OperationalError as exc:
+            LOG.warning(f"Query Error: {exc}")
+            count = 0
+            qs = model.objects.none()
 
         if count:
             qs = self.annotate_order_aggregates(qs, model)

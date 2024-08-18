@@ -2,7 +2,9 @@
 
 from django.db.models.aggregates import Count, Max
 from django.db.models.functions import Coalesce, Greatest
+from django.db.utils import OperationalError
 
+from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.validate import BrowserValidateView
@@ -12,6 +14,7 @@ from codex.views.const import (
 )
 
 _CHILD_COUNT = "child_count"
+LOG = get_logger(__name__)
 
 
 class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
@@ -92,12 +95,16 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
             mbua = EPOCH_START_DATETIMEFIELD
         qs = qs.annotate(max_bookmark_updated_at=mbua)
 
-        mtime = qs.aggregate(
-            max=Greatest(
-                Coalesce("max_bookmark_updated_at", EPOCH_START_DATETIMEFIELD),
-                "max_updated_at",
-            )
-        )["max"]
+        try:
+            mtime = qs.aggregate(
+                max=Greatest(
+                    Coalesce("max_bookmark_updated_at", EPOCH_START_DATETIMEFIELD),
+                    "max_updated_at",
+                )
+            )["max"]
+        except OperationalError as ex:
+            LOG.warning(f"Query Error: {ex}")
+            mtime = None
         if mtime == NotImplemented:
             mtime = None
         return mtime
