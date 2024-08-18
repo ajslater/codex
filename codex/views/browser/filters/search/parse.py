@@ -44,6 +44,39 @@ _QUOTED_RE = re.compile(r'^".*"$|^\'.*\'$')
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
+    def _preparse_paren_commas(self, token, field_tokens, fts_tokens):
+        """Not a column token, but has grouping chars."""
+        # Surround parents and commas with spaces and re shlex and parse them.
+        sub_phrase = _FTS_PAREN_COMMAS_RE.sub(r" \g<1> ", token)
+        tokens = shlex.split(sub_phrase)
+        for sub_token in tokens:
+            self._preparse_token(sub_token, field_tokens, fts_tokens)
+
+    @staticmethod
+    def _quote_token(token):
+        """Quote most tokens to allow special characters."""
+        # but preserve prefix star notation
+        suffix = ""
+        while token.endswith("*"):
+            suffix = "*"
+            token = token[:-1]
+        return f'"{token}"{suffix}'
+
+    @staticmethod
+    def _preparse_column_search(token, field_tokens):
+        """Preparse column search."""
+        column_parts = token.split(":")
+        if len(column_parts) <= 1:
+            return False
+        # Column token
+        col, exp = column_parts
+        if col not in _VALID_COLUMNS:
+            return True
+        if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(exp):
+            field_tokens.add((col, exp))
+            return True
+        return False
+
     def _preparse_token(self, token, field_tokens, fts_tokens):
         """Preparse one search token."""
         if not token:
@@ -57,29 +90,13 @@ class SearchFilterView(BrowserFTSFilter):
             and not token.isdigit()
             and not _QUOTED_RE.search(token)
         ):
-            column_parts = token.split(":")
-            if len(column_parts) > 1:
-                # Column token
-                col, exp = column_parts
-                if col not in _VALID_COLUMNS:
-                    return
-                if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(
-                    exp
-                ):
-                    field_tokens.add((col, exp))
-                    return
-                # Else send the column token to fts
-            elif _FTS_PAREN_COMMAS_RE.search(token):
-                # Not a column token, but has grouping chars
-                # Surround parents and commas with spaces and re shlex and parse them.
-                sub_phrase = _FTS_PAREN_COMMAS_RE.sub(r" \g<1> ", token)
-                tokens = shlex.split(sub_phrase)
-                for sub_token in tokens:
-                    self._preparse_token(sub_token, field_tokens, fts_tokens)
+            if self._preparse_column_search(token, field_tokens):
                 return
-            else:
-                # quote most tokens to allow special characters
-                token = f'"{token}"'
+                # Else send the column token to fts
+            if _FTS_PAREN_COMMAS_RE.search(token):
+                self._preparse_paren_commas(token, field_tokens, fts_tokens)
+                return
+            token = self._quote_token(token)
 
         fts_tokens.append(token)
 
