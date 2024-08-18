@@ -58,6 +58,11 @@
           "title": "Update All Failed Imports",
           "desc": "Forcibly update all failed imports in all libraries",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "watchdog_sync",
+          "title": "Sync Watchdog with DB",
+          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
         }
       ]
     },
@@ -142,11 +147,6 @@
           "value": "db_search_sync",
           "title": "Sync Search Index to DB",
           "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup."
-        },
-        {
-          "value": "watchdog_sync",
-          "title": "Sync Watchdog with DB",
-          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
         }
       ]
     },
