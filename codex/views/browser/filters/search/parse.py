@@ -62,8 +62,8 @@ class SearchFilterView(BrowserFTSFilter):
             token = token[:-1]
         return f'"{token}"{suffix}'
 
-    @staticmethod
-    def _preparse_column_search(token, field_tokens):
+    @classmethod
+    def _preparse_column_search(cls, token, field_tokens, fts_tokens):
         """Preparse column search."""
         column_parts = token.split(":")
         if len(column_parts) <= 1:
@@ -75,7 +75,11 @@ class SearchFilterView(BrowserFTSFilter):
         if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(exp):
             field_tokens.add((col, exp))
             return True
-        return False
+
+        exp = cls._quote_token(exp)
+        token = ":".join((col, exp))
+        fts_tokens.append(token)
+        return True
 
     def _preparse_token(self, token, field_tokens, fts_tokens):
         """Preparse one search token."""
@@ -90,7 +94,7 @@ class SearchFilterView(BrowserFTSFilter):
             and not token.isdigit()
             and not _QUOTED_RE.search(token)
         ):
-            if self._preparse_column_search(token, field_tokens):
+            if self._preparse_column_search(token, field_tokens, fts_tokens):
                 return
                 # Else send the column token to fts
             if _FTS_PAREN_COMMAS_RE.search(token):
