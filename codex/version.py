@@ -40,8 +40,13 @@ def _get_version_from_db():
 def _fetch_latest_version(package_name, repo_url_template=PYPI_URL_TEMPLATE):
     """Fetch Latest Remotely."""
     repo_url = repo_url_template % package_name
-    response = requests.get(repo_url, timeout=REPO_TIMEOUT)
-    return json.loads(response.text)["info"]["version"]
+    try:
+        response = requests.get(repo_url, timeout=REPO_TIMEOUT)
+        latest_version = json.loads(response.text)["info"]["version"]
+    except Exception as exp:
+        LOG.warning(f"Error fetching latest codex version: {exp}")
+        latest_version = ""
+    return latest_version
 
 
 def get_latest_version(
@@ -52,11 +57,11 @@ def get_latest_version(
     ts, latest_version = _get_version_from_db()
     if not latest_version:
         latest_version = _fetch_latest_version(package_name, repo_url_template)
-        if not latest_version:
-            reason = "Bad latest version fetched."
-            raise ValueError(reason)
-        ts.version = latest_version
-        ts.save()
+        if latest_version:
+            ts.version = latest_version
+            ts.save()
+        else:
+            LOG.warning("Latest version not fetched.")
     return latest_version
 
 
