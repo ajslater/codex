@@ -2,9 +2,7 @@
 
 from time import time
 
-import sqlite_regex
 from django.core.cache import cache
-from django.db.backends.signals import connection_created
 from django.db.models.signals import m2m_changed
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -21,21 +19,6 @@ GROUP_CHANGE_ACTIONS = frozenset(
     }
 )
 LOG = get_logger(__name__)
-
-
-def _load_regex_extension(**kwargs):
-    """Load the sqlite-regexp extension."""
-    path = sqlite_regex.loadable_path()
-    try:
-        conn = kwargs["connection"].connection
-        conn.enable_load_extension(True)
-        conn.load_extension(path)
-    except Exception as exc:
-        LOG.warning(f"Unable to load sqlite-regex extension: {exc}. Tried with {path}")
-
-
-def _db_connect(**kwargs):
-    _load_regex_extension(**kwargs)
 
 
 def _user_group_change(**kwargs):
@@ -60,6 +43,6 @@ def _user_group_change(**kwargs):
 
 def connect_signals():
     """Connect actions to signals."""
-    connection_created.connect(_db_connect)
+    # connection_created.connect(_db_connect)
     m2m_changed.connect(_user_group_change)
     # post_invalidation.connect(_cache_invalidated)
