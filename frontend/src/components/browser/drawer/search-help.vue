@@ -50,49 +50,105 @@
           some terms in the search bar. They will be added to the filters
           selected with the "filter by" menu.
         </p>
-        <h2>Full Text Search Boolean Operators</h2>
-        Codex allows the <code>AND</code>, <code>OR</code>, and
-        <code>NOT</code> operators between search terms. By default terms are
-        concatenated with the <code>and</code> operator. For instance:
-        <code> frodo sam galadriel </code>
-        is the same as <code>frodo and sam and galadriel</code>.
+        <p>Searching in Codex is always case insensitive.</p>
+        <h2>Full Text Search</h2>
+        <p>
+          Full text search searches all the metadata of a comic as one document.
+        </p>
+        <h3>Boolean Operators</h3>
+        <p>
+          Codex allows the <code>AND</code>, <code>OR</code>, and
+          <code>NOT</code> operators between search terms. By default terms are
+          concatenated with the <code>AND</code> operator. For instance:
+          <code> frodo sam galadriel </code>
+          is the same as <code>frodo AND sam AND galadriel</code>.
 
-        <code> frodo or pippin not merry</code> searches for comics with
-        metadata that reference frodo or pippin but not merry. Parenthesis may
-        be used to group boolean operators.
-
+          <code> frodo OR pippin NOT merry</code> searches for comics with
+          metadata that reference Frodo or Pippin but not Merry. Parenthesis may
+          be used to group boolean operators.
+        </p>
+        <h3>Prefix Operators</h3>
+        <p>
+          search tokens suffixed with a <code>*</code> will look for text with
+          the given prefix. For example <code>tev*</code> should match if the
+          string "Tevildo" occurs anywhere in the comic metadata.
+        </p>
         <h2>Field Search Syntax</h2>
         <p>
-          Like Codex's filter selector menu, but more powerful. You may search
-          on individual comic metadata fields. using a search token like
-          <code>field:value</code>. For numeric, datetime and boolean fields
-          this requests an exact match. For text fields, and field containing
-          the value will match. The field syntax is parsed and removed from the
-          search query <em>before</em> parsing the remaining search string as a
-          Full Text Search. Thus the field syntax is ignored by Full Text
-          Search.
+          Similar to Codex's filter selector menu, you may query individual
+          comic fields in the database, but for more columns and with more
+          powerful operators than the exact match offered by the filter menu. A
+          field search looks like: <code>field:expression</code>.
         </p>
-        <h3>Field Search Operators</h3>
         <p>
-          Field Search has it's own operators that prefix the value after the
-          <code>:</code> character.
+          The field syntax is parsed and removed from the search query
+          <em>before</em> parsing the remaining search string as a Full Text
+          Search. Thus field query tokens are applied to the search but ignored
+          by Full Text Search Boolean Operators.
+        </p>
+        <h3>Simple Values as the Expression</h3>
+        <p>
+          Simple values entered for the expression match exactly for numeric,
+          datetime and boolean fields. However for text fields the field is
+          searched for any match of the entered value.
+        </p>
+        <h3>Leading Operators</h3>
+        <p>
+          Field Search has it's own operators that offer more powerful queries.
+          For text, numeric, boolean and datetime fields may be applied at the
+          beginning of the expression
           <code>&gt;</code
           >,<code>&gt;=</code>,<code>&lt;</code>,<code>&lt;=</code>,
-          <code>!</code>, and the range syntax <code>..</code>. The
-          <code>!</code> character indicates excluding the following value.
-          Examples: <code>pages:>30</code> comics with more than 30 pages.
-          <code>author:!frodo</code> comics not written by Frodo.
-          <code>year:1066..1215</code> comics published between the year 1066
-          and 1215.
+          <code>!</code>. The <code>!</code> character indicates excluding the
+          following value. And the range syntax <code>..</code> accepts two
+          values. For instance:
         </p>
-
+        <table>
+          <tbody>
+            <tr>
+              <td><code>pages:>30</code></td>
+              <td>comics with more than 30 pages</td>
+            </tr>
+            <tr>
+              <td><code>author:!frodo</code></td>
+              <td>comics not written by Frodo</td>
+            </tr>
+            <tr>
+              <td><code>year:1066..1215</code></td>
+              <td>comics published between the year 1066 and 1215.</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Text Operators</h3>
+        <p>
+          Field search on text fields may be narrowed using the
+          <code>*</code> operator:
+        </p>
+        <table>
+          <tbody>
+            <tr>
+              <td><code>characters:Ar*</code></td>
+              <td>
+                characters that start with "Ar", like "Aragorn" and "Arwen"
+              </td>
+            </tr>
+            <tr>
+              <td><code>characters:*ond</code></td>
+              <td>characters that end with "ond", like "Elrond"</td>
+            </tr>
+            <tr>
+              <td><code>series:sil*ion</code></td>
+              <td>series such as Silmarillion</td>
+            </tr>
+          </tbody>
+        </table>
         <h3>Dates and DateTimes</h3>
         <p>
-          Codex parses Dates and DateTime values very liberally. Read
-          documentation for what formats and natural language phrases are
-          accepted. If the format you try fails, the <code>YYYYMMDD</code> and
-          <code>YYYMMDDHHmmSS</code> formats are reliable. For instance this
-          works:
+          Codex parses Dates and DateTime values liberally. Read documentation
+          for what formats and natural language phrases are accepted. If the
+          format you try fails, the <code>YYYY-MM-DD</code> and
+          <code>YYYY-MM-DD:HH:mm:SS</code> formats are reliable. Many quoted
+          english phrases also work, for instance:
           <code>created_at:"3 days ago".."today"</code>
         </p>
         <h3>Single Quote complex field Queries</h3>
@@ -106,12 +162,18 @@
           The size field can make use of convenient byte multiplier suffixes
           like
           <code>kb</code> and <code>mb</code> as well as binary suffixes like
-          <code>gib</code> and <code>tib</code>.
+          <code>gib</code> and <code>tib</code>. For instance
+          <code>size:>10mb</code>
         </p>
         <h3>Multiple Values</h3>
         <p>
-          Fields may have multiple values:
-          <code>field:term1,!term2,>=term3</code>
+          Fields may have multiple expressions that all match against the same
+          field:
+          <code>field:value1,!value2,>=value3</code>
+          If separated by a comma <code>,</code> the terms are ANDed together
+          and a row must match all the expressions. If separated by a pipe
+          <code>|</code> they are ORed together row will match if any of the
+          expressions match.
         </p>
       </div>
       <CloseButton
