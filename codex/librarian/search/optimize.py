@@ -9,6 +9,8 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.status import Status
 from codex.threads import QueuedThread
 
+_TABLE = "codex_comicfts"
+_OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 
 class OptimizeMixin(QueuedThread):
     """Search Index optimize methods."""
@@ -26,9 +28,7 @@ class OptimizeMixin(QueuedThread):
             self.status_controller.update(status)
             self.log.info("Optimizing search index...")
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO codex_comicfts(codex_comicfts) VALUES('optimize')"
-                )
+                cursor.execute(_OPTIMIZE_SQL)
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Optimized search index in {elapsed}.")
