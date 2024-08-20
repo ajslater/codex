@@ -5,12 +5,14 @@ from time import time
 from django.db import connection
 from humanize import naturaldelta
 
+from codex.librarian.janitor.tasks import JanitorSearchOptimizeFinishedTask
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.status import Status
 from codex.threads import QueuedThread
 
 _TABLE = "codex_comicfts"
 _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
+
 
 class OptimizeMixin(QueuedThread):
     """Search Index optimize methods."""
@@ -20,7 +22,7 @@ class OptimizeMixin(QueuedThread):
         self.abort_event = abort_event
         super().__init__(*args, **kwargs)
 
-    def optimize(self):
+    def optimize(self, janitor=False):
         """Remove records not in the database from the index, trapping exceptions."""
         start_time = time()
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
@@ -36,3 +38,6 @@ class OptimizeMixin(QueuedThread):
             self.log.exception("Removing stale records:")
         finally:
             self.status_controller.finish(status)
+            if janitor:
+                task = JanitorSearchOptimizeFinishedTask()
+                self.librarian_queue.put(task)

@@ -18,6 +18,7 @@ border-radius: 128px;
 - Fixes
 
   - Fixed crashes when the upstream codex version is not accessible.
+  - Fixed possible race conditions with nightly maintenance.
 
 ## v1.6.17
 

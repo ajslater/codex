@@ -19,6 +19,8 @@ class SearchIndexUpdateTask(SearchIndexerTask):
 class SearchIndexOptimizeTask(SearchIndexerTask):
     """Optimize search index."""
 
+    janitor: bool = False
+
 
 @dataclass
 class SearchIndexRemoveStaleTask(SearchIndexerTask):

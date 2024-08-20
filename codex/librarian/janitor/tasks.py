@@ -63,3 +63,13 @@ class ForceUpdateAllFailedImportsTask(JanitorTask):
 @dataclass
 class JanitorNightlyTask(JanitorTask):
     """Submit all janitor nightly tasks to the queue."""
+
+
+@dataclass
+class JanitorAdoptOrphanFoldersFinishedTask(JanitorTask):
+    """Signals to the Janitor that the Adopt Orphan Folders task is finished."""
+
+
+@dataclass
+class JanitorSearchOptimizeFinishedTask(JanitorTask):
+    """Signals to the Janitor that the Search Optimize task is finished."""

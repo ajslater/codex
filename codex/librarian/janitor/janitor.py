@@ -11,6 +11,7 @@ from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
+    JanitorAdoptOrphanFoldersFinishedTask,
     JanitorBackupTask,
     JanitorCleanCoversTask,
     JanitorCleanFKsTask,
@@ -18,6 +19,7 @@ from codex.librarian.janitor.tasks import (
     JanitorClearStatusTask,
     JanitorNightlyTask,
     JanitorRestartTask,
+    JanitorSearchOptimizeFinishedTask,
     JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
@@ -62,17 +64,12 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
         try:
             self.status_controller.start_many(_JANITOR_STATII)
             tasks = (
-                SearchIndexAbortTask(),
+                JanitorUpdateTask(force=False),
                 JanitorCleanFKsTask(),
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
-                JanitorUpdateTask(force=False),
-                AdoptOrphanFoldersTask(),
+                AdoptOrphanFoldersTask(True),
                 CoverRemoveOrphansTask(),
-                SearchIndexUpdateTask(False),
-                SearchIndexOptimizeTask(),
-                JanitorVacuumTask(),
-                JanitorBackupTask(),
             )
             for task in tasks:
                 self.librarian_queue.put(task)
@@ -106,6 +103,18 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                     self.force_update_all_failed_imports()
                 case JanitorNightlyTask():
                     self.queue_tasks()
+                case JanitorAdoptOrphanFoldersFinishedTask():
+                    next_tasks = (
+                        SearchIndexAbortTask(),
+                        SearchIndexUpdateTask(False),
+                        SearchIndexOptimizeTask(True),
+                    )
+                    for next_task in next_tasks:
+                        self.librarian_queue.put(next_task)
+                case JanitorSearchOptimizeFinishedTask():
+                    next_tasks = (JanitorVacuumTask(), JanitorBackupTask())
+                    for next_task in next_tasks:
+                        self.librarian_queue.put(next_task)
                 case _:
                     self.log.warning(f"Janitor received unknown task {task}")
         except Exception:
