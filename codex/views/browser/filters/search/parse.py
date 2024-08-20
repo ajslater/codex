@@ -65,7 +65,7 @@ class SearchFilterView(BrowserFTSFilter):
     @classmethod
     def _preparse_column_search(cls, token, field_tokens, fts_tokens):
         """Preparse column search."""
-        column_parts = token.split(":")
+        column_parts = token.split(":", 1)
         if len(column_parts) <= 1:
             return False
         # Column token
