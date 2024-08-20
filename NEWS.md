@@ -15,6 +15,10 @@ border-radius: 128px;
     `config/whoosh_index`
   - Use faster db column lookups for some search bar queries. Thanks @bmfrosty.
 
+- Fixes
+
+  - Fixed crashes when the upstream codex version is not accessible.
+
 ## v1.6.17
 
 - Features
