@@ -54,6 +54,7 @@ _COMICFTS_UPDATE_FIELDS = (
     "updated_at",
 )
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+_BIG_PREPARE_WARNING_SIZE = 10000
 
 
 class FTSUpdateMixin(RemoveMixin):
@@ -61,7 +62,10 @@ class FTSUpdateMixin(RemoveMixin):
 
     _STATUS_FINISH_TYPES = (
         SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
+        SearchIndexStatusTypes.SEARCH_INDEX_CREATE,
+        SearchIndexStatusTypes.SEARCH_INDEX_CREATE_PREPARE,
         SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE,
     )
 
     def _init_statuses(self, rebuild):
@@ -69,9 +73,14 @@ class FTSUpdateMixin(RemoveMixin):
         statii = []
         if rebuild:
             statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)]
-        statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE)]
-        if not rebuild:
+        else:
             statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
+        statii += [
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE, 0),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_CREATE_PREPARE, 0),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_CREATE),
+        ]
         self.status_controller.start_many(statii)
 
     def _update_search_index_clean(self, rebuild):
@@ -89,8 +98,8 @@ class FTSUpdateMixin(RemoveMixin):
             fts_imprint=F("imprint__name"),
             fts_series=F("series__name"),
             fts_volume=F("volume__name"),
-            fts_country=GroupConcat("country__name", distinct=True),
-            fts_language=GroupConcat("language__name", distinct=True),
+            fts_country=F("country__name"),
+            fts_language=F("language__name"),
             fts_scan_info=F("scan_info__name"),
             fts_tagger=F("tagger__name"),
             fts_characters=GroupConcat("characters__name", distinct=True),
@@ -111,19 +120,16 @@ class FTSUpdateMixin(RemoveMixin):
         )
 
     @staticmethod
-    def _get_pycountry_fts_field(field_instance: PyCountryField, iso_code: str | None):
-        if iso_code:
-            return iso_code + " " + field_instance.to_representation(iso_code)
-        return ""
+    def _get_pycountry_fts_field(field_instance: PyCountryField, iso_code):
+        if not iso_code:
+            return ""
+        return ",".join((iso_code, field_instance.to_representation(iso_code)))
 
-    def _update_search_index_create(self):
-        """Create missing search entries."""
-        missing_comics = Comic.objects.filter(comicfts__isnull=True)
-        missing_comics = self._annotate_fts_query(missing_comics)
-        create_comicfts = []
-        country_field = CountryField()
-        language_field = LanguageField()
-        for comic in missing_comics:
+    def _get_comicts_fts_list(
+        self, comics, country_field, language_field, obj_list, create
+    ):
+        """Prepare a batch of search entries."""
+        for comic in comics:
             country = self._get_pycountry_fts_field(country_field, comic.fts_country)
             language = self._get_pycountry_fts_field(language_field, comic.fts_language)
 
@@ -131,7 +137,6 @@ class FTSUpdateMixin(RemoveMixin):
             comicfts = ComicFTS(
                 comic_id=comic.pk,
                 updated_at=now,
-                created_at=now,
                 publisher=comic.fts_publisher,
                 imprint=comic.fts_imprint,
                 series=comic.fts_series,
@@ -139,8 +144,8 @@ class FTSUpdateMixin(RemoveMixin):
                 issue=comic.issue,
                 name=comic.name,
                 age_rating=comic.age_rating,
-                file_type=comic.file_type,
                 country=country,
+                file_type=comic.file_type,
                 language=language,
                 notes=comic.notes,
                 original_format=comic.original_format,
@@ -163,72 +168,79 @@ class FTSUpdateMixin(RemoveMixin):
                 tags=comic.fts_tags,
                 teams=comic.fts_teams,
             )
-            create_comicfts.append(comicfts)
+            if create:
+                comicfts.created_at = now
+            obj_list.append(comicfts)
 
-        ComicFTS.objects.bulk_create(create_comicfts)
-        count = len(create_comicfts)
+    def _get_comicfts_list(
+        self, comics, prepare_status_type, status_type, create=False
+    ):
+        """Create a ComicFTS object for bulk_create or bulk_update."""
+        prepare_status = Status(prepare_status_type, 0)
+        self.status_controller.start(prepare_status)
+        country_field = CountryField()
+        language_field = LanguageField()
+        obj_list = []
+        prepare_status.total = comics.count()
+        if prepare_status.total is None:
+            prepare_status.total = 0
+        self.status_controller.update(prepare_status)
+
+        comics = self._annotate_fts_query(comics)
+        if prepare_status.total >= _BIG_PREPARE_WARNING_SIZE:
+            self.log.info(
+                "The search entry prepare query runs a few times faster if it's not batched to provide reassuring status updates. Large updates like this one can take several minutes to prepare the search entries."
+            )
+        self._get_comicts_fts_list(
+            comics, country_field, language_field, obj_list, create
+        )
+
+        count = len(obj_list)
+        status = Status(status_type, None, count)
+        self.status_controller.update(status, notify=False)
+        self.status_controller.finish(prepare_status)
+        return obj_list, count, status
+
+    def _update_search_index_finish(self, count, verb, status):
         if count:
-            self.log.info(f"Created {count} search entries.")
+            self.log.info(f"{verb} {count} search entries.")
         else:
-            self.log.debug("Created no search entries.")
+            self.log.debug(f"{verb} no search entries.")
+        self.status_controller.finish(status)
 
-    def _update_search_index_update(self):
+    def _update_search_index_update(self, all_indexed_comic_ids):
         """Update out of date search entries."""
-        out_of_date_comics = Comic.objects.alias(
-            fts_watermark=Max("comicfts__updated_at", default=_MIN_UTC_DATE)
-        ).filter(updated_at__gt=F("fts_watermark"))
-        out_of_date_comics = self._annotate_fts_query(out_of_date_comics)
-
-        country_field = CountryField()
-        language_field = LanguageField()
-        update_comicfts = []
-        for comic in out_of_date_comics:
-            country = self._get_pycountry_fts_field(country_field, comic.fts_country)
-            language = self._get_pycountry_fts_field(language_field, comic.fts_language)
-
-            now = Now()
-            comicfts = ComicFTS(
-                comic_id=comic.pk,
-                updated_at=now,
-                publisher=comic.fts_publisher,
-                imprint=comic.fts_imprint,
-                series=comic.fts_series,
-                volume=comic.fts_volume,
-                issue=comic.issue,
-                name=comic.name,
-                age_rating=comic.age_rating,
-                country=country,
-                file_type=comic.file_type,
-                language=language,
-                notes=comic.notes,
-                original_format=comic.original_format,
-                path=comic.search_path,
-                reading_direction=comic.reading_direction,
-                review=comic.review,
-                scan_info=comic.fts_scan_info,
-                summary=comic.summary,
-                tagger=comic.fts_tagger,
-                # ManyToMany
-                characters=comic.fts_characters,
-                contributors=comic.fts_contributors,
-                genres=comic.fts_genres,
-                identifiers=comic.fts_identifiers,
-                identifier_types=comic.fts_identifier_types,
-                locations=comic.fts_locations,
-                series_groups=comic.fts_series_groups,
-                stories=comic.fts_stories,
-                story_arcs=comic.fts_story_arcs,
-                tags=comic.fts_tags,
-                teams=comic.fts_teams,
-            )
-            update_comicfts.append(comicfts)
-
-        ComicFTS.objects.bulk_update(update_comicfts, _COMICFTS_UPDATE_FIELDS)
-        count = len(update_comicfts)
-        if count:
-            self.log.info(f"Updated {count} search entries.")
+        self.log.debug("Calculating search index watermark...")
+        fts_watermark = ComicFTS.objects.aggregate(max=Max("updated_at"))["max"]
+        if not fts_watermark:
+            fts_watermark = _MIN_UTC_DATE
+            since = "the fracturing of the multiverse"
         else:
-            self.log.debug("Updated no search entries.")
+            since = fts_watermark
+        self.log.info(f"Looking for search entries to update since {since}...")
+        out_of_date_comics = Comic.objects.filter(
+            pk__in=all_indexed_comic_ids, updated_at__gt=fts_watermark
+        )
+        update_comicfts, count, status = self._get_comicfts_list(
+            out_of_date_comics,
+            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE,
+            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+        )
+        ComicFTS.objects.bulk_update(update_comicfts, _COMICFTS_UPDATE_FIELDS)
+        self._update_search_index_finish(count, "Updated", status)
+
+    def _update_search_index_create(self, all_indexed_comic_ids):
+        """Create missing search entries."""
+        self.log.info("Looking for search entries to create...")
+        missing_comics = Comic.objects.exclude(pk__in=all_indexed_comic_ids)
+        create_comicfts, count, status = self._get_comicfts_list(
+            missing_comics,
+            SearchIndexStatusTypes.SEARCH_INDEX_CREATE_PREPARE,
+            SearchIndexStatusTypes.SEARCH_INDEX_CREATE,
+            True,
+        )
+        ComicFTS.objects.bulk_create(create_comicfts)
+        self._update_search_index_finish(count, "Created", status)
 
     def _update_search_index(self, start_time, rebuild):
         """Update or Rebuild the search index."""
@@ -244,8 +256,9 @@ class FTSUpdateMixin(RemoveMixin):
         self._init_statuses(rebuild)
 
         self._update_search_index_clean(rebuild)
-        self._update_search_index_create()
-        self._update_search_index_update()
+        all_indexed_comic_ids = ComicFTS.objects.values_list("comic_id", flat=True)
+        self._update_search_index_update(all_indexed_comic_ids)
+        self._update_search_index_create(all_indexed_comic_ids)
 
         elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)

@@ -17,6 +17,7 @@ class RemoveMixin(OptimizeMixin):
         """Clear the search index."""
         clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
         self.status_controller.start(clear_status)
+        # TODO truncate table and reset autoinc
         ComicFTS.objects.all().delete()
         # with connection.cursor() as cursor:
         #    cursor.execute("INSERT INTO codex_comicfts(codex_comicfts) VALUES('delete-all')")
@@ -27,8 +28,8 @@ class RemoveMixin(OptimizeMixin):
         """Remove records not in the database from the index."""
         start_time = time()
         delete_comicfts = ComicFTS.objects.filter(comic__isnull=True)
-        self.status_controller.update(status, notify=False)
         status.total = len(delete_comicfts)
+        self.status_controller.update(status, notify=False)
         count, _ = delete_comicfts.delete()
 
         # Finish
