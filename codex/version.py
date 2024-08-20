@@ -73,6 +73,9 @@ def is_outdated(
     """Is codex outdated."""
     result = False
     latest_version = get_latest_version(package_name, repo_url_template)
+    if not latest_version:
+        logger.warning("Unable to determine latest codex version.")
+        return result
     versio_latest_version = Version(latest_version)
 
     installed_versio_version = Version(VERSION)
