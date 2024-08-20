@@ -226,7 +226,8 @@ class FTSUpdateMixin(RemoveMixin):
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE,
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
         )
-        ComicFTS.objects.bulk_update(update_comicfts, _COMICFTS_UPDATE_FIELDS)
+        if not self.abort_event.is_set():
+            ComicFTS.objects.bulk_update(update_comicfts, _COMICFTS_UPDATE_FIELDS)
         self._update_search_index_finish(count, "Updated", status)
 
     def _update_search_index_create(self, all_indexed_comic_ids):
@@ -239,7 +240,8 @@ class FTSUpdateMixin(RemoveMixin):
             SearchIndexStatusTypes.SEARCH_INDEX_CREATE,
             True,
         )
-        ComicFTS.objects.bulk_create(create_comicfts)
+        if not self.abort_event.is_set():
+            ComicFTS.objects.bulk_create(create_comicfts)
         self._update_search_index_finish(count, "Created", status)
 
     def _update_search_index(self, start_time, rebuild):
@@ -255,9 +257,17 @@ class FTSUpdateMixin(RemoveMixin):
 
         self._init_statuses(rebuild)
 
+        if self.abort_event.is_set():
+            return
         self._update_search_index_clean(rebuild)
+        if self.abort_event.is_set():
+            return
         all_indexed_comic_ids = ComicFTS.objects.values_list("comic_id", flat=True)
+        if self.abort_event.is_set():
+            return
         self._update_search_index_update(all_indexed_comic_ids)
+        if self.abort_event.is_set():
+            return
         self._update_search_index_create(all_indexed_comic_ids)
 
         elapsed_time = time() - start_time
