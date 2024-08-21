@@ -14,6 +14,7 @@ _FTS_COLUMNS = frozenset(
 )
 _NON_FTS_COLUMNS = frozenset(
     {
+        "volume",
         "created_at",
         "updated_at",
         "path",
