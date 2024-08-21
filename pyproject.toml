@@ -103,11 +103,11 @@ codex = "codex.run:main"
 
 [tool.codespell]
 skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,poetry.lock,run.spec'
-builtin = 'clear,rare,code,ond'
+builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
 # https://github.com/codespell-project/codespell/issues/1212
-ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws,falsy,versio'
+ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws,falsy,versio,ond'
 
 [tool.coverage.html]
 directory = "test-results/coverage"
