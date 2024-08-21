@@ -37,7 +37,6 @@ class AdminFlag(BaseModel):
         REGISTRATION = "RG"
         NON_USERS = "NU"
         AUTO_UPDATE = "AU"
-        SEARCH_INDEX_OPTIMIZE = "SO"  # TODO  no longer needed?
         IMPORT_METADATA = "IM"
         SEND_TELEMETRY = "ST"
 
