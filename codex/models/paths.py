@@ -102,7 +102,9 @@ class CustomCover(WatchedPath):
 
     parent_folder = None
     group = CharField(max_length=1, db_index=True, choices=GroupChoice.choices)
-    sort_name = CharField(max_length=MAX_NAME_LEN, db_index=True, default="")
+    sort_name = CharField(
+        max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
+    )
 
     def _set_group_and_sort_name(self):
         """Set group and sort_name from path."""
