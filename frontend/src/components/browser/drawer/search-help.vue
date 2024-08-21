@@ -142,6 +142,12 @@
             </tr>
           </tbody>
         </table>
+        <p>
+          Leading operators on text fields will perform much less efficient
+          lookups than <code>field:bare-words</code> and
+          <code>field:prefix*</code> operators. The latter is able to leverage
+          the fast full text indexing.
+        </p>
         <h3>Dates and DateTimes</h3>
         <p>
           Codex parses Dates and DateTime values liberally. Read documentation
