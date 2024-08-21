@@ -33,7 +33,7 @@ _NON_FTS_COLUMNS = frozenset(
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
-_COLUMN_EXPRESSION_OPERATORS_RE = re.compile(r"^[\*\!\<\>]")
+_COLUMN_EXPRESSION_OPERATORS_RE = re.compile(r"^[\*\!\<\>]|\.\.")
 _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
 _FTS_BARE_TOKENS = "(),"
 _FTS_PAREN_COMMAS_RE = re.compile(r"([()|])")
