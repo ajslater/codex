@@ -103,7 +103,7 @@ codex = "codex.run:main"
 
 [tool.codespell]
 skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,poetry.lock,run.spec'
-builtin = 'clear,rare,code'
+builtin = 'clear,rare,code,ond'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
 # https://github.com/codespell-project/codespell/issues/1212
