@@ -32,7 +32,7 @@ _NON_FTS_COLUMNS = frozenset(
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
-_COLUMN_EXPRESSION_OPERATORS_RE = re.compile(r"^[\*\!\<\>]|\.{2,}")
+_COLUMN_EXPRESSION_OPERATORS_RE = re.compile(r"\B[\*\!\<\>]\w|\.{2,}|\w\*\w")
 _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
 _FTS_BARE_TOKENS = "(),"
 _FTS_PAREN_COMMAS_RE = re.compile(r"([()|])")
@@ -61,8 +61,7 @@ class SearchFilterView(BrowserFTSFilter):
             token = token[:-1]
         return f'"{token}"{suffix}'
 
-    @classmethod
-    def _preparse_column_search(cls, token, field_tokens, fts_tokens):
+    def _preparse_column_search(self, token, field_tokens, fts_tokens):
         """Preparse column search."""
         column_parts = token.split(":", 1)
         if len(column_parts) <= 1:
@@ -71,11 +70,18 @@ class SearchFilterView(BrowserFTSFilter):
         col, exp = column_parts
         if col not in _VALID_COLUMNS:
             return True
+        if col == "path" and not self.is_admin():  # type: ignore
+            if not self.admin_flags:  # type: ignore
+                # Ensure admin flags for Cover View
+                self.set_admin_flags()  # type: ignore
+            if not self.admin_flags["folder_view"]:  # type: ignore
+                return True
+        # TODO test column expression regex. May require full binary logic parse for tokens.
         if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(exp):
             field_tokens.add((col, exp))
             return True
 
-        exp = cls._quote_token(exp)
+        exp = self._quote_token(exp)
         token = ":".join((col, exp))
         fts_tokens.append(token)
         return True

@@ -2,7 +2,7 @@
 
 from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import Func
-from django.db.models.fields import CharField, Field, FloatField
+from django.db.models.fields import CharField, Field, FloatField, TextField
 from django.db.models.fields.json import JSONField
 from django.db.models.lookups import Lookup
 
@@ -44,6 +44,22 @@ class FTS5Match(Lookup):
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = lhs_params + rhs_params
         sql = f"{lhs} MATCH {rhs}"
+        return sql, params
+
+
+@CharField.register_lookup
+@TextField.register_lookup
+class Like(Lookup):
+    """SQL LIKE lookup."""
+
+    lookup_name = "like"
+
+    def as_sql(self, compiler, connection):
+        """Generate LIKE sql."""
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        rhs, rhs_params = self.process_rhs(compiler, connection)
+        params = lhs_params + rhs_params
+        sql = f"{lhs} LIKE {rhs}"
         return sql, params
 
 

@@ -115,8 +115,8 @@ class Comic(WatchedPathBrowserGroup):
 
     # Date
     year = PositiveSmallIntegerField(db_index=True, null=True)
-    month = PositiveSmallIntegerField(null=True)
-    day = PositiveSmallIntegerField(null=True)
+    month = PositiveSmallIntegerField(db_index=True, null=True)
+    day = PositiveSmallIntegerField(db_index=True, null=True)
 
     # Text
     summary = TextField(default="", db_collation="nocase")
@@ -173,6 +173,7 @@ class Comic(WatchedPathBrowserGroup):
     folders = ManyToManyField(Folder)
     size = PositiveIntegerField(db_index=True)
     file_type = CharField(
+        db_index=True,
         choices=FileType.choices,
         max_length=3,
         blank=True,

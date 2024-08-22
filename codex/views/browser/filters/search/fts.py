@@ -2,7 +2,7 @@
 
 from codex.logger.logging import get_logger
 from codex.models import Comic, StoryArc
-from codex.views.browser.filters.search.field import BrowserFieldQueryFilter
+from codex.views.browser.filters.search.field.field import BrowserFieldQueryFilter
 from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
