@@ -18,7 +18,7 @@ export default {
       FORMAT: "DDD HH:mm:SS",
       timeRules: [
         (v) =>
-          /^\d{0,3}?[01]\d|2[0-3](?::[0-5]\d){2}$/.test(v) ||
+          /(?:^\d{0,3}?[01]\d|2[0-3])(?::[0-5]\d){2}$/.test(v) ||
           `Invalid time format ${this.FORMAT}`,
       ],
     };

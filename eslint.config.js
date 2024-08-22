@@ -94,6 +94,7 @@ export default [
       promise: eslintPluginPromise,
       security: eslintPluginSecurity,
       "simple-import-sort": eslintPluginSimpleImportSort,
+      //sonarjs: eslintPluginSonarjs,
       "switch-case": eslintPluginSwitchCase,
       toml: eslintPluginToml,
       unicorn: eslintPluginUnicorn,

@@ -87,12 +87,21 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
+    getRelativePath(path) {
+      let relativePath;
+      if (path) {
+        if (path.startsWith("/") || path.startsWith("\\")) {
+          relativePath = path;
+        } else {
+          relativePath = [this.rootFolder, path].join("/");
+        }
+      } else {
+        relativePath = this.rootFolder;
+      }
+      return relativePath;
+    },
     change(path) {
-      const relativePath = path
-        ? path.startsWith("/") || path.startsWith("\\")
-          ? path
-          : [this.rootFolder, path].join("/")
-        : this.rootFolder;
+      const relativePath = this.getRelativePath(path);
       const isMenuOpen = this.menuOpen;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)

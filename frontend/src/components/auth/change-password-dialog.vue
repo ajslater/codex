@@ -173,7 +173,8 @@ export default {
         form
           .validate()
           .then(({ valid }) => {
-            return (this.submitButtonEnabled = valid);
+            this.submitButtonEnabled = valid;
+            return this.submitButtonEnabled;
           })
           .catch(() => {
             this.submitButtonEnabled = false;

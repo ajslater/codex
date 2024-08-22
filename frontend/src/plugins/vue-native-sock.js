@@ -6,7 +6,6 @@ import { useSocketStoreWithOut } from "@/stores/socket";
 export function setupNativeSock(app) {
   const store = useSocketStoreWithOut();
   store.app = app;
-  // store.appGlobalProperites = app.config.globalProperties;
 
   const SOCKET_OPTIONS = {
     store,

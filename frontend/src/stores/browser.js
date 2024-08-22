@@ -277,11 +277,13 @@ export const useBrowserStore = defineStore("browser", {
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
-      return ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)
-        ? true
-        : topGroup == "f"
-          ? this.page.adminFlags?.folderView
-          : this.settings.show[topGroup];
+      if (ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)) {
+        return true;
+      } else if (topGroup == "f") {
+        return this.page.adminFlags?.folderView;
+      } else {
+        return this.settings.show[topGroup];
+      }
     },
     _validateSearch(data) {
       if (!data.q) {
@@ -330,7 +332,6 @@ export const useBrowserStore = defineStore("browser", {
       const newTopGroupIsBrowse = newTopGroupIndex >= 0;
       const oldAndNewBothBrowseGroups =
         newTopGroupIsBrowse && oldTopGroupIndex >= 0;
-      // console.log({ oldAndNewBothBrowseGroups, oldTopGroupIndex, newTopGroupIndex });
 
       // Construct and return new redirect
       let params;
@@ -342,18 +343,15 @@ export const useBrowserStore = defineStore("browser", {
           // Make a numeric page so won't trigger the redirect remover and will always
           // redirect so we repopulate breadcrumbs
           params.page = +params.page;
-          // console.log("new top group is parent", params);
         } else {
           // New top group is a child (REVERSED)
           // Redrect to the new root.
           params = { group: "r", pks: "0", page: "1" };
-          // console.log("new top group is child", params);
         }
       } else {
         // redirect to the new TopGroup
         const group = newTopGroupIsBrowse ? "r" : newTopGroup;
         params = { group, pks: "0", page: "1" };
-        // console.log("totally new top group", params);
       }
       return { params };
     },

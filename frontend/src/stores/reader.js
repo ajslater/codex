@@ -4,7 +4,6 @@ import deepClone from "deep-clone";
 import { defineStore } from "pinia";
 
 import BROWSER_API from "@/api/v3/browser";
-// import { reactive } from "vue";
 import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
@@ -128,11 +127,11 @@ export const useReaderStore = defineStore("reader", {
     groupBooks(state) {
       const books = [];
       if (state.books.prev[0]) {
-        books.push[state.books.prev[0]];
+        books.push(state.books.prev[0]);
       }
-      books.push[state.books.current];
+      books.push(state.books.current);
       if (state.books.next[0]) {
-        books.push[state.books.next[0]];
+        books.push(state.books.next[0]);
       }
       return books;
     },

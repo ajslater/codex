@@ -23,15 +23,7 @@ export default {
   watch: {
     user: function () {
       this.setTimezone();
-      //this.sendSubscribe();
     },
-    /*
-    isConnected(to) {
-      if (to) {
-        this.sendSubscribe();
-      }
-    },
-    */
   },
   async created() {
     this.setTimezone();
@@ -44,7 +36,6 @@ export default {
       "loadProfile",
       "setTimezone",
     ]),
-    //...mapActions(useSocketStore, ["sendSubscribe"]),
   },
 };
 </script>

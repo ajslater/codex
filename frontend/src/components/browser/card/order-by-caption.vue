@@ -1,5 +1,5 @@
 <template>
-  <!-- eslint-disable vue/no-v-html -->
+  <!-- eslint-disable vue/no-v-html, sonarjs/no-vue-bypass-sanitization -->
   <div
     v-if="orderValue"
     class="orderCaption text-caption"

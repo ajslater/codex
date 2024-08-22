@@ -56,6 +56,7 @@
   "devDependencies": {
     "@fsouza/prettierd": "^0.25.0",
     "@prettier/plugin-xml": "^3.0.0",
+    "@typescript-eslint/utils": "^8.2.0",
     "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-array-func": "^5.0.1",
@@ -71,7 +72,7 @@
     "eslint-plugin-scanjs-rules": "^0.2.1",
     "eslint-plugin-security": "^3.0.0",
     "eslint-plugin-simple-import-sort": "^12.1.0",
-    "eslint-plugin-sonarjs": "^1.0.3",
+    "eslint-plugin-sonarjs": "^2.0.0",
     "eslint-plugin-switch-case": "^3.0.1",
     "eslint-plugin-toml": "^0.11.0",
     "eslint-plugin-unicorn": "^55.0.0",
