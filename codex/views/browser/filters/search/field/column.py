@@ -10,14 +10,13 @@ from django.db.models.fields.related import ForeignKey, ManyToManyField
 from codex.logger.logging import get_logger
 from codex.views.browser.filters.search.aliases import FIELD_TYPE_MAP
 
-_NAME_REL = "sort_name"
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
-        "role": f"contributors__role__{_NAME_REL}",
-        "contributors": f"contributors__person__{_NAME_REL}",
+        "role": "contributors__role__name",
+        "contributors": "contributors__person__name",
         "identifier": "identifier__nss",
-        "identirier_type": f"identifier__identifier_type__{_NAME_REL}",
-        "story_arcs": f"story_arc_number__story_arc__{_NAME_REL}",
+        "identirier_type": "identifier__identifier_type__name",
+        "story_arcs": "story_arc_number__story_arc__name",
     }
 )
 
@@ -29,9 +28,9 @@ def _parse_field_rel(field_name, rel_class):
     rel = _FIELD_TO_REL_SPAN_MAP.get(field_name, "")
     if not rel and rel_class in (ForeignKey, ManyToManyField):
         # This must be after the special span maps
-        rel = f"{field_name}__{_NAME_REL}"
+        rel = f"{field_name}__name"
 
-    if rel.endswith(_NAME_REL):
+    if rel.endswith("name"):
         rel_class = CharField
 
     if not rel:
