@@ -1,4 +1,5 @@
 """Parse field boolean expressions into Django ORM Queries."""
+
 import re
 
 from django.db.models import Q
@@ -147,7 +148,6 @@ def gen_query(rel, rel_class, exp, model):
     # TODO BoolOperand() needs to use field parse value.
 
     exp = _BARE_NOT_RE.sub(lambda m: "and not" if m.group("bare") else "not", exp)
-
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
     bool_operand_class = _get_bool_op_rel(BoolOperand, rel, rel_class, model)

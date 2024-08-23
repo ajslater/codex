@@ -31,26 +31,23 @@ def _parse_issue_value(value):
     """Parse a compound issue value into number & suffix."""
     value = IssueField.parse_issue(value)
     if not value:
-        return None, None
+        return None
     matches = _PARSE_ISSUE_MATCHER.match(value)
     if not matches:
-        return None, None
+        return None
     number_value = Decimal(matches.group("issue_number"))
-    suffix_value = matches.group("issue_suffix")
+    # suffix_value = matches.group("issue_suffix")
+    return number_value  # noqa: RET504
 
-    return number_value, suffix_value
 
-
-def _parse_issue_values(rel, value, _is_operator_query, to_value=None):
+def _parse_issue_values(rel, value, to_value=None):
     """Issue is not a column. Convert to issue_number and issue_suffix."""
-    # use_issue_number_only = is_operator_query
-    issue_number_value, issue_suffix_value = _parse_issue_value(value)
+    issue_number_value = _parse_issue_value(value)
     if issue_number_value is None:
         return None, None
     issue_number_field = rel.replace("issue", "issue_number")
     if to_value is not None:
-        to_issue_number_value, _ = _parse_issue_value(to_value)
-        # use_issue_number_only = True
+        to_issue_number_value = _parse_issue_value(to_value)
         issue_number_value = (issue_number_value, to_issue_number_value)
 
     # TODO figure out issue suffix queries
@@ -60,7 +57,6 @@ def _parse_issue_values(rel, value, _is_operator_query, to_value=None):
     #    suffix_rel, suffix_value = parse_operator_text(
     #        issue_suffix_field, issue_suffix_value
     #    )
-    #    # TODO add to query
 
     return issue_number_field, issue_number_value
 
@@ -95,11 +91,11 @@ def _parse_operator_numeric(rel, rel_class, value):
 def _parse_operator_text(rel, exp):
     """Parse text value operators."""
     if rel == "issue":
-        return _parse_issue_values(rel, exp, True)
+        return _parse_issue_values(rel, exp)
 
-    exp = _glob_to_like(exp)
+    value = _glob_to_like(exp)
     rel += "__like"
-    return rel, exp
+    return rel, value
 
 
 def _parse_operator(operator, rel, rel_class, exp):
@@ -108,7 +104,7 @@ def _parse_operator(operator, rel, rel_class, exp):
     span_rel = f"{rel}__{lookup}" if operator else rel
     value = exp[len(operator) :]
     if rel == "issue":
-        return _parse_issue_values(span_rel, value, True)
+        return _parse_issue_values(span_rel, value)
     return _parse_operator_numeric(span_rel, rel_class, value)
 
 
@@ -120,7 +116,6 @@ def _parse_operator_range(rel, rel_class, value):
         return _parse_issue_values(
             rel,
             range_from_value,
-            True,
             range_to_value,
         )
     range_value = (
@@ -133,11 +128,7 @@ def _parse_operator_range(rel, rel_class, value):
 def _glob_to_like(value) -> str:
     """Transform globs into like lookups."""
     # Escape like tokens
-    # value = _LIKE_RE.sub(lambda match: f"\\{match.group()}", value)
     value = _LIKE_RE.sub(r"\\\g<1>", value)
-
-    # value = value.replace("%", r"\%")  # TODO faster with regex
-    # value = value.replace("_", r"\_")
 
     # Remove double stars
     while True:
