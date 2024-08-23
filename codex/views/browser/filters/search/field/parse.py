@@ -21,19 +21,23 @@ _BARE_NOT_RE = re.compile(r"\b(?P<ok>(and|or)\snot)|(?P<bare>not)\b")
 ParserElement.enablePackrat()
 
 
-def to_query(rel, rel_class, value, model) -> Q:
+def to_query(rel, rel_class, exp, model) -> Q:
     """Construct Django ORM Query from rel & value."""
-    rel, value = parse_expression(rel, rel_class, value)
-    if not rel:
+    q_dict = parse_expression(rel, rel_class, exp)
+    if not q_dict:
         return Q()
 
     prefix = "" if model == Comic else "comic__"
     model_span = model.__name__.lower() + "__"
-    prefixed_rel = (
-        rel.removeprefix(model_span) if rel.startswith(model_span) else prefix + rel
-    )
-    query_dict = {prefixed_rel: value}
-    return Q(**query_dict)
+    prefixed_q_dict = {}
+    for parsed_rel, value in q_dict.items():
+        prefixed_rel = (
+            parsed_rel.removeprefix(model_span)
+            if parsed_rel.startswith(model_span)
+            else prefix + parsed_rel
+        )
+        prefixed_q_dict[prefixed_rel] = value
+    return Q(**prefixed_q_dict)
 
 
 class BoolRelOperandBase:

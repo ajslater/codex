@@ -31,39 +31,42 @@ def _parse_issue_value(value):
     """Parse a compound issue value into number & suffix."""
     value = IssueField.parse_issue(value)
     if not value:
-        return None
+        return None, None
     matches = _PARSE_ISSUE_MATCHER.match(value)
     if not matches:
-        return None
-    number_value = Decimal(matches.group("issue_number"))
-    # suffix_value = matches.group("issue_suffix")
-    return number_value  # noqa: RET504
+        return None, None
+    numeric_value = Decimal(matches.group("issue_number"))
+    suffix_value = matches.group("issue_suffix")
+    return numeric_value, suffix_value
 
 
 def _parse_issue_values(rel, value, to_value=None):
     """Issue is not a column. Convert to issue_number and issue_suffix."""
-    issue_number_value = _parse_issue_value(value)
-    if issue_number_value is None:
-        return None, None
-    issue_number_field = rel.replace("issue", "issue_number")
+    numeric_value, suffix_value = _parse_issue_value(value)
     if to_value is not None:
-        to_issue_number_value = _parse_issue_value(to_value)
-        issue_number_value = (issue_number_value, to_issue_number_value)
+        to_numeric_value, to_suffix_value = _parse_issue_value(to_value)
+    else:
+        to_numeric_value = to_suffix_value = None
 
-    # TODO figure out issue suffix queries
-    # Suffixes are only queried if there's no leading operators.
-    # if not use_issue_number_only and issue_suffix_value:
-    #    issue_suffix_field = rel.replace("issue", "issue_suffix")
-    #    suffix_rel, suffix_value = parse_operator_text(
-    #        issue_suffix_field, issue_suffix_value
-    #    )
+    q_dict = {}
 
-    return issue_number_field, issue_number_value
+    if numeric_value is not None:
+        issue_number_field = rel.replace("issue", "issue_number")
+        if to_numeric_value is not None:
+            numeric_value = (numeric_value, to_numeric_value)
+        q_dict[issue_number_field] = numeric_value
+
+    if suffix_value is not None:
+        issue_suffix_field = rel.replace("issue", "issue_suffix")
+        if to_suffix_value is not None:
+            suffix_value = (suffix_value, to_suffix_value)
+        q_dict[issue_suffix_field] = suffix_value
+
+    return q_dict
 
 
 def _cast_value(rel, rel_class, value):
     """Cast values by relation class."""
-    """Post process special values in query_dict."""
     if rel.startswith("size"):
         value = parse_size(value)
     elif rel_class == PositiveSmallIntegerField:
@@ -84,8 +87,8 @@ def _cast_value(rel, rel_class, value):
 def _parse_operator_numeric(rel, rel_class, value):
     value = _cast_value(rel, rel_class, value)
     if value is None:
-        return None, None
-    return rel, value
+        return {}
+    return {rel: value}
 
 
 def _parse_operator_text(rel, exp):
@@ -95,7 +98,7 @@ def _parse_operator_text(rel, exp):
 
     value = _glob_to_like(exp)
     rel += "__like"
-    return rel, value
+    return {rel: value}
 
 
 def _parse_operator(operator, rel, rel_class, exp):
@@ -108,7 +111,7 @@ def _parse_operator(operator, rel, rel_class, exp):
     return _parse_operator_numeric(span_rel, rel_class, value)
 
 
-def _parse_operator_range(rel, rel_class, value):
+def _parse_operator_range(rel, rel_class, value) -> dict:
     """Parse range operator."""
     range_from_value, range_to_value = _RANGE_RE.split(value, 1)
     rel = f"{rel}__range"
@@ -122,7 +125,7 @@ def _parse_operator_range(rel, rel_class, value):
         _cast_value(rel, rel_class, range_from_value),
         _cast_value(rel, rel_class, range_to_value),
     )
-    return rel, range_value
+    return {rel: range_value}
 
 
 def _glob_to_like(value) -> str:
@@ -148,11 +151,11 @@ def _glob_to_like(value) -> str:
     return value
 
 
-def parse_expression(rel, rel_class, exp):
+def parse_expression(rel, rel_class, exp) -> dict:
     """Parse the operators of the value size of the field query."""
     for op in _OP_MAP:
         if exp.startswith(op):
-            q = _parse_operator(
+            q_dict = _parse_operator(
                 op,
                 rel,
                 rel_class,
@@ -161,13 +164,12 @@ def parse_expression(rel, rel_class, exp):
             break
     else:
         if ".." in exp:
-            q = _parse_operator_range(rel, rel_class, exp)
+            q_dict = _parse_operator_range(rel, rel_class, exp)
         elif rel_class in (CharField, TextField) and not rel.startswith("volume"):
-            q = _parse_operator_text(rel, exp)
+            q_dict = _parse_operator_text(rel, exp)
         else:
-            q = _parse_operator_numeric(rel, rel_class, exp)
-    # print(q)
-    return q
+            q_dict = _parse_operator_numeric(rel, rel_class, exp)
+    return q_dict
 
 
 ###########################
