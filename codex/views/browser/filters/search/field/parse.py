@@ -1,4 +1,5 @@
 """Parse field boolean expressions into Django ORM Queries."""
+import re
 
 from django.db.models import Q
 from django.db.models.fields import Field
@@ -15,6 +16,7 @@ from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
+_BARE_NOT_RE = re.compile(r"\b(?P<ok>(and|or)\snot)|(?P<bare>not)\b")
 ParserElement.enablePackrat()
 
 
@@ -143,6 +145,9 @@ def _get_bool_op_rel(
 def gen_query(rel, rel_class, exp, model):
     """Convert rel and text expression into queries."""
     # TODO BoolOperand() needs to use field parse value.
+
+    exp = _BARE_NOT_RE.sub(lambda m: "and not" if m.group("bare") else "not", exp)
+
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
     bool_operand_class = _get_bool_op_rel(BoolOperand, rel, rel_class, model)
