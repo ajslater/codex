@@ -50,17 +50,14 @@ class SearchFilterView(BrowserFTSFilter):
     def _parse_column_match(self, col, exp, field_tokens):  # , fts_tokens):
         col = ALIAS_FIELD_MAP.get(col, col)
         if col not in _VALID_COLUMNS:
-            # print("not valid col", col)
             return True
         if col == "path" and not self.is_admin():  # type: ignore
             if not self.admin_flags:  # type: ignore
                 # Ensure admin flags for Cover View
                 self.set_admin_flags()  # type: ignore
             if not self.admin_flags["folder_view"]:  # type: ignore
-                # print("path denied")
                 return True
         if col in _NON_FTS_COLUMNS or _COLUMN_EXPRESSION_OPERATORS_RE.search(exp):
-            # print("add to field", col, exp)
             field_tokens.add((col, exp))
             return True
 
@@ -95,8 +92,7 @@ class SearchFilterView(BrowserFTSFilter):
             if not self._parse_column_match(col, exp, field_tokens):  # , fts_tokens):
                 self._add_fts_token(fts_tokens, token)
 
-        if fts_tokens:
-            text = " ".join(fts_tokens)
+        text = " ".join(fts_tokens)
 
         return field_tokens, text
 
