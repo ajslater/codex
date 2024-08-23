@@ -8,7 +8,7 @@ from django.db.models import (
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
 from codex.logger.logging import get_logger
-from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP, FIELD_TYPE_MAP
+from codex.views.browser.filters.search.aliases import FIELD_TYPE_MAP
 
 _NAME_REL = "sort_name"
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
@@ -43,7 +43,6 @@ def _parse_field_rel(field_name, rel_class):
 
 def parse_field(field_name: str):
     """Parse the field size of the query in to database relations."""
-    field_name = ALIAS_FIELD_MAP.get(field_name, field_name)
     rel_class = FIELD_TYPE_MAP.get(field_name)
     many_to_many = rel_class == ManyToManyField
     if not rel_class:
