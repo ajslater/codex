@@ -15,56 +15,22 @@ from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
-NOT = Keyword("not")
-AND = Keyword("and")
-OR = Keyword("or")
-
-
 ParserElement.enablePackrat()
-
-
-def to_dict(rel, rel_class, value) -> dict:
-    """Construct query dict from rel & value."""
-    # TODO make parse expression return query_dict or something like it
-    query_dict = {}
-    parse_expression(rel, rel_class, value, query_dict)
-    return query_dict
 
 
 def to_query(rel, rel_class, value, model) -> Q:
     """Construct Django ORM Query from rel & value."""
-    query_dict = to_dict(rel, rel_class, value)
-
-    # for values in query_dicts.values():
-    #    if values:
-    #        query_dict = values
-    #        break
-    # else:
-    #    query_dict = {}
-
-    # TODO don't pass model to to_dict
-    # add prefixes here.
-
-    prefixed_query_dict = {}
+    rel, value = parse_expression(rel, rel_class, value)
+    if not rel:
+        return Q()
 
     prefix = "" if model == Comic else "comic__"
     model_span = model.__name__.lower() + "__"
-    query_not = False
-    for key, final_value in query_dict.items():
-        prefixed_rel = (
-            key.removeprefix(model_span) if key.startswith(model_span) else prefix + key
-        )
-        # TODO no more sets and query_not
-        for final_value_element in final_value:
-            if isinstance(final_value_element, tuple):
-                real_final_value, query_not = final_value_element
-            else:
-                real_final_value = final_value_element
-            prefixed_query_dict[prefixed_rel] = real_final_value
-
-    # TODO test that query_dict is always one key for query_not
-    # or eliminate query not.
-    return ~Q(**prefixed_query_dict) if query_not else Q(**prefixed_query_dict)
+    prefixed_rel = (
+        rel.removeprefix(model_span) if rel.startswith(model_span) else prefix + rel
+    )
+    query_dict = {prefixed_rel: value}
+    return Q(**query_dict)
 
 
 class BoolRelOperandBase:
@@ -90,10 +56,6 @@ class BoolOperand(BoolRelOperandBase):
         """Construct Django ORM Query from rel & value."""
         return to_query(self.rel, self.rel_class, self.value, self.model)
 
-    # def to_dict(self) -> dict:
-    #    """Construct query dict from rel & value."""
-    #    return to_dict(self.rel, self.rel_class, self.value)
-
 
 class BoolBinaryOperand:
     """Boolean Binary Operand."""
@@ -109,18 +71,6 @@ class BoolBinaryOperand:
         """Represent as string."""
         sep = f" {self.repr_symbol} "
         return f"({sep.join(map(str, self.args))})"
-
-    # def to_dict(self) -> dict:
-    #    """Construct query dict from rel & value."""
-    #    all_query_dicts = {}
-    #    for arg in self.args:
-    #        query_dict = arg.to_dict()
-    #        # TODO either this needs to combine with self.OP
-    #        #   OR it needs to go away and just extract children for optimization in to_query.
-    #        #   The latter is sounding simpler right now.
-    #        for key, value in query_dict.items():
-    #           all_query_dicts[key].update(value)
-    #    return all_query_dicts
 
     def to_query(self) -> Q:
         """Construct Django ORM Query from args."""
@@ -154,8 +104,9 @@ class BoolNot(BoolRelOperandBase):
         if isinstance(self.arg, Q):
             # print(40*"*" +"NOT Q" + 40 *"*")
             q = self.arg
-        elif isinstance(self.arg, BoolBinaryOperand | BoolNot):
+        elif not isinstance(self.arg, str):
             # Happens
+            # print("NOT {self.arg=} to_query()")
             q = self.arg.to_query()
         else:
             # print(40*"*" +"NOT value" + 40*"*")
@@ -182,13 +133,11 @@ def _get_bool_op_rel(
     op_class, span: str, rel_cls: type[Field], mdl: type[BrowserGroupModel]
 ):
     """Hack rel into Bool."""
-
-    class BoolOperandWithRel(op_class):
-        rel: str = span
-        rel_class: type[Field] = rel_cls
-        model: type[BrowserGroupModel] = mdl
-
-    return BoolOperandWithRel
+    return type(
+        op_class.__name__ + "Inject",
+        (op_class,),
+        {"rel": span, "rel_class": rel_cls, "model": mdl},
+    )
 
 
 def gen_query(rel, rel_class, exp, model):
@@ -205,12 +154,20 @@ def gen_query(rel, rel_class, exp, model):
     bool_expr = infix_notation(
         bool_operand,
         [
-            (NOT, 1, OpAssoc.RIGHT, _get_bool_op_rel(BoolNot, rel, rel_class, model)),
-            (AND, 2, OpAssoc.LEFT, BoolAnd),
-            (OR, 2, OpAssoc.LEFT, BoolOr),
+            (
+                Keyword("not"),
+                1,
+                OpAssoc.RIGHT,
+                _get_bool_op_rel(BoolNot, rel, rel_class, model),
+            ),
+            (Keyword("and"), 2, OpAssoc.LEFT, BoolAnd),
+            (Keyword("or"), 2, OpAssoc.LEFT, BoolOr),
         ],
     ).setName("boolean_expression")
 
     exp = exp.lower()
-    parsed = bool_expr.parseString(exp)
-    return parsed[0].to_query()
+    # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
+    # print(f"{exp=}")
+    parsed_result = bool_expr.parseString(exp)
+    # print(f"{parsed_result=}")
+    return parsed_result[0].to_query()
