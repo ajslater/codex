@@ -41,29 +41,28 @@ def _parse_issue_value(value):
     return number_value, suffix_value
 
 
-def _parse_issue_values(  # noqa: PLR0913
-    query_dict, rel, value, is_operator_query, query_not, to_value=None
-):
+def _parse_issue_values(rel, value, _is_operator_query, to_value=None):
     """Issue is not a column. Convert to issue_number and issue_suffix."""
-    use_issue_number_only = is_operator_query
+    # use_issue_number_only = is_operator_query
     issue_number_value, issue_suffix_value = _parse_issue_value(value)
     if issue_number_value is None:
-        return
+        return None, None
     issue_number_field = rel.replace("issue", "issue_number")
     if to_value is not None:
         to_issue_number_value, _ = _parse_issue_value(to_value)
-        use_issue_number_only = True
+        # use_issue_number_only = True
         issue_number_value = (issue_number_value, to_issue_number_value)
-    if issue_number_field not in query_dict:
-        query_dict[issue_number_field] = set()
-    query_dict[issue_number_field].add((issue_number_value, query_not))
 
+    # TODO figure out issue suffix queries
     # Suffixes are only queried if there's no leading operators.
-    if not use_issue_number_only and issue_suffix_value:
-        issue_suffix_field = rel.replace("issue", "issue_suffix")
-        _parse_operator_text(
-            issue_suffix_field, issue_suffix_value, query_dict, query_not
-        )
+    # if not use_issue_number_only and issue_suffix_value:
+    #    issue_suffix_field = rel.replace("issue", "issue_suffix")
+    #    suffix_rel, suffix_value = parse_operator_text(
+    #        issue_suffix_field, issue_suffix_value
+    #    )
+    #    # TODO add to query
+
+    return issue_number_field, issue_number_value
 
 
 def _cast_value(rel, rel_class, value):
@@ -86,65 +85,49 @@ def _cast_value(rel, rel_class, value):
     return value
 
 
-def _add_query_dict_entry(query_dict, rel, value, query_not):
-    if rel not in query_dict:
-        query_dict[rel] = set()
-    query_dict[rel].add((value, query_not))
-
-
-def _parse_operator_numeric(rel, rel_class, value, query_dict, query_not):
+def _parse_operator_numeric(rel, rel_class, value):
     value = _cast_value(rel, rel_class, value)
     if value is None:
-        return
-    _add_query_dict_entry(query_dict, rel, value, query_not)
+        return None, None
+    return rel, value
 
 
-def _parse_operator_text(rel, exp, query_dict, query_not):
+def _parse_operator_text(rel, exp):
     """Parse text value operators."""
     if rel == "issue":
-        _parse_issue_values(query_dict, rel, exp, True, query_not)
-        return
+        return _parse_issue_values(rel, exp, True)
 
     exp = _glob_to_like(exp)
     rel += "__like"
-    _add_query_dict_entry(query_dict, rel, exp, query_not)
+    return rel, exp
 
 
-def _parse_operator(  # noqa: PLR0913
-    operator, rel, rel_class, exp, query_dict, query_not
-):
+def _parse_operator(operator, rel, rel_class, exp):
     """Move value operator out of value into relation operator."""
     lookup = _OP_MAP[operator]
     span_rel = f"{rel}__{lookup}" if operator else rel
     value = exp[len(operator) :]
     if rel == "issue":
-        _parse_issue_values(query_dict, span_rel, value, True, query_not)
-    else:
-        _parse_operator_numeric(span_rel, rel_class, value, query_dict, query_not)
+        return _parse_issue_values(span_rel, value, True)
+    return _parse_operator_numeric(span_rel, rel_class, value)
 
 
-def _parse_operator_range(rel, rel_class, value, query_dict, query_not):
+def _parse_operator_range(rel, rel_class, value):
     """Parse range operator."""
     range_from_value, range_to_value = _RANGE_RE.split(value, 1)
     rel = f"{rel}__range"
     if rel == ("issue__range"):
-        _parse_issue_values(
-            query_dict,
+        return _parse_issue_values(
             rel,
             range_from_value,
             True,
-            query_not,
             range_to_value,
         )
-    else:
-        range_value = (
-            (
-                _cast_value(rel, rel_class, range_from_value),
-                _cast_value(rel, rel_class, range_to_value),
-            ),
-            query_not,
-        )
-        _add_query_dict_entry(query_dict, rel, range_value, query_not)
+    range_value = (
+        _cast_value(rel, rel_class, range_from_value),
+        _cast_value(rel, rel_class, range_to_value),
+    )
+    return rel, range_value
 
 
 def _glob_to_like(value) -> str:
@@ -174,28 +157,26 @@ def _glob_to_like(value) -> str:
     return value
 
 
-def parse_expression(rel, rel_class, exp, query_dict):
+def parse_expression(rel, rel_class, exp):
     """Parse the operators of the value size of the field query."""
-    # TODO OPTIMIZE replace query_dict input with returning rel & value
-    #  only complicated for issue at this point
-    value = exp.strip()
-    if exp.startswith("!"):
-        exp = value[1:].strip()
-        query_not = True
-    else:
-        query_not = False
-
     for op in _OP_MAP:
         if exp.startswith(op):
-            _parse_operator(op, rel, rel_class, exp, query_dict, query_not)
+            q = _parse_operator(
+                op,
+                rel,
+                rel_class,
+                exp,
+            )
             break
     else:
         if ".." in exp:
-            _parse_operator_range(rel, rel_class, exp, query_dict, query_not)
+            q = _parse_operator_range(rel, rel_class, exp)
         elif rel_class in (CharField, TextField) and not rel.startswith("volume"):
-            _parse_operator_text(rel, exp, query_dict, query_not)
+            q = _parse_operator_text(rel, exp)
         else:
-            _parse_operator_numeric(rel, rel_class, exp, query_dict, query_not)
+            q = _parse_operator_numeric(rel, rel_class, exp)
+    # print(q)
+    return q
 
 
 ###########################
