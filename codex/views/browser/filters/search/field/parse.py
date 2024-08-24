@@ -17,7 +17,14 @@ from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
-_BARE_NOT_RE = re.compile(r"\b(?P<ok>(and|or)\snot)|(?P<bare>not)\b")
+_OPERATORS_REXP = "(" + "|".join(("and not", "or not", "and", "or", "not")) + ")"
+_IMPLICIT_AND_RE = re.compile(
+    rf"(?:(\".*?\")|('.*?'))|(?:\ {_OPERATORS_REXP}\ )|(?P<bare>\ )\S",
+    flags=re.IGNORECASE,
+)
+_BARE_NOT_RE = re.compile(
+    r"\b(?P<ok>(and|or)\snot)|(?P<bare>not)\b", flags=re.IGNORECASE
+)
 ParserElement.enablePackrat()
 
 
@@ -152,11 +159,13 @@ def gen_query(rel, rel_class, exp, model):
     # TODO BoolOperand() needs to use field parse value.
 
     exp = _BARE_NOT_RE.sub(lambda m: "and not" if m.group("bare") else "not", exp)
+    exp = _IMPLICIT_AND_RE.sub(
+        lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
+    )
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
     bool_operand_class = _get_bool_op_rel(BoolOperand, rel, rel_class, model)
 
-    # bool_operand = CharsNotIn("()\"' ", max=128)
     bool_operand = Word(printables, exclude_chars="()\"' ", max=128)
     bool_operand.setParseAction(bool_operand_class).setName("bool_operand")
 
@@ -176,7 +185,6 @@ def gen_query(rel, rel_class, exp, model):
 
     exp = exp.lower()
     # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
-    # print(f"{exp=}")
     parsed_result = bool_expr.parseString(exp)
-    # print(f"{parsed_result=}")
-    return parsed_result[0].to_query()
+    bool_operand: BoolRelOperandBase = parsed_result[0]  # type:ignore
+    return bool_operand.to_query()
