@@ -31,7 +31,7 @@ _NON_FTS_COLUMNS = frozenset(
         "size",
         "path",
         "identifier",
-        "identifier_type"
+        "identifier_type",
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
@@ -51,20 +51,20 @@ class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
     def _is_path_column_allowed(self):
-          """Is path column allowed."""
-          if not self.is_admin():  # type: ignore
-              if not "folder_view" not in self.admin_flags:  # type: ignore
-                  # Ensure admin flags for Cover View
-                  self.set_admin_flags()  # type: ignore
-              return bool(self.admin_flags.get("folder_view"))  # type: ignore
-          return True
+        """Is path column allowed."""
+        if not self.is_admin():  # type: ignore
+            if not "folder_view" not in self.admin_flags:  # type: ignore
+                # Ensure admin flags for Cover View
+                self.set_admin_flags()  # type: ignore
+            return bool(self.admin_flags.get("folder_view"))  # type: ignore
+        return True
 
     @staticmethod
     def _is_column_operators_used(exp):
-          """Detect column expression operators, but not inside quotes."""
-          # TODO optimize regex
-          clean_exp = re.sub(r"\".*?\"", "", exp)
-          return _COLUMN_EXPRESSION_OPERATORS_RE.search(clean_exp)
+        """Detect column expression operators, but not inside quotes."""
+        # TODO optimize regex
+        clean_exp = re.sub(r"\".*?\"", "", exp)
+        return _COLUMN_EXPRESSION_OPERATORS_RE.search(clean_exp)
 
     def _parse_column_match(self, col, exp, field_tokens):  # , fts_tokens):
         col = ALIAS_FIELD_MAP.get(col, col)
@@ -81,7 +81,11 @@ class SearchFilterView(BrowserFTSFilter):
     @staticmethod
     def _add_fts_token(fts_tokens, token):
         token = _FTS_OPERATOR_RE.sub(lambda op: op.group("operator").upper(), token)
-        if token.lower() not in _FTS_OPERATORS and not (token.startswith('"') and token.endswith('"')) and ":" not in token:
+        if (
+            token.lower() not in _FTS_OPERATORS
+            and not (token.startswith('"') and token.endswith('"'))
+            and ":" not in token
+        ):
             token = f'"{token}"'
         fts_tokens.append(token)
 

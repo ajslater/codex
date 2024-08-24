@@ -1,5 +1,5 @@
 """Search Index update."""
-import re
+
 from datetime import datetime
 from time import time
 from zoneinfo import ZoneInfo
