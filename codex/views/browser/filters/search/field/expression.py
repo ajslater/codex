@@ -20,6 +20,7 @@ from humanfriendly import parse_size
 from codex.logger.logging import get_logger
 from codex.views.const import FALSY
 
+_QUOTES_RE = re.compile(r"[\"']")
 _OP_MAP = MappingProxyType({">": "gt", ">=": "gte", "<": "lt", "<=": "lte"})
 _RANGE_RE = re.compile(r"\.{2,}")
 _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
@@ -153,6 +154,8 @@ def _glob_to_like(value) -> str:
 
 def parse_expression(rel, rel_class, exp) -> dict:
     """Parse the operators of the value size of the field query."""
+    exp = _QUOTES_RE.sub("", exp)
+
     for op in _OP_MAP:
         if exp.startswith(op):
             q_dict = _parse_operator(

@@ -44,10 +44,10 @@ class Migration(migrations.Migration):
                         "updated_at UNINDEXED, "
                         "publisher, imprint, series, volume, issue, name, age_rating, "
                         "country, language, "
-                        "notes, original_format, review, path, scan_info, summary, "
+                        "notes, original_format, review, scan_info, summary, "
                         "tagger, "
-                        "characters, contributors, genres, identifiers, "
-                        "identifier_types, locations, roles, series_groups, stories, "
+                        "characters, contributors, genres,"
+                        "locations, roles, series_groups, stories, "
                         "story_arcs, tags, teams, "
                         "reading_direction, file_type)"
                     ),

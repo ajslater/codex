@@ -1,5 +1,5 @@
 """Search Index update."""
-
+import re
 from datetime import datetime
 from time import time
 from zoneinfo import ZoneInfo
@@ -32,7 +32,6 @@ _COMICFTS_UPDATE_FIELDS = (
     "name",
     "notes",
     "original_format",
-    "path",
     "reading_direction",
     "review",
     "scan_info",
@@ -42,8 +41,6 @@ _COMICFTS_UPDATE_FIELDS = (
     "characters",
     "contributors",
     "genres",
-    "identifiers",
-    "identifier_types",
     "locations",
     "series_groups",
     "stories",
@@ -105,10 +102,6 @@ class FTSUpdateMixin(RemoveMixin):
             fts_characters=GroupConcat("characters__name", distinct=True),
             fts_contributors=GroupConcat("contributors__person__name", distinct=True),
             fts_genres=GroupConcat("genres__name", distinct=True),
-            fts_identifiers=GroupConcat("identifiers__nss", distinct=True),
-            fts_identifier_types=GroupConcat(
-                "identifiers__identifier_type__name", distinct=True
-            ),
             fts_locations=GroupConcat("locations__name", distinct=True),
             fts_series_groups=GroupConcat("series_groups__name", distinct=True),
             fts_stories=GroupConcat("stories__name", distinct=True),
@@ -159,8 +152,6 @@ class FTSUpdateMixin(RemoveMixin):
                 characters=comic.fts_characters,
                 contributors=comic.fts_contributors,
                 genres=comic.fts_genres,
-                identifiers=comic.fts_identifiers,
-                identifier_types=comic.fts_identifier_types,
                 locations=comic.fts_locations,
                 series_groups=comic.fts_series_groups,
                 stories=comic.fts_stories,
