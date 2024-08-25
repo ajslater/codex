@@ -2,7 +2,7 @@
 
 import re
 
-from django.db.models import CharField, Q, TextField
+from django.db.models import Q
 from django.db.models.fields import Field
 from pyparsing import (
     CaselessLiteral,
@@ -17,9 +17,6 @@ from pyparsing import (
 from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
-from codex.views.browser.filters.search.field.optimize import (
-    like_qs_to_regex_q,
-)
 
 _OPERATORS_REXP = "(" + "|".join(("and not", "or not", "and", "or", "not")) + ")"
 _IMPLICIT_AND_RE = re.compile(
@@ -103,7 +100,6 @@ class BoolBinaryOperand:
         return q
 
 
-
 class BoolNot(BoolRelOperandBase):
     """NOT Operand."""
 
@@ -170,9 +166,12 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
     )
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
-    bool_operand_class = _get_bool_op_rel(BoolOperand, rel, rel_class, model, many_to_many)
+    bool_operand_class = _get_bool_op_rel(
+        BoolOperand, rel, rel_class, model, many_to_many
+    )
 
-    bool_operand = Word(printables, exclude_chars="()'", max=128) | QuotedString('"')
+    # Order is important here so quoted strings get parsed first
+    bool_operand = QuotedString('"') | Word(printables, exclude_chars="()'", max=128)
     bool_operand.setParseAction(bool_operand_class).setName("bool_operand")
 
     bool_expr = infix_notation(
@@ -191,5 +190,16 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
 
     # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
     parsed_result = bool_expr.parseString(exp)
+    #  print(parsed_result.as_list(), parsed_result.as_dict())
     bool_operand: BoolRelOperandBase = parsed_result[0]  # type:ignore
     return bool_operand.to_query()
+
+
+# if __name__ == "__main__":
+# import sys
+#
+# from django.db.models import CharField
+# exp = " ".join(sys.argv[1:])
+# print(f"{exp=}")
+# q = gen_query("path", CharField, exp, Comic, False)
+# print(q)
