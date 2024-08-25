@@ -40,7 +40,7 @@ _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
 _FTS_OPERATOR_REXP = rf"(?P<operator>\b{'|'.join(_FTS_OPERATORS)}\b)"
 _FTS_OPERATOR_RE = re.compile(_FTS_OPERATOR_REXP, flags=re.IGNORECASE)
 _MULTI_COL_REXP = r"(?P<multi_col>\{.*?\})"
-_SINGLE_COL_REXP = r"(?P<col>\w+)"
+_SINGLE_COL_REXP = r"(?P<col>[a-z_]+)"
 _EXP_REXP = r"(?P<exp>\s*\(.*?\)|\S+)"
 _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
 _TOKEN_REXP = rf"(?P<token>{_COL_REXP}|\S+)"
