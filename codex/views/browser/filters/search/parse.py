@@ -41,7 +41,7 @@ _FTS_OPERATOR_REXP = rf"(?P<operator>\b{'|'.join(_FTS_OPERATORS)}\b)"
 _FTS_OPERATOR_RE = re.compile(_FTS_OPERATOR_REXP, flags=re.IGNORECASE)
 _MULTI_COL_REXP = r"(?P<multi_col>\{.*?\})"
 _SINGLE_COL_REXP = r"(?P<col>[a-z_]+)"
-_EXP_REXP = r"(?P<exp>\s*\(.*?\)|\S+)"
+_EXP_REXP = r"\s*(?P<exp>\(.*?\)|\".*?\"|\S+)"
 _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
 _TOKEN_REXP = rf"(?P<token>{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
