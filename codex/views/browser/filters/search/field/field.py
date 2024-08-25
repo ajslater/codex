@@ -31,7 +31,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
                     q &= q_part
             except Exception:
                 LOG.exception(f"Parsing field query {col}:{exp}")
-        print(q)
+        # print(q)
         if q:
             qs = qs.filter(q)
         return qs

@@ -60,6 +60,4 @@ def like_qs_to_regex_q(q: Q, regex_op: str, many_to_many: bool):
         regex_value = ".*" + regex_value + ".*"
 
     rel = rel.replace("like", "iregex")
-    q = Q(**{rel: regex_value})
-    print(q)
-    return q
+    return Q(**{rel: regex_value})
