@@ -14,13 +14,14 @@ from pyparsing import (
     printables,
 )
 
+from codex.models.base import MAX_NAME_LEN
 from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
 _OPERATORS_REXP = "(" + "|".join(("and not", "or not", "and", "or", "not")) + ")"
 _IMPLICIT_AND_RE = re.compile(
-    rf"(?:(\".*?\")|('.*?'))|(?:\ {_OPERATORS_REXP}\ )|(?P<bare>\ )\S",
+    rf"(?:\".*?\")|(?:\s{_OPERATORS_REXP}\s)|(?P<bare>\ )\S",
     flags=re.IGNORECASE,
 )
 _BARE_NOT_RE = re.compile(
@@ -29,9 +30,14 @@ _BARE_NOT_RE = re.compile(
 ParserElement.enablePackrat()
 
 
+def to_dict(rel, rel_class, exp) -> dict:
+    """Get query dict for expression."""
+    return parse_expression(rel, rel_class, exp)
+
+
 def to_query(rel, rel_class, exp, model) -> Q:
     """Construct Django ORM Query from rel & value."""
-    q_dict = parse_expression(rel, rel_class, exp)
+    q_dict = to_dict(rel, rel_class, exp)
     if not q_dict:
         return Q()
 
@@ -95,7 +101,9 @@ class BoolBinaryOperand:
 
         for arg in self.args:
             arg_q = arg.to_query()
-            q = q._combine(arg_q, self.OP)  # noqa: SLF001, pyright: reportPrivateUsage=false
+            # op = Q.OR if arg.many_to_many else self.OP
+            op = self.OP
+            q = q._combine(arg_q, op)  # noqa: SLF001, pyright: reportPrivateUsage=false
 
         return q
 
@@ -112,19 +120,7 @@ class BoolNot(BoolRelOperandBase):
         return f"~{self.arg}"
 
     def to_query(self) -> Q:
-        """Construct Django ORM Query from args."""
-        # TODO unused conditions.
-        if isinstance(self.arg, Q):
-            # print(40*"*" +"NOT Q" + 40 *"*")
-            q = self.arg
-        elif not isinstance(self.arg, str):
-            # Happens
-            # print("NOT {self.arg=} to_query()")
-            q = self.arg.to_query()
-        else:
-            # print(40*"*" +"NOT value" + 40*"*")
-            q = to_query(self.rel, self.rel_class, self.arg, self.model)
-
+        q = self.arg.to_query()
         return ~q
 
 
@@ -171,7 +167,7 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
     )
 
     # Order is important here so quoted strings get parsed first
-    bool_operand = QuotedString('"') | Word(printables, exclude_chars="()'", max=128)
+    bool_operand = QuotedString('"') | Word(printables, exlcude_chars="(),", max=MAX_NAME_LEN)
     bool_operand.setParseAction(bool_operand_class).setName("bool_operand")
 
     bool_expr = infix_notation(
