@@ -2,12 +2,13 @@
 
 import re
 
-from django.db.models import Q
+from django.db.models import CharField, Q, TextField
 from django.db.models.fields import Field
 from pyparsing import (
-    Keyword,
+    CaselessLiteral,
     OpAssoc,
     ParserElement,
+    QuotedString,
     Word,
     infix_notation,
     printables,
@@ -16,6 +17,9 @@ from pyparsing import (
 from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
+from codex.views.browser.filters.search.field.optimize import (
+    like_qs_to_regex_q,
+)
 
 _OPERATORS_REXP = "(" + "|".join(("and not", "or not", "and", "or", "not")) + ")"
 _IMPLICIT_AND_RE = re.compile(
@@ -53,6 +57,7 @@ class BoolRelOperandBase:
     rel: str = ""
     rel_class: type[Field] = Field
     model: type[BrowserGroupModel]
+    many_to_many: bool = False
 
 
 class BoolOperand(BoolRelOperandBase):
@@ -75,7 +80,8 @@ class BoolBinaryOperand:
     """Boolean Binary Operand."""
 
     repr_symbol: str = ""
-    OP = ""
+    regex_op: str = ""
+    OP: str = ""
 
     def __init__(self, tokens):
         """Initialize args from first two tokens."""
@@ -89,16 +95,13 @@ class BoolBinaryOperand:
     def to_query(self) -> Q:
         """Construct Django ORM Query from args."""
         q = Q()
+
         for arg in self.args:
             arg_q = arg.to_query()
             q = q._combine(arg_q, self.OP)  # noqa: SLF001, pyright: reportPrivateUsage=false
 
-        # TODO add text optimization in here
-        # if self.rel_class in (CharField, TextField):
-        # if q.children[0][0]
-        # optimized_dict = optimize_text_lookups(query_dicts)
-
         return q
+
 
 
 class BoolNot(BoolRelOperandBase):
@@ -133,6 +136,7 @@ class BoolAnd(BoolBinaryOperand):
     """AND Operand."""
 
     repr_symbol = "&"
+    regex_op = ""
     OP = Q.AND
 
 
@@ -140,50 +144,51 @@ class BoolOr(BoolBinaryOperand):
     """OR Operand."""
 
     repr_symbol = "|"
+    regex_op = "|"
     OP = Q.OR
 
 
 def _get_bool_op_rel(
-    op_class, span: str, rel_cls: type[Field], mdl: type[BrowserGroupModel]
+    op_class, span: str, rel_cls: type[Field], mdl: type[BrowserGroupModel], m2m: bool
 ):
     """Hack rel into Bool."""
     return type(
         op_class.__name__ + "Inject",
         (op_class,),
-        {"rel": span, "rel_class": rel_cls, "model": mdl},
+        {"rel": span, "rel_class": rel_cls, "model": mdl, "many_to_many": m2m},
     )
 
 
-def gen_query(rel, rel_class, exp, model):
+def gen_query(rel, rel_class, exp, model, many_to_many):
     """Convert rel and text expression into queries."""
     # TODO BoolOperand() needs to use field parse value.
 
+    # TODO BARE_NOT could be handled by IMPLICIT_AND
     exp = _BARE_NOT_RE.sub(lambda m: "and not" if m.group("bare") else "not", exp)
     exp = _IMPLICIT_AND_RE.sub(
         lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
     )
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
-    bool_operand_class = _get_bool_op_rel(BoolOperand, rel, rel_class, model)
+    bool_operand_class = _get_bool_op_rel(BoolOperand, rel, rel_class, model, many_to_many)
 
-    bool_operand = Word(printables, exclude_chars="()\"' ", max=128)
+    bool_operand = Word(printables, exclude_chars="()'", max=128) | QuotedString('"')
     bool_operand.setParseAction(bool_operand_class).setName("bool_operand")
 
     bool_expr = infix_notation(
         bool_operand,
         [
             (
-                Keyword("not"),
+                CaselessLiteral("not"),
                 1,
                 OpAssoc.RIGHT,
-                _get_bool_op_rel(BoolNot, rel, rel_class, model),
+                _get_bool_op_rel(BoolNot, rel, rel_class, model, many_to_many),
             ),
-            (Keyword("and"), 2, OpAssoc.LEFT, BoolAnd),
-            (Keyword("or"), 2, OpAssoc.LEFT, BoolOr),
+            (CaselessLiteral("and"), 2, OpAssoc.LEFT, BoolAnd),
+            (CaselessLiteral("or"), 2, OpAssoc.LEFT, BoolOr),
         ],
     ).setName("boolean_expression")
 
-    exp = exp.lower()
     # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
     parsed_result = bool_expr.parseString(exp)
     bool_operand: BoolRelOperandBase = parsed_result[0]  # type:ignore

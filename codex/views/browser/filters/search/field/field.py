@@ -15,13 +15,12 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
 
     def _parse_field_query(self, col, exp, model):
         """Parse one field query."""
-        # TODO special many 2 many affodances?
-        rel_class, rel, _many_to_many = parse_field(col)
+        rel_class, rel, many_to_many = parse_field(col)
         if not rel_class or not rel:
             LOG.debug(f"Unknown field specified in search query {col}")
             return None
 
-        return gen_query(rel, rel_class, exp, model)
+        return gen_query(rel, rel_class, exp, model, many_to_many)
 
     def apply_field_query_filters(self, qs, model, field_token_pairs):
         """Parse and apply field query filters."""
@@ -32,7 +31,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
                     q &= q_part
             except Exception:
                 LOG.exception(f"Parsing field query {col}:{exp}")
-        # print(q)
+        print(q)
         if q:
             qs = qs.filter(q)
         return qs

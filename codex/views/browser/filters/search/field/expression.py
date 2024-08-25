@@ -2,7 +2,6 @@
 
 import re
 from decimal import Decimal
-from itertools import chain
 from types import MappingProxyType
 
 from comicbox.fields.fields import IssueField
@@ -173,80 +172,3 @@ def parse_expression(rel, rel_class, exp) -> dict:
         else:
             q_dict = _parse_operator_numeric(rel, rel_class, exp)
     return q_dict
-
-
-###########################
-# OPTIMIZE STRING LOOKUPS #
-###########################
-def _glob_to_regex(value):
-    """Transform a glob into a safe regex for sqlite3."""
-    regex = False
-    star_parts = value.split("*")
-    if len(star_parts) <= 1:
-        return value, regex
-
-    while star_parts[0] == "*" and star_parts[-1] == "*":
-        star_parts = star_parts[1:-1]
-
-    prefix = suffix = ""
-
-    if star_parts[0] == "*":
-        star_parts = star_parts[1:]
-        suffix = "$"
-    elif star_parts[-1] == "*":
-        star_parts = star_parts[:-1]
-        prefix = "^"
-
-    if not star_parts:
-        return "", False
-    if len(star_parts) == 1 and not prefix and not suffix:
-        return star_parts[0], False
-
-    escaped_star_parts = (re.escape(part) for part in star_parts)
-
-    value = prefix + ".*".join(escaped_star_parts) + suffix
-    regex = prefix or suffix or len(star_parts) > 1
-
-    return value, regex
-
-
-def optimize_text_lookups(query_dicts, or_operator):
-    """Optimize text lookups."""
-    like_dict = query_dicts["like"]
-    regex_dict = query_dicts["regex"]
-    numeric_dict = query_dicts["numeric"]
-
-    key_counts_dict = {}
-
-    # Count the number of text lookups per relation.
-    for key, data in chain(like_dict.items(), regex_dict.items()):
-        if key not in key_counts_dict:
-            key_counts_dict[key] = 0
-        key_counts_dict[key] += len(data)
-
-    # Pop out the single like lookups, optimal not to transform into regex
-    optimized_dict = {}
-    for key, count in key_counts_dict.items():
-        if count == 1 and like_dict:
-            rel = key + "__like"
-            optimized_dict[rel] = frozenset(like_dict.pop(key))
-
-    # Transform multiple regex and like lookups into long regexes
-    rel = ""
-    optimized_regex_parts = []
-    for key, data_set in chain(like_dict.items(), regex_dict.items()):
-        rel = key
-        for data in data_set:
-            value, query_not = data
-            lookahead = "!" if query_not else ":"
-            optimized_regex_parts.append(rf"(?{lookahead}{value})")
-
-    # Set the final optimized regex in the optimized dict
-    if rel:
-        rel = rel + "__iregex"
-        regex_operator = "|" if or_operator else ""
-        optimized_regex = regex_operator.join(optimized_regex_parts)
-        optimized_dict[rel] = frozenset({(optimized_regex, False)})
-
-    optimized_dict.update(numeric_dict)
-    return optimized_dict
