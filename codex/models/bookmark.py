@@ -11,7 +11,7 @@ from django.db.models import (
     PositiveSmallIntegerField,
 )
 
-from codex.models.base import BaseModel
+from codex.models.base import BaseModel, max_choices_len
 from codex.models.comic import Comic, ReadingDirection
 
 __all__ = ("Bookmark", "cascade_if_user_null")
@@ -73,14 +73,14 @@ class Bookmark(BaseModel):
         blank=True,
         choices=FitTo.choices,
         default="",
-        max_length=1,
+        max_length=max_choices_len(FitTo),
     )
     two_pages = BooleanField(default=None, null=True)
     reading_direction = CharField(
         blank=True,
         choices=ReadingDirection.choices,
         default="",
-        max_length=3,
+        max_length=max_choices_len(ReadingDirection),
     )
 
     class Meta(BaseModel.Meta):

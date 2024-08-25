@@ -10,7 +10,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
-from codex.models import Comic
+from codex.models.comic import Comic, FileType
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.const import FALSY
 from codex.views.util import chunker
@@ -68,7 +68,7 @@ class ReaderPageView(BookmarkBaseView):
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
-        if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
+        if comic.file_type == FileType.PDF.value and not to_pixmap:
             content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type

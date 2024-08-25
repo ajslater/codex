@@ -23,7 +23,12 @@ from django.db.models import (
     TextField,
 )
 
-from codex.models.base import MAX_NAME_LEN, BaseModel
+from codex.models.base import (
+    MAX_ISSUE_SUFFIX_LEN,
+    MAX_NAME_LEN,
+    BaseModel,
+    max_choices_len,
+)
 from codex.models.groups import (
     Folder,
     Imprint,
@@ -63,16 +68,17 @@ class ReadingDirection(Choices):
     BTT = ReadingDirectionEnum.BTT.value
 
 
+class FileType(Choices):
+    """Identifiers for file formats."""
+
+    CBZ = "CBZ"
+    CBR = "CBR"
+    CBT = "CBT"
+    PDF = "PDF"
+
+
 class Comic(WatchedPathBrowserGroup):
     """Comic metadata."""
-
-    class FileType(Choices):
-        """Identifiers for file formats."""
-
-        CBZ = "CBZ"
-        CBR = "CBR"
-        CBT = "CBT"
-        PDF = "PDF"
 
     _ORDERING = (
         "issue_number",
@@ -95,7 +101,10 @@ class Comic(WatchedPathBrowserGroup):
         db_index=True, decimal_places=2, max_digits=10, null=True
     )
     issue_suffix = CharField(
-        db_index=True, max_length=16, default="", db_collation="nocase"
+        db_index=True,
+        max_length=MAX_ISSUE_SUFFIX_LEN,
+        default="",
+        db_collation="nocase",
     )
     # Group FKs
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
@@ -137,7 +146,7 @@ class Comic(WatchedPathBrowserGroup):
         db_index=True,
         choices=ReadingDirection.choices,
         default=ReadingDirectionEnum.LTR.value,
-        max_length=3,
+        max_length=max_choices_len(ReadingDirection),
         db_collation="nocase",
     )
 
@@ -175,7 +184,7 @@ class Comic(WatchedPathBrowserGroup):
     file_type = CharField(
         db_index=True,
         choices=FileType.choices,
-        max_length=3,
+        max_length=max_choices_len(FileType),
         blank=True,
         default="",
         db_collation="nocase",
@@ -323,8 +332,10 @@ class ComicFTS(BaseModel):
     tags = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     teams = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
 
-    reading_direction = CharField(db_collation="nocase", max_length=3)
-    file_type = CharField(db_collation="nocase", max_length=3)
+    reading_direction = CharField(
+        db_collation="nocase", max_length=max_choices_len(ReadingDirection)
+    )
+    file_type = CharField(db_collation="nocase", max_length=max_choices_len(FileType))
 
     class Meta(BaseModel.Meta):
         managed = False
