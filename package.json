@@ -61,7 +61,7 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-array-func": "^5.0.1",
     "eslint-plugin-compat": "^6.0.0",
-    "eslint-plugin-depend": "^0.10.0",
+    "eslint-plugin-depend": "^0.11.0",
     "eslint-plugin-jsonc": "^2.13.0",
     "eslint-plugin-markdown": "^5.0.0",
     "eslint-plugin-no-secrets": "^1.0.2",

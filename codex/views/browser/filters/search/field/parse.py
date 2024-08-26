@@ -20,9 +20,12 @@ from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
 _OPERATORS_REXP = "|".join(("and not", "or not", "and", "or"))
-_IMPLICIT_AND_REXP = rf"(?:\".*?\")|\ (?P<ok>{_OPERATORS_REXP})\ |(?P<bare>(?:\ not)?\ )\S"
+_IMPLICIT_AND_REXP = (
+    rf"(?:\".*?\")|\ (?P<ok>{_OPERATORS_REXP})\ |(?P<bare>(?:\ not)?\ )\S"
+)
 _IMPLICIT_AND_RE = re.compile(_IMPLICIT_AND_REXP, flags=re.IGNORECASE)
 ParserElement.enablePackrat()
+
 
 def _prefix_q_dict(q_dict, model):
     """Add (or subtract!) relation prefixes to q_dict for the model."""
@@ -37,6 +40,7 @@ def _prefix_q_dict(q_dict, model):
         )
         prefixed_q_dict[prefixed_rel] = value
     return prefixed_q_dict
+
 
 def to_query(
     rel: str, rel_class: type[Field], model: type[BrowserGroupModel], exp: str
@@ -166,7 +170,7 @@ def _get_bool_op_rel(
 def gen_query(rel, rel_class, exp, model, many_to_many):
     """Convert rel and text expression into queries."""
     exp = _IMPLICIT_AND_RE.sub(
-        lambda m: f' and{m.group(0)}' if m.group("bare") else m.group(0), exp
+        lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
     )
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
