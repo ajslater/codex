@@ -19,30 +19,13 @@ from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
-_OPERATORS_REXP = "(" + "|".join(("and not", "or not", "and", "or", "not")) + ")"
-_IMPLICIT_AND_RE = re.compile(
-    rf"(?:\".*?\")|(?:\s{_OPERATORS_REXP}\s)|(?P<bare>\ )\S",
-    flags=re.IGNORECASE,
-)
-_BARE_NOT_RE = re.compile(
-    r"\b(?P<ok>(and|or)\snot)|(?P<bare>not)\b", flags=re.IGNORECASE
-)
+_OPERATORS_REXP = "|".join(("and not", "or not", "and", "or"))
+_IMPLICIT_AND_REXP = rf"(?:\".*?\")|\ (?P<ok>{_OPERATORS_REXP})\ |(?P<bare>(?:\ not)?\ )\S"
+_IMPLICIT_AND_RE = re.compile(_IMPLICIT_AND_REXP, flags=re.IGNORECASE)
 ParserElement.enablePackrat()
 
-
-def to_dict(rel, rel_class, exp) -> dict:
-    """Get query dict for expression."""
-    return parse_expression(rel, rel_class, exp)
-
-
-def to_query(
-    rel: str, rel_class: type[Field], model: type[BrowserGroupModel], exp: str
-) -> Q:
-    """Construct Django ORM Query from rel & value."""
-    q_dict = to_dict(rel, rel_class, exp)
-    if not q_dict:
-        return Q()
-
+def _prefix_q_dict(q_dict, model):
+    """Add (or subtract!) relation prefixes to q_dict for the model."""
     prefix = "" if model == Comic else "comic__"
     model_span = model.__name__.lower() + "__"
     prefixed_q_dict = {}
@@ -53,6 +36,18 @@ def to_query(
             else prefix + parsed_rel
         )
         prefixed_q_dict[prefixed_rel] = value
+    return prefixed_q_dict
+
+def to_query(
+    rel: str, rel_class: type[Field], model: type[BrowserGroupModel], exp: str
+) -> Q:
+    """Construct Django ORM Query from rel & value."""
+    q_dict = parse_expression(rel, rel_class, exp)
+    if not q_dict:
+        return Q()
+
+    prefixed_q_dict = _prefix_q_dict(q_dict, model)
+
     return Q(**prefixed_q_dict)
 
 
@@ -128,7 +123,7 @@ class BoolBinaryOperand:
         return q
 
 
-class BoolNot:  # (BoolRelOperandBase):
+class BoolNot:
     """NOT Operand."""
 
     def __init__(self, tokens):
@@ -170,14 +165,8 @@ def _get_bool_op_rel(
 
 def gen_query(rel, rel_class, exp, model, many_to_many):
     """Convert rel and text expression into queries."""
-    # TODO BoolOperand() needs to use field parse value.
-
-    # TODO BARE_NOT could be handled by IMPLICIT_AND
-    exp = _BARE_NOT_RE.sub(
-        lambda m: "and not" if m.group("bare") else m.group("ok"), exp
-    )
     exp = _IMPLICIT_AND_RE.sub(
-        lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
+        lambda m: f' and{m.group(0)}' if m.group("bare") else m.group(0), exp
     )
 
     # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
@@ -206,18 +195,6 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
     ).setName("boolean_expression")
 
     # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
-    # print(exp)
     parsed_result = bool_expr.parseString(exp)
-    #  print(parsed_result.as_list(), parsed_result.as_dict())
     root_bool_operand: BoolOperand = parsed_result[0]  # type:ignore
     return root_bool_operand.to_query()
-
-
-# if __name__ == "__main__":
-# import sys
-#
-# from django.db.models import CharField
-# exp = " ".join(sys.argv[1:])
-# print(f"{exp=}")
-# q = gen_query("path", CharField, exp, Comic, False)
-# print(q)
