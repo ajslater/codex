@@ -22,16 +22,30 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
 
         return gen_query(rel, rel_class, exp, model, many_to_many)
 
+    @staticmethod
+    def _hoist_not_filters_for_exclude(filters, excludes, q):
+        """Fix not filters for m2m queries. Also optimizes for other queries."""
+        if q.connector == Q.AND:
+            for child in q.children:
+                if isinstance(child, Q) and child.negated:
+                    excludes.append(~child)
+                else:
+                    filters.append(child)
+        else:
+            filters.append(q)
+
     def apply_field_query_filters(self, qs, model, field_token_pairs):
         """Parse and apply field query filters."""
-        q = Q()
+        filters = []
+        excludes = []
         for col, exp in field_token_pairs:
             try:
-                if q_part := self._parse_field_query(col, exp, model):
-                    q &= q_part
+                if q := self._parse_field_query(col, exp, model):
+                    self._hoist_not_filters_for_exclude(filters, excludes, q)
             except Exception:
                 LOG.exception(f"Parsing field query {col}:{exp}")
-        # print(q)
-        if q:
-            qs = qs.filter(q)
+        if filters:
+            qs = qs.filter(*filters)
+        if excludes:
+            qs = qs.exclude(*excludes)
         return qs

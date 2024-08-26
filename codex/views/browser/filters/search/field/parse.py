@@ -35,7 +35,9 @@ def to_dict(rel, rel_class, exp) -> dict:
     return parse_expression(rel, rel_class, exp)
 
 
-def to_query(rel, rel_class, exp, model) -> Q:
+def to_query(
+    rel: str, rel_class: type[Field], model: type[BrowserGroupModel], exp: str
+) -> Q:
     """Construct Django ORM Query from rel & value."""
     q_dict = to_dict(rel, rel_class, exp)
     if not q_dict:
@@ -54,17 +56,13 @@ def to_query(rel, rel_class, exp, model) -> Q:
     return Q(**prefixed_q_dict)
 
 
-class BoolRelOperandBase:
+class BoolOperand:
     """Hacky Base for injecting rel."""
 
     rel: str = ""
     rel_class: type[Field] = Field
     model: type[BrowserGroupModel]
     many_to_many: bool = False
-
-
-class BoolOperand(BoolRelOperandBase):
-    """Boolean Operand Base."""
 
     def __init__(self, tokens):
         """Initialize value from first token."""
@@ -76,14 +74,12 @@ class BoolOperand(BoolRelOperandBase):
 
     def to_query(self) -> Q:
         """Construct Django ORM Query from rel & value."""
-        return to_query(self.rel, self.rel_class, self.value, self.model)
+        return to_query(self.rel, self.rel_class, self.model, self.value)
 
 
 class BoolBinaryOperand:
     """Boolean Binary Operand."""
 
-    repr_symbol: str = ""
-    regex_op: str = ""
     OP: str = ""
 
     def __init__(self, tokens):
@@ -92,23 +88,47 @@ class BoolBinaryOperand:
 
     def __repr__(self) -> str:
         """Represent as string."""
-        sep = f" {self.repr_symbol} "
+        sep = f" {self.OP} "
         return f"({sep.join(map(str, self.args))})"
 
     def to_query(self) -> Q:
         """Construct Django ORM Query from args."""
         q = Q()
 
+        nots = []
+        many_to_many = False
         for arg in self.args:
             arg_q = arg.to_query()
-            # op = Q.OR if arg.many_to_many else self.OP
-            op = self.OP
-            q = q._combine(arg_q, op)  # noqa: SLF001, pyright: reportPrivateUsage=false
+            if arg_q.negated:
+                many_to_many |= arg.many_to_many
+                nots.append(~arg_q)
+            else:
+                # op = Q.OR if arg.many_to_many else self.OP
+                op = self.OP
+                if op == Q.AND:
+                    q &= arg_q
+                else:
+                    q |= arg_q
+
+        if nots:
+            not_q = Q()
+            not_op = Q.OR if many_to_many or self.OP == Q.AND else Q.AND
+            for not_arg_q in nots:
+                if not_op == Q.AND:
+                    not_q &= not_arg_q
+                else:
+                    not_q |= not_arg_q
+
+            not_q = ~not_q
+            if self.OP == Q.AND:
+                q &= not_q
+            else:
+                q |= not_q
 
         return q
 
 
-class BoolNot(BoolRelOperandBase):
+class BoolNot:  # (BoolRelOperandBase):
     """NOT Operand."""
 
     def __init__(self, tokens):
@@ -117,9 +137,10 @@ class BoolNot(BoolRelOperandBase):
 
     def __repr__(self) -> str:
         """Represent as string."""
-        return f"~{self.arg}"
+        return f"NOT {self.arg}"
 
     def to_query(self) -> Q:
+        """Negate argument query."""
         q = self.arg.to_query()
         return ~q
 
@@ -127,16 +148,12 @@ class BoolNot(BoolRelOperandBase):
 class BoolAnd(BoolBinaryOperand):
     """AND Operand."""
 
-    repr_symbol = "&"
-    regex_op = ""
     OP = Q.AND
 
 
 class BoolOr(BoolBinaryOperand):
     """OR Operand."""
 
-    repr_symbol = "|"
-    regex_op = "|"
     OP = Q.OR
 
 
@@ -156,7 +173,9 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
     # TODO BoolOperand() needs to use field parse value.
 
     # TODO BARE_NOT could be handled by IMPLICIT_AND
-    exp = _BARE_NOT_RE.sub(lambda m: "and not" if m.group("bare") else "not", exp)
+    exp = _BARE_NOT_RE.sub(
+        lambda m: "and not" if m.group("bare") else m.group("ok"), exp
+    )
     exp = _IMPLICIT_AND_RE.sub(
         lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
     )
@@ -167,7 +186,9 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
     )
 
     # Order is important here so quoted strings get parsed first
-    bool_operand = QuotedString('"') | Word(printables, exlcude_chars="(),", max=MAX_NAME_LEN)
+    bool_operand = QuotedString('"') | Word(
+        printables, exclude_chars="(),", max=MAX_NAME_LEN
+    )
     bool_operand.setParseAction(bool_operand_class).setName("bool_operand")
 
     bool_expr = infix_notation(
@@ -185,10 +206,11 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
     ).setName("boolean_expression")
 
     # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
+    # print(exp)
     parsed_result = bool_expr.parseString(exp)
     #  print(parsed_result.as_list(), parsed_result.as_dict())
-    bool_operand: BoolRelOperandBase = parsed_result[0]  # type:ignore
-    return bool_operand.to_query()
+    root_bool_operand: BoolOperand = parsed_result[0]  # type:ignore
+    return root_bool_operand.to_query()
 
 
 # if __name__ == "__main__":
