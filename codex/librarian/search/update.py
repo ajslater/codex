@@ -15,6 +15,7 @@ from codex.models import Comic, Library
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
 from codex.serializers.fields import CountryField, LanguageField, PyCountryField
+from codex.settings.settings import SEARCH_INDEX_BATCH_SIZE
 from codex.status import Status
 
 _COMICFTS_UPDATE_FIELDS = (
@@ -51,7 +52,8 @@ _COMICFTS_UPDATE_FIELDS = (
     "updated_at",
 )
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
-_BIG_PREPARE_WARNING_SIZE = 10000
+# Higher batch numbers are faster, but no feedback makes users nervous
+_SINCE_NOTIFY = 15
 
 
 class FTSUpdateMixin(RemoveMixin):
@@ -60,9 +62,7 @@ class FTSUpdateMixin(RemoveMixin):
     _STATUS_FINISH_TYPES = (
         SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
         SearchIndexStatusTypes.SEARCH_INDEX_CREATE,
-        SearchIndexStatusTypes.SEARCH_INDEX_CREATE_PREPARE,
         SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE,
     )
 
     def _init_statuses(self, rebuild):
@@ -73,9 +73,7 @@ class FTSUpdateMixin(RemoveMixin):
         else:
             statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
         statii += [
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE, 0),
             Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_CREATE_PREPARE, 0),
             Status(SearchIndexStatusTypes.SEARCH_INDEX_CREATE),
         ]
         self.status_controller.start_many(statii)
@@ -142,7 +140,6 @@ class FTSUpdateMixin(RemoveMixin):
                 language=language,
                 notes=comic.notes,
                 original_format=comic.original_format,
-                path=comic.search_path,
                 reading_direction=comic.reading_direction,
                 review=comic.review,
                 scan_info=comic.fts_scan_info,
@@ -163,45 +160,98 @@ class FTSUpdateMixin(RemoveMixin):
                 comicfts.created_at = now
             obj_list.append(comicfts)
 
-    def _get_comicfts_list(
-        self, comics, prepare_status_type, status_type, create=False
-    ):
+    def _get_comicfts_list(self, comics, create=False):
         """Create a ComicFTS object for bulk_create or bulk_update."""
-        prepare_status = Status(prepare_status_type, 0)
-        self.status_controller.start(prepare_status)
         country_field = CountryField()
         language_field = LanguageField()
         obj_list = []
-        prepare_status.total = comics.count()
-        if prepare_status.total is None:
-            prepare_status.total = 0
-        self.status_controller.update(prepare_status)
-
         comics = self._annotate_fts_query(comics)
-        if prepare_status.total >= _BIG_PREPARE_WARNING_SIZE:
-            self.log.info(
-                "The search entry prepare query runs a few times faster if it's not batched to provide reassuring status updates. Large updates like this one can take several minutes to prepare the search entries."
-            )
         self._get_comicts_fts_list(
             comics, country_field, language_field, obj_list, create
         )
-
-        count = len(obj_list)
-        status = Status(status_type, None, count)
-        self.status_controller.update(status, notify=False)
-        self.status_controller.finish(prepare_status)
-        return obj_list, count, status
+        return obj_list
 
     def _update_search_index_finish(self, count, verb, status):
+        verb = verb.capitalize() + "d"
         if count:
             self.log.info(f"{verb} {count} search entries.")
         else:
             self.log.debug(f"{verb} no search entries.")
         self.status_controller.finish(status)
 
+    def _update_status_since(self, since, status, verb, batch_size, total, batch_start):  # noqa: PLR0913
+        # TODO  move to status_controller
+        if time() - since > _SINCE_NOTIFY:
+            notify = True
+            since = time()
+        else:
+            notify = False
+        self.status_controller.update(status, notify=notify)
+        batch_time = time() - batch_start
+        verb = verb.capitalize() + "d"
+        self.log.debug(
+            f"{verb} {batch_size}/{total} search entries in {batch_time}, {round(batch_size/batch_time)} per second."
+        )
+        notify = False
+        return since
+
+    def _update_search_index_operate(self, comics_qs, create=False):
+        count = comics_qs.count()
+        verb = "create" if create else "update"
+        if not count:
+            self.log.info(f"No search entries to {verb}.")
+
+        if count > SEARCH_INDEX_BATCH_SIZE:
+            self.log.debug(
+                f"Batching this search engine {verb} operation in to chunks of {SEARCH_INDEX_BATCH_SIZE}."
+                f" Search engine {verb}s run much faster as one large batch but then there's no progress updates."
+                " You may adjust the batch size with the environment variable CODEX_SEARCH_INDEX_BATCH_SIZE."
+            )
+
+        status_type = (
+            SearchIndexStatusTypes.SEARCH_INDEX_CREATE
+            if create
+            else SearchIndexStatusTypes.SEARCH_INDEX_UPDATE
+        )
+        complete = None if count <= SEARCH_INDEX_BATCH_SIZE else 0
+        operate_status = Status(status_type, complete, count)
+        self.status_controller.start(operate_status)
+
+        since = time()
+        batch_from = 0
+        try:
+            while batch_from < count:
+                batch_start = time()
+                batch_to = batch_from + SEARCH_INDEX_BATCH_SIZE
+                comics_batch = comics_qs[batch_from:batch_to]
+
+                if self.abort_event.is_set():
+                    break
+                operate_comicfts = self._get_comicfts_list(comics_batch, create)
+                operate_comicfts_count = len(operate_comicfts)
+                if self.abort_event.is_set():
+                    break
+                if create:
+                    ComicFTS.objects.bulk_create(operate_comicfts)
+                else:
+                    ComicFTS.objects.bulk_update(
+                        operate_comicfts, _COMICFTS_UPDATE_FIELDS
+                    )
+                operate_status.add_complete(operate_comicfts_count)
+                since = self._update_status_since(
+                    since,
+                    operate_status,
+                    verb,
+                    count,
+                    operate_comicfts_count,
+                    batch_start,
+                )
+                batch_from = batch_to
+        finally:
+            self._update_search_index_finish(count, verb, operate_status)
+
     def _update_search_index_update(self, all_indexed_comic_ids):
         """Update out of date search entries."""
-        self.log.debug("Calculating search index watermark...")
         fts_watermark = ComicFTS.objects.aggregate(max=Max("updated_at"))["max"]
         if not fts_watermark:
             fts_watermark = _MIN_UTC_DATE
@@ -212,28 +262,15 @@ class FTSUpdateMixin(RemoveMixin):
         out_of_date_comics = Comic.objects.filter(
             pk__in=all_indexed_comic_ids, updated_at__gt=fts_watermark
         )
-        update_comicfts, count, status = self._get_comicfts_list(
-            out_of_date_comics,
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE_PREPARE,
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-        )
-        if not self.abort_event.is_set():
-            ComicFTS.objects.bulk_update(update_comicfts, _COMICFTS_UPDATE_FIELDS)
-        self._update_search_index_finish(count, "Updated", status)
+        self._update_search_index_operate(out_of_date_comics, create=False)
 
     def _update_search_index_create(self, all_indexed_comic_ids):
         """Create missing search entries."""
-        self.log.info("Looking for search entries to create...")
-        missing_comics = Comic.objects.exclude(pk__in=all_indexed_comic_ids)
-        create_comicfts, count, status = self._get_comicfts_list(
-            missing_comics,
-            SearchIndexStatusTypes.SEARCH_INDEX_CREATE_PREPARE,
-            SearchIndexStatusTypes.SEARCH_INDEX_CREATE,
-            True,
-        )
-        if not self.abort_event.is_set():
-            ComicFTS.objects.bulk_create(create_comicfts)
-        self._update_search_index_finish(count, "Created", status)
+        self.log.info("Looking for missing search entries to create...")
+        missing_comics = Comic.objects.all()
+        if len(all_indexed_comic_ids):
+            missing_comics = missing_comics.exclude(pk__in=all_indexed_comic_ids)
+        self._update_search_index_operate(missing_comics, create=True)
 
     def _update_search_index(self, start_time, rebuild):
         """Update or Rebuild the search index."""

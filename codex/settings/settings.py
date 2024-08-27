@@ -42,6 +42,7 @@ MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
 # count is a proxy, but it works. 990 errors sometimes.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 900))
 VITE_HOST = environ.get("VITE_HOST")
+SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", 10000))
 
 ####################################
 # Documented Environment Variables #

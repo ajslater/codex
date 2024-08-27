@@ -133,7 +133,6 @@ class SearchFilterView(BrowserFTSFilter):
         """Preparse search, search and return the filter and scores."""
         try:
             field_tokens, fts_text = self._preparse_search_query()
-            # print(field_tokens, fts_text)
             field_filters, field_excludes = self.get_search_field_filters(
                 model, field_tokens
             )
