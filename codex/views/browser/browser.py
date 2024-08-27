@@ -64,6 +64,7 @@ class BrowserView(BrowserTitleView):
         self.group_query: QuerySet = Comic.objects.none()
         self.valid_nav_groups: tuple[str, ...] = ()
         self.fts_mode = False
+        self.search_mode = False
 
     def _set_group_query_and_instance(self):
         """Create group_class instance."""

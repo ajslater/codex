@@ -6,6 +6,7 @@ from codex.logger.logging import get_logger
 from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
+from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
 _FTS_COLUMNS = frozenset(
@@ -111,11 +112,11 @@ class SearchFilterView(BrowserFTSFilter):
             col = match.group("col")
             exp = match.group("exp")
             if multi_col or not col or not exp:
-                # XXX Could add mulit-col to field groups, but nobody will care.
+                # I could add multi-col to field groups, but nobody will care.
                 self._add_fts_token(fts_tokens, token)
                 continue
 
-            if not self._parse_column_match(col, exp, field_tokens):  # , fts_tokens):
+            if not self._parse_column_match(col, exp, field_tokens):
                 self._add_fts_token(fts_tokens, token)
 
         text = " ".join(fts_tokens)
@@ -132,3 +133,25 @@ class SearchFilterView(BrowserFTSFilter):
             LOG.exception("Creating the search filter")
 
         return qs
+
+    def _is_search_results_limited(self) -> bool:
+        """Get search result limit from params."""
+        # user = self.request.user  # type: ignore
+        # if user and user.is_authenticated:
+        #    limited = bool(
+        #        self.params.get(  # type: ignore
+        #            "search_results_limit",
+        #            MAX_OBJ_PER_PAGE,
+        #        )
+        #    )
+        # else:
+        #    limited = True
+        # return limited
+        return True
+
+    def get_search_limit(self):
+        """Get search scores for choices and metadata."""
+        if not self.search_mode or not self._is_search_results_limited():
+            return 0
+        page = self.kwargs.get("page", 1)  # type: ignore
+        return page * MAX_OBJ_PER_PAGE + 1

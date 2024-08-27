@@ -3,38 +3,12 @@
 from codex.logger.logging import get_logger
 from codex.models import Comic, StoryArc
 from codex.views.browser.filters.search.field.field import BrowserFieldQueryFilter
-from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
 
 
 class BrowserFTSFilter(BrowserFieldQueryFilter):
     """Search Filters Methods."""
-
-    TARGET = ""
-
-    def _is_search_results_limited(self) -> bool:
-        """Get search result limit from params."""
-        # user = self.request.user  # type: ignore
-        # if user and user.is_authenticated:
-        #    limited = bool(
-        #        self.params.get(  # type: ignore
-        #            "search_results_limit",
-        #            MAX_OBJ_PER_PAGE,
-        #        )
-        #    )
-        # else:
-        #    limited = True
-        # return limited
-        return True
-
-    def get_search_limit(self):
-        """Get search scores for choices and metadata."""
-        # TODO if we reinvoke this, compine it with _get_common_queryset() limit
-        if not self.fts_mode or not self._is_search_results_limited():
-            return 0
-        page = self.kwargs.get("page", 1)  # type: ignore
-        return page * MAX_OBJ_PER_PAGE + 1
 
     def apply_fts_filter(self, qs, model, text):
         """Perform the search and return the scores as a dict."""
@@ -48,11 +22,14 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
                 if model == StoryArc
                 else "comic__"
             )
-            # HACK publisher not really used by match lookup
+            # publisher is not really used by my custom match lookup
+            #  the MATCH operator actually takes a table as it's left hand side
+            #  but django orm doesn't have a facility for that.
             rel = prefix + "comicfts__publisher__match"
             query_dict = {rel: text}
             qs = qs.filter(**query_dict)
             self.fts_mode = True
+            self.search_mode = True
         except Exception:
             LOG.exception("Getting Search Scores")
         return qs

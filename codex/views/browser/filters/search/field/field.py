@@ -48,4 +48,6 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             qs = qs.filter(*filters)
         if excludes:
             qs = qs.exclude(*excludes)
+        if filters or excludes:
+            self.search_mode = True
         return qs
