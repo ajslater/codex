@@ -13,7 +13,10 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
 
     def set_order_key(self):
         """Get the default order key for the view."""
-        self.order_key: str = self.params["order_by"]
+        order_key: str = self.params["order_by"]
+        if order_key == "search_score" and not self.fts_mode:
+            order_key = "sort_name"
+        self.order_key = order_key
         order_reverse = self.params.get("order_reverse")
         self.order_agg_func = Max if order_reverse else Min
 

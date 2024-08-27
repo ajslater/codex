@@ -55,7 +55,7 @@ _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
-    def __init__(self,*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize search variables."""
         super().__init__(*args, **kwargs)
         self.fts_mode = False

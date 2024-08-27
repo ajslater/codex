@@ -20,6 +20,8 @@ LOG = get_logger(__name__)
 class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
     """Annotations that also filter."""
 
+    TARGET = ""
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize."""
         super().__init__(*args, **kwargs)

@@ -198,6 +198,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Annotate Search Scores."""
         if (
             self.TARGET not in frozenset({"browser", "cover"})
+            or not self.fts_mode
             or self.params.get("order_by") != "search_score"  # type: ignore
         ):
             return qs
