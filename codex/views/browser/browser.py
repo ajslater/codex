@@ -262,6 +262,7 @@ class BrowserView(BrowserTitleView):
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
                 "mtime": mtime,
+                "fts": self.fts_mode,
             }
         )
 

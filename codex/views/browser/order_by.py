@@ -15,9 +15,12 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
         """Get the default order key for the view."""
         order_key: str = self.params["order_by"]
         if order_key == "search_score" and not self.fts_mode:
+            # if no search scores, use sort_name, asc
             order_key = "sort_name"
+            order_reverse = False
+        else:
+            order_reverse = self.params.get("order_reverse")
         self.order_key = order_key
-        order_reverse = self.params.get("order_reverse")
         self.order_agg_func = Max if order_reverse else Min
 
     def _add_comic_order_by(self, order_key, comic_sort_names):

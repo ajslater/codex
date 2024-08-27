@@ -101,6 +101,7 @@ export const useBrowserStore = defineStore("browser", {
       numPages: 1,
       groups: [],
       books: [],
+      fts: undefined,
       mtime: 0,
     },
     // LOCAL UI
@@ -128,7 +129,8 @@ export const useBrowserStore = defineStore("browser", {
       for (const item of CHOICES.browser.orderBy) {
         if (
           (item.value === "path" && !state.page.adminFlags.folderView) ||
-          (item.value === "search_score" && !state.settings.q)
+          (item.value === "search_score" &&
+            (!state.settings.q || !state.page.fts))
         ) {
           // denied order_by condition
           continue;

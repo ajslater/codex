@@ -134,7 +134,6 @@ class BrowserBaseView(SearchFilterView):
         """Initialize request."""
         self.set_admin_flags()
         self.parse_params()
-        self.set_order_key()
         self.validate_settings()
         self.set_model()
         self.set_rel_prefix()

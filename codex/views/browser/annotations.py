@@ -206,6 +206,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
+        self.set_order_key()
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs, model)
