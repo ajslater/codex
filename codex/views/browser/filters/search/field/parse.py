@@ -4,7 +4,6 @@ import re
 from typing import TYPE_CHECKING
 
 from django.db.models import Q
-from django.db.models.fields import Field
 from pyparsing import (
     CaselessLiteral,
     OpAssoc,
@@ -17,7 +16,6 @@ from pyparsing import (
 
 from codex.models.base import MAX_NAME_LEN
 from codex.models.comic import Comic
-from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
 
 if TYPE_CHECKING:
@@ -61,11 +59,6 @@ def to_query(context, exp) -> Q:
 class BoolOperand:
     """Hacky Base for injecting rel."""
 
-    rel: str = ""
-    rel_class: type[Field] = Field
-    model: type[BrowserGroupModel]
-    many_to_many: bool = False
-
     def __init__(self, tokens, context):
         """Initialize value from first token."""
         self.value = tokens[0]
@@ -100,22 +93,18 @@ class BoolBinaryOperand:
         q = Q()
 
         nots = []
-        many_to_many = False
         for arg in self.args:
             arg_q = arg.to_query()
             if arg_q.negated:
-                many_to_many |= arg.context[3]
                 nots.append(~arg_q)
+            elif self.OP == Q.AND:
+                q &= arg_q
             else:
-                # op = Q.OR if arg.many_to_many else self.OP
-                op = self.OP
-                if op == Q.AND:
-                    q &= arg_q
-                else:
-                    q |= arg_q
+                q |= arg_q
 
         if nots:
             not_q = Q()
+            many_to_many = self.context[3]
             not_op = Q.OR if many_to_many or self.OP == Q.AND else Q.AND
             for not_arg_q in nots:
                 if not_op == Q.AND:
