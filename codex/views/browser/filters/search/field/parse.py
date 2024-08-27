@@ -182,7 +182,7 @@ def _create_context_expression(context):
     return bool_expr
 
 
-def gen_query(rel, rel_class, exp, model, many_to_many):
+def get_field_query(rel, rel_class, exp, model, many_to_many):
     """Convert rel and text expression into queries."""
     exp = _IMPLICIT_AND_RE.sub(
         lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp

@@ -132,9 +132,23 @@ class SearchFilterView(BrowserFTSFilter):
     def apply_search_filter(self, qs, model):
         """Preparse search, search and return the filter and scores."""
         try:
-            field_tokens, text = self._preparse_search_query()
-            qs = self.apply_field_query_filters(qs, model, field_tokens)
-            qs = self.apply_fts_filter(qs, model, text)
+            field_tokens, fts_text = self._preparse_search_query()
+            # print(field_tokens, fts_text)
+            field_filters, field_excludes = self.get_search_field_filters(
+                model, field_tokens
+            )
+            fts_filter = self.get_fts_filter(model, fts_text)
+            all_filters = {}
+            all_filters.update(field_filters)
+            all_filters.update(fts_filter)
+            if all_filters:
+                qs = qs.filter(**all_filters)
+                self.search_mode = True
+                self.fts_mode = bool(fts_filter)
+            if field_excludes:
+                qs = qs.exclude(**field_excludes)
+                self.search_mode = True
+
         except Exception:
             LOG.exception("Creating the search filter")
 
