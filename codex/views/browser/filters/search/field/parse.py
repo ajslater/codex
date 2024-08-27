@@ -1,6 +1,7 @@
 """Parse field boolean expressions into Django ORM Queries."""
 
 import re
+from typing import TYPE_CHECKING
 
 from django.db.models import Q
 from django.db.models.fields import Field
@@ -18,6 +19,9 @@ from codex.models.base import MAX_NAME_LEN
 from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
 from codex.views.browser.filters.search.field.expression import parse_expression
+
+if TYPE_CHECKING:
+    from pyparsing.helpers import InfixNotationOperatorSpec
 
 _OPERATORS_REXP = "|".join(("and not", "or not", "and", "or"))
 _IMPLICIT_AND_REXP = (
@@ -42,10 +46,9 @@ def _prefix_q_dict(q_dict, model):
     return prefixed_q_dict
 
 
-def to_query(
-    rel: str, rel_class: type[Field], model: type[BrowserGroupModel], exp: str
-) -> Q:
+def to_query(context, exp) -> Q:
     """Construct Django ORM Query from rel & value."""
+    rel, rel_class, model, _ = context
     q_dict = parse_expression(rel, rel_class, exp)
     if not q_dict:
         return Q()
@@ -63,9 +66,10 @@ class BoolOperand:
     model: type[BrowserGroupModel]
     many_to_many: bool = False
 
-    def __init__(self, tokens):
+    def __init__(self, tokens, context):
         """Initialize value from first token."""
         self.value = tokens[0]
+        self.context = context
 
     def __repr__(self) -> str:
         """Represent as string."""
@@ -73,7 +77,7 @@ class BoolOperand:
 
     def to_query(self) -> Q:
         """Construct Django ORM Query from rel & value."""
-        return to_query(self.rel, self.rel_class, self.model, self.value)
+        return to_query(self.context, self.value)
 
 
 class BoolBinaryOperand:
@@ -81,9 +85,10 @@ class BoolBinaryOperand:
 
     OP: str = ""
 
-    def __init__(self, tokens):
+    def __init__(self, tokens, context):
         """Initialize args from first two tokens."""
         self.args = tokens[0][0::2]
+        self.context = context
 
     def __repr__(self) -> str:
         """Represent as string."""
@@ -99,7 +104,7 @@ class BoolBinaryOperand:
         for arg in self.args:
             arg_q = arg.to_query()
             if arg_q.negated:
-                many_to_many |= arg.many_to_many
+                many_to_many |= arg.context[3]
                 nots.append(~arg_q)
             else:
                 # op = Q.OR if arg.many_to_many else self.OP
@@ -127,12 +132,13 @@ class BoolBinaryOperand:
         return q
 
 
-class BoolNot:
+class BoolNot(BoolOperand):
     """NOT Operand."""
 
-    def __init__(self, tokens):
+    def __init__(self, tokens, context):
         """Initialize args from first token."""
         self.arg = tokens[0][1]
+        self.context = context
 
     def __repr__(self) -> str:
         """Represent as string."""
@@ -156,15 +162,39 @@ class BoolOr(BoolBinaryOperand):
     OP = Q.OR
 
 
-def _get_bool_op_rel(
-    op_class, span: str, rel_cls: type[Field], mdl: type[BrowserGroupModel], m2m: bool
-):
-    """Hack rel into Bool."""
-    return type(
-        op_class.__name__ + "Inject",
-        (op_class,),
-        {"rel": span, "rel_class": rel_cls, "model": mdl, "many_to_many": m2m},
+def _get_context_operand(op_class, context):
+    """Hack context into operands."""
+
+    def parse_action(_s, _loc, toks):
+        """Inject context into operand classes."""
+        return op_class(toks, context)
+
+    return parse_action
+
+
+def _create_context_expression(context):
+    # XXX I can't find a way for pyparsing to inject context after the grammar is defined.
+    bool_operand_fn = _get_context_operand(BoolOperand, context)
+    bool_not_operand_fn = _get_context_operand(BoolNot, context)
+    bool_and_operand_fn = _get_context_operand(BoolAnd, context)
+    bool_or_operand_fn = _get_context_operand(BoolOr, context)
+
+    # Order is important for operands so quoted strings get parsed first
+    bool_operand = QuotedString('"') | Word(
+        printables, exclude_chars="(),", max=MAX_NAME_LEN
     )
+    bool_operand.set_parse_action(bool_operand_fn)
+    bool_operand.set_name("boolean_operand")
+    op_list: list[InfixNotationOperatorSpec] = [
+        # In order of precedence
+        (CaselessLiteral("not"), 1, OpAssoc.RIGHT, bool_not_operand_fn),
+        (CaselessLiteral("and"), 2, OpAssoc.LEFT, bool_and_operand_fn),
+        (CaselessLiteral("or"), 2, OpAssoc.LEFT, bool_or_operand_fn),
+    ]
+
+    bool_expr = infix_notation(bool_operand, op_list)
+    bool_expr.set_name("boolean_expression")
+    return bool_expr
 
 
 def gen_query(rel, rel_class, exp, model, many_to_many):
@@ -173,32 +203,9 @@ def gen_query(rel, rel_class, exp, model, many_to_many):
         lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
     )
 
-    # HACK this could be defined once on startup if I could figure out how to inject rel to infix_notation
-    bool_operand_class = _get_bool_op_rel(
-        BoolOperand, rel, rel_class, model, many_to_many
-    )
+    context = rel, rel_class, model, many_to_many
+    bool_expr = _create_context_expression(context)
 
-    # Order is important here so quoted strings get parsed first
-    bool_operand = QuotedString('"') | Word(
-        printables, exclude_chars="(),", max=MAX_NAME_LEN
-    )
-    bool_operand.setParseAction(bool_operand_class).setName("bool_operand")
-
-    bool_expr = infix_notation(
-        bool_operand,
-        [
-            (
-                CaselessLiteral("not"),
-                1,
-                OpAssoc.RIGHT,
-                _get_bool_op_rel(BoolNot, rel, rel_class, model, many_to_many),
-            ),
-            (CaselessLiteral("and"), 2, OpAssoc.LEFT, BoolAnd),
-            (CaselessLiteral("or"), 2, OpAssoc.LEFT, BoolOr),
-        ],
-    ).setName("boolean_expression")
-
-    # TODO inject rel, rel_class, model into parseString or to_query()  instead of in infix and bool_operand.
-    parsed_result = bool_expr.parseString(exp)
+    parsed_result = bool_expr.parse_string(exp)
     root_bool_operand: BoolOperand = parsed_result[0]  # type:ignore
     return root_bool_operand.to_query()
