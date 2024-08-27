@@ -39,7 +39,7 @@ class BoolOperand:
 
     def __repr__(self) -> str:
         """Represent as string."""
-        return self.value
+        return str(self.value)
 
     def _prefix_q_dict(self, q_dict):
         """Add (or subtract!) relation prefixes to q_dict for the model."""
@@ -67,6 +67,24 @@ class BoolOperand:
         prefixed_q_dict = self._prefix_q_dict(q_dict)
 
         return Q(**prefixed_q_dict)
+
+
+class BoolNot(BoolOperand):
+    """NOT Operand."""
+
+    def __init__(self, tokens, context):
+        """Initialize args from first token."""
+        self.arg = tokens[0][1]
+        self.context = context
+
+    def __repr__(self) -> str:
+        """Represent as string."""
+        return f"NOT {self.arg}"
+
+    def to_query(self) -> Q:
+        """Negate argument query."""
+        q = self.arg.to_query()
+        return ~q
 
 
 class BoolBinaryOperand:
@@ -115,24 +133,6 @@ class BoolBinaryOperand:
                 q |= not_q
 
         return q
-
-
-class BoolNot(BoolOperand):
-    """NOT Operand."""
-
-    def __init__(self, tokens, context):
-        """Initialize args from first token."""
-        self.arg = tokens[0][1]
-        self.context = context
-
-    def __repr__(self) -> str:
-        """Represent as string."""
-        return f"NOT {self.arg}"
-
-    def to_query(self) -> Q:
-        """Negate argument query."""
-        q = self.arg.to_query()
-        return ~q
 
 
 class BoolAnd(BoolBinaryOperand):
