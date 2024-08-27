@@ -55,6 +55,12 @@ _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
+    def __init__(self,*args, **kwargs):
+        """Initialize search variables."""
+        super().__init__(*args, **kwargs)
+        self.fts_mode = False
+        self.search_mode = False
+
     def _is_path_column_allowed(self):
         """Is path column allowed."""
         if not self.is_admin():  # type: ignore
