@@ -35,13 +35,17 @@ _NON_FTS_COLUMNS = frozenset(
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
-_COLUMN_EXPRESSION_OPERATORS_RE = re.compile(r"\B[\*\!\<\>]\w|\.{2,}|\w\*\w")
+_QUOTES_REXP = r"\".*?\""
+_COLUMN_EXPRESSION_OPERATORS_REXP = (
+    rf"(?:{_QUOTES_REXP})|(?P<star>\B[\*\!\<\>]\w|\.{2,}|\w\*\w)"
+)
+_COLUMN_EXPRESSION_OPERATORS_RE = re.compile(_COLUMN_EXPRESSION_OPERATORS_REXP)
 _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
 _FTS_OPERATOR_REXP = rf"(?P<operator>\b{'|'.join(_FTS_OPERATORS)}\b)"
 _FTS_OPERATOR_RE = re.compile(_FTS_OPERATOR_REXP, flags=re.IGNORECASE)
 _MULTI_COL_REXP = r"(?P<multi_col>\{.*?\})"
 _SINGLE_COL_REXP = r"(?P<col>[a-z_]+)"
-_EXP_REXP = r"\s*(?P<exp>\(.*?\)|\".*?\"|\S+)"
+_EXP_REXP = rf"\s*(?P<exp>\(.*?\)|{_QUOTES_REXP}|\S+)"
 _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
 _TOKEN_REXP = rf"(?P<token>{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
@@ -62,9 +66,10 @@ class SearchFilterView(BrowserFTSFilter):
     @staticmethod
     def _is_column_operators_used(exp):
         """Detect column expression operators, but not inside quotes."""
-        # TODO optimize regex
-        clean_exp = re.sub(r"\".*?\"", "", exp)
-        return _COLUMN_EXPRESSION_OPERATORS_RE.search(clean_exp)
+        for match in _COLUMN_EXPRESSION_OPERATORS_RE.finditer(exp):
+            if match.group("star"):
+                return True
+        return False
 
     def _parse_column_match(self, col, exp, field_tokens):  # , fts_tokens):
         col = ALIAS_FIELD_MAP.get(col, col)

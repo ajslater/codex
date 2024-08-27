@@ -158,7 +158,7 @@ def _get_context_operand(op_class, context):
 
 
 def _create_context_expression(context):
-    # XXX I can't find a way for pyparsing to inject context after the grammar is defined.
+    # I can't find a way for pyparsing to inject context after the grammar is defined.
     bool_operand_fn = _get_context_operand(BoolOperand, context)
     bool_not_operand_fn = _get_context_operand(BoolNot, context)
     bool_and_operand_fn = _get_context_operand(BoolAnd, context)
