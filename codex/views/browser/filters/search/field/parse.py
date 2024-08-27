@@ -29,33 +29,6 @@ _IMPLICIT_AND_RE = re.compile(_IMPLICIT_AND_REXP, flags=re.IGNORECASE)
 ParserElement.enablePackrat()
 
 
-def _prefix_q_dict(q_dict, model):
-    """Add (or subtract!) relation prefixes to q_dict for the model."""
-    prefix = "" if model == Comic else "comic__"
-    model_span = model.__name__.lower() + "__"
-    prefixed_q_dict = {}
-    for parsed_rel, value in q_dict.items():
-        prefixed_rel = (
-            parsed_rel.removeprefix(model_span)
-            if parsed_rel.startswith(model_span)
-            else prefix + parsed_rel
-        )
-        prefixed_q_dict[prefixed_rel] = value
-    return prefixed_q_dict
-
-
-def to_query(context, exp) -> Q:
-    """Construct Django ORM Query from rel & value."""
-    rel, rel_class, model, _ = context
-    q_dict = parse_expression(rel, rel_class, exp)
-    if not q_dict:
-        return Q()
-
-    prefixed_q_dict = _prefix_q_dict(q_dict, model)
-
-    return Q(**prefixed_q_dict)
-
-
 class BoolOperand:
     """Hacky Base for injecting rel."""
 
@@ -68,9 +41,32 @@ class BoolOperand:
         """Represent as string."""
         return self.value
 
+    def _prefix_q_dict(self, q_dict):
+        """Add (or subtract!) relation prefixes to q_dict for the model."""
+        model = self.context[2]
+        prefix = "" if model == Comic else "comic__"
+        model_span = model.__name__.lower() + "__"
+        prefixed_q_dict = {}
+        for parsed_rel, value in q_dict.items():
+            prefixed_rel = (
+                parsed_rel.removeprefix(model_span)
+                if parsed_rel.startswith(model_span)
+                else prefix + parsed_rel
+            )
+            prefixed_q_dict[prefixed_rel] = value
+        return prefixed_q_dict
+
     def to_query(self) -> Q:
         """Construct Django ORM Query from rel & value."""
-        return to_query(self.context, self.value)
+        rel = self.context[0]
+        rel_class = self.context[1]
+        q_dict = parse_expression(rel, rel_class, self.value)
+        if not q_dict:
+            return Q()
+
+        prefixed_q_dict = self._prefix_q_dict(q_dict)
+
+        return Q(**prefixed_q_dict)
 
 
 class BoolBinaryOperand:
