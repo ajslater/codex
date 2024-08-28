@@ -139,7 +139,7 @@ class BrowserView(BrowserTitleView):
                 count_qs = count_qs[:limit]
             count = count_qs.count()
         except OperationalError as exc:
-            LOG.warning(f"Query Error: {exc}")
+            self._handle_operational_error(exc)
             count = 0
             qs = model.objects.none()
 
@@ -262,6 +262,7 @@ class BrowserView(BrowserTitleView):
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
                 "mtime": mtime,
+                "search_error": self.search_error,
                 "fts": self.fts_mode,
             }
         )

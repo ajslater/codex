@@ -102,6 +102,7 @@ export const useBrowserStore = defineStore("browser", {
       groups: [],
       books: [],
       fts: undefined,
+      searchError: undefined,
       mtime: 0,
     },
     // LOCAL UI

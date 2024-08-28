@@ -32,5 +32,6 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
             if text:
                 return self._get_fts_filter(model, text)
         except Exception:
-            LOG.exception("Getting Search Scores")
+            LOG.exception("Getting Full Text Search Filter.")
+            self.search_error = True
         return {}

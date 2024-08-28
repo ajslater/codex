@@ -1,5 +1,7 @@
 """Annotations used by a filter."""
 
+from logging import DEBUG, WARNING
+
 from django.db.models.aggregates import Count, Max
 from django.db.models.functions import Coalesce, Greatest
 from django.db.utils import OperationalError
@@ -77,6 +79,16 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
         qs = self.apply_search_filter(qs, model)
         return self._filter_by_child_count(qs, model)
 
+    def _handle_operational_error(self, err):
+        msg = err.args[0] if err.args else ""
+        if msg.startswith("fts5:"):
+            level = DEBUG
+            self.search_error = True
+        else:
+            level = WARNING
+            msg = str(err)
+        LOG.log(level, f"Query Error: {msg}")
+
     def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""
         qs = self.get_filtered_queryset(
@@ -104,8 +116,8 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
                     "max_updated_at",
                 )
             )["max"]
-        except OperationalError as ex:
-            LOG.warning(f"Query Error: {ex}")
+        except OperationalError as exc:
+            self._handle_operational_error(exc)
             mtime = None
         if mtime == NotImplemented:
             mtime = None

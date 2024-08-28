@@ -38,6 +38,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             self._hoist_not_filters_for_exclude(filters, excludes, q)
         except Exception as exc:
             LOG.warning(f"Parsing field query {col}:{exp} - {exc}")
+            self.search_error = True
 
     def get_search_field_filters(self, model, field_token_pairs):
         """Parse and apply field query filters."""

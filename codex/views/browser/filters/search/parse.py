@@ -60,6 +60,7 @@ class SearchFilterView(BrowserFTSFilter):
         super().__init__(*args, **kwargs)
         self.fts_mode = False
         self.search_mode = False
+        self.search_error = False
 
     def _is_path_column_allowed(self):
         """Is path column allowed."""
@@ -101,6 +102,22 @@ class SearchFilterView(BrowserFTSFilter):
             token = f'"{token}"'
         fts_tokens.append(token)
 
+    def _preparse_search_query_token(self, match, field_tokens, fts_tokens):
+        token = match.group("token")
+        if not token:
+            return
+
+        multi_col = match.group("multi_col")
+        col = match.group("col")
+        exp = match.group("exp")
+        if multi_col or not col or not exp:
+            # I could add multi-col to field groups, but nobody will care.
+            self._add_fts_token(fts_tokens, token)
+            return
+
+        if not self._parse_column_match(col, exp, field_tokens):
+            self._add_fts_token(fts_tokens, token)
+
     def _preparse_search_query(self):
         """Preparse search fields out of query text."""
         text = self.params.get("q")  # type: ignore
@@ -110,21 +127,12 @@ class SearchFilterView(BrowserFTSFilter):
 
         fts_tokens = []
         for match in _TOKEN_RE.finditer(text):
-            token = match.group("token")
-            if not token:
-                continue
-
-            multi_col = match.group("multi_col")
-            col = match.group("col")
-            exp = match.group("exp")
-            if multi_col or not col or not exp:
-                # I could add multi-col to field groups, but nobody will care.
-                self._add_fts_token(fts_tokens, token)
-                continue
-
-            if not self._parse_column_match(col, exp, field_tokens):
-                self._add_fts_token(fts_tokens, token)
-
+            try:
+                self._preparse_search_query_token(match, field_tokens, fts_tokens)
+            except Exception as exc:
+                tok = match.group(0) if match else "<unmatched>"
+                LOG.debug(f"Error preparsing search query token {tok}: {exc}")
+                self.search_error = True
         text = " ".join(fts_tokens)
 
         return field_tokens, text
