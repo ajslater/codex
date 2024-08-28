@@ -198,8 +198,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         """Annotate Search Scores."""
         if (
             self.TARGET not in frozenset({"browser", "cover"})
-            or not self.fts_mode
-            or self.params.get("order_by") != "search_score"  # type: ignore
+            or self.order_key != "search_score"  # type: ignore
         ):
             return qs
         return qs.annotate(search_score=ComicFTSRank())
@@ -254,15 +253,9 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return bookmark_page, finished_aggregate
 
-    def _annotate_group_bookmarks(self, bm_filter, page_rel, finished_rel):
-        """Aggregate bookmark and finished states for groups."""
-        page_count = f"{self.rel_prefix}page_count"
-        return self._get_bookmark_page_and_finished_counts(
-            bm_filter, page_rel, finished_rel, page_count
-        )
-
-    def _annotate_group_bookmarks_with_fts(self):
+    def _annotate_group_bookmarks(self):
         """Aggregate bookmark and finished states for groups using subqueries to not break with the FTS match filter."""
+        # Using these subqueries is faster even though it's not neccissary for non-fts queries.
         if not self.model:
             return 0, 0
 
@@ -303,17 +296,11 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             # Hoist comic bookmark and finished states
             bookmark_page = F(page_rel)
             finished_aggregate = F(finished_rel)
-        elif self.fts_mode:
+        else:
+            # FTS mode is faster?
             # Aggregate bookmark and finished states for groups using subqueries to
             # not break with FTS match filter.
-            bookmark_page, finished_aggregate = (
-                self._annotate_group_bookmarks_with_fts()
-            )
-        else:
-            # Aggregate bookmark and finished states for groups
-            bookmark_page, finished_aggregate = self._annotate_group_bookmarks(
-                bm_filter, page_rel, finished_rel
-            )
+            bookmark_page, finished_aggregate = self._annotate_group_bookmarks()
 
         if (
             self.is_opds_1_acquisition
@@ -324,6 +311,7 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
         if self.TARGET in frozenset({"metadata", "browser"}):
             qs = qs.annotate(finished=finished_aggregate)
+
         return qs
 
     def _annotate_progress(self, qs):
