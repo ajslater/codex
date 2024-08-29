@@ -16,6 +16,7 @@ from codex.views.const import (
 )
 
 _CHILD_COUNT = "child_count"
+_FTS5_PREFIX = "fts5: "
 LOG = get_logger(__name__)
 
 
@@ -81,9 +82,9 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
 
     def _handle_operational_error(self, err):
         msg = err.args[0] if err.args else ""
-        if msg.startswith("fts5:"):
+        if msg.startswith(_FTS5_PREFIX):
             level = DEBUG
-            self.search_error = True
+            self.search_error = msg.removeprefix(_FTS5_PREFIX)
         else:
             level = WARNING
             msg = str(err)

@@ -9,7 +9,7 @@
     aria-label="search"
     clearable
     density="compact"
-    :error="searchError"
+    :error-messages="searchError"
     full-width
     hide-details="auto"
     hide-selected

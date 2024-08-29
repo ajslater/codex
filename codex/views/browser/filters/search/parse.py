@@ -60,7 +60,7 @@ class SearchFilterView(BrowserFTSFilter):
         super().__init__(*args, **kwargs)
         self.fts_mode = False
         self.search_mode = False
-        self.search_error = False
+        self.search_error = ""
 
     def _is_path_column_allowed(self):
         """Is path column allowed."""
@@ -132,7 +132,7 @@ class SearchFilterView(BrowserFTSFilter):
             except Exception as exc:
                 tok = match.group(0) if match else "<unmatched>"
                 LOG.debug(f"Error preparsing search query token {tok}: {exc}")
-                self.search_error = True
+                self.search_error = "Syntax error"
         text = " ".join(fts_tokens)
 
         return field_tokens, text

@@ -1,6 +1,6 @@
 <template>
   <v-slide-y-transition>
-    <v-toolbar v-if="isSearchOpen" density="compact" :height="64">
+    <v-toolbar v-if="isSearchOpen" density="compact" :height="toolbarHeight">
       <v-toolbar-items id="searchToolbarItems">
         <BrowserSearchCombobox />
       </v-toolbar-items>
@@ -22,6 +22,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       isSearchOpen: (state) => state.isSearchOpen,
+      toolbarHeight: (state) => 64 + 12 * Boolean(state.page.searchError),
     }),
   },
 };
