@@ -1,5 +1,6 @@
 """Comic cover thumbnail view."""
 
+from django.db import OperationalError
 from django.db.models.query import Q
 from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
@@ -154,9 +155,13 @@ class CoverView(BrowserAnnotationsView):
         """Get comic cover."""
         try:
             self.init_request()
-            pk, custom = self._get_cover_pk()
+            try:
+                pk, custom = self._get_cover_pk()
+            except OperationalError as exc:
+                self._handle_operational_error(exc)
+                pk = 0
+                custom = False
             cover_file, content_type = self._get_cover_data(pk, custom)
-
             return StreamingHttpResponse(chunker(cover_file), content_type=content_type)
         except Exception:
-            LOG.exception("get")
+            LOG.exception("Get cover")
