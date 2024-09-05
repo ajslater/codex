@@ -21,10 +21,13 @@ from codex.views.browser.filters.search.field.expression import parse_expression
 if TYPE_CHECKING:
     from pyparsing.helpers import InfixNotationOperatorSpec
 
+_QUOTES_REXP =  r"(?:\".*?\")"
 _OPERATORS_REXP = "|".join(("and not", "or not", "and", "or"))
+_BEGIN_NOT_REXP = r"^\s*\(?\s*(?P<not>not)"
 _IMPLICIT_AND_REXP = (
-    rf"(?:\".*?\")|\ (?P<ok>{_OPERATORS_REXP})\ |(?P<bare>(?:\ not)?\ )\S"
+    rf"{_QUOTES_REXP}|\ (?P<ok>{_OPERATORS_REXP})\ |(?P<bare>(?:\ not)?\ )\S"
 )
+_BEGIN_NOT_RE = re.compile(_BEGIN_NOT_REXP, flags=re.IGNORECASE)
 _IMPLICIT_AND_RE = re.compile(_IMPLICIT_AND_REXP, flags=re.IGNORECASE)
 ParserElement.enablePackrat()
 
@@ -165,6 +168,13 @@ def _create_context_expression(context):
 
 def get_field_query(rel, rel_class, exp, model, many_to_many):
     """Convert rel and text expression into queries."""
+    # Allow negative column search
+    begin_not_match = _BEGIN_NOT_RE.search(exp)
+    if begin_not_match:
+        start = begin_not_match.start("not")
+        exp = exp[:start]  + '"" and ' + exp[start:]
+
+    # Add implicit and for the parser
     exp = _IMPLICIT_AND_RE.sub(
         lambda m: f" and{m.group(0)}" if m.group("bare") else m.group(0), exp
     )
