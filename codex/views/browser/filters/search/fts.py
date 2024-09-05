@@ -1,5 +1,7 @@
 """Search Filters Methods."""
 
+from django.db.models.query import Q
+
 from codex.logger.logging import get_logger
 from codex.models import Comic, StoryArc
 from codex.views.browser.filters.search.field.filter import BrowserFieldQueryFilter
@@ -28,10 +30,11 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
 
     def get_fts_filter(self, model, text):
         """Perform the search and return the scores as a dict."""
+        fts_filter = {}
         try:
             if text:
-                return self._get_fts_filter(model, text)
+                fts_filter = self._get_fts_filter(model, text)
         except Exception:
             LOG.exception("Getting Full Text Search Filter.")
             self.search_error = "Error creating full text search filter"
-        return {}
+        return Q(**fts_filter)
