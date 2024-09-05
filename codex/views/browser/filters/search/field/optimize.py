@@ -37,11 +37,13 @@ def _like_to_regex(like):
 
     return prefix + regex + suffix
 
+
 def _regex_like(regex, lookahead):
     """Bracket a regex with any characters if positive lookahead."""
     if lookahead == "=":
         regex = ".*" + regex + ".*"
     return regex
+
 
 def like_qs_to_regex_q(q: Q, regex_op: str, many_to_many: bool):
     """Optimize a tree of like lookup qs to one regex q."""
