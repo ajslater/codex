@@ -43,9 +43,11 @@ def _parse_field_rel(field_name, rel_class):
 def parse_field(field_name: str):
     """Parse the field size of the query in to database relations."""
     rel_class = FIELD_TYPE_MAP.get(field_name)
-    many_to_many = rel_class == ManyToManyField
     if not rel_class:
-        return None, None, False
+        reason = f"Unknown field specified in search query {field_name}"
+        raise ValueError(reason)
+
+    many_to_many = rel_class == ManyToManyField
 
     rel_class, rel = _parse_field_rel(field_name, rel_class)
     return rel_class, rel, many_to_many
