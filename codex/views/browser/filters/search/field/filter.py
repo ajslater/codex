@@ -14,37 +14,54 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
     """Parse the browser query by removing field queries and doing them with the ORM."""
 
     @staticmethod
-    def _hoist_not_filters_for_exclude(filters, excludes, q):
-        """Fix not filters for m2m queries. Also optimizes for other queries."""
-        if not q:
-            return
-        if q.connector == Q.AND:
-            for child in q.children:
-                if isinstance(child, Q) and child.negated:
-                    excludes.append(~child)
-                else:
-                    filters.append(child)
+    def _combine_q(q, other_q, op):
+        if isinstance(other_q, tuple):
+            other_q = Q(**{other_q[0]: other_q[1]})
+        if op == Q.AND:
+            q &= other_q
         else:
-            filters.append(q)
+            q |= other_q
+        return q
 
-    def _parse_field_query(self, col, exp, model, filters, excludes):
+    @classmethod
+    def _hoist_not_filters_for_exclude(cls, filter_q, exclude_q, new_q):
+        """Turn not queries for m2m queries into excludes."""
+        if new_q.connector == Q.AND:
+            for child in new_q.children:
+                if isinstance(child, Q) and child.negated:
+                    child.negated = False
+                    exclude_q = cls._combine_q(exclude_q, child, new_q.connector)
+                else:
+                    filter_q = cls._combine_q(filter_q, child, new_q.connector)
+        else:
+            filter_q = cls._combine_q(filter_q, new_q, new_q.connector)
+        return filter_q, exclude_q
+
+    def _parse_field_query(self, col, exp, model, filter_q, exclude_q):
         try:
             rel_class, rel, many_to_many = parse_field(col)
-            if not rel_class or not rel:
-                LOG.debug(f"Unknown field specified in search query {col}")
-                return
 
             q = get_field_query(rel, rel_class, exp, model, many_to_many)
-            self._hoist_not_filters_for_exclude(filters, excludes, q)
+            if q and many_to_many:
+                filter_q, exclude_q = self._hoist_not_filters_for_exclude(
+                    filter_q, exclude_q, q
+                )
+            else:
+                filter_q &= q
         except Exception as exc:
             token = f"{col}:{exp}"
-            LOG.warning(f"Parsing field query {token} - {exc}")
-            self.search_error = f"Syntax error in {token}"
+            msg = f"Parsing field query {token} - {exc}"
+            LOG.warning(msg)
+            self.search_error = msg
+        return filter_q, exclude_q
 
     def get_search_field_filters(self, model, field_token_pairs):
         """Parse and apply field query filters."""
-        filters = []
-        excludes = []
+        filter_q = Q()
+        exclude_q = Q()
         for col, exp in field_token_pairs:
-            self._parse_field_query(col, exp, model, filters, excludes)
-        return filters, excludes
+            filter_q, exclude_q = self._parse_field_query(
+                col, exp, model, filter_q, exclude_q
+            )
+
+        return filter_q, exclude_q

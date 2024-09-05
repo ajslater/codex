@@ -49,7 +49,7 @@
     "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^5.0.10",
-    "vite-plugin-checker": "^0.7.0",
+    "vite-plugin-checker": "^0.8.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-static-copy": "^1.0.0",
     "vite-plugin-vuetify": "^2.0.1",

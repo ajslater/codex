@@ -137,27 +137,37 @@ class SearchFilterView(BrowserFTSFilter):
 
         return field_tokens, text
 
+    def _create_search_filters(self, model):
+        field_tokens, fts_text = self._preparse_search_query()
+        field_filter_q, field_exclude_q = self.get_search_field_filters(
+            model, field_tokens
+        )
+        fts_filter = self.get_fts_filter(model, fts_text)
+        return field_exclude_q, field_filter_q, fts_filter
+
     def apply_search_filter(self, qs, model):
         """Preparse search, search and return the filter and scores."""
         try:
-            field_tokens, fts_text = self._preparse_search_query()
-            field_filters, field_excludes = self.get_search_field_filters(
-                model, field_tokens
+            field_exclude_q, field_filter_q, fts_filter = self._create_search_filters(
+                model
             )
-            fts_filter = self.get_fts_filter(model, fts_text)
-            all_filters = {}
-            all_filters.update(field_filters)
-            all_filters.update(fts_filter)
-            if all_filters:
-                qs = qs.filter(**all_filters)
-                self.search_mode = True
-                self.fts_mode = bool(fts_filter)
-            if field_excludes:
-                qs = qs.exclude(**field_excludes)
-                self.search_mode = True
 
-        except Exception:
-            LOG.exception("Creating the search filter")
+            # Apply filters
+            if field_exclude_q:
+                qs = qs.exclude(field_exclude_q)
+                self.search_mode = True
+            if field_filter_q:
+                qs = qs.filter(field_filter_q)
+                self.search_mode = True
+            if fts_filter:
+                qs = qs.filter(**fts_filter)
+                self.search_mode = self.fts_mode = True
+
+        except Exception as exc:
+            msg = "Creating search filters"
+            LOG.exception(msg)
+            msg = f"{msg} - {exc}"
+            self.search_error = msg
 
         return qs
 

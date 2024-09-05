@@ -106,31 +106,12 @@ class BoolBinaryOperand:
         """Construct Django ORM Query from args."""
         q = Q()
 
-        nots = []
         for arg in self.args:
             arg_q = arg.to_query()
-            if arg_q.negated:
-                nots.append(~arg_q)
-            elif self.OP == Q.AND:
+            if self.OP == Q.AND:
                 q &= arg_q
             else:
                 q |= arg_q
-
-        if nots:
-            not_q = Q()
-            many_to_many = self.context[3]
-            not_op = Q.OR if many_to_many or self.OP == Q.AND else Q.AND
-            for not_arg_q in nots:
-                if not_op == Q.AND:
-                    not_q &= not_arg_q
-                else:
-                    not_q |= not_arg_q
-
-            not_q = ~not_q
-            if self.OP == Q.AND:
-                q &= not_q
-            else:
-                q |= not_q
 
         return q
 
