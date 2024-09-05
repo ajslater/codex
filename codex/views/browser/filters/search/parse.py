@@ -139,28 +139,34 @@ class SearchFilterView(BrowserFTSFilter):
 
     def _create_search_filters(self, model):
         field_tokens, fts_text = self._preparse_search_query()
-        field_filter_q, field_exclude_q = self.get_search_field_filters(
+        field_filter_q_list, field_exclude_q_list = self.get_search_field_filters(
             model, field_tokens
         )
         fts_filter = self.get_fts_filter(model, fts_text)
-        return field_exclude_q, field_filter_q, fts_filter
+        return field_exclude_q_list, field_filter_q_list, fts_filter
+
+    def _apply_search_filter_list(self, qs, filter_list, exclude):
+        """Apply search filter lists. Separate filter clauses are employed for m2m searches."""
+        for q in filter_list:
+            if not q:
+                continue
+            qs = qs.exclude(q) if exclude else qs.filter(q)
+            self.search_mode = True
+
+        return qs
 
     def apply_search_filter(self, qs, model):
         """Preparse search, search and return the filter and scores."""
         try:
-            field_exclude_q, field_filter_q, fts_filter = self._create_search_filters(
-                model
+            field_exclude_q_list, field_filter_q_list, fts_filter = (
+                self._create_search_filters(model)
             )
 
             # Apply filters
-            if field_exclude_q:
-                qs = qs.exclude(field_exclude_q)
-                self.search_mode = True
-            if field_filter_q:
-                qs = qs.filter(field_filter_q)
-                self.search_mode = True
+            qs = self._apply_search_filter_list(qs, field_exclude_q_list, True)
+            qs = self._apply_search_filter_list(qs, field_filter_q_list, False)
             if fts_filter:
-                qs = qs.filter(**fts_filter)
+                qs = qs.filter(fts_filter)
                 self.search_mode = self.fts_mode = True
 
         except Exception as exc:

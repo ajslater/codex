@@ -24,44 +24,49 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         return q
 
     @classmethod
-    def _hoist_not_filters_for_exclude(cls, filter_q, exclude_q, new_q):
+    def _hoist_not_filters_for_exclude(cls, filter_q_list, exclude_q_list, new_q):
         """Turn not queries for m2m queries into excludes."""
         if new_q.connector == Q.AND:
             for child in new_q.children:
                 if isinstance(child, Q) and child.negated:
                     child.negated = False
-                    exclude_q = cls._combine_q(exclude_q, child, new_q.connector)
+                    q = cls._combine_q(Q(), child, new_q.connector)
+                    exclude_q_list.append(q)
                 else:
-                    filter_q = cls._combine_q(filter_q, child, new_q.connector)
+                    q = cls._combine_q(Q(), child, new_q.connector)
+                    filter_q_list.append(q)
         else:
-            filter_q = cls._combine_q(filter_q, new_q, new_q.connector)
-        return filter_q, exclude_q
+            for child in new_q.children:
+                if isinstance(child, Q) and child.negated:
+                    child.negated = False
+                    exclude_q_list[0] = cls._combine_q(
+                        exclude_q_list[0], new_q, new_q.connector
+                    )
+                else:
+                    filter_q_list[0] = cls._combine_q(
+                        filter_q_list[0], new_q, new_q.connector
+                    )
 
-    def _parse_field_query(self, col, exp, model, filter_q, exclude_q):
+    def _parse_field_query(self, col, exp, model, filter_q_list, exclude_q_list):
         try:
             rel_class, rel, many_to_many = parse_field(col)
 
             q = get_field_query(rel, rel_class, exp, model, many_to_many)
             if q and many_to_many:
-                filter_q, exclude_q = self._hoist_not_filters_for_exclude(
-                    filter_q, exclude_q, q
-                )
+                self._hoist_not_filters_for_exclude(filter_q_list, exclude_q_list, q)
             else:
-                filter_q &= q
+                filter_q_list.append(q)
         except Exception as exc:
             token = f"{col}:{exp}"
             msg = f"Parsing field query {token} - {exc}"
             LOG.warning(msg)
             self.search_error = msg
-        return filter_q, exclude_q
 
     def get_search_field_filters(self, model, field_token_pairs):
         """Parse and apply field query filters."""
-        filter_q = Q()
-        exclude_q = Q()
+        filter_q_list = [Q()]
+        exclude_q_list = [Q()]
         for col, exp in field_token_pairs:
-            filter_q, exclude_q = self._parse_field_query(
-                col, exp, model, filter_q, exclude_q
-            )
+            self._parse_field_query(col, exp, model, filter_q_list, exclude_q_list)
 
-        return filter_q, exclude_q
+        return filter_q_list, exclude_q_list
