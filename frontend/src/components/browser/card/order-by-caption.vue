@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
   <!-- eslint-disable vue/no-v-html -->
   <div
     v-if="orderValue"

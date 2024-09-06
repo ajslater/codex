@@ -35,11 +35,13 @@ export default {
       return this.book.fileType == "PDF" && this.cacheBook;
     },
     component() {
-      return this.readFullPdf
-        ? PagerPDF
-        : this.isVertical
-          ? PagerVertical
-          : PagerHorizontal;
+      if (this.readerFullPdf) {
+        return PagerPDF;
+      } else if (this.isVertical) {
+        return PagerVertical;
+      } else {
+        return PagerHorizontal;
+      }
     },
   },
   watch: {

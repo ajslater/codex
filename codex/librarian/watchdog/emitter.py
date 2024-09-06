@@ -25,20 +25,18 @@ from codex.models import Library
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
-_CODEX_EVENT_FILTER = frozenset(
-    {
-        FileMovedEvent,
-        FileModifiedEvent,
-        FileCreatedEvent,
-        FileDeletedEvent,
-        # FileClosedEvent,
-        # FileOpenedEvent,
-        DirMovedEvent,
-        DirModifiedEvent,
-        DirDeletedEvent,
-        # DirCreatedEvent,
-    }
-)
+_CODEX_EVENT_FILTER = [
+    FileMovedEvent,
+    FileModifiedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    # FileClosedEvent,
+    # FileOpenedEvent,
+    DirMovedEvent,
+    DirModifiedEvent,
+    DirDeletedEvent,
+    # DirCreatedEvent,
+]
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 

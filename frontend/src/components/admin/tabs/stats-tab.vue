@@ -6,11 +6,8 @@
         <tr id="schemaDoc">
           <td colspan="2">
             The only endpoint accessible by API Key is
-            <a
-              :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
-              target="_blank"
-              >/admin/stats</a
-            >
+            <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
+            <a :href="schemaHref" target="_blank">/admin/stats</a>
           </td>
         </tr>
         <tr>
@@ -87,7 +84,7 @@ export default {
   data() {
     return {
       showTooltip: { show: false },
-      apiSchemaURL: window.CODEX.API_V3_PATH,
+      schemaHref: `${window.CODEX.API_V3_PATH}#/api/api_v3_admin_stats_retrieve`,
     };
   },
   computed: {

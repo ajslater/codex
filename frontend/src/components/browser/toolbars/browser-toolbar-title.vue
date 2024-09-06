@@ -52,25 +52,22 @@ export default {
       let title;
       if (Number(this.$route.params.pks) === 0) {
         title = "All";
-      } else {
-        if (this.browserTitle) {
-          let names = [];
-          const { groupName, groupCount } = this.browserTitle;
-          const group = this.$route.params.group;
-          const formattedGroupName =
-            group === "v" ? formattedVolumeName(groupName) : groupName;
-          if (formattedGroupName) {
-            names.push(formattedGroupName);
-          }
-          if (groupCount) {
-            const formattedGroupCount = `of ${groupCount}`;
-            names.push(formattedGroupCount);
-          }
-          //const delimiter = group === "f" ? "" : " ";
-          title = names.join(" ");
-        } else {
-          title = "";
+      } else if (this.browserTitle) {
+        let names = [];
+        const { groupName, groupCount } = this.browserTitle;
+        const group = this.$route.params.group;
+        const formattedGroupName =
+          group === "v" ? formattedVolumeName(groupName) : groupName;
+        if (formattedGroupName) {
+          names.push(formattedGroupName);
         }
+        if (groupCount) {
+          const formattedGroupCount = `of ${groupCount}`;
+          names.push(formattedGroupCount);
+        }
+        title = names.join(" ");
+      } else {
+        title = "";
       }
       return title;
     },

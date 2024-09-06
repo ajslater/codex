@@ -48,7 +48,7 @@ djangorestframework = "^3.15.1"
 djangorestframework-camel-case = "^1.4.2"
 django-cachalot = "^2.6.3"
 django-cors-headers = "^4.0"
-django-rest-registration = "^0.8.3"
+django-rest-registration = "^0.9.0"
 django-vite = "^3.0.1"
 drf-spectacular = "^0.27.2"
 fnvhash = "^0.1"
@@ -58,9 +58,9 @@ hypercorn = { extras = ["h3"], version = "^0.17.3" }
 psutil = "^6.0.0"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
-setuptools = "^72.1.0"                                 # for vendored haystack
+setuptools = "^74.1.2"                                 # for vendored haystack
 tzlocal = "^5.0"
-watchdog = "^4.0"
+watchdog = "^5.0.2"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh-reloaded = "^2.7.5"
@@ -76,7 +76,7 @@ vendorize = "^0.3.0"
 
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.0" }
-pytest-asyncio = "^0.23.2"
+pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0"
 pytest-django = "^4.1"
 pytest-gitignore = "^1.3"

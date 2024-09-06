@@ -52,7 +52,9 @@ export const useSocketStore = defineStore("socket", {
       });
       this.heartBeatTimer = window.setInterval(() => {
         try {
-          this.isConnected && this.app.config.globalProperties.$socket.send("");
+          if (this.isConnected) {
+            this.app.config.globalProperties.$socket.send("");
+          }
         } catch (error) {
           console.warn("keep-alive", error);
         }

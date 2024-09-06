@@ -104,6 +104,7 @@
     :true-value="true"
     @update:model-value="setSettingsClient({ cacheBook: $event })"
   />
+  <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
   <a
     v-if="isPDF"
     id="readPDFInBrowser"
@@ -111,6 +112,7 @@
     :href="bookInBrowserURL"
     target="_blank"
   >
+    <!-- eslint-enable -->
     <v-icon>{{ mdiOpenInNew }}</v-icon
     >Read PDF in Browser
   </a>

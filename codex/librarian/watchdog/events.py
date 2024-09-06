@@ -234,7 +234,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
         try:
             if event.is_directory or event.event_type in self.IGNORED_EVENTS:
                 return
-            src_cover_match = self._match_group_cover_image(event.src_path)
+            src_cover_match = self._match_group_cover_image(str(event.src_path))
             if event.event_type == EVENT_TYPE_MOVED:
                 send_event = self._transform_event_moved(event, src_cover_match)
             elif src_cover_match:
