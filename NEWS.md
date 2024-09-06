@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.6.18
+
+- Fixes
+
+  - Fix Library "Poll Every" validation.
+
 ## v1.6.17
 
 - Features
