@@ -21,7 +21,7 @@ export default {
   data() {
     return {
       FORMAT,
-      timeRules: [(v) => TIME_RE.text(v) || `Invalid time format ${FORMAT}`],
+      timeRules: [(v) => TIME_RE.test(v) || `Invalid time format ${FORMAT}`],
     };
   },
 };
