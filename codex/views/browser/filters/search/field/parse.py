@@ -21,7 +21,7 @@ from codex.views.browser.filters.search.field.expression import parse_expression
 if TYPE_CHECKING:
     from pyparsing.helpers import InfixNotationOperatorSpec
 
-_QUOTES_REXP =  r"(?:\".*?\")"
+_QUOTES_REXP = r"(?:\".*?\")"
 _OPERATORS_REXP = "|".join(("and not", "or not", "and", "or"))
 _BEGIN_NOT_REXP = r"^\s*\(?\s*(?P<not>not)"
 _IMPLICIT_AND_REXP = (
@@ -172,7 +172,7 @@ def get_field_query(rel, rel_class, exp, model, many_to_many):
     begin_not_match = _BEGIN_NOT_RE.search(exp)
     if begin_not_match:
         start = begin_not_match.start("not")
-        exp = exp[:start]  + '"" and ' + exp[start:]
+        exp = exp[:start] + '"" and ' + exp[start:]
 
     # Add implicit and for the parser
     exp = _IMPLICIT_AND_RE.sub(
