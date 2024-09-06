@@ -327,7 +327,6 @@ export const useBrowserStore = defineStore("browser", {
         // First url, initializing settings.
         // or
         // topGroup didn't change.
-        // console.log("validate topGroup didn't change");
         return redirect;
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);

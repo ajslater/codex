@@ -87,7 +87,7 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
-    getRelativePath(path) {
+    change(path) {
       let relativePath;
       if (path) {
         if (path.startsWith("/") || path.startsWith("\\")) {
@@ -98,10 +98,6 @@ export default {
       } else {
         relativePath = this.rootFolder;
       }
-      return relativePath;
-    },
-    change(path) {
-      const relativePath = this.getRelativePath(path);
       const isMenuOpen = this.menuOpen;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)

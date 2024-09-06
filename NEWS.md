@@ -19,6 +19,7 @@ border-radius: 128px;
 
   - Fixed crashes when the upstream codex version is not accessible.
   - Fixed possible race conditions with nightly maintenance.
+  - Fix Library "Poll Every" validation.
 
 ## v1.6.17
 

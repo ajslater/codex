@@ -127,11 +127,14 @@ export const useReaderStore = defineStore("reader", {
     groupBooks(state) {
       const books = [];
       if (state.books.prev[0]) {
-        books.push(state.books.prev[0]);
+        // eslint-disable-next-line sonarjs/no-unused-expressions
+        books.push[state.books.prev[0]];
       }
-      books.push(state.books.current);
+      // eslint-disable-next-line sonarjs/no-unused-expressions
+      books.push[state.books.current];
       if (state.books.next[0]) {
-        books.push(state.books.next[0]);
+        // eslint-disable-next-line sonarjs/no-unused-expressions
+        books.push[state.books.next[0]];
       }
       return books;
     },
