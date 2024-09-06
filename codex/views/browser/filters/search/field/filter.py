@@ -29,7 +29,8 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
 
     @classmethod
     def _hoist_not_filters_for_exclude(cls, filter_q_list, exclude_q_list, new_q):
-        """Turn not queries for m2m queries into excludes."""
+        """Peel top layer of queries into multiple filter and exclude clauses."""
+        # This makes m2m queries behave more as expected and may optimize fk queries.
         if new_q.connector == Q.AND:
             for child in new_q.children:
                 if isinstance(child, Q) and child.negated:
@@ -55,11 +56,8 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         try:
             rel_class, rel, many_to_many = parse_field(col)
 
-            q = get_field_query(rel, rel_class, exp, model, many_to_many)
-            if q and many_to_many:
+            if q := get_field_query(rel, rel_class, exp, model, many_to_many):
                 self._hoist_not_filters_for_exclude(filter_q_list, exclude_q_list, q)
-            else:
-                filter_q_list.append(q)
         except Exception as exc:
             token = f"{col}:{exp}"
             msg = f"Parsing field query {token} - {exc}"
