@@ -550,6 +550,9 @@ export const useBrowserStore = defineStore("browser", {
           this.$patch((state) => {
             state.settings.breadcrumbs = breadcrumbs;
             state.page = page;
+            if (state.settings.orderBy === "search_score" && !page.fts) {
+              state.settings.orderBy = "sort_name";
+            }
             state.choices.dynamic = undefined;
             state.browserPageLoaded = true;
           });
