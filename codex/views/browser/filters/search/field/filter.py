@@ -16,7 +16,11 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
     @staticmethod
     def _combine_q(q, other_q, op):
         if isinstance(other_q, tuple):
-            other_q = Q(**{other_q[0]: other_q[1]})
+            rel, val = other_q
+            if rel.endswith("__like") and val == "%":
+                # Remove likes that would match everything
+                return q
+            other_q = Q(**{rel: val})
         if op == Q.AND:
             q &= other_q
         else:

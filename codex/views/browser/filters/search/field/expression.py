@@ -141,6 +141,9 @@ def _glob_to_like(value) -> str:
             break
         value = new_value
 
+    if not value:
+        return "%"
+
     # Replace starts with like operands
     value = value.replace("*", "%")
 
