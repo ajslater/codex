@@ -84,7 +84,7 @@ before installing Codex.
 <!-- eslint-skip -->
 
 ```sh
-apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
 
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
@@ -103,7 +103,7 @@ apt-cache search libjpeg-turbo
 <!-- eslint-skip -->
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on non-debian Linux
@@ -121,7 +121,7 @@ Using [Homebrew](https://brew.sh/):
 <!-- eslint-skip -->
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python unrar webp
+brew install jpeg libffi libyaml libzip openssl python sqlite unrar webp
 ```
 
 ##### <a href="#windows">Windows</a> Dependencies
@@ -456,8 +456,8 @@ Shut down and restart Codex.
 
 The next time Codex starts it will back up the existing database and try to
 rebuild it. The database lives in the config directory as the file
-`config/db.sqlite3`. If this procedure goes kablooey, you may recover the
-original database at `config/db.sqlite3.backup`.
+`config/codex.sqlite3`. If this procedure goes kablooey, you may recover the
+original database at `config/backups/codex.sqlite3.bak`.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
