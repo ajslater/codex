@@ -57,17 +57,16 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             LOG.warning(msg)
             self.search_error = msg
 
-    def get_search_field_filters(self, model, field_tokens_dict):
+    def get_search_field_filters(self, model, field_token_pairs):
         """Parse and apply field query filters."""
         filter_q_list = []
         exclude_q_list = []
-        if not field_tokens_dict:
+        if not field_token_pairs:
             return filter_q_list, exclude_q_list
 
         filter_q_list.append(Q())
         exclude_q_list.append(Q())
-        for _preop, field_token_pairs in field_tokens_dict.items():
-            for col, exp in field_token_pairs:
+        for col, exp in field_token_pairs:
                 self._parse_field_query(col, exp, model, filter_q_list, exclude_q_list)
 
         return filter_q_list, exclude_q_list

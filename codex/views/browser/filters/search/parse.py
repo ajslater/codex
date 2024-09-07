@@ -48,7 +48,7 @@ _MULTI_COL_REXP = r"(?P<multi_col>\{.*?\})"
 _SINGLE_COL_REXP = r"(?P<col>[a-z_]+)"
 _EXP_REXP = rf"\s*(?P<exp>\(.*?\)|{_QUOTES_REXP}|\S+)"
 _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
-_TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?"
+_TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?" # noqa: S105
 _TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 
@@ -144,10 +144,15 @@ class SearchFilterView(BrowserFTSFilter):
         return field_tokens, text
 
     def _create_search_filters(self, model):
-        field_tokens, fts_text = self._preparse_search_query()
-        field_filter_q_list, field_exclude_q_list = self.get_search_field_filters(
-            model, field_tokens
-        )
+        field_tokens_dict, fts_text = self._preparse_search_query()
+        field_filter_q_list = []
+        field_exclude_q_list = []
+        for _preop, field_token_pairs in field_tokens_dict.items():
+            filter_q_list, exclude_q_list = self.get_search_field_filters(
+                model, field_token_pairs
+            )
+            field_filter_q_list += filter_q_list
+            field_exclude_q_list += exclude_q_list
         fts_filter = self.get_fts_filter(model, fts_text)
         return field_exclude_q_list, field_filter_q_list, fts_filter
 
