@@ -138,10 +138,10 @@
               </td>
             </tr>
             <tr>
-              <td><code>characters:*ond</code></td>
+              <td><code>characters:*orn</code></td>
               <td>
-                characters that end with "ond", like "Elrond". This type of
-                search can be slow
+                characters that end with "orn", like "Aragorn" and "Arathorn".
+                This type of search can be slow
               </td>
             </tr>
             <tr>
@@ -162,10 +162,28 @@
         <h3>Dates and DateTimes</h3>
         <p>
           Codex parses Dates and DateTime values liberally. Many quoted english
-          phrases also work, for instance:
-          <code>created_at:"3 days ago".."today"</code>
-          If the format you try fails, the <code>YYYY-MM-DD</code> and
-          <code>YYYY-MM-DD:HH:mm:SS</code> formats are reliable.
+          phrases also work. Such as relative dates like '1 min ago', '2 weeks
+          ago', '3 months, 1 week and 1 day ago', 'in 2 days', 'tomorrow'. Dates
+          with timezones and named months such as 'August 14, 2015 EST', 'July
+          4, 2013 PST', '21 July 2013 10:15 pm +0500'. Examples:
+        </p>
+        <table class="searchExample">
+          <tbody>
+            <tr>
+              <td>
+                <code>created_at:"3 days ago".."today"</code>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>date:"&lt;3 years ago"</code>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          If the format you try fails, the <br /><code>YYYY-MM-DD</code> and
+          <br /><code>YYYY-MM-DD-HH:mm:SS</code> formats are reliable.
         </p>
         <h3>Single Quote complex field Queries</h3>
         <p>
