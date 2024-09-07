@@ -38,7 +38,7 @@ _NON_FTS_COLUMNS = frozenset(
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
 _QUOTES_REXP = r"\".*?\""
 _COLUMN_EXPRESSION_OPERATORS_REXP = (
-    rf"(?:{_QUOTES_REXP})|(?P<star>\B[\*\!\<\>]\w|\.{2,}|\w\*\w)"
+    rf"(?:{_QUOTES_REXP})|(?P<star>\B[\*\<\>]\w|\.{2,}|\w\*\w)"
 )
 _COLUMN_EXPRESSION_OPERATORS_RE = re.compile(_COLUMN_EXPRESSION_OPERATORS_REXP)
 _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
