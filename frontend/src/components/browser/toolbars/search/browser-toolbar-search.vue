@@ -3,6 +3,7 @@
     <v-toolbar v-if="isSearchOpen" density="compact" :height="toolbarHeight">
       <v-toolbar-items id="searchToolbarItems">
         <BrowserSearchCombobox />
+        <SearchHelp />
       </v-toolbar-items>
     </v-toolbar>
   </v-slide-y-transition>
@@ -12,12 +13,14 @@
 import { mapState } from "pinia";
 
 import BrowserSearchCombobox from "@/components/browser/toolbars/search/search-combobox.vue";
+import SearchHelp from "@/components/browser/toolbars/search/search-help.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserSearchToolbar",
   components: {
     BrowserSearchCombobox,
+    SearchHelp,
   },
   computed: {
     ...mapState(useBrowserStore, {
