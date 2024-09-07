@@ -147,10 +147,16 @@ class SearchFilterView(BrowserFTSFilter):
         field_tokens_dict, fts_text = self._preparse_search_query()
         field_filter_q_list = []
         field_exclude_q_list = []
-        for _preop, field_token_pairs in field_tokens_dict.items():
-            filter_q_list, exclude_q_list = self.get_search_field_filters(
-                model, field_token_pairs
-            )
+        for preop, field_token_pairs in field_tokens_dict.items():
+            if preop == "not":
+                exclude_q_list, filter_q_list = self.get_search_field_filters(
+                    model, field_token_pairs
+                )
+            else:
+                filter_q_list, exclude_q_list = self.get_search_field_filters(
+                    model, field_token_pairs
+                )
+            print(preop, "FILTER", filter_q_list, "EXCLUDE", exclude_q_list)
             field_filter_q_list += filter_q_list
             field_exclude_q_list += exclude_q_list
         fts_filter = self.get_fts_filter(model, fts_text)
