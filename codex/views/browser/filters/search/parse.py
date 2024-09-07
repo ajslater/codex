@@ -48,7 +48,7 @@ _MULTI_COL_REXP = r"(?P<multi_col>\{.*?\})"
 _SINGLE_COL_REXP = r"(?P<col>[a-z_]+)"
 _EXP_REXP = rf"\s*(?P<exp>\(.*?\)|{_QUOTES_REXP}|\S+)"
 _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
-_TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?" # noqa: S105
+_TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?"  # noqa: S105
 _TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 
@@ -153,10 +153,11 @@ class SearchFilterView(BrowserFTSFilter):
                     model, field_token_pairs
                 )
             else:
+                # AND and OR
+                # XXX cannot do OR queries with MATCH, it decontextualizes MATCH somehow.
                 filter_q_list, exclude_q_list = self.get_search_field_filters(
                     model, field_token_pairs
                 )
-            print(preop, "FILTER", filter_q_list, "EXCLUDE", exclude_q_list)
             field_filter_q_list += filter_q_list
             field_exclude_q_list += exclude_q_list
         fts_filter = self.get_fts_filter(model, fts_text)
@@ -180,7 +181,6 @@ class SearchFilterView(BrowserFTSFilter):
             )
 
             # Apply filters
-            print(f"{field_exclude_q_list=} {field_filter_q_list=} {fts_filter=}")
             qs = self._apply_search_filter_list(qs, field_exclude_q_list, True)
             qs = self._apply_search_filter_list(qs, field_filter_q_list, False)
             if fts_filter:

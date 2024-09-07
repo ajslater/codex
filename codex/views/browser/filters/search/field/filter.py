@@ -41,9 +41,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
                     q = cls._combine_q(Q(), child, new_q.connector)
                     filter_q_list.append(q)
         else:
-            filter_q_list[0] = cls._combine_q(
-                filter_q_list[0], new_q, new_q.connector
-            )
+            filter_q_list[0] = cls._combine_q(filter_q_list[0], new_q, new_q.connector)
 
     def _parse_field_query(self, col, exp, model, filter_q_list, exclude_q_list):
         try:
@@ -67,6 +65,6 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         filter_q_list.append(Q())
         exclude_q_list.append(Q())
         for col, exp in field_token_pairs:
-                self._parse_field_query(col, exp, model, filter_q_list, exclude_q_list)
+            self._parse_field_query(col, exp, model, filter_q_list, exclude_q_list)
 
         return filter_q_list, exclude_q_list
