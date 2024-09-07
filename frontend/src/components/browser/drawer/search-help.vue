@@ -75,16 +75,10 @@
         </p>
         <h2>Field Search Syntax</h2>
         <p>
-          Similar to Codex's filter selector menu, you may query individual
-          comic fields in the database, but for more columns and with more
-          powerful operators than the exact match offered by the filter menu. A
+          Similar to Codex's Filter menu, you may query individual comic
+          metadata fields in the database but for more fields and with more
+          powerful operators than the exact match offered by the Filter menu. A
           field search looks like: <code>field:expression</code>.
-        </p>
-        <p>
-          The field syntax is parsed and removed from the search query
-          <em>before</em> parsing the remaining search string as a Full Text
-          Search. Thus field query tokens are applied to the search but ignored
-          by Full Text Search Boolean Operators.
         </p>
         <h3>Simple Values as the Expression</h3>
         <p>
@@ -92,18 +86,29 @@
           datetime and boolean fields. However for text fields the field is
           searched for any match of the entered value.
         </p>
+        <p>
+          The Prefix notiation for full text search tokens may also be used
+          here. <code>characters:saur*</code> will match comics that feature
+          "Sauron" and "Sauruman".
+        </p>
+        <h3>Field Search Boolean Expressions</h3>
+        <p>
+          Boolean operators may also used in and around field search if the
+          expression is contained in parenthesis.
+          <code>characters:(aragorn or boromir)</code> will work.
+          <code>characters:(not aragorn)</code> will behave similarly to
+          <code>not characters:aragorn</code>
+        </p>
         <h3>Leading Operators</h3>
         <p>
           Field Search has it's own operators that offer more powerful queries.
           For text, numeric, boolean and datetime fields may be applied at the
           beginning of the expression
           <code>&gt;</code
-          >,<code>&gt;=</code>,<code>&lt;</code>,<code>&lt;=</code>,
-          <code>!</code>. The <code>!</code> character indicates excluding the
-          following value. And the range syntax <code>..</code> accepts two
-          values. For instance:
+          >,<code>&gt;=</code>,<code>&lt;</code>,<code>&lt;=</code>. And the
+          range syntax <code>..</code> accepts two values. For instance:
         </p>
-        <table>
+        <table class="searchExample">
           <tbody>
             <tr>
               <td><code>pages:>30</code></td>
@@ -124,7 +129,7 @@
           Field search on text fields may be narrowed using the
           <code>*</code> operator:
         </p>
-        <table>
+        <table class="searchExample">
           <tbody>
             <tr>
               <td><code>characters:Ar*</code></td>
@@ -134,28 +139,33 @@
             </tr>
             <tr>
               <td><code>characters:*ond</code></td>
-              <td>characters that end with "ond", like "Elrond"</td>
+              <td>
+                characters that end with "ond", like "Elrond". This type of
+                search can be slow
+              </td>
             </tr>
             <tr>
               <td><code>series:sil*ion</code></td>
-              <td>series such as Silmarillion</td>
+              <td>
+                series such as Silmarillion. This type of search can be slow.
+              </td>
             </tr>
           </tbody>
         </table>
         <p>
-          Leading operators on text fields will perform much less efficient
-          lookups than <code>field:bare-words</code> and
-          <code>field:prefix*</code> operators. The latter is able to leverage
-          the fast full text indexing.
+          The last two examples of text search above looking for suffixes and
+          doing wildcard searches with the <code>*</code> in the middle of the
+          word will perform much worse than bare word or prefix searches because
+          they are unable to use the full text search index and will scan the
+          database in a less efficient manner.
         </p>
         <h3>Dates and DateTimes</h3>
         <p>
-          Codex parses Dates and DateTime values liberally. Read documentation
-          for what formats and natural language phrases are accepted. If the
-          format you try fails, the <code>YYYY-MM-DD</code> and
-          <code>YYYY-MM-DD:HH:mm:SS</code> formats are reliable. Many quoted
-          english phrases also work, for instance:
+          Codex parses Dates and DateTime values liberally. Many quoted english
+          phrases also work, for instance:
           <code>created_at:"3 days ago".."today"</code>
+          If the format you try fails, the <code>YYYY-MM-DD</code> and
+          <code>YYYY-MM-DD:HH:mm:SS</code> formats are reliable.
         </p>
         <h3>Single Quote complex field Queries</h3>
         <p>
@@ -171,15 +181,12 @@
           <code>gib</code> and <code>tib</code>. For instance
           <code>size:>10mb</code>
         </p>
-        <h3>Multiple Values</h3>
+        <h2>Limitations</h2>
         <p>
-          Fields may have multiple expressions that all match against the same
-          field:
-          <code>field:value1,!value2,>=value3</code>
-          If separated by a comma <code>,</code> the terms are ANDed together
-          and a row must match all the expressions. If separated by a pipe
-          <code>|</code> they are ORed together row will match if any of the
-          expressions match.
+          Field searches that use leading operators or text wildcard operators
+          that are prefixed with the <code>OR</code> operator like
+          <code>OR year:>2020</code> will disregard the <code>OR</code> operator
+          and treat it like <code>AND</code>.
         </p>
       </div>
       <CloseButton
@@ -321,5 +328,9 @@ code {
   width: fit-content;
   background-color: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-textHeader)) !important;
+}
+
+.searchExample td {
+  padding: 0.25em;
 }
 </style>
