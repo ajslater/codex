@@ -155,6 +155,8 @@ class SearchFilterView(BrowserFTSFilter):
             else:
                 # AND and OR
                 # XXX cannot do OR queries with MATCH, it decontextualizes MATCH somehow.
+                if preop == "or":
+                    self.search_error = "OR preceding column tokens with operator expressions will act as AND"
                 filter_q_list, exclude_q_list = self.get_search_field_filters(
                     model, field_token_pairs
                 )
