@@ -48,7 +48,8 @@ _MULTI_COL_REXP = r"(?P<multi_col>\{.*?\})"
 _SINGLE_COL_REXP = r"(?P<col>[a-z_]+)"
 _EXP_REXP = rf"\s*(?P<exp>\(.*?\)|{_QUOTES_REXP}|\S+)"
 _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
-_TOKEN_REXP = rf"(?P<token>{_COL_REXP}|\S+)"
+_TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?"
+_TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 
 
@@ -79,14 +80,18 @@ class SearchFilterView(BrowserFTSFilter):
                 return True
         return False
 
-    def _parse_column_match(self, col, exp, field_tokens):  # , fts_tokens):
+    def _parse_column_match(self, preop, col, exp, field_tokens):  # , fts_tokens):
         col = ALIAS_FIELD_MAP.get(col, col)
         if col not in _VALID_COLUMNS:
             return True
         if col == "path" and not self._is_path_column_allowed():
             return True
         if col in _NON_FTS_COLUMNS or self._is_column_operators_used(exp):
-            field_tokens.add((col, exp))
+            if not preop:
+                preop = "and"
+            if preop not in field_tokens:
+                field_tokens[preop] = set()
+            field_tokens[preop].add((col, exp))
             return True
 
         return False
@@ -115,13 +120,14 @@ class SearchFilterView(BrowserFTSFilter):
             self._add_fts_token(fts_tokens, token)
             return
 
-        if not self._parse_column_match(col, exp, field_tokens):
+        preop = match.group("preop")
+        if not self._parse_column_match(preop, col, exp, field_tokens):
             self._add_fts_token(fts_tokens, token)
 
     def _preparse_search_query(self):
         """Preparse search fields out of query text."""
         text = self.params.get("q")  # type: ignore
-        field_tokens = set()
+        field_tokens = {}
         if not text:
             return field_tokens, text
 
@@ -163,6 +169,7 @@ class SearchFilterView(BrowserFTSFilter):
             )
 
             # Apply filters
+            print(f"{field_exclude_q_list=} {field_filter_q_list=} {fts_filter=}")
             qs = self._apply_search_filter_list(qs, field_exclude_q_list, True)
             qs = self._apply_search_filter_list(qs, field_filter_q_list, False)
             if fts_filter:
