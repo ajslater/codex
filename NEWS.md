@@ -10,10 +10,10 @@ border-radius: 128px;
 
 - Features
 
-  - Use SQLite Full Text Search for search engine. Some search syntax has
-    changed, see the help popup. You may remove the directory
-    `config/whoosh_index`
+  - Use SQLite Full Text Search for search engine. Search syntax has changed,
+    see the help popup.
   - Use faster db column lookups for some search bar queries. Thanks @bmfrosty.
+  - You may remove the directory `config/whoosh_index`.
 
 - Fixes
 
