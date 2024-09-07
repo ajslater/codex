@@ -182,8 +182,11 @@
           </tbody>
         </table>
         <p>
-          If the format you try fails, the <br /><code>YYYY-MM-DD</code> and
-          <br /><code>YYYY-MM-DD-HH:mm:SS</code> formats are reliable.
+          Placing a leading operator outside the quotes for a date phrase will
+          not be parsed correctly. If the format you try fails, the <br /><code
+            >YYYY-MM-DD</code
+          >
+          and <br /><code>YYYY-MM-DD-HH:mm:SS</code> formats are reliable.
         </p>
         <h3>Single Quote complex field Queries</h3>
         <p>
