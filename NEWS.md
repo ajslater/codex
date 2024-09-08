@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
 
+  - Fix populating arcs in reading order menu in reader.
   - Fix Library "Poll Every" validation.
 
 ## v1.6.17

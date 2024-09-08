@@ -78,10 +78,11 @@ class ReaderInitView(SessionView):
         arc_pks = arc.get("pks")
         valid = False
         if rel := GROUP_RELATION.get(arc_group):
+            rel += "__in"
             arc_filter = {rel: arc_pks}
             valid = Comic.objects.filter(pk=pk, **arc_filter).exists()
         if not valid:
-            LOG.warning(f"Invalid arc {arc} submitted to reader for comic {pk}.")
+            LOG.warning(f"Comic {pk} not in arc {arc} submitted to reader.")
             params.pop("arc", None)
 
     def _ensure_arc(self, params):
