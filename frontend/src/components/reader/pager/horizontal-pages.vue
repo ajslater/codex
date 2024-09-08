@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "pinia";
+import { mapActions } from "pinia";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
 import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
@@ -29,10 +29,10 @@ export default {
   props: {
     book: { type: Object, required: true },
     page: { type: Number, required: true },
+    isReadInReverse: { type: Boolean, required: true },
   },
   emits: ["click"],
   computed: {
-    ...mapGetters(useReaderStore, ["isCoverPage", "isReadInReverse"]),
     showSecondPage() {
       const settings = this.getSettings(this.book);
       return (
@@ -55,7 +55,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
+    ...mapActions(useReaderStore, ["getSettings", "isCoverPage"]),
   },
 };
 </script>

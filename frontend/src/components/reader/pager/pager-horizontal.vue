@@ -20,17 +20,21 @@
       :model-value="page"
       :transition="true"
     >
-      <HorizontalPages :book="book" :page="page" />
+      <HorizontalPages
+        :book="book"
+        :page="page"
+        :is-read-in-reverse="isReadInReverse"
+      />
     </v-window-item>
   </v-window>
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
 import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
-import { useReaderStore } from "@/stores/reader";
+import { REVERSE_READING_DIRECTIONS, useReaderStore } from "@/stores/reader";
 import { range } from "@/util";
 
 const WINDOW_BACK_BOUND = 48;
@@ -44,6 +48,7 @@ export default {
   },
   props: {
     book: { type: Object, required: true },
+    bookSettings: { type: Object, required: true },
   },
   data() {
     return {
@@ -52,7 +57,6 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isReadInReverse"]),
     ...mapState(useReaderStore, {
       prevBook: (state) => state.routes.books?.prev,
       nextBook: (state) => state.routes.books?.next,
@@ -60,8 +64,10 @@ export default {
       storePk: (state) => state.books.current.pk,
     }),
     twoPages() {
-      const settings = this.getSettings(this.book);
-      return settings.twoPages;
+      return this.bookSettings.twoPages;
+    },
+    isReadInReverse() {
+      return REVERSE_READING_DIRECTIONS.has(this.bookSettings.readingDirection);
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];
@@ -107,11 +113,7 @@ export default {
     this.setPages();
   },
   methods: {
-    ...mapActions(useReaderStore, [
-      "getSettings",
-      "setBookChangeFlag",
-      "setActivePage",
-    ]),
+    ...mapActions(useReaderStore, ["setBookChangeFlag", "setActivePage"]),
     setPages() {
       const backPages = Math.max(this.activePage - WINDOW_BACK_BOUND, 0);
       const forePages = Math.min(
