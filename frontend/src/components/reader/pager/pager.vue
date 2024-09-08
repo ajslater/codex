@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
@@ -33,6 +33,7 @@ export default {
     return this.prefetchBook(this.book);
   },
   computed: {
+    ...mapGetters(useReaderStore, ["cacheBook"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),
@@ -48,11 +49,7 @@ export default {
       );
     },
     readerFullPdf() {
-      return (
-        this.book?.fileType == "PDF" &&
-        this.bookSettings.cacheBook &&
-        !this.isVertical
-      );
+      return this.book?.fileType == "PDF" && this.cacheBook && !this.isVertical;
     },
     component() {
       if (this.readerFullPdf) {
