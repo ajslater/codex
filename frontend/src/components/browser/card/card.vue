@@ -80,21 +80,24 @@ export default {
     ids() {
       return this.item.ids.join(",");
     },
+    browserRoute() {
+      return {
+        name: "browser",
+        params: {
+          group: this.item.group,
+          pks: this.ids,
+          page: 1,
+        },
+        query: { ts: this.item.mtime },
+      };
+    },
     toRoute() {
       if (!this.doubleTapHovered) {
         return {};
       }
       return this.item.group === "c"
         ? getReaderRoute(this.item, this.importMetadata)
-        : {
-            name: "browser",
-            params: {
-              group: this.item.group,
-              pks: this.ids,
-              page: 1,
-            },
-            query: { ts: this.item.mtime },
-          };
+        : this.browserRoute;
     },
     progressBGOpacity() {
       return this.item.progress ? 0.1 : 0.0;
@@ -161,7 +164,7 @@ export default {
   border-color: rbg(var(--v-theme-primary));
 }
 
-.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
+.browserCardCoverWrapper:hover>.browserCardTop>.cardCoverOverlay * {
   background-color: transparent;
   opacity: 1;
 }
