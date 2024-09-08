@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
@@ -67,7 +67,6 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings.scale,
     }),

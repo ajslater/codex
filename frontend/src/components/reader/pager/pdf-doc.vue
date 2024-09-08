@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
@@ -28,6 +28,8 @@ export default {
     book: { type: Object, required: true },
     page: { type: Number, required: true },
     src: { type: String, required: true },
+    bookSettings: { type: Object, required: true },
+    isVertical: { type: Boolean, required: true },
   },
   emits: ["load", "error", "unauthorized"],
   data() {
@@ -37,27 +39,23 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings.scale,
     }),
-    settings() {
-      return this.getSettings(this.book);
-    },
     width() {
       // Wide PDFs will not fit to SCREEN well.
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
       // Maybe not impossible but I'm lazy right now.
-      let width = ["W", "O"].includes(this.settings.fitTo)
+      let width = ["W", "O"].includes(this.bookSettings.fitTo)
         ? this.innerWidth
         : 0;
-      if (!this.isVertical && this.settings.twoPages) {
+      if (!this.isVertical && this.bookSettings.twoPages) {
         width = width / 2;
       }
       return width * this.scale;
     },
     height() {
-      let height = ["H", "S"].includes(this.settings.fitTo)
+      let height = ["H", "S"].includes(this.bookSettings.fitTo)
         ? this.innerHeight
         : 0;
       if (this.isVertical) {

@@ -1,7 +1,7 @@
 <template>
   <span>
-    <PageChangeLink direction="prev" />
-    <PageChangeLink direction="next" />
+    <PageChangeLink direction="prev" :is-vertical="isVertical" />
+    <PageChangeLink direction="next" :is-vertical="isVertical" />
     <ScaleForScroll>
       <PdfDoc :book="book" :page="page" :src="src" class="fullPdfPage" />
     </ScaleForScroll>
@@ -22,6 +22,7 @@ export default {
   components: { PageChangeLink, PdfDoc, ScaleForScroll },
   props: {
     book: { type: Object, required: true },
+    isVertical: { type: Boolean, required: true },
   },
   emits: ["load", "error", "unauthorized"],
   computed: {

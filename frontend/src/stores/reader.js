@@ -33,7 +33,7 @@ const DIRECTION_REVERSE_MAP = {
 Object.freeze(DIRECTION_REVERSE_MAP);
 const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 Object.freeze(PREFETCH_LINK);
-const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
+export const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
 Object.freeze(VERTICAL_READING_DIRECTIONS);
 const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
 Object.freeze(REVERSE_READING_DIRECTIONS);

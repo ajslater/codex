@@ -19,12 +19,13 @@ export default {
   name: "PageChangeLink",
   props: {
     direction: { type: String, required: true },
+    isVertical: { type: Boolean, default: false },
   },
   head() {
     return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical", "isFirstPage", "isLastPage"]),
+    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage"]),
     ...mapState(useReaderStore, {
       params(state) {
         return state.routes[this.computedDirection];
@@ -75,23 +76,28 @@ export default {
   height: calc(100vh - 96px);
   width: 33vw;
 }
+
 .pageChangeRow {
   position: fixed;
   height: 33vh;
   width: 100%;
 }
+
 .prev {
   left: 0px;
   cursor: w-resize;
 }
+
 .prevVertical {
   top: 0px;
   cursor: n-resize;
 }
+
 .next {
   right: 0px;
   cursor: e-resize;
 }
+
 .nextVertical {
   bottom: 0px;
   cursor: s-resize;
