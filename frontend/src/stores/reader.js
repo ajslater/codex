@@ -53,12 +53,12 @@ const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
 Object.freeze(READER_INFO_ONLY_KEYS);
 
 const getGlobalFitToDefault = () => {
-  // Big screens default to fit by HEIGHT, small to WIDTH;
+  // Big screens default to fit by SCREEN, small to WIDTH;
   const vw = Math.max(
     document.documentElement.clientWidth || 0,
     window.innerWidth || 0,
   );
-  return vw > 600 ? "HEIGHT" : "WIDTH";
+  return vw > 600 ? "S" : "W";
 };
 
 const ensureNoTwoPageVertical = (settings) => {
