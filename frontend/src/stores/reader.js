@@ -35,7 +35,7 @@ const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 Object.freeze(PREFETCH_LINK);
 export const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
 Object.freeze(VERTICAL_READING_DIRECTIONS);
-const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
+export const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
 Object.freeze(REVERSE_READING_DIRECTIONS);
 const OPPOSITE_READING_DIRECTIONS = {
   ltr: "rtl",
