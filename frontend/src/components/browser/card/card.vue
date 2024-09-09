@@ -40,7 +40,7 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
-import { IS_IOS, IS_TOUCH } from "@/platform";
+import { NO_DOUBLE_TAP_FOR_HOVER } from "@/platform";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -63,7 +63,7 @@ export default {
   },
   data() {
     return {
-      doubleTapHovered: !IS_TOUCH || IS_IOS,
+      doubleTapHovered: NO_DOUBLE_TAP_FOR_HOVER,
     };
   },
   // Stored here instead of data to be non-reactive
