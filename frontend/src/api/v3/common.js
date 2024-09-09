@@ -71,7 +71,7 @@ const _addTimestamp = (params, ts) => {
 };
 
 export const serializeParams = (data, ts) => {
-  const params = _filterEmptyParams(data);
+  const params = _filterEmptyParams(data) || {};
   _jsonSerialize(params);
   _addTimestamp(params, ts);
   return params;
