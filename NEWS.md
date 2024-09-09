@@ -12,6 +12,7 @@ border-radius: 128px;
 
   - Fix populating arcs in reading order menu in reader.
   - Fix Library "Poll Every" validation.
+  - Fix Metadata dialog not scrolling sometimes.
 
 ## v1.6.17
 
