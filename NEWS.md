@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
 
+  - Fix browser opening reader at correct bookmark.
   - Fix populating arcs in reading order menu in reader.
   - Fix Library "Poll Every" validation.
   - Fix Metadata dialog not scrolling sometimes.
