@@ -65,14 +65,14 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             ).on
             self.status_controller.start_many(_JANITOR_STATII)
             tasks = (
+                JanitorUpdateTask(force=False),
                 SearchIndexAbortTask(),
                 JanitorCleanFKsTask(),
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
+                AdoptOrphanFoldersTask(),
                 JanitorVacuumTask(),
                 JanitorBackupTask(),
-                JanitorUpdateTask(force=False),
-                AdoptOrphanFoldersTask(),
                 CoverRemoveOrphansTask(),
                 SearchIndexUpdateTask(False),
                 SearchIndexMergeTask(optimize),
