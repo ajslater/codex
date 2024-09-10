@@ -98,9 +98,9 @@ class Janitor(
                 case JanitorBackupTask():
                     self.backup_db()
                 case JanitorLatestVersionTask():
-                    self.update_latest_version()
+                    self.update_latest_version(task.force)
                 case JanitorUpdateTask():
-                    self.update_codex()
+                    self.update_codex(task.force)
                 case JanitorRestartTask():
                     self.restart_codex()
                 case JanitorShutdownTask():

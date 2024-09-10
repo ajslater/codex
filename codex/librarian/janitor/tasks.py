@@ -9,15 +9,16 @@ class JanitorTask:
 
 
 @dataclass
-class JanitorLatestVersionTask:
+class JanitorLatestVersionTask(JanitorTask):
     """Get the latest version."""
 
+    force: bool = False
 
 @dataclass
 class JanitorUpdateTask(JanitorTask):
     """Task for updater."""
 
-    force: bool
+    force: bool = False
 
 
 @dataclass

@@ -89,7 +89,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             "db_backup": JanitorBackupTask(),
             "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
             "watchdog_sync": WatchdogSyncTask(),
-            "codex_latest_version": JanitorLatestVersionTask(),
+            "codex_latest_version": JanitorLatestVersionTask(True),
             "codex_update": JanitorUpdateTask(False),
             "codex_shutdown": JanitorShutdownTask(),
             "codex_restart": JanitorRestartTask(),
