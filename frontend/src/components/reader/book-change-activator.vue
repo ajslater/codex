@@ -1,7 +1,6 @@
 <template>
   <div
-    v-if="show"
-    class="bookChangeColumn"
+    class="changeColumn"
     :class="{ [positionClass]: true, [cursorClass]: true }"
     @click.stop="setBookChangeFlag(direction)"
   />
@@ -35,9 +34,6 @@ export default {
     cursorClass() {
       return this.bookChangeCursorClass(this.direction);
     },
-    show() {
-      return this.bookChangeShow(this.computedDirection);
-    },
   },
   methods: {
     ...mapActions(useReaderStore, [
@@ -45,27 +41,25 @@ export default {
       "normalizeDirection",
       "bookChangeLocation",
       "bookChangeCursorClass",
-      "bookChangeShow",
     ]),
   },
 };
 </script>
 <style scoped lang="scss">
-.bookChangeColumn {
-  position: fixed;
-  top: 48px;
-  height: calc(100vh - 96px);
-  width: 33vw;
-}
+@import "./change-column.scss";
+
 .leftPos {
   left: 0px;
 }
+
 .rightPos {
   right: 0px;
 }
+
 .upCursor {
   cursor: n-resize;
 }
+
 .downCursor {
   cursor: s-resize;
 }

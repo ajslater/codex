@@ -3,8 +3,8 @@
     v-if="show"
     :to="route"
     :aria-label="label"
+    class="changeColumn"
     :class="{
-      [pageChangeClass]: true,
       [directionClass]: true,
     }"
     @click="$event.stopImmediatePropagation()"
@@ -19,13 +19,12 @@ export default {
   name: "PageChangeLink",
   props: {
     direction: { type: String, required: true },
-    isVertical: { type: Boolean, default: false },
   },
   head() {
     return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage"]),
+    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage", "isVertical"]),
     ...mapState(useReaderStore, {
       params(state) {
         return state.routes[this.computedDirection];
@@ -35,21 +34,18 @@ export default {
       return this.normalizeDirection(this.direction);
     },
     show() {
+      if (this.isVertical) {
+        return false;
+      }
       return this.computedDirection === "prev"
         ? !this.isFirstPage
         : !this.isLastPage;
     },
     pageChangeClass() {
-      let pcc = "pageChange";
-      pcc += this.isVertical ? "Row" : "Column";
-      return pcc;
+      return "pageChangeColumn";
     },
     directionClass() {
-      let dc = this.direction;
-      if (this.isVertical) {
-        dc += "Vertical";
-      }
-      return dc;
+      return this.direction;
     },
     route() {
       return this.toRoute(this.params);
@@ -70,36 +66,15 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.pageChangeColumn {
-  position: fixed;
-  top: 48px;
-  height: calc(100vh - 96px);
-  width: 33vw;
-}
-
-.pageChangeRow {
-  position: fixed;
-  height: 33vh;
-  width: 100%;
-}
+@import "./change-column.scss";
 
 .prev {
   left: 0px;
   cursor: w-resize;
 }
 
-.prevVertical {
-  top: 0px;
-  cursor: n-resize;
-}
-
 .next {
   right: 0px;
   cursor: e-resize;
-}
-
-.nextVertical {
-  bottom: 0px;
-  cursor: s-resize;
 }
 </style>
