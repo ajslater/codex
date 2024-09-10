@@ -1,6 +1,7 @@
 // Identify platforms for special behaviors
+
 const IS_APPLE_OR_ANDROID_IN_DESKTOP_MODE_RE =
-  /iP(?:ad|hone|od)|Mac OS|X11; Linux/;
+  /iP(?:ad|hone|od)|Mac OS|X11; Linux/; // codespell:ignore od
 
 const noDoubleTapForHover = () => {
   const IS_TOUCH =
