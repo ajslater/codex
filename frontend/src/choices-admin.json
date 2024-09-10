@@ -155,6 +155,11 @@
       "title": "Codex Software",
       "tasks": [
         {
+          "value": "codex_latest_version",
+          "title": "Check for Codex Latest Version",
+          "desc": "Check PyPi for the latest version of Codex"
+        },
+        {
           "value": "codex_update",
           "title": "Update Codex",
           "desc": "If Codex updates to a new version, it will restart",
