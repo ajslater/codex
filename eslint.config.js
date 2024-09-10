@@ -7,7 +7,6 @@ import eslintPluginJsonc from "eslint-plugin-jsonc";
 import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
-import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 import eslintPluginPrettier from "eslint-plugin-prettier";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginPromise from "eslint-plugin-promise";
@@ -60,7 +59,6 @@ export default [
   eslintPluginDepend.configs[FLAT_RECOMMENDED],
   ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
-  eslintPluginNoUseExtendNative.configs.recommended,
   ...eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginPrettierRecommended,
   eslintPluginPromise.configs[FLAT_RECOMMENDED],
