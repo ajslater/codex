@@ -105,36 +105,35 @@
     @update:model-value="setSettingsClient({ cacheBook: $event })"
   />
   <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
-  <a
-    v-if="isPDF"
-    id="readPDFInBrowser"
-    class="readerDrawerItem"
-    :href="bookInBrowserURL"
+  <DrawerItem
+    v-if="pdfInBrowserURL"
+    :prepend-icon="mdiEye"
+    :append-icon="mdiOpenInNew"
+    title="Read in Tab"
+    :href="pdfInBrowserURL"
     target="_blank"
-  >
-    <!-- eslint-enable -->
-    <v-icon>{{ mdiOpenInNew }}</v-icon
-    >Read PDF in Browser
-  </a>
+  />
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
+import { mdiEye, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getPDFInBrowserURL } from "@/api/v3/reader";
+import DrawerItem from "@/components/drawer-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
-
 const ATTRS = ["fitTo", "readingDirection", "twoPages"];
 Object.freeze(ATTRS);
 
 export default {
   name: "ReaderSettingsPanel",
+  components: { DrawerItem },
   data() {
     return {
       isGlobalScope: false,
       mdiOpenInNew,
+      mdiEye,
       openDelay: 2000,
     };
   },
@@ -161,8 +160,8 @@ export default {
         }
         return true;
       },
-      bookInBrowserURL(state) {
-        if (state.books?.current) {
+      pdfInBrowserURL(state) {
+        if (this.isPDF && state.books?.current) {
           return getPDFInBrowserURL(state.books?.current);
         } else {
           return "";
@@ -288,14 +287,6 @@ export default {
 #clearSettingsButton {
   margin-top: 6px;
   margin-bottom: 4px;
-}
-
-#readPDFInBrowser {
-  display: block;
-  padding-top: 6px;
-  padding-left: 17px;
-  padding-bottom: 6px;
-  color: rgba(var(--v-theme-textSecondary));
 }
 
 #readerScopedSettings {
