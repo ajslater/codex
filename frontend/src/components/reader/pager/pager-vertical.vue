@@ -10,7 +10,13 @@
       :width="innerWidth"
     >
       <template #default="{ item }">
-        <BookPage :book="book" :page="item" class="verticalPage" />
+        <BookPage
+          :book="book"
+          :page="item"
+          :book-settings="bookSettings"
+          :is-vertical="true"
+          class="verticalPage"
+        />
         <div
           v-intersect.quiet="intersectOptions"
           class="pageTracker"
@@ -41,6 +47,7 @@ export default {
   },
   props: {
     book: { type: Object, required: true },
+    bookSettings: { type: Object, required: true },
   },
   data() {
     return {

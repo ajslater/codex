@@ -19,12 +19,13 @@ export default {
   name: "PageChangeLink",
   props: {
     direction: { type: String, required: true },
+    isVertical: { type: Boolean, default: false },
   },
   head() {
     return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage", "isVertical"]),
+    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage"]),
     ...mapState(useReaderStore, {
       params(state) {
         return state.routes[this.computedDirection];
@@ -66,7 +67,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-@import "./change-column.scss";
+@import "../change-column.scss";
 
 .prev {
   left: 0px;

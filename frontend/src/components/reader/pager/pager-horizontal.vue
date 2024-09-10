@@ -1,5 +1,16 @@
 <template>
-  <v-window continuous :model-value="windowIndex" :reverse="isReadInReverse">
+  <v-window
+    show-arrows
+    continuous
+    :model-value="windowIndex"
+    :reverse="isReadInReverse"
+  >
+    <template #prev>
+      <PageChangeLink direction="prev" />
+    </template>
+    <template #next>
+      <PageChangeLink direction="next" />
+    </template>
     <v-window-item
       v-for="page of pages"
       :key="`c/${book.pk}/${page}`"
@@ -11,6 +22,7 @@
     >
       <HorizontalPages
         :book="book"
+        :book-settings="bookSettings"
         :page="page"
         :is-read-in-reverse="isReadInReverse"
       />
@@ -22,6 +34,7 @@
 import { mapActions, mapState } from "pinia";
 
 import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
+import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
 import { REVERSE_READING_DIRECTIONS, useReaderStore } from "@/stores/reader";
 import { range } from "@/util";
 
@@ -32,6 +45,7 @@ export default {
   name: "PagerHorizontal",
   components: {
     HorizontalPages,
+    PageChangeLink,
   },
   props: {
     book: { type: Object, required: true },

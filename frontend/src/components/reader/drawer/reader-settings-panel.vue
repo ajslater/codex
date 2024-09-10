@@ -122,7 +122,7 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
-import { getBookInBrowserURL } from "@/api/v3/common";
+import { getPDFInBrowserURL } from "@/api/v3/reader";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 
@@ -163,7 +163,7 @@ export default {
       },
       bookInBrowserURL(state) {
         if (state.books?.current) {
-          return getBookInBrowserURL(state.books?.current);
+          return getPDFInBrowserURL(state.books?.current);
         } else {
           return "";
         }
@@ -274,6 +274,7 @@ export default {
 .scopeRadioButton {
   padding-top: 10px;
 }
+
 .readerDrawerItem {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
@@ -296,9 +297,10 @@ export default {
   padding-bottom: 6px;
   color: rgba(var(--v-theme-textSecondary));
 }
+
 #readerScopedSettings {
   // halfway between background (18) and surface (33) color
-  background-color: rgb(25,25,25); //rgba(var(--v-theme-surface));
+  background-color: rgb(25, 25, 25); //rgba(var(--v-theme-surface));
   margin-top: 4px;
   margin-left: 10px;
   padding-left: 5px;

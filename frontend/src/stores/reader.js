@@ -339,21 +339,23 @@ export const useReaderStore = defineStore("reader", {
       }
       return routeParams;
     },
-    fitToClass(book) {
-      const settings = this.getSettings(book);
+    fitToClass(bookSettings) {
       const classes = {};
       let fitTo;
       if (this.clientSettings.scale > SCALE_DEFAULT) {
         fitTo = "Orig";
       } else {
-        fitTo = FIT_TO_CHOICES[settings.fitTo];
+        fitTo = FIT_TO_CHOICES[bookSettings.fitTo];
       }
       if (fitTo) {
         let fitToClass = "fitTo";
         fitToClass += capitalCase(fitTo);
-        if (this.isVertical) {
+        const isVertical = VERTICAL_READING_DIRECTIONS.has(
+          bookSettings.readingDirection,
+        );
+        if (isVertical) {
           fitToClass += "Vertical";
-        } else if (settings.twoPages) {
+        } else if (bookSettings.twoPages) {
           fitToClass += "Two";
         }
         classes[fitToClass] = true;

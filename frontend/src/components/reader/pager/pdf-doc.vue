@@ -7,11 +7,11 @@
     :source="src"
     :width="width"
     :height="height"
-    @rendered="$emit('load')"
-    @internal-link-clicked="routeToPage"
-    @loading-failed="$emit('error')"
-    @rendering-failed="$emit('error')"
-    @password-requested="$emit('unauthorized')"
+    @rendered="onLoad"
+    @internal-link-clicked="onLinkClicked"
+    @loading-failed="onError"
+    @rendering-failed="onError"
+    @password-requested="onUnauthorized"
   />
 </template>
 
@@ -26,10 +26,10 @@ export default {
   components: { VuePdfEmbed },
   props: {
     book: { type: Object, required: true },
-    page: { type: Number, required: true },
-    src: { type: String, required: true },
     bookSettings: { type: Object, required: true },
     isVertical: { type: Boolean, required: true },
+    page: { type: Number, required: true },
+    src: { type: String, required: true },
   },
   emits: ["load", "error", "unauthorized"],
   data() {
@@ -65,7 +65,7 @@ export default {
       return height * this.scale;
     },
     classes() {
-      return this.fitToClass(this.book);
+      return this.fitToClass(this.bookSettings);
     },
   },
   mounted() {
@@ -79,6 +79,19 @@ export default {
     onResize() {
       this.innerHeight = window.innerHeight;
       this.innerWidth = window.innerWidth;
+    },
+    onLoad() {
+      this.$emit("load");
+    },
+    onLinkClicked(event) {
+      this.routeToPage(event);
+    },
+    onError(event) {
+      console.error(event);
+      this.$emit("error");
+    },
+    onUnauthorized() {
+      this.$emit("unauthorized");
     },
   },
 };

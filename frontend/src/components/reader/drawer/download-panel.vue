@@ -17,6 +17,7 @@
 import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import { getDownloadIOSPWAFix } from "@/api/v3/common";
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
 import DrawerItem from "@/components/drawer-item.vue";
 import { useCommonStore } from "@/stores/common";
@@ -50,7 +51,8 @@ export default {
       return getDownloadPageURL({ pk, page: this.storePage, mtime });
     },
     pageName() {
-      return `${this.activeTitle} - page ${this.storePage}.jpg`;
+      const suffix = this.currentBook.fileType === "PDF" ? "pdf" : "jpg";
+      return `${this.activeTitle} - page ${this.storePage}.${suffix}`;
     },
     downloadPageTitle() {
       return `Download Page ${this.storePage}`;
@@ -59,10 +61,10 @@ export default {
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     downloadPage() {
-      this.downloadIOSPWAFix(this.pageSrc, this.pageName);
+      getDownloadIOSPWAFix(this.pageSrc, this.pageName);
     },
     downloadBook() {
-      this.downloadIOSPWAFix(this.downloadURL, this.filename);
+      getDownloadIOSPWAFix(this.downloadURL, this.filename);
     },
   },
 };

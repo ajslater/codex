@@ -4,12 +4,14 @@
       v-if="showPageOne"
       ref="pageOne"
       :book="book"
+      :book-settings="bookSettings"
       :page="pageOne"
       class="horizontalPage"
     />
     <BookPage
       v-if="showPageTwo"
       :book="book"
+      :book-settings="bookSettings"
       :page="pageTwo"
       class="horizontalPage"
     />
@@ -28,6 +30,7 @@ export default {
   components: { BookPage, ScaleForScroll },
   props: {
     book: { type: Object, required: true },
+    bookSettings: { type: Object, required: true },
     page: { type: Number, required: true },
     isReadInReverse: { type: Boolean, required: true },
   },

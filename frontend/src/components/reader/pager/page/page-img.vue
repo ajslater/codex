@@ -18,6 +18,7 @@ export default {
   name: "ImgPage",
   props: {
     book: { type: Object, required: true },
+    bookSettings: { type: Object, required: true },
     src: { type: String, required: true },
   },
   emits: ["load", "error"],
@@ -42,7 +43,7 @@ export default {
       return s;
     },
     classes() {
-      return this.fitToClass(this.book);
+      return this.fitToClass(this.bookSettings);
     },
   },
   methods: {

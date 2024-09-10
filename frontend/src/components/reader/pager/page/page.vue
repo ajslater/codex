@@ -21,6 +21,8 @@
       v-else
       ref="pageComponent"
       :book="book"
+      :book-settings="bookSettings"
+      :is-vertical="isVertical"
       :page="1"
       :src="src"
       @error="onError"
@@ -53,6 +55,11 @@ export default {
       type: Object,
       required: true,
     },
+    bookSettings: {
+      type: Object,
+      required: true,
+    },
+    isVertical: { type: Boolean, default: false },
     page: {
       type: Number,
       required: true,
