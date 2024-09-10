@@ -24,6 +24,7 @@
     "IFI": "Record Failed Imports",
     "IGU": "Update First Covers",
     "JTD": "Cleanup Stale Tags",
+    "JLV": "Check Codex Latest Version",
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",

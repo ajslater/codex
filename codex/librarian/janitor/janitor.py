@@ -8,6 +8,7 @@ from codex.librarian.importer.tasks import (
 )
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
+from codex.librarian.janitor.latest_version import LatestVersionMixin
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -16,6 +17,7 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
+    JanitorLatestVersionTask,
     JanitorNightlyTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -47,10 +49,13 @@ _JANITOR_STATII = (
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE),
+    Status(JanitorStatusTypes.CODEX_LATEST_VERSION),
 )
 
 
-class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
+class Janitor(
+    CleanupMixin, LatestVersionMixin, UpdateMixin, UpdateFailedImportsMixin, VacuumMixin
+):
     """Janitor inline task runner."""
 
     def __init__(self, log_queue, librarian_queue):
@@ -65,6 +70,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             ).on
             self.status_controller.start_many(_JANITOR_STATII)
             tasks = (
+                JanitorLatestVersionTask(),
                 JanitorUpdateTask(force=False),
                 SearchIndexAbortTask(),
                 JanitorCleanFKsTask(),
@@ -91,6 +97,8 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                     self.vacuum_db()
                 case JanitorBackupTask():
                     self.backup_db()
+                case JanitorLatestVersionTask():
+                    self.update_latest_version()
                 case JanitorUpdateTask():
                     self.update_codex()
                 case JanitorRestartTask():

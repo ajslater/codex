@@ -9,6 +9,18 @@ class JanitorTask:
 
 
 @dataclass
+class JanitorLatestVersionTask:
+    """Get the latest version."""
+
+
+@dataclass
+class JanitorUpdateTask(JanitorTask):
+    """Task for updater."""
+
+    force: bool
+
+
+@dataclass
 class JanitorBackupTask(JanitorTask):
     """Backup the database."""
 
@@ -21,13 +33,6 @@ class JanitorRestartTask(JanitorTask):
 @dataclass
 class JanitorShutdownTask(JanitorTask):
     """for shutdown."""
-
-
-@dataclass
-class JanitorUpdateTask(JanitorTask):
-    """Task for updater."""
-
-    force: bool
 
 
 @dataclass

@@ -5,16 +5,35 @@ import signal
 import subprocess
 import sys
 
+from versio.version import Version
+
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.tasks import LibrarianShutdownTask
 from codex.models import AdminFlag
+from codex.models.admin import Timestamp
 from codex.status import Status
-from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
+from codex.version import VERSION, get_version
 from codex.worker_base import WorkerBaseMixin
 
 
 class UpdateMixin(WorkerBaseMixin):
     """Update codex methods for janitor."""
+
+    def _is_outdated(self):
+        """Is codex outdated."""
+        result = False
+        ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
+        latest_version = ts.version
+        versio_latest_version = Version(latest_version)
+
+        installed_versio_version = Version(VERSION)
+        if versio_latest_version.parts[1] and not installed_versio_version.parts[1]:  # type: ignore
+            pre_blurb = "latest version is a prerelease. But installed version is not."
+        else:
+            result = versio_latest_version > installed_versio_version
+            pre_blurb = ""
+        self.log.info(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
+        return result
 
     def update_codex(self, force=False):
         """Update the package and restart everything if the version changed."""
@@ -27,7 +46,7 @@ class UpdateMixin(WorkerBaseMixin):
                 eau = AdminFlag.objects.only("on").get(
                     key=AdminFlag.FlagChoices.AUTO_UPDATE.value
                 )
-                if not eau.on or not is_outdated(PACKAGE_NAME, self.log):
+                if not eau.on or not self._is_outdated():
                     self.log.info("Codex is up to date.")
                     return
 
