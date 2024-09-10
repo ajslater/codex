@@ -13,7 +13,9 @@ import { defineAsyncComponent, markRaw } from "vue";
 
 import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
 const PagerPDF = markRaw(
-  defineAsyncComponent(() => "@/components/reader/pager/pager-full-pdf.vue"),
+  defineAsyncComponent(
+    () => import("@/components/reader/pager/pager-full-pdf.vue"),
+  ),
 );
 import PagerVertical from "@/components/reader/pager/pager-vertical.vue";
 import { useReaderStore, VERTICAL_READING_DIRECTIONS } from "@/stores/reader";
