@@ -35,7 +35,11 @@ class LatestVersionMixin(WorkerBaseMixin):
             ts = Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.CODEX_VERSION.value
             )
-            do_fetch = force or not ts.version or (timezone.now() - ts.updated_at > _CACHE_EXPIRY)
+            do_fetch = (
+                force
+                or not ts.version
+                or (timezone.now() - ts.updated_at > _CACHE_EXPIRY)
+            )
             if do_fetch:
                 latest_version = self._fetch_latest_version()
                 if not latest_version:

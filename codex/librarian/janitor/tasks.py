@@ -14,6 +14,7 @@ class JanitorLatestVersionTask(JanitorTask):
 
     force: bool = False
 
+
 @dataclass
 class JanitorUpdateTask(JanitorTask):
     """Task for updater."""
