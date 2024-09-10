@@ -53,14 +53,12 @@ test("reader-nav-button", async () => {
     params: { pk: 2, page: 10 },
   });
   readerStore.page = 10;
-  // await router.isReady();
   await wrapper.vm.$nextTick();
   expect(btn.classes(BTN_DISABLED)).toBe(false);
 
   // push back to original state
   await wrapper.vm.$router.push({ params: { pk: 2, page: 0 } });
   readerStore.page = 0;
-  // await router.isReady();
   await wrapper.vm.$nextTick();
   expect(btn.classes(BTN_DISABLED)).toBe(true);
 

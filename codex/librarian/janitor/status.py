@@ -7,6 +7,7 @@ class JanitorStatusTypes(Choices):
     """Janitor Status Types."""
 
     CLEANUP_FK = "JTD"
+    CODEX_LATEST_VERSION = "JLV"
     CODEX_UPDATE = "JCU"
     CODEX_RESTART = "JCR"
     CODEX_STOP = "JCS"

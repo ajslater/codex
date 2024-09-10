@@ -78,9 +78,7 @@ export default {
       if (!this.query) {
         return res;
       }
-      // if (this.isSearchLimitedMode) {
       const page = +this.$route.params.page;
-      // const limit = this.searchResultsLimit * page;
       const limit = 100 * page;
       if (this.showPlaceHolder) {
         res += `Searching for ${limit} entries...`;
@@ -88,11 +86,6 @@ export default {
         res += `Search results truncated to ${limit} entries.`;
         res += " Advance the page to look for more.";
       }
-      /*
-      } else if (this.isSearchMode) {
-        res = "Select incremental search in the side bar to search faster";
-      }
-      */
       return res;
     },
   },

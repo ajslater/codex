@@ -4,7 +4,6 @@ import deepClone from "deep-clone";
 import { defineStore } from "pinia";
 
 import BROWSER_API from "@/api/v3/browser";
-// import { reactive } from "vue";
 import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
@@ -34,9 +33,9 @@ const DIRECTION_REVERSE_MAP = {
 Object.freeze(DIRECTION_REVERSE_MAP);
 const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 Object.freeze(PREFETCH_LINK);
-const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
+export const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
 Object.freeze(VERTICAL_READING_DIRECTIONS);
-const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
+export const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
 Object.freeze(REVERSE_READING_DIRECTIONS);
 const OPPOSITE_READING_DIRECTIONS = {
   ltr: "rtl",
@@ -54,12 +53,12 @@ const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
 Object.freeze(READER_INFO_ONLY_KEYS);
 
 const getGlobalFitToDefault = () => {
-  // Big screens default to fit by HEIGHT, small to WIDTH;
+  // Big screens default to fit by SCREEN, small to WIDTH;
   const vw = Math.max(
     document.documentElement.clientWidth || 0,
     window.innerWidth || 0,
   );
-  return vw > 600 ? "HEIGHT" : "WIDTH";
+  return vw > 600 ? "S" : "W";
 };
 
 const ensureNoTwoPageVertical = (settings) => {
@@ -128,10 +127,13 @@ export const useReaderStore = defineStore("reader", {
     groupBooks(state) {
       const books = [];
       if (state.books.prev[0]) {
+        // eslint-disable-next-line sonarjs/no-unused-expressions
         books.push[state.books.prev[0]];
       }
+      // eslint-disable-next-line sonarjs/no-unused-expressions
       books.push[state.books.current];
       if (state.books.next[0]) {
+        // eslint-disable-next-line sonarjs/no-unused-expressions
         books.push[state.books.next[0]];
       }
       return books;

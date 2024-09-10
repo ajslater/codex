@@ -16,12 +16,12 @@
       id="metadataContainer"
       @keyup.esc="dialog = false"
     >
+      <CloseButton
+        class="closeButton"
+        title="Close Metadata (esc)"
+        @click="dialog = false"
+      />
       <header id="metadataHeader">
-        <CloseButton
-          class="closeButton"
-          title="Close Metadata (esc)"
-          @click="dialog = false"
-        />
         <MetadataText
           v-if="q"
           id="search"
@@ -228,21 +228,9 @@
           <v-icon>{{ readButtonIcon }}</v-icon>
           Read
         </v-btn>
-        <span id="bottomRightButtons">
-          <CloseButton
-            class="closeButton"
-            title="Close Metadata (esc)"
-            @click="dialog = false"
-          />
-        </span>
       </footer>
     </div>
     <div v-else id="placeholderContainer">
-      <CloseButton
-        class="closeButton"
-        title="Close Metadata (esc)"
-        @click="dialog = false"
-      />
       <div id="placeholderTitle">Tags Loading</div>
       <PlaceholderLoading
         :model-value="progress"
@@ -489,10 +477,17 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 
+.closeButton {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
 #metadataContainer {
   display: flex;
   flex-direction: column;
   max-width: 100vw;
+  overflow-y: auto !important;
 }
 
 #search {
@@ -513,11 +508,6 @@ export default {
 #placeholderTitle {
   font-size: xx-large;
   color: rgb(var(--v-theme-textDisabled));
-}
-
-.closeButton {
-  float: right;
-  margin-left: 5px;
 }
 
 #metadataBookCoverWrapper {
@@ -560,7 +550,7 @@ export default {
   padding-top: max(20px, env(safe-area-inset-top));
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
-  padding-bottom: max(20px,env(safe-area-inset-bottom));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
 
 .placeholder {

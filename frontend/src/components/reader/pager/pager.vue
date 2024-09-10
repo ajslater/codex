@@ -1,16 +1,22 @@
 <template>
-  <component :is="component" :book="book" />
+  <component
+    :is="component"
+    :book="book"
+    :book-settings="bookSettings"
+    :is-vertical="isVertical"
+  />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
+
+import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
 const PagerPDF = markRaw(
   defineAsyncComponent(() => "@/components/reader/pager/pager-full-pdf.vue"),
 );
-import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
 import PagerVertical from "@/components/reader/pager/pager-vertical.vue";
-import { useReaderStore } from "@/stores/reader";
+import { useReaderStore, VERTICAL_READING_DIRECTIONS } from "@/stores/reader";
 
 export default {
   name: "PagerSelector",
@@ -27,19 +33,32 @@ export default {
     return this.prefetchBook(this.book);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical", "cacheBook"]),
+    ...mapGetters(useReaderStore, ["cacheBook"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),
-    readFullPdf() {
-      return this.book.fileType == "PDF" && this.cacheBook;
+    isActiveBook() {
+      return this.book && this.storePk === this.book?.pk;
+    },
+    bookSettings() {
+      return this.getSettings(this.book);
+    },
+    isVertical() {
+      return VERTICAL_READING_DIRECTIONS.has(
+        this.bookSettings.readingDirection,
+      );
+    },
+    readerFullPdf() {
+      return this.book?.fileType == "PDF" && this.cacheBook && !this.isVertical;
     },
     component() {
-      return this.readFullPdf
-        ? PagerPDF
-        : this.isVertical
-          ? PagerVertical
-          : PagerHorizontal;
+      if (this.readerFullPdf) {
+        return PagerPDF;
+      } else if (this.isVertical) {
+        return PagerVertical;
+      } else {
+        return PagerHorizontal;
+      }
     },
   },
   watch: {
@@ -50,7 +69,7 @@ export default {
     },
   },
   created() {
-    if (this.book.pk === this.storePk) {
+    if (this.isActiveBook) {
       // Active Book
       this.setActivePage(+this.$route.params.page, true);
     }

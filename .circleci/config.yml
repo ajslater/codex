@@ -1,15 +1,15 @@
 executors:
   amd64-large-executor:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
       resource_class: large
   amd64-medium-executor:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
       resource_class: medium
   arm64-medium-executor:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
       resource_class: arm.medium
 jobs:
   build-base-amd64: &build-base

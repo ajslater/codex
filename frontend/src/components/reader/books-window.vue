@@ -8,10 +8,12 @@
     @click="toggleToolbars"
   >
     <template #prev>
-      <BookChangeActivator direction="prev" />
+      <BookChangeActivator v-if="bookChangePrev" direction="prev" />
+      <PageChangeLink v-else direction="prev" />
     </template>
     <template #next>
-      <BookChangeActivator direction="next" />
+      <BookChangeActivator v-if="bookChangeNext" direction="next" />
+      <PageChangeLink v-else direction="next" />
     </template>
     <v-window-item
       v-for="book of books"
@@ -31,6 +33,7 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
+import PageChangeLink from "@/components/reader/page-change-link.vue";
 import Pager from "@/components/reader/pager/pager.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -38,6 +41,7 @@ export default {
   name: "BooksWindow",
   components: {
     BookChangeActivator,
+    PageChangeLink,
     Pager,
   },
   computed: {
@@ -51,6 +55,12 @@ export default {
       currentBookPk: (state) => state.books?.current?.pk || 0,
       bookRoutes: (state) => state.routes.books,
     }),
+    bookChangePrev() {
+      return this.bookChangeShow("prev");
+    },
+    bookChangeNext() {
+      return this.bookChangeShow("next");
+    },
   },
   watch: {
     $route(to, from) {
@@ -65,8 +75,9 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "setBookChangeFlag",
+      "bookChangeShow",
       "loadBooks",
+      "setBookChangeFlag",
       "toggleToolbars",
     ]),
     click() {
@@ -91,6 +102,7 @@ export default {
   min-height: 100vh;
   text-align: center;
 }
+
 :deep(.v-window__controls) {
   position: fixed;
   top: 48px;

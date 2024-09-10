@@ -4,6 +4,7 @@
       {{ label }}
     </div>
     <div class="textValue" :class="{ empty }">
+      <!-- eslint-disable-next-line  sonarjs/no-vue-bypass-sanitization -->
       <a v-if="href" :href="href" :title="title" :target="target">
         {{ displayValue }}
         <v-icon v-if="link" size="small">
@@ -67,14 +68,14 @@ export default {
         : this.value;
     },
     lastSlashIndex() {
-      return this.computedValue.lastIndexOf("/");
+      return this.computedValue.lastIndexOf("/") + 1;
     },
     displayValue() {
       let value;
       if (this.group && this.computedValue === "") {
         value = EMPTY_VALUE;
       } else if (this.group === "f" && this.computedValue) {
-        value = this.computedValue.substring(0, this.lastSlashIndex + 1);
+        value = this.computedValue.substring(0, this.lastSlashIndex);
       } else {
         value = this.computedValue;
       }

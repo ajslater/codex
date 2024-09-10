@@ -1,10 +1,60 @@
-import deepClone from "deep-clone";
-
 import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
 
-const _json_serialize = (params) => {
+const map = (obj, func) => {
+  // Generic map for arrays and objects
+  switch (obj?.constructor) {
+    case Array:
+      return obj.map(func);
+    case Object:
+      return Object.fromEntries(
+        Object.entries(obj).map(([key, val]) => [key, func(val, key)]),
+      );
+    default:
+      return obj;
+  }
+};
+
+const filter = (obj, func) => {
+  // Generic filter for arrays and objects
+  switch (obj?.constructor) {
+    case Array:
+      return obj.filter(func);
+    case Object:
+      return Object.fromEntries(
+        Object.entries(obj).filter(([key, val]) => func(val, key)),
+      );
+    default:
+      return obj;
+  }
+};
+
+const keep = (obj) => {
+  // Remove empty strings, arrays, and objects.
+  switch (obj?.constructor) {
+    case Array:
+    case String:
+      return obj.length > 0;
+    case Object:
+      return Object.keys(obj).length > 0;
+    default:
+      return obj !== undefined;
+  }
+};
+
+const _filterEmptyParams = (obj) => {
+  // Deep copy params without empty params.
+  switch (obj?.constructor) {
+    case Array:
+    case Object:
+      return filter(map(obj, _filterEmptyParams), keep);
+    default:
+      return keep(obj) ? obj : undefined;
+  }
+};
+
+const _jsonSerialize = (params) => {
   // Since axios 1.0 I have to manually serialize complex objects
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === "object" || Array.isArray(value)) {
@@ -21,8 +71,8 @@ const _addTimestamp = (params, ts) => {
 };
 
 export const serializeParams = (data, ts) => {
-  const params = deepClone(data) || {};
-  _json_serialize(params);
+  const params = _filterEmptyParams(data) || {};
+  _jsonSerialize(params);
   _addTimestamp(params, ts);
   return params;
 };

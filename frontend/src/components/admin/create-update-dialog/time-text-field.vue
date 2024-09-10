@@ -11,16 +11,17 @@
 </template>
 
 <script>
+// /^\d{0,3}?[01]\d|2[0-3](?::[0-5]\d){2}$/.test(v) ||
+
+const FORMAT = "DDD HH:mm:SS";
+// eslint-disable-next-line security/detect-unsafe-regex
+const TIME_RE = /^(?:[0-3]?\d?\d\s)?(?:[01]?\d|2[0-3])(?::[0-5]\d){2}$/;
 export default {
   name: "TimeTextField",
   data() {
     return {
-      FORMAT: "DDD HH:mm:SS",
-      timeRules: [
-        (v) =>
-          /^\d{0,3}?[01]\d|2[0-3](?::[0-5]\d){2}$/.test(v) ||
-          `Invalid time format ${this.FORMAT}`,
-      ],
+      FORMAT,
+      timeRules: [(v) => TIME_RE.test(v) || `Invalid time format ${FORMAT}`],
     };
   },
 };

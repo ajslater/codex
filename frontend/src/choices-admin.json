@@ -24,6 +24,7 @@
     "IFI": "Record Failed Imports",
     "IGU": "Update First Covers",
     "JTD": "Cleanup Stale Tags",
+    "JLV": "Check Codex Latest Version",
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",
@@ -58,6 +59,11 @@
           "title": "Update All Failed Imports",
           "desc": "Forcibly update all failed imports in all libraries",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "watchdog_sync",
+          "title": "Sync Watchdog with DB",
+          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
         }
       ]
     },
@@ -142,17 +148,17 @@
           "value": "db_search_sync",
           "title": "Sync Search Index to DB",
           "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup."
-        },
-        {
-          "value": "watchdog_sync",
-          "title": "Sync Watchdog with DB",
-          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
         }
       ]
     },
     {
       "title": "Codex Software",
       "tasks": [
+        {
+          "value": "codex_latest_version",
+          "title": "Check for Codex Latest Version",
+          "desc": "Check PyPi for the latest version of Codex"
+        },
         {
           "value": "codex_update",
           "title": "Update Codex",

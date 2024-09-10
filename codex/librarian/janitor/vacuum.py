@@ -21,8 +21,7 @@ class VacuumMixin(WorkerBaseMixin):
             self.status_controller.start(status)
             old_size = DB_PATH.stat().st_size
             with connection.cursor() as cursor:
-                cursor.execute("PRAGMA analysis_limit=400;")
-                cursor.execute("PRAGMA optimize;")
+                cursor.execute("PRAGMA optimize")
                 cursor.execute("VACUUM")
                 cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             new_size = DB_PATH.stat().st_size

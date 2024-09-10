@@ -3,7 +3,6 @@
 from time import time
 
 from django.core.cache import cache
-from django.db.backends.signals import connection_created
 from django.db.models.signals import m2m_changed
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -19,13 +18,6 @@ GROUP_CHANGE_ACTIONS = frozenset(
         "post_clear",
     )
 )
-
-
-def _activate_wal_journal(**kwargs):
-    """Enable sqlite WAL journal."""
-    connection = kwargs["connection"]
-    with connection.cursor() as cursor:
-        cursor.execute("PRAGMA journal_mode=wal;")
 
 
 def _user_group_change(**kwargs):
@@ -51,7 +43,6 @@ def _user_group_change(**kwargs):
 def connect_signals():
     """Connect actions to signals."""
     logger = get_logger(__name__)
-    connection_created.connect(_activate_wal_journal)
     logger.debug("sqlite journal_mode=wal")
     m2m_changed.connect(_user_group_change)
     # post_invalidation.connect(_cache_invalidated)
