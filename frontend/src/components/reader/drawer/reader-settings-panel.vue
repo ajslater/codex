@@ -291,7 +291,9 @@ export default {
 
 #readPDFInBrowser {
   display: block;
-  padding-left: 2px;
+  padding-top: 6px;
+  padding-left: 17px;
+  padding-bottom: 6px;
   color: rgba(var(--v-theme-textSecondary));
 }
 #readerScopedSettings {
