@@ -29,6 +29,7 @@
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",
     "JCD": "Cleanup Custom Covers",
+    "JCB": "Cleanup Orphan Bookmarks",
     "JDO": "Optimize Database",
     "JDB": "Backup Database",
     "JSD": "Cleanup Expired Sessions",
@@ -234,6 +235,11 @@
           "value": "cleanup_covers",
           "title": "Remove Orphan Cover Thumbnails",
           "desc": "no longer have source comics or custom images. Runs nightly."
+        },
+        {
+          "value": "cleanup_bookmarks",
+          "title": "Remove Orphan Bookmarks",
+          "desc": "Owned by no session or user. Runs nightly."
         },
         {
           "value": "adopt_folders",

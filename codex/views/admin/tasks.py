@@ -18,6 +18,7 @@ from codex.librarian.importer.tasks import (
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
+    JanitorCleanBookmarksTask,
     JanitorCleanCoversTask,
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
@@ -88,6 +89,7 @@ _TASK_MAP = MappingProxyType(
         "cleanup_db_custom_covers": JanitorCleanCoversTask(),
         "cleanup_sessions": JanitorCleanupSessionsTask(),
         "cleanup_covers": CoverRemoveOrphansTask(),
+        "cleanup_bookmarks": JanitorCleanBookmarksTask(),
         "librarian_clear_status": JanitorClearStatusTask(),
         "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
         "poll": WatchdogPollLibrariesTask(frozenset(), False),

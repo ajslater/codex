@@ -35,6 +35,7 @@ from codex.models import (
     Team,
     Volume,
 )
+from codex.models.bookmark import Bookmark
 from codex.models.paths import CustomCover
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
@@ -84,15 +85,15 @@ CLEANUP_MAP = MappingProxyType(
 class CleanupMixin(WorkerBaseMixin):
     """Cleanup methods for Janitor."""
 
-    def _bulk_cleanup_fks(self, classes, field_name, status):
+    def _bulk_cleanup_fks(self, models, field_name, status):
         """Remove foreign keys that aren't used anymore."""
-        for cls in classes:
+        for model in models:
             filter_dict = {f"{field_name}__isnull": True}
-            query = cls.objects.filter(**filter_dict)
-            count = query.count()
-            query.delete()
+            qs = model.objects.filter(**filter_dict)
+            count = qs.count()
+            qs.delete()
             if count:
-                self.log.info(f"Deleted {count} orphan {cls.__name__}s")
+                self.log.info(f"Deleted {count} orphan {model.__name__}s")
             status.complete += count
             self.status_controller.update(status)
 
@@ -102,8 +103,8 @@ class CleanupMixin(WorkerBaseMixin):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up unused foreign keys...")
-            for field_name, classes in CLEANUP_MAP.items():
-                self._bulk_cleanup_fks(classes, field_name, status)
+            for field_name, models in CLEANUP_MAP.items():
+                self._bulk_cleanup_fks(models, field_name, status)
             level = logging.INFO if status.complete else logging.DEBUG
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
         finally:
@@ -152,3 +153,15 @@ class CleanupMixin(WorkerBaseMixin):
         finally:
             until = time() + 1
             self.status_controller.finish(status, until=until)
+
+    def cleanup_orphan_bookmarks(self):
+        """Delete bookmarks without users or sessions."""
+        status = Status(JanitorStatusTypes.CLEANUP_BOOKMARKS)
+        try:
+            self.status_controller.start(status)
+            orphan_bms = Bookmark.objects.filter(session=None, user=None)
+            if count := orphan_bms.count():
+                orphan_bms.delete()
+                self.log.info(f"Deleted {count} orphan bookmarks.")
+        finally:
+            self.status_controller.finish(status)

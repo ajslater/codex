@@ -51,7 +51,6 @@ LOGLEVEL = environ.get("LOGLEVEL", logging.DEBUG if DEBUG else logging.INFO)
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
-SKIP_INTEGRITY_CHECK = bool(environ.get("CODEX_SKIP_INTEGRITY_CHECK"))
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
 LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
@@ -59,6 +58,8 @@ THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", 0))
 THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", 0))
 THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", 0))
 THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
+FIX_FOREIGN_KEYS = bool(environ.get("CODEX_FIX_FOREIGN_KEYS"))
+INTEGRITY_CHECK = environ.get("CODEX_INTEGRITY_CHECK", False)
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

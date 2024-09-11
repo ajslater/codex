@@ -53,6 +53,11 @@ class JanitorCleanCoversTask(JanitorTask):
 
 
 @dataclass
+class JanitorCleanBookmarksTask(JanitorTask):
+    """Clean unused bookmarks."""
+
+
+@dataclass
 class JanitorClearStatusTask(JanitorTask):
     """Clear all librarian statuses."""
 

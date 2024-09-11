@@ -275,8 +275,12 @@ index, a Django cache and comic book cover thumbnails.
   `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
   when codex starts.
-- `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that
-  runs when codex starts.
+- `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
+  keys on startup.
+- `CODEX_INTEGRITY_CHECK=1` will perform a quick full database integrity check
+  on startup.
+- `CODEX_INTEGRITY_CHECK=full` will perform a more thorough database integrity
+  check on startup.
 - `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
   reads all archive metadata sources and transforms it into a the comicbox
   schema.
@@ -442,7 +446,7 @@ you.
 
 ### Emergency Database Repair
 
-If the database becomes corrupt, Codex includes a facitlity to rebuild the
+If the database becomes corrupt, Codex includes a facility to rebuild the
 database. Place a file named `rebuild_db` in your Codex config directory like
 so:
 
@@ -457,7 +461,8 @@ Shut down and restart Codex.
 The next time Codex starts it will back up the existing database and try to
 rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
-original database at `config/db.sqlite3.backup`.
+original database at `config/backups/codex.sqlite3.before-rebuild`. Codex will
+remove the `rebuild_db` file.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 

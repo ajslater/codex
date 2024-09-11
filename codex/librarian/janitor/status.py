@@ -15,5 +15,6 @@ class JanitorStatusTypes(Choices):
     DB_BACKUP = "JDB"
     CLEANUP_SESSIONS = "JSD"
     CLEANUP_COVERS = "JCD"
+    CLEANUP_BOOKMARKS = "JCB"
     INTEGRITY_FK = "JIF"
     INTEGRITY_CHECK = "JIC"
