@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="show"
     class="changeColumn"
     :class="{ [positionClass]: true, [cursorClass]: true }"
     @click.stop="setBookChangeFlag(direction)"
@@ -24,6 +25,9 @@ export default {
     },
   },
   computed: {
+    show() {
+      return this.bookChangeShow(this.computedDirection);
+    },
     computedDirection() {
       return this.normalizeDirection(this.direction);
     },
@@ -37,10 +41,11 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "setBookChangeFlag",
-      "normalizeDirection",
-      "bookChangeLocation",
       "bookChangeCursorClass",
+      "bookChangeLocation",
+      "bookChangeShow",
+      "normalizeDirection",
+      "setBookChangeFlag",
     ]),
   },
 };

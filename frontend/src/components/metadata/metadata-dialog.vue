@@ -246,6 +246,7 @@ import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
+import { getDownloadIOSPWAFix } from "@/api/v3/common";
 import { getDownloadURL } from "@/api/v3/reader";
 import { formattedIssue, getFullComicName } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
@@ -258,8 +259,8 @@ import { getDateTime, NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 import { useMetadataStore } from "@/stores/metadata";
+
 // Progress circle
 // Can take 19 seconds for 22k children on huge collections
 const CHILDREN_PER_SECOND = 1160;
@@ -319,22 +320,6 @@ export default {
     showContainer() {
       return this.md?.loaded || false;
     },
-    downloadFileName() {
-      const md = this.md;
-      if (!md) {
-        return "Unknown.cbz";
-      }
-      return this.md?.filename
-        ? md.filename
-        : getFullComicName({
-            seriesName: md.series.name || "",
-            volumeName: md.volume.name || "",
-            issueNumber: md.issueNumber,
-            issueSuffix: md.issueSuffix,
-          }) +
-            "." +
-            this.fileType.toLowerCase();
-    },
     buttonVariant() {
       return this.toolbar ? "plain" : "text";
     },
@@ -344,6 +329,24 @@ export default {
       } else {
         return "";
       }
+    },
+    downloadFilename() {
+      const md = this.md;
+      if (!md) {
+        return "Unknown.cbz";
+      }
+      if (md.filename) {
+        return md.filename;
+      }
+      const basename = getFullComicName({
+        seriesName: this.firstNameFromList(md.seriesList),
+        volumeName: this.firstNameFromList(md.volumeList),
+        issueNumber: md.issueNumber,
+        issueSuffix: md.issueSuffix,
+      });
+      const suffix = "." + this.fileType.toLowerCase();
+      const filename = basename + suffix;
+      return filename;
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
@@ -437,7 +440,6 @@ export default {
   },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
-    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
     dialogOpened() {
       const pks = this.book.ids ? this.book.ids : [this.book.pk];
@@ -468,7 +470,19 @@ export default {
       return getDateTime(ds, this.twentyFourHourTime);
     },
     download() {
-      this.downloadIOSPWAFix(this.downloadURL, this.md.filename);
+      getDownloadIOSPWAFix(this.downloadURL, this.downloadFilename);
+    },
+    firstNameFromList(list) {
+      let name = "";
+      if (list) {
+        for (const obj of Object.values(list)) {
+          if (obj.name) {
+            name = obj.name;
+            break;
+          }
+        }
+      }
+      return name;
     },
   },
 };

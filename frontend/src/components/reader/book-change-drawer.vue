@@ -76,7 +76,6 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
       "linkLabel",
       "normalizeDirection",
       "prefetchLinks",

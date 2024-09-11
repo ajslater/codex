@@ -6,16 +6,22 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.6.18
+## v1.6.19
 
 - Fixes
 
   - Fix browser opening reader at correct bookmark.
   - Fix for browser triple tap bug for android tablet browsers in desktop mode.
   - Fix populating arcs in reading order menu in reader.
+  - Fix submitting old arc to reader API.
   - Fix Version API blocking. Add check version admin task.
   - Fix Library "Poll Every" validation.
   - Fix Metadata dialog not scrolling sometimes.
+  - Fix file extension for downloaded PDF pages.
+
+## v1.6.18
+
+- Yanked. Broken Reader.
 
 ## v1.6.17
 

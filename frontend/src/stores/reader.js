@@ -51,6 +51,24 @@ const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
 Object.freeze(READER_INFO_KEYS);
 const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
 Object.freeze(READER_INFO_ONLY_KEYS);
+const READER_INFO_SOURCE_KEYS = [...READER_INFO_KEYS, "browserArc"];
+Object.freeze(READER_INFO_SOURCE_KEYS);
+const BOOKS_NULL = {
+  current: undefined,
+  prev: false,
+  next: false,
+};
+Object.freeze(BOOKS_NULL);
+const ROUTES_NULL = {
+  prev: false,
+  next: false,
+  books: {
+    prev: false,
+    next: false,
+  },
+  close: CHOICES.browser.breadcrumbs[0],
+};
+Object.freeze(ROUTES_NULL);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by SCREEN, small to WIDTH;
@@ -93,11 +111,7 @@ export const useReaderStore = defineStore("reader", {
       show: CHOICES.browser.show,
       topGroup: "p",
     },
-    books: {
-      current: undefined,
-      prev: false,
-      next: false,
-    },
+    books: deepClone(BOOKS_NULL),
     arcs: [],
     arc: {},
     mtime: 0,
@@ -105,15 +119,7 @@ export const useReaderStore = defineStore("reader", {
     // local reader
     empty: false,
     page: undefined,
-    routes: {
-      prev: false,
-      next: false,
-      books: {
-        prev: false,
-        next: false,
-      },
-      close: CHOICES.browser.breadcrumbs[0],
-    },
+    routes: deepClone(ROUTES_NULL),
     bookChange: undefined,
     reactWithScroll: false,
     clientSettings: {
@@ -122,6 +128,7 @@ export const useReaderStore = defineStore("reader", {
     },
     showToolbars: false,
     settingsLoaded: false,
+    bookSettings: {},
   }),
   getters: {
     groupBooks(state) {
@@ -140,7 +147,7 @@ export const useReaderStore = defineStore("reader", {
     },
     activeSettings(state) {
       // the empty settings guarantee here is for vitest.
-      return state.getSettings(state.books.current) || {};
+      return state.getBookSettings(state.books.current) || {};
     },
     activeTitle(state) {
       const book = state.books.current;
@@ -157,27 +164,26 @@ export const useReaderStore = defineStore("reader", {
       }
       return title;
     },
+    isVertical(state) {
+      return state.activeSettings.isVertical;
+    },
+    isReadInReverse(state) {
+      return state.activeSettings.isReadInReverse;
+    },
     routeParams(state) {
       return { pk: +state.books.current.pk, page: +state.page };
-    },
-    isVertical(state) {
-      return VERTICAL_READING_DIRECTIONS.has(
-        state.activeSettings.readingDirection,
-      );
     },
     isPDF(state) {
       return state.books?.current?.fileType == "PDF";
     },
     cacheBook(state) {
-      return state.clientSettings.cacheBook && !(this.isPDF && this.isVertical);
+      return (
+        state.clientSettings.cacheBook &&
+        !(this.isPDF && this.activeSettings.isVertical)
+      );
     },
     isPagesNotRoutes(state) {
-      return state.isVertical || this.cacheBook;
-    },
-    isReadInReverse(state) {
-      return REVERSE_READING_DIRECTIONS.has(
-        state.activeSettings.readingDirection,
-      );
+      return state.activeSettings.isVertical || this.cacheBook;
     },
     isBTT(state) {
       return state.activeSettings.readingDirection === "btt";
@@ -230,14 +236,11 @@ export const useReaderStore = defineStore("reader", {
     },
     readerInfoSettings(state) {
       const usedKeys = {};
-      for (const key of READER_INFO_KEYS) {
+      for (const key of READER_INFO_SOURCE_KEYS) {
         const value = state.browserSettings[key];
         if (value) {
           usedKeys[key] = value;
         }
-      }
-      if (state.browserArc) {
-        usedKeys["browser_arc"] = state.browserArc;
       }
       if (state.arc && Object.keys(state.arc).length) {
         usedKeys.arc = {
@@ -260,23 +263,38 @@ export const useReaderStore = defineStore("reader", {
         ? { ...bookSettings, readingDirection: "ltr" }
         : bookSettings;
     },
-    getSettings(book) {
-      // Mask the book settings over the global settings.
-      const resultSettings = deepClone(SETTINGS_NULL_VALUES);
-      let bookSettings = book ? book.settings : {};
-      bookSettings = this.setReadRTLInReverse(bookSettings);
-      const allSettings = [this.readerSettings, bookSettings];
+    getBookSettings(book) {
+      if (!book) {
+        return {};
+      }
+      if (!(book.pk in this.bookSettings)) {
+        // Mask the book settings over the global settings.
+        const resultSettings = deepClone(SETTINGS_NULL_VALUES);
+        let bookSettings = book ? book.settings : {};
+        bookSettings = this.setReadRTLInReverse(bookSettings);
+        const allSettings = [this.readerSettings, bookSettings];
 
-      for (const settings of allSettings) {
-        for (const [key, val] of Object.entries(settings)) {
-          if (!SETTINGS_NULL_VALUES.has(val)) {
-            resultSettings[key] = val;
+        for (const settings of allSettings) {
+          for (const [key, val] of Object.entries(settings)) {
+            if (!SETTINGS_NULL_VALUES.has(val)) {
+              resultSettings[key] = val;
+            }
           }
         }
-      }
-      ensureNoTwoPageVertical(resultSettings);
+        ensureNoTwoPageVertical(resultSettings);
 
-      return resultSettings;
+        resultSettings.isVertical = VERTICAL_READING_DIRECTIONS.has(
+          resultSettings.readingDirection,
+        );
+        resultSettings.isReadInReverse = REVERSE_READING_DIRECTIONS.has(
+          resultSettings.readingDirection,
+        );
+        resultSettings.fitToClass = this.fitToClass(resultSettings);
+
+        this.bookSettings[book.pk] = resultSettings;
+      }
+
+      return this.bookSettings[book.pk];
     },
     bookChangeLocation(direction) {
       let location;
@@ -289,7 +307,7 @@ export const useReaderStore = defineStore("reader", {
     },
     bookChangeCursorClass(direction) {
       let cursor;
-      if (this.isReadInReverse) {
+      if (this.activeSettings.isReadInReverse) {
         cursor = direction === "next" ? "up" : "down";
       } else {
         cursor = direction === "next" ? "down" : "up";
@@ -319,9 +337,9 @@ export const useReaderStore = defineStore("reader", {
     _getRouteParams(book, activePage, direction) {
       const deltaModifier = direction === "prev" ? -1 : 1;
       let delta = 1;
-      const settings = this.getSettings(book);
+      const bookSettings = this.getBookSettings(book);
       if (
-        settings.twoPages &&
+        bookSettings.twoPages &&
         !this.isCoverPage(book, +activePage + deltaModifier)
       ) {
         delta = 2;
@@ -339,21 +357,20 @@ export const useReaderStore = defineStore("reader", {
       }
       return routeParams;
     },
-    fitToClass(book) {
-      const settings = this.getSettings(book);
+    fitToClass(bookSettings) {
       const classes = {};
       let fitTo;
       if (this.clientSettings.scale > SCALE_DEFAULT) {
         fitTo = "Orig";
       } else {
-        fitTo = FIT_TO_CHOICES[settings.fitTo];
+        fitTo = FIT_TO_CHOICES[bookSettings.fitTo];
       }
       if (fitTo) {
         let fitToClass = "fitTo";
         fitToClass += capitalCase(fitTo);
-        if (this.isVertical) {
+        if (bookSettings.isVertical) {
           fitToClass += "Vertical";
-        } else if (settings.twoPages) {
+        } else if (bookSettings.twoPages) {
           fitToClass += "Two";
         }
         classes[fitToClass] = true;
@@ -364,18 +381,21 @@ export const useReaderStore = defineStore("reader", {
     // MUTATIONS
     _updateSettings(updates, local) {
       // Doing this with $patch breaks reactivity
-      if (local) {
-        this.books.current.settings = {
-          ...this.books.current.settings,
-          ...updates,
-        };
-        ensureNoTwoPageVertical(this.books.current.settings);
-      } else {
-        this.readerSettings = {
-          ...this.readerSettings,
-          ...updates,
-        };
-      }
+      this.$patch((state) => {
+        if (local) {
+          state.books.current.settings = {
+            ...state.books.current.settings,
+            ...updates,
+          };
+          ensureNoTwoPageVertical(state.books.current.settings);
+        } else {
+          state.readerSettings = {
+            ...state.readerSettings,
+            ...updates,
+          };
+        }
+        state.bookSettings = {};
+      });
     },
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;
@@ -387,11 +407,9 @@ export const useReaderStore = defineStore("reader", {
         state.arcs = [];
         state.mtime = 0;
         state.settingsLoaded = false;
-        state.books = {
-          current: undefined,
-          prev: false,
-          next: false,
-        };
+        state.books = deepClone(BOOKS_NULL);
+        state.routes = deepClone(ROUTES_NULL);
+        state.bookSettings = {};
       });
     },
     ///////////////////////////////////////////////////////////////////////////
@@ -402,7 +420,7 @@ export const useReaderStore = defineStore("reader", {
         (isPrev && book.readLtr !== false) ||
         (!isPrev && book.readLtr === false)
       ) {
-        const bookSettings = this.getSettings(book);
+        const bookSettings = this.getBookSettings(book);
 
         const bookTwoPagesCorrection = bookSettings.twoPages ? -1 : 0;
         bookPage = book.maxPage + bookTwoPagesCorrection;
@@ -466,7 +484,12 @@ export const useReaderStore = defineStore("reader", {
           // Get reader settings before getting books ensures closeRoute.
           // Get browser settings before getting books gets filters & breadcrumbs.
           // Ensures getting the reader arc from breadcrumbs.
-          this.browserSettings = response.data;
+          this.$patch((state) => {
+            state.browserSettings = response.data;
+            if (!state.routes.close && state.browserSettings.breadcrumbs) {
+              state.routes.close = state.browserSettings.breadcrumbs.at(-1);
+            }
+          });
           if (!this.settingsLoaded) {
             this.settingsLoaded = true;
             return this.loadBooks({});
@@ -542,6 +565,7 @@ export const useReaderStore = defineStore("reader", {
             state.routes.close = data.closeRoute;
             state.empty = false;
             state.mtime = data.mtime;
+            state.bookSettings = {};
           });
           return true;
         })
@@ -608,7 +632,7 @@ export const useReaderStore = defineStore("reader", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     normalizeDirection(direction) {
-      return this.isReadInReverse
+      return this.activeSettings.isReadInReverse
         ? DIRECTION_REVERSE_MAP[direction]
         : direction;
     },
@@ -689,7 +713,7 @@ export const useReaderStore = defineStore("reader", {
       }
       let page = params.page;
       if (secondPage) {
-        const settings = this.getSettings(book);
+        const settings = this.getBookSettings(book);
         if (!settings.twoPages) {
           return false;
         }

@@ -29,14 +29,18 @@ export default {
   props: {
     book: { type: Object, required: true },
     page: { type: Number, required: true },
-    isReadInReverse: { type: Boolean, required: true },
   },
   emits: ["click"],
   computed: {
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
+    isReadInReverse() {
+      return this.bookSettings.isReadInReverse;
+    },
     showSecondPage() {
-      const settings = this.getSettings(this.book);
       return (
-        settings.twoPages &&
+        this.bookSettings.twoPages &&
         this.page < this.book.maxPage &&
         !this.isCoverPage(this.book, this.page)
       );
@@ -55,7 +59,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "isCoverPage"]),
+    ...mapActions(useReaderStore, ["getBookSettings", "isCoverPage"]),
   },
 };
 </script>

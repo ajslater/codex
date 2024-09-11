@@ -41,12 +41,15 @@ export default {
       s.transform = `scale(${this.scale})`;
       return s;
     },
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
     classes() {
-      return this.fitToClass(this.book);
+      return this.bookSettings.fitToClass;
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["fitToClass"]),
+    ...mapActions(useReaderStore, ["getBookSettings"]),
   },
 };
 </script>

@@ -24,7 +24,7 @@ export default {
     return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage", "isVertical"]),
+    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage"]),
     ...mapState(useReaderStore, {
       params(state) {
         return state.routes[this.computedDirection];
@@ -34,9 +34,6 @@ export default {
       return this.normalizeDirection(this.direction);
     },
     show() {
-      if (this.isVertical) {
-        return false;
-      }
       return this.computedDirection === "prev"
         ? !this.isFirstPage
         : !this.isLastPage;
@@ -56,7 +53,6 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
       "linkLabel",
       "normalizeDirection",
       "prefetchLinks",
@@ -66,7 +62,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-@import "./change-column.scss";
+@import "../change-column.scss";
 
 .prev {
   left: 0px;

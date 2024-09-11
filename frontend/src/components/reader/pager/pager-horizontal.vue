@@ -1,5 +1,16 @@
 <template>
-  <v-window continuous :model-value="windowIndex" :reverse="isReadInReverse">
+  <v-window
+    show-arrows
+    continuous
+    :model-value="windowIndex"
+    :reverse="isReadInReverse"
+  >
+    <template #prev>
+      <PageChangeLink direction="prev" />
+    </template>
+    <template #next>
+      <PageChangeLink direction="next" />
+    </template>
     <v-window-item
       v-for="page of pages"
       :key="`c/${book.pk}/${page}`"
@@ -9,11 +20,7 @@
       :model-value="page"
       :transition="true"
     >
-      <HorizontalPages
-        :book="book"
-        :page="page"
-        :is-read-in-reverse="isReadInReverse"
-      />
+      <HorizontalPages :book="book" :page="page" />
     </v-window-item>
   </v-window>
 </template>
@@ -22,7 +29,8 @@
 import { mapActions, mapState } from "pinia";
 
 import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
-import { REVERSE_READING_DIRECTIONS, useReaderStore } from "@/stores/reader";
+import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
+import { useReaderStore } from "@/stores/reader";
 import { range } from "@/util";
 
 const WINDOW_BACK_BOUND = 48;
@@ -32,10 +40,10 @@ export default {
   name: "PagerHorizontal",
   components: {
     HorizontalPages,
+    PageChangeLink,
   },
   props: {
     book: { type: Object, required: true },
-    bookSettings: { type: Object, required: true },
   },
   data() {
     return {
@@ -50,11 +58,14 @@ export default {
       storePage: (state) => state.page,
       storePk: (state) => state.books.current.pk,
     }),
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
     twoPages() {
       return this.bookSettings.twoPages;
     },
     isReadInReverse() {
-      return REVERSE_READING_DIRECTIONS.has(this.bookSettings.readingDirection);
+      return this.bookSettings.isReadInReverse;
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];
@@ -100,7 +111,11 @@ export default {
     this.setPages();
   },
   methods: {
-    ...mapActions(useReaderStore, ["setBookChangeFlag", "setActivePage"]),
+    ...mapActions(useReaderStore, [
+      "getBookSettings",
+      "setBookChangeFlag",
+      "setActivePage",
+    ]),
     setPages() {
       const backPages = Math.max(this.activePage - WINDOW_BACK_BOUND, 0);
       const forePages = Math.min(

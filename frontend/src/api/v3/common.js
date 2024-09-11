@@ -77,7 +77,7 @@ export const serializeParams = (data, ts) => {
   return params;
 };
 
-const getDownloadIOSPWAFix = (href, fileName) => {
+export const getDownloadIOSPWAFix = (href, filename) => {
   // iOS has a download bug inside PWAs. The user is trapped in the
   // download screen and cannot return to the app.
   // https://developer.apple.com/forums/thread/95911
@@ -90,24 +90,11 @@ const getDownloadIOSPWAFix = (href, fileName) => {
         type: "application/octet-stream",
       });
       link.href = window.URL.createObjectURL(blob);
-      link.download = fileName;
+      link.download = filename;
       link.click();
       return window.URL.revokeObjectURL(response.data);
     })
     .catch(console.warn);
-};
-
-export const getReaderPath = (pk) => {
-  return `c/${pk}`;
-};
-
-export const getReaderBasePath = (pk) => {
-  return window.CODEX.API_V3_PATH + getReaderPath(pk);
-};
-
-export const getBookInBrowserURL = ({ pk, mtime }) => {
-  const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
-  return `${BASE_URL}/book.pdf?ts=${mtime}`;
 };
 
 export const getMtime = (groups, settings) => {
@@ -133,11 +120,8 @@ const updateGroupBookmarks = ({ group, ids }, data) => {
 
 export default {
   getDownloadIOSPWAFix,
-  getBookInBrowserURL,
   getMtime,
   getOPDSURLs,
-  getReaderBasePath,
-  getReaderPath,
   getVersions,
   updateGroupBookmarks,
 };

@@ -8,12 +8,10 @@
     @click="toggleToolbars"
   >
     <template #prev>
-      <BookChangeActivator v-if="bookChangePrev" direction="prev" />
-      <PageChangeLink v-else direction="prev" />
+      <BookChangeActivator direction="prev" />
     </template>
     <template #next>
-      <BookChangeActivator v-if="bookChangeNext" direction="next" />
-      <PageChangeLink v-else direction="next" />
+      <BookChangeActivator direction="next" />
     </template>
     <v-window-item
       v-for="book of books"
@@ -33,7 +31,6 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
-import PageChangeLink from "@/components/reader/page-change-link.vue";
 import Pager from "@/components/reader/pager/pager.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -41,7 +38,6 @@ export default {
   name: "BooksWindow",
   components: {
     BookChangeActivator,
-    PageChangeLink,
     Pager,
   },
   computed: {
@@ -75,7 +71,6 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "bookChangeShow",
       "loadBooks",
       "setBookChangeFlag",
       "toggleToolbars",
