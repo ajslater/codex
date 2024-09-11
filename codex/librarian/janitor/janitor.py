@@ -14,9 +14,9 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
-    JanitorCleanBookmarksTask,
     JanitorCleanCoversTask,
     JanitorCleanFKsTask,
+    JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
     JanitorForiegnKeyCheck,
@@ -90,7 +90,7 @@ class Janitor(
                 JanitorCleanFKsTask(),
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
-                JanitorCleanBookmarksTask(),
+                JanitorCleanupBookmarksTask(),
                 AdoptOrphanFoldersTask(),
                 JanitorVacuumTask(),
                 JanitorBackupTask(),
@@ -126,6 +126,8 @@ class Janitor(
                     self.cleanup_custom_covers()
                 case JanitorCleanupSessionsTask():
                     self.cleanup_sessions()
+                case JanitorCleanupBookmarksTask():
+                    self.cleanup_orphan_bookmarks()
                 case JanitorClearStatusTask():
                     self.status_controller.finish_many([])
                 case ForceUpdateAllFailedImportsTask():
