@@ -8,6 +8,7 @@ from codex.librarian.importer.tasks import (
 )
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
+from codex.librarian.janitor.integrity import IntegrityMixin
 from codex.librarian.janitor.latest_version import LatestVersionMixin
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
@@ -17,6 +18,8 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
+    JanitorForiegnKeyCheck,
+    JanitorIntegrityCheck,
     JanitorLatestVersionTask,
     JanitorNightlyTask,
     JanitorRestartTask,
@@ -36,6 +39,8 @@ from codex.models import AdminFlag, Timestamp
 from codex.status import Status
 
 _JANITOR_STATII = (
+    Status(JanitorStatusTypes.INTEGRITY_FK),
+    Status(JanitorStatusTypes.INTEGRITY_CHECK),
     Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES),
     Status(JanitorStatusTypes.CLEANUP_COVERS),
     Status(JanitorStatusTypes.CLEANUP_SESSIONS),
@@ -54,7 +59,12 @@ _JANITOR_STATII = (
 
 
 class Janitor(
-    CleanupMixin, LatestVersionMixin, UpdateMixin, UpdateFailedImportsMixin, VacuumMixin
+    CleanupMixin,
+    LatestVersionMixin,
+    UpdateMixin,
+    UpdateFailedImportsMixin,
+    VacuumMixin,
+    IntegrityMixin,
 ):
     """Janitor inline task runner."""
 
@@ -73,6 +83,8 @@ class Janitor(
                 JanitorLatestVersionTask(),
                 JanitorUpdateTask(force=False),
                 SearchIndexAbortTask(),
+                JanitorForiegnKeyCheck(),
+                JanitorIntegrityCheck(),
                 JanitorCleanFKsTask(),
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
@@ -115,6 +127,10 @@ class Janitor(
                     self.status_controller.finish_many([])
                 case ForceUpdateAllFailedImportsTask():
                     self.force_update_all_failed_imports()
+                case JanitorForiegnKeyCheck():
+                    self.foreign_key_check()
+                case JanitorIntegrityCheck():
+                    self.integrity_check(task.long)
                 case JanitorNightlyTask():
                     self.queue_tasks()
                 case _:

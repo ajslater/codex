@@ -68,5 +68,17 @@ class ForceUpdateAllFailedImportsTask(JanitorTask):
 
 
 @dataclass
+class JanitorForiegnKeyCheck(JanitorTask):
+    """Check and repair foreign keys integrity."""
+
+
+@dataclass
+class JanitorIntegrityCheck(JanitorTask):
+    """Check integrity and rebuild."""
+
+    long: bool = False
+
+
+@dataclass
 class JanitorNightlyTask(JanitorTask):
     """Submit all janitor nightly tasks to the queue."""

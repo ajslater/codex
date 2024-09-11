@@ -32,6 +32,8 @@
     "JDO": "Optimize Database",
     "JDB": "Backup Database",
     "JSD": "Cleanup Expired Sessions",
+    "JIF": "Database Foreign Key Check",
+    "JIC": "Database Integrity Check",
     "SIX": "Search Index Clear",
     "SIU": "Search Index Update",
     "SID": "Search Index Remove Stale Records",
@@ -148,6 +150,22 @@
           "value": "db_search_sync",
           "title": "Sync Search Index to DB",
           "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup."
+        },
+        {
+          "value": "db_foreign_key_check",
+          "title": "Remove Illegal Foreign Keys",
+          "desc": "Check for and remove illegal foreign keys. Mark affected comics for update. Runs nightly."
+        },
+        {
+          "value": "db_integrity_check_quick",
+          "title": "Check Database Integrity Quickly",
+          "desc": "If damaaged, rebuild database. Runs nightly."
+        },
+        {
+          "value": "db_integrity_check_long",
+          "title": "Check Database Integrity Thoroughly",
+          "desc": "If damaaged, rebuild database.",
+          "confirm": "Can take a while on large databases, Are you sure?"
         }
       ]
     },
