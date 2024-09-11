@@ -1,10 +1,5 @@
 <template>
-  <component
-    :is="component"
-    :book="book"
-    :book-settings="bookSettings"
-    :is-vertical="isVertical"
-  />
+  <component :is="component" :book="book" />
 </template>
 
 <script>
@@ -18,7 +13,7 @@ const PagerPDF = markRaw(
   ),
 );
 import PagerVertical from "@/components/reader/pager/pager-vertical.vue";
-import { useReaderStore, VERTICAL_READING_DIRECTIONS } from "@/stores/reader";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "PagerSelector",
@@ -43,20 +38,19 @@ export default {
       return this.book && this.storePk === this.book?.pk;
     },
     bookSettings() {
-      return this.getSettings(this.book);
-    },
-    isVertical() {
-      return VERTICAL_READING_DIRECTIONS.has(
-        this.bookSettings.readingDirection,
-      );
+      return this.getBookSettings(this.book);
     },
     readerFullPdf() {
-      return this.book?.fileType == "PDF" && this.cacheBook && !this.isVertical;
+      return (
+        this.book?.fileType == "PDF" &&
+        this.cacheBook &&
+        !this.bookSettings.isVertical
+      );
     },
     component() {
       if (this.readerFullPdf) {
         return PagerPDF;
-      } else if (this.isVertical) {
+      } else if (this.bookSettings.isVertical) {
         return PagerVertical;
       } else {
         return PagerHorizontal;
@@ -78,7 +72,8 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
+      "getBookSettings",
+      "isBookVertical",
       "setActivePage",
       "prefetchBook",
     ]),

@@ -18,7 +18,6 @@ export default {
   name: "ImgPage",
   props: {
     book: { type: Object, required: true },
-    bookSettings: { type: Object, required: true },
     src: { type: String, required: true },
   },
   emits: ["load", "error"],
@@ -42,12 +41,15 @@ export default {
       s.transform = `scale(${this.scale})`;
       return s;
     },
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
     classes() {
-      return this.fitToClass(this.bookSettings);
+      return this.bookSettings.fitToClass;
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["fitToClass"]),
+    ...mapActions(useReaderStore, ["getBookSettings"]),
   },
 };
 </script>

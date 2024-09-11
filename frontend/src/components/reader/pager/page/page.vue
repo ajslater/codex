@@ -21,8 +21,6 @@
       v-else
       ref="pageComponent"
       :book="book"
-      :book-settings="bookSettings"
-      :is-vertical="isVertical"
       :page="1"
       :src="src"
       @error="onError"
@@ -33,7 +31,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
@@ -55,11 +53,6 @@ export default {
       type: Object,
       required: true,
     },
-    bookSettings: {
-      type: Object,
-      required: true,
-    },
-    isVertical: { type: Boolean, default: false },
     page: {
       type: Number,
       required: true,
@@ -103,9 +96,6 @@ export default {
     component() {
       return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
     },
-    settings() {
-      return this.getSettings(this.book);
-    },
   },
   mounted() {
     setTimeout(function () {
@@ -115,7 +105,6 @@ export default {
     }, PROGRESSS_DELAY_MS);
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
     onLoad() {
       this.showProgress = false;
       this.loaded = true;

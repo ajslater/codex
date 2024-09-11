@@ -13,6 +13,7 @@ border-radius: 128px;
   - Fix browser opening reader at correct bookmark.
   - Fix for browser triple tap bug for android tablet browsers in desktop mode.
   - Fix populating arcs in reading order menu in reader.
+  - Fix submitting old arc to reader API.
   - Fix Version API blocking. Add check version admin task.
   - Fix Library "Poll Every" validation.
   - Fix Metadata dialog not scrolling sometimes.

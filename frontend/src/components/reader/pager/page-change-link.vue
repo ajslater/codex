@@ -19,7 +19,6 @@ export default {
   name: "PageChangeLink",
   props: {
     direction: { type: String, required: true },
-    isVertical: { type: Boolean, default: false },
   },
   head() {
     return this.prefetchLinks(this.params, this.computedDirection);
@@ -35,9 +34,6 @@ export default {
       return this.normalizeDirection(this.direction);
     },
     show() {
-      if (this.isVertical) {
-        return false;
-      }
       return this.computedDirection === "prev"
         ? !this.isFirstPage
         : !this.isLastPage;
@@ -57,7 +53,6 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
       "linkLabel",
       "normalizeDirection",
       "prefetchLinks",

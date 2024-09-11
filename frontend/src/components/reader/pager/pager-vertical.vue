@@ -2,7 +2,7 @@
   <ScaleForScroll>
     <v-virtual-scroll
       id="verticalScroll"
-      :key="readInReverse"
+      :key="isReadInReverse"
       ref="verticalScroll"
       v-scroll:#verticalScroll="onScroll"
       :items="items"
@@ -10,13 +10,7 @@
       :width="innerWidth"
     >
       <template #default="{ item }">
-        <BookPage
-          :book="book"
-          :page="item"
-          :book-settings="bookSettings"
-          :is-vertical="true"
-          class="verticalPage"
-        />
+        <BookPage :book="book" :page="item" class="verticalPage" />
         <div
           v-intersect.quiet="intersectOptions"
           class="pageTracker"
@@ -36,7 +30,6 @@ import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
 import { range } from "@/util";
 
-const MAX_VISIBLE_PAGES = 12;
 const TIMEOUT = 250;
 
 export default {
@@ -47,7 +40,6 @@ export default {
   },
   props: {
     book: { type: Object, required: true },
-    bookSettings: { type: Object, required: true },
   },
   data() {
     return {
@@ -69,22 +61,19 @@ export default {
       showToolbars: (state) => state.showToolbars,
     }),
     ...mapWritableState(useReaderStore, ["reactWithScroll"]),
-    settings() {
-      return this.getSettings(this.book);
+    bookSettings() {
+      return this.getBookSettings(this.book);
     },
-    readInReverse() {
-      return this.settings.readInReverse;
+    isReadInReverse() {
+      return this.bookSettings.isReadInReverse;
     },
     items() {
       const len = this.book?.maxPage ? this.book.maxPage + 1 : 0;
       const pages = range(0, len);
-      if (this.readInReverse) {
+      if (this.isReadInReverse) {
         pages.reverse();
       }
       return pages;
-    },
-    visibleItems() {
-      return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
   },
   watch: {
@@ -105,9 +94,9 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
+      "getBookSettings",
       "setActivePage",
       "setBookChangeFlag",
-      "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
       if (isIntersecting && this.intersectorOn) {

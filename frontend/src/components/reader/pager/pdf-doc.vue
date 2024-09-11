@@ -19,15 +19,13 @@
 import { mapActions, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
 
-import { useReaderStore } from "@/stores/reader";
+import { useReaderStore, VERTICAL_READING_DIRECTIONS } from "@/stores/reader";
 
 export default {
   name: "PDFDoc",
   components: { VuePdfEmbed },
   props: {
     book: { type: Object, required: true },
-    bookSettings: { type: Object, required: true },
-    isVertical: { type: Boolean, required: true },
     page: { type: Number, required: true },
     src: { type: String, required: true },
   },
@@ -42,6 +40,14 @@ export default {
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings.scale,
     }),
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
+    isVertical() {
+      return VERTICAL_READING_DIRECTIONS.has(
+        this.bookSettings.readingDirection,
+      );
+    },
     width() {
       // Wide PDFs will not fit to SCREEN well.
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
@@ -65,7 +71,7 @@ export default {
       return height * this.scale;
     },
     classes() {
-      return this.fitToClass(this.bookSettings);
+      return this.bookSettings.fitToClass;
     },
   },
   mounted() {
@@ -75,7 +81,7 @@ export default {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "routeToPage", "fitToClass"]),
+    ...mapActions(useReaderStore, ["getBookSettings", "routeToPage"]),
     onResize() {
       this.innerHeight = window.innerHeight;
       this.innerWidth = window.innerWidth;

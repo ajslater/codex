@@ -14,7 +14,7 @@ from codex.views.util import reparse_json_query_params
 
 LOG = get_logger(__name__)
 VALID_ARC_GROUPS = "pisvfa"
-_JSON_KEYS = frozenset({"arc", "breadcrumbs", "browser_arc", "show"})
+_JSON_KEYS = frozenset({"arc", "breadcrumbs", "browserArc", "show"})
 _BROWSER_SESSION_DEFAULTS = SessionView.SESSION_DEFAULTS[
     SessionView.BROWSER_SESSION_KEY
 ]
