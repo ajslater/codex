@@ -8,6 +8,7 @@ from types import MappingProxyType
 from comicbox.box import Comicbox
 from watchdog.events import (
     EVENT_TYPE_CLOSED,
+    EVENT_TYPE_CLOSED_NO_WRITE,
     EVENT_TYPE_CREATED,
     EVENT_TYPE_DELETED,
     EVENT_TYPE_MODIFIED,
@@ -71,7 +72,9 @@ COVERS_EVENT_TYPE_MAP = MappingProxyType(
 class CodexEventHandlerBase(FileSystemEventHandler, LoggerBaseMixin):
     """Base class for Codex Event Handlers."""
 
-    IGNORED_EVENTS = frozenset({EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED})
+    IGNORED_EVENTS = frozenset(
+        {EVENT_TYPE_CLOSED, EVENT_TYPE_CLOSED_NO_WRITE, EVENT_TYPE_OPENED}
+    )
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
