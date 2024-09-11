@@ -32,7 +32,7 @@ class UpdateMixin(WorkerBaseMixin):
         else:
             result = versio_latest_version > installed_versio_version
             pre_blurb = ""
-        self.log.info(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
+        self.log.debug(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
         return result
 
     def update_codex(self, force=False):
