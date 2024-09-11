@@ -68,14 +68,14 @@ export default {
         : this.value;
     },
     lastSlashIndex() {
-      return this.computedValue.lastIndexOf("/");
+      return this.computedValue.lastIndexOf("/") + 1;
     },
     displayValue() {
       let value;
       if (this.group && this.computedValue === "") {
         value = EMPTY_VALUE;
       } else if (this.group === "f" && this.computedValue) {
-        value = this.computedValue.substring(0, this.lastSlashIndex + 1);
+        value = this.computedValue.substring(0, this.lastSlashIndex);
       } else {
         value = this.computedValue;
       }

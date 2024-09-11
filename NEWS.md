@@ -10,16 +10,39 @@ border-radius: 128px;
 
 - Features
 
-  - Use SQLite Full Text Search for search engine. Search syntax has changed,
-    see the help popup.
-  - Use faster db column lookups for some search bar queries. Thanks @bmfrosty.
-  - You may remove the directory `config/whoosh_index`.
+  - Search
+    - Use SQLite Full Text Search for search engine. Search syntax has changed,
+      see the help popup.
+    - Use faster db column lookups for some search bar queries. Thanks
+      @bmfrosty.
+    - You may remove the directory `config/whoosh_index`.
+  - Integrity Checks
+    - Faster more accurate db integrity checks run every night instead of on
+      startup.
+    - Integrity checks can run on startup with environment variables documented
+      in README.
 
 - Fixes
 
   - Fixed crashes when the upstream codex version is not accessible.
   - Fixed possible race conditions with nightly maintenance.
+
+## v1.6.19
+
+- Fixes
+
+  - Fix browser opening reader at correct bookmark.
+  - Fix for browser triple tap bug for android tablet browsers in desktop mode.
+  - Fix populating arcs in reading order menu in reader.
+  - Fix submitting old arc to reader API.
+  - Fix Version API blocking. Add check version admin task.
   - Fix Library "Poll Every" validation.
+  - Fix Metadata dialog not scrolling sometimes.
+  - Fix file extension for downloaded PDF pages.
+
+## v1.6.18
+
+- Yanked. Broken Reader.
 
 ## v1.6.17
 

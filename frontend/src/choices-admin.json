@@ -24,13 +24,17 @@
     "IFI": "Record Failed Imports",
     "IGU": "Update First Covers",
     "JTD": "Cleanup Stale Tags",
+    "JLV": "Check Codex Latest Version",
     "JCU": "Update Codex Software",
     "JCR": "Restart Codex",
     "JCS": "Stop Codex",
     "JCD": "Cleanup Custom Covers",
+    "JCB": "Cleanup Orphan Bookmarks",
     "JDO": "Optimize Database",
     "JDB": "Backup Database",
     "JSD": "Cleanup Expired Sessions",
+    "JIF": "Database Foreign Key Check",
+    "JIC": "Database Integrity Check",
     "SIX": "Search Index Clear",
     "SIU": "Search Index Update",
     "SIC": "Search Index Create",
@@ -137,12 +141,33 @@
           "value": "db_backup",
           "title": "Backup Database",
           "desc": "Runs nightly"
+        },
+        {
+          "value": "db_foreign_key_check",
+          "title": "Remove Illegal Foreign Keys",
+          "desc": "Check for and remove illegal foreign keys. Mark affected comics for update. Runs nightly."
+        },
+        {
+          "value": "db_integrity_check_quick",
+          "title": "Check Database Integrity Quickly",
+          "desc": "If damaaged, rebuild database. Runs nightly."
+        },
+        {
+          "value": "db_integrity_check_long",
+          "title": "Check Database Integrity Thoroughly",
+          "desc": "If damaaged, rebuild database.",
+          "confirm": "Can take a while on large databases, Are you sure?"
         }
       ]
     },
     {
       "title": "Codex Software",
       "tasks": [
+        {
+          "value": "codex_latest_version",
+          "title": "Check for Codex Latest Version",
+          "desc": "Check PyPi for the latest version of Codex"
+        },
         {
           "value": "codex_update",
           "title": "Update Codex",
@@ -200,6 +225,11 @@
           "value": "cleanup_covers",
           "title": "Remove Orphan Cover Thumbnails",
           "desc": "no longer have source comics or custom images. Runs nightly."
+        },
+        {
+          "value": "cleanup_bookmarks",
+          "title": "Remove Orphan Bookmarks",
+          "desc": "Owned by no session or user. Runs nightly."
         },
         {
           "value": "adopt_folders",

@@ -40,7 +40,7 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
-import { IS_IOS, IS_TOUCH } from "@/platform";
+import { NO_DOUBLE_TAP_FOR_HOVER } from "@/platform";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -63,7 +63,7 @@ export default {
   },
   data() {
     return {
-      doubleTapHovered: !IS_TOUCH || IS_IOS,
+      doubleTapHovered: NO_DOUBLE_TAP_FOR_HOVER,
     };
   },
   // Stored here instead of data to be non-reactive
@@ -80,21 +80,24 @@ export default {
     ids() {
       return this.item.ids.join(",");
     },
+    browserRoute() {
+      return {
+        name: "browser",
+        params: {
+          group: this.item.group,
+          pks: this.ids,
+          page: 1,
+        },
+        query: { ts: this.item.mtime },
+      };
+    },
     toRoute() {
       if (!this.doubleTapHovered) {
         return {};
       }
       return this.item.group === "c"
         ? getReaderRoute(this.item, this.importMetadata)
-        : {
-            name: "browser",
-            params: {
-              group: this.item.group,
-              pks: this.ids,
-              page: 1,
-            },
-            query: { ts: this.item.mtime },
-          };
+        : this.browserRoute;
     },
     progressBGOpacity() {
       return this.item.progress ? 0.1 : 0.0;
@@ -161,7 +164,7 @@ export default {
   border-color: rbg(var(--v-theme-primary));
 }
 
-.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
+.browserCardCoverWrapper:hover>.browserCardTop>.cardCoverOverlay * {
   background-color: transparent;
   opacity: 1;
 }

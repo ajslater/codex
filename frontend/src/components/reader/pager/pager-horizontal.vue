@@ -26,7 +26,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
 import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
@@ -52,16 +52,20 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isReadInReverse"]),
     ...mapState(useReaderStore, {
       prevBook: (state) => state.routes.books?.prev,
       nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
       storePk: (state) => state.books.current.pk,
     }),
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
     twoPages() {
-      const settings = this.getSettings(this.book);
-      return settings.twoPages;
+      return this.bookSettings.twoPages;
+    },
+    isReadInReverse() {
+      return this.bookSettings.isReadInReverse;
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];
@@ -108,7 +112,7 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
+      "getBookSettings",
       "setBookChangeFlag",
       "setActivePage",
     ]),

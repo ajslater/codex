@@ -4,8 +4,8 @@ export const formattedVolumeName = function (volume) {
   if (volume) {
     volumeName =
       volume.length === 4 && !Number.isNaN(volume)
-        ? " (" + volume + ")"
-        : " v" + volume;
+        ? "(" + volume + ")"
+        : "v" + volume;
   } else {
     volumeName = "";
   }

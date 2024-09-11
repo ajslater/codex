@@ -12,7 +12,7 @@ class SearchIndexerTask:
 class SearchIndexUpdateTask(SearchIndexerTask):
     """Update the search index."""
 
-    rebuild: bool
+    rebuild: bool = False
 
 
 @dataclass

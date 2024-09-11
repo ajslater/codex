@@ -9,6 +9,20 @@ class JanitorTask:
 
 
 @dataclass
+class JanitorLatestVersionTask(JanitorTask):
+    """Get the latest version."""
+
+    force: bool = False
+
+
+@dataclass
+class JanitorUpdateTask(JanitorTask):
+    """Task for updater."""
+
+    force: bool = False
+
+
+@dataclass
 class JanitorBackupTask(JanitorTask):
     """Backup the database."""
 
@@ -21,13 +35,6 @@ class JanitorRestartTask(JanitorTask):
 @dataclass
 class JanitorShutdownTask(JanitorTask):
     """for shutdown."""
-
-
-@dataclass
-class JanitorUpdateTask(JanitorTask):
-    """Task for updater."""
-
-    force: bool
 
 
 @dataclass
@@ -56,8 +63,25 @@ class JanitorCleanupSessionsTask(JanitorTask):
 
 
 @dataclass
+class JanitorCleanupBookmarksTask(JanitorTask):
+    """Clean unused bookmarks."""
+
+
+@dataclass
 class ForceUpdateAllFailedImportsTask(JanitorTask):
     """Force update for failed imports in every library."""
+
+
+@dataclass
+class JanitorForeignKeyCheck(JanitorTask):
+    """Check and repair foreign keys integrity."""
+
+
+@dataclass
+class JanitorIntegrityCheck(JanitorTask):
+    """Check integrity and rebuild."""
+
+    long: bool = False
 
 
 @dataclass

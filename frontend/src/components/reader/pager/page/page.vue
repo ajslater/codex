@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
@@ -67,7 +67,6 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings.scale,
     }),
@@ -97,9 +96,6 @@ export default {
     component() {
       return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
     },
-    settings() {
-      return this.getSettings(this.book);
-    },
   },
   mounted() {
     setTimeout(function () {
@@ -109,7 +105,6 @@ export default {
     }, PROGRESSS_DELAY_MS);
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
     onLoad() {
       this.showProgress = false;
       this.loaded = true;

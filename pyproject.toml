@@ -108,7 +108,7 @@ builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
 # https://github.com/codespell-project/codespell/issues/1212
-ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws,falsy,versio,ond'
+ignore-words-list = 'thead,ro,coverd,searchd,ws,falsy,versio'
 
 [tool.coverage.html]
 directory = "test-results/coverage"

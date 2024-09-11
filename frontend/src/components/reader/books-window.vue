@@ -51,6 +51,12 @@ export default {
       currentBookPk: (state) => state.books?.current?.pk || 0,
       bookRoutes: (state) => state.routes.books,
     }),
+    bookChangePrev() {
+      return this.bookChangeShow("prev");
+    },
+    bookChangeNext() {
+      return this.bookChangeShow("next");
+    },
   },
   watch: {
     $route(to, from) {
@@ -65,8 +71,8 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "setBookChangeFlag",
       "loadBooks",
+      "setBookChangeFlag",
       "toggleToolbars",
     ]),
     click() {
@@ -91,6 +97,7 @@ export default {
   min-height: 100vh;
   text-align: center;
 }
+
 :deep(.v-window__controls) {
   position: fixed;
   top: 48px;
