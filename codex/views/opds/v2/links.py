@@ -6,8 +6,8 @@ from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
 
+from codex.settings.settings import FALSY
 from codex.views.browser.browser import BrowserView
-from codex.views.const import FALSY
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
 from codex.views.util import pop_name

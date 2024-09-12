@@ -24,12 +24,20 @@ from codex.settings.whitenoise import immutable_file_test
 # Undocumented Environment Variables #
 ######################################
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(environ.get("DEBUG", "").lower() not in {"0", "false", ""})
+FALSY = {None, "", "false", "0", False}
+
+
+def not_falsy_env(name):
+    """Return a boolean environment envs mindful of falsy values."""
+    return bool(environ.get(name, "").lower() not in FALSY)
+
+
+DEBUG = not_falsy_env("DEBUG")
 BUILD = environ.get("BUILD", False)
 # Slow query middleware
 # limit in seconds
 SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
-LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
+LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
 # Search indexing memory controls
 MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
 WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
@@ -50,7 +58,7 @@ SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", 10000
 LOGLEVEL = environ.get("LOGLEVEL", logging.DEBUG if DEBUG else logging.INFO)
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
-RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
+RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
 LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
@@ -58,8 +66,10 @@ THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", 0))
 THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", 0))
 THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", 0))
 THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
-FIX_FOREIGN_KEYS = bool(environ.get("CODEX_FIX_FOREIGN_KEYS"))
+FIX_FOREIGN_KEYS = not_falsy_env("CODEX_FIX_FOREIGN_KEYS")
 INTEGRITY_CHECK = environ.get("CODEX_INTEGRITY_CHECK", False)
+FTS_INTEGRITY_CHECK = not_falsy_env("CODEX_FTS_INTEGRITY_CHECK")
+FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

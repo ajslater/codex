@@ -11,8 +11,8 @@ from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, FileType
+from codex.settings.settings import FALSY
 from codex.views.bookmark import BookmarkBaseView
-from codex.views.const import FALSY
 from codex.views.util import chunker
 
 LOG = get_logger(__name__)
