@@ -27,8 +27,6 @@ import { getBrowserHref } from "@/api/v3/browser";
 import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
 const EMPTY_VALUE = "(Empty)";
 
-const EMPTY_VALUE = "(Empty)";
-
 export default {
   name: "MetadataTextBox",
   props: {

@@ -412,23 +412,6 @@ export const useReaderStore = defineStore("reader", {
         state.bookSettings = {};
       });
     },
-    toggleToolbars() {
-      this.showToolbars = !this.showToolbars;
-    },
-    reset() {
-      // HACK because $reset doesn't seem to.
-      this.$patch((state) => {
-        state.arc = undefined;
-        state.arcs = [];
-        state.mtime = 0;
-        state.settingsLoaded = false;
-        state.books = {
-          current: undefined,
-          prev: false,
-          next: false,
-        };
-      });
-    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
     _getBookRoutePage(book, isPrev) {
@@ -514,19 +497,6 @@ export const useReaderStore = defineStore("reader", {
           return true;
         })
         .catch(console.error);
-      BROWSER_API.getSettings({
-        only: READER_INFO_ONLY_KEYS,
-        breadcrumbNames: false,
-      })
-        .then((response) => {
-          this.browserSettings = response.data;
-          return true;
-        })
-        .catch(console.error);
-      if (!this.settingsLoaded) {
-        this.settingsLoaded = true;
-        this.loadBooks({});
-      }
     },
     async loadReaderSettings() {
       API.getReaderSettings()

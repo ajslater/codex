@@ -259,47 +259,6 @@ doc = ["sphinx", "sphinx-rtd-theme"]
 test = ["flake8", "isort", "pytest"]
 
 [[package]]
-name = "cairocffi"
-version = "1.7.0"
-description = "cffi-based cairo bindings for Python"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "cairocffi-1.7.0-py3-none-any.whl", hash = "sha256:1f29a8d41dbda4090c0aa33bcdea64f3b493e95f74a43ea107c4a8a7b7f632ef"},
-    {file = "cairocffi-1.7.0.tar.gz", hash = "sha256:7761863603894305f3160eca68452f373433ca8745ab7dd445bd2c6ce50dcab7"},
-]
-
-[package.dependencies]
-cffi = ">=1.1.0"
-
-[package.extras]
-doc = ["sphinx", "sphinx_rtd_theme"]
-test = ["numpy", "pikepdf", "pytest", "ruff"]
-xcb = ["xcffib (>=1.4.0)"]
-
-[[package]]
-name = "cairosvg"
-version = "2.7.1"
-description = "A Simple SVG Converter based on Cairo"
-optional = false
-python-versions = ">=3.5"
-files = [
-    {file = "CairoSVG-2.7.1-py3-none-any.whl", hash = "sha256:8a5222d4e6c3f86f1f7046b63246877a63b49923a1cd202184c3a634ef546b3b"},
-    {file = "CairoSVG-2.7.1.tar.gz", hash = "sha256:432531d72347291b9a9ebfb6777026b607563fd8719c46ee742db0aef7271ba0"},
-]
-
-[package.dependencies]
-cairocffi = "*"
-cssselect2 = "*"
-defusedxml = "*"
-pillow = "*"
-tinycss2 = "*"
-
-[package.extras]
-doc = ["sphinx", "sphinx-rtd-theme"]
-test = ["flake8", "isort", "pytest"]
-
-[[package]]
 name = "case-converter"
 version = "1.1.0"
 description = "A string case conversion package."
@@ -3001,17 +2960,6 @@ typing-extensions = ">=4.11.0"
 tests = ["check-manifest", "isort", "pydocstyle", "pytest"]
 
 [[package]]
-name = "vendorize"
-version = "0.3.0"
-description = "Vendorize packages from PyPI"
-optional = false
-python-versions = ">=3.5"
-files = [
-    {file = "vendorize-0.3.0-py3-none-any.whl", hash = "sha256:d6c163755369d4f6120f3a69b5d2112f04bb124555550b002813265463fb43c9"},
-    {file = "vendorize-0.3.0.tar.gz", hash = "sha256:d3fc6f1ce436887f46b80ed0c13fb546a8201906d6e763d9b2aaf7ec40193792"},
-]
-
-[[package]]
 name = "versio"
 version = "0.5.0"
 description = "Version manipulation library."
@@ -3150,4 +3098,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e4e64194e1825f98e22a4d0ae270b406db77af84f6d224b7f46e13beee612361"
+content-hash = "a1ab1286cf1e464c41af7a25afdcfc5152a8477d4f97ff03278dbb032bf94e30"

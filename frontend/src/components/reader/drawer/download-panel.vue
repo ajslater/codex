@@ -57,9 +57,6 @@ export default {
     downloadPageTitle() {
       return `Download Page ${this.storePage}`;
     },
-    downloadPageTitle() {
-      return `Download Page ${this.storePage}`;
-    },
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),

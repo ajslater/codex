@@ -112,7 +112,6 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         for bm in existing_bookmarks:
             self._update_bookmarks_validate_page(bm, updates)
             self._update_bookmarks_validate_two_pages(bm, updates)
-            old_finished = bm.finished
             for key, value in updates.items():
                 setattr(bm, key, value)
             bm.updated_at = Now()
@@ -148,7 +147,6 @@ class BookmarkBaseView(BookmarkFilterBaseView):
             .exclude(**exclude)
             .only(*_COMIC_ONLY_FIELDS)
         )
-        finished = False
         for comic in create_bookmark_comics:
             defaults = {"comic": comic}
             defaults.update(updates)

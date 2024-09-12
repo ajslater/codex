@@ -608,21 +608,5 @@ export const useBrowserStore = defineStore("browser", {
         })
         .catch(console.error);
     },
-    async loadMtimes() {
-      const route = router.currentRoute.value;
-      const group =
-        route.params.group != "r" ? route.params.group : this.page.modelGroup;
-      const pks = route.params.pks;
-      return await COMMON_API.getMtime([{ group, pks }], this.choicesSettings)
-        .then((response) => {
-          const newMtime = response.data.maxMtime;
-          // console.log(`new ${newMtime} !== old ${this.page.mtime}`);
-          if (newMtime !== this.page.mtime) {
-            this.choices.dynamic = undefined;
-            this.loadBrowserPage(newMtime);
-          }
-        })
-        .catch(console.error);
-    },
   },
 });

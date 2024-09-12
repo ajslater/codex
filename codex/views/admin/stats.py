@@ -17,15 +17,6 @@ from codex.serializers.admin.stats import (
 from codex.views.admin.auth import AdminGenericAPIView
 
 LOG = get_logger(__name__)
-_KEY_MODELS_MAP = MappingProxyType(
-    {
-        "config": CONFIG_MODELS,
-        "groups": STATS_GROUP_MODELS,
-        "metadata": METADATA_MODELS,
-    }
-)
-_DOCKERENV_PATH = Path("/.dockerenv")
-_CGROUP_PATH = Path("/proc/self/cgroup")
 
 
 class AdminStatsView(AdminGenericAPIView):

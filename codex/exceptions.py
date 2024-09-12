@@ -34,7 +34,7 @@ class SeeOtherRedirectError(APIException):
     default_code = "redirect"
     default_detail = "redirect to a valid route"
 
-    def __init__(self, detail: Mapping[str, str | dict]):
+    def __init__(self, detail):
         """Create a response to pass to the exception handler."""
         # Copy to edit and not write over refs
         detail = dict(detail)

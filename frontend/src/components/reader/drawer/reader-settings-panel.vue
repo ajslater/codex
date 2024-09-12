@@ -299,14 +299,4 @@ export default {
   margin-right: 8px;
   margin-bottom: 5px;
 }
-#readerScopedSettings {
-  // halfway between background (18) and surface (33) color
-  background-color: rgb(25,25,25); //rgba(var(--v-theme-surface));
-  margin-top: 4px;
-  margin-left: 10px;
-  padding-left: 5px;
-  padding-top: 4px;
-  margin-right: 8px;
-  margin-bottom: 5px;
-}
 </style>
