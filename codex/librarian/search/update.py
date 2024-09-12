@@ -52,8 +52,6 @@ _COMICFTS_UPDATE_FIELDS = (
     "updated_at",
 )
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
-# Higher batch numbers are faster, but no feedback makes users nervous
-_SINCE_NOTIFY = 15
 
 
 class FTSUpdateMixin(RemoveMixin):
@@ -179,22 +177,6 @@ class FTSUpdateMixin(RemoveMixin):
             self.log.debug(f"{verb} no search entries.")
         self.status_controller.finish(status)
 
-    def _update_status_since(self, since, status, verb, batch_size, total, batch_start):  # noqa: PLR0913
-        # TODO  move to status_controller
-        if time() - since > _SINCE_NOTIFY:
-            notify = True
-            since = time()
-        else:
-            notify = False
-        self.status_controller.update(status, notify=notify)
-        batch_time = time() - batch_start
-        verb = verb.capitalize() + "d"
-        self.log.debug(
-            f"{verb} {batch_size}/{total} search entries in {batch_time}, {round(batch_size/batch_time)} per second."
-        )
-        notify = False
-        return since
-
     def _update_search_index_operate(self, comics_qs, create=False):
         count = comics_qs.count()
         verb = "create" if create else "update"
@@ -217,7 +199,6 @@ class FTSUpdateMixin(RemoveMixin):
         operate_status = Status(status_type, complete, count)
         self.status_controller.start(operate_status)
 
-        since = time()
         batch_from = 0
         try:
             while batch_from < count:
@@ -238,13 +219,11 @@ class FTSUpdateMixin(RemoveMixin):
                         operate_comicfts, _COMICFTS_UPDATE_FIELDS
                     )
                 operate_status.add_complete(operate_comicfts_count)
-                since = self._update_status_since(
-                    since,
-                    operate_status,
-                    verb,
-                    count,
-                    operate_comicfts_count,
-                    batch_start,
+                self.status_controller.update(operate_status)
+                batch_time = time() - batch_start
+                eps = round(count / batch_time)
+                self.log.debug(
+                    f"{verb} {count}/{operate_comicfts_count} search entries in {batch_time}, {eps} per second."
                 )
                 batch_from = batch_to
         finally:
