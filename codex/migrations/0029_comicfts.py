@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                     ],
                     options={
                         "get_latest_by": "updated_at",
-                        "abstract": False,
+                        "managed": False,
                     },
                 ),
             ],
@@ -51,7 +51,6 @@ class Migration(migrations.Migration):
                         "story_arcs, tags, teams, "
                         "reading_direction, file_type)"
                     ),
-                    # , content='', contentless_delete=1)"
                     reverse_sql="DROP TABLE IF EXISTS codex_comicfts",
                 ),
             ],
