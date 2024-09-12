@@ -11,14 +11,15 @@ border-radius: 128px;
 - Features
 
   - Search
-    - Use SQLite Full Text Search for search engine. Search syntax has changed,
-      see the help popup.
+    - Use SQLite Full Text Search v5 for search engine.
+    - Search syntax has changed. See the help popup at the end of the search
+      bar.
     - Use faster db column lookups for some search bar queries. Thanks
       @bmfrosty.
     - You may remove the directory `config/whoosh_index`.
   - Integrity Checks
-    - Faster more accurate db integrity checks run every night instead of on
-      startup.
+    - Faster more comprehensive db integrity checks run every night instead of
+      at startup.
     - Integrity checks can run on startup with environment variables documented
       in README.
 
