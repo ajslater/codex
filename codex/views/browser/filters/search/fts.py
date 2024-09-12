@@ -22,10 +22,8 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
             if model == StoryArc
             else "comic__"
         )
-        # publisher is not really used by my custom match lookup
-        #  the MATCH operator actually takes a table as it's left hand side
-        #  but django orm doesn't have a facility for that.
-        rel = prefix + "comicfts__publisher__match"
+        # Custom Lookup defined in codex.models
+        rel = prefix + "comicfts__match"
         return {rel: text}
 
     def get_fts_filter(self, model, text):
