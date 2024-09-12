@@ -131,13 +131,13 @@
         },
         {
           "value": "db_fts_integrity_check",
-          "title": "Search Index Integrity Check",
-          "desc": "Runs nightly"
+          "title": "Integrity Check Search Index",
+          "desc": "Repairs Search Index on failure. Runs nightly"
         },
         {
           "value": "db_fts_rebuild",
-          "title": "Search Index Repair",
-          "desc": "Possibly faster than Rebuild if integrity check fails."
+          "title": "Repair Search Index",
+          "desc": "Probably faster than Rebuild if integrity check fails."
         }
       ]
     },
@@ -162,12 +162,12 @@
         {
           "value": "db_integrity_check_quick",
           "title": "Check Database Integrity Quickly",
-          "desc": "If damaaged, rebuild database. Runs nightly."
+          "desc": "Check logs for results. Runs nightly."
         },
         {
           "value": "db_integrity_check_long",
           "title": "Check Database Integrity Thoroughly",
-          "desc": "If damaaged, rebuild database.",
+          "desc": "Check logs for results.",
           "confirm": "Can take a while on large databases, Are you sure?"
         }
       ]
