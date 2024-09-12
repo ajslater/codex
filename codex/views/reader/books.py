@@ -92,8 +92,8 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         arc_pks = self._get_reader_arc_pks(
             arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
         )
-        nav_filter = {f"{rel}__in": arc_pks}
         group_acl_filter = self.get_group_acl_filter(Comic)
+        nav_filter = {f"{rel}__in": arc_pks}
 
         qs = Comic.objects.filter(group_acl_filter).filter(**nav_filter)
         if browser_filters := arc.get("filters"):
