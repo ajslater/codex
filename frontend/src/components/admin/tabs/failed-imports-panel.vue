@@ -1,5 +1,5 @@
 <template>
-  <div v-if="failedImports && failedImports.length > 0">
+  <div v-if="showFailedImports">
     <v-expansion-panels>
       <v-expansion-panel
         id="failedImportsPanel"
@@ -106,11 +106,12 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["failedImports"]),
+    ...mapState(useAdminStore, {
+      failedImports: (state) => state.failedImports,
+      showFailedImports: (state) =>
+        state.failedImports && state.failedImports.length > 0,
+    }),
     ...mapWritableState(useAdminStore, ["unseenFailedImports"]),
-  },
-  created() {
-    this.unseenFailedImports = true;
   },
 };
 </script>
@@ -120,18 +121,23 @@ export default {
   display: block;
   margin-left: 2em;
 }
+
 #failedImportsPanel {
   padding-top: 10px;
 }
+
 #failedImportsIcon {
   padding-left: 0.25em;
   color: rgb(var(--v-theme-error)) !important;
 }
+
 #failedImportsHelp {
   color: rgb(var(--v-theme-textSecondary));
 }
+
 h4 {
   padding-top: 0.5em;
 }
+
 @import "../../anchors.scss";
 </style>

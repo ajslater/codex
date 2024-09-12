@@ -3,21 +3,15 @@
 from pathlib import Path
 
 from django.core.cache import cache
-from django.core.management import call_command
-from django.db import connection
 from django.db.models import F, Q
 from django.db.models.functions import Now
 
-from codex.integrity import has_unapplied_migrations, rebuild_db, repair_db
-from codex.librarian.janitor.janitor import Janitor
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.db import ensure_db_schema
 from codex.logger.logging import get_logger
-from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
 from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
-    BACKUP_DB_PATH,
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
     HYPERCORN_CONFIG,
@@ -25,36 +19,8 @@ from codex.settings.settings import (
     RESET_ADMIN,
 )
 from codex.status_controller import STATUS_DEFAULTS
-from codex.version import VERSION
 
 LOG = get_logger(__name__)
-
-
-def backup_db_before_migration():
-    """If there are migrations to do, backup the db."""
-    suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
-    backup_path = BACKUP_DB_PATH.with_suffix(suffix)
-    janitor = Janitor(LOG_QUEUE, LIBRARIAN_QUEUE)
-    janitor.backup_db(backup_path, show_status=False)
-    LOG.info("Backed up database before migrations")
-
-
-def ensure_db_schema():
-    """Ensure the db is good and up to date."""
-    LOG.info("Ensuring database is correct and up to date...")
-    table_names = connection.introspection.table_names()
-    db_exists = "django_migrations" in table_names
-    if db_exists:
-        rebuild_db()
-        repair_db()
-
-    if not db_exists or has_unapplied_migrations():
-        if db_exists:
-            backup_db_before_migration()
-        call_command("migrate")
-    else:
-        LOG.info("Database up to date.")
-    LOG.info("Database ready.")
 
 
 def ensure_superuser():
@@ -87,9 +53,7 @@ def init_admin_flags():
     _delete_orphans(AdminFlag, "key", AdminFlag.FlagChoices.values)
 
     for key in AdminFlag.FlagChoices.values:
-        defaults = {}
-        if key in AdminFlag.FALSE_DEFAULTS:
-            defaults["on"] = False
+        defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
             title = CHOICES["admin"]["adminFlags"][flag.key]

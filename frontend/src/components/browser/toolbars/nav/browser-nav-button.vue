@@ -6,7 +6,9 @@
     :title="title"
     :to="toRoute"
   >
-    <v-icon v-if="showMore"> {{ mdiMagnify }}</v-icon>
+    <v-icon v-if="showMore">
+      {{ mdiMagnify }}
+    </v-icon>
     <v-icon :class="{ flipHoriz: !back }">
       {{ mdiChevronLeft }}
     </v-icon>

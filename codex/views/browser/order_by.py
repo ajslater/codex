@@ -13,8 +13,14 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
 
     def set_order_key(self):
         """Get the default order key for the view."""
-        self.order_key: str = self.params["order_by"]
-        order_reverse = self.params.get("order_reverse")
+        order_key: str = self.params["order_by"]
+        if order_key == "search_score" and not self.fts_mode:
+            # if no search scores, use sort_name, asc
+            order_key = "sort_name"
+            order_reverse = False
+        else:
+            order_reverse = self.params.get("order_reverse")
+        self.order_key = order_key
         self.order_agg_func = Max if order_reverse else Min
 
     def _add_comic_order_by(self, order_key, comic_sort_names):
@@ -42,7 +48,7 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
                 order_fields_head += ["updated_at"]
         return order_fields_head
 
-    def add_order_by(  # noqa: PLR0913
+    def add_order_by(
         self, qs, model, order_key="", do_reverse=True, comic_sort_names=None
     ):
         """Create the order_by list."""

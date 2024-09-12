@@ -21,7 +21,12 @@ class BrowserGroupModel(BaseModel):
     PARENT = ""
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
-    sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
+    sort_name = CharField(
+        db_index=True,
+        max_length=MAX_NAME_LEN,
+        default=DEFAULT_NAME,
+        db_collation="nocase",
+    )
     custom_cover = ForeignKey(
         CustomCover, on_delete=SET_DEFAULT, null=True, default=None
     )

@@ -10,7 +10,7 @@ from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
-from codex.serializers.admin import UserChangePasswordSerializer, UserSerializer
+from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 LOG = get_logger(__name__)
@@ -19,8 +19,10 @@ LOG = get_logger(__name__)
 class AdminUserViewSet(AdminModelViewSet):
     """User ViewSet."""
 
-    queryset = User.objects.prefetch_related("groups").defer(
-        "first_name", "last_name", "email"
+    queryset = (
+        User.objects.prefetch_related("groups")
+        .select_related("useractive")
+        .defer("first_name", "last_name", "email")
     )
     serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")
@@ -48,6 +50,19 @@ class AdminUserViewSet(AdminModelViewSet):
         """Add hook after update."""
         super().perform_update(serializer)
         self._on_change()
+
+    def perform_create(self, serializer):
+        """Create user."""
+        validated_data = serializer.validated_data
+        password = validated_data["password"]
+        validate_password(password)
+        groups = validated_data.pop("groups")
+        validated_data["email"] = ""
+        user = User.objects.create_user(**validated_data)
+
+        if groups:
+            user.groups.set(groups)
+            user.save()
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

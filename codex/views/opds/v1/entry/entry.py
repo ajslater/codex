@@ -1,9 +1,11 @@
 """OPDS v1 Entry."""
 
 import json
+from contextlib import suppress
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
+from dateutil import parser
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
@@ -23,11 +25,6 @@ LOG = get_logger(__name__)
 
 class OPDS1Entry(OPDS1EntryLinksMixin):
     """An OPDS entry object."""
-
-    _DATE_FORMAT_BASE = "%Y-%m-%dT%H:%M:%S"
-    _DATE_FORMAT_MS = _DATE_FORMAT_BASE + ".%f%z"
-    _DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
-    _DATE_FORMATS = (_DATE_FORMAT_MS, _DATE_FORMAT)
 
     @property
     def id_tag(self):
@@ -69,9 +66,12 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @property
     def issued(self):
         """Return the published date."""
+        date = ""
         if self.obj.group == "c":
-            return self.obj.date
-        return None
+            with suppress(Exception):
+                date = self.obj.date.isoformat()
+
+        return date
 
     @property
     def publisher(self):
@@ -81,17 +81,13 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     def _get_datefield(self, key):
         result = None
         if not self.fake and (value := getattr(self.obj, key, None)):
-            for date_format in self._DATE_FORMATS:
-                try:
-                    if isinstance(value, str):
-                        result = datetime.strptime(value, date_format).astimezone(
-                            timezone.utc
-                        )
-                    if isinstance(value, datetime):
-                        result = value.astimezone(timezone.utc).strftime(date_format)
-                    break
-                except ValueError:
-                    pass
+            try:
+                if isinstance(value, str):
+                    result = parser.parse(value)
+                if isinstance(value, datetime):
+                    result = value.astimezone(timezone.utc).isoformat()
+            except ValueError:
+                pass
         return result
 
     @property

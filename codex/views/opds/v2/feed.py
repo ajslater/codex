@@ -9,7 +9,8 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
-from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
+from codex.settings.settings import FALSY
+from codex.views.const import MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (

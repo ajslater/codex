@@ -110,15 +110,15 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver
         """
         if self._emitter_class != DatabasePollingEmitter:
-            return super().schedule(event_handler, path, recursive)
+            return super().schedule(event_handler, path, recursive=recursive)
         with self._lock:
-            watch = ObservedWatch(path, recursive)
+            watch = ObservedWatch(path, recursive=recursive)
             self._add_handler_for_watch(event_handler, watch)
 
             # If we don't have an emitter for this watch already, create it.
             if self._emitter_for_watch.get(watch) is None:
                 covers_only = isinstance(event_handler, CodexCustomCoverEventHandler)
-                emitter = self._emitter_class(
+                emitter = DatabasePollingEmitter(
                     event_queue=self.event_queue,
                     watch=watch,
                     timeout=self.timeout,
@@ -165,8 +165,9 @@ class LibraryPollingObserver(UatuMixin):
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
+                polling_emitter: DatabasePollingEmitter = emitter  # type: ignore
                 if emitter.watch.path in paths:
-                    emitter.poll(force)
+                    polling_emitter.poll(force)
         except Exception:
             self.log.exception(
                 f"{self.__class__.__name__}.poll({library_pks}, {force})"

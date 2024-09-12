@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.6.0-rc1",
+  "version": "1.7.0-a0",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -17,24 +17,25 @@
   "dependencies": {
     "@unhead/vue": "^1.7.2",
     "axios": "^1.4.0",
+    "change-case-all": "^2.1.0",
     "core-js": "^3.31",
-    "lodash": "^4.17.21",
+    "deep-clone": "^4.0.0",
+    "dequal": "^2.0.3",
     "pinia": "^2.1.4",
     "pretty-bytes": "^6.1.1",
-    "titleize": "^4.0.0",
-    "vue": "^3.4.11",
+    "vue": "^3.5.2",
     "vue-drag-scroller": "^1.7.0",
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
-    "vuetify": "^3.6.0"
+    "vuetify": "^3.7.1"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
     "@mdi/js": "^7.0.96",
     "@nabla/vite-plugin-eslint": "^2.0.2",
     "@pinia/testing": "^0.1.0",
-    "@types/node": "^20.1.2",
+    "@types/node": "^22.0.0",
     "@unhead/addons": "^1.7.2",
     "@vitejs/plugin-vue": "^5.0.2",
     "@vue/test-utils": "^2.2.1",
@@ -45,14 +46,14 @@
     "eslint-plugin-vue-scoped-css": "^2.2.0",
     "jsdom-global": "^3.0.2",
     "sass": "^1.55.0",
-    "sass-loader": "^14.0",
+    "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^5.0.10",
-    "vite-plugin-checker": "^0.6.0",
+    "vite-plugin-checker": "^0.8.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-static-copy": "^1.0.0",
     "vite-plugin-vuetify": "^2.0.1",
-    "vitest": "^1.1.2",
+    "vitest": "^2.0.1",
     "vue-eslint-parser": "^9.0.2"
   }
 }

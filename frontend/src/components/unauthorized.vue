@@ -1,6 +1,6 @@
 <template>
   <v-main id="unauthorized">
-    <v-empty-state
+    <EmptyState
       v-if="isAuthChecked"
       class="empty"
       headline="Unauthorized"
@@ -8,9 +8,10 @@
       :icon="mdiLockOutline"
     >
       <div class="login">
-        <AuthMenu />
+        <AdminBrowserLink v-if="showAdminBrowserLink" />
+        <AuthMenu :show-change-password="false" />
       </div>
-    </v-empty-state>
+    </EmptyState>
     <PlaceholderLoading v-else id="unauthorizedPlaceholder" />
   </v-main>
 </template>
@@ -19,15 +20,19 @@
 import { mdiLockOutline } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
+import AdminBrowserLink from "@/components/admin/browser-link.vue";
 import AuthMenu from "@/components/auth/auth-menu.vue";
+import EmptyState from "@/components/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "UnauthorizedEmptyState",
   components: {
+    AdminBrowserLink,
     AuthMenu,
     PlaceholderLoading,
+    EmptyState,
   },
   props: {
     admin: {
@@ -47,11 +52,16 @@ export default {
       "isUserAdmin",
     ]),
     ...mapState(useAuthStore, {
-      registration: (state) => state.adminFlags.registration,
+      showAdminBrowserLink(state) {
+        return (
+          this.$router.currentRoute?.value?.name?.startsWith("admin") &&
+          state.adminFlags.nonUsers
+        );
+      },
+      text(state) {
+        return state.adminFlags.registration ? "" : "Registration is disabled";
+      },
     }),
-    text() {
-      return this.registration ? "" : "Registration is disabled";
-    },
   },
 };
 </script>
@@ -61,17 +71,20 @@ export default {
   padding-top: max(20px, env(safe-area-inset-top));
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
-  padding-bottom: max(20px,env(safe-area-inset-bottom));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
+
 #unauthorizedPlaceholder {
   position: fixed;
   top: 25%;
   left: 25%;
 }
-.empty {
-  color: rgb(var(--v-theme-textDisabled));
-}
+
 .login {
   color: rgb(var(--v-theme-primary));
+}
+
+.login :deep(.v-list-item__prepend) {
+  margin-right: 0.25em;
 }
 </style>

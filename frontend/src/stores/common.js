@@ -62,12 +62,10 @@ export const useCommonStore = defineStore("common", {
       await API.getVersions(this.timestamp)
         .then((response) => {
           const data = response.data;
-          return (this.versions = data);
+          this.versions = data;
+          return this.versions;
         })
         .catch(console.error);
-    },
-    downloadIOSPWAFix(href, filename) {
-      API.getDownloadIOSPWAFix(href, filename);
     },
     setErrors(axiosError) {
       const errors = getErrors(axiosError);
@@ -100,7 +98,8 @@ export const useCommonStore = defineStore("common", {
       }
       await API.getOPDSURLs()
         .then((response) => {
-          return (this.opdsURLs = Object.freeze({ ...response.data }));
+          this.opdsURLs = Object.freeze({ ...response.data });
+          return this.opdsURLs;
         })
         .catch(console.error);
     },

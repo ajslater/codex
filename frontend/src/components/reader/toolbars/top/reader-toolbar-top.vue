@@ -10,7 +10,7 @@
         <v-btn
           ref="closeBook"
           class="closeBook"
-          :to="closeBookRoute"
+          :to="closeRoute"
           size="large"
           density="compact"
           variant="plain"
@@ -35,8 +35,12 @@
       <template v-if="title" #extension>
         <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
         <v-toolbar-title class="readerTitle">
-          <div id="title">{{ title }}</div>
-          <div v-if="subtitle" id="subtitle">{{ subtitle }}</div>
+          <div id="title">
+            {{ title }}
+          </div>
+          <div v-if="subtitle" id="subtitle">
+            {{ subtitle }}
+          </div>
         </v-toolbar-title>
       </template>
     </v-toolbar>
@@ -45,6 +49,7 @@
 
 <script>
 import { mdiClose } from "@mdi/js";
+import deepClone from "deep-clone";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
@@ -98,6 +103,13 @@ export default {
       }
       height += 4;
       return height;
+    },
+    closeRoute() {
+      const route = deepClone(this.closeBookRoute);
+      const params = deepClone(route.params);
+      delete params["name"];
+      route.params = params;
+      return route;
     },
   },
   watch: {
@@ -162,32 +174,36 @@ export default {
   padding-right: 0px; // given to button.
   z-index: 20;
 }
+
 .closeBook {
   padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
 }
 
-.readerTitle
-{
+.readerTitle {
   padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-left) / 2);
   text-align: center;
   white-space: nowrap;
   overflow: scroll;
 }
+
 .readerTitle {
   padding-bottom: 4px;
 }
+
 #title {
   font-size: clamp(18px, 3vw, 20px);
 }
+
 #subtitle {
   font-size: clamp(16px, 3vw, 18px);
   color: rgb(var(--v-theme-textSecondary));
   padding-bottom: 10px;
 }
+
 @media #{map-get(vuetify.$display-breakpoints, 'xs')} {
-.closeBook {
-  padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
-}
+  .closeBook {
+    padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
+  }
 }
 </style>

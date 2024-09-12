@@ -6,7 +6,7 @@ from types import MappingProxyType
 from django.db.models import CASCADE, CharField, ForeignKey, JSONField
 from django.db.models.enums import Choices
 
-from codex.models.base import MAX_NAME_LEN, BaseModel
+from codex.models.base import MAX_NAME_LEN, BaseModel, max_choices_len
 from codex.models.library import MAX_PATH_LEN, Library
 from codex.models.util import get_sort_name
 
@@ -101,8 +101,14 @@ class CustomCover(WatchedPath):
     )
 
     parent_folder = None
-    group = CharField(max_length=1, db_index=True, choices=GroupChoice.choices)
-    sort_name = CharField(max_length=MAX_NAME_LEN, db_index=True, default="")
+    group = CharField(
+        max_length=max_choices_len(GroupChoice),
+        db_index=True,
+        choices=GroupChoice.choices,
+    )
+    sort_name = CharField(
+        max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
+    )
 
     def _set_group_and_sort_name(self):
         """Set group and sort_name from path."""

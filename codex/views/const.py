@@ -39,7 +39,6 @@ from codex.models import (
 )
 from codex.settings.settings import CODEX_PATH
 
-FALSY = {None, "", "false", "0", False}
 GROUP_NAME_MAP = MappingProxyType(
     {"p": "publisher", "i": "imprint", "s": "series", "v": "volume"}
 )
@@ -69,15 +68,14 @@ GROUP_RELATION = MappingProxyType(
 )
 FILTER_ONLY_GROUP_RELATION = MappingProxyType(
     {
-        **GROUP_NAME_MAP,
+        **GROUP_RELATION,
         FOLDER_GROUP: "folders",
-        STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
 METADATA_GROUP_RELATION = MappingProxyType(
     {
         **GROUP_NAME_MAP,
-        COMIC_GROUP: "pk",
+        COMIC_GROUP: "comic",
         # Possible to list all groups in a non group view, but could get crazy.
         # FOLDER_GROUP: "comic__folder",
         # STORY_ARC_GROUP: "comic__story_arc_number__story_arc"

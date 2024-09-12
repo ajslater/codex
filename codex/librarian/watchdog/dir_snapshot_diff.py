@@ -21,9 +21,9 @@ class SnapshotDiffData:
 class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
     """Custom Diff allows inode only changes to be 'modified'."""
 
-    def _get_inode(self, directory, full_path):
+    def _get_inode(self, snapshot, full_path):
         """Get inode optionally ignoring device stats."""
-        result = directory.inode(full_path)
+        result = snapshot.inode(full_path)
         if self._ignore_device:
             result = result[0]
         return result
@@ -33,7 +33,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
         return self._get_inode(data.ref, path) == self._get_inode(data.snapshot, path)
 
     def _is_stats_equal(self, data, old_path, new_path):
-        """Return if the mtimze and size are equal.
+        """Return if the mtime and size are equal.
 
         For old paths in the ref and new paths in the snapshot.
         """
@@ -48,25 +48,27 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
                 if self._inode_only_modified:
                     data.modified.add(path)
                 else:
+                    # Add these to created and deleted. But...
+                    # The _find_moved_paths() inode tracker should
+                    #  sort them out.
+                    # This is the same as in upstream dirsnapshot.py
                     data.created.add(path)
                     data.deleted.add(path)
 
     def _find_moved_paths(self, data):
-        """Find moved paths."""
-        for path in tuple(data.deleted):
-            inode = data.ref.inode(path)
-            new_path = data.snapshot.path(inode)
-            if new_path:
+        """Find moved paths in deleted and created."""
+        for old_path in tuple(data.deleted):
+            inode = self._get_inode(data.ref, old_path)
+            if new_path := data.snapshot.path(inode):
                 # file is not deleted but moved
-                data.deleted.remove(path)
-                data.moved.add((path, new_path))
+                data.deleted.remove(old_path)
+                data.moved.add((old_path, new_path))
 
-        for path in tuple(data.created):
-            inode = data.snapshot.inode(path)
-            old_path = data.ref.path(inode)
-            if old_path:
-                data.created.remove(path)
-                data.moved.add((old_path, path))
+        for new_path in tuple(data.created):
+            inode = self._get_inode(data.snapshot, new_path)
+            if old_path := data.ref.path(inode):
+                data.created.remove(new_path)
+                data.moved.add((old_path, new_path))
 
     def _find_modified_paths(self, data):
         """Find modified paths."""
@@ -80,7 +82,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
         # Check moved paths for modificiations.
         for old_path, new_path in data.moved:
             if not self._is_stats_equal(data, old_path, new_path):
-                data.modified.add(old_path)
+                data.modified.add(new_path)
 
     def __init__(  # C901, PLR0912
         self, ref, snapshot, ignore_device=False, inode_only_modified=False

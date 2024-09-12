@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from bidict import bidict
 from django.db.models.functions import Now
 
 from codex.librarian.importer.aggregate import AggregateMetadataImporter
@@ -23,6 +24,54 @@ from codex.status import Status
 class MovedImporter(AggregateMetadataImporter):
     """Methods for moving comics and folders."""
 
+    def _bulk_comics_moved_ensure_folders(self):
+        """Ensure folders we're moving to exist."""
+        dest_comic_paths = self.task.files_moved.values()
+        if not dest_comic_paths:
+            return
+        # Not sending statues to the controller for now.
+        status = Status(ImportStatusTypes.QUERY_MISSING_FKS)
+        create_folder_paths = self.query_missing_folder_paths(dest_comic_paths, status)
+        if not create_folder_paths:
+            return
+        status = Status(ImportStatusTypes.CREATE_FKS, 0, len(create_folder_paths))
+        self.log.debug(
+            "Creating {len(create_folder_paths)} folders for {len(dest_comic_paths)} moved comics."
+        )
+        self.bulk_folders_create(create_folder_paths, status)
+
+    def _prepare_moved_comic(self, comic, folder_m2m_links, updated_comics):
+        """Prepare one comic for bulk update."""
+        try:
+            new_path = self.task.files_moved[comic.path]
+            comic.path = new_path
+            new_path = Path(new_path)
+            comic.parent_folder = Folder.objects.get(  # type: ignore
+                path=new_path.parent
+            )
+            comic.updated_at = Now()
+            comic.presave()
+            folder_m2m_links[comic.pk] = Folder.objects.filter(
+                path__in=new_path.parents
+            ).values_list("pk", flat=True)
+            updated_comics.append(comic)
+        except Exception:
+            self.log.exception(f"moving {comic.path}")
+
+    def _bulk_comics_move_prepare(self):
+        """Prepare Update Comics."""
+        comics = Comic.objects.filter(
+            library=self.library, path__in=self.task.files_moved.keys()
+        ).only("pk", "path", PARENT_FOLDER, FOLDERS_FIELD)
+
+        folder_m2m_links = {}
+        updated_comics = []
+        for comic in comics.iterator():
+            self._prepare_moved_comic(comic, folder_m2m_links, updated_comics)
+        self.task.files_moved = {}
+        self.log.debug(f"Prepared {len(updated_comics)} for move...")
+        return updated_comics, folder_m2m_links
+
     def _bulk_comics_moved(self):
         """Move comcis."""
         num_files_moved = len(self.task.files_moved)
@@ -31,42 +80,16 @@ class MovedImporter(AggregateMetadataImporter):
         status = Status(ImportStatusTypes.FILES_MOVED, 0, num_files_moved)
         self.status_controller.start(status)
 
-        # Prepare FKs
-        create_folder_paths = set()
-        self.query_missing_folder_paths(create_folder_paths, status)
-        self.bulk_folders_create(frozenset(create_folder_paths), status)
+        # Prepare
+        self._bulk_comics_moved_ensure_folders()
+        updated_comics, folder_m2m_links = self._bulk_comics_move_prepare()
 
-        # Update Comics
-        comics = Comic.objects.filter(
-            library=self.library, path__in=self.task.files_moved.keys()
-        ).only("pk", "path", PARENT_FOLDER, FOLDERS_FIELD)
-
-        folder_m2m_links = {}
-        updated_comics = []
-        for comic in comics.iterator():
-            try:
-                new_path = self.task.files_moved[comic.path]
-                comic.path = new_path
-                new_path = Path(new_path)
-                comic.parent_folder = Folder.objects.get(  # type: ignore
-                    path=new_path.parent
-                )
-                comic.updated_at = Now()
-                comic.presave()
-                folder_m2m_links[comic.pk] = Folder.objects.filter(
-                    path__in=new_path.parents
-                ).values_list("pk", flat=True)
-                updated_comics.append(comic)
-            except Exception:
-                self.log.exception(f"moving {comic.path}")
-        self.task.files_moved = {}
-
+        # Update comics
         Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
-
-        # Update m2m field
         if folder_m2m_links:
             self.bulk_fix_comic_m2m_field(FOLDERS_FIELD, folder_m2m_links, status)
-        count = len(comics)
+
+        count = len(updated_comics)
         if count:
             self.log.info(f"Moved {count} comics.")
 
@@ -140,32 +163,135 @@ class MovedImporter(AggregateMetadataImporter):
         self.changed += count
         self.status_controller.finish(status)
 
-    def _get_parent_folders(self, dest_folder_paths, status):
-        """Get destination parent folders."""
-        # Determine parent folder paths.
-        dest_parent_folder_paths = set()
-        for dest_folder_path in dest_folder_paths:
-            dest_parent_path = str(Path(dest_folder_path).parent)
-            if dest_parent_path not in dest_folder_paths:
-                dest_parent_folder_paths.add(dest_parent_path)
-
-        # Create only intermediate subfolders.
-        existing_folder_paths = Folder.objects.filter(
-            library=self.library, path__in=dest_parent_folder_paths
-        ).values_list("path", flat=True)
-        create_folder_paths = frozenset(
-            dest_parent_folder_paths - frozenset(existing_folder_paths)
+    def _bulk_move_folders(
+        self, src_folder_paths, dest_parent_folders_map, dirs_moved: bidict, status
+    ):
+        """Bulk move folders."""
+        folders_to_move = (
+            Folder.objects.filter(library=self.library, path__in=src_folder_paths)
+            .only(*MOVED_BULK_FOLDER_UPDATE_FIELDS)
+            .order_by("path")
         )
-        self.bulk_folders_create(create_folder_paths, status)
 
-        # get parent folders path to model obj dict
-        dest_parent_folders_objs = Folder.objects.filter(
-            path__in=dest_parent_folder_paths
-        ).only("path", "pk")
-        dest_parent_folders = {}
-        for folder in dest_parent_folders_objs.iterator():
-            dest_parent_folders[folder.path] = folder
-        return dest_parent_folders
+        # TODO what if a folder with that path already exists in the db?
+
+        new_paths = set()
+        update_folders = []
+        for folder in folders_to_move.iterator():
+            new_path = dirs_moved[folder.path]
+            new_paths.add(new_path)
+            folder.name = Path(new_path).name
+            folder.path = new_path
+            parent_path_str = str(Path(new_path).parent)
+            folder.parent_folder = dest_parent_folders_map.get(parent_path_str)
+            folder.presave()
+            folder.updated_at = Now()
+            update_folders.append(folder)
+        self.task.dirs_moved = {}
+
+        # delete_folders = Folder.objects.filter(library=self.library, path__in=new_paths)
+
+        update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
+
+        Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
+        count = len(update_folders)
+        if count:
+            self.log.info(f"Moved {count} folders.")
+        self.changed += count
+        status.add_complete(count)
+        self.status_controller.update(status, notify=False)
+
+    def _bulk_move_folders_under_existing_parents(
+        self, dest_parent_folder_paths_map, dirs_moved, status
+    ):
+        """Move folders under existing folders."""
+        while True:
+            # Get existing parent folders
+            # dest_parent_paths = tuple(str(path) for path in dest_parent_folder_paths_map)
+            dest_parent_paths = tuple(dest_parent_folder_paths_map.keys())
+            extant_parent_folders = Folder.objects.filter(
+                library=self.library, path__in=dest_parent_paths
+            ).only("path")
+
+            # Create a list of folders than can be moved under existing folders.
+            dest_parent_folders_map = {}
+            src_folder_paths = []
+            for extant_parent_folder in extant_parent_folders:
+                dest_parent_folders_map[extant_parent_folder.path] = (
+                    extant_parent_folder
+                )
+                if dest_folder_paths := dest_parent_folder_paths_map.pop(
+                    extant_parent_folder.path
+                ):
+                    for dest_folder_path in dest_folder_paths:
+                        src_path = dirs_moved.inverse[dest_folder_path]
+                        src_folder_paths.append(src_path)
+
+            if not src_folder_paths:
+                return
+            src_folder_paths = sorted(src_folder_paths)
+            self.log.debug(f"Moving folders under existing parents: {src_folder_paths}")
+
+            self._bulk_move_folders(
+                src_folder_paths, dest_parent_folders_map, dirs_moved, status
+            )
+
+    def _get_move_create_folders_one_layer(self, dest_parent_folder_paths_map):
+        """Find the next layer of folder paths to create."""
+        create_folder_paths_one_layer = set()
+        library_parts_len = len(Path(self.library.path).parts)
+        for parent_path_str in sorted(dest_parent_folder_paths_map.keys()):
+            parts = Path(parent_path_str).parts
+            # Get one layer of folders from existing layers.
+            possible_create_folder_path = ""
+            for index in range(library_parts_len, len(parts) + 1):
+                layer_parts = parts[:index]
+                possible_create_folder_path = str(Path(*layer_parts))
+                if (
+                    possible_create_folder_path in create_folder_paths_one_layer
+                    or not Folder.objects.filter(
+                        library=self.library, path=possible_create_folder_path
+                    ).exists()
+                ):
+                    break
+            else:
+                possible_create_folder_path = ""
+            if possible_create_folder_path:
+                create_folder_paths_one_layer.add(possible_create_folder_path)
+
+        return frozenset(create_folder_paths_one_layer)
+
+    def _bulk_move_folders_and_create_parents(self, status):
+        """Find folders that can be moved without creating parents."""
+        dirs_moved = bidict(self.task.dirs_moved)
+
+        dest_parent_folder_paths_map = {}
+        for dest_path in sorted(set(dirs_moved.values())):
+            parent = str(Path(dest_path).parent)
+            if parent not in dest_parent_folder_paths_map:
+                dest_parent_folder_paths_map[parent] = set()
+            dest_parent_folder_paths_map[parent].add(dest_path)
+
+        create_status = Status(ImportStatusTypes.CREATE_FKS)
+        layer = 1
+        while True:
+            self._bulk_move_folders_under_existing_parents(
+                dest_parent_folder_paths_map, dirs_moved, status
+            )
+
+            # All folders movable without creation have moved.
+            if not dest_parent_folder_paths_map:
+                break
+            self.log.debug(
+                f"Creating intermediate folder layer {layer} to move folders."
+            )
+            create_folder_paths_one_layer = self._get_move_create_folders_one_layer(
+                dest_parent_folder_paths_map
+            )
+
+            # Create one layer of folders
+            self.bulk_folders_create(create_folder_paths_one_layer, create_status)
+            layer += 1
 
     def bulk_folders_moved(self):
         """Move folders in the database instead of recreating them."""
@@ -175,33 +301,9 @@ class MovedImporter(AggregateMetadataImporter):
         status = Status(ImportStatusTypes.DIRS_MOVED, None, num_dirs_moved)
         self.status_controller.start(status)
 
-        dest_folder_paths = frozenset(self.task.dirs_moved.values())
-        dest_parent_folders = self._get_parent_folders(dest_folder_paths, status)
-
-        src_folder_paths = frozenset(self.task.dirs_moved.keys())
-        folders_to_move = Folder.objects.filter(
-            library=self.library, path__in=src_folder_paths
-        ).order_by("path")
-
-        update_folders = []
-        for folder in folders_to_move.iterator():
-            new_path = self.task.dirs_moved[folder.path]
-            folder.name = Path(new_path).name
-            folder.path = new_path
-            parent_path_str = str(Path(new_path).parent)
-            folder.parent_folder = dest_parent_folders.get(parent_path_str)
-            folder.presave()
-            folder.updated_at = Now()
-            update_folders.append(folder)
+        self._bulk_move_folders_and_create_parents(status)
         self.task.dirs_moved = {}
 
-        update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
-
-        Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
-        count = len(update_folders)
-        if count:
-            self.log.info(f"Moved {count} folders.")
-        self.changed += count
         self.status_controller.finish(status)
 
     def _bulk_folders_modified(self):
@@ -233,6 +335,8 @@ class MovedImporter(AggregateMetadataImporter):
 
     def move_and_modify_dirs(self):
         """Move files and dirs and modify dirs."""
+        # It would be nice to move folders instead of recreating them but it would require
+        # an inode map from the snapshots to do correctly.
         self.bulk_folders_moved()
         self._bulk_comics_moved()
         self._bulk_covers_moved()

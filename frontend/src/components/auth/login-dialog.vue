@@ -148,7 +148,8 @@ export default {
           form
             .validate()
             .then(({ valid }) => {
-              return (this.submitButtonEnabled = valid);
+              this.submitButtonEnabled = valid;
+              return this.submitButtonEnabled;
             })
             .catch(console.error);
         } else {
@@ -169,8 +170,8 @@ export default {
     doAuth(mode) {
       return this[mode](this.credentials)
         .then(() => {
-          return (this.showLoginDialog =
-            this.formErrors && this.formErrors.length > 0);
+          this.showLoginDialog = this.formErrors && this.formErrors.length > 0;
+          return this.showLoginDialog;
         })
         .catch(console.error);
     },

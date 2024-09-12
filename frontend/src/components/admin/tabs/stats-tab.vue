@@ -1,202 +1,91 @@
 <template>
   <div v-if="stats" id="stats">
-    <div class="statBlock">
-      <h3>Platform</h3>
-      <v-table class="highlight-table">
-        <tbody>
-          <tr>
-            <td>Docker</td>
-            <td>{{ stats.platform.docker }}</td>
-          </tr>
-          <tr>
-            <td>Machine</td>
-            <td>{{ stats.platform.machine }}</td>
-          </tr>
-          <tr>
-            <td>System</td>
-            <td>
-              {{ stats.platform.system }} {{ stats.platform.systemRelease }}
-            </td>
-          </tr>
-          <tr>
-            <td>Python</td>
-            <td>{{ stats.platform.python }}</td>
-          </tr>
-          <tr>
-            <td>Codex</td>
-            <td>{{ stats.platform.codex }}</td>
-          </tr>
-        </tbody>
-      </v-table>
-    </div>
-
-    <div class="statBlock">
-      <h3>Config</h3>
-      <v-table class="highlight-table">
-        <tbody>
-          <tr>
-            <td>Libraries</td>
-            <td>{{ nf(stats.config.librariesCount) }}</td>
-          </tr>
-          <tr>
-            <td>Anonymous Users</td>
-            <td>{{ nf(stats.config.sessionsAnonCount) }}</td>
-          </tr>
-          <tr>
-            <td>Registered Users</td>
-            <td>{{ nf(stats.config.usersCount) }}</td>
-          </tr>
-          <tr>
-            <td>Groups</td>
-            <td>{{ nf(stats.config.groupsCount) }}</td>
-          </tr>
-        </tbody>
-      </v-table>
-    </div>
-    <div class="statBlock">
-      <h3>Groups</h3>
-      <v-table class="highlight-table">
-        <tbody>
-          <tr>
-            <td>Folders</td>
-            <td>{{ nf(stats.groups.foldersCount) }}</td>
-          </tr>
-          <tr>
-            <td>Story Arcs</td>
-            <td>{{ nf(stats.groups.storyArcsCount) }}</td>
-          </tr>
-          <tr>
-            <td>Publishers</td>
-            <td>{{ nf(stats.groups.publishersCount) }}</td>
-          </tr>
-          <tr>
-            <td>Imprints</td>
-            <td>{{ nf(stats.groups.imprintsCount) }}</td>
-          </tr>
-          <tr>
-            <td>Series</td>
-            <td>{{ nf(stats.groups.seriesCount) }}</td>
-          </tr>
-          <tr>
-            <td>Volumes</td>
-            <td>{{ nf(stats.groups.volumesCount) }}</td>
-          </tr>
-          <tr>
-            <td>Issues</td>
-            <td>
-              {{ nf(stats.groups.issuesCount) }}
-            </td>
-          </tr>
-          <tr v-if="stats.fileTypes.cbzCount">
-            <td class="indent">CBZ</td>
-            <td>{{ nf(stats.fileTypes.cbzCount) }}</td>
-          </tr>
-          <tr v-if="stats.fileTypes.cbrCount">
-            <td class="indent">CBR</td>
-            <td>{{ nf(stats.fileTypes.cbrCount) }}</td>
-          </tr>
-          <tr v-if="stats.fileTypes.cbxCount">
-            <td class="indent">CBX</td>
-            <td>{{ nf(stats.fileTypes.cbxCount) }}</td>
-          </tr>
-          <tr v-if="stats.fileTypes.cbtCount">
-            <td class="indent">CBT</td>
-            <td>{{ nf(stats.fileTypes.cbtCount) }}</td>
-          </tr>
-          <tr v-if="stats.fileTypes.pdfCount">
-            <td class="indent">PDF</td>
-            <td>{{ nf(stats.fileTypes.pdfCount) }}</td>
-          </tr>
-          <tr v-if="stats.fileTypes.unknownCount">
-            <td class="indent">Unknown</td>
-            <td>{{ nf(stats.fileTypes.unknownCount) }}</td>
-          </tr>
-        </tbody>
-      </v-table>
-    </div>
-    <div class="statBlock">
-      <h3>Metadata</h3>
-      <v-table class="highlight-table">
-        <tbody>
-          <tr v-for="[key, count] of Object.entries(stats.metadata)" :key="key">
-            <!-- eslint-disable vue/no-v-html -->
-            <td v-html="metadataTitle(key)" />
-            <td>{{ nf(count) }}</td>
-          </tr>
-        </tbody>
-      </v-table>
-    </div>
-    <div class="statBlock">
-      <h3>API</h3>
-      <v-table class="highlight-table">
-        <tbody>
-          <tr>
-            <td>Schema Documentation:</td>
-            <td id="schemaDocValue">
-              The only endpoint accessible with API Key access is
-              <a
-                :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
-                target="_blank"
-                >/admin/stats</a
-              >
-            </td>
-          </tr>
-          <tr id="apiKeyRow" :title="apiTooltip" @click="onClickAPIKey">
-            <td>
-              API Key
-              <span v-if="clipBoardEnabled">
-                <v-icon class="clipBoardIcon" size="small">{{
-                  clipBoardIcon
-                }}</v-icon>
-                <v-fade-transition>
-                  <span v-show="showTooltip.show" class="copied">Copied</span>
-                </v-fade-transition>
-              </span>
-            </td>
-            <td id="apiKey">
-              {{ stats.config.apiKey }}
-            </td>
-          </tr>
-          <tr>
-            <td colspan="2">
-              <ConfirmDialog
-                button-text="Regenerate API Key"
-                title-text="Regenerate"
-                object-name="API Key"
-                confirm-text="Regenerate"
-                @confirm="regenAPIKey"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </div>
+    <StatsTable title="Platform" :items="platformTable" />
+    <StatsTable title="Config" :items="configTable">
+      <tbody>
+        <tr id="schemaDoc">
+          <td colspan="2">
+            The only endpoint accessible by API Key is
+            <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
+            <a :href="schemaHref" target="_blank">/admin/stats</a>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <ConfirmDialog
+              button-text="Regenerate API Key"
+              title-text="Regenerate"
+              object-name="API Key"
+              confirm-text="Regenerate"
+              @confirm="regenAPIKey"
+            />
+          </td>
+        </tr>
+      </tbody>
+    </StatsTable>
+    <StatsTable title="User Settings" :items="userSettingsTable" />
+    <StatsTable title="Browser Groups" :items="browserGroupsTable" />
+    <StatsTable title="File Types" :items="fileTypesTable" />
+    <StatsTable title="Metadata" :items="metadataTable" />
   </div>
 </template>
 
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
+import { capitalCase, snakeCase } from "change-case-all";
 import { mapActions, mapState } from "pinia";
 
+import StatsTable from "@/components/admin/tabs/stats-table.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { copyToClipboard } from "@/copy-to-clipboard";
-import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
-import { camelToTitleCase } from "@/to-case";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
-const NB_INDENT = "&nbsp;&nbsp;&nbsp;&nbsp;";
+
+import CHOICES from "@/choices.json";
+
+const vueToLookup = (choices) => {
+  const lookup = {};
+  for (const choice of choices) {
+    lookup[choice.value] = choice.title;
+  }
+  return lookup;
+};
+
+const LOOKUPS = {
+  topGroup: CHOICES.browser.groupNames,
+  orderBy: vueToLookup(CHOICES.browser.orderBy),
+  fitTo: vueToLookup(CHOICES.reader.fitTo),
+  readingDirection: vueToLookup(CHOICES.reader.readingDirection),
+};
+const CONFIG_LABELS = {
+  authGroupCount: "Authorization Groups",
+  libraryCount: "Libraries",
+  userAnonymousCount: "Anonymous Users",
+  userRegisteredCount: "Registered Users",
+};
+Object.freeze(CONFIG_LABELS);
+Object.freeze(LOOKUPS);
+const INDENT_KEYS = new Set([
+  "storyArcNumbersCount",
+  "identifierTypesCount",
+  "contributorPersonsCount",
+  "contributorRolesCount",
+]);
+Object.freeze(INDENT_KEYS);
 
 export default {
   name: "AdminTasksTab",
   components: {
     ConfirmDialog,
+    StatsTable,
   },
   data() {
     return {
       showTooltip: { show: false },
-      apiSchemaURL: window.CODEX.API_V3_PATH,
+      schemaHref:
+        window.CODEX.API_V3_PATH + "#/api/api_v3_admin_stats_retrieve",
     };
   },
   computed: {
@@ -213,6 +102,85 @@ export default {
     clipBoardIcon() {
       return this.showTooltip ? mdiClipboardCheckOutline : mdiClipboardOutline;
     },
+    platformTable() {
+      const table = {};
+      for (const [key, value] of Object.entries(this.stats?.platform)) {
+        const label = this.keyToLabel(key);
+        const labelValue =
+          key === "system" ? `${value.name} ${value.release}` : value;
+        table[label] = labelValue;
+      }
+      return table;
+    },
+    configTable() {
+      const table = {};
+      let apiKeyValue = "";
+      for (const [key, value] of Object.entries(this.stats?.config)) {
+        let label;
+        if (key == "apiKey") {
+          apiKeyValue = value;
+          continue;
+        } else {
+          label = CONFIG_LABELS[key];
+        }
+        table[label] = value;
+      }
+      table["API Key"] = apiKeyValue;
+      return table;
+    },
+    userSettingsTable() {
+      const table = {};
+      for (const [key, countObj] of Object.entries(this.stats?.sessions)) {
+        const countTable = {};
+        const lookup = LOOKUPS[key];
+        for (const [typeKey, count] of Object.entries(countObj)) {
+          let typeLabel;
+          if (lookup) {
+            typeLabel = lookup[snakeCase(typeKey)];
+          } else {
+            typeLabel = typeKey;
+          }
+          countTable[typeLabel] = count;
+        }
+        const label = this.keyToLabel(key);
+        table[label] = countTable;
+      }
+      return table;
+    },
+    browserGroupsTable() {
+      const table = {};
+      for (const [key, value] of Object.entries(this.stats?.groups)) {
+        let label = this.keyToLabel(key);
+        if (label !== "Series") {
+          label += "s";
+        }
+        table[label] = value;
+      }
+      return table;
+    },
+    fileTypesTable() {
+      const table = {};
+      for (const [key, value] of Object.entries(this.stats?.fileTypes)) {
+        const label =
+          key === "unknown"
+            ? capitalCase(key)
+            : this.keyToLabel(key).toUpperCase();
+        table[label] = value;
+      }
+      return table;
+    },
+    metadataTable() {
+      const table = {};
+      for (const [key, value] of Object.entries(this.stats?.metadata)) {
+        let label =
+          key === "countryCount" ? "Countries" : this.keyToLabel(key) + "s";
+        if (INDENT_KEYS.has(key)) {
+          label = label.replace(/^\w+ /, "+");
+        }
+        table[label] = value;
+      }
+      return table;
+    },
   },
   created() {
     this.loadStats();
@@ -222,62 +190,28 @@ export default {
     regenAPIKey() {
       this.updateAPIKey().then(this.loadStats).catch(console.warn);
     },
-    nf(val) {
-      return NUMBER_FORMAT.format(val);
-    },
     onClickAPIKey() {
       if (!this.clipBoardEnabled) {
         return;
       }
       copyToClipboard(this.stats.config.apiKey, this.showTooltip);
     },
-    metadataTitle(name) {
-      let title = name.replace(/Count$/, "");
-      title = camelToTitleCase(title);
-      title = title.replace(/^Contributor\s/, NB_INDENT);
-      title = title.replace(/^Identifier\s/, NB_INDENT);
-      title = title.replace(/^Story\sArc\s/, NB_INDENT);
-      return title;
+    keyToLabel(key) {
+      key = key.replace(/Count$/, "");
+      return capitalCase(key);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.statBlock {
-  display: inline-block;
-  vertical-align: top;
-  margin-right: 40px;
-}
-h3 {
-  margin-top: 1em;
-  text-align: center;
-}
-.highlight-table {
-  color: rgb(var(--v-theme-textSecondary));
-}
-tr td:nth-child(2) {
-  text-align: right;
-}
-.indent {
-  padding-left: 2em !important;
-}
-.copied {
+#schemaDoc {
   font-size: small;
-  font-weight: normal;
   color: rgb(var(--v-theme-textSecondary));
+  background-color: rgb(var(--v-theme-background));
 }
-.clipBoardIcon {
-  color: rgb(var(--v-theme-iconsInactive));
-}
-#apiKeyRow:hover {
-  background-color: rgb(var(--v-theme-surface));
-}
-#apiKeyRow:hover .clipBoardIcon,
-#apiKeyRow:hover #apiKey {
-  color: rgb(var(--v-theme-textPrimary));
-}
-#schemaDocValue {
-  max-width: 15em;
+
+#schemaDoc>td {
+  border-bottom: none !important;
 }
 </style>

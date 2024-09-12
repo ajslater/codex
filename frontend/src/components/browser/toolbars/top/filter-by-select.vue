@@ -144,9 +144,13 @@ export default {
       this.filterMode = "base";
     },
     onClear() {
-      this.clearFilters().then(() => {
-        this.loadAvailableFilterChoices();
-      });
+      return this.clearFilters()
+        .then(() => {
+          return this.loadAvailableFilterChoices();
+        })
+        .catch(() => {
+          console.error("clear filters");
+        });
     },
     onMenu(to) {
       if (to && this.dynamicChoiceNames === undefined) {
@@ -161,12 +165,15 @@ export default {
 .filterBySelectXSmall {
   padding-right: 0.4em;
 }
+
 .filterSuffix {
   margin-left: 0.25em;
 }
+
 .noChoices {
   color: rgb(var(--v-theme-textDisabled));
 }
+
 .clearFilter {
   color: black;
   background-color: rgb(var(--v-theme-primary))

@@ -45,7 +45,7 @@ class CoverPurgeMixin(CoverPathMixin):
                 except FileNotFoundError:
                     status.decrement_total()
                 cover_dirs.add(cover_path.parent)
-                self.status_controller.update(status)
+                self.status_controller.update(status, notify=False)
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir, cover_root)
             self.log.info(f"Removed {status.complete} cover thumbnails.")

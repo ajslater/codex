@@ -1,4 +1,5 @@
-import _ from "lodash";
+import deepClone from "deep-clone";
+import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
@@ -7,10 +8,11 @@ import CHOICES from "@/choices";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
+import { range } from "@/util";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
-const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
+export const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
 Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of CHOICES.browser.settingsGroup) {
@@ -80,7 +82,7 @@ export const useBrowserStore = defineStore("browser", {
       q: undefined,
       /* eslint-disable-next-line no-secrets/no-secrets */
       // searchResultsLimit: CHOICES.browser.searchResultsLimit,
-      show: { ...SETTINGS_SHOW_DEFAULTS },
+      show: deepClone(SETTINGS_SHOW_DEFAULTS),
       topGroup: undefined,
       twentyFourHourTime: false,
     },
@@ -99,6 +101,8 @@ export const useBrowserStore = defineStore("browser", {
       numPages: 1,
       groups: [],
       books: [],
+      fts: undefined,
+      searchError: undefined,
       mtime: 0,
     },
     // LOCAL UI
@@ -126,7 +130,8 @@ export const useBrowserStore = defineStore("browser", {
       for (const item of CHOICES.browser.orderBy) {
         if (
           (item.value === "path" && !state.page.adminFlags.folderView) ||
-          (item.value === "search_score" && !state.settings.q)
+          (item.value === "search_score" &&
+            (!state.settings.q || !state.page.fts))
         ) {
           // denied order_by condition
           continue;
@@ -275,11 +280,13 @@ export const useBrowserStore = defineStore("browser", {
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
-      return ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)
-        ? true
-        : topGroup == "f"
-          ? this.page.adminFlags?.folderView
-          : this.settings.show[topGroup];
+      if (ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)) {
+        return true;
+      } else if (topGroup == "f") {
+        return this.page.adminFlags?.folderView;
+      } else {
+        return this.settings.show[topGroup];
+      }
     },
     _validateSearch(data) {
       if (!data.q) {
@@ -320,7 +327,6 @@ export const useBrowserStore = defineStore("browser", {
         // First url, initializing settings.
         // or
         // topGroup didn't change.
-        // console.log("validate topGroup didn't change");
         return redirect;
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
@@ -328,7 +334,6 @@ export const useBrowserStore = defineStore("browser", {
       const newTopGroupIsBrowse = newTopGroupIndex >= 0;
       const oldAndNewBothBrowseGroups =
         newTopGroupIsBrowse && oldTopGroupIndex >= 0;
-      // console.log({ oldAndNewBothBrowseGroups, oldTopGroupIndex, newTopGroupIndex });
 
       // Construct and return new redirect
       let params;
@@ -340,18 +345,15 @@ export const useBrowserStore = defineStore("browser", {
           // Make a numeric page so won't trigger the redirect remover and will always
           // redirect so we repopulate breadcrumbs
           params.page = +params.page;
-          // console.log("new top group is parent", params);
         } else {
           // New top group is a child (REVERSED)
           // Redrect to the new root.
           params = { group: "r", pks: "0", page: "1" };
-          // console.log("new top group is child", params);
         }
       } else {
         // redirect to the new TopGroup
         const group = newTopGroupIsBrowse ? "r" : newTopGroup;
         params = { group, pks: "0", page: "1" };
-        // console.log("totally new top group", params);
       }
       return { params };
     },
@@ -369,7 +371,7 @@ export const useBrowserStore = defineStore("browser", {
           } else {
             newValue = value;
           }
-          if (!_.isEqual(state.settings[key], newValue)) {
+          if (!dequal(state.settings[key], newValue)) {
             state.settings[key] = newValue;
           }
         }
@@ -382,7 +384,7 @@ export const useBrowserStore = defineStore("browser", {
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
       redirect = this._validateTopGroup(data, redirect);
-      if (_.isEqual(redirect?.params, router.currentRoute.value.params)) {
+      if (dequal(redirect?.params, router.currentRoute.value.params)) {
         // not triggered if page is numeric, which is intended.
         redirect = undefined;
       }
@@ -459,10 +461,11 @@ export const useBrowserStore = defineStore("browser", {
     },
     async updateBreadcrumbs(oldBreadcrumbs) {
       const breadcrumbs = this.settings.breadcrumbs || [];
-      for (const index of _.range(breadcrumbs.length).reverse()) {
+      const indexes = range(breadcrumbs.length).reverse();
+      for (const index of indexes) {
         const oldCrumb = oldBreadcrumbs[index];
         const newCrumb = breadcrumbs[index];
-        if (!_.isEqual(oldCrumb, newCrumb)) {
+        if (!dequal(oldCrumb, newCrumb)) {
           if (newCrumb.name === null) {
             // For volumes
             newCrumb.name = "";
@@ -475,7 +478,7 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = _.cloneDeep(router.currentRoute.value);
+      const route = deepClone(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.warn);
     },
@@ -546,6 +549,9 @@ export const useBrowserStore = defineStore("browser", {
           this.$patch((state) => {
             state.settings.breadcrumbs = breadcrumbs;
             state.page = page;
+            if (state.settings.orderBy === "search_score" && !page.fts) {
+              state.settings.orderBy = "sort_name";
+            }
             state.choices.dynamic = undefined;
             state.browserPageLoaded = true;
           });
@@ -581,6 +587,23 @@ export const useBrowserStore = defineStore("browser", {
           this.choices.dynamic[fieldName] = Object.freeze(
             response.data.choices,
           );
+          return true;
+        })
+        .catch(console.error);
+    },
+    async loadMtimes() {
+      const params = router?.currentRoute?.value?.params;
+      const routeGroup = params?.group;
+      const group =
+        routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
+      const pks = params?.pks || "0";
+      return await COMMON_API.getMtime([{ group, pks }], this.choicesSettings)
+        .then((response) => {
+          const newMtime = response?.data?.maxMtime;
+          if (newMtime !== this.page.mtime) {
+            this.choices.dynamic = undefined;
+            this.loadBrowserPage(newMtime);
+          }
           return true;
         })
         .catch(console.error);

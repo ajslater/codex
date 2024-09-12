@@ -5,10 +5,13 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
-const PagerPDF = markRaw(
-  defineAsyncComponent(() => "@/components/reader/pager/pager-full-pdf.vue"),
-);
+
 import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
+const PagerPDF = markRaw(
+  defineAsyncComponent(
+    () => import("@/components/reader/pager/pager-full-pdf.vue"),
+  ),
+);
 import PagerVertical from "@/components/reader/pager/pager-vertical.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -27,19 +30,33 @@ export default {
     return this.prefetchBook(this.book);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical", "cacheBook"]),
+    ...mapGetters(useReaderStore, ["cacheBook"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),
-    readFullPdf() {
-      return this.book.fileType == "PDF" && this.cacheBook;
+    isActiveBook() {
+      return this.book && this.storePk === this.book?.pk;
+    },
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
+    readerFullPdf() {
+      return (
+        this.book?.fileType == "PDF" &&
+        this.cacheBook &&
+        !this.bookSettings.isVertical
+      );
     },
     component() {
-      return this.readFullPdf
-        ? PagerPDF
-        : this.isVertical
-          ? PagerVertical
-          : PagerHorizontal;
+      let comp;
+      if (this.readerFullPdf) {
+        comp = PagerPDF;
+      } else if (this.bookSettings.isVertical) {
+        comp = PagerVertical;
+      } else {
+        comp = PagerHorizontal;
+      }
+      return comp;
     },
   },
   watch: {
@@ -50,14 +67,15 @@ export default {
     },
   },
   created() {
-    if (this.book.pk === this.storePk) {
+    if (this.isActiveBook) {
       // Active Book
       this.setActivePage(+this.$route.params.page, true);
     }
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
+      "getBookSettings",
+      "isBookVertical",
       "setActivePage",
       "prefetchBook",
     ]),

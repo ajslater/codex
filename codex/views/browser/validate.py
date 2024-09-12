@@ -15,7 +15,6 @@ from codex.views.const import (
 )
 
 LOG = get_logger(__name__)
-_NO_TOP_GROUP_VALIDATE = frozenset({"metadata"})
 
 
 class BrowserValidateView(BrowserBaseView):
@@ -56,8 +55,6 @@ class BrowserValidateView(BrowserBaseView):
         return valid_top_groups
 
     def _validate_top_group(self, valid_top_groups):
-        # if self.TARGET in _NO_TOP_GROUP_VALIDATE:
-        #    return
         nav_group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
         if top_group not in valid_top_groups:
@@ -72,7 +69,8 @@ class BrowserValidateView(BrowserBaseView):
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
             route = {"group": nav_group, "pks": pks, "page": page}
-            settings_mask = {"top_group": valid_top_group}
+            breadcrumbs = []
+            settings_mask = {"top_group": valid_top_group, "breadcrumbs": breadcrumbs}
             self.raise_redirect(reason, route, settings_mask)
 
     def set_valid_browse_nav_groups(self, valid_top_groups):
@@ -93,14 +91,11 @@ class BrowserValidateView(BrowserBaseView):
                 # 'c' is obscured by the web reader url, but valid for opds
                 tail_top_groups = valid_top_groups[possible_index:]
                 valid_nav_groups += tail_top_groups
-
-                if nav_group not in valid_nav_groups:
-                    reason = (
-                        f"Nav group {nav_group} unavailable, "
-                        f"redirect to {ROOT_GROUP}"
-                    )
-                    self.raise_redirect(reason)
                 break
+        if nav_group not in valid_nav_groups:
+            reason = f"Nav group {nav_group} unavailable, redirect to {ROOT_GROUP}"
+            self.raise_redirect(reason)
+
         self.valid_nav_groups = tuple(valid_nav_groups)
 
     def _validate_folder_settings(self):
@@ -109,7 +104,11 @@ class BrowserValidateView(BrowserBaseView):
         if not self.admin_flags["folder_view"]:
             reason = "folder view disabled"
             valid_top_groups = self._get_valid_browse_top_groups()
-            settings_mask = {"top_group": valid_top_groups[0]}
+            breadcrumbs = []
+            settings_mask = {
+                "top_group": valid_top_groups[0],
+                "breadcrumbs": breadcrumbs,
+            }
             self.raise_redirect(reason, settings_mask=settings_mask)
 
         valid_top_groups = (FOLDER_GROUP,)

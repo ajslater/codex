@@ -5,7 +5,9 @@
     :title="title"
     @click="toggleOrderReverse"
   >
-    <v-icon :class="iconClasses">{{ mdiSortVariant }}</v-icon>
+    <v-icon :class="iconClasses">
+      {{ mdiSortVariant }}
+    </v-icon>
   </ToolbarButton>
 </template>
 

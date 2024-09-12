@@ -5,6 +5,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from django.db.models import Max
+from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -81,7 +82,10 @@ class BrowserView(BrowserTitleView):
                     self.group_query = self.group_class.objects.none()
                 else:
                     reason = f"{group}__in={pks} does not exist!"
-                    self.raise_redirect(reason, route_mask={"group": group})
+                    settings_mask = {"breadcrumbs": []}
+                    self.raise_redirect(
+                        reason, route_mask={"group": group}, settings_mask=settings_mask
+                    )
         elif self.group_class:
             self.group_query = self.group_class.objects.none()
         else:
@@ -112,18 +116,38 @@ class BrowserView(BrowserTitleView):
     ################
     # MAIN QUERIES #
     ################
+
+    def _get_limit(self):
+        """Get the limit for the query."""
+        # query_limit only is set by some opds views
+        query_limit = self.params.get("limit", 0)
+        search_limit = self.get_search_limit()
+        if query_limit and search_limit:
+            limit = min(query_limit, search_limit)
+        else:
+            limit = max(query_limit, search_limit)
+        return limit
+
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
-        count_group_by = self.get_group_by(model)
-        count = qs.group_by(count_group_by).count()
+        limit = self._get_limit()
+        # TODO runs the whole query again here
+        count_qs = self.add_group_by(qs, model)
+        try:
+            if limit:
+                count_qs = count_qs[:limit]
+            count = count_qs.count()
+        except OperationalError as exc:
+            self._handle_operational_error(exc)
+            count = 0
+            qs = model.objects.none()
+
         if count:
             qs = self.annotate_order_aggregates(qs, model)
             qs = self.add_order_by(qs, model)
-            if limit := self.params.get("limit"):
-                # limit only is set by some opds views
+            if limit:
                 qs = qs[:limit]
-                count = min(count, limit)  # type: ignore
 
         return qs, count
 
@@ -137,8 +161,7 @@ class BrowserView(BrowserTitleView):
             count = 0
         else:
             qs, count = self._get_common_queryset(self.model)
-            group_by = self.get_group_by()
-            qs = qs.group_by(group_by)
+            qs = self.add_group_by(qs)
         return qs, count
 
     def _get_book_queryset(self):
@@ -152,6 +175,7 @@ class BrowserView(BrowserTitleView):
 
     def _requery_max_bookmark_updated_at(self, group_qs):
         """Get max updated at without bookmark filter and aware of multi-groups."""
+        # TODO make a subquery like fts mode bookmark annotations
         if not self.is_bookmark_filtered:
             return group_qs
 
@@ -204,8 +228,8 @@ class BrowserView(BrowserTitleView):
         else:
             zero_pad = 1
 
-        # print(group_qs.explain())
-        # print(group_qs.query)
+        # print(book_qs.explain())
+        # print(book_qs.query)
 
         total_count = page_group_count + page_book_count
         mtime = self._get_page_mtime()
@@ -238,6 +262,8 @@ class BrowserView(BrowserTitleView):
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
                 "mtime": mtime,
+                "search_error": self.search_error,
+                "fts": self.fts_mode,
             }
         )
 

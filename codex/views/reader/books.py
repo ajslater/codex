@@ -5,8 +5,15 @@ from typing import TYPE_CHECKING
 from django.db.models import F
 
 from codex.models import Bookmark, Comic
-from codex.views.bookmark import BookmarkBaseView
-from codex.views.const import FOLDER_GROUP, NONE_INTEGERFIELD
+from codex.views.bookmark import BookmarkFilterBaseView
+from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.const import (
+    FOLDER_GROUP,
+    GROUP_MODEL_MAP,
+    GROUP_RELATION,
+    NONE_INTEGERFIELD,
+    STORY_ARC_GROUP,
+)
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.reader.init import ReaderInitView
 
@@ -26,10 +33,10 @@ _COMIC_FIELDS = (
 )
 
 
-class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
+class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsMixin):
     """Get Books methods."""
 
-    def _get_reader_arc_pks(  # noqa: PLR0913
+    def _get_reader_arc_pks(
         self, arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
     ):
         """Get the nav filter."""
@@ -57,58 +64,51 @@ class ReaderBooksView(BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin):
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        select_related = ("series", "volume")
-        prefetch_related = ()
-
         arc: Mapping = self.params.get("arc", {})  # type: ignore
 
-        arc_group = arc.get("group", "s")
-        if arc_group == "a":
-            # for story arcs
-            rel = "story_arc_numbers__story_arc"
-            fields = _COMIC_FIELDS
-            arc_pk_rel = "story_arc_numbers__story_arc__pk"
-            prefetch_related = (*prefetch_related, "story_arc_numbers__story_arc")
+        arc_group = arc.get("group", "")
+        if not GROUP_MODEL_MAP.get(arc_group):
+            arc_group = "s"
+
+        rel = GROUP_RELATION[arc_group]
+        fields = _COMIC_FIELDS
+        arc_pk_rel = rel + "__pk"
+        arc_index = NONE_INTEGERFIELD
+        ordering = ()
+        arc_pk_select_related = (rel,)
+        select_related = ()
+        prefetch_related = ()
+
+        if arc_group == STORY_ARC_GROUP:
+            prefetch_related = (*prefetch_related, rel)
             arc_index = F("story_arc_numbers__number")
             ordering = ("arc_index", "date", "pk")
             arc_pk_select_related = ()
         elif arc_group == FOLDER_GROUP:
-            # folder mode
-            rel = "parent_folder"
-            fields = (*_COMIC_FIELDS, "parent_folder")
-            arc_pk_rel = "parent_folder__pk"
-            arc_index = NONE_INTEGERFIELD
+            select_related = (rel,)
+            fields = (*_COMIC_FIELDS, rel)
             ordering = ("path", "pk")
-            arc_pk_select_related = ("parent_folder",)
-        elif arc_group == "v":
-            # volume
-            rel = "volume"
-            fields = _COMIC_FIELDS
-            arc_pk_rel = "volume__pk"
-            arc_index = NONE_INTEGERFIELD
-            ordering = ()
-            arc_pk_select_related = ("volume",)
-        else:
-            # series
-            rel = "series"
-            fields = _COMIC_FIELDS
-            arc_pk_rel = "series__pk"
-            arc_index = NONE_INTEGERFIELD
-            ordering = ()
-            arc_pk_select_related = ("series",)
 
         arc_pks = self._get_reader_arc_pks(
             arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
         )
-        nav_filter = {f"{rel}__in": arc_pks}
         group_acl_filter = self.get_group_acl_filter(Comic)
+        nav_filter = {f"{rel}__in": arc_pks}
 
+        qs = Comic.objects.filter(group_acl_filter).filter(**nav_filter)
+        if browser_filters := arc.get("filters"):
+            # no search at this time.
+            field_filters = ComicFieldFilterView.get_all_comic_field_filters(
+                "", browser_filters
+            )
+            qs = qs.filter(field_filters)
+
+        if select_related:
+            qs = qs.select_related(*select_related)
+        if prefetch_related:
+            qs = qs.prefetch_related(*prefetch_related)
         qs = (
-            Comic.objects.filter(group_acl_filter)
-            .filter(**nav_filter)
-            .select_related(*select_related)
-            .prefetch_related(*prefetch_related)
-            .only(*fields)
+            qs.only(*fields)
             .annotate(
                 issue_count=F("volume__issue_count"),
             )

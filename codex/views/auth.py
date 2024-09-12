@@ -51,17 +51,38 @@ class TimezoneView(AuthGenericAPIView):
     input_serializer_class = TimezoneSerializer
     serializer_class = OKSerializer
 
+    def _save_timezone(self, django_timezone):
+        """Save django timezone in session."""
+        if not django_timezone:
+            return
+        session = self.request.session
+        session["django_timezone"] = django_timezone
+        session.save()
+
+    def _update_user_active(self):
+        """Update user activity."""
+        user = self.request.user
+        if user and user.is_authenticated:
+            UserActive.objects.update_or_create(user=user)
+
     @extend_schema(request=input_serializer_class)
-    def put(self, request, *args, **kwargs):
+    def put(self, *args, **kwargs):
         """Get the user info for the current user."""
         data = self.request.data  # type: ignore
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        request.session["django_timezone"] = serializer.validated_data["timezone"]  # type: ignore
-        request.session.save()
-        user = self.request.user
-        if user.is_authenticated:
-            UserActive.objects.update_or_create(user=user)
+        try:
+            self._save_timezone(serializer.validated_data.get("timezone"))  # type: ignore
+        except Exception as exc:
+            reason = f"update user timezone {exc}"
+            LOG.warning(reason)
+
+        try:
+            self._update_user_active()
+        except Exception as exc:
+            reason = f"update user activity {exc}"
+            LOG.warning(reason)
+
         serializer = self.get_serializer()
         return Response(serializer.data)
 
@@ -86,7 +107,8 @@ class GroupACLMixin:
         groups_rel = f"{prefix}library__groups"
 
         # Libraries with no groups are always visible
-        query = Q(**{f"{groups_rel}__isnull": True})
+        ungrouped_filter = {f"{groups_rel}__isnull": True}
+        query = Q(**ungrouped_filter)
 
         user = self.request.user  # type: ignore
 
@@ -94,10 +116,18 @@ class GroupACLMixin:
             # Include groups are visible to users in the group
             user_filter = {f"{groups_rel}__user": user}
             exclude_rel = f"{groups_rel}__groupauth__exclude"
-            exclude_query = ~Q(**user_filter, **{exclude_rel: True})
-            include_query = Q(**user_filter, **{exclude_rel: False}) | ~Q(
-                **{exclude_rel: False}
-            )
+
+            # Exclude Query
+            exclude_filter = {exclude_rel: True}
+            exclude_filter.update(user_filter)
+            exclude_query = ~Q(**exclude_filter)
+
+            # Include Query
+            include_filter = {exclude_rel: False}
+            include_filter.update(user_filter)
+            not_member_of_exclude_group_filter = {exclude_rel: False}
+            include_query = Q(**include_filter) | ~Q(**not_member_of_exclude_group_filter)
+
             auth_query = exclude_query & include_query
             query |= auth_query
 

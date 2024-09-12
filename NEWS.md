@@ -6,6 +6,167 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.0
+
+- Features
+
+  - Search
+    - Use SQLite Full Text Search v5 for search engine.
+    - Search syntax has changed. See the help popup at the end of the search
+      bar.
+    - Use faster db column lookups for some search bar queries. Thanks
+      @bmfrosty.
+    - You may remove the directory `config/whoosh_index`.
+  - Integrity Checks
+    - Faster more comprehensive db integrity checks run every night instead of
+      at startup.
+    - Integrity checks can run on startup with environment variables documented
+      in README.
+
+- Fixes
+
+  - Fixed crashes when the upstream codex version is not accessible.
+  - Fixed possible race conditions with nightly maintenance.
+
+## v1.6.19
+
+- Fixes
+
+  - Fix browser opening reader at correct bookmark.
+  - Fix for browser triple tap bug for android tablet browsers in desktop mode.
+  - Fix populating arcs in reading order menu in reader.
+  - Fix submitting old arc to reader API.
+  - Fix Version API blocking. Add check version admin task.
+  - Fix Library "Poll Every" validation.
+  - Fix Metadata dialog not scrolling sometimes.
+  - Fix file extension for downloaded PDF pages.
+
+## v1.6.18
+
+- Yanked. Broken Reader.
+
+## v1.6.17
+
+- Features
+
+  - Admin Action buttons now responsive to view size.
+
+- Fixes
+
+  - Auto update wasn't comparing versions well.
+  - Possible fix for initializing admin flags crash.
+
+## v1.6.16
+
+- Fixes
+
+  - Import may have been marking mounted drive's comics modified
+    inappropriately.
+  - Import crash when moving comics.
+  - Relink deep orphan folders in the db instead of recreating them.
+  - Do not adopt orphan folders deleted from the filesystem.
+  - Admin Tab change password for user broke.
+  - More robust ui cache busting on library update.
+  - Fix minor error on metadata text boxes with null values.
+
+## v1.6.15
+
+- Fixes
+
+  - Fix more Metadata links to browser groups not computing and resolving
+    properly.
+
+## v1.6.14
+
+- Fixes
+
+  - Fix Metadata links to browser groups not resetting topGroup properly.
+
+## v1.6.13
+
+- Fixes
+
+  - Admin Panel Link was showing in the admin panel, not in the browser or
+    reader.
+
+## v1.6.12
+
+- Features
+
+  - Native Windows installation instructions in the README thanks to
+    @professionaltart.
+  - Anonymously send stats to improve Codex. See admin/flags for description and
+    opt-out.
+
+- Fixes
+
+  - Detect iOS devices in Desktop Mode for proper iOS tap behavior.
+
+## v1.6.9, v1.6.10, v1.6.11
+
+- Yanked. Bad network behavior. Broken javascript.
+
+## v1.6.8
+
+- Fixes
+
+  - Fix OPDS streaming in lazy metadata mode for Chunky-like readers which
+    require a page count.
+
+## v1.6.7
+
+- Fixes
+  - OPDS authorization for some readers
+  - Remove superfluous debug exception trace on timezone endpoint.
+
+## v1.6.6
+
+- Fixes
+  - User creation in admin panel broke.
+  - There was confusing UI on admin panel unauthorized screen.
+
+## v1.6.5
+
+- Fixes:
+  - Fix logout button not working.
+
+## v1.6.4
+
+- Fixes:
+  - Reader crash loading reader order arcs.
+  - OPDS datetimes now uniformly served in iso format.
+  - Fix browser filter menus clearing and loading irregularities.
+  - Fix parsing negative issue numbers in filenames.
+  - Log common non-ComicBookInfo archive comments with less alarm.
+- Removed
+  - LOGLEVEL=VERBOSE deprecated for a long time. Use LOGLEVEL=DEBUG
+
+## v1.6.3
+
+- Features
+  - Reader inherits the last browser view, with filters, as it's default reading
+    arc.
+  - When browser page is less than 1, redirect to parent. When 1 and empty, show
+    empty page.
+- Fix
+  - The cover api was not accepting http basic (opds) authentication.
+
+## v1.6.2
+
+- Fixes
+  - Fix pagination with more than 100 comics in the browser.
+
+## v1.6.1
+
+- Features
+
+  - Add a retry button on book load error and page load error pages.
+
+- Fixes
+  - Fix unable to login if anonymous users prohibited.
+  - Fix filter crash.
+  - Metadata was showing incorrect groups for individual comics
+
 ## v1.6.0
 
 - Features

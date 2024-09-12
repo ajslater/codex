@@ -28,7 +28,7 @@ class SharedAnnotationsMixin:
         return order_groups
 
     @classmethod
-    def alias_sort_names(cls, qs, model, pks, model_group, show=None):  # noqa PLR0193
+    def alias_sort_names(cls, qs, model, pks, model_group, show=None):
         """Annotate sort names for browser subclasses and reader."""
         sort_name_annotations = {}
         comic_sort_names = []

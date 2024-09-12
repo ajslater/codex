@@ -4,7 +4,6 @@ from types import MappingProxyType
 
 from django.db.models import Q
 
-from codex.models.comic import Comic
 from codex.views.browser.filters.group import GroupFilterView
 
 _FILTER_REL_MAP = MappingProxyType(
@@ -19,9 +18,9 @@ _FILTER_REL_MAP = MappingProxyType(
 class ComicFieldFilterView(GroupFilterView):
     """Comic field filters."""
 
-    def _filter_by_comic_field(self, field, rel_prefix):
+    @staticmethod
+    def _filter_by_comic_field(field, rel_prefix, filter_list):
         """Filter by a comic any2many attribute."""
-        filter_list = self.params["filters"].get(field)  # type: ignore
         filter_query = Q()
         if not filter_list:
             return filter_query
@@ -37,10 +36,19 @@ class ComicFieldFilterView(GroupFilterView):
             filter_query |= Q(**{f"{rel}__in": filter_list})
         return filter_query
 
+    @classmethod
+    def get_all_comic_field_filters(cls, rel_prefix, filters):
+        """Get all comicfiled filters for rel_prefix."""
+        comic_field_filter = Q()
+        for field in cls.FILTER_ATTRIBUTES:
+            filter_list = filters.get(field, [])
+            comic_field_filter &= cls._filter_by_comic_field(
+                field, rel_prefix, filter_list
+            )
+        return comic_field_filter
+
     def get_comic_field_filter(self, model):
         """Filter the comics based on the form filters."""
-        comic_field_filter = Q()
-        rel_prefix = "" if model == Comic else self.rel_prefix  # type: ignore
-        for attribute in self.FILTER_ATTRIBUTES:
-            comic_field_filter &= self._filter_by_comic_field(attribute, rel_prefix)
-        return comic_field_filter
+        rel_prefix = self.get_rel_prefix(model)
+        filters = self.params["filters"]  # type: ignore
+        return self.get_all_comic_field_filters(rel_prefix, filters)

@@ -1,6 +1,17 @@
 <template>
-  <div :id="`page${page}`" :data-page="page" class="page" :style="style">
-    <ErrorPage v-if="error" :two-pages="settings.twoPages" :type="error" />
+  <div
+    :id="`page${page}`"
+    :key="ts"
+    :data-page="page"
+    class="page"
+    :style="style"
+  >
+    <ErrorPage
+      v-if="error"
+      :two-pages="settings.twoPages"
+      :type="error"
+      @retry="onRetry"
+    />
     <LoadingPage
       v-else-if="showProgress && !loaded"
       :two-pages="settings.twoPages"
@@ -20,7 +31,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
@@ -51,11 +62,11 @@ export default {
     return {
       showProgress: false,
       loaded: false,
-      error: false,
+      error: "",
+      ts: 0,
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings.scale,
     }),
@@ -74,18 +85,16 @@ export default {
       return s;
     },
     src() {
+      const mtime = Math.max(this.book.mtime, this.ts);
       const params = {
         pk: this.book.pk,
         page: this.page,
-        mtime: this.book.mtime,
+        mtime,
       };
       return getComicPageSource(params);
     },
     component() {
       return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
-    },
-    settings() {
-      return this.getSettings(this.book);
     },
   },
   mounted() {
@@ -96,7 +105,6 @@ export default {
     }, PROGRESSS_DELAY_MS);
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
     onLoad() {
       this.showProgress = false;
       this.loaded = true;
@@ -109,6 +117,9 @@ export default {
     onUnauthorized() {
       this.error = "unauthorized";
       this.showProgress = false;
+    },
+    onRetry() {
+      this.ts = Date.now();
     },
   },
 };

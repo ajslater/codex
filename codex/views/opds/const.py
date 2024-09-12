@@ -84,3 +84,13 @@ class MimeType:
 
 
 OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
+
+
+class UserAgentNames:
+    """Control whether to hack in facets with nav links."""
+
+    CLIENT_REORDERS = frozenset({"Chunky"})
+    FACET_SUPPORT = frozenset({"yar"})  # kybooks
+    SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
+    # Other known valid  names:
+    # "Chunky"

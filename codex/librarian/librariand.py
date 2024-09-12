@@ -9,6 +9,7 @@ from caseconverter import snakecase
 
 from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
+from codex.librarian.cron.crond import CronThread
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.importer.importerd import ComicImporterThread
 from codex.librarian.importer.tasks import (
@@ -16,7 +17,6 @@ from codex.librarian.importer.tasks import (
     ImportTask,
 )
 from codex.librarian.janitor.janitor import Janitor
-from codex.librarian.janitor.janitord import JanitorThread
 from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
@@ -24,9 +24,11 @@ from codex.librarian.search.searchd import SearchIndexerThread
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
     SearchIndexerTask,
-    SearchIndexRebuildIfDBChangedTask,
+    SearchIndexUpdateTask,
 )
-from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask
+from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask, WakeCronTask
+from codex.librarian.telemeter.tasks import TelemeterTask
+from codex.librarian.telemeter.telemeter import send_telemetry
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -52,7 +54,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         WatchdogEventBatcherThread,
         LibraryEventObserver,
         LibraryPollingObserver,
-        JanitorThread,
+        CronThread,
     )
     _THREAD_CLASS_MAP = MappingProxyType(
         {
@@ -74,7 +76,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
-            SearchIndexRebuildIfDBChangedTask(),
+            SearchIndexUpdateTask(False),
         )
 
         for task in startup_tasks:
@@ -99,12 +101,16 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                 self._threads.library_polling_observer.poll(
                     task.library_ids, task.force
                 )
+            case SearchIndexAbortTask():
+                # Must come before the generic SearchIndexerTask below
+                self.search_indexer_abort_event.set()
+                self.log.debug("Told search indexers to stop for db updates.")
             case SearchIndexerTask():
-                if isinstance(task, SearchIndexAbortTask):
-                    self.search_indexer_abort_event.set()
-                    self.log.debug("Told search indexers to stop for db updates.")
-                else:
-                    self._threads.search_indexer_thread.queue.put(task)
+                self._threads.search_indexer_thread.queue.put(task)
+            case WakeCronTask():
+                self._threads.cron_thread.end_timeout()
+            case TelemeterTask():
+                send_telemetry(self.log)
             case JanitorTask():
                 self.janitor.run(task)
             case DelayedTasks():
@@ -144,6 +150,16 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             thread.start()
         self.log.info(f"{self.__class__.__name__} started all threads.")
 
+    def _startup(self):
+        """Initialize threads."""
+        self.init_logger(self.log_queue)
+        self.log.debug(f"Started {self.__class__.__name__}.")
+        self.janitor = Janitor(self.log_queue, self.queue)
+        self._create_threads()  # can't do this in init.
+        self._start_threads()
+        self.run_loop = True
+        self.log.info(f"{self.__class__.__name__} ready for tasks.")
+
     def _stop_threads(self):
         """Stop all librarian's threads."""
         self.log.debug(f"{self.__class__.__name__} stopping all threads...")
@@ -158,19 +174,26 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             thread.join()
         self.log.info(f"{self.__class__.__name__} joined all threads.")
 
+    def _shutdown(self):
+        """Shutdown threads and queues."""
+        self._reversed_threads = reversed(self._threads)
+        self._stop_threads()
+        self._join_threads()
+        while not self.queue.empty():
+            self.queue.get_nowait()
+        self.queue.close()
+        self.queue.join_thread()
+        self.log.info(f"{self.__class__.__name__} finished.")
+        self.log_queue.close()
+        self.log_queue.join_thread()
+
     def run(self):
         """Process tasks from the queue.
 
         This process also runs the crond thread and the Watchdog Observer
         threads.
         """
-        self.init_logger(self.log_queue)
-        self.log.debug(f"Started {self.__class__.__name__}.")
-        self.janitor = Janitor(self.log_queue, self.queue)
-        self._create_threads()  # can't do this in init.
-        self._start_threads()
-        self.run_loop = True
-        self.log.info(f"{self.__class__.__name__} ready for tasks.")
+        self._startup()
         try:
             while self.run_loop:
                 try:
@@ -183,16 +206,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         except KeyboardInterrupt:
             self.log.debug(f"{self.__class__.__name__} Keyboard interrupt")
         finally:
-            self._reversed_threads = reversed(self._threads)
-            self._stop_threads()
-            self._join_threads()
-            while not self.queue.empty():
-                self.queue.get_nowait()
-            self.queue.close()
-            self.queue.join_thread()
-            self.log.info(f"{self.__class__.__name__} finished.")
-            self.log_queue.close()
-            self.log_queue.join_thread()
+            self._shutdown()
 
     def stop(self):
         """Close up the librarian process."""

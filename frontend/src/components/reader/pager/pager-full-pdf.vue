@@ -3,7 +3,7 @@
     <PageChangeLink direction="prev" />
     <PageChangeLink direction="next" />
     <ScaleForScroll>
-      <PdfDoc :book="book" :page="page" :src="src" class="fullPdfPage" />
+      <PDFDoc :book="book" :page="page" :src="src" />
     </ScaleForScroll>
   </span>
 </template>
@@ -11,31 +11,26 @@
 <script>
 import { mapState } from "pinia";
 
-import { getPdfBookSource } from "@/api/v3/reader";
+import { getPDFInBrowserURL } from "@/api/v3/reader";
 import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
-import PdfDoc from "@/components/reader/pager/pdf-doc.vue";
+import PDFDoc from "@/components/reader/pager/pdf-doc.vue";
 import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "PagerFullPDF",
-  components: { PageChangeLink, PdfDoc, ScaleForScroll },
+  components: { PageChangeLink, PDFDoc, ScaleForScroll },
   props: {
     book: { type: Object, required: true },
   },
   emits: ["load", "error", "unauthorized"],
   computed: {
     ...mapState(useReaderStore, {
-      page: (state) => state.page,
+      page: (state) => state.page || 0,
     }),
     src() {
-      return getPdfBookSource(this.book);
+      return getPDFInBrowserURL(this.book);
     },
   },
 };
 </script>
-<style scoped lang="scss">
-.fullPdfPage {
-  display: block;
-}
-</style>

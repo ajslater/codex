@@ -115,7 +115,13 @@ DICT_MODEL_REL_LINK_MAP = MappingProxyType(
 # BULK UPDATE #
 ###############
 
-_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {"bookmark", "created_at", "id", "library"}
+_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
+    "bookmark",
+    "created_at",
+    "id",
+    "library",
+    "comicfts",
+}
 GROUP_BASE_FIELDS = ("name", "sort_name")
 BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(

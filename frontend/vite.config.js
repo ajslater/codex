@@ -39,15 +39,11 @@ const config = defineConfig(({ mode }) => {
   const DEV = mode === "development";
   return {
     base: BASE_PATH,
-    server: {
-      host: true,
-      strictPort: true,
-    },
     build: {
+      emptyOutDir: true,
       manifest: "manifest.json",
       minify: PROD,
       outDir: path.resolve("../codex/static_build"),
-      emptyOutDir: true,
       rollupOptions: {
         // No need for index.html
         input: path.resolve("./src/main.js"),
@@ -63,11 +59,10 @@ const config = defineConfig(({ mode }) => {
       },
       sourcemap: DEV,
     },
-    resolve: {
-      alias: {
-        "@": path.resolve("./src"),
-      },
+    css: {
+      devSourcemap: DEV,
     },
+    define: defineObj,
     plugins: [
       vue(),
       vuetify({ autoImport: true }),
@@ -78,13 +73,13 @@ const config = defineConfig(({ mode }) => {
       viteStaticCopy({
         targets: [
           {
-            src: "src/choices.json",
             dest: "js/",
+            src: "src/choices.json",
             transform: (content) => JSON.stringify(JSON.parse(content)),
           },
           {
-            src: "src/choices-admin.json",
             dest: "js/",
+            src: "src/choices-admin.json",
             transform: (content) => JSON.stringify(JSON.parse(content)),
           },
         ],
@@ -92,10 +87,15 @@ const config = defineConfig(({ mode }) => {
       UnheadVite(),
     ],
     publicDir: false,
-    css: {
-      devSourcemap: DEV,
+    resolve: {
+      alias: {
+        "@": path.resolve("./src"),
+      },
     },
-    define: defineObj,
+    server: {
+      host: true,
+      strictPort: true,
+    },
     test: {
       environment: "jsdom",
       // deps: { inline: ["vuetify"] },

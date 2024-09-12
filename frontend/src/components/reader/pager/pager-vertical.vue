@@ -2,7 +2,7 @@
   <ScaleForScroll>
     <v-virtual-scroll
       id="verticalScroll"
-      :key="readInReverse"
+      :key="isReadInReverse"
       ref="verticalScroll"
       v-scroll:#verticalScroll="onScroll"
       :items="items"
@@ -12,10 +12,7 @@
       <template #default="{ item }">
         <BookPage :book="book" :page="item" class="verticalPage" />
         <div
-          v-intersect.quiet="{
-            handler: onIntersect,
-            options: { threshold: [0.75] },
-          }"
+          v-intersect.quiet="intersectOptions"
           class="pageTracker"
           :class="{ pageTrackerToolbars: showToolbars }"
           :data-page="item"
@@ -26,14 +23,13 @@
 </template>
 
 <script>
-import _ from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
 import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
+import { range } from "@/util";
 
-const MAX_VISIBLE_PAGES = 12;
 const TIMEOUT = 250;
 
 export default {
@@ -53,6 +49,10 @@ export default {
       innerWidth: window.innerWidth,
       intersectorOn: false,
       programmaticScroll: false,
+      intersectOptions: {
+        handler: this.onIntersect,
+        options: { threshold: [0.75] },
+      },
     };
   },
   computed: {
@@ -61,22 +61,19 @@ export default {
       showToolbars: (state) => state.showToolbars,
     }),
     ...mapWritableState(useReaderStore, ["reactWithScroll"]),
-    settings() {
-      return this.getSettings(this.book);
+    bookSettings() {
+      return this.getBookSettings(this.book);
     },
-    readInReverse() {
-      return this.settings.readInReverse;
+    isReadInReverse() {
+      return this.bookSettings.isReadInReverse;
     },
     items() {
       const len = this.book?.maxPage ? this.book.maxPage + 1 : 0;
-      const pages = _.range(0, len);
-      if (this.readInReverse) {
+      const pages = range(0, len);
+      if (this.isReadInReverse) {
         pages.reverse();
       }
       return pages;
-    },
-    visibleItems() {
-      return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
   },
   watch: {
@@ -97,9 +94,9 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
+      "getBookSettings",
       "setActivePage",
       "setBookChangeFlag",
-      "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
       if (isIntersecting && this.intersectorOn) {
@@ -153,7 +150,9 @@ export default {
 :deep(.v-virtual-scroll__item) {
   position: relative;
 }
+
 $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
+
 .pageTracker {
   position: absolute;
   top: 0;
@@ -169,6 +168,7 @@ $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
   border: dashed 10px red;
   */
 }
+
 .pageTrackerToolbars {
   height: calc(($pageTrackerBaseHeight - 154px - 32px) * .95) !important;
 }

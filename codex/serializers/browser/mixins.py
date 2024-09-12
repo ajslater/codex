@@ -53,8 +53,7 @@ class BrowserAggregateSerializerMixin(Serializer):
                 )
                 continue
 
-            if dt > mtime:
-                mtime = dt
+            mtime = max(dt, mtime)
 
         if obj.group != COMIC_GROUP and (
             mbua := getattr(obj, "max_bookmark_updated_at", None)

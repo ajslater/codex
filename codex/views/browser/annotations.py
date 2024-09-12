@@ -5,18 +5,20 @@ from types import MappingProxyType
 
 from django.db.models import (
     Avg,
-    BooleanField,
     Case,
     F,
     FilteredRelation,
     Min,
+    OuterRef,
     Q,
     Sum,
     Value,
     When,
 )
+from django.db.models.expressions import Subquery
 from django.db.models.fields import CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least, Reverse, Right, StrIndex
+from django.db.models.functions.comparison import Coalesce
 
 from codex.logger.logging import get_logger
 from codex.models import (
@@ -26,7 +28,8 @@ from codex.models import (
     StoryArc,
     Volume,
 )
-from codex.models.functions import JsonGroupArray
+from codex.models.functions import ComicFTSRank, JsonGroupArray
+from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
@@ -60,8 +63,8 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
         "story_arc_number",
     }
 )
-_ALTERNATE_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
-    {Comic: "id", Volume: "name", Folder: "name"}
+_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+    {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
 )
 
 LOG = get_logger(__name__)
@@ -77,11 +80,13 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
-    def get_group_by(self, model=None):
+    def add_group_by(self, qs, model=None):
         """Get the group by for the model."""
         if model is None:
             model = self.model
-        return _ALTERNATE_GROUP_BY.get(model, "sort_name")  # type: ignore
+        if group_by := _GROUP_BY.get(model):  # type: ignore
+            qs = qs.group_by(group_by)
+        return qs
 
     def _alias_sort_names(self, qs, model):
         """Annotate sort_name."""
@@ -189,9 +194,20 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
+    def _annotate_search_scores(self, qs):
+        """Annotate Search Scores."""
+        if (
+            self.TARGET not in frozenset({"browser", "cover"})
+            or self.order_key != "search_score"  # type: ignore
+        ):
+            return qs
+        return qs.annotate(search_score=ComicFTSRank())
+
     def annotate_order_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
+        self.set_order_key()
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+        qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs, model)
         qs = self._alias_filename(qs, model)
         qs = self._alias_story_arc_number(qs)
@@ -207,66 +223,95 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         value = "c" if model == Comic else self.model_group  # type: ignore
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
+    @staticmethod
+    def _get_bookmark_page_and_finished_counts(
+        bm_filter, page_rel, finished_rel, page_count
+    ):
+        bookmark_page_case = Case(
+            # When(**{bm_rel: None}, then=0),
+            When(**{finished_rel: True}, then=page_count),
+            default=page_rel,
+            output_field=PositiveSmallIntegerField(),
+        )
+
+        bookmark_page = Sum(
+            bookmark_page_case,
+            default=0,
+            filter=bm_filter,
+            output_field=PositiveSmallIntegerField(),
+            distinct=True,
+        )
+
+        finished_count = Sum(
+            finished_rel,
+            default=0,
+            filter=bm_filter,
+            output_field=PositiveSmallIntegerField(),
+            distinct=True,
+        )
+        finished_aggregate = Q(child_count=finished_count)
+
+        return bookmark_page, finished_aggregate
+
+    def _annotate_group_bookmarks(self):
+        """Aggregate bookmark and finished states for groups using subqueries to not break with the FTS match filter."""
+        # Using these subqueries is faster even though it's not neccissary for non-fts queries.
+        if not self.model:
+            return 0, 0
+
+        comic_qs = self.get_filtered_queryset(Comic)
+        # Must group by the outer ref or it only does aggregates for one comic.
+        group_rel = (
+            "parent_folder"
+            if self.model == Folder
+            else "story_arc_numbers__story_arc"
+            if self.model == StoryArc
+            else self.model.__name__.lower()
+        )
+        group_rel_suffix = "name" if self.model == Volume else "sort_name"
+        group_rel += "__" + group_rel_suffix
+        comic_qs = comic_qs.filter(**{group_rel: OuterRef("pk")}).values(group_rel)
+
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
+        page_rel = f"{bm_rel}__page"
+        finished_rel = f"{bm_rel}__finished"
+        page_count = "page_count"
+        bookmark_page, finished_aggregate = self._get_bookmark_page_and_finished_counts(
+            bm_filter, page_rel, finished_rel, page_count
+        )
+
+        comic_qs = comic_qs.annotate(page=bookmark_page, finished=finished_aggregate)
+        bookmark_page = Subquery(comic_qs.values("page"))
+        finished_aggregate = Subquery(comic_qs.values("finished"))
+
+        return bookmark_page, finished_aggregate
+
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
-
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
         if model == Comic:
-            # Hoist up the bookmark and finished states
-            bookmark_page = Sum(
-                page_rel,
-                default=0,
-                filter=bm_filter,
-                output_field=PositiveSmallIntegerField(),
-            )
-            finished_aggregate = Sum(
-                finished_rel,
-                default=False,
-                filter=bm_filter,
-                output_field=BooleanField(),
-            )
+            # Hoist comic bookmark and finished states
+            bookmark_page = F(page_rel)
+            finished_aggregate = F(finished_rel)
         else:
-            # Aggregate bookmark and finished states
-            bookmark_page = Sum(
-                Case(
-                    When(**{bm_rel: None}, then=0),
-                    When(**{finished_rel: True}, then=f"{self.rel_prefix}page_count"),
-                    default=page_rel,
-                    output_field=PositiveSmallIntegerField(),
-                ),
-                default=0,
-                filter=bm_filter,
-                output_field=PositiveSmallIntegerField(),
-                distinct=True,
-            )
+            # FTS mode is faster?
+            # Aggregate bookmark and finished states for groups using subqueries to
+            # not break with FTS match filter.
+            bookmark_page, finished_aggregate = self._annotate_group_bookmarks()
 
-            finished_count = Sum(
-                finished_rel,
-                default=0,
-                filter=bm_filter,
-                output_field=PositiveSmallIntegerField(),
-                distinct=True,
-            )
-            qs = qs.annotate(finished_count=finished_count)
-            finished_aggregate = Case(
-                When(finished_count=F("child_count"), then=True),
-                When(finished_count=0, then=False),
-                default=None,
-                output_field=BooleanField(),
-            )
-
-        if self.is_opds_1_acquisition or (
-            self.is_model_comic and self.TARGET == "browser"
+        if (
+            self.is_opds_1_acquisition
+            or (self.is_model_comic and self.TARGET == "browser")
+            or self.TARGET in frozenset({"metadata", "browser"})
         ):
             qs = qs.annotate(page=bookmark_page)
-        elif self.TARGET in frozenset({"metadata", "browser"}):
-            qs = qs.alias(page=bookmark_page)
 
         if self.TARGET in frozenset({"metadata", "browser"}):
             qs = qs.annotate(finished=finished_aggregate)
+
         return qs
 
     def _annotate_progress(self, qs):
@@ -275,10 +320,10 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         # Requires bookmark and annotation hoisted from bookmarks.
         # Requires page_count native to comic or aggregated
+        # Page counts can be null with metadata turned off.
         # Least guard is for rare instances when bookmarks are set to
         # invalid high values
-        then = Least(F("page") * 100.0 / F("page_count"), Value(100.0))
-        progress = Case(When(page_count__gt=0, then=then), default=0.0)
+        progress = Least(Coalesce(F("page"), 0) * 100.0 / F("page_count"), Value(100.0))
         return qs.annotate(progress=progress)
 
     def annotate_card_aggregates(self, qs, model):

@@ -12,7 +12,6 @@ from codex.logger.logging import get_logger
 from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.reader.arcs import ReaderArcsView
-from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
@@ -90,7 +89,6 @@ class ReaderView(ReaderArcsView):
         arc["count"] = current.arc_count  # type: ignore
 
         close_route = self.get_last_route()
-        close_route = pop_name(close_route)
 
         return {
             "books": books,

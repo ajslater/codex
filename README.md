@@ -11,17 +11,19 @@ border-radius: 128px;
 ## <a name="features">✨ Features</a>
 
 - Codex is a web server.
+- GPLv3 Licenced.
 - Full text search of metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of publishers, imprints, series, volumes, or your own folder
-  hierarchy.
-- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
+- Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
+  hierarchy, or by tagged Story Arc.
 - Read comics in a variety of aspect ratios and directions that fit your screen.
-- Per user bookmarking. Per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
+- Anonymous browsing and reading or reigistered users only, to your preference.
+- Per user bookmarking & settings, even before you make an account.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
+- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Runs in 1GB of RAM, faster with more.
 
 ### Examples
@@ -34,8 +36,8 @@ border-radius: 128px;
 
 ## <a name="demonstration">👀 Demonstration</a>
 
-You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for
-Codex.
+You may browse a [live demo server](https://demo.codex-reader.app/) to get a
+feel for Codex.
 
 ## <a name="news">📜 News</a>
 
@@ -53,40 +55,55 @@ the recommended way to run Codex.
 You'll then want to read the [Administration](#administration) section of this
 document.
 
+### Install & Run on <a href="homeassistant">HomeAssistant</a> server
+
+If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
+be installed with the following steps :
+
+- Add the `https://github.com/alexbelgium/hassio-addons` repository by
+  [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
+- Install the addon :
+  [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
+- Customize addon options, then then start the add-on.
+
 ### Install & Run as a Native Application
 
 You can also run Codex as a natively installed python application with pip.
 
-#### Wheel Build Dependencies
+#### Binary Dependencies
 
-You'll need to install these system dependencies before installing Codex.
+You'll need to install the appropriate system dependencies for your platform
+before installing Codex.
 
-##### macOS
+##### Linux Dependencies
+
+###### <a href="#debian">Debian</a> Dependencies
+
+...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
 <!-- eslint-skip -->
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python unrar webp
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
 
-##### Linux
-
-###### <a href="#debian">Debian</a>
-
-...and Ubuntu, Mint, MX and others.
+Versions of packages like libjpeg, libssl, libtiff may differ between flavors
+and versions of your distribution. If the package versions listed in the example
+above are not available, try searching for ones that are with `apt-cache` or
+`aptitude`.
 
 <!-- eslint-skip -->
 
 ```sh
-apt install build-essential libimagequant0 libjpeg62-turbo libopenjp2-7 libssl3 libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
+apt-cache search libjpeg-turbo
 ```
 
-###### Alpine
+###### <a href="alpine">Alpine</a> Dependencies
 
 <!-- eslint-skip -->
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on non-debian Linux
@@ -97,31 +114,28 @@ packaged for Linux, but here are some instructions:
 
 Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15+
 
-#### Windows
+##### macOS Dependencies
 
-Windows users should use Docker to run Codex until this documentation section is
-complete.
-
-Codex can _probably_ run on the Windows Linux Subsystem but I haven't personally
-tested it yet. Try following the instructions for [Debian](#debian) above. There
-may be outstanding platform related bugs.
-
-Contributions to the Windows documentation will be gratefully accepted on
-[the outstanding issue](https://github.com/ajslater/codex/issues/76) or Discord.
-
-#### Install Codex with pip
-
-You may now install Codex with pip
+Using [Homebrew](https://brew.sh/):
 
 <!-- eslint-skip -->
 
 ```sh
-pip3 install codex
+brew install jpeg libffi libyaml libzip openssl python sqlite unrar webp
 ```
 
-#### Run Codex Natively
+##### <a href="#windows">Windows</a> Dependencies
 
-pip should install the codex binary on your path. Run
+Windows users are encouraged to use Docker to run Codex, but it will also run
+natively on the Windows Subsystem for Linux.
+
+Installation instructions are in the <a href="/WINDOWS.md">Native Windows
+Dependencies Installation Document</a>.
+
+#### <a href="#run">Run</a> Codex Natively
+
+Once you have installed codex, the codex binary should be on your path. To start
+codex, run:
 
 <!-- eslint-skip -->
 
@@ -129,18 +143,9 @@ pip should install the codex binary on your path. Run
 codex
 ```
 
-and then navigate to <http://localhost:9810/>
+### Use Codex
 
-### Install & Run on your preexisting HomeAssistant server
-
-If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
-be installed with the following steps :
-
-- Add the `https://github.com/alexbelgium/hassio-addons` repository by
-  [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
-- Install the addon :
-  [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
-- Customize addon options, then then start the add-on.
+Once installed and running you may navigate to <http://localhost:9810/>
 
 ## <a name="administration">👑 Administration</a>
 
@@ -270,8 +275,15 @@ index, a Django cache and comic book cover thumbnails.
   `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
   when codex starts.
-- `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that
-  runs when codex starts.
+- `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
+  keys on startup.
+- `CODEX_INTEGRITY_CHECK=1` will perform a quick full database integrity check
+  on startup.
+- `CODEX_INTEGRITY_CHECK=full` will perform a more thorough database integrity
+  check on startup.
+- `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
+  search index.
+- `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
 - `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
   reads all archive metadata sources and transforms it into a the comicbox
   schema.
@@ -437,7 +449,7 @@ you.
 
 ### Emergency Database Repair
 
-If the database becomes corrupt, Codex includes a facitlity to rebuild the
+If the database becomes corrupt, Codex includes a facility to rebuild the
 database. Place a file named `rebuild_db` in your Codex config directory like
 so:
 
@@ -452,7 +464,8 @@ Shut down and restart Codex.
 The next time Codex starts it will back up the existing database and try to
 rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
-original database at `config/db.sqlite3.backup`.
+original database at `config/backups/codex.sqlite3.before-rebuild`. Codex will
+remove the `rebuild_db` file.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
@@ -507,6 +520,8 @@ questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me
   to use the PyPi name 'codex'.
+- To [ProfessionalTart](https://github.com/professionaltart) for providing
+  native Windows installation instructions.
 - Thanks to the good people of
   [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for
   continuous feedback and comic ecosystem education.

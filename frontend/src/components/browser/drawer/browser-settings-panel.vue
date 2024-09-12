@@ -65,8 +65,6 @@
     @update:model-value="setSearchResultsLimit($event)"
   />
   -->
-  <SearchHelp />
-  <v-divider />
   <v-checkbox
     class="browserGroupCheckbox"
     density="compact"
@@ -78,20 +76,25 @@
     @update:model-value="set24HourTime($event)"
   />
   <v-divider />
+  <!--
+  <v-btn text="Load Mtime" @click="loadMtimes" />
+  -->
 </template>
 <script>
 import { mdiReload } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 const SHOW_SETTINGS_GROUPS = "rpisv";
 
 export default {
   name: "BrowserSettingsPanel",
-  components: {
-    SearchHelp,
+  data() {
+    return {
+      mdiReload,
+      openDelay: 2000, // for tooltips
+    };
   },
   data() {
     return {
@@ -120,7 +123,10 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["loadMtimes", "setSettings"]),
+    ...mapActions(useBrowserStore, [
+      //"loadMtimes",
+      "setSettings",
+    ]),
     setShow(group, value) {
       const data = { show: { [group]: value === true } };
       this.setSettings(data);
@@ -148,16 +154,17 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#showSettings{
+#showSettings {
   padding-top: 10px;
 }
-.browserGroupCheckbox,
-.settingsHeader,
+
 // .searchResultsCheckbox
-{
+.browserGroupCheckbox,
+.settingsHeader {
   padding-right: 10px;
   padding-left: 15px;
 }
+
 .settingsHeader {
   color: rgb(var(--v-theme-textDisabled));
 }

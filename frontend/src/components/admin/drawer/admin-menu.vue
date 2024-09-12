@@ -49,12 +49,11 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useAdminStore, ["unseenFailedImports"]),
+    failedImportsIcon() {
+      return this.unseenFailedImports ? mdiBookAlert : undefined;
+    },
     showAdminPanelLink() {
       return !this.$router.currentRoute?.value?.name?.startsWith("admin");
-    },
-    failedImportsIcon() {
-      //return this.unseenFailedIimports ? mdiBookAlert : undefined;
-      return mdiBookAlert;
     },
   },
   methods: {

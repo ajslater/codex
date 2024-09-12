@@ -15,11 +15,9 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy as _
 
-from codex.models.base import BaseModel
+from codex.models.base import MAX_PATH_LEN, BaseModel
 
 __all__ = ("Library", "validate_dir_exists")
-
-MAX_PATH_LEN = 4095
 
 
 def validate_dir_exists(path):

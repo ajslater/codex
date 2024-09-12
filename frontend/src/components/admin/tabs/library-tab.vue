@@ -22,6 +22,7 @@
 </template>
 
 <script>
+import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -49,9 +50,12 @@ export default {
     ...mapState(useAdminStore, {
       libraryItems(state) {
         const annotatedItems = [];
+        if (!state.libraries) {
+          return annotatedItems;
+        }
         for (const library of state.libraries) {
           if (!library.coversOnly) {
-            const annotatedItem = { ...library };
+            const annotatedItem = deepClone(library);
             annotatedItem.label = annotatedItem.coversOnly
               ? "custom group cover"
               : "comic";

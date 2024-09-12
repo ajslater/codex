@@ -45,6 +45,8 @@ class LazyImportComicsTask(ImportTask):
 class AdoptOrphanFoldersTask(ImportTask):
     """Move orphaned folders into a correct tree position."""
 
+    janitor: bool = False
+
 
 @dataclass
 class UpdateGroupsTask(ImportTask):

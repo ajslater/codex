@@ -8,6 +8,7 @@ from types import MappingProxyType
 from comicbox.box import Comicbox
 from watchdog.events import (
     EVENT_TYPE_CLOSED,
+    EVENT_TYPE_CLOSED_NO_WRITE,
     EVENT_TYPE_CREATED,
     EVENT_TYPE_DELETED,
     EVENT_TYPE_MODIFIED,
@@ -71,7 +72,9 @@ COVERS_EVENT_TYPE_MAP = MappingProxyType(
 class CodexEventHandlerBase(FileSystemEventHandler, LoggerBaseMixin):
     """Base class for Codex Event Handlers."""
 
-    IGNORED_EVENTS = frozenset({EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED})
+    IGNORED_EVENTS = frozenset(
+        {EVENT_TYPE_CLOSED, EVENT_TYPE_CLOSED_NO_WRITE, EVENT_TYPE_OPENED}
+    )
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
@@ -191,8 +194,8 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
             events = self._transform_file_event(event)
 
             # Send it to the EventBatcher
-            for event in events:
-                task = WatchdogEventTask(self.library_pk, event)
+            for sub_event in events:
+                task = WatchdogEventTask(self.library_pk, sub_event)
                 self.librarian_queue.put(task)
 
             # Calls stub event dispatchers
@@ -234,7 +237,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
         try:
             if event.is_directory or event.event_type in self.IGNORED_EVENTS:
                 return
-            src_cover_match = self._match_group_cover_image(event.src_path)
+            src_cover_match = self._match_group_cover_image(str(event.src_path))
             if event.event_type == EVENT_TYPE_MOVED:
                 send_event = self._transform_event_moved(event, src_cover_match)
             elif src_cover_match:

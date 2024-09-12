@@ -9,6 +9,7 @@
     aria-label="search"
     clearable
     density="compact"
+    :error-messages="searchError"
     full-width
     hide-details="auto"
     hide-selected
@@ -47,6 +48,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       stateQ: (state) => state.settings.q,
+      searchError: (state) => state.page.searchError,
     }),
   },
   watch: {

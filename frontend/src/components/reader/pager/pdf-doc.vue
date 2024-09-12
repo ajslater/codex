@@ -7,19 +7,19 @@
     :source="src"
     :width="width"
     :height="height"
-    @rendered="$emit('load')"
-    @internal-link-clicked="routeToPage"
-    @loading-failed="$emit('error')"
-    @rendering-failed="$emit('error')"
-    @password-requested="$emit('unauthorized')"
+    @rendered="onLoad"
+    @internal-link-clicked="onLinkClicked"
+    @loading-failed="onError"
+    @rendering-failed="onError"
+    @password-requested="onUnauthorized"
   />
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
 
-import { useReaderStore } from "@/stores/reader";
+import { useReaderStore, VERTICAL_READING_DIRECTIONS } from "@/stores/reader";
 
 export default {
   name: "PDFDoc",
@@ -37,27 +37,31 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings.scale,
     }),
-    settings() {
-      return this.getSettings(this.book);
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
+    isVertical() {
+      return VERTICAL_READING_DIRECTIONS.has(
+        this.bookSettings.readingDirection,
+      );
     },
     width() {
       // Wide PDFs will not fit to SCREEN well.
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
       // Maybe not impossible but I'm lazy right now.
-      let width = ["W", "O"].includes(this.settings.fitTo)
+      let width = ["W", "O"].includes(this.bookSettings.fitTo)
         ? this.innerWidth
         : 0;
-      if (!this.isVertical && this.settings.twoPages) {
+      if (!this.isVertical && this.bookSettings.twoPages) {
         width = width / 2;
       }
       return width * this.scale;
     },
     height() {
-      let height = ["H", "S"].includes(this.settings.fitTo)
+      let height = ["H", "S"].includes(this.bookSettings.fitTo)
         ? this.innerHeight
         : 0;
       if (this.isVertical) {
@@ -67,7 +71,7 @@ export default {
       return height * this.scale;
     },
     classes() {
-      return this.fitToClass(this.book);
+      return this.bookSettings.fitToClass;
     },
   },
   mounted() {
@@ -77,10 +81,23 @@ export default {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "routeToPage", "fitToClass"]),
+    ...mapActions(useReaderStore, ["getBookSettings", "routeToPage"]),
     onResize() {
       this.innerHeight = window.innerHeight;
       this.innerWidth = window.innerWidth;
+    },
+    onLoad() {
+      this.$emit("load");
+    },
+    onLinkClicked(event) {
+      this.routeToPage(event);
+    },
+    onError(event) {
+      console.error(event);
+      this.$emit("error");
+    },
+    onUnauthorized() {
+      this.$emit("unauthorized");
     },
   },
 };

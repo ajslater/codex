@@ -10,9 +10,9 @@ from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
-from codex.models import Comic
+from codex.models.comic import Comic, FileType
+from codex.settings.settings import FALSY
 from codex.views.bookmark import BookmarkBaseView
-from codex.views.const import FALSY
 from codex.views.util import chunker
 
 LOG = get_logger(__name__)
@@ -68,7 +68,7 @@ class ReaderPageView(BookmarkBaseView):
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
-        if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
+        if comic.file_type == FileType.PDF.value and not to_pixmap:
             content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type
@@ -92,17 +92,16 @@ class ReaderPageView(BookmarkBaseView):
     )
     def get(self, *_args, **_kwargs):
         """Get the comic page from the archive."""
-        pk = self.kwargs.get("pk")
-        comic = None
         try:
             page_image, content_type = self._get_page_image()
             self._update_bookmark()
         except Comic.DoesNotExist as exc:
+            pk = self.kwargs.get("pk")
             detail = f"comic {pk} not found in db."
             raise NotFound(detail=detail) from exc
         except FileNotFoundError as exc:
-            path = comic.path if comic else f"path for {pk}"
-            detail = f"comic {path} not found."
+            pk = self.kwargs.get("pk")
+            detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
         except Exception as exc:
             LOG.warning(exc)

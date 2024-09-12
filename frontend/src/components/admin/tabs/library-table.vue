@@ -28,41 +28,43 @@
       />
     </template>
     <template #[`item.actions`]="{ item }">
-      <ConfirmDialog
-        :icon="mdiDatabaseClockOutline"
-        :title-text="`Poll for updated ${item.label}s`"
-        :object-name="item.path"
-        :confirm-text="pollConfirmText(item)"
-        size="small"
-        density="compact"
-        @confirm="poll(item)"
-      />
-      <ConfirmDialog
-        :icon="mdiDatabaseSyncOutline"
-        :title-text="`Force update every ${item.label}`"
-        :object-name="item.path"
-        confirm-text="Force Update"
-        size="small"
-        density="compact"
-        @confirm="forcePoll(item)"
-      />
-      <AdminCreateUpdateDialog
-        table="Library"
-        :old-row="item"
-        :inputs="AdminLibraryCreateUpdateInputs"
-        :label="updateLabel(item)"
-        max-width="22em"
-        size="small"
-        density="compact"
-      />
-      <AdminDeleteRowDialog
-        v-if="!item.coversOnly"
-        table="Library"
-        :pk="item.pk"
-        :name="item.path"
-        size="small"
-        density="compact"
-      />
+      <span class="actionButtonCell">
+        <ConfirmDialog
+          :icon="mdiDatabaseClockOutline"
+          :title-text="`Poll for updated ${item.label}s`"
+          :object-name="item.path"
+          :confirm-text="pollConfirmText(item)"
+          :size="iconSize"
+          density="compact"
+          @confirm="poll(item)"
+        />
+        <ConfirmDialog
+          :icon="mdiDatabaseSyncOutline"
+          :title-text="`Force update every ${item.label}`"
+          :object-name="item.path"
+          confirm-text="Force Update"
+          :size="iconSize"
+          density="compact"
+          @confirm="forcePoll(item)"
+        />
+        <AdminCreateUpdateDialog
+          table="Library"
+          :old-row="item"
+          :inputs="AdminLibraryCreateUpdateInputs"
+          :label="updateLabel(item)"
+          max-width="22em"
+          :size="iconSize"
+          density="compact"
+        />
+        <AdminDeleteRowDialog
+          v-if="!item.coversOnly"
+          table="Library"
+          :pk="item.pk"
+          :name="item.path"
+          :size="iconSize"
+          density="compact"
+        />
+      </span>
     </template>
   </AdminTable>
 </template>
@@ -74,6 +76,7 @@ import {
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
+import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -123,7 +126,7 @@ export default {
       items(state) {
         const annotatedItems = [];
         for (const library of state.libraries) {
-          const annotatedItem = { ...library };
+          const annotatedItem = deepClone(library);
           annotatedItem.label = annotatedItem.coversOnly
             ? "custom group cover"
             : "comic";
@@ -158,6 +161,18 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
+    iconSize() {
+      const display = this.$vuetify.display;
+      if (display.xlAndUp) {
+        return "x-large";
+      } else if (display.lgAndUp) {
+        return "large";
+      } else if (display.mdAndUp) {
+        return "default";
+      } else {
+        return "small";
+      }
+    },
   },
   mounted() {
     this.loadTables(["Group", "Library", "FailedImport"]);
@@ -220,5 +235,13 @@ export default {
 <style scoped lang="scss">
 .disabled {
   color: rgb(var(--v-theme-textDisabled)) !important;
+}
+
+.actionButtonCell :deep(> button) {
+  opacity: 0.7;
+}
+
+.actionButtonCell :deep(> button:hover) {
+  opacity: 1;
 }
 </style>
