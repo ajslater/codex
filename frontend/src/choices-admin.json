@@ -35,6 +35,8 @@
     "JSD": "Cleanup Expired Sessions",
     "JIF": "Database Foreign Key Check",
     "JIC": "Database Integrity Check",
+    "JFC": "Search Index Integrity Check",
+    "JFR": "Search Index Repair",
     "SIX": "Search Index Clear",
     "SIU": "Search Index Update",
     "SIC": "Search Index Create",
@@ -126,6 +128,16 @@
           "value": "search_index_clear",
           "title": "Clear Search Index",
           "desc": "of all entries"
+        },
+        {
+          "value": "db_fts_integrity_check",
+          "title": "Search Index Integrity Check",
+          "desc": "Runs nightly"
+        },
+        {
+          "value": "db_fts_rebuild",
+          "title": "Search Index Repair",
+          "desc": "Possibly faster than Rebuild if integrity check fails."
         }
       ]
     },

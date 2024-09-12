@@ -10,6 +10,8 @@ from django.db.migrations.executor import MigrationExecutor
 from codex.librarian.janitor.integrity import (
     cleanup_custom_cover_libraries,
     fix_foreign_keys,
+    fts_integrity_check,
+    fts_rebuild,
     integrity_check,
 )
 from codex.librarian.janitor.janitor import Janitor
@@ -21,6 +23,8 @@ from codex.settings.settings import (
     CONFIG_PATH,
     DB_PATH,
     FIX_FOREIGN_KEYS,
+    FTS_INTEGRITY_CHECK,
+    FTS_REBUILD,
     INTEGRITY_CHECK,
 )
 from codex.version import VERSION
@@ -69,6 +73,9 @@ def _repair_db():
     if INTEGRITY_CHECK:
         long = INTEGRITY_CHECK == "full"
         integrity_check(long)
+    success = fts_integrity_check() if FTS_INTEGRITY_CHECK else True
+    if FTS_REBUILD or not success:
+        fts_rebuild()
     cleanup_custom_cover_libraries()
 
 

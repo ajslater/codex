@@ -9,6 +9,7 @@ from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
 from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
 from codex.logger.logging import get_logger
 from codex.settings.settings import (
     CONFIG_PATH,
@@ -25,16 +26,23 @@ DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
 
 LOG = get_logger(__name__)
 
+_FTS_INSERT_TMPL = "INSERT INTO codex_comicfts (codex_comicfts) VALUES('%s');"
+_PRAGMA_TMPL = "PRAGMA %s;"
 
-def _foreign_key_check(log):
-    """Get table and row ids from foreign_key_check."""
+
+def _exec_sql(sql):
+    """Run sql on an potentially unready database.."""
     connection = connections[DEFAULT_DB_ALIAS]
     connection.prepare_database()
     with connection.cursor() as cursor:
-        cursor.execute("PRAGMA foreign_key_check;")
-        results = cursor.fetchall()
+        cursor.execute(sql)
+        return cursor.fetchall()
 
-    if results:
+
+def _foreign_key_check(log):
+    """Get table and row ids from foreign_key_check."""
+    sql = _PRAGMA_TMPL % "foreign_key_check"
+    if results := _exec_sql(sql):
         log.warning(f"Found {len(results)} database rows with illegal foreign keys.")
         log.debug(results)
     else:
@@ -271,11 +279,8 @@ def _is_integrity_ok(results):
 def integrity_check(long=False, log=None):
     """Run sqlite3 integrity check."""
     pragma = "integrity_check" if long else "quick_check"
-    connection = connections[DEFAULT_DB_ALIAS]
-    connection.prepare_database()
-    with connection.cursor() as cursor:
-        cursor.execute(f"PRAGMA {pragma};")
-        results = cursor.fetchall()
+    sql = _PRAGMA_TMPL % pragma
+    results = _exec_sql(sql)
 
     if not log:
         log = LOG
@@ -288,6 +293,36 @@ def integrity_check(long=False, log=None):
             "Database integrity compromised. See the README for database rebuild instructions."
         )
         log.error(results)
+
+
+def fts_rebuild(log=None):
+    """FTS Rebuild."""
+    sql = _FTS_INSERT_TMPL % "rebuild"
+    if not log:
+        log = LOG
+    _exec_sql(sql)
+    log.info("Rebuilt FTS Virtual Table.")
+
+
+def fts_integrity_check(log=None):
+    """Run sqlite3 fts integrity check."""
+    if not log:
+        log = LOG
+    results = []
+    sql = _FTS_INSERT_TMPL % "integrity-check"
+    success = False
+    try:
+        results = _exec_sql(sql)
+        if results:
+            # I'm not sure if this raises or puts the error in the results.
+            raise ValueError(results)  # noqa: TRY301
+    except Exception as exc:
+        log.warning("Full Text Search Index failed integrity check.")
+        log.warning(exc)
+    else:
+        log.info("Full Text Search Index passed integrity check.")
+        success = True
+    return success
 
 
 class IntegrityMixin(WorkerBaseMixin):
@@ -310,5 +345,25 @@ class IntegrityMixin(WorkerBaseMixin):
         try:
             self.status_controller.start(status)
             integrity_check(long, self.log)
+        finally:
+            self.status_controller.finish(status)
+
+    def fts_rebuild(self):
+        """FTS rebuild task."""
+        status = Status(JanitorStatusTypes.FTS_REBUILD)
+        try:
+            self.status_controller.start(status)
+            fts_rebuild(self.log)
+        finally:
+            self.status_controller.finish(status)
+
+    def fts_integrity_check(self):
+        """FTS integrity check task."""
+        status = Status(JanitorStatusTypes.FTS_INTEGRITY_CHECK)
+        try:
+            self.status_controller.start(status)
+            success = fts_integrity_check(self.log)
+            if not success:
+                self.librarian_queue.put(JanitorFTSRebuildTask())
         finally:
             self.status_controller.finish(status)

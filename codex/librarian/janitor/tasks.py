@@ -79,9 +79,19 @@ class JanitorForeignKeyCheck(JanitorTask):
 
 @dataclass
 class JanitorIntegrityCheck(JanitorTask):
-    """Check integrity and rebuild."""
+    """Check integrity and warn."""
 
     long: bool = False
+
+
+@dataclass
+class JanitorFTSIntegrityCheck(JanitorTask):
+    """Check fts integrity."""
+
+
+@dataclass
+class JanitorFTSRebuildTask(JanitorTask):
+    """Rebuild fts table in place."""
 
 
 @dataclass

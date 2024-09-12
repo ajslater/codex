@@ -21,6 +21,8 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
     JanitorForeignKeyCheck,
+    JanitorFTSIntegrityCheck,
+    JanitorFTSRebuildTask,
     JanitorIntegrityCheck,
     JanitorLatestVersionTask,
     JanitorNightlyTask,
@@ -86,6 +88,7 @@ class Janitor(
                 JanitorUpdateTask(),
                 JanitorForeignKeyCheck(),
                 JanitorIntegrityCheck(),
+                JanitorFTSIntegrityCheck(),
                 JanitorCleanFKsTask(),
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
@@ -131,6 +134,10 @@ class Janitor(
                     self.foreign_key_check()
                 case JanitorIntegrityCheck():
                     self.integrity_check(task.long)
+                case JanitorFTSIntegrityCheck():
+                    self.fts_integrity_check()
+                case JanitorFTSRebuildTask():
+                    self.fts_rebuild()
                 case JanitorNightlyTask():
                     self.queue_tasks()
                 case JanitorAdoptOrphanFoldersFinishedTask():

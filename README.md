@@ -281,6 +281,9 @@ index, a Django cache and comic book cover thumbnails.
   on startup.
 - `CODEX_INTEGRITY_CHECK=full` will perform a more thorough database integrity
   check on startup.
+- `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
+  search index.
+- `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
 - `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
   reads all archive metadata sources and transforms it into a the comicbox
   schema.

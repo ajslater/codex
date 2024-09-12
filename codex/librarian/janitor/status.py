@@ -18,3 +18,5 @@ class JanitorStatusTypes(Choices):
     CLEANUP_BOOKMARKS = "JCB"
     INTEGRITY_FK = "JIF"
     INTEGRITY_CHECK = "JIC"
+    FTS_INTEGRITY_CHECK = "JFC"
+    FTS_REBUILD = "JFR"
