@@ -15,7 +15,7 @@ from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover
 from codex.serializers.browser.settings import BrowserCoverInputSerializer
-from codex.views.browser.annotate_order import BrowserAnnotateOrderView
+from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 from codex.views.const import (
     CUSTOM_COVER_GROUP_RELATION,
     GROUP_RELATION,

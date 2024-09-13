@@ -23,7 +23,7 @@ from codex.models import (
     StoryArc,
 )
 from codex.models.functions import JsonGroupArray
-from codex.views.browser.annotate_order import BrowserAnnotateOrderView
+from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 
 LOG = get_logger(__name__)
 

@@ -15,7 +15,7 @@ from codex.models import AdminFlag, Comic
 from codex.models.functions import JsonGroupArray
 from codex.serializers.browser.metadata import PREFETCH_PREFIX, MetadataSerializer
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
-from codex.views.browser.annotate_card import BrowserAnnotateCardView
+from codex.views.browser.annotate.card import BrowserAnnotateCardView
 from codex.views.const import METADATA_GROUP_RELATION
 
 LOG = get_logger(__name__)
