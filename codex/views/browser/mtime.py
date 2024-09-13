@@ -22,11 +22,6 @@ class MtimeView(BrowserGroupMtimeView):
     REPARSE_JSON_FIELDS = frozenset({"groups", "filters"})
     TARGET = "mtime"
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize."""
-        super().__init__(*args, **kwargs)
-        self.init_bookmark_data()
-
     def _get_group_mtime(self, item):
         """Get one group's mtimes."""
         group = item["group"]
