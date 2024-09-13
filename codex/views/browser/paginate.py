@@ -42,7 +42,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
 
     def _paginate_books(self, book_qs, total_group_count, page_group_count):
         """Paginate the book object list based on how many group/folders are showing."""
-        group_remainder = page_group_count % MAX_OBJ_PER_PAGE
+        group_remainder = total_group_count % MAX_OBJ_PER_PAGE
         num_books_on_mixed_page = MAX_OBJ_PER_PAGE - group_remainder
         if page_group_count:
             # There are books after the groups on the same page
@@ -50,7 +50,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             page_book_qs = book_qs[:num_books_on_mixed_page]
         else:
             # There are books after the groups on a new page
-            book_offset = 0 if group_remainder else num_books_on_mixed_page
+            book_offset = 0 if not group_remainder else num_books_on_mixed_page
             page_book_qs = book_qs[book_offset:]
 
             # Which book page are we on after groups?
