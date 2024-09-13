@@ -288,7 +288,8 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
+        # XXX These are slow for large groups.
+        bm_rel, _bm_filter = self.get_bookmark_rel_and_filter(model)
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
