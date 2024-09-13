@@ -225,34 +225,6 @@ class BrowserView(BrowserTitleView):
         group_qs, book_qs, page_group_count, page_book_count = self.paginate(
             group_qs, book_qs, group_count
         )
-        if page_group_count:
-            group_qs = self.annotate_card_aggregates(group_qs, self.model)
-            group_qs = self._requery_max_bookmark_updated_at(group_qs)
-        if page_book_count:
-            zero_pad = self._get_zero_pad(book_qs)
-            book_qs = self.annotate_card_aggregates(book_qs, Comic)
-        else:
-            zero_pad = 1
-
-        # print(book_qs.explain())
-        # print(book_qs.query)
-
-        total_count = page_group_count + page_book_count
-        mtime = self._get_page_mtime()
-        return group_qs, book_qs, num_pages, total_count, zero_pad, mtime
-
-    def get_object(self):
-        """Validate settings and get the querysets."""
-        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-            self._get_group_and_books()
-        )
-
-        # get additional context
-        breadcrumbs = self.get_breadcrumbs()
-        title = self.get_browser_page_title()
-        # needs to happen after pagination
-        # runs obj list query twice :/
-        libraries_exist = Library.objects.filter(covers_only=False).exists()
 
         # Annotate
         if page_group_count:
