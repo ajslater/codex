@@ -133,12 +133,13 @@ class BrowserView(BrowserTitleView):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
-        # TODO runs the whole query again here
         count_qs = self.add_group_by(qs, model)
         try:
             if limit:
                 count_qs = count_qs[:limit]
-            # Count is only used by paginate()
+            # Get count after filters and before any annotations or orders
+            #   because it's faster. These counts are used by
+            #   is_page_in_bounds(), num_pages for the nav bar, and paginate()
             count = count_qs.count()
         except OperationalError as exc:
             self._handle_operational_error(exc)
