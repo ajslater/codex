@@ -15,7 +15,7 @@ from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover
 from codex.serializers.browser.settings import BrowserCoverInputSerializer
-from codex.views.browser.annotations import BrowserAnnotationsView
+from codex.views.browser.annotate_order import BrowserAnnotateOrderView
 from codex.views.const import (
     CUSTOM_COVER_GROUP_RELATION,
     GROUP_RELATION,
@@ -41,7 +41,7 @@ class WEBPRenderer(BaseRenderer):
         return data
 
 
-class CoverView(BrowserAnnotationsView):
+class CoverView(BrowserAnnotateOrderView):
     """ComicCover View."""
 
     input_serializer_class = BrowserCoverInputSerializer
@@ -49,7 +49,7 @@ class CoverView(BrowserAnnotationsView):
     content_type = "image/webp"
     TARGET = "cover"
     REPARSE_JSON_FIELDS = frozenset(
-        BrowserAnnotationsView.REPARSE_JSON_FIELDS | {"parent"}
+        BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
     )
 
     def get_group_filter(self, group=None, pks=None, page_mtime=False):
@@ -148,7 +148,7 @@ class CoverView(BrowserAnnotationsView):
         return cover_file, content_type
 
     @extend_schema(
-        parameters=[BrowserAnnotationsView.input_serializer_class],
+        parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
     def get(self, *args, **kwargs):  # type: ignore
