@@ -186,14 +186,14 @@ class BrowserView(BrowserTitleView):
             raise ValueError(reason)
 
         qs = self.model.objects.filter(pk=OuterRef("pk"))
-
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(self.model)
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
+        qs = qs.annotate(max_bmua=max_bmua)
+        qs = qs.values("max_bmua")
+        subquery = Subquery(qs)
 
-        mbua = qs.aggregate(max=max_bmua)["max"]
-
-        return group_qs.annotate(max_bookmark_updated_at=Subquery(mbua))
+        return group_qs.annotate(max_bookmark_updated_at=subquery)
 
     @staticmethod
     def _get_zero_pad(book_qs):
