@@ -75,9 +75,7 @@ class BrowserPageInBoundsView(BrowserAnnotationsView):
             # This now only occurs when page < 1
             route_mask, settings_mask = self._get_up_page_redirect()
 
-        self.raise_redirect(
-            reason, route_mask=route_mask, settings_mask=settings_mask
-        )
+        self.raise_redirect(reason, route_mask=route_mask, settings_mask=settings_mask)
 
     def check_page_in_bounds(self, num_pages: int):
         """Redirect page out of bounds."""
