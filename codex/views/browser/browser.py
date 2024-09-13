@@ -4,7 +4,8 @@ from math import floor, log10
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from django.db.models import Max
+from django.db.models import Max, Subquery
+from django.db.models.expressions import OuterRef
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -176,7 +177,6 @@ class BrowserView(BrowserTitleView):
 
     def _requery_max_bookmark_updated_at(self, group_qs):
         """Get max updated at without bookmark filter and aware of multi-groups."""
-        # TODO make a subquery like fts mode bookmark annotations
         if not self.is_bookmark_filtered:
             return group_qs
 
@@ -184,14 +184,12 @@ class BrowserView(BrowserTitleView):
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
 
-        group_list = []
-        for group in group_qs:
-            qs = self.get_filtered_queryset(
+        qs = self.get_filtered_queryset(
                 self.model, bookmark_filter=False, group_filter=False
-            )
-            group.max_bookmark_updated_at = qs.aggregate(max=max_bmua)["max"]
-            group_list.append(group)
-        return group_list
+        )
+        qs = qs.filter(pk=OuterRef("pk"))
+        mbua = qs.aggregate(max=max_bmua)["max"]
+        return qs.annotate(max_bookmark_updated_at=Subquery(mbua))
 
     @staticmethod
     def _get_zero_pad(book_qs):
