@@ -83,6 +83,11 @@ class MetadataView(BrowserAnnotateCardView):
         group = self.kwargs["group"]
         self.valid_nav_groups = (group,)
 
+
+    ############
+    # Annotate #
+    ############
+
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
         fields = set(_COMIC_VALUE_FIELD_NAMES)
@@ -156,6 +161,10 @@ class MetadataView(BrowserAnnotateCardView):
         )
         return qs
 
+    ###########################
+    # Query M2M Intersections #
+    ###########################
+
     def _query_groups(self):
         """Query the through models to show group lists."""
         groups = {}
@@ -219,6 +228,10 @@ class MetadataView(BrowserAnnotateCardView):
 
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
+
+    ######################################
+    # Copy Annotations Into Comic Fields #
+    ######################################
 
     def _path_security(self, obj):
         """Secure filesystem information for acl situation."""
@@ -300,13 +313,15 @@ class MetadataView(BrowserAnnotateCardView):
         # dict is necessary because of the folders view union in browser.py.
 
         qs = self.get_filtered_queryset(self.model)
-
         filtered_qs = qs
+
+        # Annotate
         qs = self.annotate_order_aggregates(qs)
         qs = self.annotate_card_aggregates(qs)
         qs = self._annotate_values_and_fks(qs, filtered_qs)
         qs = self.add_group_by(qs)
 
+        # Get Object
         try:
             obj = qs[0]
             if not obj:
@@ -315,8 +330,15 @@ class MetadataView(BrowserAnnotateCardView):
         except (IndexError, ValueError) as exc:
             self._raise_not_found(exc)
 
+        #################################
+        # Append to object after Query #
+        #################################
+
+        # Query FKs and M2Ms
         groups = self._query_groups()
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
+
+        # Copy
         return self._copy_annotations_into_comic_fields(obj, groups, m2m_intersections)  # type: ignore
 
     @extend_schema(parameters=[input_serializer_class])
