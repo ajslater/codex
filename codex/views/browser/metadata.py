@@ -83,7 +83,6 @@ class MetadataView(BrowserAnnotateCardView):
         group = self.kwargs["group"]
         self.valid_nav_groups = (group,)
 
-
     ############
     # Annotate #
     ############
