@@ -1,6 +1,6 @@
 """Views for browsing comic library."""
 
-from math import floor, log10
+from math import ceil, floor, log10
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -25,6 +25,7 @@ from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
     FOLDER_GROUP,
+    MAX_OBJ_PER_PAGE,
     NONE_DATETIMEFIELD,
     STORY_ARC_GROUP,
 )
@@ -219,10 +220,13 @@ class BrowserView(BrowserTitleView):
         book_qs, book_count = self._get_book_queryset()
 
         # Paginate
-        num_pages = self.check_page_in_bounds(group_count + book_count)
+        num_pages = ceil((group_count + book_count) / MAX_OBJ_PER_PAGE)
+        self.check_page_in_bounds(num_pages)
         group_qs, book_qs, page_group_count, page_book_count = self.paginate(
             group_qs, book_qs, group_count
         )
+
+        # Annotate
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
             group_qs = self._requery_max_bookmark_updated_at(group_qs)
@@ -235,9 +239,9 @@ class BrowserView(BrowserTitleView):
         # print(book_qs.explain())
         # print(book_qs.query)
 
-        total_count = page_group_count + page_book_count
+        total_page_count = page_group_count + page_book_count
         mtime = self._get_page_mtime()
-        return group_qs, book_qs, num_pages, total_count, zero_pad, mtime
+        return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
     def get_object(self):
         """Validate settings and get the querysets."""
