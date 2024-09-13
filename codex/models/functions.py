@@ -2,8 +2,9 @@
 
 from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import Func
-from django.db.models.fields import CharField, Field, FloatField, TextField
+from django.db.models.fields import CharField, FloatField, TextField
 from django.db.models.fields.json import JSONField
+from django.db.models.fields.related import OneToOneField
 from django.db.models.lookups import Lookup
 
 
@@ -27,8 +28,7 @@ class GroupConcat(Aggregate):
     output_field = CharField()  # type: ignore
 
 
-# TODO should only be fts5 fields
-@Field.register_lookup
+@OneToOneField.register_lookup
 class FTS5Match(Lookup):
     """Sqlite3 FTS5 MATCH lookup."""
 
@@ -36,14 +36,12 @@ class FTS5Match(Lookup):
 
     def as_sql(self, compiler, connection):
         """Generate MATCH sql."""
-        # lhs, lhs_params = self.process_lhs(compiler, connection)
-        # MATCH works on the table itself not a proffered span
-        # HACK Possibly this should probably be a query type and not a Lookup
-        lhs = "codex_comicfts"
-        lhs_params = []
+        lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
+        # MATCH works on the table itself not the one_to_one rel.
+        fts_table = lhs.split(".")[0]
         params = lhs_params + rhs_params
-        sql = f"{lhs} MATCH {rhs}"
+        sql = f"{fts_table} MATCH {rhs}"
         return sql, params
 
 

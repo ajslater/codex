@@ -126,7 +126,9 @@ class GroupACLMixin:
             include_filter = {exclude_rel: False}
             include_filter.update(user_filter)
             not_member_of_exclude_group_filter = {exclude_rel: False}
-            include_query = Q(**include_filter) | ~Q(**not_member_of_exclude_group_filter)
+            include_query = Q(**include_filter) | ~Q(
+                **not_member_of_exclude_group_filter
+            )
 
             auth_query = exclude_query & include_query
             query |= auth_query

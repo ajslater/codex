@@ -17,10 +17,7 @@ class RemoveMixin(OptimizeMixin):
         """Clear the search index."""
         clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
         self.status_controller.start(clear_status)
-        # TODO truncate table and reset autoinc
         ComicFTS.objects.all().delete()
-        # with connection.cursor() as cursor:
-        #    cursor.execute("INSERT INTO codex_comicfts(codex_comicfts) VALUES('delete-all')")
         self.status_controller.finish(clear_status)
         self.log.info("Old search index cleared.")
 

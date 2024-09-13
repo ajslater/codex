@@ -137,6 +137,7 @@ class BrowserView(BrowserTitleView):
         try:
             if limit:
                 count_qs = count_qs[:limit]
+            # Count is only used by paginate()
             count = count_qs.count()
         except OperationalError as exc:
             self._handle_operational_error(exc)
@@ -156,7 +157,7 @@ class BrowserView(BrowserTitleView):
         if not self.model:
             reason = "Model not set for browser queryset."
             raise ValueError(reason)
-        elif self.is_model_comic:  # noqa: RET506
+        if self.is_model_comic:
             qs = self.model.objects.none()
             count = 0
         else:
@@ -215,9 +216,11 @@ class BrowserView(BrowserTitleView):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
         book_qs, book_count = self._get_book_queryset()
+
         # Paginate
-        group_qs, book_qs, num_pages, page_group_count, page_book_count = self.paginate(
-            group_qs, book_qs, group_count, book_count
+        num_pages = self.check_page_in_bounds(group_count + book_count)
+        group_qs, book_qs, page_group_count, page_book_count = self.paginate(
+            group_qs, book_qs, group_count
         )
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs, self.model)
