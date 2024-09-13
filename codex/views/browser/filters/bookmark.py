@@ -4,15 +4,18 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q
 
+from codex.views.browser.validate import BrowserValidateView
+
 if TYPE_CHECKING:
     from codex.models import BrowserGroupModel
 
 
-class BookmarkFilterMixin:
+class BrowserFilterBookmarkView(BrowserValidateView):
     """BookmarkFilter view methods."""
 
-    def init_bookmark_data(self):
+    def __init__(self, *args, **kwargs):
         """Initialize the bm_annotation_data."""
+        super().__init__(*args, **kwargs)
         self._bm_annotation_data: dict[BrowserGroupModel, tuple[str, Q]] = {}
 
     def _get_bm_rel(self, model):

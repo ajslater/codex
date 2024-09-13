@@ -22,23 +22,21 @@ from codex.serializers.browser.filters import (
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.serializers.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
-from codex.views.browser.filters.annotations import (
-    BrowserAnnotationsFilterView,
-)
+from codex.views.browser.filters.filter import BrowserFilterView
 
 LOG = get_logger(__name__)
 
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
-        BrowserAnnotationsFilterView.CONTRIBUTOR_PERSON_UI_FIELD: (
+        BrowserFilterView.CONTRIBUTOR_PERSON_UI_FIELD: (
             "contributors__person",
             ContributorPerson,
         ),
-        BrowserAnnotationsFilterView.STORY_ARC_UI_FIELD: (
+        BrowserFilterView.STORY_ARC_UI_FIELD: (
             "story_arc_numbers__story_arc",
             StoryArc,
         ),
-        BrowserAnnotationsFilterView.IDENTIFIER_TYPE_UI_FIELD: (
+        BrowserFilterView.IDENTIFIER_TYPE_UI_FIELD: (
             "identifiers__identifier_type",
             IdentifierType,
         ),
@@ -54,7 +52,7 @@ _BACK_REL_MAP = MappingProxyType(
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
 
 
-class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
+class BrowserChoicesViewBase(BrowserFilterView):
     """Get choices for filter dialog."""
 
     input_serializer_class = BrowserFilterChoicesInputSerilalizer
