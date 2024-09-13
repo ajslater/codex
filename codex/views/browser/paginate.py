@@ -5,14 +5,8 @@ from math import ceil
 from django.core.paginator import EmptyPage, Paginator
 
 from codex.logger.logging import get_logger
-from codex.models import (
-    Comic,
-    Folder,
-)
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
-from codex.views.const import (
-    MAX_OBJ_PER_PAGE,
-)
+from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
 
@@ -20,7 +14,7 @@ LOG = get_logger(__name__)
 class BrowserPaginateView(BrowserPageInBoundsView):
     """Paginate Groups and Books."""
 
-    def _paginate_section(self, model, qs, page):
+    def _paginate_section(self, qs, page):
         """Paginate a group or Comic section."""
         orphans = 0 if self.model_group == "f" or self.params.get("q") else 5
         paginator = Paginator(qs, MAX_OBJ_PER_PAGE, orphans=orphans)
@@ -28,17 +22,17 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             paginator_page = paginator.page(page)
             qs = paginator_page.object_list
         except EmptyPage:
-            if model != Folder:
-                model_name = self.model.__name__ if self.model else "UnknownGroup"
+            if self.model_group != "f":
+                model_name = qs.model.__name__ if qs.model else "UnknownGroup"
                 LOG.warning(f"No {model_name}s on page {page}")
-            qs = model.objects.none()
+            qs = qs.model.objects.none()
 
         return qs
 
     def _paginate_groups(self, group_qs):
         """Paginate the group object list before books."""
         page = self.kwargs.get("page", 1)
-        return self._paginate_section(self.model, group_qs, page)
+        return self._paginate_section(group_qs, page)
 
     def _paginate_books(self, book_qs, total_group_count, page_group_count):
         """Paginate the book object list based on how many group/folders are showing."""
@@ -58,7 +52,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             num_group_and_mixed_pages = ceil(total_group_count / MAX_OBJ_PER_PAGE)
             book_only_page = page - num_group_and_mixed_pages
 
-            page_book_qs = self._paginate_section(Comic, page_book_qs, book_only_page)
+            page_book_qs = self._paginate_section(page_book_qs, book_only_page)
         return page_book_qs
 
     def paginate(self, group_qs, book_qs, group_count):
