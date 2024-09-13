@@ -156,6 +156,8 @@ class BrowserView(BrowserTitleView):
             qs = self.add_order_by(qs)
             if limit:
                 qs = qs[:limit]
+        else:
+            qs = qs.order_by("pk")
 
         return qs, count
 
@@ -165,7 +167,7 @@ class BrowserView(BrowserTitleView):
             reason = "Model not set for browser queryset."
             raise ValueError(reason)
         if self.is_model_comic:
-            qs = self.model.objects.none()
+            qs = self.model.objects.none().order_by("pk")
             count = 0
         else:
             qs, count = self._get_common_queryset(self.model)
@@ -177,7 +179,7 @@ class BrowserView(BrowserTitleView):
         if self.model in (Comic, Folder):
             qs, count = self._get_common_queryset(Comic)
         else:
-            qs = Comic.objects.none()
+            qs = Comic.objects.none().order_by("pk")
             count = 0
         return qs, count
 
