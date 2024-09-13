@@ -185,7 +185,7 @@ class BrowserView(BrowserTitleView):
         max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
 
         qs = self.get_filtered_queryset(
-                self.model, bookmark_filter=False, group_filter=False
+            self.model, bookmark_filter=False, group_filter=False
         )
         qs = qs.filter(pk=OuterRef("pk"))
         mbua = qs.aggregate(max=max_bmua)["max"]
