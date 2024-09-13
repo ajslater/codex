@@ -59,6 +59,10 @@ class BrowserView(BrowserTitleView):
     )
     TARGET = "browser"
 
+    ########
+    # Init #
+    ########
+
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
