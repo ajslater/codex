@@ -194,6 +194,8 @@ class MovedImporter(AggregateMetadataImporter):
             folder.updated_at = Now()
             update_folders.append(folder)
 
+        # delete_folders = Folder.objects.filter(library=self.library, path__in=new_paths)
+
         update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
         Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)

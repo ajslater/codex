@@ -1,10 +1,11 @@
 """Views for browsing comic library."""
 
-from math import floor, log10
+from math import ceil, floor, log10
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from django.db.models import Max
+from django.db.models import Max, Subquery
+from django.db.models.expressions import OuterRef
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -24,6 +25,7 @@ from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
     FOLDER_GROUP,
+    MAX_OBJ_PER_PAGE,
     NONE_DATETIMEFIELD,
     STORY_ARC_GROUP,
 )
@@ -132,12 +134,13 @@ class BrowserView(BrowserTitleView):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
-        # TODO runs the whole query again here
         count_qs = self.add_group_by(qs, model)
         try:
             if limit:
                 count_qs = count_qs[:limit]
-            # Count is only used by paginate()
+            # Get count after filters and before any annotations or orders
+            #   because it's faster. These counts are used by
+            #   is_page_in_bounds(), num_pages for the nav bar, and paginate()
             count = count_qs.count()
         except OperationalError as exc:
             self._handle_operational_error(exc)
@@ -176,22 +179,21 @@ class BrowserView(BrowserTitleView):
 
     def _requery_max_bookmark_updated_at(self, group_qs):
         """Get max updated at without bookmark filter and aware of multi-groups."""
-        # TODO make a subquery like fts mode bookmark annotations
         if not self.is_bookmark_filtered:
             return group_qs
+        if not self.model:
+            reason = "No model to compute max bookmark updated_at"
+            raise ValueError(reason)
+
+        qs = self.model.objects.filter(pk=OuterRef("pk"))
 
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(self.model)
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
 
-        group_list = []
-        for group in group_qs:
-            qs = self.get_filtered_queryset(
-                self.model, bookmark_filter=False, group_filter=False
-            )
-            group.max_bookmark_updated_at = qs.aggregate(max=max_bmua)["max"]
-            group_list.append(group)
-        return group_list
+        mbua = qs.aggregate(max=max_bmua)["max"]
+
+        return group_qs.annotate(max_bookmark_updated_at=Subquery(mbua))
 
     @staticmethod
     def _get_zero_pad(book_qs):
@@ -218,7 +220,8 @@ class BrowserView(BrowserTitleView):
         book_qs, book_count = self._get_book_queryset()
 
         # Paginate
-        num_pages = self.check_page_in_bounds(group_count + book_count)
+        num_pages = ceil((group_count + book_count) / MAX_OBJ_PER_PAGE)
+        self.check_page_in_bounds(num_pages)
         group_qs, book_qs, page_group_count, page_book_count = self.paginate(
             group_qs, book_qs, group_count
         )
@@ -237,6 +240,36 @@ class BrowserView(BrowserTitleView):
         total_count = page_group_count + page_book_count
         mtime = self._get_page_mtime()
         return group_qs, book_qs, num_pages, total_count, zero_pad, mtime
+
+    def get_object(self):
+        """Validate settings and get the querysets."""
+        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            self._get_group_and_books()
+        )
+
+        # get additional context
+        breadcrumbs = self.get_breadcrumbs()
+        title = self.get_browser_page_title()
+        # needs to happen after pagination
+        # runs obj list query twice :/
+        libraries_exist = Library.objects.filter(covers_only=False).exists()
+
+        # Annotate
+        if page_group_count:
+            group_qs = self.annotate_card_aggregates(group_qs, self.model)
+            group_qs = self._requery_max_bookmark_updated_at(group_qs)
+        if page_book_count:
+            zero_pad = self._get_zero_pad(book_qs)
+            book_qs = self.annotate_card_aggregates(book_qs, Comic)
+        else:
+            zero_pad = 1
+
+        # print(book_qs.explain())
+        # print(book_qs.query)
+
+        total_page_count = page_group_count + page_book_count
+        mtime = self._get_page_mtime()
+        return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
     def get_object(self):
         """Validate settings and get the querysets."""
