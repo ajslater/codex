@@ -134,7 +134,7 @@ class BrowserView(BrowserTitleView):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
-        count_qs = self.add_group_by(qs, model)
+        count_qs = self.add_group_by(qs)
         try:
             if limit:
                 count_qs = count_qs[:limit]
@@ -148,8 +148,8 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            qs = self.annotate_order_aggregates(qs, model)
-            qs = self.add_order_by(qs, model)
+            qs = self.annotate_order_aggregates(qs)
+            qs = self.add_order_by(qs)
             if limit:
                 qs = qs[:limit]
 
@@ -228,11 +228,11 @@ class BrowserView(BrowserTitleView):
 
         # Annotate
         if page_group_count:
-            group_qs = self.annotate_card_aggregates(group_qs, self.model)
+            group_qs = self.annotate_card_aggregates(group_qs)
             group_qs = self._requery_max_bookmark_updated_at(group_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
-            book_qs = self.annotate_card_aggregates(book_qs, Comic)
+            book_qs = self.annotate_card_aggregates(book_qs)
         else:
             zero_pad = 1
 

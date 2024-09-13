@@ -175,11 +175,11 @@ class SearchFilterView(BrowserFTSFilter):
 
         return qs
 
-    def apply_search_filter(self, qs, model):
+    def apply_search_filter(self, qs):
         """Preparse search, search and return the filter and scores."""
         try:
             field_exclude_q_list, field_filter_q_list, fts_filter = (
-                self._create_search_filters(model)
+                self._create_search_filters(qs.model)
             )
 
             # Apply filters

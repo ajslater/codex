@@ -44,17 +44,19 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
             object_filter &= self.get_bookmark_filter(model)
         return object_filter
 
-    def _filter_by_child_count(self, qs, model):
+    def _filter_by_child_count(self, qs):
         """Filter group by child count."""
         rel = self.rel_prefix + "pk"
-        count_func = ONE_INTEGERFIELD if model == Comic else Count(rel, distinct=True)
+        count_func = (
+            ONE_INTEGERFIELD if qs.model is Comic else Count(rel, distinct=True)
+        )
         ann = {_CHILD_COUNT: count_func}
         if self.TARGET == "opds2":
-            if model != Comic:
+            if qs.model is not Comic:
                 qs = qs.alias(**ann)
         else:
             qs = qs.annotate(**ann)
-        if model != Comic:
+        if qs.model is not Comic:
             qs = qs.filter(**{f"{_CHILD_COUNT}__gt": 0})
         return qs
 
@@ -77,8 +79,8 @@ class BrowserAnnotationsFilterView(BrowserValidateView, BookmarkFilterMixin):
             group_filter=group_filter,
         )
         qs = model.objects.filter(object_filter)
-        qs = self.apply_search_filter(qs, model)
-        return self._filter_by_child_count(qs, model)
+        qs = self.apply_search_filter(qs)
+        return self._filter_by_child_count(qs)
 
     def _handle_operational_error(self, err):
         msg = err.args[0] if err.args else ""

@@ -80,36 +80,32 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
-    def add_group_by(self, qs, model=None):
+    def add_group_by(self, qs):
         """Get the group by for the model."""
-        if model is None:
-            model = self.model
-        if group_by := _GROUP_BY.get(model):  # type: ignore
+        if group_by := _GROUP_BY.get(qs.model):  # type: ignore
             qs = qs.group_by(group_by)
         return qs
 
-    def _alias_sort_names(self, qs, model):
+    def _alias_sort_names(self, qs):
         """Annotate sort_name."""
         if self.order_key != "sort_name" and not (
-            model == StoryArc and self.order_key == "story_arc_number"
+            qs.model is StoryArc and self.order_key == "story_arc_number"
         ):
             return qs
         pks = self.kwargs.get("pks")
         model_group = self.model_group  # type: ignore
         show = MappingProxyType(self.params["show"])  # type: ignore
-        qs, self.comic_sort_names = self.alias_sort_names(
-            qs, model, pks, model_group, show
-        )
+        qs, self.comic_sort_names = self.alias_sort_names(qs, pks, model_group, show)
         return qs
 
-    def _alias_filename(self, qs, model):
+    def _alias_filename(self, qs):
         """Calculate filename from path in the db."""
         if self.order_key != "filename":
             return qs
-        if model == Folder:
+        if qs.model is Folder:
             filename = F("name")
         else:
-            prefix = "" if model == Comic else self.rel_prefix
+            prefix = "" if qs.model == Comic else self.rel_prefix
             path_rel = prefix + "path"
             filename = self.order_agg_func(
                 Right(
@@ -148,10 +144,10 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return qs.alias(story_arc_number=story_arc_number)
 
-    def _annotate_page_count(self, qs, model):
+    def _annotate_page_count(self, qs):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
-        if model == Comic:
+        if qs.model is Comic:
             return qs
 
         rel = self.rel_prefix + "page_count"
@@ -162,24 +158,24 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(page_count=page_count_sum)
         return qs
 
-    def _annotate_bookmark_updated_at(self, qs, model):
+    def _annotate_bookmark_updated_at(self, qs):
         if not self.is_opds_1_acquisition and self.order_key != "bookmark_updated_at":
             return qs
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(qs.model)
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         bmua_agg = self.order_agg_func(
             bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter
         )
         return qs.annotate(bookmark_updated_at=bmua_agg)
 
-    def _annotate_order_value(self, qs, model):
+    def _annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""
         # Determine order func
         if self.TARGET == "metadata":
             return qs
-        if model == Folder and self.order_key == "filename":
+        if qs.model is Folder and self.order_key == "filename":
             order_value = F("name")
-        elif model == Comic or self.order_key in _ANNOTATED_ORDER_FIELDS:
+        elif qs.model is Comic or self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotaions
             order_value = F(self.order_key)
         else:
@@ -203,33 +199,36 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         return qs.annotate(search_score=ComicFTSRank())
 
-    def annotate_order_aggregates(self, qs, model):
+    def annotate_order_aggregates(self, qs):
         """Annotate common aggregates between browser and metadata."""
         self.set_order_key()
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_search_scores(qs)
-        qs = self._alias_sort_names(qs, model)
-        qs = self._alias_filename(qs, model)
+        qs = self._alias_sort_names(qs)
+        qs = self._alias_filename(qs)
         qs = self._alias_story_arc_number(qs)
-        qs = self._annotate_page_count(qs, model)
-        qs = self._annotate_bookmark_updated_at(qs, model)
-        if model != Comic:
+        qs = self._annotate_page_count(qs)
+        qs = self._annotate_bookmark_updated_at(qs)
+        if qs.model is not Comic:
             # comic orders on indexed fields when it can
-            qs = self._annotate_order_value(qs, model)
+            qs = self._annotate_order_value(qs)
         return qs
 
-    def _annotate_group(self, qs, model):
+    def _annotate_group(self, qs):
         """Annotate Group."""
-        value = "c" if model == Comic else self.model_group  # type: ignore
+        value = "c" if qs.model is Comic else self.model_group  # type: ignore
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
-    @staticmethod
-    def _get_bookmark_page_and_finished_counts(
-        bm_filter, page_rel, finished_rel, page_count
-    ):
+    def _get_bookmark_page_and_finished_counts(self):
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
+        page_rel = f"{bm_rel}__page"
+        finished_rel = f"{bm_rel}__finished"
+        page_count = "page_count"
+
+        finished_filter = {finished_rel: True}
         bookmark_page_case = Case(
-            # When(**{bm_rel: None}, then=0),
-            When(**{finished_rel: True}, then=page_count),
+            When(**{bm_rel: None}, then=0),
+            When(**finished_filter, then=page_count),
             default=page_rel,
             output_field=PositiveSmallIntegerField(),
         )
@@ -263,21 +262,16 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         # Must group by the outer ref or it only does aggregates for one comic.
         group_rel = (
             "parent_folder"
-            if self.model == Folder
+            if self.model is Folder
             else "story_arc_numbers__story_arc"
-            if self.model == StoryArc
+            if self.model is StoryArc
             else self.model.__name__.lower()
         )
-        group_rel_suffix = "name" if self.model == Volume else "sort_name"
+        group_rel_suffix = "name" if self.model is Volume else "sort_name"
         group_rel += "__" + group_rel_suffix
         comic_qs = comic_qs.filter(**{group_rel: OuterRef("pk")}).values(group_rel)
-
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
-        page_rel = f"{bm_rel}__page"
-        finished_rel = f"{bm_rel}__finished"
-        page_count = "page_count"
-        bookmark_page, finished_aggregate = self._get_bookmark_page_and_finished_counts(
-            bm_filter, page_rel, finished_rel, page_count
+        bookmark_page, finished_aggregate = (
+            self._get_bookmark_page_and_finished_counts()
         )
 
         comic_qs = comic_qs.annotate(page=bookmark_page, finished=finished_aggregate)
@@ -286,17 +280,17 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return bookmark_page, finished_aggregate
 
-    def _annotate_bookmarks(self, qs, model):
+    def _annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
         # XXX These are slow for large groups.
-        bm_rel, _bm_filter = self.get_bookmark_rel_and_filter(model)
+        bm_rel, _bm_filter = self.get_bookmark_rel_and_filter(qs.model)
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
-        if model == Comic:
+        if qs.model is Comic:
             # Hoist comic bookmark and finished states
-            bookmark_page = F(page_rel)
-            finished_aggregate = F(finished_rel)
+            bookmark_page = Coalesce(page_rel, 0)
+            finished_aggregate = Coalesce(finished_rel, False)
         else:
             # FTS mode is faster?
             # Aggregate bookmark and finished states for groups using subqueries to
@@ -327,13 +321,13 @@ class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
         progress = Least(Coalesce(F("page"), 0) * 100.0 / F("page_count"), Value(100.0))
         return qs.annotate(progress=progress)
 
-    def annotate_card_aggregates(self, qs, model):
+    def annotate_card_aggregates(self, qs):
         """Annotate aggregates that appear the browser card."""
-        if model == Comic:
+        if qs.model is Comic:
             # comic adds order_value for cards late
-            qs = self._annotate_order_value(qs, model)
-        qs = self._annotate_group(qs, model)
-        qs = self.annotate_group_names(qs, model)
-        qs = self._annotate_bookmarks(qs, model)
+            qs = self._annotate_order_value(qs)
+        qs = self._annotate_group(qs)
+        qs = self.annotate_group_names(qs)
+        qs = self._annotate_bookmarks(qs)
         qs = self._annotate_progress(qs)
         return qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))

@@ -99,8 +99,8 @@ class CoverView(BrowserAnnotationsView):
     def _get_dynamic_cover(self):
         """Get dynamic cover."""
         comic_qs = self.get_filtered_queryset(Comic)
-        comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
-        comic_qs = self.add_order_by(comic_qs, Comic)
+        comic_qs = self.annotate_order_aggregates(comic_qs)
+        comic_qs = self.add_order_by(comic_qs)
         comic_qs = comic_qs.only("pk")
         comic = comic_qs.first()
         cover_pk = comic.pk if comic else 0
