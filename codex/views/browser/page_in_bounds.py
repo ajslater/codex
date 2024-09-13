@@ -64,17 +64,12 @@ class BrowserPageInBoundsView(BrowserAnnotationsView):
             LOG.debug("Redirect to all at current group.")
         return route_mask, settings_mask
 
-    def check_page_in_bounds(self, total_count):
-        """Redirect page out of bounds."""
-        pks = self.kwargs.get("pks")
-        page = self.kwargs.get("page", 1)
-        num_pages = ceil(total_count / MAX_OBJ_PER_PAGE)
-        if page == 1 or (page >= 1 and page <= num_pages):
-            # Don't redirect if on the root page for the group.
-            # Or page within valid range.
-            return num_pages
-
+    def _out_of_bounds_redirect(self, num_pages):
+        """Handle out of bounds redirect."""
+        # Try to find a logical page to run to.
         group = self.kwargs.get("group")
+        page = self.kwargs.get("page", 1)
+        pks = self.kwargs.get("pks")
         reason = f"{group=} {pks=} {page=} does not exist."
 
         # Adjust route mask for redirect
@@ -88,3 +83,14 @@ class BrowserPageInBoundsView(BrowserAnnotationsView):
         return self.raise_redirect(
             reason, route_mask=route_mask, settings_mask=settings_mask
         )
+
+    def check_page_in_bounds(self, total_count):
+        """Redirect page out of bounds."""
+        page = self.kwargs.get("page", 1)
+        num_pages = ceil(total_count / MAX_OBJ_PER_PAGE)
+        if page == 1 or (page >= 1 and page <= num_pages):
+            # Don't redirect if on the root page for the group.
+            # Or page within valid range.
+            return num_pages
+
+        return self._out_of_bounds_redirect(num_pages)
