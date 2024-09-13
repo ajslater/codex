@@ -1,16 +1,17 @@
 """Base view for metadata annotations."""
 
+from types import MappingProxyType
+
 from django.db.models import (
     Case,
     F,
     OuterRef,
-    Q,
     Sum,
     Value,
     When,
 )
 from django.db.models.expressions import Subquery
-from django.db.models.fields import CharField, PositiveSmallIntegerField
+from django.db.models.fields import BooleanField, CharField, PositiveSmallIntegerField
 from django.db.models.functions import Least
 from django.db.models.functions.comparison import Coalesce
 
@@ -20,12 +21,15 @@ from codex.models import (
     Comic,
     Folder,
     StoryArc,
-    Volume,
 )
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate_order import BrowserAnnotateOrderView
 
 LOG = get_logger(__name__)
+
+_BOOKMARK_GROUP_REL = MappingProxyType(
+    {Folder: "parent_folder", StoryArc: "story_arc_numbers__story_arc"}
+)
 
 
 class BrowserAnnotateCardView(BrowserAnnotateOrderView):
@@ -43,7 +47,17 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
         value = "c" if qs.model is Comic else self.model_group  # type: ignore
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _get_bookmark_page_and_finished_counts(self):
+    def _get_bookmark_comic_qs(self, qs):
+        """Get the comic qs for  subquery."""
+        comic_qs = self.get_filtered_queryset(Comic)
+        group_by = _BOOKMARK_GROUP_REL.get(qs.model, qs.model.__name__.lower())
+        group_rel = group_by + "__pk"
+        group_filter = {group_rel: OuterRef("pk")}
+        comic_qs = comic_qs.filter(**group_filter)
+        # Must group by the outer ref or it only does aggregates for one comic?
+        return comic_qs.values(group_rel)
+
+    def _get_bookmark_page_and_finished_subqueries(self, qs):
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
@@ -56,7 +70,6 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             default=page_rel,
             output_field=PositiveSmallIntegerField(),
         )
-
         bookmark_page = Sum(
             bookmark_page_case,
             default=0,
@@ -64,7 +77,6 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             output_field=PositiveSmallIntegerField(),
             distinct=True,
         )
-
         finished_count = Sum(
             finished_rel,
             default=0,
@@ -72,64 +84,63 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             output_field=PositiveSmallIntegerField(),
             distinct=True,
         )
-        finished_aggregate = Q(child_count=finished_count)
 
-        return bookmark_page, finished_aggregate
+        comic_qs = self._get_bookmark_comic_qs(qs)
 
-    def _annotate_group_bookmarks(self):
-        """Aggregate bookmark and finished states for groups using subqueries to not break with the FTS match filter."""
-        # Using these subqueries is faster even though it's not neccissary for non-fts queries.
-        if not self.model:
-            return 0, 0
-
-        comic_qs = self.get_filtered_queryset(Comic)
-        # Must group by the outer ref or it only does aggregates for one comic.
-        group_rel = (
-            "parent_folder"
-            if self.model is Folder
-            else "story_arc_numbers__story_arc"
-            if self.model is StoryArc
-            else self.model.__name__.lower()
-        )
-        group_rel_suffix = "name" if self.model is Volume else "sort_name"
-        group_rel += "__" + group_rel_suffix
-        comic_qs = comic_qs.filter(**{group_rel: OuterRef("pk")}).values(group_rel)
-        bookmark_page, finished_aggregate = (
-            self._get_bookmark_page_and_finished_counts()
+        bookmark_page = Subquery(comic_qs.annotate(page=bookmark_page).values("page"))
+        finished_count = Subquery(
+            comic_qs.annotate(finished_count=finished_count).values("finished_count")
         )
 
-        comic_qs = comic_qs.annotate(page=bookmark_page, finished=finished_aggregate)
-        bookmark_page = Subquery(comic_qs.values("page"))
-        finished_aggregate = Subquery(comic_qs.values("finished"))
+        return bookmark_page, finished_count
 
+    def _annotate_group_bookmarks(self, qs):
+        """Aggregate bookmark and finished states for groups using subqueries to not break the FTS match filter."""
+        # Using subqueries is also faster for non-fts queries.
+        # XXX These are slow for large groups.
+
+        bookmark_page, finished_count = self._get_bookmark_page_and_finished_subqueries(
+            qs
+        )
+        qs = qs.alias(finished_count=finished_count)
+
+        finished_aggregate = Case(
+            When(finished_count=F("child_count"), then=True),
+            When(finished_count=0, then=False),
+            default=None,
+            output_field=BooleanField(),
+        )
+
+        return qs, bookmark_page, finished_aggregate
+
+    def _annotate_comic_bookmarks(self, qs):
+        """Hoist comic bookmark and finished states."""
+        bm_rel, _ = self.get_bookmark_rel_and_filter(qs.model)
+        page_rel = f"{bm_rel}__page"
+        finished_rel = f"{bm_rel}__finished"
+
+        bookmark_page = Coalesce(page_rel, 0)
+        finished_aggregate = Coalesce(finished_rel, False)
         return bookmark_page, finished_aggregate
 
     def _annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
-        # XXX These are slow for large groups.
-        bm_rel, _bm_filter = self.get_bookmark_rel_and_filter(qs.model)
-        page_rel = f"{bm_rel}__page"
-        finished_rel = f"{bm_rel}__finished"
-
         if qs.model is Comic:
-            # Hoist comic bookmark and finished states
-            bookmark_page = Coalesce(page_rel, 0)
-            finished_aggregate = Coalesce(finished_rel, False)
+            page, finished = self._annotate_comic_bookmarks(qs)
         else:
-            # FTS mode is faster?
-            # Aggregate bookmark and finished states for groups using subqueries to
-            # not break with FTS match filter.
-            bookmark_page, finished_aggregate = self._annotate_group_bookmarks()
+            qs, page, finished = self._annotate_group_bookmarks(qs)
 
         if (
             self.is_opds_1_acquisition
-            or (self.is_model_comic and self.TARGET == "browser")
-            or self.TARGET in frozenset({"metadata", "browser"})
+            or self.is_model_comic
+            and self.TARGET == "browser"
         ):
-            qs = qs.annotate(page=bookmark_page)
+            qs = qs.annotate(page=page)
+        elif self.TARGET in frozenset({"metadata", "browser"}):
+            qs = qs.alias(page=page)
 
         if self.TARGET in frozenset({"metadata", "browser"}):
-            qs = qs.annotate(finished=finished_aggregate)
+            qs = qs.annotate(finished=finished)
 
         return qs
 
