@@ -1,7 +1,6 @@
 """Low level database utilities."""
 
-import re
-import sqlite3
+import subprocess
 
 from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connection, connections
@@ -29,9 +28,10 @@ from codex.settings.settings import (
 )
 from codex.version import VERSION
 
-REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
-DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
-REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
+_REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
+_REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
+_REPAIR_ARGS = ("sqlite3", DB_PATH, ".recover")
+_BUILD_ARGS = ("sqlite3", _REBUILT_DB_PATH)
 
 LOG = get_logger(__name__)
 
@@ -82,23 +82,25 @@ def _repair_db():
 def _rebuild_db():
     """Dump and rebuild the database."""
     # Drastic
-    if not REPAIR_FLAG_PATH.exists():
+    if not _REPAIR_FLAG_PATH.exists():
         return
 
     LOG.warning("REBUILDING DATABASE!!")
-    REPAIR_FLAG_PATH.unlink(missing_ok=True)
-    with sqlite3.connect(REBUILT_DB_PATH) as new_db_conn:
-        new_db_cur = new_db_conn.cursor()
-        with sqlite3.connect(DB_PATH) as old_db_conn:
-            for line in old_db_conn.iterdump():
-                if DUMP_LINE_MATCHER.search(line):
-                    continue
-                new_db_cur.execute(line)
+    _REBUILT_DB_PATH.unlink(missing_ok=True)
+    repair_proc = subprocess.Popen(_REPAIR_ARGS, stdout=subprocess.PIPE) # noqa: S603
+    build_proc = subprocess.Popen(_BUILD_ARGS, stdin=repair_proc.stdout, stdout=subprocess.PIPE) #noqa S603
+    if repair_proc.stdout:
+        repair_proc.stdout.close()
+    if build_proc.stdout:
+        for line in build_proc.stdout:
+            LOG.debug(line.decode())
+        build_proc.stdout.close()
 
     backup_path = _get_backup_db_path("before-rebuild")
     DB_PATH.rename(backup_path)
     LOG.info("Backed up old db to %s", backup_path)
-    REBUILT_DB_PATH.replace(DB_PATH)
+    _REBUILT_DB_PATH.replace(DB_PATH)
+    _REPAIR_FLAG_PATH.unlink(missing_ok=True)
     LOG.info("Rebuilt database.")
 
 
