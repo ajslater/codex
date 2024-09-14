@@ -35,6 +35,7 @@ def _exec_sql(sql):
     connection = connections[DEFAULT_DB_ALIAS]
     connection.prepare_database()
     with connection.cursor() as cursor:
+        cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         cursor.execute(sql)
         return cursor.fetchall()
 
