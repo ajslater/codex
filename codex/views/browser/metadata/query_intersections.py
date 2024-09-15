@@ -75,26 +75,33 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             qs = qs.only("name")
         return qs
 
+    def _get_m2m_intersection_query(self, field_name, comic_pks, comic_pks_count):
+        """Get intersection query for one field."""
+        model = Comic._meta.get_field(field_name).related_model
+        if not model:
+            reason = f"No model found for comic field: {field_name}"
+            raise ValueError(reason)
+
+        intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
+        intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
+            count=comic_pks_count
+        )
+        return self._get_optimized_m2m_query(field_name, intersection_qs)
+
+
     def _query_m2m_intersections(self, filtered_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         m2m_intersections = {}
         pk_field = self.rel_prefix + "pk"
-        comic_pks = filtered_qs.values_list(pk_field, flat=True)
-        comic_pks_count = comic_pks.count()
+        comic_pks = filtered_qs.distinct().values_list(pk_field, flat=True)
+        # In fts mode the join doesn't work for the query.
+        # Evaluating it now is probably faster than running the filter for every m2m anyway.
+        comic_pks = set(comic_pks)
+        comic_pks_count = len(comic_pks)
+
         for field_name in COMIC_M2M_FIELD_NAMES:
-            model = Comic._meta.get_field(field_name).related_model
-            if not model:
-                reason = f"No model found for comic field: {field_name}"
-                raise ValueError(reason)
-
-            intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
-                count=comic_pks_count
-            )
-            intersection_qs = self._get_optimized_m2m_query(field_name, intersection_qs)
-
-            m2m_intersections[field_name] = intersection_qs
+            m2m_intersections[field_name] = self._get_m2m_intersection_query(field_name, comic_pks, comic_pks_count)
         return m2m_intersections
 
     def query_intersections(self, filtered_qs):
