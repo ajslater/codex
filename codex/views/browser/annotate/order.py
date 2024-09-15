@@ -68,12 +68,13 @@ LOG = get_logger(__name__)
 class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
 
+    CARD_TARGETS = frozenset({"browser", "metadata"})
+
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
-        self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
     def add_group_by(self, qs):
         """Get the group by for the model."""
@@ -142,7 +143,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_page_count(self, qs):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
-        if qs.model is Comic:
+        if qs.model is Comic or (
+            self.order_key != "page_count" and self.TARGET not in self.CARD_TARGETS
+        ):
             return qs
 
         rel = self.rel_prefix + "page_count"
@@ -187,10 +190,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_search_scores(self, qs):
         """Annotate Search Scores."""
-        if (
-            self.TARGET not in frozenset({"browser", "cover"})
-            or self.order_key != "search_score"  # type: ignore
-        ):
+        if self.TARGET not in self.CARD_TARGETS or self.order_key != "search_score":
             return qs
         return qs.annotate(search_score=ComicFTSRank())
 

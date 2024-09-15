@@ -53,11 +53,10 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     def _get_bookmark_page_subquery(comic_qs, finished_rel, bm_rel, bm_filter):
         """Get bookmark page subquery."""
         finished_filter = {finished_rel: True}
-        page_count = "page_count"
         page_rel = f"{bm_rel}__page"
         bookmark_page_case = Case(
             When(**{bm_rel: None}, then=0),
-            When(**finished_filter, then=page_count),
+            When(**finished_filter, then="page_count"),
             default=page_rel,
             output_field=PositiveSmallIntegerField(),
         )
@@ -136,18 +135,13 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
         if self.is_opds_1_acquisition or qs.model is Comic and self.TARGET == "browser":
             qs = qs.annotate(page=page)
-        elif self.TARGET in frozenset({"metadata", "browser"}):
+        else:
             qs = qs.alias(page=page)
 
-        if self.TARGET in frozenset({"metadata", "browser"}):
-            qs = qs.annotate(finished=finished)
-
-        return qs
+        return qs.annotate(finished=finished)
 
     def annotate_progress(self, qs):
         """Compute progress for each member of a qs."""
-        if self.TARGET not in frozenset({"metadata", "browser"}):
-            return qs
         # Requires bookmark and annotation hoisted from bookmarks.
         # Requires page_count native to comic or aggregated
         # Page counts can be null with metadata turned off.
