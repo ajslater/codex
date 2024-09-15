@@ -88,7 +88,6 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         )
         return self._get_optimized_m2m_query(field_name, intersection_qs)
 
-
     def _query_m2m_intersections(self, filtered_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
@@ -101,7 +100,9 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         comic_pks_count = len(comic_pks)
 
         for field_name in COMIC_M2M_FIELD_NAMES:
-            m2m_intersections[field_name] = self._get_m2m_intersection_query(field_name, comic_pks, comic_pks_count)
+            m2m_intersections[field_name] = self._get_m2m_intersection_query(
+                field_name, comic_pks, comic_pks_count
+            )
         return m2m_intersections
 
     def query_intersections(self, filtered_qs):

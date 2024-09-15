@@ -87,8 +87,12 @@ def _rebuild_db():
 
     LOG.warning("REBUILDING DATABASE!!")
     _REBUILT_DB_PATH.unlink(missing_ok=True)
-    repair_proc = subprocess.Popen(_REPAIR_ARGS, stdout=subprocess.PIPE) # noqa: S603
-    build_proc = subprocess.Popen(_BUILD_ARGS, stdin=repair_proc.stdout, stdout=subprocess.PIPE) #noqa S603
+    repair_proc = subprocess.Popen(  # noqa: S603
+        _REPAIR_ARGS, stdout=subprocess.PIPE
+    )
+    build_proc = subprocess.Popen(  # noqa: S603
+        _BUILD_ARGS, stdin=repair_proc.stdout, stdout=subprocess.PIPE
+    )
     if repair_proc.stdout:
         repair_proc.stdout.close()
     if build_proc.stdout:

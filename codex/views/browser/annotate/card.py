@@ -97,8 +97,12 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
         comic_qs = self._get_bookmark_comic_qs(qs)
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
         finished_rel = f"{bm_rel}__finished"
-        bookmark_page = self._get_bookmark_page_subquery(comic_qs, finished_rel, bm_rel, bm_filter)
-        finished_count = self._get_finished_count_subquery(comic_qs, finished_rel, bm_filter)
+        bookmark_page = self._get_bookmark_page_subquery(
+            comic_qs, finished_rel, bm_rel, bm_filter
+        )
+        finished_count = self._get_finished_count_subquery(
+            comic_qs, finished_rel, bm_filter
+        )
         return bookmark_page, finished_count
 
     def _annotate_group_bookmarks(self, qs):
@@ -137,7 +141,6 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             qs, page, finished = self._annotate_group_bookmarks(qs)
             page = Value(0)
             # finished = Value(False)
-
 
         if (
             self.is_opds_1_acquisition
