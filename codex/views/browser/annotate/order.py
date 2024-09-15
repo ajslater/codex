@@ -163,7 +163,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         )
         return qs.annotate(bookmark_updated_at=bmua_agg)
 
-    def _annotate_order_value(self, qs):
+    def annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""
         # Determine order func
         if self.TARGET == "metadata":
@@ -206,5 +206,5 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._annotate_bookmark_updated_at(qs)
         if qs.model is not Comic:
             # comic orders on indexed fields when it can
-            qs = self._annotate_order_value(qs)
+            qs = self.annotate_order_value(qs)
         return qs
