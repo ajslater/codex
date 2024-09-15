@@ -57,13 +57,12 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
         # Must group by the outer ref or it only does aggregates for one comic?
         return comic_qs.values(group_rel)
 
-    def _get_bookmark_page_and_finished_subqueries(self, qs):
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
-        page_rel = f"{bm_rel}__page"
-        finished_rel = f"{bm_rel}__finished"
-        page_count = "page_count"
-
+    @staticmethod
+    def _get_bookmark_page_subquery(comic_qs, finished_rel, bm_rel, bm_filter):
+        """Get bookmark page subquery."""
         finished_filter = {finished_rel: True}
+        page_count = "page_count"
+        page_rel = f"{bm_rel}__page"
         bookmark_page_case = Case(
             When(**{bm_rel: None}, then=0),
             When(**finished_filter, then=page_count),
@@ -77,6 +76,11 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             output_field=PositiveSmallIntegerField(),
             distinct=True,
         )
+        return Subquery(comic_qs.annotate(page=bookmark_page).values("page"))
+
+    @staticmethod
+    def _get_finished_count_subquery(comic_qs, finished_rel, bm_filter):
+        """Get finished_count subquery."""
         finished_count = Sum(
             finished_rel,
             default=0,
@@ -84,21 +88,22 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             output_field=PositiveSmallIntegerField(),
             distinct=True,
         )
-
-        comic_qs = self._get_bookmark_comic_qs(qs)
-
-        bookmark_page = Subquery(comic_qs.annotate(page=bookmark_page).values("page"))
-        finished_count = Subquery(
+        return Subquery(
             comic_qs.annotate(finished_count=finished_count).values("finished_count")
         )
 
+    def _get_bookmark_page_and_finished_subqueries(self, qs):
+        comic_qs = self._get_bookmark_comic_qs(qs)
+        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
+        finished_rel = f"{bm_rel}__finished"
+        bookmark_page = self._get_bookmark_page_subquery(comic_qs, finished_rel, bm_rel, bm_filter)
+        finished_count = self._get_finished_count_subquery(comic_qs, finished_rel, bm_filter)
         return bookmark_page, finished_count
 
     def _annotate_group_bookmarks(self, qs):
         """Aggregate bookmark and finished states for groups using subqueries to not break the FTS match filter."""
         # Using subqueries is also faster for non-fts queries.
         # XXX These are slow for large groups.
-
         bookmark_page, finished_count = self._get_bookmark_page_and_finished_subqueries(
             qs
         )
@@ -129,6 +134,9 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
             page, finished = self._annotate_comic_bookmarks(qs)
         else:
             qs, page, finished = self._annotate_group_bookmarks(qs)
+            page = Value(0)
+            # finished = Value(False)
+
 
         if (
             self.is_opds_1_acquisition
