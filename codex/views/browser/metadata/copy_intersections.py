@@ -1,6 +1,7 @@
 """Copy Intersections Into Comic Fields."""
 
 from codex.logger.logging import get_logger
+from codex.models.comic import Comic
 from codex.serializers.browser.metadata import PREFETCH_PREFIX
 from codex.views.browser.metadata.query_intersections import (
     MetadataQueryIntersectionsView,
@@ -36,10 +37,10 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
 
     def _highlight_current_group(self, obj):
         """Values for highlighting the current group."""
-        if self.model and not self.is_model_comic:
+        if obj.model is not Comic:
             # move the name of the group to the correct field
-            field = self.model.__name__.lower() + "_list"
-            group_list = self.model.objects.filter(pk__in=obj.ids).values("name")
+            field = obj.model.__name__.lower() + "_list"
+            group_list = obj.model.objects.filter(pk__in=obj.ids).values("name")
             setattr(obj, field, group_list)
             obj.name = None
 
@@ -83,7 +84,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         self._highlight_current_group(obj)
         self._copy_groups(obj, groups)
         self._copy_m2m_intersections(obj, m2m_intersections)
-        if not self.is_model_comic:
+        if obj.model is not Comic:
             self._copy_conflicting_simple_fields(obj)
 
         return obj

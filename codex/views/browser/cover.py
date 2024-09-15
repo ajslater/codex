@@ -86,7 +86,7 @@ class CoverView(BrowserAnnotateOrderView):
 
     def _get_custom_cover(self):
         """Get Custom Cover."""
-        if self.model == Volume or not self.params.get("custom_covers"):
+        if self.model is Volume or not self.params.get("custom_covers"):
             return None
         group = self.kwargs["group"]
         group_rel = CUSTOM_COVER_GROUP_RELATION[group]
@@ -108,7 +108,7 @@ class CoverView(BrowserAnnotateOrderView):
 
     def _get_cover_pk(self) -> tuple[int, bool]:
         """Get Cover Pk queryset for comic queryset."""
-        if self.model == Comic:
+        if self.model is Comic:
             cover_pk, custom = self._get_comic_cover()
         elif custom_cover := self._get_custom_cover():
             cover_pk = custom_cover.pk

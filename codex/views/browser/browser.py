@@ -166,7 +166,7 @@ class BrowserView(BrowserTitleView):
         if not self.model:
             reason = "Model not set for browser queryset."
             raise ValueError(reason)
-        if self.is_model_comic:
+        if self.model is Comic:
             qs = self.model.objects.none().order_by("pk")
             count = 0
         else:
@@ -191,7 +191,7 @@ class BrowserView(BrowserTitleView):
             reason = "No model to compute max bookmark updated_at"
             raise ValueError(reason)
 
-        qs = self.model.objects.filter(pk=OuterRef("pk"))
+        qs = group_qs.model.objects.filter(pk=OuterRef("pk"))
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(self.model)
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)

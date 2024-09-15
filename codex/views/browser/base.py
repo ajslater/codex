@@ -10,7 +10,6 @@ from rest_framework.exceptions import NotFound
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
-    Comic,
 )
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.search.parse import SearchFilterView
@@ -40,7 +39,6 @@ class BrowserBaseView(SearchFilterView):
         self.model: type[BrowserGroupModel] | None = None
         self.group_class: type[BrowserGroupModel] | None = None
         self.model_group: str = ""
-        self.is_model_comic: bool = False
         self.admin_flags: MappingProxyType[str, bool] = MappingProxyType({})
         self.order_agg_func: type[Min | Max] = Min
         self.order_key: str = ""
@@ -124,7 +122,6 @@ class BrowserBaseView(SearchFilterView):
             detail = f"Cannot browse {group=}"
             LOG.debug(detail)
             raise NotFound(detail=detail)
-        self.is_model_comic = self.model == Comic
 
     def set_rel_prefix(self):
         """Set the relation prefix for most fields."""

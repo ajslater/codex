@@ -134,11 +134,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             page = Value(0)
             # finished = Value(False)
 
-        if (
-            self.is_opds_1_acquisition
-            or self.is_model_comic
-            and self.TARGET == "browser"
-        ):
+        if self.is_opds_1_acquisition or qs.model is Comic and self.TARGET == "browser":
             qs = qs.annotate(page=page)
         elif self.TARGET in frozenset({"metadata", "browser"}):
             qs = qs.alias(page=page)

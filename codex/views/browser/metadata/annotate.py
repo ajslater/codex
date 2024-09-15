@@ -89,7 +89,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
         """Annotate comic values and comic foreign key values."""
         # Simple Values
         querysets = (filtered_qs, qs)
-        if not self.is_model_comic:
+        if qs.model is not Comic:
             comic_value_fields = self._get_comic_value_fields()
             querysets = self._intersection_annotate(querysets, comic_value_fields)
 

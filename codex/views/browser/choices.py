@@ -143,7 +143,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         filters = self.params.get("filters", {})
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
-            if field_name == "story_arcs" and self.model == StoryArc:
+            if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
             rel, m2m_model = self.get_rel_and_model(field_name)
