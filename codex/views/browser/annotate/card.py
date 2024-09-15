@@ -93,6 +93,7 @@ class BrowserAnnotateCardView(BrowserAnnotateOrderView):
         )
 
     def _get_bookmark_page_and_finished_subqueries(self, qs):
+        """Get bookmark page and finished_count subqueries."""
         comic_qs = self._get_bookmark_comic_qs(qs)
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
         finished_rel = f"{bm_rel}__finished"
