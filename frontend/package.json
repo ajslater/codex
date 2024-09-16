@@ -8,8 +8,8 @@
     "build": "vite build",
     "coverage": "vitest run --coverage",
     "dev": "vite dev",
-    "fix": "eslint --fix . && prettier --write .",
-    "lint": "eslint . && prettier --check .",
+    "fix": "eslint_d --fix . && prettierd --write .",
+    "lint": "eslint_d . && prettierd --check .",
     "remark": "remark . --output",
     "test": "vitest --reporter verbose --update",
     "test:ci": "vitest run --reporter verbose --update"
