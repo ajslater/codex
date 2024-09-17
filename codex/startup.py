@@ -176,10 +176,12 @@ def ensure_db_rows():
 
 def codex_init():
     """Initialize the database and start the daemons."""
-    ensure_db_schema()
+    if not ensure_db_schema():
+        return False
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
     LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
         LOG.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
+    return True

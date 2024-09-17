@@ -1,5 +1,6 @@
 """Low level database utilities."""
 
+import sqlite3
 import subprocess
 
 from django.core.management import call_command
@@ -31,7 +32,6 @@ from codex.version import VERSION
 _REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
 _REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
 _REPAIR_ARGS = ("sqlite3", DB_PATH, ".recover")
-_BUILD_ARGS = ("sqlite3", _REBUILT_DB_PATH)
 
 LOG = get_logger(__name__)
 
@@ -83,22 +83,26 @@ def _rebuild_db():
     """Dump and rebuild the database."""
     # Drastic
     if not _REPAIR_FLAG_PATH.exists():
-        return
+        return False
 
     LOG.warning("REBUILDING DATABASE!!")
     _REBUILT_DB_PATH.unlink(missing_ok=True)
-    repair_proc = subprocess.Popen(  # noqa: S603
-        _REPAIR_ARGS, stdout=subprocess.PIPE
-    )
-    build_proc = subprocess.Popen(  # noqa: S603
-        _BUILD_ARGS, stdin=repair_proc.stdout, stdout=subprocess.PIPE
-    )
-    if repair_proc.stdout:
-        repair_proc.stdout.close()
-    if build_proc.stdout:
-        for line in build_proc.stdout:
-            LOG.debug(line.decode())
-        build_proc.stdout.close()
+    recover_proc = subprocess.Popen(_REPAIR_ARGS, stdout=subprocess.PIPE)  # noqa: S603
+    with sqlite3.connect(_REBUILT_DB_PATH) as new_db_conn:
+        new_db_cur = new_db_conn.cursor()
+        if recover_proc.stdout:
+            for line in recover_proc.stdout:
+                row = line.decode().strip()
+                replaced_row = (
+                    "PRAGMA writable_schema = reset;"
+                    if row == "PRAGMA writable_schema = off;"
+                    else row
+                )
+                new_db_cur.execute(replaced_row)
+        new_db_cur.close()
+    if recover_proc.stdout:
+        recover_proc.stdout.close()
+        recover_proc.wait(timeout=15)
 
     backup_path = _get_backup_db_path("before-rebuild")
     DB_PATH.rename(backup_path)
@@ -106,6 +110,10 @@ def _rebuild_db():
     _REBUILT_DB_PATH.replace(DB_PATH)
     _REPAIR_FLAG_PATH.unlink(missing_ok=True)
     LOG.info("Rebuilt database.")
+    LOG.info("You may start codex normally now.")
+    for handler in LOG.handlers:
+        handler.flush()
+    return True
 
 
 def ensure_db_schema():
@@ -113,7 +121,8 @@ def ensure_db_schema():
     LOG.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()
     if db_exists := "django_migrations" in table_names:
-        _rebuild_db()
+        if _rebuild_db():
+            return False
         _repair_db()
 
     if not db_exists or _has_unapplied_migrations():
@@ -123,3 +132,4 @@ def ensure_db_schema():
     else:
         LOG.info("Database up to date.")
     LOG.info("Database ready.")
+    return True
