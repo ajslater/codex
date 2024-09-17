@@ -36,12 +36,13 @@ class FTS5Match(Lookup):
 
     def as_sql(self, compiler, connection):
         """Generate MATCH sql."""
-        lhs, lhs_params = self.process_lhs(compiler, connection)
+        # lhs, lhs_params = self.process_lhs(compiler, connection)
+        # fts_table = lhs.split(".")[0]
         rhs, rhs_params = self.process_rhs(compiler, connection)
         # MATCH works on the table itself not the one_to_one rel.
-        fts_table = lhs.split(".")[0]
-        params = lhs_params + rhs_params
-        sql = f"{fts_table} MATCH {rhs}"
+        # Force the table name without substitutions by the optimizer
+        sql = "codex_comicfts MATCH " + rhs
+        params = rhs_params
         return sql, params
 
 
