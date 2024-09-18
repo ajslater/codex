@@ -2,15 +2,11 @@
   <PaginationNavButton
     v-if="toRoute"
     :class="classes"
-    icon
+    :icon="icon"
     variant="plain"
     :title="title"
     :to="toRoute"
-  >
-    <v-icon>
-      {{ icon }}
-    </v-icon>
-  </PaginationNavButton>
+  />
 </template>
 
 <script>
