@@ -17,11 +17,15 @@ from rest_framework.serializers import (
     MultipleChoiceField,
 )
 
+from codex.choices import (
+    BROWSER_BOOKMARK_FILTER_CHOICES,
+    BROWSER_CHOICES,
+    BROWSER_TOP_GROUP_CHOICES,
+    DUMMY_NULL_NAME,
+)
 from codex.logger.logging import get_logger
-from codex.serializers.choices import CHOICES, DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.serializers.route import RouteSerializer
 
-VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 LOG = get_logger(__name__)
 
 
@@ -51,7 +55,7 @@ def validate_decade(decade):
 class VuetifyNullCodeFieldMixin:
     """Convert Vuetify null codes to None."""
 
-    NULL_CODE = VUETIFY_NULL_CODE
+    NULL_CODE = BROWSER_CHOICES["vuetifyNullValue"]
 
     def to_internal_value(self, data):
         """Convert numeric null code to None."""
@@ -69,7 +73,7 @@ class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # type: ign
 class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore
     """Char Field with null code conversion."""
 
-    NULL_CODE = VUETIFY_NULL_CODE_STR
+    NULL_CODE = str(BROWSER_CHOICES["vuetifyNullValue"])
 
 
 class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # type: ignore
@@ -82,7 +86,7 @@ class BookmarkFilterField(ChoiceField):
     def __init__(self, *args, **kwargs):
         """Use bookmark filter choices."""
         super().__init__(
-            *args, choices=tuple(CHOICES["bookmarkFilter"].keys()), **kwargs
+            *args, choices=tuple(BROWSER_BOOKMARK_FILTER_CHOICES.keys()), **kwargs
         )
 
 
@@ -105,7 +109,7 @@ class BreadcrumbsField(ListField):
 class TopGroupField(ChoiceField):
     """Valid Top Groups Only."""
 
-    class_choices = tuple(CHOICES["topGroup"].keys())
+    class_choices = tuple(BROWSER_TOP_GROUP_CHOICES.keys())
 
     def __init__(self, *args, **kwargs):
         """Initialize with choices."""

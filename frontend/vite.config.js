@@ -6,7 +6,7 @@ import path from "path";
 import toml from "toml";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
-import { viteStaticCopy } from "vite-plugin-static-copy";
+import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
 
 import package_json from "./package.json";
@@ -47,15 +47,6 @@ const config = defineConfig(({ mode }) => {
       rollupOptions: {
         // No need for index.html
         input: path.resolve("./src/main.js"),
-        output: {
-          manualChunks: {
-            // Specifying too much here can break vue's own analysis of dynamic imports.
-            "admin-drawer-panel": [
-              "./src/components/admin/drawer/admin-menu.vue",
-              "./src/components/admin/drawer/admin-settings-button-progress.vue",
-            ],
-          },
-        },
       },
       sourcemap: DEV,
     },
@@ -70,20 +61,13 @@ const config = defineConfig(({ mode }) => {
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
       eslintPlugin,
-      viteStaticCopy({
-        targets: [
-          {
-            dest: "js/",
-            src: "src/choices.json",
-            transform: (content) => JSON.stringify(JSON.parse(content)),
-          },
-          {
-            dest: "js/",
-            src: "src/choices-admin.json",
-            transform: (content) => JSON.stringify(JSON.parse(content)),
-          },
-        ],
-      }),
+      run([
+        {
+          name: "Choices to JSON",
+          run: ["poetry", "run", "../codex/choices.py", "./src/choices"],
+          pattern: ["../codex/choices.py"],
+        },
+      ]),
       UnheadVite(),
     ],
     publicDir: false,

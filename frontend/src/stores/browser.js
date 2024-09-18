@@ -4,7 +4,9 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
-import CHOICES from "@/choices";
+import BROWSER_CHOICES from "@/choices/browser-choices.json";
+import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
+import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
@@ -14,17 +16,12 @@ const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
 export const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
 Object.freeze(GROUPS_REVERSED);
-const SETTINGS_SHOW_DEFAULTS = {};
-for (let choice of CHOICES.browser.settingsGroup) {
-  SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
-}
-Object.freeze(SETTINGS_SHOW_DEFAULTS);
 const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
   null,
-  CHOICES.browser.bookmarkFilter[0].value,
+  BROWSER_CHOICES.bookmarkFilter[0].value,
 ]);
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
@@ -46,15 +43,6 @@ const redirectRoute = (route) => {
     router.push(route).catch(console.warn);
   }
 };
-const createReadingDirection = () => {
-  const rd = {};
-  for (const obj of CHOICES.reader.readingDirection) {
-    if (obj.value) {
-      rd[obj.value] = obj.title;
-    }
-  }
-  return rd;
-};
 
 const notEmptyOrBool = (value) => {
   return (value && Object.keys(value).length) || typeof value === "boolean";
@@ -64,27 +52,27 @@ export const useBrowserStore = defineStore("browser", {
   state: () => ({
     choices: {
       static: Object.freeze({
-        bookmark: CHOICES.browser.bookmarkFilter,
-        groupNames: CHOICES.browser.groupNames,
-        settingsGroup: CHOICES.browser.settingsGroup,
-        readingDirection: createReadingDirection(),
-        identifierType: CHOICES.browser.identifierTypes,
+        bookmark: BROWSER_CHOICES.bookmarkFilter,
+        groupNames: BROWSER_CHOICES.groupNames,
+        settingsGroup: BROWSER_CHOICES.settingsGroup,
+        readingDirection: READING_DIRECTION,
+        identifierType: BROWSER_CHOICES.identifierTypes,
       }),
       dynamic: undefined,
     },
     settings: {
-      breadcrumbs: CHOICES.browser.breadcrumbs,
-      customCovers: true,
-      dynamicCovers: false,
+      breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,
+      customCovers: BROWSER_DEFAULTS.customCovers,
+      dynamicCovers: BROWSER_DEFAULTS.dynamicCovers,
       filters: {},
-      orderBy: undefined,
-      orderReverse: undefined,
-      q: undefined,
+      orderBy: BROWSER_DEFAULTS.orderBy,
+      orderReverse: BROWSER_DEFAULTS.orderReverse,
+      q: BROWSER_DEFAULTS.q,
       /* eslint-disable-next-line no-secrets/no-secrets */
-      // searchResultsLimit: CHOICES.browser.searchResultsLimit,
-      show: deepClone(SETTINGS_SHOW_DEFAULTS),
-      topGroup: undefined,
-      twentyFourHourTime: false,
+      // searchResultsLimit: BROWSER_CHOICES.searchResultsLimit,
+      show: BROWSER_DEFAULTS.show,
+      topGroup: BROWSER_DEFAULTS.topGroup,
+      twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
     },
     page: {
       adminFlags: {
@@ -115,7 +103,7 @@ export const useBrowserStore = defineStore("browser", {
   getters: {
     topGroupChoices() {
       const choices = [];
-      for (const item of CHOICES.browser.topGroup) {
+      for (const item of BROWSER_CHOICES.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
           choices.push(item);
         }
@@ -123,11 +111,11 @@ export const useBrowserStore = defineStore("browser", {
       return choices;
     },
     topGroupChoicesMaxLen() {
-      return this._maxLenChoices(CHOICES.browser.topGroup);
+      return this._maxLenChoices(BROWSER_CHOICES.topGroup);
     },
     orderByChoices(state) {
       const choices = [];
-      for (const item of CHOICES.browser.orderBy) {
+      for (const item of BROWSER_CHOICES.orderBy) {
         if (
           (item.value === "path" && !state.page.adminFlags.folderView) ||
           (item.value === "search_score" &&
@@ -142,10 +130,10 @@ export const useBrowserStore = defineStore("browser", {
       return choices;
     },
     orderByChoicesMaxLen() {
-      return this._maxLenChoices(CHOICES.browser.orderBy);
+      return this._maxLenChoices(BROWSER_CHOICES.orderBy);
     },
     filterByChoicesMaxLen() {
-      return this._maxLenChoices(CHOICES.browser.bookmarkFilter);
+      return this._maxLenChoices(BROWSER_CHOICES.bookmarkFilter);
     },
     isAuthorized() {
       return useAuthStore().isAuthorized;

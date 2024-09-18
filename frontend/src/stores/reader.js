@@ -6,7 +6,8 @@ import { defineStore } from "pinia";
 import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import API, { getComicPageSource } from "@/api/v3/reader";
-import CHOICES from "@/choices";
+import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
+import READER_CHOICES from "@/choices/reader-choices.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 
@@ -66,7 +67,7 @@ const ROUTES_NULL = {
     prev: false,
     next: false,
   },
-  close: CHOICES.browser.breadcrumbs[0],
+  close: BROWSER_DEFAULTS.breadcrumbs[0],
 };
 Object.freeze(ROUTES_NULL);
 
@@ -93,22 +94,22 @@ export const useReaderStore = defineStore("reader", {
   state: () => ({
     // static
     choices: {
-      fitTo: CHOICES.reader.fitTo,
-      readingDirection: CHOICES.reader.readingDirection,
+      fitTo: READER_CHOICES.fitTo,
+      readingDirection: READER_CHOICES.readingDirection,
       nullValues: SETTINGS_NULL_VALUES,
     },
 
     // server
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
-      twoPages: CHOICES.reader.twoPages,
+      twoPages: READER_CHOICES.twoPages,
       readingDirection: "ltr",
-      readRtlInReverse: CHOICES.reader.readRtlInReverse,
-      finishOnLastPage: CHOICES.reader.finishOnLastPage,
+      readRtlInReverse: READER_CHOICES.readRtlInReverse,
+      finishOnLastPage: READER_CHOICES.finishOnLastPage,
     },
     browserSettings: {
-      breadcrumbs: CHOICES.browser.breadcrumbs,
-      show: CHOICES.browser.show,
+      breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,
+      show: BROWSER_DEFAULTS.show,
       topGroup: "p",
     },
     books: deepClone(BOOKS_NULL),
@@ -206,7 +207,7 @@ export const useReaderStore = defineStore("reader", {
           route.hash = `#card-${cardPk}`;
         }
       } else {
-        params = window.CODEX.LAST_ROUTE || CHOICES.browser.breadcrumbs[0];
+        params = window.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
       }
       route.params = params;
       return route;

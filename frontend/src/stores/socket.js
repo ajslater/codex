@@ -1,7 +1,7 @@
 // Socket pseudo module for vue-native-sockets
 import { defineStore } from "pinia";
 
-import CHOICES from "@/choices";
+import { messages } from "@/choices/websocket-messages.json";
 import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
@@ -81,15 +81,15 @@ export const useSocketStore = defineStore("socket", {
       // Cannot instantiate store outside of case blocks.
 
       switch (message) {
-        case CHOICES.websockets.LIBRARY_CHANGED:
+        case messages.LIBRARY_CHANGED:
           libraryChanged();
 
           break;
-        case CHOICES.websockets.LIBRARIAN_STATUS:
+        case messages.LIBRARIAN_STATUS:
           useAdminStore().loadTable("LibrarianStatus");
 
           break;
-        case CHOICES.websockets.FAILED_IMPORTS:
+        case messages.FAILED_IMPORTS:
           useAdminStore().unseenFailedImports = true;
 
           break;

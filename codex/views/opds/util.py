@@ -5,11 +5,11 @@ from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.http import urlencode
 
+from codex.choices import DEFAULT_BROWSER_ROUTE
 from codex.models import (
     Contributor,
     ContributorPerson,
 )
-from codex.serializers.choices import DEFAULTS
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS
 
@@ -71,8 +71,7 @@ def full_redirect_view(url_name):
 
     def func(request):
         """Redirect to view, forwarding query strings and auth."""
-        kwargs = DEFAULTS["breadcrumbs"][0]
-        kwargs.pop("name", None)
+        kwargs = dict(DEFAULT_BROWSER_ROUTE)
         url = reverse(url_name, kwargs=kwargs)
 
         # Forward the query string.

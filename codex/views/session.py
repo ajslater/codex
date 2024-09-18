@@ -4,8 +4,8 @@ from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
 
+from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS
 from codex.logger.logging import get_logger
-from codex.serializers.choices import DEFAULTS
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
 
@@ -53,27 +53,27 @@ class SessionView(AuthFilterGenericAPIView, ABC):
     SESSION_DEFAULTS = MappingProxyType(
         {
             BROWSER_SESSION_KEY: {
-                "breadcrumbs": DEFAULTS["breadcrumbs"],
+                "breadcrumbs": BROWSER_DEFAULTS["breadcrumbs"],
+                "custom_covers": BROWSER_DEFAULTS["customCovers"],
                 "filters": {
-                    "bookmark": DEFAULTS["bookmarkFilter"],
+                    "bookmark": BROWSER_DEFAULTS["bookmarkFilter"],
                     **_DYNAMIC_FILTER_DEFAULTS,
                 },
-                "order_by": DEFAULTS["orderBy"],
-                "order_reverse": DEFAULTS["orderReverse"],
-                "q": DEFAULTS["q"],
-                "search_results_limit": DEFAULTS["searchResultsLimit"],
-                "show": DEFAULTS["show"],
-                "dynamic_covers": DEFAULTS["dynamicCovers"],
-                "custom_covers": DEFAULTS["customCovers"],
-                "twenty_four_hour_time": DEFAULTS["twentyFourHourTime"],
-                "top_group": DEFAULTS["topGroup"],
+                "order_by": BROWSER_DEFAULTS["orderBy"],
+                "order_reverse": BROWSER_DEFAULTS["orderReverse"],
+                "q": BROWSER_DEFAULTS["q"],
+                "search_results_limit": BROWSER_DEFAULTS["searchResultsLimit"],
+                "show": BROWSER_DEFAULTS["show"],
+                "dynamic_covers": BROWSER_DEFAULTS["dynamicCovers"],
+                "top_group": BROWSER_DEFAULTS["topGroup"],
+                "twenty_four_hour_time": BROWSER_DEFAULTS["twentyFourHourTime"],
             },
             READER_SESSION_KEY: {
-                "finish_on_last_page": DEFAULTS["finishOnLastPage"],
-                "fit_to": DEFAULTS["fitTo"],
-                "two_pages": DEFAULTS["twoPages"],
-                "read_rtl_in_reverse": DEFAULTS["readRtlInReverse"],
-                "reading_direction": DEFAULTS["readingDirection"],
+                "finish_on_last_page": READER_DEFAULTS["finishOnLastPage"],
+                "fit_to": READER_DEFAULTS["fitTo"],
+                "two_pages": READER_DEFAULTS["twoPages"],
+                "read_rtl_in_reverse": READER_DEFAULTS["readRtlInReverse"],
+                "reading_direction": READER_DEFAULTS["readingDirection"],
             },
         }
     )
@@ -97,7 +97,8 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
         )
         if not breadcrumbs:
-            breadcrumbs = DEFAULTS["breadcrumbs"]
+            default_breadcrumbs: tuple[dict] = BROWSER_DEFAULTS["breadcrumbs"]  # type: ignore
+            breadcrumbs = default_breadcrumbs
         last_route = breadcrumbs[-1]
         if not name:
             last_route = pop_name(last_route)

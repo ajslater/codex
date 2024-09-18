@@ -1,10 +1,9 @@
 // Shared functions for most metadata components.
-import CHOICES from "@/choices";
-const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
+import { vuetifyNullValue } from "@/choices/browser-choices.json";
 export const NULL_PKS = new Set([
   "",
-  VUETIFY_NULL_CODE,
-  VUETIFY_NULL_CODE.toString(),
+  vuetifyNullValue,
+  vuetifyNullValue.toString(),
   undefined,
 ]);
 

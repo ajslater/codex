@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.choices import BROWSER_CHOICES, DUMMY_NULL_NAME
 from codex.logger.logging import get_logger
 from codex.models import (
     Comic,
@@ -21,7 +22,6 @@ from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
-from codex.serializers.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.views.browser.filters.filter import BrowserFilterView
 
 LOG = get_logger(__name__)
@@ -49,7 +49,9 @@ _BACK_REL_MAP = MappingProxyType(
         IdentifierType: "identifier__",
     }
 )
-_NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
+_NULL_NAMED_ROW = MappingProxyType(
+    {"pk": BROWSER_CHOICES["vuetifyNullValue"], "name": DUMMY_NULL_NAME}
+)
 
 
 class BrowserChoicesViewBase(BrowserFilterView):

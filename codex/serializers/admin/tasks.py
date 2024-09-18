@@ -6,11 +6,11 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.choices import CHOICES
+from codex.choices import ADMIN_TASKS
 
 
 class AdminLibrarianTaskSerializer(Serializer):
     """Get tasks from front end."""
 
-    task = ChoiceField(choices=CHOICES["admin"]["tasks"])
+    task = ChoiceField(choices=ADMIN_TASKS["tasks"])
     library_id = IntegerField(required=False)
