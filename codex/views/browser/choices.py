@@ -7,7 +7,7 @@ from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.choices import BROWSER_CHOICES, DUMMY_NULL_NAME
+from codex.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.logger.logging import get_logger
 from codex.models import (
     Comic,
@@ -55,7 +55,7 @@ _BACK_REL_MAP = MappingProxyType(
     }
 )
 _NULL_NAMED_ROW = MappingProxyType(
-    {"pk": BROWSER_CHOICES["vuetifyNullValue"], "name": DUMMY_NULL_NAME}
+    {"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME}
 )
 
 

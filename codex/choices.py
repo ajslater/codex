@@ -39,12 +39,13 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
     },
 )
 
+VUETIFY_NULL_CODE = -1
 BROWSER_CHOICES = MappingProxyType(
     {
         "bookmark_filter": BROWSER_BOOKMARK_FILTER_CHOICES,
         "order_by": BROWSER_ORDER_BY_CHOICES,
         "top_group": BROWSER_TOP_GROUP_CHOICES,
-        "vuetify_null_value": -1,
+        "vuetify_null_code": VUETIFY_NULL_CODE,
         "group_names": {
             "p": "Publishers",
             "i": "Imprints",

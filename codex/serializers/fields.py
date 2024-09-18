@@ -19,9 +19,9 @@ from rest_framework.serializers import (
 
 from codex.choices import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
-    BROWSER_CHOICES,
     BROWSER_TOP_GROUP_CHOICES,
     DUMMY_NULL_NAME,
+    VUETIFY_NULL_CODE,
 )
 from codex.logger.logging import get_logger
 from codex.serializers.route import RouteSerializer
@@ -55,7 +55,7 @@ def validate_decade(decade):
 class VuetifyNullCodeFieldMixin:
     """Convert Vuetify null codes to None."""
 
-    NULL_CODE = BROWSER_CHOICES["vuetifyNullValue"]
+    NULL_CODE = VUETIFY_NULL_CODE
 
     def to_internal_value(self, data):
         """Convert numeric null code to None."""
@@ -73,7 +73,7 @@ class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # type: ign
 class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore
     """Char Field with null code conversion."""
 
-    NULL_CODE = str(BROWSER_CHOICES["vuetifyNullValue"])
+    NULL_CODE = str(VUETIFY_NULL_CODE)
 
 
 class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # type: ignore
