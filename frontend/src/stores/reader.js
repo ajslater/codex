@@ -224,8 +224,8 @@ export const useReaderStore = defineStore("reader", {
       return usedFilters;
     },
     browserArc(state) {
-      const closeRoute = state.routes.close;
-      if (closeRoute && closeRoute.pks !== "0") {
+      const closeRoute = state.routes?.close;
+      if (closeRoute && closeRoute.pks && closeRoute.pks !== "0") {
         return {
           group: closeRoute.group,
           pks: closeRoute.pks,
