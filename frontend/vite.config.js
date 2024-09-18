@@ -64,13 +64,12 @@ const config = defineConfig(({ mode }) => {
       run([
         {
           name: "Choices to JSON",
-          run: [
-            "poetry",
-            "run",
+          run: ["../bin/build-choices.sh"],
+          pattern: [
+            "../codex/choices.py",
             "../codex/choices_to_json.py",
-            "./src/choices",
+            "../bin/build-choices.sh",
           ],
-          pattern: ["../codex/choices.py", "../codex/choices_to_json.py"],
         },
       ]),
       UnheadVite(),
