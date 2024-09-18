@@ -174,46 +174,220 @@ ADMIN_STATUS_TITLES = MappingProxyType(
         "WPO": "Poll Library",
     }
 )
-ADMIN_TASKS = MappingProxyType(
+
+ADMIN_TASK_GROUPS = MappingProxyType(
     {
         "tasks": (
-            "adopt_folders",
-            "cleanup_bookmarks",
-            "cleanup_covers",
-            "cleanup_db_custom_covers",
-            "cleanup_fks",
-            "cleanup_sessions",
-            "codex_latest_version",
-            "codex_restart",
-            "codex_shutdown",
-            "codex_update",
-            "create_all_comic_covers",
-            "db_backup",
-            "db_foreign_key_check",
-            "db_fts_integrity_check",
-            "db_fts_rebuild",
-            "db_integrity_check_long",
-            "db_integrity_check_quick",
-            "db_vacuum",
-            "force_update_all_failed_imports",
-            "force_update_groups",
-            "janitor_nightly",
-            "librarian_clear_status",
-            "notify_librarian_status",
-            "notify_library_changed",
-            "poll",
-            "poll_force",
-            "purge_comic_covers",
-            "search_index_abort",
-            "search_index_clear",
-            "search_index_optimize",
-            "search_index_rebuild",
-            "search_index_remove_stale",
-            "search_index_update",
-            "watchdog_sync",
+            {
+                "title": "Libraries",
+                "tasks": (
+                    {
+                        "value": "poll",
+                        "title": "Poll All Libraries",
+                        "desc": "Update Libraries if changes detected",
+                    },
+                    {
+                        "value": "poll_force",
+                        "title": "Force Update All Libraries",
+                        "desc": "Forcibly update all comics in all libraries",
+                        "confirm": "This can take a long time",
+                    },
+                    {
+                        "value": "force_update_all_failed_imports",
+                        "title": "Update All Failed Imports",
+                        "desc": "Forcibly update all failed imports in all libraries",
+                        "confirm": "This can take a long time",
+                    },
+                    {
+                        "value": "watchdog_sync",
+                        "title": "Sync Watchdog with DB",
+                        "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
+                    },
+                ),
+            },
+            {
+                "title": "Covers",
+                "tasks": (
+                    {
+                        "value": "purge_comic_covers",
+                        "title": "Remove Comic Covers",
+                        "desc": "from every library",
+                        "confirm": "Are you sure?",
+                    },
+                    {
+                        "value": "create_all_comic_covers",
+                        "title": "Create All Comic Covers",
+                        "desc": "Pre-generate covers for every comic in every library and all custom covers",
+                        "confirm": "Are you sure?",
+                    },
+                    {
+                        "value": "force_update_groups",
+                        "title": "Update Group Timestamps",
+                        "desc": "Force the update of group timestamps. Will bust the browser cache for browser views and covers.",
+                    },
+                ),
+            },
+            {
+                "title": "Search Index",
+                "tasks": (
+                    {
+                        "value": "search_index_update",
+                        "title": "Update Search Index",
+                        "desc": "with recently changed comics",
+                    },
+                    {
+                        "value": "search_index_rebuild",
+                        "title": "Rebuild Search Index",
+                        "desc": "Delete and rebuild the search index from scratch",
+                        "confirm": "This can take a long time",
+                    },
+                    {
+                        "value": "search_index_remove_stale",
+                        "title": "Remove Stale Index Entries",
+                        "desc": "Remove search index entries that are no longer in the library.",
+                    },
+                    {
+                        "value": "search_index_merge_small",
+                        "title": "Merge Small Search Index Segments",
+                        "desc": "Improves search lookup times. Runs nightly if the Optimize Admin Flag is off.",
+                    },
+                    {
+                        "value": "search_index_optimize",
+                        "title": "Merge Search Index Into One Segment",
+                        "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
+                        "confirm": "This can take a long time.",
+                    },
+                    {
+                        "value": "search_index_abort",
+                        "title": "Abort Search Indexing",
+                        "desc": "Aborts search index update and remove tasks.",
+                    },
+                    {
+                        "value": "search_index_clear",
+                        "title": "Clear Search Index",
+                        "desc": "of all entries",
+                    },
+                ),
+            },
+            {
+                "title": "Database",
+                "tasks": (
+                    {
+                        "value": "db_vacuum",
+                        "title": "Optimize & Compact Database",
+                        "desc": "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly",
+                    },
+                    {
+                        "value": "db_backup",
+                        "title": "Backup Database",
+                        "desc": "Runs nightly",
+                    },
+                    {
+                        "value": "db_search_sync",
+                        "title": "Sync Search Index to DB",
+                        "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup.",
+                    },
+                ),
+            },
+            {
+                "title": "Codex Software",
+                "tasks": (
+                    {
+                        "value": "codex_latest_version",
+                        "title": "Check for Codex Latest Version",
+                        "desc": "Check PyPi for the latest version of Codex",
+                    },
+                    {
+                        "value": "codex_update",
+                        "title": "Update Codex",
+                        "desc": "If Codex updates to a new version, it will restart",
+                        "confirm": "Are you sure?",
+                    },
+                    {
+                        "value": "codex_restart",
+                        "title": "Restart Codex Server",
+                        "desc": "Immediately",
+                        "confirm": "Are you sure?",
+                    },
+                    {
+                        "value": "codex_shutdown",
+                        "title": "Shutdown Codex Server",
+                        "desc": "Immediately",
+                        "confirm": "Are you sure?",
+                    },
+                ),
+            },
+            {
+                "title": "Notify",
+                "tasks": (
+                    {
+                        "value": "notify_library_changed",
+                        "title": "Notify Library Changed ",
+                        "desc": "Signal all clients that the libraries have changed and the browser should fetch new data.",
+                    },
+                    {
+                        "value": "notify_librarian_status",
+                        "title": "Notify Librarian Status",
+                        "desc": "Signal Admin clients to fetch librarian status.",
+                    },
+                ),
+            },
+            {
+                "title": "Cleanup",
+                "tasks": (
+                    {
+                        "value": "cleanup_fks",
+                        "title": "Remove Orphan Tags",
+                        "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly.",
+                    },
+                    {
+                        "value": "cleanup_db_custom_covers",
+                        "title": "Remove Orphan Database Custom Covers",
+                        "desc": "Remove Custom Covers from the db that no longer represent custom cover images on disk. Runs nightly.",
+                    },
+                    {
+                        "value": "cleanup_sessions",
+                        "title": "Cleanup Sessions",
+                        "desc": "Remove corrupt and expired sessions. Runs nightly.",
+                    },
+                    {
+                        "value": "cleanup_covers",
+                        "title": "Remove Orphan Cover Thumbnails",
+                        "desc": "no longer have source comics or custom images. Runs nightly.",
+                    },
+                    {
+                        "value": "adopt_folders",
+                        "title": "Adopt Orphan Folders",
+                        "desc": "Move orphaned folders from the top of the folder tree to under their correct parent. Runs nightly and at startup.",
+                    },
+                    {
+                        "value": "librarian_clear_status",
+                        "title": "Clear Librarian Statuses",
+                        "desc": "Mark all Librarian tasks finished.",
+                    },
+                    {
+                        "value": "janitor_nightly",
+                        "title": "Run Nightly Maintenance",
+                        "desc": "Runs several tasks above that also run nightly.",
+                        "confirm": "Launches several tasks that run nightly anyway.",
+                    },
+                ),
+            },
         )
     }
 )
+
+
+def _group_task_values(groups):
+    """Extract values into sorted tuple."""
+    values = []
+    for group in groups["tasks"]:
+        for item in group["tasks"]:
+            values.append(item["value"])
+    return tuple(sorted(values))
+
+
+ADMIN_TASKS = _group_task_values(ADMIN_TASK_GROUPS)
 WEBSOCKET_MESSAGES = MappingProxyType(
     {
         "messages": (

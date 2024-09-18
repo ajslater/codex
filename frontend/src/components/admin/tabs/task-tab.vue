@@ -11,7 +11,7 @@
       </span>
     </div>
     <div
-      v-for="group in ADMIN_TASKS"
+      v-for="group in tasks"
       :key="group.title"
       fixed-header
       class="taskGroup"
@@ -49,7 +49,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import ADMIN_TASKS from "@/choices/admin-tasks.json";
+import { tasks } from "@/choices/admin-tasks.json";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -61,7 +61,7 @@ export default {
   },
   data() {
     return {
-      ADMIN_TASKS,
+      tasks,
     };
   },
   computed: {

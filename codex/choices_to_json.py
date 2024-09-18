@@ -11,7 +11,7 @@ from caseconverter import camelcase
 from codex.choices import (
     ADMIN_FLAG_CHOICES,
     ADMIN_STATUS_TITLES,
-    ADMIN_TASKS,
+    ADMIN_TASK_GROUPS,
     BROWSER_CHOICES,
     BROWSER_DEFAULTS,
     READER_CHOICES,
@@ -30,7 +30,6 @@ _DUMPS = MappingProxyType(
         "reader-choices.json": READER_CHOICES,
         "admin-flag-choices.json": ADMIN_FLAG_CHOICES,
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
-        "admin-tasks.json": ADMIN_TASKS,
     }
 )
 
@@ -39,6 +38,7 @@ _MAP_DUMPS = MappingProxyType(
         "browser-map.json": BROWSER_CHOICES,
         "reader-map.json": READER_CHOICES,
         "browser-defaults.json": BROWSER_DEFAULTS,
+        "admin-tasks.json": ADMIN_TASK_GROUPS,
     }
 )
 
