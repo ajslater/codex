@@ -3,12 +3,10 @@
 from django.db.models.aggregates import Max, Min
 
 from codex.models import Comic
-from codex.views.browser.filters.annotations import (
-    BrowserAnnotationsFilterView,
-)
+from codex.views.browser.group_mtime import BrowserGroupMtimeView
 
 
-class BrowserOrderByView(BrowserAnnotationsFilterView):
+class BrowserOrderByView(BrowserGroupMtimeView):
     """Base class for views that need ordering."""
 
     def set_order_key(self):
@@ -48,12 +46,10 @@ class BrowserOrderByView(BrowserAnnotationsFilterView):
                 order_fields_head += ["updated_at"]
         return order_fields_head
 
-    def add_order_by(
-        self, qs, model, order_key="", do_reverse=True, comic_sort_names=None
-    ):
+    def add_order_by(self, qs, order_key="", do_reverse=True, comic_sort_names=None):
         """Create the order_by list."""
         order_fields_head = ()
-        if model == Comic:
+        if qs.model is Comic:
             order_fields_head = self._add_comic_order_by(order_key, comic_sort_names)
         else:
             order_fields_head = ["order_value"]

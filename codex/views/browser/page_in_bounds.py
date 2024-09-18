@@ -1,13 +1,13 @@
 """Browser Page Bounds Checking."""
 
 from codex.logger.logging import get_logger
-from codex.views.browser.annotations import BrowserAnnotationsView
+from codex.views.browser.annotate.card import BrowserAnnotateCardView
 from codex.views.util import Route
 
 LOG = get_logger(__name__)
 
 
-class BrowserPageInBoundsView(BrowserAnnotationsView):
+class BrowserPageInBoundsView(BrowserAnnotateCardView):
     """Browser Page Bounds Checking."""
 
     def _get_back_one_page_route(self, num_pages):

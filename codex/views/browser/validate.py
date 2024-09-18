@@ -3,9 +3,9 @@
 from copy import deepcopy
 from types import MappingProxyType
 
+from codex.choices import DEFAULT_BROWSER_ROUTE, mapping_to_dict
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
-from codex.serializers.choices import DEFAULTS
 from codex.views.browser.base import BrowserBaseView
 from codex.views.const import (
     COMIC_GROUP,
@@ -21,15 +21,12 @@ class BrowserValidateView(BrowserBaseView):
     """Browser Settings and URL Validation."""
 
     DEFAULT_ROUTE = MappingProxyType(
-        {
-            "name": "browser",
-            "params": deepcopy(DEFAULTS["breadcrumbs"][0]),
-        }
+        {"name": "browser", "params": DEFAULT_BROWSER_ROUTE}
     )
 
     def raise_redirect(self, reason, route_mask=None, settings_mask=None):
         """Redirect the client to a valid group url."""
-        route = deepcopy(dict(self.DEFAULT_ROUTE))
+        route = mapping_to_dict(self.DEFAULT_ROUTE)
         if route_mask:
             route["params"].update(route_mask)  # type: ignore
         settings = deepcopy(dict(self.params))

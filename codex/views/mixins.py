@@ -28,11 +28,11 @@ class SharedAnnotationsMixin:
         return order_groups
 
     @classmethod
-    def alias_sort_names(cls, qs, model, pks, model_group, show=None):
+    def alias_sort_names(cls, qs, pks, model_group, show=None):
         """Annotate sort names for browser subclasses and reader."""
         sort_name_annotations = {}
         comic_sort_names = []
-        if model == Comic:
+        if qs.model is Comic:
             order_groups = cls._get_order_groups(pks, model_group)
             for order_group in order_groups:
                 if show and not show.get(order_group):
@@ -43,7 +43,7 @@ class SharedAnnotationsMixin:
                 sort_name = F(f"{group_name}__{name_field}")
                 sort_name_annotations[ann_name] = sort_name
                 comic_sort_names.append(ann_name)
-        elif model == Volume:
+        elif qs.model is Volume:
             sort_name_annotations["sort_name"] = F("name")
 
         if sort_name_annotations:
@@ -51,14 +51,14 @@ class SharedAnnotationsMixin:
         return qs, comic_sort_names
 
     @classmethod
-    def annotate_group_names(cls, qs, model):
+    def annotate_group_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
         target = cls.TARGET  # type: ignore
         if target not in frozenset({"browser", "opds1", "opds2", "reader"}):
             return qs
         group_names = {}
-        if model == Comic:
+        if qs.model is Comic:
             if target != "reader":
                 group_names["publisher_name"] = F("publisher__name")
                 if target == "opds2":
@@ -69,8 +69,8 @@ class SharedAnnotationsMixin:
                     "volume_name": F("volume__name"),
                 }
             )
-        elif model == Volume:
+        elif qs.model is Volume:
             group_names["series_name"] = F("series__name")
-        elif model == Imprint:
+        elif qs.model is Imprint:
             group_names["publisher_name"] = F("publisher__name")
         return qs.annotate(**group_names)

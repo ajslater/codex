@@ -1,7 +1,7 @@
 """Low level database utilities."""
 
-import re
 import sqlite3
+import subprocess
 
 from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connection, connections
@@ -29,9 +29,9 @@ from codex.settings.settings import (
 )
 from codex.version import VERSION
 
-REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
-DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
-REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
+_REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
+_REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
+_REPAIR_ARGS = ("sqlite3", DB_PATH, ".recover")
 
 LOG = get_logger(__name__)
 
@@ -82,24 +82,38 @@ def _repair_db():
 def _rebuild_db():
     """Dump and rebuild the database."""
     # Drastic
-    if not REPAIR_FLAG_PATH.exists():
-        return
+    if not _REPAIR_FLAG_PATH.exists():
+        return False
 
     LOG.warning("REBUILDING DATABASE!!")
-    REPAIR_FLAG_PATH.unlink(missing_ok=True)
-    with sqlite3.connect(REBUILT_DB_PATH) as new_db_conn:
+    _REBUILT_DB_PATH.unlink(missing_ok=True)
+    recover_proc = subprocess.Popen(_REPAIR_ARGS, stdout=subprocess.PIPE)  # noqa: S603
+    with sqlite3.connect(_REBUILT_DB_PATH) as new_db_conn:
         new_db_cur = new_db_conn.cursor()
-        with sqlite3.connect(DB_PATH) as old_db_conn:
-            for line in old_db_conn.iterdump():
-                if DUMP_LINE_MATCHER.search(line):
-                    continue
-                new_db_cur.execute(line)
+        if recover_proc.stdout:
+            for line in recover_proc.stdout:
+                row = line.decode().strip()
+                replaced_row = (
+                    "PRAGMA writable_schema = reset;"
+                    if row == "PRAGMA writable_schema = off;"
+                    else row
+                )
+                new_db_cur.execute(replaced_row)
+        new_db_cur.close()
+    if recover_proc.stdout:
+        recover_proc.stdout.close()
+        recover_proc.wait(timeout=15)
 
     backup_path = _get_backup_db_path("before-rebuild")
     DB_PATH.rename(backup_path)
     LOG.info("Backed up old db to %s", backup_path)
-    REBUILT_DB_PATH.replace(DB_PATH)
+    _REBUILT_DB_PATH.replace(DB_PATH)
+    _REPAIR_FLAG_PATH.unlink(missing_ok=True)
     LOG.info("Rebuilt database.")
+    LOG.info("You may start codex normally now.")
+    for handler in LOG.handlers:
+        handler.flush()
+    return True
 
 
 def ensure_db_schema():
@@ -107,7 +121,8 @@ def ensure_db_schema():
     LOG.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()
     if db_exists := "django_migrations" in table_names:
-        _rebuild_db()
+        if _rebuild_db():
+            return False
         _repair_db()
 
     if not db_exists or _has_unapplied_migrations():
@@ -117,3 +132,4 @@ def ensure_db_schema():
     else:
         LOG.info("Database up to date.")
     LOG.info("Database ready.")
+    return True

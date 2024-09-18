@@ -59,6 +59,10 @@ class BrowserView(BrowserTitleView):
     )
     TARGET = "browser"
 
+    ########
+    # Init #
+    ########
+
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
@@ -134,7 +138,7 @@ class BrowserView(BrowserTitleView):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
-        count_qs = self.add_group_by(qs, model)
+        count_qs = self.add_group_by(qs)
         try:
             if limit:
                 count_qs = count_qs[:limit]
@@ -148,10 +152,12 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            qs = self.annotate_order_aggregates(qs, model)
-            qs = self.add_order_by(qs, model)
+            qs = self.annotate_order_aggregates(qs)
+            qs = self.add_order_by(qs)
             if limit:
                 qs = qs[:limit]
+        else:
+            qs = qs.order_by("pk")
 
         return qs, count
 
@@ -160,8 +166,8 @@ class BrowserView(BrowserTitleView):
         if not self.model:
             reason = "Model not set for browser queryset."
             raise ValueError(reason)
-        if self.is_model_comic:
-            qs = self.model.objects.none()
+        if self.model is Comic:
+            qs = self.model.objects.none().order_by("pk")
             count = 0
         else:
             qs, count = self._get_common_queryset(self.model)
@@ -173,7 +179,7 @@ class BrowserView(BrowserTitleView):
         if self.model in (Comic, Folder):
             qs, count = self._get_common_queryset(Comic)
         else:
-            qs = Comic.objects.none()
+            qs = Comic.objects.none().order_by("pk")
             count = 0
         return qs, count
 
@@ -185,15 +191,15 @@ class BrowserView(BrowserTitleView):
             reason = "No model to compute max bookmark updated_at"
             raise ValueError(reason)
 
-        qs = self.model.objects.filter(pk=OuterRef("pk"))
-
+        qs = group_qs.model.objects.filter(pk=OuterRef("pk"))
         bm_rel, bm_filter = self.get_bookmark_rel_and_filter(self.model)
         bm_updated_at_rel = f"{bm_rel}__updated_at"
         max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
+        qs = qs.annotate(max_bmua=max_bmua)
+        qs = qs.values("max_bmua")
+        subquery = Subquery(qs)
 
-        mbua = qs.aggregate(max=max_bmua)["max"]
-
-        return group_qs.annotate(max_bookmark_updated_at=Subquery(mbua))
+        return group_qs.annotate(max_bookmark_updated_at=subquery)
 
     @staticmethod
     def _get_zero_pad(book_qs):
@@ -228,11 +234,11 @@ class BrowserView(BrowserTitleView):
 
         # Annotate
         if page_group_count:
-            group_qs = self.annotate_card_aggregates(group_qs, self.model)
+            group_qs = self.annotate_card_aggregates(group_qs)
             group_qs = self._requery_max_bookmark_updated_at(group_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
-            book_qs = self.annotate_card_aggregates(book_qs, Comic)
+            book_qs = self.annotate_card_aggregates(book_qs)
         else:
             zero_pad = 1
 

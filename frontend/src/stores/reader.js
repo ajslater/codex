@@ -5,8 +5,9 @@ import { defineStore } from "pinia";
 
 import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
-import API, { getComicPageSource } from "@/api/v3/reader";
-import CHOICES from "@/choices";
+import READER_API, { getComicPageSource } from "@/api/v3/reader";
+import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
+import READER_CHOICES from "@/choices/reader-choices.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 
@@ -45,8 +46,8 @@ const OPPOSITE_READING_DIRECTIONS = {
 };
 Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
-const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
-Object.freeze(FIT_TO_CHOICES);
+const FIT_TO_CLASSES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
+Object.freeze(FIT_TO_CLASSES);
 const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
 Object.freeze(READER_INFO_KEYS);
 const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
@@ -66,7 +67,7 @@ const ROUTES_NULL = {
     prev: false,
     next: false,
   },
-  close: CHOICES.browser.breadcrumbs[0],
+  close: BROWSER_DEFAULTS.breadcrumbs[0],
 };
 Object.freeze(ROUTES_NULL);
 
@@ -93,22 +94,22 @@ export const useReaderStore = defineStore("reader", {
   state: () => ({
     // static
     choices: {
-      fitTo: CHOICES.reader.fitTo,
-      readingDirection: CHOICES.reader.readingDirection,
+      fitTo: READER_CHOICES.fitTo,
+      readingDirection: READER_CHOICES.readingDirection,
       nullValues: SETTINGS_NULL_VALUES,
     },
 
     // server
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
-      twoPages: CHOICES.reader.twoPages,
+      twoPages: READER_CHOICES.twoPages,
       readingDirection: "ltr",
-      readRtlInReverse: CHOICES.reader.readRtlInReverse,
-      finishOnLastPage: CHOICES.reader.finishOnLastPage,
+      readRtlInReverse: READER_CHOICES.readRtlInReverse,
+      finishOnLastPage: READER_CHOICES.finishOnLastPage,
     },
     browserSettings: {
-      breadcrumbs: CHOICES.browser.breadcrumbs,
-      show: CHOICES.browser.show,
+      breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,
+      show: BROWSER_DEFAULTS.show,
       topGroup: "p",
     },
     books: deepClone(BOOKS_NULL),
@@ -206,7 +207,7 @@ export const useReaderStore = defineStore("reader", {
           route.hash = `#card-${cardPk}`;
         }
       } else {
-        params = window.CODEX.LAST_ROUTE || CHOICES.browser.breadcrumbs[0];
+        params = window.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
       }
       route.params = params;
       return route;
@@ -223,8 +224,8 @@ export const useReaderStore = defineStore("reader", {
       return usedFilters;
     },
     browserArc(state) {
-      const closeRoute = state.routes.close;
-      if (closeRoute && closeRoute.pks !== "0") {
+      const closeRoute = state.routes?.close;
+      if (closeRoute && closeRoute.pks && closeRoute.pks !== "0") {
         return {
           group: closeRoute.group,
           pks: closeRoute.pks,
@@ -363,7 +364,7 @@ export const useReaderStore = defineStore("reader", {
       if (this.clientSettings.scale > SCALE_DEFAULT) {
         fitTo = "Orig";
       } else {
-        fitTo = FIT_TO_CHOICES[bookSettings.fitTo];
+        fitTo = FIT_TO_CLASSES[bookSettings.fitTo];
       }
       if (fitTo) {
         let fitToClass = "fitTo";
@@ -499,7 +500,7 @@ export const useReaderStore = defineStore("reader", {
         .catch(console.error);
     },
     async loadReaderSettings() {
-      API.getReaderSettings()
+      READER_API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
@@ -527,7 +528,7 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await API.getReaderInfo(pk, settings, mtime)
+      await READER_API.getReaderInfo(pk, settings, mtime)
         .then((response) => {
           const data = response.data;
           const books = data.books;
@@ -618,7 +619,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async setSettingsGlobal(data) {
       this._updateSettings(data, false);
-      await API.udpateReaderSettings(this.readerSettings);
+      await READER_API.updateReaderSettings(this.readerSettings);
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {

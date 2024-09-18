@@ -1,8 +1,8 @@
 """Views for reading comic books."""
 
-from copy import deepcopy
 from types import MappingProxyType
 
+from codex.choices import mapping_to_dict
 from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.serializers.reader import (
@@ -116,7 +116,7 @@ class ReaderInitView(SessionView):
             serializer = self.input_serializer_class(data=data)
             serializer.is_valid(raise_exception=True)
 
-            params = deepcopy(_DEFAULT_PARAMS)
+            params: dict = mapping_to_dict(_DEFAULT_PARAMS) # type: ignore
             if serializer.validated_data:
                 params.update(serializer.validated_data)  # type: ignore
             self._ensure_arc_contains_comic(params)

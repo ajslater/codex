@@ -6,11 +6,11 @@ from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
 
+from codex.choices import ADMIN_FLAG_CHOICES, ADMIN_STATUS_TITLES
 from codex.db import ensure_db_schema
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
-from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
@@ -56,7 +56,7 @@ def init_admin_flags():
         defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
-            title = CHOICES["admin"]["adminFlags"][flag.key]
+            title = ADMIN_FLAG_CHOICES[flag.key]
             LOG.info(f"Created AdminFlag: {title} = {flag.on}")
 
 
@@ -83,7 +83,7 @@ def init_librarian_statuses():
             defaults=STATUS_DEFAULTS, status_type=status_type
         )
         if created:
-            title = CHOICES["admin"]["statusTitles"][status_type]
+            title = ADMIN_STATUS_TITLES[status_type]
             LOG.debug(f"Created {title} LibrarianStatus.")
 
 
@@ -176,10 +176,12 @@ def ensure_db_rows():
 
 def codex_init():
     """Initialize the database and start the daemons."""
-    ensure_db_schema()
+    if not ensure_db_schema():
+        return False
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
     LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
         LOG.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
+    return True

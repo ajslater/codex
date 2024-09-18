@@ -15,7 +15,7 @@ from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover
 from codex.serializers.browser.settings import BrowserCoverInputSerializer
-from codex.views.browser.annotations import BrowserAnnotationsView
+from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 from codex.views.const import (
     CUSTOM_COVER_GROUP_RELATION,
     GROUP_RELATION,
@@ -41,7 +41,7 @@ class WEBPRenderer(BaseRenderer):
         return data
 
 
-class CoverView(BrowserAnnotationsView):
+class CoverView(BrowserAnnotateOrderView):
     """ComicCover View."""
 
     input_serializer_class = BrowserCoverInputSerializer
@@ -49,7 +49,7 @@ class CoverView(BrowserAnnotationsView):
     content_type = "image/webp"
     TARGET = "cover"
     REPARSE_JSON_FIELDS = frozenset(
-        BrowserAnnotationsView.REPARSE_JSON_FIELDS | {"parent"}
+        BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
     )
 
     def get_group_filter(self, group=None, pks=None, page_mtime=False):
@@ -86,7 +86,7 @@ class CoverView(BrowserAnnotationsView):
 
     def _get_custom_cover(self):
         """Get Custom Cover."""
-        if self.model == Volume or not self.params.get("custom_covers"):
+        if self.model is Volume or not self.params.get("custom_covers"):
             return None
         group = self.kwargs["group"]
         group_rel = CUSTOM_COVER_GROUP_RELATION[group]
@@ -99,8 +99,8 @@ class CoverView(BrowserAnnotationsView):
     def _get_dynamic_cover(self):
         """Get dynamic cover."""
         comic_qs = self.get_filtered_queryset(Comic)
-        comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
-        comic_qs = self.add_order_by(comic_qs, Comic)
+        comic_qs = self.annotate_order_aggregates(comic_qs)
+        comic_qs = self.add_order_by(comic_qs)
         comic_qs = comic_qs.only("pk")
         comic = comic_qs.first()
         cover_pk = comic.pk if comic else 0
@@ -108,7 +108,7 @@ class CoverView(BrowserAnnotationsView):
 
     def _get_cover_pk(self) -> tuple[int, bool]:
         """Get Cover Pk queryset for comic queryset."""
-        if self.model == Comic:
+        if self.model is Comic:
             cover_pk, custom = self._get_comic_cover()
         elif custom_cover := self._get_custom_cover():
             cover_pk = custom_cover.pk
@@ -148,7 +148,7 @@ class CoverView(BrowserAnnotationsView):
         return cover_file, content_type
 
     @extend_schema(
-        parameters=[BrowserAnnotationsView.input_serializer_class],
+        parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
     def get(self, *args, **kwargs):  # type: ignore

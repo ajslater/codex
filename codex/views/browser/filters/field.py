@@ -5,12 +5,17 @@ from types import MappingProxyType
 from django.db.models import Q
 
 from codex.views.browser.filters.group import GroupFilterView
+from codex.views.session import (
+    CONTRIBUTOR_PERSON_UI_FIELD,
+    IDENTIFIER_TYPE_UI_FIELD,
+    STORY_ARC_UI_FIELD,
+)
 
 _FILTER_REL_MAP = MappingProxyType(
     {
-        GroupFilterView.CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
-        GroupFilterView.STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
-        GroupFilterView.IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
+        CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
+        STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
+        IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
     }
 )
 

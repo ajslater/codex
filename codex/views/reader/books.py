@@ -118,12 +118,12 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
             )
             .annotate(mtime=F("updated_at"))
         )
-        qs = self.annotate_group_names(qs, Comic)
+        qs = self.annotate_group_names(qs)
         if arc_group in ("v", "s"):
             show = self.params["show"]
             model_group = "i" if arc_group == "s" else "s"
             qs, comic_sort_names = self.alias_sort_names(
-                qs, Comic, pks=arc_pks, model_group=model_group, show=show
+                qs, pks=arc_pks, model_group=model_group, show=show
             )
             ordering = (
                 *comic_sort_names,

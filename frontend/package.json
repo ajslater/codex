@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.7.0-a0",
+  "version": "1.7.0-a1",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -8,8 +8,8 @@
     "build": "vite build",
     "coverage": "vitest run --coverage",
     "dev": "vite dev",
-    "fix": "eslint --fix . && prettier --write .",
-    "lint": "eslint . && prettier --check .",
+    "fix": "eslint_d --fix . && prettierd --write .",
+    "lint": "eslint_d . && prettierd --check .",
     "remark": "remark . --output",
     "test": "vitest --reporter verbose --update",
     "test:ci": "vitest run --reporter verbose --update"
@@ -51,7 +51,7 @@
     "vite": "^5.0.10",
     "vite-plugin-checker": "^0.8.0",
     "vite-plugin-dynamic-base": "^1.0.0",
-    "vite-plugin-static-copy": "^1.0.0",
+    "vite-plugin-run": "^0.6.0",
     "vite-plugin-vuetify": "^2.0.1",
     "vitest": "^2.0.1",
     "vue-eslint-parser": "^9.0.2"
