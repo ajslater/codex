@@ -5,7 +5,7 @@ import { defineStore } from "pinia";
 
 import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
-import API, { getComicPageSource } from "@/api/v3/reader";
+import READER_API, { getComicPageSource } from "@/api/v3/reader";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import READER_CHOICES from "@/choices/reader-choices.json";
 import { getFullComicName } from "@/comic-name";
@@ -500,7 +500,7 @@ export const useReaderStore = defineStore("reader", {
         .catch(console.error);
     },
     async loadReaderSettings() {
-      API.getReaderSettings()
+      READER_API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
@@ -528,7 +528,7 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await API.getReaderInfo(pk, settings, mtime)
+      await READER_API.getReaderInfo(pk, settings, mtime)
         .then((response) => {
           const data = response.data;
           const books = data.books;
@@ -619,7 +619,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async setSettingsGlobal(data) {
       this._updateSettings(data, false);
-      await API.udpateReaderSettings(this.readerSettings);
+      await READER_API.updateReaderSettings(this.readerSettings);
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
