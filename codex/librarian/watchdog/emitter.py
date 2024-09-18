@@ -1,5 +1,6 @@
 """A Codex database event emitter for use by the observer."""
 
+from logging import DEBUG, WARNING
 from pathlib import Path
 from threading import Condition
 
@@ -91,29 +92,30 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
+        ok = False
+        msg = ""
+        log_level = WARNING
         if not library.poll:
             # Wait forever. Manual poll only
-            return None
-        if not self._watch_path.is_dir():
-            self.log.warning(f"Library {self._watch_path} not found.")
-            return False
-        if self._watch_path_unmounted.exists():
+            ok = None
+        elif not self._watch_path.is_dir():
+            msg = f"Library {self._watch_path} not found. Not Polling."
+        elif self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
-            self.log.warning(
-                f"Library {self._watch_path} looks like an unmounted docker volume."
-            )
-            return False
-        if not tuple(self._watch_path.iterdir()):
+            msg = f"Library {self._watch_path} looks like an unmounted docker volume. Not polling."
+        elif not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
-            self.log.warning(
-                f"{self._watch_path} is empty. Suspect it may be unmounted."
-            )
-            return False
-        if library.update_in_progress:
-            self.log.warning(f"Library {library.path} update in progress.")
-            return False
+            msg = f"{self._watch_path} is empty. Suspect it may be unmounted. Not polling."
+        elif library.update_in_progress:
+            msg = f"Library {library.path} update in progress. Not polling."
+            log_level = DEBUG
+        else:
+            ok = True
 
-        return True
+        if msg:
+            self.log.log(log_level, msg)
+
+        return ok
 
     @property
     def timeout(self) -> int | None:  # type: ignore

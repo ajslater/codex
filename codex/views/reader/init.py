@@ -116,7 +116,7 @@ class ReaderInitView(SessionView):
             serializer = self.input_serializer_class(data=data)
             serializer.is_valid(raise_exception=True)
 
-            params: dict = mapping_to_dict(_DEFAULT_PARAMS) # type: ignore
+            params: dict = mapping_to_dict(_DEFAULT_PARAMS)  # type: ignore
             if serializer.validated_data:
                 params.update(serializer.validated_data)  # type: ignore
             self._ensure_arc_contains_comic(params)
