@@ -21,7 +21,7 @@ Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
   null,
-  BROWSER_CHOICES.bookmarkFilter[0].value,
+  BROWSER_DEFAULTS.bookmarkFilter,
 ]);
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
