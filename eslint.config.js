@@ -14,7 +14,6 @@ import eslintPluginRegexp from "eslint-plugin-regexp";
 import eslintPluginSecurity from "eslint-plugin-security";
 import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
 import eslintPluginSonarjs from "eslint-plugin-sonarjs";
-import eslintPluginSwitchCase from "eslint-plugin-switch-case";
 import eslintPluginToml from "eslint-plugin-toml";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import eslintPluginYml from "eslint-plugin-yml";

@@ -56,7 +56,6 @@
   "devDependencies": {
     "@fsouza/prettierd": "^0.25.0",
     "@prettier/plugin-xml": "^3.0.0",
-    "@typescript-eslint/utils": "^8.2.0",
     "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-array-func": "^5.0.1",

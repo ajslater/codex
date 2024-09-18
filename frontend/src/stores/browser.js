@@ -48,10 +48,6 @@ const notEmptyOrBool = (value) => {
   return (value && Object.keys(value).length) || typeof value === "boolean";
 };
 
-const notEmptyOrBool = (value) => {
-  return (value && Object.keys(value).length) || typeof value === "boolean";
-};
-
 export const useBrowserStore = defineStore("browser", {
   state: () => ({
     choices: {

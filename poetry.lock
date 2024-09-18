@@ -1996,27 +1996,27 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyreadline3"
-version = "3.5.2"
+version = "3.5.3"
 description = "A python implementation of GNU readline."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pyreadline3-3.5.2-py3-none-any.whl", hash = "sha256:a87d56791e2965b2b187e2ea33dcf664600842c997c0623c95cf8ef07db83de9"},
-    {file = "pyreadline3-3.5.2.tar.gz", hash = "sha256:ba82292e52c5a3bb256b291af0c40b457c1e8699cac9a873abbcaac8aef3a1bb"},
+    {file = "pyreadline3-3.5.3-py3-none-any.whl", hash = "sha256:ddede153a92e5aad9c1fe63d692efd6a3e478f686adcd4938a051ffb63ec4f52"},
+    {file = "pyreadline3-3.5.3.tar.gz", hash = "sha256:9234684ca75a00a702fda42b17cc26ca665bc9d7c2da06af450468253099ff61"},
 ]
 
 [package.extras]
-dev = ["build", "flake8", "pytest", "twine"]
+dev = ["build", "flake8", "mypy", "pytest", "twine"]
 
 [[package]]
 name = "pyright"
-version = "1.1.380"
+version = "1.1.381"
 description = "Command line wrapper for pyright"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.380-py3-none-any.whl", hash = "sha256:a6404392053d8848bacc7aebcbd9d318bb46baf1a1a000359305481920f43879"},
-    {file = "pyright-1.1.380.tar.gz", hash = "sha256:e6ceb1a5f7e9f03106e0aa1d6fbb4d97735a5e7ffb59f3de6b2db590baf935b2"},
+    {file = "pyright-1.1.381-py3-none-any.whl", hash = "sha256:5dc0aa80a265675d36abab59c674ae01dbe476714f91845b61b841d34aa99081"},
+    {file = "pyright-1.1.381.tar.gz", hash = "sha256:314cf0c1351c189524fb10c7ac20688ecd470e8cc505c394d642c9c80bf7c3a5"},
 ]
 
 [package.dependencies]
