@@ -53,7 +53,7 @@ class AdminStatsView(AdminGenericAPIView):
             obj["config"] = {}
         obj["config"]["api_key"] = api_key
 
-    def get_object(self):
+    def get_object(self): # type: ignore
         """Get the stats object with an api key."""
         getter = CodexStats(self.params)
         obj = getter.get()

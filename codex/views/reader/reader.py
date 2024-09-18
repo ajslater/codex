@@ -58,7 +58,7 @@ class ReaderView(ReaderArcsView):
             task = LazyImportComicsTask(frozenset(import_pks))
             LIBRARIAN_QUEUE.put(task)
 
-    def get_object(self):
+    def get_object(self): # type: ignore
         """Get the previous and next comics in a group or story arc."""
         # Books
         books = self.get_book_collection()

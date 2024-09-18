@@ -249,7 +249,7 @@ class BrowserView(BrowserTitleView):
         mtime = self._get_page_mtime()
         return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
-    def get_object(self):
+    def get_object(self): # type: ignore
         """Validate settings and get the querysets."""
         group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
             self._get_group_and_books()
