@@ -52,6 +52,11 @@ const config = defineConfig(({ mode }) => {
     },
     css: {
       devSourcemap: DEV,
+      preprocessorOptions: {
+        scss: {
+          api: "modern",
+        },
+      },
     },
     define: defineObj,
     plugins: [
