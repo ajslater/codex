@@ -1,4 +1,5 @@
 """Frontend Choices, Defaults and Messages."""
+
 from types import MappingProxyType
 
 BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(

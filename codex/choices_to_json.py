@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Dump choices to JSON."""
+
 import json
 from collections.abc import Mapping
 from pathlib import Path
