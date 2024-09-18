@@ -46,8 +46,8 @@ const OPPOSITE_READING_DIRECTIONS = {
 };
 Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
-const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
-Object.freeze(FIT_TO_CHOICES);
+const FIT_TO_CLASSES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
+Object.freeze(FIT_TO_CLASSES);
 const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
 Object.freeze(READER_INFO_KEYS);
 const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
@@ -364,7 +364,7 @@ export const useReaderStore = defineStore("reader", {
       if (this.clientSettings.scale > SCALE_DEFAULT) {
         fitTo = "Orig";
       } else {
-        fitTo = FIT_TO_CHOICES[bookSettings.fitTo];
+        fitTo = FIT_TO_CLASSES[bookSettings.fitTo];
       }
       if (fitTo) {
         let fitToClass = "fitTo";
