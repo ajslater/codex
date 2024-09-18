@@ -69,6 +69,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
 
     CARD_TARGETS = frozenset({"browser", "metadata"})
+    _COVER_AND_CARD_TARGETS = frozenset(CARD_TARGETS | {"cover"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -190,7 +191,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_search_scores(self, qs):
         """Annotate Search Scores."""
-        if self.TARGET not in self.CARD_TARGETS or self.order_key != "search_score":
+        if self.TARGET not in self._COVER_AND_CARD_TARGETS or self.order_key != "search_score":
             return qs
         return qs.annotate(search_score=ComicFTSRank())
 
