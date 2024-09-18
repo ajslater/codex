@@ -23,20 +23,25 @@ from codex.serializers.browser.filters import (
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.views.browser.filters.filter import BrowserFilterView
+from codex.views.session import (
+    CONTRIBUTOR_PERSON_UI_FIELD,
+    IDENTIFIER_TYPE_UI_FIELD,
+    STORY_ARC_UI_FIELD,
+)
 
 LOG = get_logger(__name__)
 
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
-        BrowserFilterView.CONTRIBUTOR_PERSON_UI_FIELD: (
+        CONTRIBUTOR_PERSON_UI_FIELD: (
             "contributors__person",
             ContributorPerson,
         ),
-        BrowserFilterView.STORY_ARC_UI_FIELD: (
+        STORY_ARC_UI_FIELD: (
             "story_arc_numbers__story_arc",
             StoryArc,
         ),
-        BrowserFilterView.IDENTIFIER_TYPE_UI_FIELD: (
+        IDENTIFIER_TYPE_UI_FIELD: (
             "identifiers__identifier_type",
             IdentifierType,
         ),

@@ -11,70 +11,56 @@ from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
+CONTRIBUTOR_PERSON_UI_FIELD = "contributors"
+STORY_ARC_UI_FIELD = "story_arcs"
+IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
+
+_DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
+    {
+        "age_rating": [],
+        "characters": [],
+        "country": [],
+        CONTRIBUTOR_PERSON_UI_FIELD: [],
+        "community_rating": [],
+        "critical_rating": [],
+        "decade": [],
+        "file_type": [],
+        "genres": [],
+        IDENTIFIER_TYPE_UI_FIELD: [],
+        "language": [],
+        "locations": [],
+        "monochrome": [],
+        "original_format": [],
+        "reading_direction": [],
+        "series_groups": [],
+        "stories": [],
+        STORY_ARC_UI_FIELD: [],
+        "tagger": [],
+        "tags": [],
+        "teams": [],
+        "year": [],
+    }
+)
+
 
 class SessionView(AuthFilterGenericAPIView, ABC):
     """Generic Session View."""
 
-    # Must override both of these
+    # Must override this
     SESSION_KEY = ""
-
-    CONTRIBUTOR_PERSON_UI_FIELD = "contributors"
-    STORY_ARC_UI_FIELD = "story_arcs"
-    IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
-    _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
-        {
-            "age_rating": [],
-            "characters": [],
-            "country": [],
-            CONTRIBUTOR_PERSON_UI_FIELD: [],
-            "community_rating": [],
-            "critical_rating": [],
-            "decade": [],
-            "file_type": [],
-            "genres": [],
-            IDENTIFIER_TYPE_UI_FIELD: [],
-            "language": [],
-            "locations": [],
-            "monochrome": [],
-            "original_format": [],
-            "reading_direction": [],
-            "series_groups": [],
-            "stories": [],
-            STORY_ARC_UI_FIELD: [],
-            "tagger": [],
-            "tags": [],
-            "teams": [],
-            "year": [],
-        }
-    )
     FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
     BROWSER_SESSION_KEY = "browser"
     READER_SESSION_KEY = "reader"
     SESSION_DEFAULTS = MappingProxyType(
         {
             BROWSER_SESSION_KEY: {
-                "breadcrumbs": BROWSER_DEFAULTS["breadcrumbs"],
-                "custom_covers": BROWSER_DEFAULTS["customCovers"],
+                **BROWSER_DEFAULTS,
                 "filters": {
-                    "bookmark": BROWSER_DEFAULTS["bookmarkFilter"],
+                    "bookmark": BROWSER_DEFAULTS["bookmark_filter"],
                     **_DYNAMIC_FILTER_DEFAULTS,
                 },
-                "order_by": BROWSER_DEFAULTS["orderBy"],
-                "order_reverse": BROWSER_DEFAULTS["orderReverse"],
-                "q": BROWSER_DEFAULTS["q"],
-                "search_results_limit": BROWSER_DEFAULTS["searchResultsLimit"],
-                "show": BROWSER_DEFAULTS["show"],
-                "dynamic_covers": BROWSER_DEFAULTS["dynamicCovers"],
-                "top_group": BROWSER_DEFAULTS["topGroup"],
-                "twenty_four_hour_time": BROWSER_DEFAULTS["twentyFourHourTime"],
             },
-            READER_SESSION_KEY: {
-                "finish_on_last_page": READER_DEFAULTS["finishOnLastPage"],
-                "fit_to": READER_DEFAULTS["fitTo"],
-                "two_pages": READER_DEFAULTS["twoPages"],
-                "read_rtl_in_reverse": READER_DEFAULTS["readRtlInReverse"],
-                "reading_direction": READER_DEFAULTS["readingDirection"],
-            },
+            READER_SESSION_KEY: READER_DEFAULTS,
         }
     )
 

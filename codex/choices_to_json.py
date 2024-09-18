@@ -34,7 +34,7 @@ _DUMPS = MappingProxyType(
     }
 )
 
-_LOOKUP_DUMPS = MappingProxyType(
+_MAP_DUMPS = MappingProxyType(
     {
         "browser-map.json": BROWSER_CHOICES,
         "reader-map.json": READER_CHOICES,
@@ -58,10 +58,18 @@ def _to_vuetify_choices(defaults, key, obj_map):
     return vuetify_list
 
 
+def _json_key(key):
+    """Transform key to json version."""
+    return key if key.upper() == key else camelcase(key)
+
+
 def _make_json_serializable(data):
     """Convert nested Mapping objects to dicts."""
     if isinstance(data, Mapping):
-        return {key: _make_json_serializable(value) for key, value in data.items()}
+        return {
+            _json_key(key): _make_json_serializable(value)
+            for key, value in data.items()
+        }
     if isinstance(data, list | tuple | frozenset | set):
         return [_make_json_serializable(item) for item in data]
     return data
@@ -76,7 +84,7 @@ def _to_vuetify_dict(fn, data):
             vuetify_value = _to_vuetify_choices(defaults, key, obj)
         else:
             vuetify_value = _make_json_serializable(obj)
-        vuetify_data[camelcase(key)] = vuetify_value
+        vuetify_data[_json_key(key)] = vuetify_value
     return vuetify_data
 
 
@@ -100,7 +108,7 @@ def main():
     for fn, data in _DUMPS.items():
         _dump(parent_path, fn, data)
 
-    for fn, data in _LOOKUP_DUMPS.items():
+    for fn, data in _MAP_DUMPS.items():
         _dump(parent_path, fn, data, False)
 
 

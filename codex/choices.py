@@ -41,11 +41,11 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
 
 BROWSER_CHOICES = MappingProxyType(
     {
-        "bookmarkFilter": BROWSER_BOOKMARK_FILTER_CHOICES,
-        "orderBy": BROWSER_ORDER_BY_CHOICES,
-        "topGroup": BROWSER_TOP_GROUP_CHOICES,
-        "vuetifyNullValue": -1,
-        "groupNames": {
+        "bookmark_filter": BROWSER_BOOKMARK_FILTER_CHOICES,
+        "order_by": BROWSER_ORDER_BY_CHOICES,
+        "top_group": BROWSER_TOP_GROUP_CHOICES,
+        "vuetify_null_value": -1,
+        "group_names": {
             "p": "Publishers",
             "i": "Imprints",
             "s": "Series",
@@ -54,7 +54,7 @@ BROWSER_CHOICES = MappingProxyType(
             "f": "Folders",
             "a": "Story Arcs",
         },
-        "identifierTypes": {
+        "identifier_types": {
             "comicvine": "Comic Vine",
             "comixology": "Comixology",
             "asin": "Amazon",
@@ -67,7 +67,7 @@ BROWSER_CHOICES = MappingProxyType(
 
 READER_CHOICES = MappingProxyType(
     {
-        "fitTo": MappingProxyType(
+        "fit_to": MappingProxyType(
             {
                 "H": "Fit to Height",
                 "O": "Original Size",
@@ -75,7 +75,7 @@ READER_CHOICES = MappingProxyType(
                 "W": "Fit to Width",
             }
         ),
-        "readingDirection": MappingProxyType(
+        "reading_direction": MappingProxyType(
             {
                 "btt": "Bottom to Top",
                 "ltr": "Left to Right",
@@ -90,26 +90,26 @@ _DEFAULT_BROWSER_BREADCRUMBS = (DEFAULT_BROWSER_ROUTE,)
 _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
 BROWSER_DEFAULTS = MappingProxyType(
     {
-        "bookmarkFilter": "",
+        "bookmark_filter": "",
         "breadcrumbs": _DEFAULT_BROWSER_BREADCRUMBS,
-        "customCovers": True,
-        "dynamicCovers": True,
-        "orderBy": "sort_name",
-        "orderReverse": False,
+        "custom_covers": True,
+        "dynamic_covers": True,
+        "order_by": "sort_name",
+        "order_reverse": False,
         "q": "",
-        "searchResultsLimit": 100,
+        # "search_results_limit": 100,
         "show": _DEFAULT_SHOW,
-        "topGroup": "p",
-        "twentyFourHourTime": False,
+        "top_group": "p",
+        "twenty_four_hour_time": False,
     }
 )
 READER_DEFAULTS = MappingProxyType(
     {
-        "finishOnLastPage": True,
-        "fitTo": "S",
-        "readingDirection": "ltr",
-        "readRtlInReverse": False,
-        "twoPages": False,
+        "finish_on_last_page": True,
+        "fit_to": "S",
+        "reading_direction": "ltr",
+        "read_rtl_in_reverse": False,
+        "two_pages": False,
     }
 )
 
