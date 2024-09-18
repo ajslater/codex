@@ -175,6 +175,7 @@ ADMIN_STATUS_TITLES = MappingProxyType(
     }
 )
 
+# Easier to store in vuetify format
 ADMIN_TASK_GROUPS = MappingProxyType(
     {
         "tasks": (
