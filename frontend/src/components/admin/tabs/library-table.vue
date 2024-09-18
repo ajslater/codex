@@ -121,8 +121,6 @@ export default {
   computed: {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
-      // libraries: (state) => state.libraries,
-      // customCoversDirs: (state) => state.customCoversDirs,
       items(state) {
         const annotatedItems = [];
         for (const library of state.libraries) {
