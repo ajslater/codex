@@ -167,6 +167,12 @@ build-backend: collectstatic check
 ## @category Build
 build: build-frontend build-backend
 
+.PHONY: choices
+## Build JSON choices for frontend
+## @category Build
+choices:
+	./bin/build-choices.sh
+
 .PHONY: kill
 ## Kill lingering codex processes
 ## @category Run Server
