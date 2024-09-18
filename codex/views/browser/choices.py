@@ -54,9 +54,7 @@ _BACK_REL_MAP = MappingProxyType(
         IdentifierType: "identifier__",
     }
 )
-_NULL_NAMED_ROW = MappingProxyType(
-    {"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME}
-)
+_NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
 
 
 class BrowserChoicesViewBase(BrowserFilterView):

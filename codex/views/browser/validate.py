@@ -3,7 +3,7 @@
 from copy import deepcopy
 from types import MappingProxyType
 
-from codex.choices import DEFAULT_BROWSER_ROUTE
+from codex.choices import DEFAULT_BROWSER_ROUTE, mapping_to_dict
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.views.browser.base import BrowserBaseView
@@ -26,7 +26,7 @@ class BrowserValidateView(BrowserBaseView):
 
     def raise_redirect(self, reason, route_mask=None, settings_mask=None):
         """Redirect the client to a valid group url."""
-        route = dict(self.DEFAULT_ROUTE)
+        route = mapping_to_dict(self.DEFAULT_ROUTE)
         if route_mask:
             route["params"].update(route_mask)  # type: ignore
         settings = deepcopy(dict(self.params))

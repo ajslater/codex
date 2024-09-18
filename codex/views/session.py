@@ -4,7 +4,7 @@ from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
 
-from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS
+from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS, mapping_to_dict
 from codex.logger.logging import get_logger
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
@@ -114,9 +114,11 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             defaults = {}
             for key in only:
                 if key:
-                    defaults[key] = self.SESSION_DEFAULTS[session_key][key]
+                    defaults[key] = mapping_to_dict(
+                        self.SESSION_DEFAULTS[session_key][key]
+                    )
         else:
-            defaults = self.SESSION_DEFAULTS[session_key]
+            defaults = mapping_to_dict(self.SESSION_DEFAULTS[session_key])
 
         session = self.request.session.get(session_key, defaults)
         return self._get_source_values_or_set_defaults(defaults, session, {})
@@ -126,7 +128,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
         try:
             # Deepcopy this so serializing the values later later for http response doesn't alter them
             params = deepcopy(dict(params))
-            defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
+            defaults = mapping_to_dict(self.SESSION_DEFAULTS[self.SESSION_KEY])
             data = self._get_source_values_or_set_defaults(defaults, params, {})
             self.request.session[self.SESSION_KEY] = data
             self.request.session.save()

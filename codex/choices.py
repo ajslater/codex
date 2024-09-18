@@ -1,5 +1,6 @@
 """Frontend Choices, Defaults and Messages."""
 
+from collections.abc import Mapping
 from types import MappingProxyType
 
 BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
@@ -86,7 +87,7 @@ READER_CHOICES = MappingProxyType(
         ),
     }
 )
-DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "page": 1, "pks": ()})
+DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
 _DEFAULT_BROWSER_BREADCRUMBS = (DEFAULT_BROWSER_ROUTE,)
 _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
 BROWSER_DEFAULTS = MappingProxyType(
@@ -223,3 +224,12 @@ WEBSOCKET_MESSAGES = MappingProxyType(
     }
 )
 DUMMY_NULL_NAME = "_none_"
+
+
+def mapping_to_dict(data):
+    """Convert nested Mapping objects to dicts."""
+    if isinstance(data, Mapping):
+        return {key: mapping_to_dict(value) for key, value in data.items()}
+    if isinstance(data, list | tuple | frozenset | set):
+        return [mapping_to_dict(item) for item in data]
+    return data

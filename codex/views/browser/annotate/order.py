@@ -191,7 +191,10 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_search_scores(self, qs):
         """Annotate Search Scores."""
-        if self.TARGET not in self._COVER_AND_CARD_TARGETS or self.order_key != "search_score":
+        if (
+            self.TARGET not in self._COVER_AND_CARD_TARGETS
+            or self.order_key != "search_score"
+        ):
             return qs
         return qs.annotate(search_score=ComicFTSRank())
 

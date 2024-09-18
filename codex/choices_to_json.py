@@ -66,10 +66,15 @@ def _json_key(key):
 def _make_json_serializable(data):
     """Convert nested Mapping objects to dicts."""
     if isinstance(data, Mapping):
-        return {
-            _json_key(key): _make_json_serializable(value)
-            for key, value in data.items()
-        }
+        json_dict = {}
+        for key, value in data.items():
+            if key == "pks":
+                # Special route serializer
+                # XXX possibly should use actual route serializer for route not just pks
+                json_dict[key] = ",".join(str(pk) for pk in sorted(value))
+            else:
+                json_dict[_json_key(key)] = _make_json_serializable(value)
+        return json_dict
     if isinstance(data, list | tuple | frozenset | set):
         return [_make_json_serializable(item) for item in data]
     return data
