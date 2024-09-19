@@ -98,6 +98,7 @@ export const useBrowserStore = defineStore("browser", {
     zeroPad: 0,
     browserPageLoaded: false,
     isSearchOpen: false,
+    isSearchHelpOpen: false,
     searchHideTimeout: undefined,
   }),
   getters: {
@@ -433,7 +434,7 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       const q = this.settings.q;
-      if (q) {
+      if (q || this.isSearchHelpOpen) {
         this.clearSearchHideTimeout();
       } else {
         this.searchHideTimeout = setTimeout(() => {
@@ -443,6 +444,10 @@ export const useBrowserStore = defineStore("browser", {
           }
         }, SEARCH_HIDE_TIMEOUT);
       }
+    },
+    setSearchHelpOpen(value) {
+      this.isSearchHelpOpen = value;
+      this.startSearchHideTimeout();
     },
     setPageMtime(mtime) {
       self.mtime = mtime;

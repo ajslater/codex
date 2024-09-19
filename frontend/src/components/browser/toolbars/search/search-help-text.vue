@@ -192,12 +192,6 @@
           and treat it like <code>AND</code>.
         </p>
       </div>
-      <CloseButton
-        class="closeButton"
-        title="Close Help (esc)"
-        size="x-large"
-        @click="dialog = false"
-      />
     </div>
   </div>
 </template>
