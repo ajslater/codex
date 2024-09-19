@@ -25,20 +25,20 @@ _DEFAULTS = MappingProxyType(
 
 _DUMPS = MappingProxyType(
     {
-        "websocket-messages.json": WEBSOCKET_MESSAGES,
-        "browser-choices.json": BROWSER_CHOICES,
-        "reader-choices.json": READER_CHOICES,
         "admin-flag-choices.json": ADMIN_FLAG_CHOICES,
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
+        "browser-choices.json": BROWSER_CHOICES,
+        "reader-choices.json": READER_CHOICES,
     }
 )
 
 _MAP_DUMPS = MappingProxyType(
     {
+        "admin-tasks.json": ADMIN_TASK_GROUPS,
+        "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
         "reader-map.json": READER_CHOICES,
-        "browser-defaults.json": BROWSER_DEFAULTS,
-        "admin-tasks.json": ADMIN_TASK_GROUPS,
+        "websocket-messages.json": WEBSOCKET_MESSAGES,
     }
 )
 

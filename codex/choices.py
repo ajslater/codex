@@ -391,11 +391,11 @@ def _group_task_values(groups):
 ADMIN_TASKS = _group_task_values(ADMIN_TASK_GROUPS)
 WEBSOCKET_MESSAGES = MappingProxyType(
     {
-        "messages": (
-            "FAILED_IMPORTS",
-            "LIBRARY_CHANGED",
-            "LIBRARIAN_STATUS",
-        )
+        "messages": {
+            "FAILED_IMPORTS": "FAILED_IMPORTS",
+            "LIBRARY_CHANGED": "LIBRARY_CHANGED",
+            "LIBRARIAN_STATUS": "LIBRARIAN_STATUS",
+        }
     }
 )
 DUMMY_NULL_NAME = "_none_"
