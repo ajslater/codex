@@ -273,10 +273,6 @@ h3 {
   color: rgb(var(--v-theme-textHeader));
 }
 
-.closeButton {
-  float: right;
-}
-
 #fieldTableContainer {
   float: left;
 }

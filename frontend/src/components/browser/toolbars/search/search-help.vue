@@ -61,6 +61,7 @@ $topMargin: calc(96px + 12px);
 
 :deep(.browserSearchHelp) {
   top: $topMargin;
+  overflow-y: auto !important;
   opacity: 0.9;
 }
 
@@ -68,6 +69,5 @@ $topMargin: calc(96px + 12px);
   padding: 20px;
   margin: auto;
   margin-bottom: $topMargin;
-  overflow-y: auto !important;
 }
 </style>
