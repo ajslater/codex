@@ -15,7 +15,7 @@ class CoverThread(CoverCreateMixin, CoverPurgeMixin):
     """Create comic covers in it's own thread."""
 
     def process_item(self, item):
-        """Run the contributor."""
+        """Run the task method."""
         task = item
         if isinstance(task, CoverSaveToCache):
             self.save_cover_to_cache(task.cover_path, task.data)
