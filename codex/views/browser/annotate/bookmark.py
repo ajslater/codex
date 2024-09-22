@@ -10,6 +10,7 @@ from django.db.models import (
     Value,
     When,
 )
+from django.db.models.aggregates import Max
 from django.db.models.expressions import Subquery
 from django.db.models.fields import BooleanField, PositiveSmallIntegerField
 from django.db.models.functions import Least
@@ -22,7 +23,9 @@ from codex.models import (
     Folder,
     StoryArc,
 )
+from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.order import BrowserAnnotateOrderView
+from codex.views.const import NONE_DATETIMEFIELD
 
 LOG = get_logger(__name__)
 
@@ -124,21 +127,33 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         finished_aggregate = Coalesce(finished_rel, False)
         return bookmark_page, finished_aggregate
 
+    def _annotate_bookmark_updated_ats(self, qs):
+        """Place bookmark_updated_ats into an array because orm won't aggregate an aggregate."""
+        order_reverse = self.params.get("order_reverse", False)
+        if (
+            self.order_key == "bookmark_updated_at" or self.is_opds_1_acquisition
+        ) and order_reverse:
+            # reuse Max order value if previously computed.
+            mbmua = JsonGroupArray("bookmark_updated_at", default=NONE_DATETIMEFIELD)
+        else:
+            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
+        return qs.annotate(bookmark_updated_ats=mbmua)
+
     def annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
         if qs.model is Comic:
             page, finished = self._annotate_comic_bookmarks(qs)
         else:
             qs, page, finished = self._annotate_group_bookmarks(qs)
-            page = Value(0)
-            # finished = Value(False)
 
-        if self.is_opds_1_acquisition or qs.model is Comic and self.TARGET == "browser":
+        if (self.TARGET == "browser" and qs.model is Comic) or self.TARGET == "metadata" or self.is_opds_1_acquisition:
             qs = qs.annotate(page=page)
         else:
             qs = qs.alias(page=page)
 
-        return qs.annotate(finished=finished)
+        qs = qs.annotate(finished=finished)
+
+        return self._annotate_bookmark_updated_ats(qs)
 
     def annotate_progress(self, qs):
         """Compute progress for each member of a qs."""

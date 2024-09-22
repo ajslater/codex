@@ -29,7 +29,6 @@ from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
 from codex.views.const import (
-    NONE_DATETIMEFIELD,
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
@@ -160,10 +159,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_bookmark_updated_at(self, qs):
         if not self.is_opds_1_acquisition and self.order_key != "bookmark_updated_at":
             return qs
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(qs.model)
-        bm_updated_at_rel = f"{bm_rel}__updated_at"
-        bmua_agg = self.order_agg_func(
-            bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter
+        bmua_agg = self.get_max_bookmark_updated_at_aggregate(
+            qs.model, agg_func=self.order_agg_func
         )
         return qs.annotate(bookmark_updated_at=bmua_agg)
 

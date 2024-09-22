@@ -1,6 +1,7 @@
 """Serializer mixins."""
 
 from datetime import datetime, timezone
+from itertools import chain
 
 from rest_framework.serializers import (
     BooleanField,
@@ -14,7 +15,7 @@ from rest_framework.serializers import (
 )
 
 from codex.logger.logging import get_logger
-from codex.views.const import COMIC_GROUP, EPOCH_START
+from codex.views.const import EPOCH_START
 
 LOG = get_logger(__name__)
 
@@ -37,10 +38,10 @@ class BrowserAggregateSerializerMixin(Serializer):
         max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
     )
 
-    def get_mtime(self, obj) -> int:
-        """Compute mtime from json array aggregates."""
-        mtime = EPOCH_START
-        for dt_str in obj.updated_ats:
+    @staticmethod
+    def _get_max_updated_at(mtime, updated_ats):
+        """Because orm won't aggregate aggregates."""
+        for dt_str in updated_ats:
             if not dt_str:
                 continue
             try:
@@ -52,13 +53,11 @@ class BrowserAggregateSerializerMixin(Serializer):
                     f"computing group mtime: {dt_str} is not a valid datetime string."
                 )
                 continue
-
             mtime = max(dt, mtime)
+        return mtime
 
-        if obj.group != COMIC_GROUP and (
-            mbua := getattr(obj, "max_bookmark_updated_at", None)
-        ):
-            mtime = max(mtime, mbua)
-
-        # print(obj.group, obj.pk, obj.name, obj.updated_ats, obj.max_bookmark_updated_at, "max:", mtime)
+    def get_mtime(self, obj) -> int:
+        """Compute mtime from json array aggregates."""
+        updated_ats = chain(obj.updated_ats, obj.bookmark_updated_ats)
+        mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
         return int(mtime.timestamp() * 1000)

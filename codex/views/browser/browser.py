@@ -26,7 +26,6 @@ from codex.views.const import (
     COMIC_GROUP,
     FOLDER_GROUP,
     MAX_OBJ_PER_PAGE,
-    NONE_DATETIMEFIELD,
     STORY_ARC_GROUP,
 )
 
@@ -192,9 +191,7 @@ class BrowserView(BrowserTitleView):
             raise ValueError(reason)
 
         qs = group_qs.model.objects.filter(pk=OuterRef("pk"))
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(self.model)
-        bm_updated_at_rel = f"{bm_rel}__updated_at"
-        max_bmua = Max(bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter)
+        max_bmua = self.get_max_bookmark_updated_at_aggregate(self.model)
         qs = qs.annotate(max_bmua=max_bmua)
         qs = qs.values("max_bmua")
         subquery = Subquery(qs)
@@ -213,10 +210,6 @@ class BrowserView(BrowserTitleView):
         return zero_pad
 
     def _get_page_mtime(self):
-        if not self.is_bookmark_filtered and self.group_instance:
-            # Nice optimization if we can get get it.
-            return self.group_instance.updated_at
-
         group_model = self.group_class if self.group_class else self.model
         return self.get_group_mtime(group_model, page_mtime=True)
 
