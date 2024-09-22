@@ -22,6 +22,7 @@ import deepClone from "deep-clone";
 import { mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 const GROUP_NAME_MAP = {
   f: "Folder",
   a: "Story Arc",
@@ -42,6 +43,7 @@ const GROUP_ICON_MAP = {
 export default {
   name: "BrowserBreadcrumbs",
   computed: {
+    ...mapState(useCommonStore, ["timestamp"]),
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
         const vueCrumbs = [];
@@ -72,6 +74,7 @@ export default {
       const params = deepClone(crumb);
       delete params["name"];
       const to = { name: "browser", params };
+      to.query = { ts: this.timestamp };
       if (parentPks) {
         to.hash = `#card-${parentPks}`;
       }
