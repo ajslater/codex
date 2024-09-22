@@ -43,7 +43,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             if order_key == "story_arc_number":
                 order_fields_head += ["date"]
             elif order_key == "bookmark_updated_at":
-                order_fields_head += ["updated_at"]
+                order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
     def add_order_by(self, qs, order_key="", do_reverse=True, comic_sort_names=None):
