@@ -51,7 +51,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         return comic_qs.filter(**group_filter)
 
     @classmethod
-    def _get_bookmark_page_subquery(cls, comic_qs, finished_rel, bm_rel, model):
+    def _get_bookmark_page_subquery(cls, comic_qs, finished_rel, bm_rel):
         """Get bookmark page subquery."""
         finished_filter = {finished_rel: True}
         page_rel = f"{bm_rel}__page"
@@ -67,14 +67,13 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             output_field=PositiveSmallIntegerField(),
             distinct=True,
         )
-        comic_qs = cls._add_bookmark_outer_ref_filter(comic_qs, model)
         comic_qs = comic_qs.annotate(bookmark_page=bookmark_page).values(
             "bookmark_page"
         )
         return Subquery(comic_qs)
 
     @classmethod
-    def _get_finished_count_subquery(cls, comic_qs, finished_rel, model):
+    def _get_finished_count_subquery(cls, comic_qs, finished_rel):
         """Get finished_count subquery."""
         finished_count = Sum(
             finished_rel,
@@ -83,7 +82,6 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             distinct=True,
         )
 
-        comic_qs = cls._add_bookmark_outer_ref_filter(comic_qs, model)
         comic_qs = comic_qs.annotate(finished_count=finished_count).values(
             "finished_count"
         )
@@ -91,20 +89,20 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
     def _get_bookmark_page_and_finished_subqueries(self, model):
         """Get bookmark page and finished_count subqueries."""
+        # Use outerref as the group_filter .
         comic_qs = self.get_filtered_queryset(Comic, group_filter=False)
-        _, bm_filter = self.get_bookmark_rel_and_filter(Comic)
+        comic_qs = self._add_bookmark_outer_ref_filter(comic_qs, model)
+        bm_rel = self._get_bm_rel(Comic)
+        bm_filter = self._get_my_bookmark_filter(bm_rel)
         comic_qs = comic_qs.annotate(
             my_bookmark=FilteredRelation("bookmark", condition=bm_filter)
         )
-        # TODO if this works use filteredrelation everywhere bookmark is used.
-        bm_rel = "my_bookmark"
-        finished_rel = f"{bm_rel}__finished"
+        my_bm_rel = "my_bookmark"
+        finished_rel = f"{my_bm_rel}__finished"
         bookmark_page = self._get_bookmark_page_subquery(
-            comic_qs, finished_rel, bm_rel, model
+            comic_qs, finished_rel, my_bm_rel
         )
-        finished_count = self._get_finished_count_subquery(
-            comic_qs, finished_rel, model
-        )
+        finished_count = self._get_finished_count_subquery(comic_qs, finished_rel)
         return bookmark_page, finished_count
 
     def _annotate_group_bookmarks(self, model):
@@ -126,7 +124,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
     def _annotate_comic_bookmarks(self, model):
         """Hoist comic bookmark and finished states."""
-        bm_rel, _ = self.get_bookmark_rel_and_filter(model)
+        bm_rel = self._get_bm_rel(model)
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
