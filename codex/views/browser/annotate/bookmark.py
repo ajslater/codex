@@ -25,7 +25,6 @@ from codex.models import (
 )
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.order import BrowserAnnotateOrderView
-from codex.views.const import NONE_DATETIMEFIELD
 
 LOG = get_logger(__name__)
 
@@ -134,14 +133,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
     def _annotate_bookmark_updated_ats(self, qs):
         """Place bookmark_updated_ats into an array because orm won't aggregate an aggregate."""
-        order_reverse = self.params.get("order_reverse", False)
-        if (
-            self.order_key == "bookmark_updated_at" or self.is_opds_1_acquisition
-        ) and order_reverse:
-            # reuse Max order value if previously computed.
-            mbmua = JsonGroupArray("bookmark_updated_at", default=NONE_DATETIMEFIELD)
-        else:
-            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
+        mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
         return qs.annotate(bookmark_updated_ats=mbmua)
 
     def annotate_bookmarks(self, qs):
@@ -176,4 +168,6 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         # Least guard is for rare instances when bookmarks are set to
         # invalid high values
         progress = Least(Coalesce(F("page"), 0) * 100.0 / F("page_count"), Value(100.0))
-        return qs.annotate(progress=progress)
+        qs = qs.annotate(progress=progress)
+        print(qs.query)
+        return qs
