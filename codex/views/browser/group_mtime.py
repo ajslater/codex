@@ -35,9 +35,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
         bmua_rel = f"{bm_rel}__updated_at"
         return agg_func(bmua_rel, default=default, filter=bm_filter)
 
-    def get_group_mtime(
-        self, model, group=None, pks=None, page_mtime=False
-    ):
+    def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""
         qs = self.get_filtered_queryset(
             model,
@@ -47,7 +45,9 @@ class BrowserGroupMtimeView(BrowserFilterView):
             page_mtime=page_mtime,
         )
         mua = Max("updated_at", default=EPOCH_START_DATETIMEFIELD)
-        mbua = self.get_max_bookmark_updated_at_aggregate(model, default=EPOCH_START_DATETIMEFIELD)
+        mbua = self.get_max_bookmark_updated_at_aggregate(
+            model, default=EPOCH_START_DATETIMEFIELD
+        )
 
         try:
             mtime = qs.aggregate(max=Greatest(mua, mbua))["max"]
