@@ -131,11 +131,6 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         finished_aggregate = Coalesce(finished_rel, False)
         return bookmark_page, None, finished_aggregate
 
-    def _annotate_bookmark_updated_ats(self, qs):
-        """Place bookmark_updated_ats into an array because orm won't aggregate an aggregate."""
-        mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
-        return qs.annotate(bookmark_updated_ats=mbmua)
-
     def annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
         if qs.model is Comic:
@@ -158,7 +153,9 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
         qs = qs.annotate(finished=finished)
 
-        return self._annotate_bookmark_updated_ats(qs)
+        mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
+        return qs.annotate(bookmark_updated_ats=mbmua)
+
 
     def annotate_progress(self, qs):
         """Compute progress for each member of a qs."""
