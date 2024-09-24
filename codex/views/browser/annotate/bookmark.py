@@ -72,7 +72,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         return Subquery(comic_qs)
 
     @classmethod
-    def _get_finished_count_subquery(cls, comic_qs, finished_rel):
+    def _get_finished_subquery(cls, comic_qs, finished_rel):
         """Get finished_count subquery."""
         finished_count = Sum(
             finished_rel,
@@ -81,15 +81,26 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             distinct=True,
         )
 
-        comic_qs = comic_qs.annotate(finished_count=finished_count).values(
-            "finished_count"
+        comic_qs = comic_qs.alias(finished_count=finished_count)
+
+        finished_aggregate = Case(
+            When(finished_count=OuterRef("child_count"), then=True),
+            When(finished_count=0, then=False),
+            default=None,
+            output_field=BooleanField(),
         )
+
+        comic_qs = comic_qs.annotate(finished=finished_aggregate).values("finished")
         return Subquery(comic_qs)
 
-    def _get_bookmark_page_and_finished_subqueries(self, model):
-        """Get bookmark page and finished_count subqueries."""
+    def _annotate_group_bookmarks(self, model):
+        """Aggregate bookmark and finished states for groups using subqueries to not break the FTS match filter."""
+        # Using subqueries is also faster for non-fts queries.
+        # XXX These are slow for large groups.
         # Use outerref as the group_filter .
-        comic_qs = self.get_filtered_queryset(Comic, group_filter=False, acl_filter=False)
+        comic_qs = self.get_filtered_queryset(
+            Comic, group_filter=False, acl_filter=False
+        )
         comic_qs = self._add_bookmark_outer_ref_filter(comic_qs, model)
         bm_rel = self._get_bm_rel(Comic)
         bm_filter = self._get_my_bookmark_filter(bm_rel)
@@ -101,25 +112,8 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         bookmark_page = self._get_bookmark_page_subquery(
             comic_qs, finished_rel, my_bm_rel
         )
-        finished_count = self._get_finished_count_subquery(comic_qs, finished_rel)
-        return bookmark_page, finished_count
-
-    def _annotate_group_bookmarks(self, model):
-        """Aggregate bookmark and finished states for groups using subqueries to not break the FTS match filter."""
-        # Using subqueries is also faster for non-fts queries.
-        # XXX These are slow for large groups.
-        bookmark_page, finished_count = self._get_bookmark_page_and_finished_subqueries(
-            model
-        )
-
-        finished_aggregate = Case(
-            When(finished_count=F("child_count"), then=True),
-            When(finished_count=0, then=False),
-            default=None,
-            output_field=BooleanField(),
-        )
-
-        return bookmark_page, finished_count, finished_aggregate
+        finished = self._get_finished_subquery(comic_qs, finished_rel)
+        return bookmark_page, finished
 
     def _annotate_comic_bookmarks(self, model):
         """Hoist comic bookmark and finished states."""
@@ -129,14 +123,14 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
         bookmark_page = Coalesce(page_rel, 0)
         finished_aggregate = Coalesce(finished_rel, False)
-        return bookmark_page, None, finished_aggregate
+        return bookmark_page, finished_aggregate
 
     def annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
         if qs.model is Comic:
-            page, finished_count, finished = self._annotate_comic_bookmarks(qs.model)
+            page, finished = self._annotate_comic_bookmarks(qs.model)
         else:
-            page, finished_count, finished = self._annotate_group_bookmarks(qs.model)
+            page, finished = self._annotate_group_bookmarks(qs.model)
 
         if (
             (self.TARGET == "browser" and qs.model is Comic)
@@ -147,14 +141,10 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         else:
             qs = qs.alias(page=page)
 
-        if finished_count:
-            # Part of the finished calculation
-            qs = qs.alias(finished_count=finished_count)
         qs = qs.annotate(finished=finished)
 
         mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
         return qs.annotate(bookmark_updated_ats=mbmua)
-
 
     def annotate_progress(self, qs):
         """Compute progress for each member of a qs."""
@@ -164,6 +154,6 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         # Least guard is for rare instances when bookmarks are set to
         # invalid high values
         progress = Least(Coalesce(F("page"), 0) * 100.0 / F("page_count"), Value(100.0))
-        qs = qs.annotate(progress=progress)
-        print(qs.query)
-        return qs
+        return qs.annotate(progress=progress)
+        # print(qs.query)
+        # return qs
