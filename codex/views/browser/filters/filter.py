@@ -35,7 +35,14 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         return qs
 
     def _get_query_filters(  # noqa: PLR0913
-        self, model, group, pks, bookmark_filter, page_mtime=False, group_filter=True, acl_filter=True
+        self,
+        model,
+        group,
+        pks,
+        bookmark_filter,
+        page_mtime=False,
+        group_filter=True,
+        acl_filter=True,
     ):
         """Return all the filters except the group filter."""
         # XXX all these ifs and flags are awful
@@ -68,7 +75,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             bookmark_filter,
             page_mtime=page_mtime,
             group_filter=group_filter,
-            acl_filter=acl_filter
+            acl_filter=acl_filter,
         )
         qs = model.objects.filter(object_filter)
         qs = self.apply_search_filter(qs)
