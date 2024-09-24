@@ -89,7 +89,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     def _get_bookmark_page_and_finished_subqueries(self, model):
         """Get bookmark page and finished_count subqueries."""
         # Use outerref as the group_filter .
-        comic_qs = self.get_filtered_queryset(Comic, group_filter=False)
+        comic_qs = self.get_filtered_queryset(Comic, group_filter=False, acl_filter=False)
         comic_qs = self._add_bookmark_outer_ref_filter(comic_qs, model)
         bm_rel = self._get_bm_rel(Comic)
         bm_filter = self._get_my_bookmark_filter(bm_rel)
@@ -138,10 +138,6 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         else:
             page, finished_count, finished = self._annotate_group_bookmarks(qs.model)
 
-        if finished_count:
-            # Part of the finished calculation
-            qs = qs.alias(finished_count=finished_count)
-
         if (
             (self.TARGET == "browser" and qs.model is Comic)
             or self.is_opds_1_acquisition
@@ -151,6 +147,9 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         else:
             qs = qs.alias(page=page)
 
+        if finished_count:
+            # Part of the finished calculation
+            qs = qs.alias(finished_count=finished_count)
         qs = qs.annotate(finished=finished)
 
         mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
