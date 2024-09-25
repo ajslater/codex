@@ -3,7 +3,7 @@
 import re
 
 from codex.logger.logging import get_logger
-from codex.models.comic import ComicFTS
+from codex.models.comic import Comic, ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
 from codex.views.const import MAX_OBJ_PER_PAGE
@@ -175,18 +175,29 @@ class SearchFilterView(BrowserFTSFilter):
 
         return qs
 
+    def _force_inner_join_on_comic_filter(self, qs):
+        """Force INNER JOIN on comics table."""
+        if qs.model is Comic:
+            rel = "pk__isnull"
+        else:
+            rel = self.get_rel_prefix(qs.model)+ "isnull"
+        inner_join_filter = {rel: False}
+        return qs.filter(**inner_join_filter)
+
     def apply_search_filter(self, qs):
         """Preparse search, search and return the filter and scores."""
         try:
-            field_exclude_q_list, field_filter_q_list, fts_filter = (
+            field_exclude_q_list, field_filter_q_list, fts_filter_dict = (
                 self._create_search_filters(qs.model)
             )
 
             # Apply filters
             qs = self._apply_search_filter_list(qs, field_exclude_q_list, True)
             qs = self._apply_search_filter_list(qs, field_filter_q_list, False)
-            if fts_filter:
-                qs = qs.filter(fts_filter)
+            qs = self._force_inner_join_on_comic_filter(qs)
+
+            if fts_filter_dict:
+                qs = qs.filter(**fts_filter_dict)
                 self.search_mode = self.fts_mode = True
 
         except Exception as exc:
