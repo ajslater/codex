@@ -31,7 +31,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             # This is the only annotation to happen during the filter for efficiency
             qs = qs.annotate(**ann)
         if qs.model is not Comic:
-            qs = qs.filter(**{f"{_CHILD_COUNT}__gt": 0})
+            # qs = qs.filter(**{f"{_CHILD_COUNT}__gt": 0})
+            # TODO if this works move childcount annotation to annotations
+            qs = qs.filter(comic__isnull=False)
         return qs
 
     def _get_query_filters(  # noqa: PLR0913
