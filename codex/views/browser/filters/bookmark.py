@@ -30,7 +30,7 @@ class BrowserFilterBookmarkView(BrowserValidateView):
             value = self.request.user
         else:
             key = f"{bm_rel}__session__session_key"
-            value  = self.request.session.session_key
+            value = self.request.session.session_key
         my_bookmarks_kwargs = {key: value}
         return Q(**my_bookmarks_kwargs)
 

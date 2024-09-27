@@ -12,6 +12,7 @@ from codex.views.session import SessionView
 _GROUP_REL_TARGETS = frozenset({"cover", "choices"})
 _PK_REL_TARGETS = frozenset({"metadata", "mtime"})
 
+
 class GroupFilterView(SessionView):
     """Group Filters."""
 
