@@ -3,7 +3,7 @@
 import re
 
 from codex.logger.logging import get_logger
-from codex.models.comic import Comic, ComicFTS
+from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
 from codex.views.const import MAX_OBJ_PER_PAGE
