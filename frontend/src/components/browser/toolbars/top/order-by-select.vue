@@ -15,6 +15,17 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
+const REVERSE_BY_DEFAULT = new Set([
+  "created_at",
+  "bookmark_updated_at",
+  "updated_at",
+  "page_count",
+  "size",
+  "critical_rating",
+  "community_rating",
+  "search_score",
+]);
+
 export default {
   name: "BrowseOrderBySelect",
   components: {
@@ -26,15 +37,6 @@ export default {
     ...mapState(useBrowserStore, {
       orderBySetting: (state) => state.settings.orderBy,
     }),
-    reverseValues() {
-      const set = new Set();
-      for (const choice of this.orderByChoices) {
-        if (choice.reverse) {
-          set.add(choice.value);
-        }
-      }
-      return set;
-    },
     orderBy: {
       get() {
         return this.orderBySetting;
@@ -42,7 +44,7 @@ export default {
       set(value) {
         const data = {
           orderBy: value,
-          orderReverse: this.reverseValues.has(value),
+          orderReverse: REVERSE_BY_DEFAULT.has(value),
         };
         this.setSettings(data);
       },
