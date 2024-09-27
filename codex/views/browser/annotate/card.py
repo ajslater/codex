@@ -1,17 +1,21 @@
 """Base view for metadata annotations."""
 
+from typing import TYPE_CHECKING
+
 from django.db.models import (
     Value,
 )
+from django.db.models.aggregates import Count
 from django.db.models.fields import CharField
 
 from codex.logger.logging import get_logger
-from codex.models import (
-    BrowserGroupModel,
-    Comic,
-)
+from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
+from codex.views.const import ONE_INTEGERFIELD
+
+if TYPE_CHECKING:
+    from codex.models import BrowserGroupModel
 
 LOG = get_logger(__name__)
 
@@ -26,6 +30,20 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
+    def _annotate_child_count(self, qs):
+        """Annotate child chount for card."""
+        rel = self.rel_prefix + "pk"
+        count_func = (
+            ONE_INTEGERFIELD if qs.model is Comic else Count(rel, distinct=True)
+        )
+        ann = {"child_count": count_func}
+        if self.TARGET == "opds2":
+            if qs.model is not Comic:
+                qs = qs.alias(**ann)
+        else:
+            qs = qs.annotate(**ann)
+        return qs
+
     def _annotate_group(self, qs):
         """Annotate Group."""
         value = "c" if qs.model is Comic else self.model_group  # type: ignore
@@ -38,6 +56,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
             qs = self.annotate_order_value(qs)
         qs = self._annotate_group(qs)
         qs = self.annotate_group_names(qs)
+        qs = self._annotate_child_count(qs)
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         return qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))
