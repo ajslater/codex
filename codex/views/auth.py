@@ -92,10 +92,10 @@ class GroupACLMixin:
 
     @staticmethod
     def get_rel_prefix(model):
-        """Return the relation prfiex for most fields."""
+        """Return the relation prefix for most fields."""
         prefix = ""
         if model is not Comic:
-            if model == StoryArc:
+            if model is StoryArc:
                 prefix += "storyarcnumber__"
             prefix += "comic__"
         return prefix
