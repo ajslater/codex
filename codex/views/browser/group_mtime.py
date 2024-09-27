@@ -2,15 +2,13 @@
 
 from logging import DEBUG, WARNING
 
-from django.db.models.aggregates import Max
-from django.db.models.functions import Coalesce, Greatest
+from django.db.models.aggregates import Aggregate, Max
+from django.db.models.functions import Greatest
 from django.db.utils import OperationalError
 
 from codex.logger.logging import get_logger
 from codex.views.browser.filters.filter import BrowserFilterView
-from codex.views.const import (
-    EPOCH_START_DATETIMEFIELD,
-)
+from codex.views.const import EPOCH_START_DATETIMEFIELD, NONE_DATETIMEFIELD
 
 _FTS5_PREFIX = "fts5: "
 LOG = get_logger(__name__)
@@ -29,6 +27,15 @@ class BrowserGroupMtimeView(BrowserFilterView):
             msg = str(err)
         LOG.log(level, f"Query Error: {msg}")
 
+    def get_max_bookmark_updated_at_aggregate(
+        self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
+    ):
+        """Get filtered maximum bookmark updated_at relation."""
+        bm_rel = self._get_bm_rel(model)
+        bm_filter = self._get_my_bookmark_filter(bm_rel)
+        bmua_rel = f"{bm_rel}__updated_at"
+        return agg_func(bmua_rel, default=default, filter=bm_filter)
+
     def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""
         qs = self.get_filtered_queryset(
@@ -38,24 +45,13 @@ class BrowserGroupMtimeView(BrowserFilterView):
             bookmark_filter=self.is_bookmark_filtered,
             page_mtime=page_mtime,
         )
-        qs = qs.annotate(max_updated_at=Max("updated_at"))
-
-        if self.is_bookmark_filtered:
-            bm_rel, bm_filter = self.get_bookmark_rel_and_filter(model)
-            qs = qs.filter(bm_filter)
-            ua_rel = bm_rel + "__updated_at"
-            mbua = Max(ua_rel)
-        else:
-            mbua = EPOCH_START_DATETIMEFIELD
-        qs = qs.annotate(max_bookmark_updated_at=mbua)
+        mua = Max("updated_at", default=EPOCH_START_DATETIMEFIELD)
+        mbua = self.get_max_bookmark_updated_at_aggregate(
+            model, default=EPOCH_START_DATETIMEFIELD
+        )
 
         try:
-            mtime = qs.aggregate(
-                max=Greatest(
-                    Coalesce("max_bookmark_updated_at", EPOCH_START_DATETIMEFIELD),
-                    "max_updated_at",
-                )
-            )["max"]
+            mtime = qs.aggregate(max=Greatest(mua, mbua))["max"]
         except OperationalError as exc:
             self._handle_operational_error(exc)
             mtime = None
