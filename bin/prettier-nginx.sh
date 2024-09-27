@@ -3,5 +3,5 @@
 set -euxo pipefail
 CONFIG_DIR=docker/nginx/http.d/codex
 if [ -d "$CONFIG_DIR" ]; then
-  prettierd --parser nginx "$CONFIG_DIR/*.conf" "$@"
+  prettier --parser nginx "$CONFIG_DIR/*.conf" "$@"
 fi
