@@ -94,7 +94,7 @@ class GroupACLMixin:
     def get_rel_prefix(model):
         """Return the relation prfiex for most fields."""
         prefix = ""
-        if model != Comic:
+        if model is not Comic:
             if model == StoryArc:
                 prefix += "storyarcnumber__"
             prefix += "comic__"

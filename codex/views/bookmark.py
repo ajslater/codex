@@ -90,12 +90,11 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         task = NotifierTask("LIBRARY_CHANGED", group)
         LIBRARIAN_QUEUE.put(task)
 
-    def _update_bookmarks(self, search_kwargs, updates):
+    def _update_bookmarks(self, search_kwargs, updates) -> int:
         """Update existing bookmarks."""
         count = 0
-        finished = False
         if not updates:
-            return count, finished
+            return count
         group_acl_filter = self.get_group_acl_filter(Bookmark)
         update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
         update_fields.add("updated_at")
@@ -130,7 +129,7 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         ):
             updates.pop("two_pages", None)
 
-    def _create_bookmarks(self, comic_filter, search_kwargs, updates):
+    def _create_bookmarks(self, comic_filter, search_kwargs, updates) -> int:
         """Create new bookmarks for comics that don't exist yet."""
         count = 0
         self._create_bookmarks_validate_two_pages(updates)
@@ -169,9 +168,10 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         """Update a user bookmark."""
         search_kwargs = self.get_bookmark_search_kwargs(comic_filter)
         count = self._update_bookmarks(search_kwargs, updates)
-        count = +self._create_bookmarks(comic_filter, search_kwargs, updates)
+        count += self._create_bookmarks(comic_filter, search_kwargs, updates)
         if count:
             self.notify_library_changed()
+        return count
 
 
 class BookmarkView(BookmarkBaseView):
