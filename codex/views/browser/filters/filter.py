@@ -17,7 +17,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     def _filter_by_comic_exists(self, qs):
         """Filter by comics existing, allows INNER JOIN."""
         if qs.model is not Comic:
-            qs = qs.filter(comic__isnull=False)
+            rel = self.get_rel_prefix(qs.model)
+            rel += "isnull"
+            inner_join_filter = {rel: False}
+            qs = qs.filter(**inner_join_filter)
         return qs
 
     def _get_query_filters(  # noqa: PLR0913
