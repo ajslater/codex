@@ -193,6 +193,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             or self.order_key != "search_score"
         ):
             return qs
+
+        # Rank is always the max of the relations, cannot aggregate?
         return qs.annotate(search_score=ComicFTSRank())
 
     def annotate_order_aggregates(self, qs):
