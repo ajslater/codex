@@ -278,7 +278,7 @@ export const useBrowserStore = defineStore("browser", {
       }
     },
     _validateSearch(data) {
-      if (!data.q) {
+      if (!this.settings.q && !data.q) {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
           if (this.settings.topGroup === "f") {
@@ -288,8 +288,8 @@ export const useBrowserStore = defineStore("browser", {
           }
         }
         return;
-      } else if (this.settings.q || this.settings.q === undefined) {
-        // undefined is browser open, do not redirect to first search.
+      } else if (this.settings.q) {
+        // Do not redirect to first search if already in search mode.
         return;
       }
       // If first search redirect to lowest group and change order
