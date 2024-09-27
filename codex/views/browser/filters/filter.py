@@ -1,14 +1,11 @@
 """Browser Filters."""
 
-from django.db.models.aggregates import Count
 from django.db.models.query_utils import Q
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
-from codex.views.const import ONE_INTEGERFIELD
 
-_CHILD_COUNT = "child_count"
 LOG = get_logger(__name__)
 
 
@@ -17,21 +14,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     TARGET = ""
 
-    def _filter_by_child_count(self, qs):
-        """Filter group by child count."""
-        rel = self.rel_prefix + "pk"
-        count_func = (
-            ONE_INTEGERFIELD if qs.model is Comic else Count(rel, distinct=True)
-        )
-        ann = {_CHILD_COUNT: count_func}
-        if self.TARGET == "opds2":
-            if qs.model is not Comic:
-                qs = qs.alias(**ann)
-        else:
-            # This is the only annotation to happen during the filter for efficiency
-            qs = qs.annotate(**ann)
+    def _filter_by_comic_exists(self, qs):
+        """Filter by comics existing, allows INNER JOIN."""
         if qs.model is not Comic:
-            qs = qs.filter(**{f"{_CHILD_COUNT}__gt": 0})
+            qs = qs.filter(comic__isnull=False)
         return qs
 
     def _get_query_filters(  # noqa: PLR0913
@@ -79,4 +65,4 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         )
         qs = model.objects.filter(object_filter)
         qs = self.apply_search_filter(qs)
-        return self._filter_by_child_count(qs)
+        return self._filter_by_comic_exists(qs)

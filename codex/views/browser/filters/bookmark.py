@@ -28,16 +28,14 @@ class BrowserFilterBookmarkView(BrowserValidateView):
 
     def _get_my_bookmark_filter(self, bm_rel):
         """Get a filter for my session or user defined bookmarks."""
-        if bm_rel not in self._bm_filters:
-            if self.request.user.is_authenticated:  # type: ignore
-                my_bookmarks_kwargs = {f"{bm_rel}__user": self.request.user}  # type: ignore
-            else:
-                key = f"{bm_rel}__session__session_key"
-                my_bookmarks_kwargs = {
-                    key: self.request.session.session_key  # type: ignore
-                }
-            self._bm_filters[bm_rel] = Q(**my_bookmarks_kwargs)
-        return self._bm_filters[bm_rel]
+        if self.request.user and self.request.user.is_authenticated:
+            key = f"{bm_rel}__user"
+            value = self.request.user
+        else:
+            key = f"{bm_rel}__session__session_key"
+            value = self.request.session.session_key
+        my_bookmarks_kwargs = {key: value}
+        return Q(**my_bookmarks_kwargs)
 
     def get_bookmark_filter(self, model):
         """Build bookmark query."""
