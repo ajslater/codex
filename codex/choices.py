@@ -29,10 +29,10 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     }
 )
 _GROUP_NAMES = {
-   "p": "Publishers",
-   "i": "Imprints",
-   "s": "Series",
-   "v": "Volumes",
+    "p": "Publishers",
+    "i": "Imprints",
+    "s": "Series",
+    "v": "Volumes",
 }
 BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
     {
@@ -55,9 +55,7 @@ BROWSER_CHOICES = MappingProxyType(
             "f": "Folders",
             "a": "Story Arcs",
         },
-        "settings_group": {
-            **_GROUP_NAMES
-        },
+        "settings_group": {**_GROUP_NAMES},
         "identifier_types": {
             "comicvine": "Comic Vine",
             "comixology": "Comixology",
