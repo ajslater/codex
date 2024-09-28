@@ -137,8 +137,8 @@ class BrowserView(BrowserTitleView):
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
-        count_qs = self.add_group_by(qs)
         try:
+            count_qs = self.add_group_by(qs)
             if limit:
                 count_qs = count_qs[:limit]
             # Get count after filters and before any annotations or orders
