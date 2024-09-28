@@ -12,7 +12,6 @@ from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
-from codex.views.const import ONE_INTEGERFIELD
 
 if TYPE_CHECKING:
     from codex.models import BrowserGroupModel
@@ -32,10 +31,10 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
 
     def _annotate_child_count(self, qs):
         """Annotate child chount for card."""
+        if qs.model is Comic:
+            return qs
         rel = self.rel_prefix + "pk"
-        count_func = (
-            ONE_INTEGERFIELD if qs.model is Comic else Count(rel, distinct=True)
-        )
+        count_func = Count(rel, distinct=True)
         ann = {"child_count": count_func}
         if self.TARGET == "opds2":
             if qs.model is not Comic:
