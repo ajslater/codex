@@ -67,5 +67,8 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             acl_filter=acl_filter,
         )
         qs = model.objects.filter(object_filter)
+        # TODO get move search filters into _get_query_filters
         qs = self.apply_search_filter(qs)
-        return self._filter_by_comic_exists(qs)
+        qs = self._filter_by_comic_exists(qs)
+        qs = qs.group_by("sort_name")
+        return qs
