@@ -2,6 +2,8 @@
 
 import re
 
+from django.db.models.query import Q
+
 from codex.logger.logging import get_logger
 from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
@@ -162,8 +164,12 @@ class SearchFilterView(BrowserFTSFilter):
                 )
             field_filter_q_list += filter_q_list
             field_exclude_q_list += exclude_q_list
-        fts_filter = self.get_fts_filter(model, fts_text)
-        return field_exclude_q_list, field_filter_q_list, fts_filter
+        fts_filter_dict = self.get_fts_filter(model, fts_text)
+        if fts_filter_dict:
+            self.fts_mode = True
+            field_filter_q_list.append(Q(**fts_filter_dict))
+
+        return field_exclude_q_list, field_filter_q_list
 
     def _apply_search_filter_list(self, qs, filter_list, exclude):
         """Apply search filter lists. Separate filter clauses are employed for m2m searches."""
@@ -178,17 +184,12 @@ class SearchFilterView(BrowserFTSFilter):
     def apply_search_filter(self, qs):
         """Preparse search, search and return the filter and scores."""
         try:
-            field_exclude_q_list, field_filter_q_list, fts_filter_dict = (
+            field_exclude_q_list, field_filter_q_list = (
                 self._create_search_filters(qs.model)
             )
-
             # Apply filters
             qs = self._apply_search_filter_list(qs, field_exclude_q_list, True)
             qs = self._apply_search_filter_list(qs, field_filter_q_list, False)
-
-            if fts_filter_dict:
-                qs = qs.filter(**fts_filter_dict)
-                self.search_mode = self.fts_mode = True
 
         except Exception as exc:
             msg = "Creating search filters"
