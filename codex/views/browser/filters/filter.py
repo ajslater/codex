@@ -23,28 +23,37 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             qs = qs.filter(**inner_join_filter)
         return qs
 
-    def _get_query_filters(  # noqa: PLR0913
+    def get_query_filters(  # noqa: PLR0913
         self,
         model,
         group,
         pks,
-        bookmark_filter,
+        bookmark_filter=True,
         page_mtime=False,
         group_filter=True,
         acl_filter=True,
+        search_filter=True,
     ):
         """Return all the filters except the group filter."""
-        # XXX all these ifs and flags are awful
-        object_filter = Q()
+        include_filter = Q()
+        exclude_filter = Q()
         if acl_filter:
-            object_filter &= self.get_group_acl_filter(model)
+            # TODO get exclude frilter from acl filter
+            acl_include_filter = self.get_group_acl_filter(model)
+            include_filter &= acl_include_filter
         if group_filter:
-            object_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
-        object_filter &= self.get_comic_field_filter(model)
+            include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
+        include_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             # not needed when used by outerrefl OuterRef is applied next
-            object_filter &= self.get_bookmark_filter(model)
-        return object_filter
+            include_filter &= self.get_bookmark_filter(model)
+        if search_filter:
+            include_search_filter, exclude_search_filter = self.get_search_filters(
+                model
+            )
+            include_filter &= include_search_filter
+            exclude_filter &= exclude_search_filter
+        return include_filter & ~exclude_filter
 
     def get_filtered_queryset(  # noqa: PLR0913
         self,
@@ -57,7 +66,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         acl_filter=True,
     ):
         """Get a filtered queryset for the model."""
-        object_filter = self._get_query_filters(
+        object_filter = self.get_query_filters(
             model,
             group,
             pks,
@@ -67,8 +76,5 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             acl_filter=acl_filter,
         )
         qs = model.objects.filter(object_filter)
-        # TODO get move search filters into _get_query_filters
-        qs = self.apply_search_filter(qs)
         qs = self._filter_by_comic_exists(qs)
-        qs = qs.group_by("sort_name")
-        return qs
+        return qs.group_by("id")
