@@ -28,18 +28,20 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "updated_at": "Updated Time",
     }
 )
+_GROUP_NAMES = {
+   "p": "Publishers",
+   "i": "Imprints",
+   "s": "Series",
+   "v": "Volumes",
+}
 BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
     {
-        "a": "Story Arcs",
+        **_GROUP_NAMES,
         "c": "Issues",
         "f": "Folders",
-        "i": "Imprints",
-        "p": "Publishers",
-        "s": "Series",
-        "v": "Volumes",
+        "a": "Story Arcs",
     },
 )
-
 VUETIFY_NULL_CODE = -1
 BROWSER_CHOICES = MappingProxyType(
     {
@@ -48,13 +50,13 @@ BROWSER_CHOICES = MappingProxyType(
         "top_group": BROWSER_TOP_GROUP_CHOICES,
         "vuetify_null_code": VUETIFY_NULL_CODE,
         "group_names": {
-            "p": "Publishers",
-            "i": "Imprints",
-            "s": "Series",
-            "v": "Volumes",
+            **_GROUP_NAMES,
             "c": "Issues",
             "f": "Folders",
             "a": "Story Arcs",
+        },
+        "settings_group": {
+            **_GROUP_NAMES
         },
         "identifier_types": {
             "comicvine": "Comic Vine",
