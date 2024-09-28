@@ -45,6 +45,7 @@ class GroupFilterView(SessionView):
             rel = self._get_rel_for_pks(group, page_mtime)
             group_filter_dict = {rel: pks}
         elif group == FOLDER_GROUP:
+            # Top folder search
             group_filter_dict = {"parent_folder": None}
         else:
             group_filter_dict = {}
