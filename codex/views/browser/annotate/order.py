@@ -17,14 +17,11 @@ from django.db.models.functions import Reverse, Right, StrIndex
 
 from codex.logger.logging import get_logger
 from codex.models import (
-    BrowserGroupModel,
     Comic,
     Folder,
     StoryArc,
-    Volume,
 )
 from codex.models.functions import ComicFTSRank, JsonGroupArray
-from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
@@ -57,9 +54,6 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
         "story_arc_number",
     }
 )
-_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
-    {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
-)
 
 LOG = get_logger(__name__)
 
@@ -75,12 +69,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         super().__init__(*args, **kwargs)
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
-
-    def add_group_by(self, qs):
-        """Get the group by for the model."""
-        if group_by := _GROUP_BY.get(qs.model):  # type: ignore
-            qs = qs.group_by(group_by)
-        return qs
 
     def _alias_sort_names(self, qs):
         """Annotate sort_name."""

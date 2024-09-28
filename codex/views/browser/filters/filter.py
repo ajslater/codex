@@ -1,11 +1,17 @@
 """Browser Filters."""
 
+from types import MappingProxyType
+
 from django.db.models.query_utils import Q
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic
+from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 
+_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+    {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
+)
 LOG = get_logger(__name__)
 
 
@@ -14,14 +20,13 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     TARGET = ""
 
-    def _filter_by_comic_exists(self, qs):
+    def _get_inner_join_filter(self, model):
         """Filter by comics existing, allows INNER JOIN."""
-        if qs.model is not Comic:
-            rel = self.get_rel_prefix(qs.model)
-            rel += "isnull"
-            inner_join_filter = {rel: False}
-            qs = qs.filter(**inner_join_filter)
-        return qs
+        if model is Comic:
+            return Q()
+        rel = self.get_rel_prefix(model)
+        rel += "isnull"
+        return Q(**{rel: False})
 
     def get_query_filters(  # noqa: PLR0913
         self,
@@ -32,28 +37,33 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         page_mtime=False,
         group_filter=True,
         acl_filter=True,
-        search_filter=True,
     ):
         """Return all the filters except the group filter."""
-        include_filter = Q()
-        exclude_filter = Q()
+        include_filters = []
+        exclude_filters = []
         if acl_filter:
-            # TODO get exclude frilter from acl filter
+            # TODO get exclude filter from acl filter
+            # When refactor acl filter
             acl_include_filter = self.get_group_acl_filter(model)
-            include_filter &= acl_include_filter
+            include_filters.append(acl_include_filter)
         if group_filter:
-            include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
-        include_filter &= self.get_comic_field_filter(model)
+            include_filters.append(
+                self.get_group_filter(group, pks, page_mtime=page_mtime)
+            )
+        include_filters.append(self.get_comic_field_filter(model))
         if bookmark_filter:
             # not needed when used by outerrefl OuterRef is applied next
-            include_filter &= self.get_bookmark_filter(model)
-        if search_filter:
-            include_search_filter, exclude_search_filter = self.get_search_filters(
-                model
-            )
-            include_filter &= include_search_filter
-            exclude_filter &= exclude_search_filter
-        return include_filter & ~exclude_filter
+            include_filters.append(self.get_bookmark_filter(model))
+        include_search_filter, exclude_search_filter = self.get_search_filters(model)
+        include_filters.append(include_search_filter)
+        exclude_filters.append(exclude_search_filter)
+        return include_filters, exclude_filters
+
+    def add_group_by(self, qs):
+        """Get the group by for the model."""
+        if group_by := _GROUP_BY.get(qs.model):  # type: ignore
+            qs = qs.group_by(group_by)
+        return qs
 
     def get_filtered_queryset(  # noqa: PLR0913
         self,
@@ -66,7 +76,8 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         acl_filter=True,
     ):
         """Get a filtered queryset for the model."""
-        object_filter = self.get_query_filters(
+        qs = model.objects
+        include_filters, exclude_filters = self.get_query_filters(
             model,
             group,
             pks,
@@ -75,6 +86,11 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             group_filter=group_filter,
             acl_filter=acl_filter,
         )
-        qs = model.objects.filter(object_filter)
-        qs = self._filter_by_comic_exists(qs)
-        return qs.group_by("id")
+        for include_filter in include_filters:
+            qs = qs.filter(include_filter)
+        for exclude_filter in exclude_filters:
+            qs = qs.exclude(exclude_filter)
+        if inner_join_filter := self._get_inner_join_filter(model):
+            # stand alone filter is best here.
+            qs = qs.filter(inner_join_filter)
+        return self.add_group_by(qs)
