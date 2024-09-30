@@ -8,7 +8,7 @@ from django.db.utils import OperationalError
 
 from codex.logger.logging import get_logger
 from codex.views.browser.filters.filter import BrowserFilterView
-from codex.views.const import EPOCH_START_DATETIMEFIELD, NONE_DATETIMEFIELD
+from codex.views.const import EPOCH_START, EPOCH_START_DATETIMEFIELD, NONE_DATETIMEFIELD
 
 _FTS5_PREFIX = "fts5: "
 LOG = get_logger(__name__)
@@ -55,7 +55,8 @@ class BrowserGroupMtimeView(BrowserFilterView):
             # Forcing inner joins makes search work
             # Can't run demote_joins on aggregate.
             qs = self.force_inner_joins(qs)
-            mtime = qs.first().max
+            first = qs.first()
+            mtime = first.max if first else EPOCH_START
         except OperationalError as exc:
             self._handle_operational_error(exc)
             mtime = None

@@ -37,7 +37,6 @@ class BrowserBaseView(SearchFilterView):
         self.params: MappingProxyType[str, Any] = MappingProxyType({})
         self.rel_prefix: str = ""
         self.model: type[BrowserGroupModel] | None = None
-        self.group_class: type[BrowserGroupModel] | None = None
         self.model_group: str = ""
         self.admin_flags: MappingProxyType[str, bool] = MappingProxyType({})
         self.order_agg_func: type[Min | Max] = Min
@@ -113,12 +112,10 @@ class BrowserBaseView(SearchFilterView):
 
     def set_model(self):
         """Set the model for the browse list."""
-        group = self.kwargs["group"]
-        self.group_class = GROUP_MODEL_MAP[group]
-
         self.model_group = self.get_model_group()
         self.model = GROUP_MODEL_MAP.get(self.model_group)
         if self.model is None:
+            group = self.kwargs["group"]
             detail = f"Cannot browse {group=}"
             LOG.debug(detail)
             raise NotFound(detail=detail)

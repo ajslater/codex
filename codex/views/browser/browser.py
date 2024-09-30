@@ -2,7 +2,6 @@
 
 from math import ceil, floor, log10
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from django.db.models import Max, Subquery
 from django.db.models.expressions import OuterRef
@@ -13,12 +12,9 @@ from rest_framework.response import Response
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
-    BrowserGroupModel,
     Comic,
     Folder,
-    Imprint,
     Library,
-    Volume,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
 from codex.views.browser.title import BrowserTitleView
@@ -29,20 +25,7 @@ from codex.views.const import (
     STORY_ARC_GROUP,
 )
 
-if TYPE_CHECKING:
-    from django.db.models.query import QuerySet
-
-
 LOG = get_logger(__name__)
-_GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
-    type[BrowserGroupModel], tuple[str | None, ...]
-] = MappingProxyType(
-    {
-        Comic: ("series", "volume"),
-        Volume: ("series",),
-        Imprint: ("publisher",),
-    }
-)
 
 
 class BrowserView(BrowserTitleView):
@@ -66,41 +49,11 @@ class BrowserView(BrowserTitleView):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self.is_opds_2_acquisition = False
-        self.group_query: QuerySet = Comic.objects.none()
         self.valid_nav_groups: tuple[str, ...] = ()
-
-    def _set_group_query_and_instance(self):
-        """Create group_class instance."""
-        pks = self.kwargs.get("pks")
-        if pks and self.group_class:
-            try:
-                select_related: tuple[str | None, ...] = (
-                    _GROUP_INSTANCE_SELECT_RELATED.get(self.group_class, (None,))
-                )
-                self.group_query = self.group_class.objects.select_related(
-                    *select_related
-                ).filter(pk__in=pks)
-            except self.group_class.DoesNotExist:
-                group = self.kwargs.get("group")
-                page = self.kwargs.get("page")
-                if group == "r" and not pks and page == 1:
-                    self.group_query = self.group_class.objects.none()
-                else:
-                    reason = f"{group}__in={pks} does not exist!"
-                    settings_mask = {"breadcrumbs": []}
-                    self.raise_redirect(
-                        reason, route_mask={"group": group}, settings_mask=settings_mask
-                    )
-        elif self.group_class:
-            self.group_query = self.group_class.objects.none()
-        else:
-            self.group_query = Comic.objects.none()
-        self.group_instance = self.group_query.first()
 
     def init_request(self):
         """Initialize request."""
         super().init_request()
-        self._set_group_query_and_instance()
 
     def get_model_group(self):
         """Get the group of the models to browse."""
@@ -210,8 +163,7 @@ class BrowserView(BrowserTitleView):
         return zero_pad
 
     def _get_page_mtime(self):
-        group_model = self.group_class if self.group_class else self.model
-        return self.get_group_mtime(group_model, page_mtime=True)
+        return self.get_group_mtime(self.model, page_mtime=True)
 
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
