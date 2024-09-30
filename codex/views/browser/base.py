@@ -96,7 +96,6 @@ class BrowserBaseView(SearchFilterView):
         if validated_data:
             params.update(validated_data)  # type: ignore
         self.params = MappingProxyType(params)
-        self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
 
     def validate_settings(self):
         """Unused until browser."""

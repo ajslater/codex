@@ -18,6 +18,20 @@ LOG = get_logger(__name__)
 class BrowserGroupMtimeView(BrowserFilterView):
     """Annotations that also filter."""
 
+    def __init__(self, *args, **kwargs):
+        """Initialize memoized values."""
+        super().__init__(*args, **kwargs)
+        self._is_bookmark_filtered: bool | None = None
+
+    @property
+    def is_bookmark_filtered(self):
+        """Is bookmark filter in effect."""
+        if self._is_bookmark_filtered is None:
+            self._is_bookmark_filtered = bool(
+                self.params.get("filters", {}).get("bookmark")
+            )
+        return self._is_bookmark_filtered
+
     def _handle_operational_error(self, err):
         msg = err.args[0] if err.args else ""
         if msg.startswith(_FTS5_PREFIX):
