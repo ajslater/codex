@@ -69,10 +69,10 @@ class SearchFilterView(BrowserFTSFilter):
     def __init__(self, *args, **kwargs):
         """Initialize search variables."""
         super().__init__(*args, **kwargs)
+        self._admin_flags: MappingProxyType[str, bool] | None = None
         self.fts_mode = False
         self.search_mode = False
         self.search_error = ""
-        self._admin_flags: MappingProxyType[str, bool] | None = None
 
     @property
     def admin_flags(self) -> MappingProxyType[str, bool]:
