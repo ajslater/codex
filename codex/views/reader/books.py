@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 
 from django.db.models import F
+from django.db.models.query import Q
 
 from codex.models import Bookmark, Comic
 from codex.views.bookmark import BookmarkFilterBaseView
@@ -92,16 +93,18 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         arc_pks = self._get_reader_arc_pks(
             arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
         )
+
+        # Build filter
         group_acl_filter = self.get_group_acl_filter(Comic)
         nav_filter = {f"{rel}__in": arc_pks}
-
-        qs = Comic.objects.filter(group_acl_filter).filter(**nav_filter)
+        query_filter = group_acl_filter & Q(**nav_filter)
         if browser_filters := arc.get("filters"):
             # no search at this time.
-            field_filters = ComicFieldFilterView.get_all_comic_field_filters(
+            query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
                 "", browser_filters
             )
-            qs = qs.filter(field_filters)
+
+        qs = Comic.objects.filter(query_filter)
 
         if select_related:
             qs = qs.select_related(*select_related)
