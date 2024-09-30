@@ -2,6 +2,7 @@
 
 from django.db.models.expressions import F
 from django.db.models.functions import Now
+from django.db.models.query import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -96,16 +97,17 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         if not updates:
             return count
         group_acl_filter = self.get_group_acl_filter(Bookmark)
-        update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
-        update_fields.add("updated_at")
-        only_fields = (*update_fields, "pk")
-        existing_bookmarks = Bookmark.objects.filter(group_acl_filter).filter(
-            **search_kwargs
-        )
+        query_filter = group_acl_filter & Q(**search_kwargs)
+        existing_bookmarks = Bookmark.objects.filter(query_filter)
         if updates.get("page") is not None:
             existing_bookmarks = existing_bookmarks.annotate(
                 page_count=F("comic__page_count")
             )
+
+        update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
+        update_fields.add("updated_at")
+        only_fields = (*update_fields, "pk")
+
         existing_bookmarks = existing_bookmarks.only(*only_fields)
         update_bookmarks = []
         for bm in existing_bookmarks:
@@ -140,11 +142,9 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         exclude = {}
         for key, value in search_kwargs.items():
             exclude["bookmark__" + key] = value
-        create_bookmark_comics = (
-            Comic.objects.filter(group_acl_filter)
-            .filter(**comic_filter)
-            .exclude(**exclude)
-            .only(*_COMIC_ONLY_FIELDS)
+        query_filter = group_acl_filter & Q(**comic_filter) & ~Q(**exclude)
+        create_bookmark_comics = Comic.objects.filter(query_filter).only(
+            *_COMIC_ONLY_FIELDS
         )
         for comic in create_bookmark_comics:
             defaults = {"comic": comic}
