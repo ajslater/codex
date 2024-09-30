@@ -71,10 +71,6 @@ class CoverView(BrowserAnnotateOrderView):
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
 
-    def init_request(self):
-        """Initialize request."""
-        self.parse_params()
-
     def _get_comic_cover(self):
         pks = self.kwargs["pks"]
         return pks[0], False
@@ -149,7 +145,6 @@ class CoverView(BrowserAnnotateOrderView):
     def get(self, *args, **kwargs):  # type: ignore
         """Get comic cover."""
         try:
-            self.init_request()
             try:
                 pk, custom = self._get_cover_pk()
             except OperationalError as exc:

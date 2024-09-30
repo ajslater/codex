@@ -107,7 +107,8 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Save the breadcrumbs to params."""
         params = dict(self.params)
         params["breadcrumbs"] = tuple(crumb.dict() for crumb in breadcrumbs)
-        self.params = MappingProxyType(params)
+        # HACK rewriting params
+        self._params = MappingProxyType(params)
 
     def _breadcrumbs_graft_or_create_story_arc(self) -> tuple[tuple[Route, ...], bool]:
         """Graft or create story_arc breadcrumbs."""

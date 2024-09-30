@@ -2,21 +2,21 @@
 
 from django.db.models import Q
 
+from codex.views.browser.params import BrowserParamsView
 from codex.views.const import (
     FILTER_ONLY_GROUP_RELATION,
     FOLDER_GROUP,
     GROUP_RELATION,
 )
-from codex.views.session import SessionView
 
 _GROUP_REL_TARGETS = frozenset({"cover", "choices"})
 _PK_REL_TARGETS = frozenset({"metadata", "mtime"})
 
 
-class GroupFilterView(SessionView):
+class GroupFilterView(BrowserParamsView):
     """Group Filters."""
 
-    SESSION_KEY = SessionView.BROWSER_SESSION_KEY
+    SESSION_KEY = BrowserParamsView.BROWSER_SESSION_KEY
 
     def _get_rel_for_pks(self, group, page_mtime=False):
         """Get the relation from the model to the pks."""

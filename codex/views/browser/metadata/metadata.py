@@ -29,14 +29,11 @@ class MetadataView(MetadataCopyIntersectionsView):
         }
     )
 
-    def init_request(self):
-        """Initialize request."""
-        self.parse_params()
-
-    def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
+    def _get_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
         """Limited allowed nav groups for metadata."""
+        # Overrides method in browser.validate
         group = self.kwargs["group"]
-        self.valid_nav_groups = (group,)
+        return (group,)
 
     def _raise_not_found(self, exc=None):
         """Raise an exception if the object is not found."""
@@ -78,7 +75,6 @@ class MetadataView(MetadataCopyIntersectionsView):
         """Get metadata for a filtered browse group."""
         # Init
         try:
-            self.init_request()
             obj = self.get_object()
             serializer = self.get_serializer(obj)
             return Response(serializer.data)

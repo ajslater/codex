@@ -216,7 +216,6 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
 
     def init_request(self):
         """Initialize request."""
-        super().init_request()
         self.set_opds_request_type()
         self._set_user_agent_variables()
         self.skip_order_facets |= self.kwargs.get("group") == "c"

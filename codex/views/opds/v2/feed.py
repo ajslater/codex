@@ -230,7 +230,6 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
 
     def init_request(self):
         """Initialize request."""
-        super().init_request()
         self.set_opds_request_type()
         # self._detect_user_agent()
 

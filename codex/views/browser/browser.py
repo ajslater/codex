@@ -49,7 +49,6 @@ class BrowserView(BrowserTitleView):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self.is_opds_2_acquisition = False
-        self.valid_nav_groups: tuple[str, ...] = ()
 
     @property
     def model_group(self):
@@ -233,7 +232,6 @@ class BrowserView(BrowserTitleView):
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
-        self.init_request()
         data = self.get_object()
         serializer = self.get_serializer(data)
         return Response(serializer.data)

@@ -24,6 +24,11 @@ class BrowserValidateView(BrowserBaseView):
         {"name": "browser", "params": DEFAULT_BROWSER_ROUTE}
     )
 
+    def __init__(self, *args, **kwargs):
+        """Initialize properties."""
+        super().__init__(*args, **kwargs)
+        self._valid_nav_groups: tuple[str, ...] | None = None
+
     def raise_redirect(self, reason, route_mask=None, settings_mask=None):
         """Redirect the client to a valid group url."""
         route = mapping_to_dict(self.DEFAULT_ROUTE)
@@ -70,7 +75,7 @@ class BrowserValidateView(BrowserBaseView):
             settings_mask = {"top_group": valid_top_group, "breadcrumbs": breadcrumbs}
             self.raise_redirect(reason, route, settings_mask)
 
-    def set_valid_browse_nav_groups(self, valid_top_groups):
+    def _get_valid_browse_nav_groups(self, valid_top_groups):
         """Get valid nav groups for the current settings.
 
         Valid nav groups are the top group and below that are also
@@ -93,7 +98,7 @@ class BrowserValidateView(BrowserBaseView):
             reason = f"Nav group {nav_group} unavailable, redirect to {ROOT_GROUP}"
             self.raise_redirect(reason)
 
-        self.valid_nav_groups = tuple(valid_nav_groups)
+        return tuple(valid_nav_groups)
 
     def _validate_folder_settings(self):
         """Check that all the view variables for folder mode are set right."""
@@ -110,7 +115,7 @@ class BrowserValidateView(BrowserBaseView):
 
         valid_top_groups = (FOLDER_GROUP,)
         self._validate_top_group(valid_top_groups)
-        self.valid_nav_groups = valid_top_groups
+        return valid_top_groups
 
     def _validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""
@@ -129,20 +134,24 @@ class BrowserValidateView(BrowserBaseView):
 
         # Validate Browser nav_group
         # Redirect if nav group is wrong
-        self.set_valid_browse_nav_groups(valid_top_groups)
+        return self._get_valid_browse_nav_groups(valid_top_groups)
 
-    def _validate_story_arc_settings(self):
+    def _validate_story_arc_settings(self) -> tuple[str, ...]:
         """Validate story arc settings."""
         valid_top_groups = (STORY_ARC_GROUP,)
         self._validate_top_group(valid_top_groups)
-        self.valid_nav_groups = valid_top_groups
+        return valid_top_groups
 
-    def validate_settings(self):
-        """Validate group and top group settings."""
-        group = self.kwargs["group"]
-        if group == FOLDER_GROUP:
-            self._validate_folder_settings()
-        elif group == STORY_ARC_GROUP:
-            self._validate_story_arc_settings()
-        else:
-            self._validate_browser_group_settings()
+    @property
+    def valid_nav_groups(self) -> tuple[str, ...]:
+        """Memoize valid nav groups."""
+        if self._valid_nav_groups is None:
+            group = self.kwargs["group"]
+            if group == FOLDER_GROUP:
+                vng = self._validate_folder_settings()
+            elif group == STORY_ARC_GROUP:
+                vng = self._validate_story_arc_settings()
+            else:
+                vng = self._validate_browser_group_settings()
+            self._valid_nav_groups = vng
+        return self._valid_nav_groups

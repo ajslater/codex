@@ -64,10 +64,6 @@ class BrowserChoicesViewBase(BrowserFilterView):
     input_serializer_class = BrowserFilterChoicesInputSerilalizer
     TARGET = "choices"
 
-    def init_request(self):
-        """Initialieze request."""
-        self.parse_params()
-
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
         """Get distinct values for the field."""
@@ -109,7 +105,6 @@ class BrowserChoicesViewBase(BrowserFilterView):
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Return choices."""
-        self.init_request()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
