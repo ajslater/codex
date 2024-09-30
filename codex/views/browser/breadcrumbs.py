@@ -56,10 +56,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                     select_related: tuple[str | None, ...] = (
                         _GROUP_INSTANCE_SELECT_RELATED.get(model, (None,))
                     )
+                    order_by = "name" if model is Volume else "sort_name"
                     group_query = (
                         model.objects.select_related(*select_related)
                         .filter(pk__in=pks)
-                        .order_by("sort_name")
+                        .order_by(order_by)
                     )
                 except model.DoesNotExist:
                     group = self.kwargs.get("group")
