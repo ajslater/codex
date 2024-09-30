@@ -1,7 +1,5 @@
 """Base view for ordering the query."""
 
-from django.db.models.aggregates import Max, Min
-
 from codex.models import Comic
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
 
@@ -9,17 +7,22 @@ from codex.views.browser.group_mtime import BrowserGroupMtimeView
 class BrowserOrderByView(BrowserGroupMtimeView):
     """Base class for views that need ordering."""
 
-    def set_order_key(self):
+    def __init__(self, *args, **kwargs):
+        """Initialize memoized vars."""
+        super().__init__(*args, **kwargs)
+        self._order_key: str = ""
+
+    @property
+    def order_key(self):
         """Get the default order key for the view."""
-        order_key: str = self.params["order_by"]
-        if order_key == "search_score" and not self.fts_mode:
-            # if no search scores, use sort_name, asc
-            order_key = "sort_name"
-            order_reverse = False
-        else:
-            order_reverse = self.params.get("order_reverse")
-        self.order_key = order_key
-        self.order_agg_func = Max if order_reverse else Min
+        if not self._order_key:
+            order_key: str = self.params["order_by"]
+            if (order_key == "search_score" and not self.fts_mode) or (
+                order_key == "filename" and not self.admin_flags["folder_view"]
+            ):
+                order_key = "sort_name"
+            self._order_key = order_key
+        return self._order_key
 
     def _add_comic_order_by(self, order_key, comic_sort_names):
         """Order by for comics (and covers)."""

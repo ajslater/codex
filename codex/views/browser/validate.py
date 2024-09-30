@@ -146,12 +146,3 @@ class BrowserValidateView(BrowserBaseView):
             self._validate_story_arc_settings()
         else:
             self._validate_browser_group_settings()
-
-        # Validate order
-        if self.order_key == "filename" and not self.admin_flags["folder_view"]:
-            pks = self.kwargs["pks"]
-            page = self.kwargs["page"]
-            route_changes = {"group": group, "pks": pks, "page": page}
-            reason = "order by filename not allowed by admin flag."
-            settings_mask = {"order_by": "sort_name"}
-            self.raise_redirect(reason, route_changes, settings_mask)

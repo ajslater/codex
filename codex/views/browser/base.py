@@ -3,7 +3,6 @@
 from types import MappingProxyType
 from typing import Any
 
-from django.db.models.aggregates import Max, Min
 from rest_framework.exceptions import NotFound
 
 from codex.logger.logging import get_logger
@@ -28,8 +27,6 @@ class BrowserBaseView(SearchFilterView):
         super().__init__(*args, **kwargs)
         self._is_admin: bool | None = None
         self.params: MappingProxyType[str, Any] = MappingProxyType({})
-        self.order_agg_func: type[Min | Max] = Min
-        self.order_key: str = ""
         self._model_group: str = ""
         self._model: type[BrowserGroupModel] | None = None
         self._rel_prefix: str | None = None
@@ -100,9 +97,6 @@ class BrowserBaseView(SearchFilterView):
             params.update(validated_data)  # type: ignore
         self.params = MappingProxyType(params)
         self.is_bookmark_filtered = bool(self.params.get("filters", {}).get("bookmark"))
-
-    def set_order_key(self):
-        """Unused until browser."""
 
     def validate_settings(self):
         """Unused until browser."""

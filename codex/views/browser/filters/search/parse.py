@@ -60,7 +60,11 @@ _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
-    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
+        {
+            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+        }
+    )
 
     def __init__(self, *args, **kwargs):
         """Initialize search variables."""
@@ -68,7 +72,7 @@ class SearchFilterView(BrowserFTSFilter):
         self.fts_mode = False
         self.search_mode = False
         self.search_error = ""
-        self._admin_flags: MappingProxyType[str, bool] | None = MappingProxyType({})
+        self._admin_flags: MappingProxyType[str, bool] | None = None
 
     @property
     def admin_flags(self) -> MappingProxyType[str, bool]:
@@ -89,7 +93,7 @@ class SearchFilterView(BrowserFTSFilter):
 
     def _is_path_column_allowed(self):
         """Is path column allowed."""
-        return self.is_admin or bool(self.admin_flags.get("folder_view"))
+        return self.is_admin or bool(self.admin_flags["folder_view"])
 
     @staticmethod
     def _is_column_operators_used(exp) -> bool:

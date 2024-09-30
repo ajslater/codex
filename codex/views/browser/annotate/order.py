@@ -4,14 +4,12 @@ from os import sep
 from types import MappingProxyType
 
 from django.db.models import (
-    Avg,
     F,
     FilteredRelation,
-    Min,
     Q,
-    Sum,
     Value,
 )
+from django.db.models.aggregates import Avg, Max, Min, Sum
 from django.db.models.fields import CharField
 from django.db.models.functions import Reverse, Right, StrIndex
 
@@ -67,8 +65,17 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
+        self._order_agg_func: type[Min | Max] | None = None
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
+
+    @property
+    def order_agg_func(self):
+        """Get the order aggregate function."""
+        if self._order_agg_func is None:
+            order_reverse = self.params.get("order_reverse")
+            self._order_agg_func = Max if order_reverse else Min
+        return self._order_agg_func
 
     def _alias_sort_names(self, qs):
         """Annotate sort_name."""
@@ -187,7 +194,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def annotate_order_aggregates(self, qs):
         """Annotate common aggregates between browser and metadata."""
-        self.set_order_key()
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs)
