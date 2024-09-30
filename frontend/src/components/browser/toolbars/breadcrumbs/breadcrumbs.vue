@@ -1,11 +1,11 @@
 <template>
   <v-breadcrumbs id="browserBreadcrumbs" density="compact" :items="breadcrumbs">
     <template #item="{ item }">
-      <v-breadcrumbs-item :to="item.to" :title="item.tooltip">
+      <v-breadcrumbs-item :to="item.to" :title="item.title">
         <v-icon v-if="item.icon">
           {{ item.icon }}
         </v-icon>
-        <span v-else>{{ item.title }}</span>
+        <span v-else>{{ item.text }}</span>
       </v-breadcrumbs-item>
     </template>
   </v-breadcrumbs>
@@ -23,15 +23,6 @@ import { mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
-const GROUP_NAME_MAP = {
-  f: "Folder",
-  a: "Story Arc",
-  r: "Top",
-  p: "Publisher",
-  i: "Imprint",
-  s: "Series",
-  v: "Volume",
-};
 const GROUP_ICON_MAP = {
   f: mdiFolderOutline,
   r: mdiFormatVerticalAlignTop,
@@ -57,11 +48,21 @@ export default {
         let parentPks = "";
         for (const crumb of parentBreadcrumbs) {
           const to = this.getTo(crumb, parentPks);
-          const title = crumb.name ? crumb.name : "";
+          const text = crumb.name ? crumb.name : "";
           const group = crumb.group;
-          const icon = this.getIcon(crumb.pks, title, group);
-          const tooltip = crumb.pks === "0" ? "Top" : GROUP_NAME_MAP[group];
-          const displayCrumb = { to, title, icon, tooltip };
+          const icon = this.getIcon(crumb.pks, text, group);
+          let title;
+          if (crumb.group === "r") {
+            title = "Top";
+          } else {
+            title = state.choices.static.groupNames[group];
+            if (crumb.pks == 0) {
+              title = "All " + title;
+            } else {
+              title = title.slice(0, -1);
+            }
+          }
+          const displayCrumb = { to, text, icon, title };
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;
         }
