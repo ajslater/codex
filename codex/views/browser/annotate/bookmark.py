@@ -13,7 +13,6 @@ from django.db.models.functions.comparison import Coalesce
 
 from codex.logger.logging import get_logger
 from codex.models import (
-    BrowserGroupModel,
     Comic,
 )
 from codex.models.functions import JsonGroupArray
@@ -24,11 +23,6 @@ LOG = get_logger(__name__)
 
 class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     """Base class for views that need special metadata annotations."""
-
-    def __init__(self, *args, **kwargs):
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
     def _get_group_bookmark_page_annotation(
         self, qs, bm_rel, bm_filter, page_rel, finished_rel

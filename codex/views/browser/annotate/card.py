@@ -28,7 +28,6 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         super().__init__(*args, **kwargs)
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
-        self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
     def add_group_by(self, qs):
         """Get the group by for the model."""
