@@ -1,5 +1,7 @@
 """Views authorization."""
 
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -12,6 +14,9 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc, UserActive
 from codex.serializers.auth import TimezoneSerializer
 from codex.serializers.mixins import OKSerializer
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
 
 LOG = get_logger(__name__)
 
@@ -90,14 +95,23 @@ class TimezoneView(AuthGenericAPIView):
 class GroupACLMixin:
     """Filter group ACLS for views."""
 
+    @property
+    def is_admin(self):
+        """Is the current user an admin."""
+        if self._is_admin is None:
+            user: User = self.request.user  # type: ignore
+            self._is_admin = user and user.is_staff
+        return self._is_admin
+
     @staticmethod
     def get_rel_prefix(model):
         """Return the relation prefix for most fields."""
         prefix = ""
-        if model is not Comic:
-            if model is StoryArc:
-                prefix += "storyarcnumber__"
-            prefix += "comic__"
+        if model is Comic:
+            return prefix
+        if model is StoryArc:
+            prefix += "storyarcnumber__"
+        prefix += "comic__"
         return prefix
 
     def get_group_acl_filter(self, model):

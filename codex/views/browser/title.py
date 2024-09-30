@@ -19,7 +19,7 @@ class BrowserTitleView(BrowserBreadcrumbsView):
 
     def _get_group_name(self):
         group_count = 0
-        if gi := self.get_group_instance():
+        if gi := self.group_instance:
             if isinstance(gi, Volume):
                 group_count = gi.series.volume_count
             elif isinstance(gi, Comic):

@@ -45,7 +45,38 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         super().__init__(*args, **kwargs)
         self._group_instance: BrowserGroupModel | None | int = 0
 
-    def get_group_instance(self) -> BrowserGroupModel | None:
+    def _get_group_query(self, model):
+        """Get the group query for the group instance."""
+        pks = self.kwargs.get("pks")
+        select_related: tuple[str | None, ...] = _GROUP_INSTANCE_SELECT_RELATED.get(
+            model, (None,)
+        )
+        order_by = "name" if model is Volume else "sort_name"
+        return (
+            model.objects.select_related(*select_related)
+            .filter(pk__in=pks)
+            .order_by(order_by)
+        )
+
+    def _handle_group_query_missing_model(self, model):
+        """Handle a missing model for the group instance."""
+        group = self.kwargs.get("group")
+        pks = self.kwargs.get("pks")
+        page = self.kwargs.get("page")
+        if group == "r" and not pks and page == 1:
+            group_query = model.objects.none()
+        else:
+            reason = f"{group}__in={pks} does not exist!"
+            settings_mask = {"breadcrumbs": []}
+            self.raise_redirect(
+                reason,
+                route_mask={"group": group},
+                settings_mask=settings_mask,
+            )
+        return group_query
+
+    @property
+    def group_instance(self) -> BrowserGroupModel | None:
         """Memoize group instance for getting group names & counts."""
         if self._group_instance == 0:
             group = self.kwargs.get("group")
@@ -53,28 +84,9 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             pks = self.kwargs.get("pks")
             if model and pks and 0 not in pks:
                 try:
-                    select_related: tuple[str | None, ...] = (
-                        _GROUP_INSTANCE_SELECT_RELATED.get(model, (None,))
-                    )
-                    order_by = "name" if model is Volume else "sort_name"
-                    group_query = (
-                        model.objects.select_related(*select_related)
-                        .filter(pk__in=pks)
-                        .order_by(order_by)
-                    )
+                    group_query = self._get_group_query(model)
                 except model.DoesNotExist:
-                    group = self.kwargs.get("group")
-                    page = self.kwargs.get("page")
-                    if group == "r" and not pks and page == 1:
-                        group_query = model.objects.none()
-                    else:
-                        reason = f"{group}__in={pks} does not exist!"
-                        settings_mask = {"breadcrumbs": []}
-                        self.raise_redirect(
-                            reason,
-                            route_mask={"group": group},
-                            settings_mask=settings_mask,
-                        )
+                    group_query = self._handle_group_query_missing_model(model)
             else:
                 if not model:
                     model = Publisher
@@ -103,7 +115,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        gi = self.get_group_instance()
+        gi = self.group_instance
         name = gi.name if gi else ""
         group_crumb = Route(STORY_ARC_GROUP, pks, page, name)
 
@@ -137,7 +149,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        folder: Folder | None = self.get_group_instance()  # type: ignore
+        folder: Folder | None = self.group_instance  # type: ignore
         name = folder.name if folder and pks else ""
         group_crumb = Route(FOLDER_GROUP, pks, page, name)
         new_breadcrumbs = []
@@ -171,7 +183,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def _get_breadcrumbs_group_crumb(self, group):
         """Create the crumb for this group."""
-        gi = self.get_group_instance()  # type: ignore
+        gi = self.group_instance
         if not gi:
             pks = ()
             page = 1

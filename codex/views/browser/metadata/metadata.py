@@ -31,10 +31,7 @@ class MetadataView(MetadataCopyIntersectionsView):
 
     def init_request(self):
         """Initialize request."""
-        self.set_admin_flags()
         self.parse_params()
-        self.set_model()
-        self.set_rel_prefix()
 
     def set_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
         """Limited allowed nav groups for metadata."""

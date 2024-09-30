@@ -71,14 +71,9 @@ class CoverView(BrowserAnnotateOrderView):
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
 
-    def get_model_group(self):
-        """Return the url group."""
-        return self.kwargs["group"]
-
     def init_request(self):
         """Initialize request."""
         self.parse_params()
-        self.set_model()
 
     def _get_comic_cover(self):
         pks = self.kwargs["pks"]

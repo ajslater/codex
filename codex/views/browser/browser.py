@@ -51,25 +51,27 @@ class BrowserView(BrowserTitleView):
         self.is_opds_2_acquisition = False
         self.valid_nav_groups: tuple[str, ...] = ()
 
-    def init_request(self):
-        """Initialize request."""
-        super().init_request()
-
-    def get_model_group(self):
+    @property
+    def model_group(self):
         """Get the group of the models to browse."""
         # the model group shown must be:
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
-        group = self.kwargs["group"]
-        if group == FOLDER_GROUP:
-            return group
-        if group == STORY_ARC_GROUP:
-            pks = self.kwargs.get("pks")
-            return COMIC_GROUP if pks else group
-        if group == self.valid_nav_groups[-1]:
-            # special case for lowest valid group
-            return COMIC_GROUP
-        return self.valid_nav_groups[self.valid_nav_groups.index(group) + 1]
+        if not self._model_group:
+            group = self.kwargs["group"]
+            if group == FOLDER_GROUP:
+                self._model_group = group
+            elif group == STORY_ARC_GROUP:
+                pks = self.kwargs.get("pks")
+                self._model_group = COMIC_GROUP if pks else group
+            elif group == self.valid_nav_groups[-1]:
+                # special case for lowest valid group
+                self._model_group = COMIC_GROUP
+            else:
+                self._model_group = self.valid_nav_groups[
+                    self.valid_nav_groups.index(group) + 1
+                ]
+        return self._model_group
 
     ################
     # MAIN QUERIES #

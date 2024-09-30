@@ -28,7 +28,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         group = self.kwargs["group"]
         is_path_group = group in _PATH_GROUPS
         if is_path_group:
-            if self.is_admin():
+            if self.is_admin:
                 return
             if self.admin_flags["folder_view"]:
                 obj.path = obj.search_path()

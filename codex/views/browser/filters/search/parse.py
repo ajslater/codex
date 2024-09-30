@@ -1,10 +1,12 @@
 """Search Filters Methods."""
 
 import re
+from types import MappingProxyType
 
 from django.db.models.query import Q
 
 from codex.logger.logging import get_logger
+from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
@@ -58,24 +60,39 @@ _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
+
     def __init__(self, *args, **kwargs):
         """Initialize search variables."""
         super().__init__(*args, **kwargs)
         self.fts_mode = False
         self.search_mode = False
         self.search_error = ""
+        self._admin_flags: MappingProxyType[str, bool] | None = MappingProxyType({})
+
+    @property
+    def admin_flags(self) -> MappingProxyType[str, bool]:
+        """Set browser relevant admin flags."""
+        if self._admin_flags is None:
+            if self.ADMIN_FLAG_VALUE_KEY_MAP:
+                admin_pairs = AdminFlag.objects.filter(
+                    key__in=self.ADMIN_FLAG_VALUE_KEY_MAP.keys()
+                ).values_list("key", "on")
+            else:
+                admin_pairs = ()
+            admin_flags = {}
+            for key, on in admin_pairs:
+                export_key = self.ADMIN_FLAG_VALUE_KEY_MAP[key]
+                admin_flags[export_key] = on
+            self._admin_flags = MappingProxyType(admin_flags)
+        return self._admin_flags
 
     def _is_path_column_allowed(self):
         """Is path column allowed."""
-        if not self.is_admin():  # type: ignore
-            if not "folder_view" not in self.admin_flags:  # type: ignore
-                # Ensure admin flags for Cover View
-                self.set_admin_flags()  # type: ignore
-            return bool(self.admin_flags.get("folder_view"))  # type: ignore
-        return True
+        return self.is_admin or bool(self.admin_flags.get("folder_view"))
 
     @staticmethod
-    def _is_column_operators_used(exp):
+    def _is_column_operators_used(exp) -> bool:
         """Detect column expression operators, but not inside quotes."""
         for match in _COLUMN_EXPRESSION_OPERATORS_RE.finditer(exp):
             if match.group("star"):

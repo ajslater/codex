@@ -67,8 +67,6 @@ class BrowserChoicesViewBase(BrowserFilterView):
     def init_request(self):
         """Initialieze request."""
         self.parse_params()
-        self.set_model()
-        self.set_rel_prefix()
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
