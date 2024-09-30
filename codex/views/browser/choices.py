@@ -1,6 +1,7 @@
 """View for marking comics read and unread."""
 
 from types import MappingProxyType
+from typing import Any
 
 from caseconverter import snakecase
 from django.db.models import QuerySet
@@ -103,7 +104,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
 
         return rel, model
 
-    def get_object(self):
+    def get_object(self) -> QuerySet:  # type: ignore
         """Get the comic subquery use for the choices."""
         return self.get_filtered_queryset(Comic)
 
@@ -142,7 +143,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         return count
 
-    def get_object(self):
+    def get_object(self) -> dict[str, Any]:  # type: ignore
         """Get choice counts."""
         qs = super().get_object()
         filters = self.params.get("filters", {})
@@ -191,7 +192,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
 
-    def get_object(self):
+    def get_object(self) -> dict[str, Any]:  # type: ignore
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()

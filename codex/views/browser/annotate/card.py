@@ -1,6 +1,6 @@
 """Base view for metadata annotations."""
 
-from typing import TYPE_CHECKING
+from types import MappingProxyType
 
 from django.db.models import (
     Value,
@@ -11,11 +11,12 @@ from django.db.models.fields import CharField
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
+from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
-if TYPE_CHECKING:
-    from codex.models import BrowserGroupModel
-
+_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+    {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
+)
 LOG = get_logger(__name__)
 
 
@@ -28,6 +29,12 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         self.is_opds_1_acquisition = False
         self.comic_sort_names = ()
         self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
+
+    def add_group_by(self, qs):
+        """Get the group by for the model."""
+        if group_by := _GROUP_BY.get(qs.model):  # type: ignore
+            qs = qs.group_by(group_by)
+        return qs
 
     def _annotate_child_count(self, qs):
         """Annotate child chount for card."""
