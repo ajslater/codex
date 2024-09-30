@@ -43,14 +43,18 @@ import { useCommonStore } from "@/stores/common";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
 
-import BROWSER_MAP from "@/choices/browser-map.json";
-import READER_MAP from "@/choices/reader-map.json";
+import {
+  fitTo as FIT_TO,
+  orderBy as ORDER_BY,
+  topGroup as TOP_GROUP,
+} from "@/choices/browser-map.json";
+import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
 
 const LOOKUPS = {
-  topGroup: BROWSER_MAP.groupNames,
-  orderBy: BROWSER_MAP.orderBy,
-  fitTo: BROWSER_MAP.fitTo,
-  readingDirection: READER_MAP.readingDirection,
+  topGroup: TOP_GROUP,
+  orderBy: ORDER_BY,
+  fitTo: FIT_TO,
+  readingDirection: READING_DIRECTION,
 };
 const CONFIG_LABELS = {
   authGroupCount: "Authorization Groups",

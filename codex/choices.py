@@ -49,12 +49,6 @@ BROWSER_CHOICES = MappingProxyType(
         "order_by": BROWSER_ORDER_BY_CHOICES,
         "top_group": BROWSER_TOP_GROUP_CHOICES,
         "vuetify_null_code": VUETIFY_NULL_CODE,
-        "group_names": {
-            **_GROUP_NAMES,
-            "c": "Issues",
-            "f": "Folders",
-            "a": "Story Arcs",
-        },
         "settings_group": {**_GROUP_NAMES},
         "identifier_types": {
             "comicvine": "Comic Vine",

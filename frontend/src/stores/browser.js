@@ -6,6 +6,7 @@ import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
+import { topGroup as GROUP_NAMES } from "@/choices/browser-map.json";
 import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
@@ -53,7 +54,7 @@ export const useBrowserStore = defineStore("browser", {
     choices: {
       static: Object.freeze({
         bookmark: BROWSER_CHOICES.bookmarkFilter,
-        groupNames: BROWSER_CHOICES.groupNames,
+        groupNames: GROUP_NAMES,
         settingsGroup: BROWSER_CHOICES.settingsGroup,
         readingDirection: READING_DIRECTION,
         identifierType: BROWSER_CHOICES.identifierTypes,
