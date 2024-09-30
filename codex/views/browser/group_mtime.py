@@ -51,7 +51,11 @@ class BrowserGroupMtimeView(BrowserFilterView):
         )
 
         try:
-            mtime = qs.aggregate(max=Greatest(mua, mbua))["max"]
+            qs = qs.annotate(max=Greatest(mua, mbua))
+            # Forcing inner joins makes search work
+            # Can't run demote_joins on aggregate.
+            qs = self.force_inner_joins(qs)
+            mtime = qs.first().max
         except OperationalError as exc:
             self._handle_operational_error(exc)
             mtime = None

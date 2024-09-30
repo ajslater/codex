@@ -229,9 +229,11 @@ class BrowserView(BrowserTitleView):
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs)
             group_qs = self._requery_max_bookmark_updated_at(group_qs)
+            group_qs = self.force_inner_joins(group_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
+            book_qs = self.force_inner_joins(book_qs)
         else:
             zero_pad = 1
 

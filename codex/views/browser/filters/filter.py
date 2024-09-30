@@ -20,13 +20,15 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     TARGET = ""
 
-    def _get_inner_join_filter(self, model):
-        """Filter by comics existing, allows INNER JOIN."""
-        if model is Comic:
-            return Q()
-        rel = self.get_rel_prefix(model)
-        rel += "isnull"
-        return Q(**{rel: False})
+    def force_inner_joins(self, qs):
+        """Force INNER JOINS to filter empty groups."""
+        demote_tables = {"codex_library"}
+        if qs.model is not Comic:
+            demote_tables.add("codex_comic")
+        if self.fts_mode:
+            # Forcing INNER JOINS required to make fts5 work
+            demote_tables.add("codex_comicfts")
+        return qs.demote_joins(demote_tables)
 
     def get_query_filters(  # noqa: PLR0913
         self,
@@ -43,7 +45,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         exclude_filters = []
         if acl_filter:
             # TODO get exclude filter from acl filter
-            # When refactor acl filter
+            #   when i refactor acl filter
             acl_include_filter = self.get_group_acl_filter(model)
             include_filters.append(acl_include_filter)
         if group_filter:
@@ -52,12 +54,26 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             )
         include_filters.append(self.get_comic_field_filter(model))
         if bookmark_filter:
-            # not needed when used by outerrefl OuterRef is applied next
             include_filters.append(self.get_bookmark_filter(model))
-        include_search_filter, exclude_search_filter = self.get_search_filters(model)
+        include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
+            model
+        )
         include_filters.append(include_search_filter)
         exclude_filters.append(exclude_search_filter)
-        return include_filters, exclude_filters
+        # TODO clean up
+        ic = Q()
+
+        for include_filter in include_filters:
+            ic &= include_filter
+        ec = Q()
+        for exclude_filter in exclude_filters:
+            ec &= exclude_filter
+        if ec:
+            ic &= ~ec
+
+        if fts_q:
+            ic &= fts_q
+        return ic
 
     def add_group_by(self, qs):
         """Get the group by for the model."""
@@ -77,7 +93,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     ):
         """Get a filtered queryset for the model."""
         qs = model.objects
-        include_filters, exclude_filters = self.get_query_filters(
+        query_filters = self.get_query_filters(
             model,
             group,
             pks,
@@ -86,11 +102,6 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             group_filter=group_filter,
             acl_filter=acl_filter,
         )
-        for include_filter in include_filters:
-            qs = qs.filter(include_filter)
-        for exclude_filter in exclude_filters:
-            qs = qs.exclude(exclude_filter)
-        if inner_join_filter := self._get_inner_join_filter(model):
-            # stand alone filter is best here.
-            qs = qs.filter(inner_join_filter)
+        qs = qs.filter(query_filters)
+        # TODO is group by neccessarcy here?
         return self.add_group_by(qs)

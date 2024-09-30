@@ -164,12 +164,15 @@ class SearchFilterView(BrowserFTSFilter):
                 )
             field_filter_q_list += include_q_list
             field_exclude_q_list += exclude_q_list
+
         fts_filter_dict = self.get_fts_filter(model, fts_text)
         if fts_filter_dict:
             self.fts_mode = True
-            field_filter_q_list.append(Q(**fts_filter_dict))
+            fts_q = Q(**fts_filter_dict)
+        else:
+            fts_q = Q()
 
-        return field_filter_q_list, field_exclude_q_list
+        return field_filter_q_list, field_exclude_q_list, fts_q
 
     def _create_search_filter(self, filter_list):
         """Apply search filter lists. Separate filter clauses are employed for m2m searches."""
@@ -186,13 +189,14 @@ class SearchFilterView(BrowserFTSFilter):
         """Preparse search, search and return the filter and scores."""
         include_q = Q()
         exclude_q = Q()
+        fts_q = Q()
         try:
-            field_exclude_q_list, field_filter_q_list = self._create_search_filters(
-                model
+            field_filter_q_list, field_exclude_q_list, fts_q = (
+                self._create_search_filters(model)
             )
             # Apply filters
-            include_q = self._create_search_filter(field_exclude_q_list)
-            exclude_q = self._create_search_filter(field_filter_q_list)
+            include_q = self._create_search_filter(field_filter_q_list)
+            exclude_q = self._create_search_filter(field_exclude_q_list)
 
         except Exception as exc:
             msg = "Creating search filters"
@@ -200,7 +204,7 @@ class SearchFilterView(BrowserFTSFilter):
             msg = f"{msg} - {exc}"
             self.search_error = msg
 
-        return include_q, exclude_q
+        return include_q, exclude_q, fts_q
 
     def _is_search_results_limited(self) -> bool:
         """Get search result limit from params."""
