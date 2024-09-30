@@ -35,7 +35,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
         bm_rel = self._get_bm_rel(model)
         bm_filter = self._get_my_bookmark_filter(bm_rel)
         bmua_rel = f"{bm_rel}__updated_at"
-        args = { "default": default, "filter": bm_filter}
+        args = {"default": default, "filter": bm_filter}
         if agg_func is JsonGroupArray:
             args["distinct"] = True
         return agg_func(bmua_rel, **args)
