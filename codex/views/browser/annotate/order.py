@@ -59,7 +59,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
     """Base class for views that need special metadata annotations."""
 
     CARD_TARGETS = frozenset({"browser", "metadata"})
-    _PAGE_COUNT_TARGETS = frozenset(CARD_TARGETS | {"opds1", "opds2"})
+    _OPDS_TARGETS = frozenset({"opds1", "opds2"})
+    _PAGE_COUNT_TARGETS = frozenset(CARD_TARGETS | _OPDS_TARGETS)
     _COVER_AND_CARD_TARGETS = frozenset(CARD_TARGETS | {"cover"})
 
     def __init__(self, *args, **kwargs):
@@ -80,13 +81,15 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
 
     @property
     def is_opds_acquisition(self):
-        """Memoize if we're in an opds v1 acquisition view."""
+        """Memoize if we're in an opds acquisition view."""
         if self._is_opds_acquisition is None:
-            group = self.kwargs.get("group")
-            is_opds_acquisition = group in self.opds_acquisition_groups
-            if group == "a":
-                pks = self.kwargs["pks"]
-                is_opds_acquisition &= bool(pks and 0 not in pks)
+            is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
+            if is_opds_acquisition:
+                group = self.kwargs.get("group")
+                is_opds_acquisition &= group in self.opds_acquisition_groups
+                if is_opds_acquisition and group == "a":
+                    pks = self.kwargs["pks"]
+                    is_opds_acquisition &= bool(pks and 0 not in pks)
             self._is_opds_acquisition = is_opds_acquisition
         return self._is_opds_acquisition
 
