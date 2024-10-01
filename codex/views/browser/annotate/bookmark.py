@@ -94,8 +94,10 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
         qs = qs.annotate(finished=finished_aggregate)
 
-        mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
-        return qs.annotate(bookmark_updated_ats=mbmua)
+        if not self.bmua_is_max:
+            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
+            qs = qs.annotate(bookmark_updated_ats=mbmua)
+        return qs
 
     def annotate_progress(self, qs):
         """Compute progress for each member of a qs."""

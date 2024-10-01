@@ -69,6 +69,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
         self._order_agg_func: type[Min | Max] | None = None
         self._is_opds_acquisition: bool | None = None
         self._opds_acquisition_groups: frozenset[str] | None = None
+        self.bmua_is_max = False
 
     @property
     def opds_acquisition_groups(self):
@@ -182,12 +183,16 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
         return qs
 
     def _annotate_bookmark_updated_at(self, qs):
-        if not self.is_opds_acquisition and self.order_key != "bookmark_updated_at":
-            return qs
-        bmua_agg = self.get_max_bookmark_updated_at_aggregate(
-            qs.model, agg_func=self.order_agg_func
-        )
-        return qs.annotate(bookmark_updated_at=bmua_agg)
+        if self.is_opds_acquisition or self.order_key == "bookmark_updated_at":
+            bmua_agg = self.get_max_bookmark_updated_at_aggregate(
+                qs.model, agg_func=self.order_agg_func
+            )
+            # This is used by annotate.bookmark to avoid a
+            # similar query.
+            self.bmua_is_max = self.order_agg_func is Max
+            qs = qs.annotate(bookmark_updated_at=bmua_agg)
+        # This is used by the serializer to compute mtime
+        return qs.annotate(bmua_is_max=Value(self.bmua_is_max))
 
     def annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""

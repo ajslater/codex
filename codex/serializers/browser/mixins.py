@@ -6,7 +6,6 @@ from itertools import chain
 from rest_framework.serializers import (
     BooleanField,
     CharField,
-    DateTimeField,
     DecimalField,
     IntegerField,
     ListField,
@@ -32,7 +31,6 @@ class BrowserAggregateSerializerMixin(Serializer):
 
     # Bookmark annotations
     page = IntegerField(read_only=True)
-    bookmark_updated_at = DateTimeField(read_only=True, allow_null=True)
     finished = BooleanField(read_only=True)
     progress = DecimalField(
         max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
@@ -58,6 +56,12 @@ class BrowserAggregateSerializerMixin(Serializer):
 
     def get_mtime(self, obj) -> int:
         """Compute mtime from json array aggregates."""
-        updated_ats = chain(obj.updated_ats, obj.bookmark_updated_ats)
+        updated_ats = (
+            obj.updated_ats
+            if obj.bmua_is_max
+            else chain(obj.updated_ats, obj.bookmark_updated_ats)
+        )
         mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
+        if obj.bmua_is_max:
+            mtime = max(mtime, obj.bookmark_updated_at)
         return int(mtime.timestamp() * 1000)
