@@ -81,7 +81,7 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         ):
             updates["two_pages"] = None
 
-    def notify_library_changed(self):
+    def _notify_library_changed(self):
         """Notify one user that their library changed."""
         if user := self.request.user:
             uid = user.id  # type: ignore
@@ -170,7 +170,7 @@ class BookmarkBaseView(BookmarkFilterBaseView):
         count = self._update_bookmarks(search_kwargs, updates)
         count += self._create_bookmarks(comic_filter, search_kwargs, updates)
         if count:
-            self.notify_library_changed()
+            self._notify_library_changed()
         return count
 
 
