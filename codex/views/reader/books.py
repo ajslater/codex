@@ -75,9 +75,8 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
             )
         return query_filter
 
-    def _get_comics_annotation_and_ordering(self, model, arc_group, arc_pks):
+    def _get_comics_annotation_and_ordering(self, model, arc_group, arc_pks, ordering):
         """Get ordering for query."""
-        ordering = []
         sort_name_annotations = {}
         if arc_group in ("v", "s"):
             show = self.params["show"]
@@ -86,7 +85,7 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
                 model, model_group, arc_pks, show
             )
             if sort_name_annotations and model is Comic:
-                ordering += [sort_name_annotations.keys()]
+                ordering += (*sort_name_annotations.keys(),)
             ordering += (
                 "issue_number",
                 "issue_suffix",
@@ -109,15 +108,16 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         arc_pk_select_related = (rel,)
         select_related = ()
         prefetch_related = ()
+        ordering = ()
 
         if arc_group == STORY_ARC_GROUP:
-            prefetch_related = (*prefetch_related, rel)
             arc_index = F("story_arc_numbers__number")
-            ordering = ("arc_index", "date", "pk")
             arc_pk_select_related = ()
+            prefetch_related = (*prefetch_related, rel)
+            ordering = ("arc_index", "date", "pk")
         elif arc_group == FOLDER_GROUP:
-            select_related = (rel,)
             fields = (*_COMIC_FIELDS, rel)
+            select_related = (rel,)
             ordering = ("path", "pk")
 
         arc_pks = self._get_reader_arc_pks(
@@ -140,7 +140,7 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
             mtime=F("updated_at"),
         )
         sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
-            qs.model, arc_group, arc_pks
+            qs.model, arc_group, arc_pks, ordering
         )
         if sort_names_alias:
             qs = qs.alias(**sort_names_alias)

@@ -1,6 +1,5 @@
 """Reader get Arcs methods."""
 
-
 from codex.models import AdminFlag
 from codex.util import max_none
 from codex.views.const import (
