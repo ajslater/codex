@@ -55,7 +55,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             default=0,
             filter=bm_filter,
             output_field=PositiveSmallIntegerField(),
-            distinct=True,
+            # distinct breaks this sum and only returns one. idk why.
         )
         qs = qs.alias(finished_count=finished_count)
 
