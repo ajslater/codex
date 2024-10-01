@@ -23,12 +23,6 @@ LOG = get_logger(__name__)
 class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
     """Base class for views that need special metadata annotations."""
 
-    def __init__(self, *args, **kwargs):
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        self.is_opds_1_acquisition = False
-        self.comic_sort_names = ()
-
     def add_group_by(self, qs):
         """Get the group by for the model."""
         if group_by := _GROUP_BY.get(qs.model):  # type: ignore

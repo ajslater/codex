@@ -2,15 +2,17 @@
 
 from codex.models import Comic
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
+from codex.views.mixins import SharedAnnotationsMixin
 
 
-class BrowserOrderByView(BrowserGroupMtimeView):
+class BrowserOrderByView(BrowserGroupMtimeView, SharedAnnotationsMixin):
     """Base class for views that need ordering."""
 
     def __init__(self, *args, **kwargs):
         """Initialize memoized vars."""
         super().__init__(*args, **kwargs)
         self._order_key: str = ""
+        self._comic_sort_names: tuple[str, ...] = ()
 
     @property
     def order_key(self):
@@ -30,7 +32,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             order_key = self.order_key
         if order_key == "sort_name":
             if not comic_sort_names:
-                comic_sort_names = self.comic_sort_names  # type: ignore
+                comic_sort_names = self._comic_sort_names
             order_fields_head = [
                 *comic_sort_names,
                 "issue_number",

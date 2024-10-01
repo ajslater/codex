@@ -27,7 +27,6 @@ from codex.views.const import (
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
-from codex.views.mixins import SharedAnnotationsMixin
 
 _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # These are annotated to order_value because they're simple relations
@@ -56,7 +55,7 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
 LOG = get_logger(__name__)
 
 
-class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
+class BrowserAnnotateOrderView(BrowserOrderByView):
     """Base class for views that need special metadata annotations."""
 
     CARD_TARGETS = frozenset({"browser", "metadata"})
@@ -67,7 +66,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         super().__init__(*args, **kwargs)
         self._order_agg_func: type[Min | Max] | None = None
         self.is_opds_1_acquisition = False
-        self.comic_sort_names = ()
 
     @property
     def order_agg_func(self):
@@ -84,9 +82,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         ):
             return qs
         pks = self.kwargs.get("pks")
-        model_group = self.model_group  # type: ignore
         show = MappingProxyType(self.params["show"])  # type: ignore
-        qs, self.comic_sort_names = self.alias_sort_names(qs, pks, model_group, show)
+        sort_name_annotations = self.get_sort_name_annotations(
+            qs.model, self.model_group, pks, show
+        )
+        if sort_name_annotations:
+            qs.alias(**sort_name_annotations)
+            if qs.model is Comic:
+                self._comic_sort_names = tuple(sort_name_annotations.keys())
         return qs
 
     def _alias_filename(self, qs):

@@ -125,9 +125,14 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         if arc_group in ("v", "s"):
             show = self.params["show"]
             model_group = "i" if arc_group == "s" else "s"
-            qs, comic_sort_names = self.alias_sort_names(
-                qs, pks=arc_pks, model_group=model_group, show=show
+            sort_name_annotations = self.get_sort_name_annotations(
+                qs.model, model_group, arc_pks, show
             )
+            comic_sort_names = ()
+            if sort_name_annotations:
+                qs.alias(**sort_name_annotations)
+                if qs.model is Comic:
+                    comic_sort_names = tuple(sort_name_annotations.keys())
             ordering = (
                 *comic_sort_names,
                 "issue_number",
