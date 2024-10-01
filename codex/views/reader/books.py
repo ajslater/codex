@@ -63,6 +63,37 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
 
         return arc_pks
 
+    def _get_comics_filter(self, rel, arc, arc_pks):
+        """Build the filter."""
+        group_acl_filter = self.get_group_acl_filter(Comic)
+        nav_filter = {f"{rel}__in": arc_pks}
+        query_filter = group_acl_filter & Q(**nav_filter)
+        if browser_filters := arc.get("filters"):
+            # no search at this time.
+            query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
+                "", browser_filters
+            )
+        return query_filter
+
+    def _get_comics_annotation_and_ordering(self, model, arc_group, arc_pks):
+        """Get ordering for query."""
+        ordering = []
+        sort_name_annotations = {}
+        if arc_group in ("v", "s"):
+            show = self.params["show"]
+            model_group = "i" if arc_group == "s" else "s"
+            sort_name_annotations = self.get_sort_name_annotations(
+                model, model_group, arc_pks, show
+            )
+            if sort_name_annotations and model is Comic:
+                ordering += [sort_name_annotations.keys()]
+            ordering += (
+                "issue_number",
+                "issue_suffix",
+                "sort_name",
+            )
+        return sort_name_annotations, tuple(ordering)
+
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
         arc: Mapping = self.params.get("arc", {})  # type: ignore
@@ -75,7 +106,6 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
         arc_index = NONE_INTEGERFIELD
-        ordering = ()
         arc_pk_select_related = (rel,)
         select_related = ()
         prefetch_related = ()
@@ -94,51 +124,26 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
             arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
         )
 
-        # Build filter
-        group_acl_filter = self.get_group_acl_filter(Comic)
-        nav_filter = {f"{rel}__in": arc_pks}
-        query_filter = group_acl_filter & Q(**nav_filter)
-        if browser_filters := arc.get("filters"):
-            # no search at this time.
-            query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
-                "", browser_filters
-            )
-
+        query_filter = self._get_comics_filter(rel, arc, arc_pks)
         qs = Comic.objects.filter(query_filter)
 
         if select_related:
             qs = qs.select_related(*select_related)
         if prefetch_related:
             qs = qs.prefetch_related(*prefetch_related)
-        qs = (
-            qs.only(*fields)
-            .annotate(
-                issue_count=F("volume__issue_count"),
-            )
-            .annotate(
-                arc_pk=F(arc_pk_rel),
-                arc_index=arc_index,
-            )
-            .annotate(mtime=F("updated_at"))
-        )
+        qs = qs.only(*fields)
         qs = self.annotate_group_names(qs)
-        if arc_group in ("v", "s"):
-            show = self.params["show"]
-            model_group = "i" if arc_group == "s" else "s"
-            sort_name_annotations = self.get_sort_name_annotations(
-                qs.model, model_group, arc_pks, show
-            )
-            comic_sort_names = ()
-            if sort_name_annotations:
-                qs.alias(**sort_name_annotations)
-                if qs.model is Comic:
-                    comic_sort_names = tuple(sort_name_annotations.keys())
-            ordering = (
-                *comic_sort_names,
-                "issue_number",
-                "issue_suffix",
-                "sort_name",
-            )
+        qs = qs.annotate(
+            issue_count=F("volume__issue_count"),
+            arc_pk=F(arc_pk_rel),
+            arc_index=arc_index,
+            mtime=F("updated_at"),
+        )
+        sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
+            qs.model, arc_group, arc_pks
+        )
+        if sort_names_alias:
+            qs = qs.alias(**sort_names_alias)
         qs = qs.order_by(*ordering)
         return qs, arc_group
 
