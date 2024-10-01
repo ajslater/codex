@@ -60,8 +60,8 @@ class BrowserGroupMtimeView(BrowserFilterView):
             model,
             group=group,
             pks=pks,
-            bookmark_filter=self.is_bookmark_filtered,
             page_mtime=page_mtime,
+            bookmark_filter=self.is_bookmark_filtered,
         )
         mua = Max("updated_at", default=EPOCH_START_DATETIMEFIELD)
         mbua = self.get_max_bookmark_updated_at_aggregate(
