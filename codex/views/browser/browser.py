@@ -155,6 +155,17 @@ class BrowserView(BrowserTitleView):
     def _get_page_mtime(self):
         return self.get_group_mtime(self.model, page_mtime=True)
 
+
+    def _debug_queries(self, group_count, book_count, group_qs, book_qs):
+        """Log query details."""
+        if group_count:
+            LOG.debug(group_qs.explain())
+            LOG.debug(group_qs.query)
+        if book_count:
+            LOG.debug(book_qs.explain())
+            LOG.debug(book_qs.query)
+
+
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
@@ -179,8 +190,7 @@ class BrowserView(BrowserTitleView):
         else:
             zero_pad = 1
 
-        # print(book_qs.explain())
-        # print(book_qs.query)
+        # self._debug_queries(page_group_count, page_book_count, group_qs, book_qs)
 
         total_page_count = page_group_count + page_book_count
         mtime = self._get_page_mtime()
@@ -198,7 +208,6 @@ class BrowserView(BrowserTitleView):
         # needs to happen after pagination
         # runs obj list query twice :/
         libraries_exist = Library.objects.filter(covers_only=False).exists()
-
         # construct final data structure
         return MappingProxyType(
             {
