@@ -111,26 +111,31 @@ class AdminFolderListView(AdminGenericAPIView):
     serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 
+    @staticmethod
+    def _get_dirs(root_path, show_hidden):
+        """Get dirs list."""
+        dirs = []
+        if root_path.parent != root_path:
+            dirs += [".."]
+        subdirs = []
+        for subpath in root_path.iterdir():
+            if subpath.name.startswith(".") and not show_hidden:
+                continue
+            if subpath.resolve().is_dir():
+                subdirs.append(subpath.name)
+        dirs += sorted(subdirs)
+        return tuple(dirs)
+
     @extend_schema(request=input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Get subdirectories for a path."""
         try:
             serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            path = Path(serializer.validated_data.get("path", "."))  # type: ignore
+            root_path = Path(serializer.validated_data.get("path", ".")).resolve()  # type: ignore
             show_hidden = serializer.validated_data.get("show_hidden", False)  # type: ignore
-            root_path = path.resolve()
 
-            dirs = []
-            if root_path.parent != root_path:
-                dirs += [".."]
-            subdirs = []
-            for subpath in root_path.iterdir():
-                if subpath.name.startswith(".") and not show_hidden:
-                    continue
-                if subpath.resolve().is_dir():
-                    subdirs.append(subpath.name)
-            dirs += sorted(subdirs)
+            dirs = self._get_dirs(root_path, show_hidden)
 
             data = {"root_folder": str(root_path), "folders": dirs}
             serializer = self.get_serializer(data)
