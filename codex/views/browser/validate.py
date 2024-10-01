@@ -3,13 +3,17 @@
 from copy import deepcopy
 from types import MappingProxyType
 
+from rest_framework.exceptions import NotFound
+
 from codex.choices import DEFAULT_BROWSER_ROUTE, mapping_to_dict
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
-from codex.views.browser.base import BrowserBaseView
+from codex.models.groups import BrowserGroupModel
+from codex.views.browser.filters.search.parse import SearchFilterView
 from codex.views.const import (
     COMIC_GROUP,
     FOLDER_GROUP,
+    GROUP_MODEL_MAP,
     ROOT_GROUP,
     STORY_ARC_GROUP,
 )
@@ -17,7 +21,7 @@ from codex.views.const import (
 LOG = get_logger(__name__)
 
 
-class BrowserValidateView(BrowserBaseView):
+class BrowserValidateView(SearchFilterView):
     """Browser Settings and URL Validation."""
 
     DEFAULT_ROUTE = MappingProxyType(
@@ -27,7 +31,41 @@ class BrowserValidateView(BrowserBaseView):
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
         super().__init__(*args, **kwargs)
+        self._is_admin: bool | None = None
+        self._model_group: str = ""
+        self._model: type[BrowserGroupModel] | None = None
+        self._rel_prefix: str | None = None
         self._valid_nav_groups: tuple[str, ...] | None = None
+
+    @property
+    def model_group(self):
+        """Memoize the model group."""
+        if not self._model_group:
+            group = self.kwargs["group"]
+            if group == ROOT_GROUP:
+                group = self.params["top_group"]
+            self._model_group = group
+        return self._model_group
+
+    @property
+    def model(self) -> type[BrowserGroupModel] | None:
+        """Memoize the model for the browse list."""
+        if not self._model:
+            model = GROUP_MODEL_MAP.get(self.model_group)
+            if model is None:
+                group = self.kwargs["group"]
+                detail = f"Cannot browse {group=}"
+                LOG.debug(detail)
+                raise NotFound(detail=detail)
+            self._model = model
+        return self._model
+
+    @property
+    def rel_prefix(self):
+        """Memoize model rel prefix."""
+        if self._rel_prefix is None:
+            self._rel_prefix = self.get_rel_prefix(self.model)
+        return self._rel_prefix
 
     def raise_redirect(self, reason, route_mask=None, settings_mask=None):
         """Redirect the client to a valid group url."""
