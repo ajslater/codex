@@ -25,10 +25,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             demote_tables.add("codex_comicfts")
         return qs.demote_joins(demote_tables)
 
-    def _get_query_filters( # noqa: PLR0913
+    def _get_query_filters(
         self,
         model,
-        subquery=False,
         group=None,
         pks=None,
         page_mtime=False,
@@ -39,10 +38,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         big_exclude_filter = Q()
         # TODO get exclude filter from acl filter
         #   when i refactor acl filter
-        if not subquery:
-            acl_include_filter = self.get_group_acl_filter(model)
-            big_include_filter &= acl_include_filter
-            big_include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
+        acl_include_filter = self.get_group_acl_filter(model)
+        big_include_filter &= acl_include_filter
+        big_include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
         big_include_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
@@ -54,10 +52,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
         return big_include_filter & ~big_exclude_filter & fts_q
 
-    def get_filtered_queryset( # noqa: PLR0913
+    def get_filtered_queryset(
         self,
         model,
-        subquery=False,
         group=None,
         pks=None,
         page_mtime=False,
@@ -66,7 +63,6 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         """Get a filtered queryset for the model."""
         query_filters = self._get_query_filters(
             model,
-            subquery=subquery,
             group=group,
             pks=pks,
             page_mtime=page_mtime,

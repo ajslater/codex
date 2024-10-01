@@ -3,8 +3,7 @@
 from math import ceil, floor, log10
 from types import MappingProxyType
 
-from django.db.models import Max, Subquery
-from django.db.models.expressions import OuterRef
+from django.db.models import Max
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -128,19 +127,6 @@ class BrowserView(BrowserTitleView):
             count = 0
         return qs, count
 
-    def _requery_max_bookmark_updated_at(self, group_qs):
-        """Get max updated at without bookmark filter and aware of multi-groups."""
-        if not self.is_bookmark_filtered:
-            return group_qs
-        qs = self.get_filtered_queryset(group_qs.model, subquery=True)
-        qs = qs.filter(pk=OuterRef("pk"))
-        max_bmua = self.get_max_bookmark_updated_at_aggregate(self.model)
-        qs = qs.annotate(max_bmua=max_bmua)
-        qs = qs.values("max_bmua")
-        subquery = Subquery(qs)
-
-        return group_qs.annotate(max_bookmark_updated_at=subquery)
-
     @staticmethod
     def _get_zero_pad(book_qs):
         """Get the zero padding for the display."""
@@ -155,7 +141,6 @@ class BrowserView(BrowserTitleView):
     def _get_page_mtime(self):
         return self.get_group_mtime(self.model, page_mtime=True)
 
-
     def _debug_queries(self, group_count, book_count, group_qs, book_qs):
         """Log query details."""
         if group_count:
@@ -164,7 +149,6 @@ class BrowserView(BrowserTitleView):
         if book_count:
             LOG.debug(book_qs.explain())
             LOG.debug(book_qs.query)
-
 
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
@@ -181,7 +165,6 @@ class BrowserView(BrowserTitleView):
         # Annotate
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs)
-            group_qs = self._requery_max_bookmark_updated_at(group_qs)
             group_qs = self.force_inner_joins(group_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
