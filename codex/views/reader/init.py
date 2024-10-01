@@ -37,9 +37,8 @@ class ReaderInitView(SessionView):
         self._group_pks: dict[str, tuple[int, ...]] = {}
         self._params: MappingProxyType[str, Any] | None = None
 
-    def _get_group_pks_from_breadcrumbs(self, groups):
+    def _get_group_pks_from_breadcrumbs(self, groups, breadcrumbs):
         """Set Multi-Group pks from breadcrumbs to the cache."""
-        breadcrumbs: tuple = self.params.get("breadcrumbs", ())
         index = len(breadcrumbs) - 1
         min_index = max(index - 1, 0) if FOLDER_GROUP in groups else 0
         while index > min_index:
@@ -57,14 +56,19 @@ class ReaderInitView(SessionView):
                 self._group_pks[group] = pks
         return crumb_group, pks
 
-    def get_group_pks_from_breadcrumbs(self, groups):
+    def get_group_pks_from_breadcrumbs(self, groups, params=None):
         """Get Multi-Group pks from the breadcrumbs."""
         # Return cached values
         for group in groups:
             pks = self._group_pks.get(group)
             if pks is not None:
                 return group, pks
-        return self._get_group_pks_from_breadcrumbs(groups)
+
+        if params is None:
+            params = self.params
+        breadcrumbs: tuple = params.get("breadcrumbs", ())
+
+        return self._get_group_pks_from_breadcrumbs(groups, breadcrumbs)
 
     def _ensure_arc_contains_comic(self, params):
         """Arc sanity check."""
@@ -97,7 +101,7 @@ class ReaderInitView(SessionView):
             else:
                 search_groups = "vsip"
 
-            group, pks = self.get_group_pks_from_breadcrumbs(search_groups)
+            group, pks = self.get_group_pks_from_breadcrumbs(search_groups, params)
             if not group:
                 group = "s"
 
