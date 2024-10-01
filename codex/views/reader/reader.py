@@ -101,7 +101,6 @@ class ReaderView(ReaderArcsView):
     @extend_schema(parameters=[ReaderViewInputSerializer])
     def get(self, *args, **kwargs):
         """Get the book info."""
-        self._parse_params()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
