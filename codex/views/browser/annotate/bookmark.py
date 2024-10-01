@@ -31,6 +31,8 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         finished_filter = {finished_rel: True}
         prefix = "" if qs.model is Comic else self.rel_prefix
         page_count = prefix + "page_count"
+        # Can't use a filtered relation for page & finished because of this
+        # page_count case.
         bookmark_page_case = Case(
             When(**{bm_rel: None}, then=0),
             When(**finished_filter, then=page_count),
