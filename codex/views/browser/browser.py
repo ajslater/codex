@@ -45,11 +45,6 @@ class BrowserView(BrowserTitleView):
     # Init #
     ########
 
-    def __init__(self, *args, **kwargs):
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        self.is_opds_2_acquisition = False
-
     @property
     def model_group(self):
         """Get the group of the models to browse."""

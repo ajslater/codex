@@ -85,7 +85,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
         if (
             (self.TARGET == "browser" and qs.model is Comic)
-            or self.is_opds_1_acquisition
+            or self.is_opds_acquisition
             or self.TARGET == "metadata"
         ):
             qs = qs.annotate(page=bookmark_page)

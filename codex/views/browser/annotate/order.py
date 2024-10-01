@@ -59,13 +59,36 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
     """Base class for views that need special metadata annotations."""
 
     CARD_TARGETS = frozenset({"browser", "metadata"})
+    _PAGE_COUNT_TARGETS = frozenset(CARD_TARGETS | {"opds1", "opds2"})
     _COVER_AND_CARD_TARGETS = frozenset(CARD_TARGETS | {"cover"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self._order_agg_func: type[Min | Max] | None = None
-        self.is_opds_1_acquisition = False
+        self._is_opds_acquisition: bool | None = None
+        self._opds_acquisition_groups: frozenset[str] | None = None
+
+    @property
+    def opds_acquisition_groups(self):
+        """Memoize the opds acquisition groups."""
+        if self._opds_acquisition_groups is None:
+            groups = {"a", "f", "c"}
+            groups |= {*self.valid_nav_groups[-2:]}
+            self._opds_acquisition_groups = frozenset(groups)
+        return self._opds_acquisition_groups
+
+    @property
+    def is_opds_acquisition(self):
+        """Memoize if we're in an opds v1 acquisition view."""
+        if self._is_opds_acquisition is None:
+            group = self.kwargs.get("group")
+            is_opds_acquisition = group in self.opds_acquisition_groups
+            if group == "a":
+                pks = self.kwargs["pks"]
+                is_opds_acquisition &= bool(pks and 0 not in pks)
+            self._is_opds_acquisition = is_opds_acquisition
+        return self._is_opds_acquisition
 
     @property
     def order_agg_func(self):
@@ -142,7 +165,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
         if qs.model is Comic or (
-            self.order_key != "page_count" and self.TARGET not in self.CARD_TARGETS
+            self.order_key != "page_count"
+            and self.TARGET not in self._PAGE_COUNT_TARGETS
         ):
             return qs
 
@@ -155,7 +179,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
         return qs
 
     def _annotate_bookmark_updated_at(self, qs):
-        if not self.is_opds_1_acquisition and self.order_key != "bookmark_updated_at":
+        if not self.is_opds_acquisition and self.order_key != "bookmark_updated_at":
             return qs
         bmua_agg = self.get_max_bookmark_updated_at_aggregate(
             qs.model, agg_func=self.order_agg_func
