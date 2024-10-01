@@ -111,9 +111,6 @@ class BrowserView(BrowserTitleView):
 
     def _get_group_queryset(self):
         """Create group queryset."""
-        if not self.model:
-            reason = "Model not set for browser queryset."
-            raise ValueError(reason)
         if self.model is Comic:
             qs = self.model.objects.none().order_by("pk")
             count = 0
@@ -135,11 +132,8 @@ class BrowserView(BrowserTitleView):
         """Get max updated at without bookmark filter and aware of multi-groups."""
         if not self.is_bookmark_filtered:
             return group_qs
-        if not self.model:
-            reason = "No model to compute max bookmark updated_at"
-            raise ValueError(reason)
-
-        qs = group_qs.model.objects.filter(pk=OuterRef("pk"))
+        qs = self.get_filtered_queryset(group_qs.model, subquery=True)
+        qs = qs.filter(pk=OuterRef("pk"))
         max_bmua = self.get_max_bookmark_updated_at_aggregate(self.model)
         qs = qs.annotate(max_bmua=max_bmua)
         qs = qs.values("max_bmua")
