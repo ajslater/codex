@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
+from django.db.models import Q, Exists, FilteredRelation, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -118,35 +118,33 @@ class GroupACLMixin:
     def get_group_acl_filter(cls, model, user):
         """Generate the group acl filter for comics."""
         # The rel prefix
-        prefix = cls.get_rel_prefix(model) if model is not Folder else ""
-        groups_rel = f"{prefix}library__groups"
+        groups_rel = cls.get_rel_prefix(model) if model is not Folder else ""
+        groups_rel += "library__groups"
 
-        # Libraries with no groups are always visible
+        # Libraries in no groups are visible to everyone
         ungrouped_filter = {f"{groups_rel}__isnull": True}
-        query = Q(**ungrouped_filter)
+        q = Q(**ungrouped_filter)
 
-        if user and not isinstance(user, AnonymousUser):
-            # Include groups are visible to users in the group
-            user_filter = {f"{groups_rel}__user": user}
-            exclude_rel = f"{groups_rel}__groupauth__exclude"
+        if not user or isinstance(user, AnonymousUser):
+            return q
+        # If logged in, see which libraries are now visible.
 
-            # Exclude Query
-            exclude_filter = {exclude_rel: True}
-            exclude_filter.update(user_filter)
-            exclude_query = ~Q(**exclude_filter)
+        user_filter = {f"{groups_rel}__user": user}
+        exclude_rel = f"{groups_rel}__groupauth__exclude"
 
-            # Include Query
-            include_filter = {exclude_rel: False}
-            include_filter.update(user_filter)
-            not_member_of_exclude_group_filter = {exclude_rel: False}
-            include_query = Q(**include_filter) | ~Q(
-                **not_member_of_exclude_group_filter
-            )
+        # Include groups are visible to users in the group
+        include_filter = {exclude_rel: False}
+        include_filter.update(user_filter)
+        include_q = Q(**include_filter)
 
-            auth_query = exclude_query & include_query
-            query |= auth_query
+        # Exclude groups are visible to users NOT in the group
+        exclude_filter = {exclude_rel: True}
+        exclude_filter.update(user_filter)
+        exclude_q = Q(**exclude_filter)
 
-        return query
+        q |= (include_q | ~exclude_q)
+
+        return q
 
 
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):

@@ -36,10 +36,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         """Return all the filters except the group filter."""
         big_include_filter = Q()
         big_exclude_filter = Q()
-        # TODO get exclude filter from acl filter
-        #   when i refactor acl filter
-        acl_include_filter = self.get_group_acl_filter(model, self.request.user)
-        big_include_filter &= acl_include_filter
+        big_include_filter &= self.get_group_acl_filter(model, self.request.user)
         big_include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
         big_include_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
