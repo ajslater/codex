@@ -134,8 +134,3 @@ class GroupAuth(BaseModel):
 
     group = OneToOneField(Group, db_index=True, on_delete=CASCADE)
     exclude = BooleanField(db_index=True, default=False)
-
-    class Meta(BaseModel.Meta):
-        """Constraints."""
-
-        unique_together = ("group",)
