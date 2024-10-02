@@ -114,17 +114,16 @@ class GroupACLMixin:
         prefix += "comic__"
         return prefix
 
-    def get_group_acl_filter(self, model):
+    @classmethod
+    def get_group_acl_filter(cls, model, user):
         """Generate the group acl filter for comics."""
         # The rel prefix
-        prefix = self.get_rel_prefix(model) if model != Folder else ""
+        prefix = cls.get_rel_prefix(model) if model is not Folder else ""
         groups_rel = f"{prefix}library__groups"
 
         # Libraries with no groups are always visible
         ungrouped_filter = {f"{groups_rel}__isnull": True}
         query = Q(**ungrouped_filter)
-
-        user = self.request.user  # type: ignore
 
         if user and not isinstance(user, AnonymousUser):
             # Include groups are visible to users in the group

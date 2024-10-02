@@ -20,7 +20,6 @@ from codex.threads import AggregateMessageQueuedThread
 class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
-    CLS_SUFFIX = -len("Event")
     DBDIFF_TASK_PARAMS = MappingProxyType(
         {
             "library_id": None,

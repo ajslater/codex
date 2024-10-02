@@ -14,6 +14,7 @@ from rest_framework.serializers import (
 )
 
 from codex.logger.logging import get_logger
+from codex.util import max_none
 from codex.views.const import EPOCH_START
 
 LOG = get_logger(__name__)
@@ -37,7 +38,7 @@ class BrowserAggregateSerializerMixin(Serializer):
     )
 
     @staticmethod
-    def _get_max_updated_at(mtime, updated_ats):
+    def _get_max_updated_at(mtime, updated_ats) -> datetime:
         """Because orm won't aggregate aggregates."""
         for dt_str in updated_ats:
             if not dt_str:
@@ -63,5 +64,5 @@ class BrowserAggregateSerializerMixin(Serializer):
         )
         mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
         if obj.bmua_is_max:
-            mtime = max(mtime, obj.bookmark_updated_at)
+            mtime: datetime = max_none(mtime, obj.bookmark_updated_at, EPOCH_START)  # type: ignore
         return int(mtime.timestamp() * 1000)

@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 from django.db.models import F
 from django.db.models.query import Q
 
+from codex.librarian.bookmark.update import BookmarkUpdate
 from codex.models import Bookmark, Comic
-from codex.views.bookmark import BookmarkFilterBaseView
+from codex.views.bookmark import BookmarkBaseView
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
     FOLDER_GROUP,
@@ -34,7 +35,9 @@ _COMIC_FIELDS = (
 )
 
 
-class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsMixin):
+class ReaderBooksView(
+    BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin, BookmarkUpdate
+):
     """Get Books methods."""
 
     def _get_reader_arc_pks(
@@ -65,7 +68,7 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
 
     def _get_comics_filter(self, rel, arc, arc_pks):
         """Build the filter."""
-        group_acl_filter = self.get_group_acl_filter(Comic)
+        group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
         nav_filter = {f"{rel}__in": arc_pks}
         query_filter = group_acl_filter & Q(**nav_filter)
         if browser_filters := arc.get("filters"):
@@ -166,7 +169,8 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         Yields 1 to 3 books
         """
         comics, arc_group = self._get_comics_list()
-        bookmark_filter = self.get_bookmark_search_kwargs()
+        auth_filter = self.get_bookmark_auth_filter()
+        bookmark_filter = self.get_bookmark_search_kwargs(auth_filter)
         books = {}
         prev_book = None
         pk = self.kwargs.get("pk")
