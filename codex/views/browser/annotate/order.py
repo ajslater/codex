@@ -110,11 +110,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView):
             return qs
         pks = self.kwargs.get("pks")
         show = MappingProxyType(self.params["show"])  # type: ignore
+        # TODO too many annotations for order?
+        #   Move other annotations to card.
+        #   eager publisher for imprint of course
         sort_name_annotations = self.get_sort_name_annotations(
             qs.model, self.model_group, pks, show
         )
         if sort_name_annotations:
-            qs.alias(**sort_name_annotations)
+            qs = qs.alias(**sort_name_annotations)
             if qs.model is Comic:
                 self._comic_sort_names = tuple(sort_name_annotations.keys())
         return qs
