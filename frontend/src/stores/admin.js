@@ -38,17 +38,30 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    comicLibrariesEmpty() {
-      let exist = this.libraries === undefined;
+    normalLibraries() {
+      const libs = [];
       if (this.libraries) {
         for (const library of this.libraries) {
           if (!library.coversOnly) {
-            exist = true;
-            break;
+            libs.push(library);
           }
         }
       }
-      return exist;
+      return libs;
+    },
+    customCoverLibraries() {
+      const libs = [];
+      if (this.libraries) {
+        for (const library of this.libraries) {
+          if (library.coversOnly) {
+            libs.push(library);
+          }
+        }
+      }
+      return libs;
+    },
+    doNormalComicLibrariesExist() {
+      return Object.keys(this.normalLibraries).length === 0;
     },
   },
   actions: {
