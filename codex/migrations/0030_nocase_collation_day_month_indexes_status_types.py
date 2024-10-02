@@ -11,6 +11,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterUniqueTogether(
+            name='groupauth',
+            unique_together=set(),
+        ),
         migrations.AlterField(
             model_name="adminflag",
             name="key",
