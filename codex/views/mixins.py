@@ -69,3 +69,20 @@ class SharedAnnotationsMixin:
         elif qs.model is Imprint:
             group_names["publisher_name"] = F("publisher__name")
         return qs.annotate(**group_names)
+
+
+class BookmarkSearchMixin:
+    """Create Bookmark Search kwargs."""
+
+    @staticmethod
+    def get_bookmark_search_kwargs(auth_filter, comic_filter=None):
+        """Get the search kwargs for a user's authentication state."""
+        # search kwargs are relative to the bookmark object.
+        search_kwargs = {}
+        search_kwargs.update(auth_filter)
+
+        if comic_filter:
+            for key, value in comic_filter.items():
+                search_kwargs[f"comic__{key}"] = value
+
+        return search_kwargs

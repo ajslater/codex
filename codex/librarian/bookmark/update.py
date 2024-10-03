@@ -9,6 +9,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
 from codex.views.auth import GroupACLMixin
+from codex.views.mixins import BookmarkSearchMixin
 
 VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
 _BOOKMARK_UPDATE_FIELDS = frozenset(
@@ -23,23 +24,10 @@ _BOOKMARK_UPDATE_FIELDS = frozenset(
 _COMIC_ONLY_FIELDS = ("pk", "page_count")
 
 
-class BookmarkUpdate(GroupACLMixin):
+class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
     """Update Bookmarks."""
 
     # Used by Bookmarkd and view.bookmark.
-
-    @staticmethod
-    def get_bookmark_search_kwargs(auth_filter, comic_filter=None):
-        """Get the search kwargs for a user's authentication state."""
-        # search kwargs are relative to the bookimark object.
-        search_kwargs = {}
-        search_kwargs.update(auth_filter)
-
-        if comic_filter:
-            for key, value in comic_filter.items():
-                search_kwargs[f"comic__{key}"] = value
-
-        return search_kwargs
 
     @staticmethod
     def _update_bookmarks_validate_page(bm, updates):

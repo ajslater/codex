@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from django.db.models import F
 from django.db.models.query import Q
 
-from codex.librarian.bookmark.update import BookmarkUpdate
 from codex.models import Bookmark, Comic
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.browser.filters.field import ComicFieldFilterView
@@ -16,7 +15,7 @@ from codex.views.const import (
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
-from codex.views.mixins import SharedAnnotationsMixin
+from codex.views.mixins import BookmarkSearchMixin, SharedAnnotationsMixin
 from codex.views.reader.params import ReaderParamsView
 
 if TYPE_CHECKING:
@@ -36,7 +35,7 @@ _COMIC_FIELDS = (
 
 
 class ReaderBooksView(
-    BookmarkBaseView, ReaderParamsView, SharedAnnotationsMixin, BookmarkUpdate
+    BookmarkBaseView, ReaderParamsView, SharedAnnotationsMixin, BookmarkSearchMixin
 ):
     """Get Books methods."""
 
