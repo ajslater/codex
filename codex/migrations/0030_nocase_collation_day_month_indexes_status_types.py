@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='groupauth',
+            name="groupauth",
             unique_together=set(),
         ),
         migrations.AlterField(
