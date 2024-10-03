@@ -229,7 +229,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
 
         # Rank is always the max of the relations, cannot aggregate?
-        return qs.annotate(search_score=ComicFTSRank())
+        # group by here fixes duplicates with story_arc, probably because it's a long relation
+        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
 
     def annotate_order_aggregates(self, qs):
         """Annotate common aggregates between browser and metadata."""
