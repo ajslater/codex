@@ -57,6 +57,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             qs = qs.group_by("name")
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
             qs = qs.values("ids", "name")
+            qs = self.force_inner_joins(qs)
             groups[field_name] = qs
         return groups
 

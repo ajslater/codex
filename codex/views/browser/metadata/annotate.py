@@ -71,6 +71,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
                     filter_count=Count(full_field, distinct=True)
                 ).filter(filter_count=1)
                 sq = self.add_group_by(sq)
+                sq = self.force_inner_joins(sq)
                 sq = sq.values_list(full_field + related_suffix, flat=True)
                 try:
                     val = sq[0]
