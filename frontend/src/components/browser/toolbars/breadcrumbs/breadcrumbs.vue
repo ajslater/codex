@@ -1,7 +1,7 @@
 <template>
   <v-breadcrumbs id="browserBreadcrumbs" density="compact" :items="breadcrumbs">
     <template #item="{ item }">
-      <v-breadcrumbs-item :to="item.to" :title="item.title">
+      <v-breadcrumbs-item v-tooltip="item.tooltip" :to="item.to">
         <v-icon v-if="item.icon">
           {{ item.icon }}
         </v-icon>
@@ -51,18 +51,19 @@ export default {
           const text = crumb.name ? crumb.name : "";
           const group = crumb.group;
           const icon = this.getIcon(crumb.pks, text, group);
-          let title;
+          let tooltip;
           if (crumb.group === "r") {
-            title = "Top";
+            tooltip = "Top";
           } else {
-            title = state.choices.static.groupNames[group];
+            tooltip = state.choices.static.groupNames[group];
             if (crumb.pks == 0) {
-              title = "All " + title;
-            } else {
-              title = title.slice(0, -1);
+              tooltip = "All " + tooltip;
+            } else if (tooltip != "Series") {
+              tooltip = tooltip.slice(0, -1);
             }
           }
-          const displayCrumb = { to, text, icon, title };
+          tooltip = { text: tooltip, openDelay: 1500 };
+          const displayCrumb = { to, text, icon, tooltip };
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;
         }
