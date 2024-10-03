@@ -65,4 +65,5 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             page_mtime=page_mtime,
             bookmark_filter=bookmark_filter,
         )
-        return model.objects.filter(query_filters)
+        # Distinct necissary for folder view with search
+        return model.objects.filter(query_filters).distinct()
