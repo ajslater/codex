@@ -157,9 +157,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         # If we have one annotate it.
         if story_arc_pks:
-            san_rel = self.rel_prefix + "story_arc_numbers"
-            rel = f"{san_rel}"
-            condition = Q(**{f"{san_rel}__story_arc__in": story_arc_pks})
+            rel = self.get_rel_prefix(qs.model) + "story_arc_numbers"
+            condition_rel = "pk" if qs.model is StoryArc else rel + "__story_arc"
+            condition = Q(**{f"{condition_rel}__in": story_arc_pks})
             qs = qs.alias(
                 selected_story_arc_number=FilteredRelation(rel, condition=condition),
             )
