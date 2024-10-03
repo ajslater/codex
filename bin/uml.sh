@@ -15,8 +15,8 @@ poetry run pyreverse --colorized --output plantuml "$PACKAGE_DIR"
 export PLANTUML_LIMIT_SIZE=131072
 PLANTUML_JAR=plantuml-${PLANTUML_VERSION}.jar
 if [ ! -f "$PLANTUML_JAR" ]; then
-    PLANTUML_URL=https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/$PLANTUML_JAR
-    wget "$PLANTUML_URL"
+  PLANTUML_URL=https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/$PLANTUML_JAR
+  wget "$PLANTUML_URL"
 fi
 java -jar "$PLANTUML_JAR" classes.plantuml
 java -jar "$PLANTUML_JAR" packages.plantuml
