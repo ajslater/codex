@@ -17,7 +17,7 @@ from codex.views.const import (
     STORY_ARC_GROUP,
 )
 from codex.views.mixins import SharedAnnotationsMixin
-from codex.views.reader.init import ReaderInitView
+from codex.views.reader.params import ReaderParamsView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -36,7 +36,7 @@ _COMIC_FIELDS = (
 
 
 class ReaderBooksView(
-    BookmarkBaseView, ReaderInitView, SharedAnnotationsMixin, BookmarkUpdate
+    BookmarkBaseView, ReaderParamsView, SharedAnnotationsMixin, BookmarkUpdate
 ):
     """Get Books methods."""
 

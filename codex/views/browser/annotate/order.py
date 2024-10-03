@@ -27,6 +27,7 @@ from codex.views.const import (
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
+from codex.views.mixins import SharedAnnotationsMixin
 
 _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # These are annotated to order_value because they're simple relations
@@ -55,7 +56,7 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
 LOG = get_logger(__name__)
 
 
-class BrowserAnnotateOrderView(BrowserOrderByView):
+class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
 
     CARD_TARGETS = frozenset({"browser", "metadata"})

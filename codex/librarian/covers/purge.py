@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
-from codex.librarian.covers.path import CoverPathMixin
+from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic
@@ -12,7 +12,7 @@ from codex.models.paths import CustomCover
 from codex.status import Status
 
 
-class CoverPurgeMixin(CoverPathMixin):
+class CoverPurgeThread(CoverCreateThread):
     """Cover Purge methods."""
 
     _CLEANUP_STATUS_MAP = (

@@ -1,7 +1,6 @@
 """Bookmark views."""
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.update import BookmarkUpdate
@@ -10,13 +9,16 @@ from codex.serializers.models.bookmark import (
     BookmarkFinishedSerializer,
     BookmarkSerializer,
 )
-from codex.views.auth import GroupACLMixin
+from codex.views.auth import (
+    AuthFilterAPIView,
+    AuthFilterGenericAPIView,
+)
 from codex.views.const import FILTER_ONLY_GROUP_RELATION
 
 LOG = get_logger(__name__)
 
 
-class BookmarkBaseView(GenericAPIView, GroupACLMixin):
+class BookmarkBaseView(AuthFilterAPIView):
     """Base class for Bookmark Views."""
 
     def get_bookmark_auth_filter(self):
@@ -33,7 +35,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         return {key: value}
 
 
-class BookmarkView(BookmarkBaseView, BookmarkUpdate):
+class BookmarkView(AuthFilterGenericAPIView, BookmarkBaseView, BookmarkUpdate):
     """User Bookmark View."""
 
     serializer_class = BookmarkSerializer

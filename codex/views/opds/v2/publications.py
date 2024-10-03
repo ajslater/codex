@@ -5,7 +5,7 @@ from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
 
-from codex.librarian.covers.create import CoverCreateMixin
+from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
 from codex.settings.settings import FALSY
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
@@ -45,8 +45,8 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             Rel.THUMBNAIL,
             href_data,
             mime_type=MimeType.WEBP,
-            height=CoverCreateMixin.THUMBNAIL_HEIGHT,
-            width=CoverCreateMixin.THUMBNAIL_WIDTH,
+            height=THUMBNAIL_HEIGHT,
+            width=THUMBNAIL_WIDTH,
         )
 
         cover_link = self.link(link_data)

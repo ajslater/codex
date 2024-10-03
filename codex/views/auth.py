@@ -1,19 +1,15 @@
-"""Views authorization."""
+"""Views authorization bases."""
 
 from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q, Exists, FilteredRelation, QuerySet
-from drf_spectacular.utils import extend_schema
+from django.db.models import Q
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.logger.logging import get_logger
-from codex.models import AdminFlag, Comic, Folder, StoryArc, UserActive
-from codex.serializers.auth import TimezoneSerializer
-from codex.serializers.mixins import OKSerializer
+from codex.models import AdminFlag, Comic, Folder, StoryArc
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
@@ -48,48 +44,6 @@ class AuthAPIView(AuthMixin, APIView):
 
 class AuthGenericAPIView(AuthMixin, GenericAPIView):
     """Auth Policy GenericAPIView."""
-
-
-class TimezoneView(AuthGenericAPIView):
-    """User info."""
-
-    input_serializer_class = TimezoneSerializer
-    serializer_class = OKSerializer
-
-    def _save_timezone(self, django_timezone):
-        """Save django timezone in session."""
-        if not django_timezone:
-            return
-        session = self.request.session
-        session["django_timezone"] = django_timezone
-        session.save()
-
-    def _update_user_active(self):
-        """Update user activity."""
-        user = self.request.user
-        if user and user.is_authenticated:
-            UserActive.objects.update_or_create(user=user)
-
-    @extend_schema(request=input_serializer_class)
-    def put(self, *args, **kwargs):
-        """Get the user info for the current user."""
-        data = self.request.data  # type: ignore
-        serializer = self.input_serializer_class(data=data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            self._save_timezone(serializer.validated_data.get("timezone"))  # type: ignore
-        except Exception as exc:
-            reason = f"update user timezone {exc}"
-            LOG.warning(reason)
-
-        try:
-            self._update_user_active()
-        except Exception as exc:
-            reason = f"update user activity {exc}"
-            LOG.warning(reason)
-
-        serializer = self.get_serializer()
-        return Response(serializer.data)
 
 
 class GroupACLMixin:
@@ -142,7 +96,7 @@ class GroupACLMixin:
         exclude_filter.update(user_filter)
         exclude_q = Q(**exclude_filter)
 
-        q |= (include_q | ~exclude_q)
+        q |= include_q | ~exclude_q
 
         return q
 

@@ -7,7 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
 
-from codex.librarian.covers.create import CoverCreateMixin
+from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
@@ -127,7 +127,7 @@ class CoverView(BrowserAnnotateOrderView):
 
         cover_path = CoverPathMixin.get_cover_path(pk, custom)
         if not cover_path.exists():
-            thumb_buffer = CoverCreateMixin.create_cover_from_path(
+            thumb_buffer = CoverCreateThread.create_cover_from_path(
                 pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
             )
             if not thumb_buffer:

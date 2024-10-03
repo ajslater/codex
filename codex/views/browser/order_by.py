@@ -2,10 +2,9 @@
 
 from codex.models import Comic
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
-from codex.views.mixins import SharedAnnotationsMixin
 
 
-class BrowserOrderByView(BrowserGroupMtimeView, SharedAnnotationsMixin):
+class BrowserOrderByView(BrowserGroupMtimeView):
     """Base class for views that need ordering."""
 
     def __init__(self, *args, **kwargs):

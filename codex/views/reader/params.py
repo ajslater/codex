@@ -26,7 +26,7 @@ _DEFAULT_PARAMS = {
 }
 
 
-class ReaderInitView(SessionView):
+class ReaderParamsView(SessionView):
     """Reader initialization."""
 
     input_serializer_class = ReaderViewInputSerializer

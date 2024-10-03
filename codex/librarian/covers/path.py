@@ -5,10 +5,9 @@ from pathlib import Path
 from fnvhash import fnv1a_32
 
 from codex.settings.settings import ROOT_CACHE_PATH
-from codex.threads import QueuedThread
 
 
-class CoverPathMixin(QueuedThread):
+class CoverPathMixin:
     """Path methods for covers."""
 
     COVERS_ROOT = ROOT_CACHE_PATH / "covers"
