@@ -1,6 +1,6 @@
 <template>
   <v-lazy :id="`card-${ids}`" transition="scale-transition">
-    <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
+    <div class="browserCardCoverWrapper">
       <div class="browserCardTop">
         <BookCover
           :group="item.group"
@@ -40,7 +40,6 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
-import { NO_DOUBLE_TAP_FOR_HOVER } from "@/platform";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -60,11 +59,6 @@ export default {
       type: Object,
       required: true,
     },
-  },
-  data() {
-    return {
-      doubleTapHovered: NO_DOUBLE_TAP_FOR_HOVER,
-    };
   },
   // Stored here instead of data to be non-reactive
   computed: {
@@ -92,9 +86,6 @@ export default {
       };
     },
     toRoute() {
-      if (!this.doubleTapHovered) {
-        return {};
-      }
       return this.item.group === "c"
         ? getReaderRoute(this.item, this.importMetadata)
         : this.browserRoute;
