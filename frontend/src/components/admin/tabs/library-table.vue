@@ -121,26 +121,6 @@ export default {
     ...mapGetters(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
-      headers() {
-        const headers = [
-          { title: "Path", key: "path", align: "start" },
-          {
-            title: "Watch File Events",
-            key: "events",
-          },
-          {
-            title: "Poll Files Periodically",
-            key: "poll",
-          },
-          { title: "Poll Every", key: "pollEvery" },
-          { title: "Last Poll", key: "lastPoll" },
-        ];
-        if (!this.coversDir) {
-          headers.push({ title: "Groups", key: "groups" });
-        }
-        headers.push({ title: "Actions", key: "actions", sortable: false });
-        return headers;
-      },
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form?.errors,
@@ -148,6 +128,26 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
+    headers() {
+      const headers = [
+        { title: "Path", key: "path", align: "start" },
+        {
+          title: "Watch File Events",
+          key: "events",
+        },
+        {
+          title: "Poll Files Periodically",
+          key: "poll",
+        },
+        { title: "Poll Every", key: "pollEvery" },
+        { title: "Last Poll", key: "lastPoll" },
+      ];
+      if (!this.coversDir) {
+        headers.push({ title: "Groups", key: "groups" });
+      }
+      headers.push({ title: "Actions", key: "actions", sortable: false });
+      return headers;
+    },
     items() {
       return self.coversDir ? this.customCoverLibraries : this.normalLibraries;
     },
@@ -180,7 +180,7 @@ export default {
       "librarianTask",
       "loadTables",
     ]),
-    formatDateTime: (dttm) => {
+    formatDateTime(dttm) {
       return dttm ? getDateTime(dttm, this.twentyFourHourTime) : "";
     },
     changeCol(pk, field, val) {
