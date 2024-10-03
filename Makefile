@@ -236,6 +236,13 @@ publish:
 news:
 	head -40 NEWS.md
 
+.PHONE: uml
+## Create uml diagrams
+## @category Dev
+uml:
+	./bin/uml.sh
+
 .PHONY: all
+
 
 include bin/makefile-help.mk
