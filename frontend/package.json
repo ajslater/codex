@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "devBuild": "vite build --mode development",
     "coverage": "vitest run --coverage",
     "dev": "vite dev",
     "fix": "eslint_d --fix . && prettier --write .",
