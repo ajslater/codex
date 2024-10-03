@@ -44,11 +44,13 @@ import { useCommonStore } from "@/stores/common";
 const API_TOOLTIP = "Copy API Key to clipboard";
 
 import {
-  fitTo as FIT_TO,
   orderBy as ORDER_BY,
   topGroup as TOP_GROUP,
 } from "@/choices/browser-map.json";
-import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
+import {
+  fitTo as FIT_TO,
+  readingDirection as READING_DIRECTION,
+} from "@/choices/reader-map.json";
 
 const LOOKUPS = {
   topGroup: TOP_GROUP,
