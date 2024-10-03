@@ -48,15 +48,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
     def _get_group_query(self, model):
         """Get the group query for the group instance."""
         pks = self.kwargs.get("pks")
-        select_related: tuple[str | None, ...] = _GROUP_INSTANCE_SELECT_RELATED.get(
-            model, (None,)
-        )
+        qs = model.objects.filter(pk__in=pks)
+        if select_related := _GROUP_INSTANCE_SELECT_RELATED.get(model):
+            qs = qs.select_related(*select_related)
         order_by = "name" if model is Volume else "sort_name"
-        return (
-            model.objects.select_related(*select_related)
-            .filter(pk__in=pks)
-            .order_by(order_by)
-        )
+        return qs.order_by(order_by)
 
     def _handle_group_query_missing_model(self, model):
         """Handle a missing model for the group instance."""
@@ -172,11 +168,13 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             # parent next
             if not folder:
                 break
-            folder = folder.parent_folder
-            if folder:
-                group_crumb = Route(FOLDER_GROUP, (folder.pk,), 1, name=folder.name)
+            if folder := folder.parent_folder:
+                parent_pks = (folder.pk,)
+                parent_name = folder.name
             else:
-                group_crumb = Route(FOLDER_GROUP, (), 1, name="")
+                parent_pks = ()
+                parent_name = ""
+            group_crumb = Route(FOLDER_GROUP, parent_pks, 1, parent_name)
 
         breadcrumbs = new_breadcrumbs
 
@@ -189,11 +187,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             pks = ()
             page = 1
             name = ""
-        if group == self.kwargs["group"]:
+        elif group == self.kwargs["group"]:
             # create self crumb
             pks = self.kwargs["pks"]
             page = self.kwargs["page"]
-            name = gi.name if gi else ""
+            name = gi.name
         else:
             page = 1
             if (attr := GROUP_NAME_MAP.get(group)) and (
