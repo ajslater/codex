@@ -101,6 +101,7 @@ def _dump(parent_path, fn, data, vuetify=True):
     path = parent_path / Path(fn)
     with path.open("w") as json_file:
         json.dump(vuetify_data, json_file, indent=2)
+        json_file.write("\n")
 
 
 def main():
