@@ -1,13 +1,13 @@
 <template>
   <div
     v-if="showShowSettings"
-    id="showSettings"
     v-tooltip="{
       openDelay,
       text: 'Show these groups when navigating the browse tree',
     }"
+    class="browserSettingsBlock"
   >
-    <h4 class="settingsHeader">Show Group Levels</h4>
+    <h4 class="browserSettingsHeader">Show Group Levels</h4>
     <v-checkbox
       v-for="choice of groupChoices"
       :key="choice.title"
@@ -21,8 +21,8 @@
     />
   </div>
   <v-divider />
-  <div>
-    <h4 class="settingsHeader">Covers</h4>
+  <div class="browserSettingsBlock">
+    <h4 class="browserSettingsHeader">Covers</h4>
     <v-checkbox
       v-tooltip="{
         openDelay,
@@ -148,18 +148,18 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#showSettings {
+.browserSettingsBlock {
   padding-top: 10px;
 }
 
 // .searchResultsCheckbox
 .browserGroupCheckbox,
-.settingsHeader {
+.browserSettingsHeader {
   padding-right: 10px;
   padding-left: 15px;
 }
 
-.settingsHeader {
+.browserSettingsHeader {
   color: rgb(var(--v-theme-textDisabled));
 }
 </style>

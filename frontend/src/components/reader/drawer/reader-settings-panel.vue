@@ -1,9 +1,9 @@
 <template>
+  <h4 class="readerSettingsHeader">Comic Settings Scope</h4>
   <v-radio-group
     v-model="isGlobalScope"
     class="scopeRadioGroup readerDrawerItem"
     density="compact"
-    label="Comic Settings Scope"
     hide-details="auto"
   >
     <v-radio
@@ -76,7 +76,7 @@
     </div>
   </v-expand-transition>
   <v-divider />
-  <DrawerItem title="Reader Settings" />
+  <h4 class="readerSettingsHeader">Reader Settings</h4>
   <v-checkbox
     class="readerDrawerItem"
     :model-value="finishOnLastPage"
@@ -279,12 +279,15 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.readerSettingsHeader {
+  padding-top: 10px;
+  color: rgb(var(--v-theme-textDisabled));
+  padding-left: 15px;
+}
+
 .scopeRadioGroup {
   padding-top: 10px;
   padding-bottom: 4px;
-}
-.scopeRadioGroup :deep(.v-input__control > .v-label) {
-  opacity: 1;
 }
 
 .readerDrawerItem {
