@@ -36,7 +36,7 @@ services:
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
-    command: make choices test-frontend
+    command: make test-frontend
     volumes:
       - ./test-results/:/app/test-results/
       - ./frontend/src/choices:/app/choices:ro
