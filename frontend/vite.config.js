@@ -82,7 +82,7 @@ const config = defineConfig(({ mode }) => {
     publicDir: false,
     resolve: {
       alias: {
-        "@": path.resolve("./src"),
+        "@": path.resolve(__dirname, "src"),
       },
     },
     server: {

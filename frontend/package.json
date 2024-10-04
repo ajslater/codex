@@ -40,8 +40,6 @@
     "@unhead/addons": "^1.7.2",
     "@vitejs/plugin-vue": "^5.0.2",
     "@vue/test-utils": "^2.2.1",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-vitest": "^0.5.4",
     "eslint-plugin-vue": "^9.7.0",
     "eslint-plugin-vue-scoped-css": "^2.2.0",

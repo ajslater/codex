@@ -97,7 +97,7 @@ export const getDownloadIOSPWAFix = (href, filename) => {
     .catch(console.warn);
 };
 
-export const getMtime = (groups, settings) => {
+const getMtime = (groups, settings) => {
   const params = serializeParams({ groups, ...settings }, Date.now());
   return HTTP.get("/mtime", { params });
 };
