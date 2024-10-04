@@ -9,6 +9,8 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
 
+from codex.librarian.bookmark.tasks import BookmarkUpdateTask
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings.settings import FALSY
@@ -55,15 +57,19 @@ class ReaderPageView(BookmarkBaseView):
         )
         if not do_bookmark:
             return
-        page = self.kwargs.get("page")
-        updates = {"page": page}
+
+        auth_filter = self.get_bookmark_auth_filter()
         pk = self.kwargs.get("pk")
         comic_filter = {"pk": pk}
-        self.update_bookmarks(updates, comic_filter)
+        page = self.kwargs.get("page")
+        updates = {"page": page}
+
+        task = BookmarkUpdateTask(auth_filter, comic_filter, updates)
+        LIBRARIAN_QUEUE.put(task)
 
     def _get_page_image(self):
         """Get the image data and content type."""
-        group_acl_filter = self.get_group_acl_filter(Comic)
+        group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
         pk = self.kwargs.get("pk")
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")

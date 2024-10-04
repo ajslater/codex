@@ -4,16 +4,12 @@
       <v-btn
         aria-label="action menu"
         class="browserCardMenuIcon cardControlButton"
-        icon
+        :icon="mdiDotsVertical"
         title="Action Menu"
         variant="text"
         v-bind="props"
         @click.prevent
-      >
-        <v-icon>
-          {{ mdiDotsVertical }}
-        </v-icon>
-      </v-btn>
+      />
     </template>
     <div class="background-soft-highlight">
       <v-list-item

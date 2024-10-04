@@ -1,11 +1,11 @@
 <template>
   <v-breadcrumbs id="browserBreadcrumbs" density="compact" :items="breadcrumbs">
     <template #item="{ item }">
-      <v-breadcrumbs-item :to="item.to" :title="item.tooltip">
+      <v-breadcrumbs-item v-tooltip="item.tooltip" :to="item.to">
         <v-icon v-if="item.icon">
           {{ item.icon }}
         </v-icon>
-        <span v-else>{{ item.title }}</span>
+        <span v-else>{{ item.text }}</span>
       </v-breadcrumbs-item>
     </template>
   </v-breadcrumbs>
@@ -22,15 +22,7 @@ import deepClone from "deep-clone";
 import { mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
-const GROUP_NAME_MAP = {
-  f: "Folder",
-  a: "Story Arc",
-  r: "Top",
-  p: "Publisher",
-  i: "Imprint",
-  s: "Series",
-  v: "Volume",
-};
+import { useCommonStore } from "@/stores/common";
 const GROUP_ICON_MAP = {
   f: mdiFolderOutline,
   r: mdiFormatVerticalAlignTop,
@@ -42,6 +34,7 @@ const GROUP_ICON_MAP = {
 export default {
   name: "BrowserBreadcrumbs",
   computed: {
+    ...mapState(useCommonStore, ["timestamp"]),
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
         const vueCrumbs = [];
@@ -55,11 +48,22 @@ export default {
         let parentPks = "";
         for (const crumb of parentBreadcrumbs) {
           const to = this.getTo(crumb, parentPks);
-          const title = crumb.name ? crumb.name : "";
+          const text = crumb.name ? crumb.name : "";
           const group = crumb.group;
-          const icon = this.getIcon(crumb.pks, title, group);
-          const tooltip = crumb.pks === "0" ? "Top" : GROUP_NAME_MAP[group];
-          const displayCrumb = { to, title, icon, tooltip };
+          const icon = this.getIcon(crumb.pks, text, group);
+          let tooltip;
+          if (crumb.group === "r") {
+            tooltip = "Top";
+          } else {
+            tooltip = state.choices.static.groupNames[group];
+            if (crumb.pks == 0) {
+              tooltip = "All " + tooltip;
+            } else if (tooltip != "Series") {
+              tooltip = tooltip.slice(0, -1);
+            }
+          }
+          tooltip = { text: tooltip, openDelay: 1500 };
+          const displayCrumb = { to, text, icon, tooltip };
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;
         }
@@ -72,6 +76,7 @@ export default {
       const params = deepClone(crumb);
       delete params["name"];
       const to = { name: "browser", params };
+      to.query = { ts: this.timestamp };
       if (parentPks) {
         to.hash = `#card-${parentPks}`;
       }

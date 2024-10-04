@@ -2,8 +2,8 @@
 
 from django.urls import include, path
 
-from codex.views.auth import TimezoneView
 from codex.views.public import AdminFlagsView
+from codex.views.timezone import TimezoneView
 
 app_name = "auth"
 urlpatterns = [

@@ -49,7 +49,7 @@
 import { mdiCloseCircleOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { statusTitles } from "@/choices-admin.json";
+import STATUS_TITLES from "@/choices/admin-status-titles.json";
 import CloseButton from "@/components/close-button.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
@@ -90,7 +90,7 @@ export default {
       this.librarianTask("librarian_clear_status", "");
     },
     title(status) {
-      return statusTitles[status.statusType];
+      return STATUS_TITLES[status.statusType];
     },
     nf(val) {
       return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";

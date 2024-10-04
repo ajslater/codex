@@ -1,8 +1,9 @@
 """Views for reading comic books."""
 
-from copy import deepcopy
 from types import MappingProxyType
+from typing import Any
 
+from codex.choices import mapping_to_dict
 from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.serializers.reader import (
@@ -25,7 +26,7 @@ _DEFAULT_PARAMS = {
 }
 
 
-class ReaderInitView(SessionView):
+class ReaderParamsView(SessionView):
     """Reader initialization."""
 
     input_serializer_class = ReaderViewInputSerializer
@@ -33,9 +34,10 @@ class ReaderInitView(SessionView):
     def __init__(self, *args, **kwargs):
         """Initialize instance vars."""
         super().__init__(*args, **kwargs)
-        self.group_pks: dict[str, tuple[int, ...]] = {}
+        self._group_pks: dict[str, tuple[int, ...]] = {}
+        self._params: MappingProxyType[str, Any] | None = None
 
-    def _set_group_pks_from_breadcrumbs(self, groups, breadcrumbs):
+    def _get_group_pks_from_breadcrumbs(self, groups, breadcrumbs):
         """Set Multi-Group pks from breadcrumbs to the cache."""
         index = len(breadcrumbs) - 1
         min_index = max(index - 1, 0) if FOLDER_GROUP in groups else 0
@@ -44,29 +46,29 @@ class ReaderInitView(SessionView):
             crumb_group = crumb.get("group")
             if crumb_group in groups:
                 pks = crumb.get("pks", ())
-                self.group_pks[crumb_group] = pks
+                self._group_pks[crumb_group] = pks
                 break
             index -= 1
         else:
             crumb_group = ""
             pks = ()
             for group in groups:
-                self.group_pks[group] = pks
+                self._group_pks[group] = pks
         return crumb_group, pks
 
-    def get_group_pks_from_breadcrumbs(self, groups):
+    def get_group_pks_from_breadcrumbs(self, groups, params=None):
         """Get Multi-Group pks from the breadcrumbs."""
         # Return cached values
         for group in groups:
-            if pks := self.group_pks.get(group):
+            pks = self._group_pks.get(group)
+            if pks is not None:
                 return group, pks
 
-        # Validate input
-        breadcrumbs: tuple = self.params.get("breadcrumbs")  # type: ignore
-        if not breadcrumbs:
-            return "", ()
+        if params is None:
+            params = self.params
+        breadcrumbs: tuple = params.get("breadcrumbs", ())
 
-        return self._set_group_pks_from_breadcrumbs(groups, breadcrumbs)
+        return self._get_group_pks_from_breadcrumbs(groups, breadcrumbs)
 
     def _ensure_arc_contains_comic(self, params):
         """Arc sanity check."""
@@ -99,7 +101,7 @@ class ReaderInitView(SessionView):
             else:
                 search_groups = "vsip"
 
-            group, pks = self.get_group_pks_from_breadcrumbs(search_groups)
+            group, pks = self.get_group_pks_from_breadcrumbs(search_groups, params)
             if not group:
                 group = "s"
 
@@ -109,20 +111,24 @@ class ReaderInitView(SessionView):
 
         params["arc"] = arc
 
-    def _parse_params(self):
-        try:
-            data = self.request.GET
-            data = reparse_json_query_params(self.request.GET, _JSON_KEYS)
-            serializer = self.input_serializer_class(data=data)
-            serializer.is_valid(raise_exception=True)
+    @property
+    def params(self):
+        """Memoized params property."""
+        if self._params is None:
+            try:
+                data = self.request.GET
+                data = reparse_json_query_params(self.request.GET, _JSON_KEYS)
+                serializer = self.input_serializer_class(data=data)
+                serializer.is_valid(raise_exception=True)
 
-            params = deepcopy(_DEFAULT_PARAMS)
-            if serializer.validated_data:
-                params.update(serializer.validated_data)  # type: ignore
-            self._ensure_arc_contains_comic(params)
-            self._ensure_arc(params)
+                params: dict = mapping_to_dict(_DEFAULT_PARAMS)  # type: ignore
+                if serializer.validated_data:
+                    params.update(serializer.validated_data)  # type: ignore
+                self._ensure_arc_contains_comic(params)
+                self._ensure_arc(params)
 
-            self.params = MappingProxyType(params)
-        except Exception:
-            LOG.exception("validate")
-            raise
+                self._params = MappingProxyType(params)
+            except Exception:
+                LOG.exception("validate")
+                raise
+        return self._params

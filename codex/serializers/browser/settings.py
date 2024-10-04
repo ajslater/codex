@@ -8,12 +8,10 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.choices import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
-from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
 from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
 from codex.serializers.route import SimpleRouteSerializer
-
-VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
 
 class BrowserSettingsShowGroupFlagsSerializer(Serializer):
@@ -37,7 +35,9 @@ class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerilalizer):
 
     custom_covers = BooleanField(required=False)
     dynamic_covers = BooleanField(required=False)
-    order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
+    order_by = ChoiceField(
+        choices=tuple(BROWSER_ORDER_BY_CHOICES.keys()), required=False
+    )
     order_reverse = BooleanField(required=False)
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
 

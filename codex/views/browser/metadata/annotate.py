@@ -39,7 +39,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
         fields = set(_COMIC_VALUE_FIELD_NAMES)
         group = self.kwargs["group"]
         if (
-            not (self.admin_flags["folder_view"] and self.is_admin())
+            not (self.is_admin and self.admin_flags["folder_view"])
             or group not in _PATH_GROUPS
         ):
             fields -= _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
@@ -71,6 +71,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
                     filter_count=Count(full_field, distinct=True)
                 ).filter(filter_count=1)
                 sq = self.add_group_by(sq)
+                sq = self.force_inner_joins(sq)
                 sq = sq.values_list(full_field + related_suffix, flat=True)
                 try:
                     val = sq[0]

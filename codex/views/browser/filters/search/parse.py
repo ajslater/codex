@@ -1,8 +1,12 @@
 """Search Filters Methods."""
 
 import re
+from types import MappingProxyType
+
+from django.db.models.query import Q
 
 from codex.logger.logging import get_logger
+from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
@@ -56,24 +60,43 @@ _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
+        {
+            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+        }
+    )
+
     def __init__(self, *args, **kwargs):
         """Initialize search variables."""
         super().__init__(*args, **kwargs)
+        self._admin_flags: MappingProxyType[str, bool] | None = None
         self.fts_mode = False
         self.search_mode = False
         self.search_error = ""
 
+    @property
+    def admin_flags(self) -> MappingProxyType[str, bool]:
+        """Set browser relevant admin flags."""
+        if self._admin_flags is None:
+            if self.ADMIN_FLAG_VALUE_KEY_MAP:
+                admin_pairs = AdminFlag.objects.filter(
+                    key__in=self.ADMIN_FLAG_VALUE_KEY_MAP.keys()
+                ).values_list("key", "on")
+            else:
+                admin_pairs = ()
+            admin_flags = {}
+            for key, on in admin_pairs:
+                export_key = self.ADMIN_FLAG_VALUE_KEY_MAP[key]
+                admin_flags[export_key] = on
+            self._admin_flags = MappingProxyType(admin_flags)
+        return self._admin_flags
+
     def _is_path_column_allowed(self):
         """Is path column allowed."""
-        if not self.is_admin():  # type: ignore
-            if not "folder_view" not in self.admin_flags:  # type: ignore
-                # Ensure admin flags for Cover View
-                self.set_admin_flags()  # type: ignore
-            return bool(self.admin_flags.get("folder_view"))  # type: ignore
-        return True
+        return self.is_admin or bool(self.admin_flags["folder_view"])
 
     @staticmethod
-    def _is_column_operators_used(exp):
+    def _is_column_operators_used(exp) -> bool:
         """Detect column expression operators, but not inside quotes."""
         for match in _COLUMN_EXPRESSION_OPERATORS_RE.finditer(exp):
             if match.group("star"):
@@ -149,7 +172,7 @@ class SearchFilterView(BrowserFTSFilter):
         field_exclude_q_list = []
         for preop, field_token_pairs in field_tokens_dict.items():
             if preop == "not":
-                exclude_q_list, filter_q_list = self.get_search_field_filters(
+                exclude_q_list, include_q_list = self.get_search_field_filters(
                     model, field_token_pairs
                 )
             else:
@@ -157,37 +180,44 @@ class SearchFilterView(BrowserFTSFilter):
                 # XXX cannot do OR queries with MATCH, it decontextualizes MATCH somehow.
                 if preop == "or":
                     self.search_error = "OR preceding column tokens with operator expressions will act as AND"
-                filter_q_list, exclude_q_list = self.get_search_field_filters(
+                include_q_list, exclude_q_list = self.get_search_field_filters(
                     model, field_token_pairs
                 )
-            field_filter_q_list += filter_q_list
+            field_filter_q_list += include_q_list
             field_exclude_q_list += exclude_q_list
-        fts_filter = self.get_fts_filter(model, fts_text)
-        return field_exclude_q_list, field_filter_q_list, fts_filter
 
-    def _apply_search_filter_list(self, qs, filter_list, exclude):
+        fts_filter_dict = self.get_fts_filter(model, fts_text)
+        if fts_filter_dict:
+            self.fts_mode = True
+            fts_q = Q(**fts_filter_dict)
+        else:
+            fts_q = Q()
+
+        return field_filter_q_list, field_exclude_q_list, fts_q
+
+    def _create_search_filter(self, filter_list):
         """Apply search filter lists. Separate filter clauses are employed for m2m searches."""
+        combined_q = Q()
         for q in filter_list:
             if not q:
                 continue
-            qs = qs.exclude(q) if exclude else qs.filter(q)
+            combined_q &= q
             self.search_mode = True
 
-        return qs
+        return combined_q
 
-    def apply_search_filter(self, qs):
+    def get_search_filters(self, model):
         """Preparse search, search and return the filter and scores."""
+        include_q = Q()
+        exclude_q = Q()
+        fts_q = Q()
         try:
-            field_exclude_q_list, field_filter_q_list, fts_filter = (
-                self._create_search_filters(qs.model)
+            field_filter_q_list, field_exclude_q_list, fts_q = (
+                self._create_search_filters(model)
             )
-
             # Apply filters
-            qs = self._apply_search_filter_list(qs, field_exclude_q_list, True)
-            qs = self._apply_search_filter_list(qs, field_filter_q_list, False)
-            if fts_filter:
-                qs = qs.filter(fts_filter)
-                self.search_mode = self.fts_mode = True
+            include_q = self._create_search_filter(field_filter_q_list)
+            exclude_q = self._create_search_filter(field_exclude_q_list)
 
         except Exception as exc:
             msg = "Creating search filters"
@@ -195,7 +225,7 @@ class SearchFilterView(BrowserFTSFilter):
             msg = f"{msg} - {exc}"
             self.search_error = msg
 
-        return qs
+        return include_q, exclude_q, fts_q
 
     def _is_search_results_limited(self) -> bool:
         """Get search result limit from params."""

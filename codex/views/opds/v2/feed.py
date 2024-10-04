@@ -9,7 +9,6 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
-from codex.settings.settings import FALSY
 from codex.views.const import MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
@@ -177,15 +176,9 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
 
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
-        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-            self._get_group_and_books()
-        )
+        group_qs, book_qs, _, total_count, zero_pad, mtime = self.group_and_books
         title = self.get_browser_page_title()
         # convert browser_page into opds page
-
-        # instance vars
-        self.is_aq_feed = self.model_group in ("c", "f")
-        self.num_pages = num_pages
 
         # opds page
         title = self._title(title)
@@ -215,31 +208,11 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
             }
         )
 
-    def set_opds_request_type(self):
-        """Set opds request type variables."""
-        group = self.kwargs.get("group")
-        if group in {"f", "a"}:
-            pks = self.kwargs["pks"]
-            self.is_opds_2_acquisition = bool(pks)
-        else:
-            acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-            self.is_opds_2_acquisition = group in acquisition_groups
-        self.is_opds_metadata = (
-            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
-        )
-
-    def init_request(self):
-        """Initialize request."""
-        super().init_request()
-        self.set_opds_request_type()
-        # self._detect_user_agent()
-
     @extend_schema(
         parameters=[input_serializer_class],
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""
-        self.init_request()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

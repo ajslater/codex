@@ -7,7 +7,7 @@
       />
     </header>
     <AdminLibraryTable
-      :items="libraryItems"
+      :items="normalLibraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"
     />
 
@@ -22,8 +22,7 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
@@ -47,24 +46,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      libraryItems(state) {
-        const annotatedItems = [];
-        if (!state.libraries) {
-          return annotatedItems;
-        }
-        for (const library of state.libraries) {
-          if (!library.coversOnly) {
-            const annotatedItem = deepClone(library);
-            annotatedItem.label = annotatedItem.coversOnly
-              ? "custom group cover"
-              : "comic";
-            annotatedItems.push(annotatedItem);
-          }
-        }
-        return annotatedItems;
-      },
-    }),
+    ...mapGetters(useAdminStore, ["normalLibraries"]),
   },
   mounted() {
     this.loadTables(["Group", "Library", "FailedImport"]);

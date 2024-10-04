@@ -1,7 +1,5 @@
 """Base view for ordering the query."""
 
-from django.db.models.aggregates import Max, Min
-
 from codex.models import Comic
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
 
@@ -9,17 +7,23 @@ from codex.views.browser.group_mtime import BrowserGroupMtimeView
 class BrowserOrderByView(BrowserGroupMtimeView):
     """Base class for views that need ordering."""
 
-    def set_order_key(self):
+    def __init__(self, *args, **kwargs):
+        """Initialize memoized vars."""
+        super().__init__(*args, **kwargs)
+        self._order_key: str = ""
+        self._comic_sort_names: tuple[str, ...] = ()
+
+    @property
+    def order_key(self):
         """Get the default order key for the view."""
-        order_key: str = self.params["order_by"]
-        if order_key == "search_score" and not self.fts_mode:
-            # if no search scores, use sort_name, asc
-            order_key = "sort_name"
-            order_reverse = False
-        else:
-            order_reverse = self.params.get("order_reverse")
-        self.order_key = order_key
-        self.order_agg_func = Max if order_reverse else Min
+        if not self._order_key:
+            order_key: str = self.params["order_by"]
+            if (order_key == "search_score" and not self.fts_mode) or (
+                order_key == "filename" and not self.admin_flags["folder_view"]
+            ):
+                order_key = "sort_name"
+            self._order_key = order_key
+        return self._order_key
 
     def _add_comic_order_by(self, order_key, comic_sort_names):
         """Order by for comics (and covers)."""
@@ -27,7 +31,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             order_key = self.order_key
         if order_key == "sort_name":
             if not comic_sort_names:
-                comic_sort_names = self.comic_sort_names  # type: ignore
+                comic_sort_names = self._comic_sort_names
             order_fields_head = [
                 *comic_sort_names,
                 "issue_number",
@@ -43,7 +47,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             if order_key == "story_arc_number":
                 order_fields_head += ["date"]
             elif order_key == "bookmark_updated_at":
-                order_fields_head += ["updated_at"]
+                order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
     def add_order_by(self, qs, order_key="", do_reverse=True, comic_sort_names=None):

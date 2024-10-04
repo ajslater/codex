@@ -4,32 +4,26 @@ from os import sep
 from types import MappingProxyType
 
 from django.db.models import (
-    Avg,
     F,
     FilteredRelation,
-    Min,
     Q,
-    Sum,
     Value,
 )
+from django.db.models.aggregates import Avg, Max, Min, Sum
 from django.db.models.fields import CharField
 from django.db.models.functions import Reverse, Right, StrIndex
 
 from codex.logger.logging import get_logger
 from codex.models import (
-    BrowserGroupModel,
     Comic,
     Folder,
     StoryArc,
-    Volume,
 )
 from codex.models.functions import ComicFTSRank, JsonGroupArray
-from codex.models.groups import Imprint, Publisher, Series
 from codex.views.browser.order_by import (
     BrowserOrderByView,
 )
 from codex.views.const import (
-    NONE_DATETIMEFIELD,
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
@@ -58,9 +52,6 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
         "story_arc_number",
     }
 )
-_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
-    {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
-)
 
 LOG = get_logger(__name__)
 
@@ -69,18 +60,48 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
 
     CARD_TARGETS = frozenset({"browser", "metadata"})
+    _OPDS_TARGETS = frozenset({"opds1", "opds2"})
+    _PAGE_COUNT_TARGETS = frozenset(CARD_TARGETS | _OPDS_TARGETS)
+    _COVER_AND_CARD_TARGETS = frozenset(CARD_TARGETS | {"cover"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
-        self.is_opds_1_acquisition = False
-        self.comic_sort_names = ()
+        self._order_agg_func: type[Min | Max] | None = None
+        self._is_opds_acquisition: bool | None = None
+        self._opds_acquisition_groups: frozenset[str] | None = None
+        self.bmua_is_max = False
 
-    def add_group_by(self, qs):
-        """Get the group by for the model."""
-        if group_by := _GROUP_BY.get(qs.model):  # type: ignore
-            qs = qs.group_by(group_by)
-        return qs
+    @property
+    def opds_acquisition_groups(self):
+        """Memoize the opds acquisition groups."""
+        if self._opds_acquisition_groups is None:
+            groups = {"a", "f", "c"}
+            groups |= {*self.valid_nav_groups[-2:]}
+            self._opds_acquisition_groups = frozenset(groups)
+        return self._opds_acquisition_groups
+
+    @property
+    def is_opds_acquisition(self):
+        """Memoize if we're in an opds acquisition view."""
+        if self._is_opds_acquisition is None:
+            is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
+            if is_opds_acquisition:
+                group = self.kwargs.get("group")
+                is_opds_acquisition &= group in self.opds_acquisition_groups
+                if is_opds_acquisition and group == "a":
+                    pks = self.kwargs["pks"]
+                    is_opds_acquisition &= bool(pks and 0 not in pks)
+            self._is_opds_acquisition = is_opds_acquisition
+        return self._is_opds_acquisition
+
+    @property
+    def order_agg_func(self):
+        """Get the order aggregate function."""
+        if self._order_agg_func is None:
+            order_reverse = self.params.get("order_reverse")
+            self._order_agg_func = Max if order_reverse else Min
+        return self._order_agg_func
 
     def _alias_sort_names(self, qs):
         """Annotate sort_name."""
@@ -89,9 +110,17 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         ):
             return qs
         pks = self.kwargs.get("pks")
-        model_group = self.model_group  # type: ignore
         show = MappingProxyType(self.params["show"])  # type: ignore
-        qs, self.comic_sort_names = self.alias_sort_names(qs, pks, model_group, show)
+        # TODO too many annotations for order?
+        #   Move other annotations to card.
+        #   eager publisher for imprint of course
+        sort_name_annotations = self.get_sort_name_annotations(
+            qs.model, self.model_group, pks, show
+        )
+        if sort_name_annotations:
+            qs = qs.alias(**sort_name_annotations)
+            if qs.model is Comic:
+                self._comic_sort_names = tuple(sort_name_annotations.keys())
         return qs
 
     def _alias_filename(self, qs):
@@ -128,9 +157,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         # If we have one annotate it.
         if story_arc_pks:
-            san_rel = self.rel_prefix + "story_arc_numbers"
-            rel = f"{san_rel}"
-            condition = Q(**{f"{san_rel}__story_arc__in": story_arc_pks})
+            rel = self.get_rel_prefix(qs.model) + "story_arc_numbers"
+            condition_rel = "pk" if qs.model is StoryArc else rel + "__story_arc"
+            condition = Q(**{f"{condition_rel}__in": story_arc_pks})
             qs = qs.alias(
                 selected_story_arc_number=FilteredRelation(rel, condition=condition),
             )
@@ -144,7 +173,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
         if qs.model is Comic or (
-            self.order_key != "page_count" and self.TARGET not in self.CARD_TARGETS
+            self.order_key != "page_count"
+            and self.TARGET not in self._PAGE_COUNT_TARGETS
         ):
             return qs
 
@@ -157,14 +187,16 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         return qs
 
     def _annotate_bookmark_updated_at(self, qs):
-        if not self.is_opds_1_acquisition and self.order_key != "bookmark_updated_at":
-            return qs
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(qs.model)
-        bm_updated_at_rel = f"{bm_rel}__updated_at"
-        bmua_agg = self.order_agg_func(
-            bm_updated_at_rel, default=NONE_DATETIMEFIELD, filter=bm_filter
-        )
-        return qs.annotate(bookmark_updated_at=bmua_agg)
+        if self.is_opds_acquisition or self.order_key == "bookmark_updated_at":
+            bmua_agg = self.get_max_bookmark_updated_at_aggregate(
+                qs.model, agg_func=self.order_agg_func
+            )
+            # This is used by annotate.bookmark to avoid a
+            # similar query.
+            self.bmua_is_max = self.order_agg_func is Max
+            qs = qs.annotate(bookmark_updated_at=bmua_agg)
+        # This is used by the serializer to compute mtime
+        return qs.annotate(bmua_is_max=Value(self.bmua_is_max))
 
     def annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""
@@ -190,13 +222,18 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _annotate_search_scores(self, qs):
         """Annotate Search Scores."""
-        if self.TARGET not in self.CARD_TARGETS or self.order_key != "search_score":
+        if (
+            self.TARGET not in self._COVER_AND_CARD_TARGETS
+            or self.order_key != "search_score"
+        ):
             return qs
-        return qs.annotate(search_score=ComicFTSRank())
+
+        # Rank is always the max of the relations, cannot aggregate?
+        # group by here fixes duplicates with story_arc, probably because it's a long relation
+        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
 
     def annotate_order_aggregates(self, qs):
         """Annotate common aggregates between browser and metadata."""
-        self.set_order_key()
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs)

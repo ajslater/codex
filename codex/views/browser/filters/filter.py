@@ -1,13 +1,12 @@
 """Browser Filters."""
 
-from django.db.models.aggregates import Count
+from django.db.models.query import QuerySet
+from django.db.models.query_utils import Q
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
-from codex.views.const import ONE_INTEGERFIELD
 
-_CHILD_COUNT = "child_count"
 LOG = get_logger(__name__)
 
 
@@ -16,55 +15,55 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     TARGET = ""
 
-    def _filter_by_child_count(self, qs):
-        """Filter group by child count."""
-        rel = self.rel_prefix + "pk"
-        count_func = (
-            ONE_INTEGERFIELD if qs.model is Comic else Count(rel, distinct=True)
-        )
-        ann = {_CHILD_COUNT: count_func}
-        if self.TARGET == "opds2":
-            if qs.model is not Comic:
-                qs = qs.alias(**ann)
-        else:
-            # This is the only annotation to happen during the filter for efficiency
-            qs = qs.annotate(**ann)
+    def force_inner_joins(self, qs):
+        """Force INNER JOINS to filter empty groups."""
+        demote_tables = {"codex_library"}
         if qs.model is not Comic:
-            qs = qs.filter(**{f"{_CHILD_COUNT}__gt": 0})
-        return qs
+            demote_tables.add("codex_comic")
+        if self.fts_mode:
+            # Forcing INNER JOINS required to make fts5 work
+            demote_tables.add("codex_comicfts")
+        return qs.demote_joins(demote_tables)
 
-    def _get_query_filters(  # noqa: PLR0913
-        self, model, group, pks, bookmark_filter, page_mtime=False, group_filter=True
-    ):
-        """Return all the filters except the group filter."""
-        # XXX all these ifs and flags are awful
-        object_filter = self.get_group_acl_filter(model)
-        if group_filter:
-            object_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
-        object_filter &= self.get_comic_field_filter(model)
-        if bookmark_filter:
-            # not needed when used by outerrefl OuterRef is applied next
-            object_filter &= self.get_bookmark_filter(model)
-        return object_filter
-
-    def get_filtered_queryset(  # noqa: PLR0913
+    def _get_query_filters(
         self,
         model,
         group=None,
         pks=None,
-        bookmark_filter=True,
         page_mtime=False,
-        group_filter=True,
-    ):
-        """Get a filtered queryset for the model."""
-        object_filter = self._get_query_filters(
-            model,
-            group,
-            pks,
-            bookmark_filter,
-            page_mtime=page_mtime,
-            group_filter=group_filter,
+        bookmark_filter=True,
+    ) -> Q:
+        """Return all the filters except the group filter."""
+        big_include_filter = Q()
+        big_exclude_filter = Q()
+        big_include_filter &= self.get_group_acl_filter(model, self.request.user)
+        big_include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
+        big_include_filter &= self.get_comic_field_filter(model)
+        if bookmark_filter:
+            big_include_filter &= self.get_bookmark_filter(model)
+        include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
+            model
         )
-        qs = model.objects.filter(object_filter)
-        qs = self.apply_search_filter(qs)
-        return self._filter_by_child_count(qs)
+        big_include_filter &= include_search_filter
+        big_exclude_filter &= exclude_search_filter
+
+        return big_include_filter & ~big_exclude_filter & fts_q
+
+    def get_filtered_queryset(
+        self,
+        model,
+        group=None,
+        pks=None,
+        page_mtime=False,
+        bookmark_filter=True,
+    ) -> QuerySet:
+        """Get a filtered queryset for the model."""
+        query_filters = self._get_query_filters(
+            model,
+            group=group,
+            pks=pks,
+            page_mtime=page_mtime,
+            bookmark_filter=bookmark_filter,
+        )
+        # Distinct necissary for folder view with search
+        return model.objects.filter(query_filters).distinct()

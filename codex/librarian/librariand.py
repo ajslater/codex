@@ -7,6 +7,8 @@ from typing import NamedTuple
 
 from caseconverter import snakecase
 
+from codex.librarian.bookmark.bookmarkd import BookmarkThread
+from codex.librarian.bookmark.tasks import BookmarkTask
 from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
@@ -46,6 +48,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
     """Librarian Process."""
 
     _THREAD_CLASSES = (
+        BookmarkThread,
         NotifierThread,
         DelayedTasksThread,
         CoverThread,
@@ -88,6 +91,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         match task:
             case CoverTask():
                 self._threads.cover_thread.queue.put(task)
+            case BookmarkTask():
+                self._threads.bookmark_thread.queue.put(task)
             case WatchdogEventTask():
                 self._threads.watchdog_event_batcher_thread.queue.put(task)
             case ImportTask():

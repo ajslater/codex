@@ -8,13 +8,12 @@
     <template #activator="{ props }">
       <v-btn
         v-if="icon"
-        icon
         v-bind="props"
+        :icon="icon"
         :size="size"
         :density="density"
         :title="titleText"
       >
-        <v-icon>{{ icon }}</v-icon>
       </v-btn>
       <v-btn v-else block v-bind="props">
         {{ buttonText }}

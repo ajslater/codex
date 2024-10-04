@@ -23,6 +23,7 @@ export const getBrowserHref = ({ group, pks, query }) => {
 
 export const getCoverSrc = ({ group, pks }, data, ts) => {
   const base = window.CODEX.API_V3_PATH;
+  delete data.show;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,
     pks,

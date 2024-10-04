@@ -63,7 +63,7 @@ class Like(Lookup):
 
 
 class ComicFTSRank(Func):
-    """Sqlite3 FTS5 inverse rank lookup."""
+    """Sqlite3 FTS5 inverse rank function."""
 
     function = "rank"
     template = '("codex_comicfts"."rank" * -1)'

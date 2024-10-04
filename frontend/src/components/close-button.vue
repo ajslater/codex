@@ -1,7 +1,5 @@
 <template>
-  <v-btn class="closeButton" icon v-bind="$attrs">
-    <v-icon>{{ mdiClose }}</v-icon>
-  </v-btn>
+  <v-btn class="closeButton" :icon="mdiClose" v-bind="$attrs" />
 </template>
 <script>
 import { mdiClose } from "@mdi/js";

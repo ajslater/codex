@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="dialog"
+    v-model="isSearchHelpOpen"
     content-class="browserSearchHelp"
     fullscreen
     :scrim="false"
@@ -21,8 +21,10 @@
 </template>
 <script>
 import { mdiLifebuoy, mdiOpenInNew } from "@mdi/js";
+import { mapActions, mapState } from "pinia";
 
 import SearchHelpText from "@/components/browser/toolbars/search/search-help-text.vue";
+import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "SearchHelp",
   components: { SearchHelpText },
@@ -30,13 +32,26 @@ export default {
     return {
       mdiOpenInNew,
       mdiLifebuoy,
-      dialog: false,
     };
   },
   computed: {
+    ...mapState(useBrowserStore, {
+      isSearchHelpOpenState: (state) => state.isSearchHelpOpen,
+    }),
+    isSearchHelpOpen: {
+      get() {
+        return this.isSearchHelpOpenState;
+      },
+      set(value) {
+        this.setSearchHelpOpen(value);
+      },
+    },
     buttonDensity() {
       return this.$vuetify.display.smAndDown ? "compact" : "comfortable";
     },
+  },
+  methods: {
+    ...mapActions(useBrowserStore, ["setSearchHelpOpen"]),
   },
 };
 </script>
@@ -46,6 +61,7 @@ $topMargin: calc(96px + 12px);
 
 :deep(.browserSearchHelp) {
   top: $topMargin;
+  overflow-y: auto !important;
   opacity: 0.9;
 }
 
@@ -53,6 +69,5 @@ $topMargin: calc(96px + 12px);
   padding: 20px;
   margin: auto;
   margin-bottom: $topMargin;
-  overflow-y: auto !important;
 }
 </style>

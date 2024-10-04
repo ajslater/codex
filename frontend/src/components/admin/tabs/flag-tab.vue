@@ -31,7 +31,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { adminFlags } from "@/choices-admin.json";
+import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -69,7 +69,7 @@ export default {
       }
     },
     title(item) {
-      return adminFlags[item.key];
+      return ADMIN_FLAGS[item.key];
     },
   },
 };

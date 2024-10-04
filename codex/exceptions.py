@@ -11,8 +11,8 @@ from django.utils.http import urlencode
 from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
+from codex.choices import DEFAULT_BROWSER_ROUTE
 from codex.logger.logging import get_logger
-from codex.serializers.choices import DEFAULTS
 from codex.serializers.fields import BreadcrumbsField
 from codex.serializers.route import RouteSerializer
 from codex.views.util import pop_name
@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 _OPDS_REDIRECT_SETTINGS_KEYS = ("order_by", "top_group")
 _REDIRECT_SETTINGS_KEYS = ("breadcrumbs", *_OPDS_REDIRECT_SETTINGS_KEYS)
-_DEFAULT_ROUTE = DEFAULTS["breadcrumbs"][0]
 
 
 class SeeOtherRedirectError(APIException):
@@ -41,7 +40,7 @@ class SeeOtherRedirectError(APIException):
 
         # Get route params
         route = detail.get("route", {})
-        params = route.get("params", _DEFAULT_ROUTE)
+        params = route.get("params", DEFAULT_BROWSER_ROUTE)
         params = pop_name(params)
         route = deepcopy(route)
         route["params"] = params

@@ -12,7 +12,7 @@ class SharedAnnotationsMixin:
     """Cross view annotation methods."""
 
     @staticmethod
-    def _get_order_groups(pks, model_group):
+    def _get_order_groups(model_group, pks):
         """Annotate sort_name."""
         if not pks or len(pks) > 1:
             order_groups = _SHOW_GROUPS
@@ -28,12 +28,11 @@ class SharedAnnotationsMixin:
         return order_groups
 
     @classmethod
-    def alias_sort_names(cls, qs, pks, model_group, show=None):
+    def get_sort_name_annotations(cls, model, model_group, pks, show):
         """Annotate sort names for browser subclasses and reader."""
         sort_name_annotations = {}
-        comic_sort_names = []
-        if qs.model is Comic:
-            order_groups = cls._get_order_groups(pks, model_group)
+        if model is Comic:
+            order_groups = cls._get_order_groups(model_group, pks)
             for order_group in order_groups:
                 if show and not show.get(order_group):
                     continue
@@ -42,13 +41,9 @@ class SharedAnnotationsMixin:
                 name_field = "name" if group_name == "volume" else "sort_name"
                 sort_name = F(f"{group_name}__{name_field}")
                 sort_name_annotations[ann_name] = sort_name
-                comic_sort_names.append(ann_name)
-        elif qs.model is Volume:
+        elif model is Volume:
             sort_name_annotations["sort_name"] = F("name")
-
-        if sort_name_annotations:
-            qs = qs.alias(**sort_name_annotations)
-        return qs, comic_sort_names
+        return sort_name_annotations
 
     @classmethod
     def annotate_group_names(cls, qs):
@@ -74,3 +69,20 @@ class SharedAnnotationsMixin:
         elif qs.model is Imprint:
             group_names["publisher_name"] = F("publisher__name")
         return qs.annotate(**group_names)
+
+
+class BookmarkSearchMixin:
+    """Create Bookmark Search kwargs."""
+
+    @staticmethod
+    def get_bookmark_search_kwargs(auth_filter, comic_filter=None):
+        """Get the search kwargs for a user's authentication state."""
+        # search kwargs are relative to the bookmark object.
+        search_kwargs = {}
+        search_kwargs.update(auth_filter)
+
+        if comic_filter:
+            for key, value in comic_filter.items():
+                search_kwargs[f"comic__{key}"] = value
+
+        return search_kwargs

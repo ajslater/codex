@@ -5,8 +5,9 @@ from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
 
-from codex.librarian.covers.create import CoverCreateMixin
+from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
+from codex.settings.settings import FALSY
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_contributors, get_m2m_objects
 from codex.views.opds.v2.top_links import HrefData, LinkData, OPDS2TopLinksView
@@ -30,8 +31,6 @@ _CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in
 class OPDS2PublicationView(OPDS2TopLinksView):
     """Publication Methods for OPDS 2.0 feed."""
 
-    is_opds_metadata = False
-
     def _images(self, obj):
         # Images
         kwargs = {"group": obj.group, "pks": obj.ids}
@@ -46,8 +45,8 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             Rel.THUMBNAIL,
             href_data,
             mime_type=MimeType.WEBP,
-            height=CoverCreateMixin.THUMBNAIL_HEIGHT,
-            width=CoverCreateMixin.THUMBNAIL_WIDTH,
+            height=THUMBNAIL_HEIGHT,
+            width=THUMBNAIL_WIDTH,
         )
 
         cover_link = self.link(link_data)
@@ -115,7 +114,7 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             "title": title,
         }
         self._publication_optional_metadata(md, obj)
-        if self.is_opds_metadata:
+        if self.request.GET.get("opdsMetadata", "").lower() not in FALSY:
             self._publication_extended_metadata(md, obj)
         return md
 

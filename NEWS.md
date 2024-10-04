@@ -25,6 +25,8 @@ border-radius: 128px;
 
 - Fixes
 
+  - Actually fix browser opening reader at correct bookmark.
+    - Also fixes progress calculation on browser cards.
   - Fixed crashes when the upstream codex version is not accessible.
   - Fixed possible race conditions with nightly maintenance.
 

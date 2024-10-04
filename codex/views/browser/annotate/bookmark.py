@@ -1,107 +1,61 @@
 """Base view for metadata annotations."""
 
-from types import MappingProxyType
-
 from django.db.models import (
     Case,
     F,
-    OuterRef,
     Sum,
     Value,
     When,
 )
-from django.db.models.expressions import Subquery
 from django.db.models.fields import BooleanField, PositiveSmallIntegerField
 from django.db.models.functions import Least
 from django.db.models.functions.comparison import Coalesce
 
 from codex.logger.logging import get_logger
 from codex.models import (
-    BrowserGroupModel,
     Comic,
-    Folder,
-    StoryArc,
 )
+from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 
 LOG = get_logger(__name__)
-
-_BOOKMARK_GROUP_REL = MappingProxyType(
-    {Folder: "parent_folder", StoryArc: "story_arc_numbers__story_arc"}
-)
 
 
 class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     """Base class for views that need special metadata annotations."""
 
-    def __init__(self, *args, **kwargs):
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
-
-    def _get_bookmark_comic_qs(self, qs):
-        """Get the comic qs for  subquery."""
-        comic_qs = self.get_filtered_queryset(Comic)
-        group_by = _BOOKMARK_GROUP_REL.get(qs.model, qs.model.__name__.lower())
-        group_rel = group_by + "__pk"
-        group_filter = {group_rel: OuterRef("pk")}
-        comic_qs = comic_qs.filter(**group_filter)
-        # Must group by the outer ref or it only does aggregates for one comic?
-        return comic_qs.values(group_rel)
-
-    @staticmethod
-    def _get_bookmark_page_subquery(comic_qs, finished_rel, bm_rel, bm_filter):
+    def _get_group_bookmark_page_annotation(
+        self, qs, bm_rel, bm_filter, page_rel, finished_rel
+    ):
         """Get bookmark page subquery."""
         finished_filter = {finished_rel: True}
-        page_rel = f"{bm_rel}__page"
+        prefix = "" if qs.model is Comic else self.rel_prefix
+        page_count = prefix + "page_count"
+        # Can't use a filtered relation for page & finished because of this
+        # page_count case.
         bookmark_page_case = Case(
             When(**{bm_rel: None}, then=0),
-            When(**finished_filter, then="page_count"),
+            When(**finished_filter, then=page_count),
             default=page_rel,
             output_field=PositiveSmallIntegerField(),
         )
-        bookmark_page = Sum(
+        return Sum(
             bookmark_page_case,
             default=0,
             filter=bm_filter,
             output_field=PositiveSmallIntegerField(),
             distinct=True,
         )
-        return Subquery(comic_qs.annotate(page=bookmark_page).values("page"))
 
-    @staticmethod
-    def _get_finished_count_subquery(comic_qs, finished_rel, bm_filter):
+    @classmethod
+    def _get_group_bookmark_finished_annotation(cls, qs, bm_filter, finished_rel):
         """Get finished_count subquery."""
         finished_count = Sum(
             finished_rel,
             default=0,
             filter=bm_filter,
             output_field=PositiveSmallIntegerField(),
-            distinct=True,
-        )
-        return Subquery(
-            comic_qs.annotate(finished_count=finished_count).values("finished_count")
-        )
-
-    def _get_bookmark_page_and_finished_subqueries(self, qs):
-        """Get bookmark page and finished_count subqueries."""
-        comic_qs = self._get_bookmark_comic_qs(qs)
-        bm_rel, bm_filter = self.get_bookmark_rel_and_filter(Comic)
-        finished_rel = f"{bm_rel}__finished"
-        bookmark_page = self._get_bookmark_page_subquery(
-            comic_qs, finished_rel, bm_rel, bm_filter
-        )
-        finished_count = self._get_finished_count_subquery(
-            comic_qs, finished_rel, bm_filter
-        )
-        return bookmark_page, finished_count
-
-    def _annotate_group_bookmarks(self, qs):
-        """Aggregate bookmark and finished states for groups using subqueries to not break the FTS match filter."""
-        # Using subqueries is also faster for non-fts queries.
-        # XXX These are slow for large groups.
-        bookmark_page, finished_count = self._get_bookmark_page_and_finished_subqueries(
-            qs
+            # distinct breaks this sum and only returns one. idk why.
         )
         qs = qs.alias(finished_count=finished_count)
 
@@ -111,34 +65,41 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             default=None,
             output_field=BooleanField(),
         )
-
-        return qs, bookmark_page, finished_aggregate
-
-    def _annotate_comic_bookmarks(self, qs):
-        """Hoist comic bookmark and finished states."""
-        bm_rel, _ = self.get_bookmark_rel_and_filter(qs.model)
-        page_rel = f"{bm_rel}__page"
-        finished_rel = f"{bm_rel}__finished"
-
-        bookmark_page = Coalesce(page_rel, 0)
-        finished_aggregate = Coalesce(finished_rel, False)
-        return bookmark_page, finished_aggregate
+        return qs, finished_aggregate
 
     def annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
+        bm_rel = self._get_bm_rel(qs.model)
+        bm_filter = self._get_my_bookmark_filter(bm_rel)
+        page_rel = f"{bm_rel}__page"
+        finished_rel = f"{bm_rel}__finished"
+
         if qs.model is Comic:
-            page, finished = self._annotate_comic_bookmarks(qs)
+            bookmark_page = Sum(page_rel, filter=bm_filter, default=0)
+            finished_aggregate = Sum(finished_rel, filter=bm_filter, default=False)
         else:
-            qs, page, finished = self._annotate_group_bookmarks(qs)
-            page = Value(0)
-            # finished = Value(False)
+            bookmark_page = self._get_group_bookmark_page_annotation(
+                qs, bm_rel, bm_filter, page_rel, finished_rel
+            )
+            qs, finished_aggregate = self._get_group_bookmark_finished_annotation(
+                qs, bm_filter, finished_rel
+            )
 
-        if self.is_opds_1_acquisition or qs.model is Comic and self.TARGET == "browser":
-            qs = qs.annotate(page=page)
+        if (
+            (self.TARGET == "browser" and qs.model is Comic)
+            or self.is_opds_acquisition
+            or self.TARGET == "metadata"
+        ):
+            qs = qs.annotate(page=bookmark_page)
         else:
-            qs = qs.alias(page=page)
+            qs = qs.alias(page=bookmark_page)
 
-        return qs.annotate(finished=finished)
+        qs = qs.annotate(finished=finished_aggregate)
+
+        if not self.bmua_is_max:
+            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
+            qs = qs.annotate(bookmark_updated_ats=mbmua)
+        return qs
 
     def annotate_progress(self, qs):
         """Compute progress for each member of a qs."""

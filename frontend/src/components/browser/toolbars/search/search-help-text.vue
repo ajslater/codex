@@ -192,12 +192,6 @@
           and treat it like <code>AND</code>.
         </p>
       </div>
-      <CloseButton
-        class="closeButton"
-        title="Close Help (esc)"
-        size="x-large"
-        @click="dialog = false"
-      />
     </div>
   </div>
 </template>
@@ -277,10 +271,6 @@ h2,
 h3 {
   margin-top: 0.5em;
   color: rgb(var(--v-theme-textHeader));
-}
-
-.closeButton {
-  float: right;
 }
 
 #fieldTableContainer {

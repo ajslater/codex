@@ -2,8 +2,10 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime
 from urllib.parse import parse_qsl, urlparse
 
+from django.db.models import QuerySet
 from django.urls import reverse
 
 from codex.settings.settings import FALSY
@@ -43,7 +45,30 @@ class LinkData:
 class OPDS2LinksView(BrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
-    num_pages = 0  # For pyright. Overwritten every run.
+    def __init__(self, *args, **kwargs):
+        """Initialize properties."""
+        super().__init__(*args, **kwargs)
+        self._num_pages: int | None = None
+        self._group_and_books: (
+            tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
+        ) = None
+
+    @property
+    def group_and_books(
+        self,
+    ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None]:
+        """Memoize Group And Books for num_pages."""
+        # group_qs, book_qs, num_pages, total_count, zero_pad, mtime
+        if self._group_and_books is None:
+            self._group_and_books = self._get_group_and_books()
+        return self._group_and_books
+
+    @property
+    def num_pages(self) -> int:
+        """Memoize num_pages."""
+        if self._num_pages is None:
+            self._num_pages = self.group_and_books[2]
+        return self._num_pages
 
     def _href_page_validate(self, kwargs, data):
         """Validate the page bounds."""

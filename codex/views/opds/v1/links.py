@@ -112,7 +112,6 @@ class OPDS1LinksView(OPDS1FacetsView):
             "name": "opds:v1:feed",
         }
     )
-    is_aq_feed = False
 
     def is_top_link_displayed(self, top_link):
         """Determine if this top link should be displayed."""
@@ -160,7 +159,9 @@ class OPDS1LinksView(OPDS1FacetsView):
         """Create all the links."""
         links = []
         try:
-            mime_type = MimeType.ACQUISITION if self.is_aq_feed else MimeType.NAV
+            mime_type = (
+                MimeType.ACQUISITION if self.is_opds_acquisition else MimeType.NAV
+            )
             links += [
                 OPDS1Link("self", self.request.get_full_path(), mime_type),
                 OPDS1Link(
@@ -193,9 +194,9 @@ class OPDS1LinksView(OPDS1FacetsView):
             name=name,
             summary=top_link.desc,
         )
-        zero_pad = self.obj["zero_pad"]
+        zero_pad: int = self.obj["zero_pad"]  # type: ignore
         data = OPDS1EntryData(
-            self.acquisition_groups, zero_pad, False, self.mime_type_map
+            self.opds_acquisition_groups, zero_pad, False, self.mime_type_map
         )
         return OPDS1Entry(entry_obj, top_link.query_params, data)
 
