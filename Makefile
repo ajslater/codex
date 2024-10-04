@@ -148,7 +148,7 @@ clean-frontend:
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-build-frontend: clean-frontend choices
+build-frontend: clean-frontend
 	bash -c "cd frontend && make build"
 
 .PHONY: icons
