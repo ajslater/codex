@@ -277,10 +277,7 @@ index, a Django cache and comic book cover thumbnails.
   when codex starts.
 - `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
   keys on startup.
-- `CODEX_INTEGRITY_CHECK=1` will perform a quick full database integrity check
-  on startup.
-- `CODEX_INTEGRITY_CHECK=full` will perform a more thorough database integrity
-  check on startup.
+- `CODEX_INTEGRITY_CHECK=1` will perform database integrity check on startup.
 - `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
   search index.
 - `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
