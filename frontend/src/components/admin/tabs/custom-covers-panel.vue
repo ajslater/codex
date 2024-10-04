@@ -6,7 +6,7 @@
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <AdminLibraryTable
-          :items="coverDirItems"
+          :items="customCoverLibraries"
           disable-sort
           :covers-dir="true"
         />
@@ -66,8 +66,7 @@
   </v-expansion-panels>
 </template>
 <script>
-import deepClone from "deep-clone";
-import { mapState } from "pinia";
+import { mapGetters } from "pinia";
 
 import AdminLibraryTable from "@/components/admin/tabs/library-table.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -78,21 +77,7 @@ export default {
     AdminLibraryTable,
   },
   computed: {
-    ...mapState(useAdminStore, {
-      coverDirItems(state) {
-        const annotatedItems = [];
-        for (const library of state.libraries) {
-          if (library.coversOnly) {
-            const annotatedItem = deepClone(library);
-            annotatedItem.label = annotatedItem.coversOnly
-              ? "custom group cover"
-              : "comic";
-            annotatedItems.push(annotatedItem);
-          }
-        }
-        return annotatedItems;
-      },
-    }),
+    ...mapGetters(useAdminStore, ["customCoverLibraries"]),
   },
 };
 </script>

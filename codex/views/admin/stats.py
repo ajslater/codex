@@ -1,6 +1,7 @@
 """Admin Stats View."""
 
-from typing import ClassVar
+from types import MappingProxyType
+from typing import Any, ClassVar
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -26,20 +27,28 @@ class AdminStatsView(AdminGenericAPIView):
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
-    def _parse_params(self):
-        """Parse and input params."""
-        data = self.request.GET
+    def __init__(self, *args, **kwargs):
+        """Initialize properties."""
+        super().__init__(*args, **kwargs)
+        self._params: MappingProxyType[str, Any] | None = None
 
-        input_serializer = self.input_serializer_class(data=data)
-        input_serializer.is_valid(raise_exception=True)
-        params = {}
-        if input_serializer.validated_data and not isinstance(
-            input_serializer.validated_data, empty
-        ):
-            for key, value in input_serializer.validated_data.items():
-                if value:
-                    params[key] = value
-        return params
+    @property
+    def params(self) -> MappingProxyType[str, Any]:
+        """Parse and input params."""
+        if self._params is None:
+            data = self.request.GET
+
+            input_serializer = self.input_serializer_class(data=data)
+            input_serializer.is_valid(raise_exception=True)
+            params = {}
+            if input_serializer.validated_data and not isinstance(
+                input_serializer.validated_data, empty
+            ):
+                for key, value in input_serializer.validated_data.items():
+                    if value:
+                        params[key] = value
+            self._params = MappingProxyType(params)
+        return self._params
 
     def _add_api_key(self, obj):
         """Add the api key to the config object if specified."""
@@ -53,7 +62,7 @@ class AdminStatsView(AdminGenericAPIView):
             obj["config"] = {}
         obj["config"]["api_key"] = api_key
 
-    def get_object(self):
+    def get_object(self):  # type: ignore
         """Get the stats object with an api key."""
         getter = CodexStats(self.params)
         obj = getter.get()
@@ -63,8 +72,6 @@ class AdminStatsView(AdminGenericAPIView):
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the stats object and serialize it."""
-        self.params = self._parse_params()
         obj = self.get_object()
-
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

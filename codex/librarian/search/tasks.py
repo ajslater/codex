@@ -9,22 +9,17 @@ class SearchIndexerTask:
 
 
 @dataclass
-class SearchIndexRebuildIfDBChangedTask(SearchIndexerTask):
-    """Task to check if the db is changed and schedule an update task."""
-
-
-@dataclass
 class SearchIndexUpdateTask(SearchIndexerTask):
     """Update the search index."""
 
-    rebuild: bool
+    rebuild: bool = False
 
 
 @dataclass
-class SearchIndexMergeTask(SearchIndexerTask):
-    """Merge a fragmented index."""
+class SearchIndexOptimizeTask(SearchIndexerTask):
+    """Optimize search index."""
 
-    optimize: bool = False
+    janitor: bool = False
 
 
 @dataclass

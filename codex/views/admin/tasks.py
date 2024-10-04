@@ -20,8 +20,13 @@ from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanCoversTask,
     JanitorCleanFKsTask,
+    JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
+    JanitorForeignKeyCheck,
+    JanitorFTSIntegrityCheck,
+    JanitorFTSRebuildTask,
+    JanitorIntegrityCheck,
     JanitorLatestVersionTask,
     JanitorNightlyTask,
     JanitorRestartTask,
@@ -34,8 +39,7 @@ from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGE
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
     SearchIndexClearTask,
-    SearchIndexMergeTask,
-    SearchIndexRebuildIfDBChangedTask,
+    SearchIndexOptimizeTask,
     SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
@@ -56,6 +60,44 @@ if TYPE_CHECKING:
 
 LOG = get_logger(__name__)
 
+_TASK_MAP = MappingProxyType(
+    {
+        "purge_comic_covers": CoverRemoveAllTask(),
+        "create_all_comic_covers": CoverCreateAllTask(),
+        "search_index_update": SearchIndexUpdateTask(False),
+        "search_index_rebuild": SearchIndexUpdateTask(True),
+        "search_index_remove_stale": SearchIndexRemoveStaleTask(),
+        "search_index_abort": SearchIndexAbortTask(),
+        "search_index_optimize": SearchIndexOptimizeTask(True),
+        "search_index_clear": SearchIndexClearTask(),
+        "db_vacuum": JanitorVacuumTask(),
+        "db_backup": JanitorBackupTask(),
+        "db_foreign_key_check": JanitorForeignKeyCheck(),
+        "db_integrity_check": JanitorIntegrityCheck(),
+        "db_fts_integrity_check": JanitorFTSIntegrityCheck(),
+        "db_fts_rebuild": JanitorFTSRebuildTask(),
+        "watchdog_sync": WatchdogSyncTask(),
+        "codex_latest_version": JanitorLatestVersionTask(True),
+        "codex_update": JanitorUpdateTask(False),
+        "codex_shutdown": JanitorShutdownTask(),
+        "codex_restart": JanitorRestartTask(),
+        "notify_library_changed": LIBRARY_CHANGED_TASK,
+        "notify_librarian_status": LIBRARIAN_STATUS_TASK,
+        "cleanup_fks": JanitorCleanFKsTask(),
+        "cleanup_db_custom_covers": JanitorCleanCoversTask(),
+        "cleanup_sessions": JanitorCleanupSessionsTask(),
+        "cleanup_bookmarks": JanitorCleanupBookmarksTask(),
+        "cleanup_covers": CoverRemoveOrphansTask(),
+        "librarian_clear_status": JanitorClearStatusTask(),
+        "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
+        "poll": WatchdogPollLibrariesTask(frozenset(), False),
+        "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
+        "janitor_nightly": JanitorNightlyTask(),
+        "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
+        "adopt_folders": AdoptOrphanFoldersTask(),
+    }
+)
+
 
 class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
     """Librarian Task Statuses."""
@@ -72,47 +114,10 @@ class AdminLibrarianTaskView(AdminAPIView):
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
-    _TASK_MAP = MappingProxyType(
-        {
-            "purge_comic_covers": CoverRemoveAllTask(),
-            "create_all_comic_covers": CoverCreateAllTask(),
-            "search_index_update": SearchIndexUpdateTask(False),
-            "search_index_rebuild": SearchIndexUpdateTask(True),
-            "search_index_remove_stale": SearchIndexRemoveStaleTask(),
-            "search_index_merge_small": SearchIndexMergeTask(
-                False,
-            ),
-            "search_index_abort": SearchIndexAbortTask(),
-            "search_index_optimize": SearchIndexMergeTask(True),
-            "search_index_clear": SearchIndexClearTask(),
-            "db_vacuum": JanitorVacuumTask(),
-            "db_backup": JanitorBackupTask(),
-            "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
-            "watchdog_sync": WatchdogSyncTask(),
-            "codex_latest_version": JanitorLatestVersionTask(True),
-            "codex_update": JanitorUpdateTask(False),
-            "codex_shutdown": JanitorShutdownTask(),
-            "codex_restart": JanitorRestartTask(),
-            "notify_library_changed": LIBRARY_CHANGED_TASK,
-            "notify_librarian_status": LIBRARIAN_STATUS_TASK,
-            "cleanup_fks": JanitorCleanFKsTask(),
-            "cleanup_db_custom_covers": JanitorCleanCoversTask(),
-            "cleanup_sessions": JanitorCleanupSessionsTask(),
-            "cleanup_covers": CoverRemoveOrphansTask(),
-            "librarian_clear_status": JanitorClearStatusTask(),
-            "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
-            "poll": WatchdogPollLibrariesTask(frozenset(), False),
-            "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
-            "janitor_nightly": JanitorNightlyTask(),
-            "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
-            "adopt_folders": AdoptOrphanFoldersTask(),
-        }
-    )
-
     @classmethod
     def _get_task(cls, name, pk):
         """Stuff library ids into tasks."""
-        task = cls._TASK_MAP.get(name)
+        task = _TASK_MAP.get(name)
         if pk and isinstance(
             task, WatchdogPollLibrariesTask | WatchdogPollLibrariesTask
         ):

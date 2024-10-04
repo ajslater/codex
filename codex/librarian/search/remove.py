@@ -3,56 +3,31 @@
 from time import time
 
 from humanize import naturaldelta
-from whoosh.query import Every
 
-from codex._vendor.haystack.constants import DJANGO_ID
+from codex.librarian.search.optimize import OptimizeMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.version import VersionMixin
-from codex.models import Comic
-from codex.search.backend import CodexSearchBackend
+from codex.models.comic import ComicFTS
 from codex.status import Status
 
 
-class RemoveMixin(VersionMixin):
+class RemoveMixin(OptimizeMixin):
     """Search Index cleanup methods."""
 
-    def _get_delete_docnums(self, backend):
-        """Get all the docunums that have pks that are *not* in the database."""
-        delete_docnums = []
-        if self.abort_event.is_set():
-            self.log.debug(
-                "Stopped search index remove stale records before it started."
-            )
-            return delete_docnums
-        database_pks = frozenset(Comic.objects.all().values_list("pk", flat=True))
-        with backend.index.refresh().searcher() as searcher:
-            results = searcher.search(Every(), scored=False)
-            for result in results:
-                index_pk = int(result.get(DJANGO_ID, 0))
-                if index_pk not in database_pks:
-                    delete_docnums.append(result.docnum)
-                if self.abort_event.is_set():
-                    self.log.debug(
-                        "Search index remove stale records will do a partial remove."
-                    )
-                    return delete_docnums
-        return delete_docnums
+    def clear_search_index(self):
+        """Clear the search index."""
+        clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+        self.status_controller.start(clear_status)
+        ComicFTS.objects.all().delete()
+        self.status_controller.finish(clear_status)
+        self.log.info("Old search index cleared.")
 
-    def _remove_stale_records(self, backend: CodexSearchBackend | None, status):  # type: ignore
+    def _remove_stale_records(self, status):  # type: ignore
         """Remove records not in the database from the index."""
         start_time = time()
-        if not backend:
-            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-        if not backend.setup_complete:
-            backend.setup(False)
-
-        delete_docnums = self._get_delete_docnums(backend)
-        num_delete_docnums = len(delete_docnums)
-        count = 0
-        if num_delete_docnums:
-            status.total = num_delete_docnums
-            self.status_controller.start(status)
-            count = backend.remove_docnums(delete_docnums)
+        delete_comicfts = ComicFTS.objects.filter(comic__isnull=True)
+        status.total = len(delete_comicfts)
+        self.status_controller.update(status, notify=False)
+        count, _ = delete_comicfts.delete()
 
         # Finish
         if count:
@@ -64,17 +39,14 @@ class RemoveMixin(VersionMixin):
                 f" in {elapsed} at {cps} per second."
             )
         else:
-            self.log.debug("No stale records to remove from the search index.")
+            self.log.debug("Removed no stale records from the search index.")
 
-    def remove_stale_records(
-        self,
-        backend: CodexSearchBackend | None = None,  # type: ignore
-    ):
+    def remove_stale_records(self):
         """Remove records not in the database from the index, trapping exceptions."""
         self.abort_event.clear()
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         try:
-            self._remove_stale_records(backend, status)
+            self._remove_stale_records(status)
         except Exception:
             self.log.exception("Removing stale records:")
         finally:

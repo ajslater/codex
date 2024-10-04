@@ -12,6 +12,7 @@ from codex.librarian.importer.tasks import (
     LazyImportComicsTask,
     UpdateGroupsTask,
 )
+from codex.librarian.janitor.tasks import JanitorAdoptOrphanFoldersFinishedTask
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Folder, Library
 from codex.status import Status
@@ -88,20 +89,24 @@ class ComicImporterThread(QueuedThread):
         importer.bulk_folders_moved()
         return True
 
-    def _adopt_orphan_folders(self):
+    def _adopt_orphan_folders(self, janitor=False):
         """Find orphan folders and move them into their correct place."""
         status = Status(ImportStatusTypes.ADOPT_FOLDERS)
         moved_status = Status(ImportStatusTypes.DIRS_MOVED)
-        self.status_controller.start(status)
-        self.status_controller.start(moved_status)
-        libraries = Library.objects.filter(covers_only=False).only("path")
-        for library in libraries.iterator():
-            folders_left = True
-            while folders_left:
-                # Run until there are no orphan folders
-                folders_left = self._adopt_orphan_folders_for_library(library)
-
-        self.status_controller.finish_many((moved_status, status))
+        try:
+            self.status_controller.start(status)
+            self.status_controller.start(moved_status)
+            libraries = Library.objects.filter(covers_only=False).only("path")
+            for library in libraries.iterator():
+                folders_left = True
+                while folders_left:
+                    # Run until there are no orphan folders
+                    folders_left = self._adopt_orphan_folders_for_library(library)
+        finally:
+            self.status_controller.finish_many((moved_status, status))
+            if janitor:
+                next_task = JanitorAdoptOrphanFoldersFinishedTask()
+                self.librarian_queue.put(next_task)
 
     def process_item(self, item):
         """Run the updater."""
@@ -113,6 +118,6 @@ class ComicImporterThread(QueuedThread):
         elif isinstance(task, UpdateGroupsTask):
             self._update_groups(task)
         elif isinstance(task, AdoptOrphanFoldersTask):
-            self._adopt_orphan_folders()
+            self._adopt_orphan_folders(task.janitor)
         else:
             self.log.warning(f"Bad task sent to library updater {task}")

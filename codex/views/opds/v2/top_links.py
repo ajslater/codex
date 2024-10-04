@@ -26,10 +26,7 @@ class OPDS2TopLinksView(OPDS2LinksView):
         link_data = LinkData(Rel.SEARCH, href_data, template="{?query}")
         return self.link(link_data)
 
-    def __init__(self, *args, **kwargs):
-        """Initialize static links."""
-        super().__init__(*args, **kwargs)
-
+    def _get_static_links(self):
         start_href_data = HrefData(
             {}, url_name="opds:v2:start", absolute_query_params=True
         )
@@ -46,7 +43,7 @@ class OPDS2TopLinksView(OPDS2LinksView):
             mime_type=MimeType.HTML,
         )
 
-        self._static_links = (
+        return (
             self._link_auth(),
             self._link_search(),
             self.link(start_link_data),
@@ -73,7 +70,7 @@ class OPDS2TopLinksView(OPDS2LinksView):
         up_link_data = LinkData(Rel.UP, up_href_data)
         links_data = [
             self.link_self(),
-            *self._static_links,
+            *self._get_static_links(),
             self._link_page("first", 1),
             self._link_page("previous", page - 1),
             self._link_page("next", page + 1),

@@ -43,21 +43,20 @@ import { useCommonStore } from "@/stores/common";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
 
-import CHOICES from "@/choices.json";
-
-const vueToLookup = (choices) => {
-  const lookup = {};
-  for (const choice of choices) {
-    lookup[choice.value] = choice.title;
-  }
-  return lookup;
-};
+import {
+  orderBy as ORDER_BY,
+  topGroup as TOP_GROUP,
+} from "@/choices/browser-map.json";
+import {
+  fitTo as FIT_TO,
+  readingDirection as READING_DIRECTION,
+} from "@/choices/reader-map.json";
 
 const LOOKUPS = {
-  topGroup: CHOICES.browser.groupNames,
-  orderBy: vueToLookup(CHOICES.browser.orderBy),
-  fitTo: vueToLookup(CHOICES.reader.fitTo),
-  readingDirection: vueToLookup(CHOICES.reader.readingDirection),
+  topGroup: TOP_GROUP,
+  orderBy: ORDER_BY,
+  fitTo: FIT_TO,
+  readingDirection: READING_DIRECTION,
 };
 const CONFIG_LABELS = {
   authGroupCount: "Authorization Groups",
@@ -84,7 +83,8 @@ export default {
   data() {
     return {
       showTooltip: { show: false },
-      schemaHref: `${window.CODEX.API_V3_PATH}#/api/api_v3_admin_stats_retrieve`,
+      schemaHref:
+        window.CODEX.API_V3_PATH + "#/api/api_v3_admin_stats_retrieve",
     };
   },
   computed: {

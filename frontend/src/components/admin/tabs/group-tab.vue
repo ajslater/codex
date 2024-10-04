@@ -20,7 +20,7 @@
       <template #[`item.librarySet`]="{ item }">
         <RelationChips
           :pks="item.librarySet"
-          :objs="libraries"
+          :objs="normalLibraries"
           title-key="path"
         />
       </template>
@@ -108,7 +108,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
@@ -148,9 +148,9 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useAdminStore, ["normalLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
-      libraries: (state) => state.libraries,
       users: (state) => state.users,
     }),
   },

@@ -1,6 +1,5 @@
 <template>
-  <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
-  <!-- eslint-disable vue/no-v-html -->
+  <!-- eslint-disable vue/no-v-html, sonarjs/no-vue-bypass-sanitization -->
   <div
     v-if="orderValue"
     class="orderCaption text-caption"
@@ -54,8 +53,7 @@ export default {
           const date = new Date(ov);
           ov = DATE_FORMAT.format(date);
         } else if (this.orderBy == "search_score") {
-          // Round Whoosh float into a two digit integer.
-          ov = NUMBER_FORMAT.format(Math.round(Number.parseFloat(ov) * 10));
+          ov = this.format_search_score(ov);
         } else if (TIME_SORT_BY.has(this.orderBy)) {
           // this is what needs v-html to work with the embedded break.
           ov = getDateTime(ov, this.twentyFourHourTime, true);
@@ -70,6 +68,16 @@ export default {
       } catch (error) {
         // Often orderBy gets updated before orderValue gets returned.
         console.debug(error);
+      }
+      return ov;
+    },
+  },
+  methods: {
+    format_search_score(ov) {
+      // Round Whoosh float into a two digit integer.
+      ov = NUMBER_FORMAT.format(Math.round(Number.parseFloat(ov) * 10));
+      if (isNaN(ov)) {
+        ov = "";
       }
       return ov;
     },

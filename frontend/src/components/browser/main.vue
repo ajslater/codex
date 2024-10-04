@@ -50,7 +50,6 @@ export default {
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
-      //searchResultsLimit: (state) => state.settings.searchResultsLimit,
       cards: (state) => [
         ...(state.page.groups ?? []),
         ...(state.page.books ?? []),

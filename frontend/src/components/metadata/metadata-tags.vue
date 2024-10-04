@@ -11,7 +11,7 @@
         :value="item.value"
         @click="onClick(item.value)"
       >
-        <!-- eslint-disable-next-line  sonarjs/no-vue-bypass-sanitization -->
+        <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
         <a v-if="item.url" :href="item.url" target="_blank"
           >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
         ><span v-else :class="chipClass">{{ item.title }}</span>

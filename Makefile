@@ -65,19 +65,19 @@ install-all: install-backend-common install-frontend
 
 .PHONY: fix-backend
 ## Fix only backend lint errors
-## @category Lint
+## @category Fix
 fix-backend:
 	./bin/fix-lint-backend.sh
 
 .PHONY: fix-frontend
 ## Fix only frontend lint errors
-## @category Lint
+## @category Fix 
 fix-frontend:
 	bash -c "cd frontend && make fix"
 
 .PHONY: fix
 ## Fix front and back end lint errors
-## @category Lint
+## @category Fix
 fix: fix-frontend fix-backend
 
 .PHONY: lint-backend
@@ -102,6 +102,12 @@ lint: lint-frontend lint-backend
 ## @category Lint
 check:
 	./bin/pm check
+
+.PHONY: typecheck 
+## Static typecheck
+## @category Lint
+typecheck:
+	poetry run pyright .
 
 .PHONY: test-backend
 ## Run backend tests
@@ -167,6 +173,12 @@ build-backend: collectstatic check
 ## @category Build
 build: build-frontend build-backend
 
+.PHONY: choices
+## Build JSON choices for frontend
+## @category Build
+choices:
+	./bin/build-choices.sh
+
 .PHONY: kill
 ## Kill lingering codex processes
 ## @category Run Server
@@ -230,6 +242,13 @@ publish:
 news:
 	head -40 NEWS.md
 
+.PHONE: uml
+## Create uml diagrams
+## @category Dev
+uml:
+	./bin/uml.sh
+
 .PHONY: all
+
 
 include bin/makefile-help.mk

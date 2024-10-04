@@ -165,8 +165,9 @@ class LibraryPollingObserver(UatuMixin):
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
+                polling_emitter: DatabasePollingEmitter = emitter  # type: ignore
                 if emitter.watch.path in paths:
-                    emitter.poll(force)  # type: ignore
+                    polling_emitter.poll(force)
         except Exception:
             self.log.exception(
                 f"{self.__class__.__name__}.poll({library_pks}, {force})"

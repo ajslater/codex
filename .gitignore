@@ -66,6 +66,7 @@ env.bak/
 env/
 frontend/components.d.ts
 frontend/coverage
+frontend/src/choices/
 htmlcov/
 instance/
 jspm_packages/

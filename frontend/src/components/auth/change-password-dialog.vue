@@ -9,14 +9,12 @@
     <template #activator="{ props }">
       <v-btn
         v-if="isAdminMode"
-        icon
+        :icon="mdiLockReset"
         v-bind="props"
         :size="size"
         :density="density"
         title="Change Password"
-      >
-        <v-icon> {{ mdiLockPlusOutline }}</v-icon>
-      </v-btn>
+      />
       <DrawerItem
         v-else
         :prepend-icon="mdiLockReset"
@@ -82,7 +80,7 @@
 </template>
 
 <script>
-import { mdiLockPlusOutline, mdiLockReset } from "@mdi/js";
+import { mdiLockReset } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
@@ -140,7 +138,6 @@ export default {
       },
       submitButtonEnabled: false,
       mdiLockReset,
-      mdiLockPlusOutline,
       showOnlyThisDialog: false,
     };
   },
@@ -174,7 +171,7 @@ export default {
           .validate()
           .then(({ valid }) => {
             this.submitButtonEnabled = valid;
-            return valid;
+            return this.submitButtonEnabled;
           })
           .catch(() => {
             this.submitButtonEnabled = false;

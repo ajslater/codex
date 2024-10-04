@@ -6,11 +6,11 @@ from time import time
 
 from django.db.models.functions.datetime import Now
 
+from codex.choices import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
 from codex.logger_base import LoggerBaseMixin
 from codex.models import LibrarianStatus
-from codex.serializers.choices import CHOICES
 from codex.status import Status
 
 
@@ -21,7 +21,6 @@ def get_default(field):
 
 DEFAULT_FIELDS = ("preactive", "complete", "total", "active", "subtitle")
 STATUS_DEFAULTS = {field: get_default(field) for field in DEFAULT_FIELDS}
-STATUS_TITLES = CHOICES["admin"]["statusTitles"]
 
 
 class StatusController(LoggerBaseMixin):
@@ -46,11 +45,17 @@ class StatusController(LoggerBaseMixin):
 
     def _loggit(self, level, status):
         """Log with a ? in place of none."""
-        type_title = STATUS_TITLES[status.status_type]
-        title = " ".join((type_title, status.subtitle)).strip()
-        count = "?" if status.complete is None else status.complete
-        total = "?" if status.total is None else status.total
-        self.log.log(level, f"{title}: {count}/{total}")
+        type_title = ADMIN_STATUS_TITLES[status.status_type]
+        msg = " ".join((type_title, status.subtitle)).strip()
+        msg += ": "
+        if status.complete is None and status.total is None:
+            msg += "In progress"
+        else:
+            count = "?" if status.complete is None else status.complete
+            total = "?" if status.total is None else status.total
+            msg += f"{count}/{total}"
+
+        self.log.log(level, msg)
 
     @staticmethod
     def _to_status_type_value(status):
@@ -88,7 +93,7 @@ class StatusController(LoggerBaseMixin):
             self._loggit(DEBUG, status)
             status.since = time()
         except Exception:
-            title = STATUS_TITLES[status.status_type]
+            title = ADMIN_STATUS_TITLES[status.status_type]
             self.log.exception(f"Start status: {title}")
 
     def start_many(self, status_iterable):
@@ -119,7 +124,7 @@ class StatusController(LoggerBaseMixin):
                 self._loggit(INFO, status)
                 status.since = time()
         except Exception as exc:
-            title = STATUS_TITLES[status.status_type]
+            title = ADMIN_STATUS_TITLES[status.status_type]
             self.log.warning(f"Update status {title}: {exc}")
 
     def finish_many(self, statii, notify=True, until=0.0):
@@ -138,7 +143,7 @@ class StatusController(LoggerBaseMixin):
                 update_ls.append(ls)
             LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
             self._enqueue_notifier_task(notify, until)
-            if filter:
+            if ls_filter:
                 # self.log.debug(f"Cleared {types} librarian statuses")
                 pass
             else:

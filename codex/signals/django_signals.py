@@ -12,12 +12,13 @@ from codex.logger.logging import get_logger
 
 GROUP_CHANGE_MODEL_NAMES = frozenset(("User", "Library"))
 GROUP_CHANGE_ACTIONS = frozenset(
-    (
+    {
         "post_add",
         "post_remove",
         "post_clear",
-    )
+    }
 )
+LOG = get_logger(__name__)
 
 
 def _user_group_change(**kwargs):
@@ -35,14 +36,7 @@ def _user_group_change(**kwargs):
     LIBRARIAN_QUEUE.put(task)
 
 
-# def _cache_invalidated(sender, **kwargs):
-#    """For cache debugging."""
-#    print(f"invalidated signal {sender}")
-
-
 def connect_signals():
     """Connect actions to signals."""
-    logger = get_logger(__name__)
-    logger.debug("sqlite journal_mode=wal")
+    # connection_created.connect(_db_connect)
     m2m_changed.connect(_user_group_change)
-    # post_invalidation.connect(_cache_invalidated)

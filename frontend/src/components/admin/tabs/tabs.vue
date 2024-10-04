@@ -22,7 +22,7 @@
         </v-window-item>
       </router-view>
     </v-window>
-    <div v-if="!comicLibrariesEmpty" id="noLibraries">
+    <div v-if="!doNormalComicLibrariesExist" id="noLibraries">
       Codex has no libraries. Select the Libraries tab and add a comic library.
     </div>
   </div>
@@ -42,7 +42,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["comicLibrariesEmpty"]),
+    ...mapGetters(useAdminStore, ["doNormalComicLibrariesExist"]),
     ...mapState(useAdminStore, {
       librariesLoaded: (state) => Boolean(state.libraries),
     }),

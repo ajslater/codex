@@ -4,7 +4,7 @@
       {{ label }}
     </div>
     <div class="textValue" :class="{ empty }">
-      <!-- eslint-disable-next-line  sonarjs/no-vue-bypass-sanitization -->
+      <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
       <a v-if="href" :href="href" :title="title" :target="target">
         {{ displayValue }}
         <v-icon v-if="link" size="small">

@@ -15,7 +15,7 @@ class VersionView(AuthGenericAPIView):
 
     serializer_class = VersionsSerializer
 
-    def get_object(self):
+    def get_object(self) -> dict[str, str]:  # type: ignore
         """Get the versions."""
         ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
         if ts.version:

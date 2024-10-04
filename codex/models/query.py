@@ -86,6 +86,12 @@ class GroupByQuerySet(QuerySet):
         obj.query.set_force_group_by(fields, model=model)
         return obj
 
+    def demote_joins(self, tables):
+        """Force INNER JOINS."""
+        obj = self._chain()  # type: ignore
+        obj.query.demote_joins(tables)
+        return obj
+
 
 class GroupByManager(Manager.from_queryset(GroupByQuerySet)):
     """Use GroupBy QuerySet."""

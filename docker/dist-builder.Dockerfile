@@ -35,3 +35,4 @@ VOLUME /app/codex/static_build
 VOLUME /app/codex/static_root
 VOLUME /app/dist
 VOLUME /app/test-results
+VOLUME /app/frontend/src/choices

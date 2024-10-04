@@ -3,6 +3,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
 import eslintPluginDepend from "eslint-plugin-depend";
+import eslintPluginImport from "eslint-plugin-import";
 import eslintPluginJsonc from "eslint-plugin-jsonc";
 import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
@@ -14,7 +15,6 @@ import eslintPluginRegexp from "eslint-plugin-regexp";
 import eslintPluginSecurity from "eslint-plugin-security";
 import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
 import eslintPluginSonarjs from "eslint-plugin-sonarjs";
-import eslintPluginSwitchCase from "eslint-plugin-switch-case";
 import eslintPluginToml from "eslint-plugin-toml";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import eslintPluginYml from "eslint-plugin-yml";
@@ -57,21 +57,23 @@ export default [
   eslintPluginArrayFunc.configs.all,
   eslintPluginCompat.configs[FLAT_RECOMMENDED],
   eslintPluginDepend.configs[FLAT_RECOMMENDED],
+  eslintPluginImport.flatConfigs.recommended,
   ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
-  ...eslintPluginNoUnsanitized.configs.recommended,
+  eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginPrettierRecommended,
   eslintPluginPromise.configs[FLAT_RECOMMENDED],
   eslintPluginRegexp.configs[FLAT_RECOMMENDED],
   eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
-  eslintPluginSwitchCase.configs["recommended"],
   ...eslintPluginToml.configs[FLAT_RECOMMENDED],
   ...eslintPluginYml.configs["flat/standard"],
   ...eslintPluginYml.configs["flat/prettier"],
   eslintConfigPrettier, // Best if last
   {
     languageOptions: {
+      // eslint-plugin-import sets this to 2018.
+      ecmaVersion: "latest",
       globals: {
         ...globals.node,
         ...globals.browser,
@@ -85,20 +87,23 @@ export default [
       jsonc: eslintPluginJsonc,
       markdown: eslintPluginMarkdown,
       "no-secrets": eslintPluginNoSecrets,
-      // "no-use-extend-native": eslintPluginNoUseExtendNative,
-      // "no-unsantized": eslintPluginNoUnsanitized,
       prettier: eslintPluginPrettier,
       promise: eslintPluginPromise,
       security: eslintPluginSecurity,
       "simple-import-sort": eslintPluginSimpleImportSort,
-      "switch-case": eslintPluginSwitchCase,
       toml: eslintPluginToml,
       unicorn: eslintPluginUnicorn,
       yml: eslintPluginYml,
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
-      // "import/no-unresolved": ["error", { ignore: ["^[@]"] } ],
+      "depend/ban-dependencies": [
+        "error",
+        {
+          // import-x doesn't work with eslint 9 yet
+          allowed: ["eslint-plugin-import"],
+        },
+      ],
       "max-params": ["warn", 4],
       "no-console": "warn",
       "no-debugger": "warn",

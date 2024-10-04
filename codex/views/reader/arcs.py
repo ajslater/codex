@@ -1,7 +1,5 @@
 """Reader get Arcs methods."""
 
-from types import MappingProxyType
-
 from codex.models import AdminFlag
 from codex.util import max_none
 from codex.views.const import (
@@ -17,7 +15,6 @@ class ReaderArcsView(ReaderBooksView):
     def __init__(self, *args, **kwargs):
         """Initialize instance vars."""
         super().__init__(*args, **kwargs)
-        self.params: MappingProxyType = MappingProxyType({})
 
     def _get_group_arc(self, book, attr, browser_arc_group, arcs, max_mtime):
         """Append the volume arc."""

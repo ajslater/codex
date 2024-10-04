@@ -7,13 +7,13 @@ from codex.logger.logging import get_logger
 from codex.models.groups import Publisher
 from codex.serializers.browser.mtime import GroupsMtimeSerializer, MtimeSerializer
 from codex.util import max_none
-from codex.views.browser.filters.annotations import BrowserAnnotationsFilterView
+from codex.views.browser.group_mtime import BrowserGroupMtimeView
 from codex.views.const import GROUP_MODEL_MAP
 
 LOG = get_logger(__name__)
 
 
-class MtimeView(BrowserAnnotationsFilterView):
+class MtimeView(BrowserGroupMtimeView):
     """Get the mtimes for the submitted groups."""
 
     input_serializer_class = GroupsMtimeSerializer
@@ -21,11 +21,6 @@ class MtimeView(BrowserAnnotationsFilterView):
 
     REPARSE_JSON_FIELDS = frozenset({"groups", "filters"})
     TARGET = "mtime"
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize."""
-        super().__init__(*args, **kwargs)
-        self.init_bookmark_data()
 
     def _get_group_mtime(self, item):
         """Get one group's mtimes."""
@@ -50,9 +45,6 @@ class MtimeView(BrowserAnnotationsFilterView):
     @extend_schema(parameters=[GroupsMtimeSerializer])
     def get(self, *args, **kwargs):
         """Get the mtimes for the submitted groups."""
-        # Parse Request
-        self.parse_params()
-
         max_mtime = self.get_max_groups_mtime()
 
         # Serialize Response

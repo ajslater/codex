@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
-from codex.librarian.covers.path import CoverPathMixin
+from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic
@@ -12,7 +12,7 @@ from codex.models.paths import CustomCover
 from codex.status import Status
 
 
-class CoverPurgeMixin(CoverPathMixin):
+class CoverPurgeThread(CoverCreateThread):
     """Cover Purge methods."""
 
     _CLEANUP_STATUS_MAP = (
@@ -45,7 +45,7 @@ class CoverPurgeMixin(CoverPathMixin):
                 except FileNotFoundError:
                     status.decrement_total()
                 cover_dirs.add(cover_path.parent)
-                self.status_controller.update(status)
+                self.status_controller.update(status, notify=False)
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir, cover_root)
             self.log.info(f"Removed {status.complete} cover thumbnails.")

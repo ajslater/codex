@@ -3,7 +3,7 @@
 from django.urls import reverse
 from rest_framework.response import Response
 
-from codex.serializers.choices import DEFAULTS
+from codex.choices import DEFAULT_BROWSER_ROUTE
 from codex.serializers.opds.urls import OPDSURLsSerializer
 from codex.views.auth import AuthGenericAPIView
 from codex.views.util import pop_name
@@ -19,7 +19,7 @@ class OPDSURLsView(AuthGenericAPIView):
     def get(self, *args, **kwargs):
         """Resolve the urls."""
         obj = {}
-        route = DEFAULTS["breadcrumbs"][0]
+        route = DEFAULT_BROWSER_ROUTE
         route = pop_name(route)
         for version in _OPDS_VERSIONS:
             key = f"v{version}"

@@ -39,7 +39,6 @@ from codex.models import (
 )
 from codex.settings.settings import CODEX_PATH
 
-FALSY = {None, "", "false", "0", False}
 GROUP_NAME_MAP = MappingProxyType(
     {"p": "publisher", "i": "imprint", "s": "series", "v": "volume"}
 )

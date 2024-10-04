@@ -22,7 +22,7 @@ from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.watchdog.status import WatchdogStatusTypes
-from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
+from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
 
@@ -37,13 +37,16 @@ class AdminFlag(BaseModel):
         REGISTRATION = "RG"
         NON_USERS = "NU"
         AUTO_UPDATE = "AU"
-        SEARCH_INDEX_OPTIMIZE = "SO"
         IMPORT_METADATA = "IM"
         SEND_TELEMETRY = "ST"
 
     FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
 
-    key = CharField(db_index=True, max_length=2, choices=FlagChoices.choices)
+    key = CharField(
+        db_index=True,
+        max_length=max_choices_len(FlagChoices),
+        choices=FlagChoices.choices,
+    )
     on = BooleanField(default=True)
 
     class Meta(BaseModel.Meta):
@@ -55,7 +58,7 @@ class AdminFlag(BaseModel):
 class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
-    CHOICES = (
+    CHOICES = tuple(
         CoverStatusTypes.choices
         + ImportStatusTypes.choices
         + JanitorStatusTypes.choices
@@ -63,7 +66,9 @@ class LibrarianStatus(BaseModel):
         + WatchdogStatusTypes.choices
     )
 
-    status_type = CharField(db_index=True, max_length=3, choices=CHOICES)
+    status_type = CharField(
+        db_index=True, max_length=max_choices_len(CHOICES), choices=CHOICES
+    )
     preactive = BooleanField(default=False)
     complete = PositiveSmallIntegerField(null=True, default=None)
     total = PositiveSmallIntegerField(null=True, default=None)
@@ -89,7 +94,11 @@ class Timestamp(BaseModel):
         API_KEY = "AP", _("API Key")
         TELEMETER_SENT = "TS", _("Telemeter Sent")
 
-    key = CharField(db_index=True, max_length=2, choices=TimestampChoices.choices)
+    key = CharField(
+        db_index=True,
+        max_length=max_choices_len(TimestampChoices),
+        choices=TimestampChoices.choices,
+    )
     version = CharField(max_length=MAX_FIELD_LEN, default="")
 
     @classmethod
@@ -125,8 +134,3 @@ class GroupAuth(BaseModel):
 
     group = OneToOneField(Group, db_index=True, on_delete=CASCADE)
     exclude = BooleanField(db_index=True, default=False)
-
-    class Meta(BaseModel.Meta):
-        """Constraints."""
-
-        unique_together = ("group",)

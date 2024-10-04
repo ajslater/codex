@@ -49,7 +49,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { tasks } from "@/choices-admin.json";
+import { tasks } from "@/choices/admin-tasks.json";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -80,29 +80,36 @@ export default {
 #lastTaskLabel {
   margin-right: 1em;
 }
+
 #success {
   color: rgb(var(--v-theme-success));
 }
+
 #error {
   color: rgb(var(--v-theme-error));
 }
+
 #noRecentTask {
   color: rgb(var(--v-theme-textDisabled));
 }
+
 .taskGroup {
   margin-top: 1em;
 }
+
 .taskBox {
   padding: 12px;
   margin: 10px;
   border-radius: 5px;
   background-color: rgb(var(--v-theme-surface-light));
 }
+
 .taskDesc {
   vertical-align: top;
   color: rgb(var(--v-theme-textSecondary));
   padding-top: 0.25em;
 }
+
 #tasks {
   max-width: 512px;
   margin-left: auto;

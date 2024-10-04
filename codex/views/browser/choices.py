@@ -1,12 +1,14 @@
 """View for marking comics read and unread."""
 
 from types import MappingProxyType
+from typing import Any
 
 from caseconverter import snakecase
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.logger.logging import get_logger
 from codex.models import (
     Comic,
@@ -21,24 +23,26 @@ from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
-from codex.serializers.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
-from codex.views.browser.filters.annotations import (
-    BrowserAnnotationsFilterView,
+from codex.views.browser.filters.filter import BrowserFilterView
+from codex.views.session import (
+    CONTRIBUTOR_PERSON_UI_FIELD,
+    IDENTIFIER_TYPE_UI_FIELD,
+    STORY_ARC_UI_FIELD,
 )
 
 LOG = get_logger(__name__)
 
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
-        BrowserAnnotationsFilterView.CONTRIBUTOR_PERSON_UI_FIELD: (
+        CONTRIBUTOR_PERSON_UI_FIELD: (
             "contributors__person",
             ContributorPerson,
         ),
-        BrowserAnnotationsFilterView.STORY_ARC_UI_FIELD: (
+        STORY_ARC_UI_FIELD: (
             "story_arc_numbers__story_arc",
             StoryArc,
         ),
-        BrowserAnnotationsFilterView.IDENTIFIER_TYPE_UI_FIELD: (
+        IDENTIFIER_TYPE_UI_FIELD: (
             "identifiers__identifier_type",
             IdentifierType,
         ),
@@ -54,17 +58,11 @@ _BACK_REL_MAP = MappingProxyType(
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
 
 
-class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
+class BrowserChoicesViewBase(BrowserFilterView):
     """Get choices for filter dialog."""
 
     input_serializer_class = BrowserFilterChoicesInputSerilalizer
     TARGET = "choices"
-
-    def init_request(self):
-        """Initialieze request."""
-        self.parse_params()
-        self.set_model()
-        self.set_rel_prefix()
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -100,14 +98,13 @@ class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
 
         return rel, model
 
-    def get_object(self):
+    def get_object(self) -> QuerySet:  # type: ignore
         """Get the comic subquery use for the choices."""
         return self.get_filtered_queryset(Comic)
 
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Return choices."""
-        self.init_request()
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
@@ -139,13 +136,13 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         return count
 
-    def get_object(self):
+    def get_object(self) -> dict[str, Any]:  # type: ignore
         """Get choice counts."""
         qs = super().get_object()
         filters = self.params.get("filters", {})
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
-            if field_name == "story_arcs" and self.model == StoryArc:
+            if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
             rel, m2m_model = self.get_rel_and_model(field_name)
@@ -188,7 +185,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
 
-    def get_object(self):
+    def get_object(self) -> dict[str, Any]:  # type: ignore
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()
