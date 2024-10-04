@@ -30,7 +30,7 @@ services:
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontent-lint
-    command: make lint-frontend
+    command: make choices lint-frontend
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
