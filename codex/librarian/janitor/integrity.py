@@ -287,7 +287,7 @@ def integrity_check(long=True, log=None):
         log = LOG
 
     if _is_integrity_ok(results):
-        length = "thorough" if long else "quick"
+        length = "" if long else "quick"
         log.info(f"Database passed {length} integrity check.")
     else:
         log.error(
@@ -341,7 +341,7 @@ class IntegrityMixin(WorkerBaseMixin):
 
     def integrity_check(self, long=False):
         """Integrity check task."""
-        subtitle = "Thorough" if long else "Quick"
+        subtitle = "" if long else "Quick"
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
         try:
             self.status_controller.start(status)
