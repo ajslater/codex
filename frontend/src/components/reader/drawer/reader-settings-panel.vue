@@ -1,13 +1,17 @@
 <template>
   <v-radio-group
     v-model="isGlobalScope"
-    class="scopeRadioButton readerDrawerItem"
+    class="scopeRadioGroup readerDrawerItem"
     density="compact"
-    label="Scope"
+    label="Comic Settings Scope"
     hide-details="auto"
   >
-    <v-radio label="Only this comic" :value="false" />
-    <v-radio label="Default for all comics" :value="true" />
+    <v-radio
+      v-for="item of scopeItems"
+      :key="item.value"
+      :label="item.title"
+      :value="item.value"
+    />
   </v-radio-group>
   <v-expand-transition>
     <div id="readerScopedSettings" class="readerDrawerItem">
@@ -72,6 +76,7 @@
     </div>
   </v-expand-transition>
   <v-divider />
+  <DrawerItem title="Reader Settings" />
   <v-checkbox
     class="readerDrawerItem"
     :model-value="finishOnLastPage"
@@ -135,6 +140,10 @@ export default {
       mdiOpenInNew,
       mdiEye,
       openDelay: 2000,
+      scopeItems: [
+        { title: "Only this comic", value: false },
+        { title: "Default for all comics", value: true },
+      ],
     };
   },
   computed: {
@@ -270,8 +279,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.scopeRadioButton {
+.scopeRadioGroup {
   padding-top: 10px;
+  padding-bottom: 4px;
+}
+.scopeRadioGroup :deep(.v-input__control > .v-label) {
+  opacity: 1;
 }
 
 .readerDrawerItem {
@@ -280,8 +293,9 @@ export default {
 }
 
 .displayTwoPages {
-  margin-top: 5px;
-  margin-bottom: 10px;
+  padding-left: 6px;
+  padding-top: 5px;
+  padding-bottom: 10px;
 }
 
 #clearSettingsButton {
@@ -290,9 +304,7 @@ export default {
 }
 
 #readerScopedSettings {
-  // halfway between background (18) and surface (33) color
-  background-color: rgb(25, 25, 25); //rgba(var(--v-theme-surface));
-  margin-top: 4px;
+  background-color: rgba(var(--v-theme-surface));
   margin-left: 10px;
   padding-left: 5px;
   padding-top: 4px;
