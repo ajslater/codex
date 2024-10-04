@@ -287,14 +287,9 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Check for and remove illegal foreign keys. Mark affected comics for update. Runs nightly.",
                     },
                     {
-                        "value": "db_integrity_check_quick",
-                        "title": "Check Database Integrity Quickly",
+                        "value": "db_integrity_check",
+                        "title": "Check Database Integrity",
                         "desc": "Check logs for results. Runs nightly.",
-                    },
-                    {
-                        "value": "db_integrity_check_long",
-                        "title": "Check Database Integrity Thoroughly",
-                        "desc": "Check logs for results.",
                         "confirm": "Can take a while on large databases, Are you sure?",
                     },
                 ],

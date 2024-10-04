@@ -81,7 +81,7 @@ class JanitorForeignKeyCheck(JanitorTask):
 class JanitorIntegrityCheck(JanitorTask):
     """Check integrity and warn."""
 
-    long: bool = False
+    long: bool = True
 
 
 @dataclass

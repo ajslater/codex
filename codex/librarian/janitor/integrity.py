@@ -277,7 +277,7 @@ def _is_integrity_ok(results):
     )
 
 
-def integrity_check(long=False, log=None):
+def integrity_check(long=True, log=None):
     """Run sqlite3 integrity check."""
     pragma = "integrity_check" if long else "quick_check"
     sql = _PRAGMA_TMPL % pragma
