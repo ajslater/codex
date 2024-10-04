@@ -32,20 +32,20 @@ services:
     container_name: codex-frontent-lint
     command: make choices lint-frontend
     volumes:
-      - ./frontend/src/choices:/app/choices
+      - ./frontend/src/choices:/app/frontend/src/choices
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
     command: make test-frontend
     volumes:
       - ./test-results/:/app/test-results/
-      - ./frontend/src/choices:/app/choices:ro
+      - ./frontend/src/choices:/app/frontend/src/choices:ro
   codex-frontend-build:
     <<: *codex-dist-builder
     container_name: codex-frontend-build
     volumes:
       - ./codex/static_build:/app/codex/static_build
-      - ./frontend/src/choices:/app/choices:ro
+      - ./frontend/src/choices:/app/frontend/src/choices:ro
     command: make build-frontend
   codex-backend-test:
     <<: *codex-dist-builder
@@ -59,7 +59,6 @@ services:
     container_name: codex-build-dist
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
-      # - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
     command: make build-backend
   codex-arch:

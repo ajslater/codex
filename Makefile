@@ -109,7 +109,6 @@ check:
 typecheck:
 	poetry run pyright .
 
-
 .PHONY: test-backend
 ## Run backend tests
 ## @category Test
