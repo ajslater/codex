@@ -292,7 +292,9 @@ def integrity_check(long=True, log=None):
     else:
         log.warning(f"Database '{sql}' returned results:")
         log.warning(results)
-        log.warning("See the README for database rebuild instructions if the above warning looks severe.")
+        log.warning(
+            "See the README for database rebuild instructions if the above warning looks severe."
+        )
 
 
 def fts_rebuild(log=None):
