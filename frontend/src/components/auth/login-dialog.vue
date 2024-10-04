@@ -149,7 +149,7 @@ export default {
             .validate()
             .then(({ valid }) => {
               this.submitButtonEnabled = valid;
-              return valid;
+              return this.submitButtonEnabled;
             })
             .catch(console.error);
         } else {

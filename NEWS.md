@@ -6,6 +6,30 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.0
+
+- Features
+
+  - Search
+    - Use SQLite Full Text Search v5 for search engine.
+    - Search syntax has changed. See the help popup at the end of the search
+      bar.
+    - Use faster db column lookups for some search bar queries. Thanks
+      @bmfrosty.
+    - You may remove the directory `config/whoosh_index`.
+  - Integrity Checks
+    - Faster more comprehensive db integrity checks run every night instead of
+      at startup.
+    - Integrity checks can run on startup with environment variables documented
+      in README.
+
+- Fixes
+
+  - Actually fix browser opening reader at correct bookmark.
+    - Also fixes progress calculation on browser cards.
+  - Fixed crashes when the upstream codex version is not accessible.
+  - Fixed possible race conditions with nightly maintenance.
+
 ## v1.6.19
 
 - Fixes

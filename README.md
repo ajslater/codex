@@ -84,7 +84,7 @@ before installing Codex.
 <!-- eslint-skip -->
 
 ```sh
-apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
 
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
@@ -103,7 +103,7 @@ apt-cache search libjpeg-turbo
 <!-- eslint-skip -->
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on non-debian Linux
@@ -121,7 +121,7 @@ Using [Homebrew](https://brew.sh/):
 <!-- eslint-skip -->
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python unrar webp
+brew install jpeg libffi libyaml libzip openssl python sqlite unrar webp
 ```
 
 ##### <a href="#windows">Windows</a> Dependencies
@@ -275,8 +275,12 @@ index, a Django cache and comic book cover thumbnails.
   `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
   when codex starts.
-- `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that
-  runs when codex starts.
+- `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
+  keys on startup.
+- `CODEX_INTEGRITY_CHECK=1` will perform database integrity check on startup.
+- `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
+  search index.
+- `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
 - `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
   reads all archive metadata sources and transforms it into a the comicbox
   schema.
@@ -442,7 +446,7 @@ you.
 
 ### Emergency Database Repair
 
-If the database becomes corrupt, Codex includes a facitlity to rebuild the
+If the database becomes corrupt, Codex includes a facility to rebuild the
 database. Place a file named `rebuild_db` in your Codex config directory like
 so:
 
@@ -457,7 +461,8 @@ Shut down and restart Codex.
 The next time Codex starts it will back up the existing database and try to
 rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
-original database at `config/db.sqlite3.backup`.
+original database at `config/backups/codex.sqlite3.before-rebuild`. Codex will
+remove the `rebuild_db` file.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 

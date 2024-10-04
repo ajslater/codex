@@ -3,9 +3,10 @@
 from typing import TYPE_CHECKING
 
 from django.db.models import F
+from django.db.models.query import Q
 
 from codex.models import Bookmark, Comic
-from codex.views.bookmark import BookmarkFilterBaseView
+from codex.views.bookmark import BookmarkBaseView
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
     FOLDER_GROUP,
@@ -14,8 +15,8 @@ from codex.views.const import (
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
-from codex.views.mixins import SharedAnnotationsMixin
-from codex.views.reader.init import ReaderInitView
+from codex.views.mixins import BookmarkSearchMixin, SharedAnnotationsMixin
+from codex.views.reader.params import ReaderParamsView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -33,7 +34,9 @@ _COMIC_FIELDS = (
 )
 
 
-class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsMixin):
+class ReaderBooksView(
+    BookmarkBaseView, ReaderParamsView, SharedAnnotationsMixin, BookmarkSearchMixin
+):
     """Get Books methods."""
 
     def _get_reader_arc_pks(
@@ -62,6 +65,36 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
 
         return arc_pks
 
+    def _get_comics_filter(self, rel, arc, arc_pks):
+        """Build the filter."""
+        group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
+        nav_filter = {f"{rel}__in": arc_pks}
+        query_filter = group_acl_filter & Q(**nav_filter)
+        if browser_filters := arc.get("filters"):
+            # no search at this time.
+            query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
+                "", browser_filters
+            )
+        return query_filter
+
+    def _get_comics_annotation_and_ordering(self, model, arc_group, arc_pks, ordering):
+        """Get ordering for query."""
+        sort_name_annotations = {}
+        if arc_group in ("v", "s"):
+            show = self.params["show"]
+            model_group = "i" if arc_group == "s" else "s"
+            sort_name_annotations = self.get_sort_name_annotations(
+                model, model_group, arc_pks, show
+            )
+            if sort_name_annotations and model is Comic:
+                ordering += (*sort_name_annotations.keys(),)
+            ordering += (
+                "issue_number",
+                "issue_suffix",
+                "sort_name",
+            )
+        return sort_name_annotations, tuple(ordering)
+
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
         arc: Mapping = self.params.get("arc", {})  # type: ignore
@@ -74,63 +107,45 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
         arc_index = NONE_INTEGERFIELD
-        ordering = ()
         arc_pk_select_related = (rel,)
         select_related = ()
         prefetch_related = ()
+        ordering = ()
 
         if arc_group == STORY_ARC_GROUP:
-            prefetch_related = (*prefetch_related, rel)
             arc_index = F("story_arc_numbers__number")
-            ordering = ("arc_index", "date", "pk")
             arc_pk_select_related = ()
+            prefetch_related = (*prefetch_related, rel)
+            ordering = ("arc_index", "date", "pk")
         elif arc_group == FOLDER_GROUP:
-            select_related = (rel,)
             fields = (*_COMIC_FIELDS, rel)
+            select_related = (rel,)
             ordering = ("path", "pk")
 
         arc_pks = self._get_reader_arc_pks(
             arc, arc_pk_select_related, prefetch_related, arc_pk_rel, arc_group
         )
-        nav_filter = {f"{rel}__in": arc_pks}
-        group_acl_filter = self.get_group_acl_filter(Comic)
 
-        qs = Comic.objects.filter(group_acl_filter).filter(**nav_filter)
-        if browser_filters := arc.get("filters"):
-            # no search at this time.
-            field_filters = ComicFieldFilterView.get_all_comic_field_filters(
-                "", browser_filters
-            )
-            qs = qs.filter(field_filters)
+        query_filter = self._get_comics_filter(rel, arc, arc_pks)
+        qs = Comic.objects.filter(query_filter)
 
         if select_related:
             qs = qs.select_related(*select_related)
         if prefetch_related:
             qs = qs.prefetch_related(*prefetch_related)
-        qs = (
-            qs.only(*fields)
-            .annotate(
-                issue_count=F("volume__issue_count"),
-            )
-            .annotate(
-                arc_pk=F(arc_pk_rel),
-                arc_index=arc_index,
-            )
-            .annotate(mtime=F("updated_at"))
+        qs = qs.only(*fields)
+        qs = self.annotate_group_names(qs)
+        qs = qs.annotate(
+            issue_count=F("volume__issue_count"),
+            arc_pk=F(arc_pk_rel),
+            arc_index=arc_index,
+            mtime=F("updated_at"),
         )
-        qs = self.annotate_group_names(qs, Comic)
-        if arc_group in ("v", "s"):
-            show = self.params["show"]
-            model_group = "i" if arc_group == "s" else "s"
-            qs, comic_sort_names = self.alias_sort_names(
-                qs, Comic, pks=arc_pks, model_group=model_group, show=show
-            )
-            ordering = (
-                *comic_sort_names,
-                "issue_number",
-                "issue_suffix",
-                "sort_name",
-            )
+        sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
+            qs.model, arc_group, arc_pks, ordering
+        )
+        if sort_names_alias:
+            qs = qs.alias(**sort_names_alias)
         qs = qs.order_by(*ordering)
         return qs, arc_group
 
@@ -153,7 +168,8 @@ class ReaderBooksView(BookmarkFilterBaseView, ReaderInitView, SharedAnnotationsM
         Yields 1 to 3 books
         """
         comics, arc_group = self._get_comics_list()
-        bookmark_filter = self.get_bookmark_search_kwargs()
+        auth_filter = self.get_bookmark_auth_filter()
+        bookmark_filter = self.get_bookmark_search_kwargs(auth_filter)
         books = {}
         prev_book = None
         pk = self.kwargs.get("pk")

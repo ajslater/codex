@@ -2,6 +2,7 @@
 
 import json
 from datetime import timedelta
+from time import time
 
 import requests
 from django.utils import timezone
@@ -51,4 +52,4 @@ class LatestVersionMixin(WorkerBaseMixin):
             else:
                 self.log.debug("Not fetching new latest version, not expired.")
         finally:
-            self.status_controller.finish(status)
+            self.status_controller.finish(status, until=time() + 2)

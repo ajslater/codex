@@ -63,10 +63,47 @@ class JanitorCleanupSessionsTask(JanitorTask):
 
 
 @dataclass
+class JanitorCleanupBookmarksTask(JanitorTask):
+    """Clean unused bookmarks."""
+
+
+@dataclass
 class ForceUpdateAllFailedImportsTask(JanitorTask):
     """Force update for failed imports in every library."""
 
 
 @dataclass
+class JanitorForeignKeyCheck(JanitorTask):
+    """Check and repair foreign keys integrity."""
+
+
+@dataclass
+class JanitorIntegrityCheck(JanitorTask):
+    """Check integrity and warn."""
+
+    long: bool = True
+
+
+@dataclass
+class JanitorFTSIntegrityCheck(JanitorTask):
+    """Check fts integrity."""
+
+
+@dataclass
+class JanitorFTSRebuildTask(JanitorTask):
+    """Rebuild fts table in place."""
+
+
+@dataclass
 class JanitorNightlyTask(JanitorTask):
     """Submit all janitor nightly tasks to the queue."""
+
+
+@dataclass
+class JanitorAdoptOrphanFoldersFinishedTask(JanitorTask):
+    """Signals to the Janitor that the Adopt Orphan Folders task is finished."""
+
+
+@dataclass
+class JanitorSearchOptimizeFinishedTask(JanitorTask):
+    """Signals to the Janitor that the Search Optimize task is finished."""

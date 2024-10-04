@@ -67,7 +67,7 @@ export default {
         }
         title = names.join(" ");
       } else {
-        title = "";
+        title = "(Empty)";
       }
       return title;
     },

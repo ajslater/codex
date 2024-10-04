@@ -63,7 +63,7 @@ export const useCommonStore = defineStore("common", {
         .then((response) => {
           const data = response.data;
           this.versions = data;
-          return true;
+          return this.versions;
         })
         .catch(console.error);
     },
@@ -99,7 +99,7 @@ export const useCommonStore = defineStore("common", {
       await API.getOPDSURLs()
         .then((response) => {
           this.opdsURLs = Object.freeze({ ...response.data });
-          return true;
+          return this.opdsURLs;
         })
         .catch(console.error);
     },

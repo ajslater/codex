@@ -13,15 +13,16 @@ from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic, CustomCover
 from codex.status import Status
+from codex.threads import QueuedThread
+
+_COVER_RATIO = 1.5372233400402415  # modal cover ratio
+THUMBNAIL_WIDTH = 165
+THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
+_THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 
 
-class CoverCreateMixin(CoverPathMixin):
+class CoverCreateThread(QueuedThread, CoverPathMixin):
     """Create methods for covers."""
-
-    _COVER_RATIO = 1.5372233400402415  # modal cover ratio
-    THUMBNAIL_WIDTH = 165
-    THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
-    _THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 
     @classmethod
     def _create_cover_thumbnail(cls, cover_image_data):
@@ -30,7 +31,7 @@ class CoverCreateMixin(CoverPathMixin):
         with BytesIO(cover_image_data) as image_io:
             with Image.open(image_io) as cover_image:
                 cover_image.thumbnail(
-                    cls._THUMBNAIL_SIZE,
+                    _THUMBNAIL_SIZE,
                     Image.Resampling.LANCZOS,  # type: ignore
                     reducing_gap=3.0,
                 )

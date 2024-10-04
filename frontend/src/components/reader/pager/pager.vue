@@ -48,13 +48,15 @@ export default {
       );
     },
     component() {
+      let comp;
       if (this.readerFullPdf) {
-        return PagerPDF;
+        comp = PagerPDF;
       } else if (this.bookSettings.isVertical) {
-        return PagerVertical;
+        comp = PagerVertical;
       } else {
-        return PagerHorizontal;
+        comp = PagerHorizontal;
       }
+      return comp;
     },
   },
   watch: {

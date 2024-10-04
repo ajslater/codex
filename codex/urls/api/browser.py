@@ -8,7 +8,7 @@ from codex.views.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.cover import CoverView
-from codex.views.browser.metadata import MetadataView
+from codex.views.browser.metadata.metadata import MetadataView
 from codex.views.browser.settings import BrowserSettingsView
 
 METADATA_TIMEOUT = PAGE_MAX_AGE

@@ -1,12 +1,13 @@
 """Comic cover thumbnail view."""
 
+from django.db import OperationalError
 from django.db.models.query import Q
 from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
 
-from codex.librarian.covers.create import CoverCreateMixin
+from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
@@ -14,7 +15,7 @@ from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover
 from codex.serializers.browser.settings import BrowserCoverInputSerializer
-from codex.views.browser.annotations import BrowserAnnotationsView
+from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 from codex.views.const import (
     CUSTOM_COVER_GROUP_RELATION,
     GROUP_RELATION,
@@ -40,7 +41,7 @@ class WEBPRenderer(BaseRenderer):
         return data
 
 
-class CoverView(BrowserAnnotationsView):
+class CoverView(BrowserAnnotateOrderView):
     """ComicCover View."""
 
     input_serializer_class = BrowserCoverInputSerializer
@@ -48,7 +49,7 @@ class CoverView(BrowserAnnotationsView):
     content_type = "image/webp"
     TARGET = "cover"
     REPARSE_JSON_FIELDS = frozenset(
-        BrowserAnnotationsView.REPARSE_JSON_FIELDS | {"parent"}
+        BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
     )
 
     def get_group_filter(self, group=None, pks=None, page_mtime=False):
@@ -70,22 +71,13 @@ class CoverView(BrowserAnnotationsView):
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
 
-    def get_model_group(self):
-        """Return the url group."""
-        return self.kwargs["group"]
-
-    def init_request(self):
-        """Initialize request."""
-        self.parse_params()
-        self.set_model()
-
     def _get_comic_cover(self):
         pks = self.kwargs["pks"]
         return pks[0], False
 
     def _get_custom_cover(self):
         """Get Custom Cover."""
-        if self.model == Volume or not self.params.get("custom_covers"):
+        if self.model is Volume or not self.params.get("custom_covers"):
             return None
         group = self.kwargs["group"]
         group_rel = CUSTOM_COVER_GROUP_RELATION[group]
@@ -97,10 +89,9 @@ class CoverView(BrowserAnnotationsView):
 
     def _get_dynamic_cover(self):
         """Get dynamic cover."""
-        self.set_order_key()
         comic_qs = self.get_filtered_queryset(Comic)
-        comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
-        comic_qs = self.add_order_by(comic_qs, Comic)
+        comic_qs = self.annotate_order_aggregates(comic_qs)
+        comic_qs = self.add_order_by(comic_qs)
         comic_qs = comic_qs.only("pk")
         comic = comic_qs.first()
         cover_pk = comic.pk if comic else 0
@@ -108,7 +99,7 @@ class CoverView(BrowserAnnotationsView):
 
     def _get_cover_pk(self) -> tuple[int, bool]:
         """Get Cover Pk queryset for comic queryset."""
-        if self.model == Comic:
+        if self.model is Comic:
             cover_pk, custom = self._get_comic_cover()
         elif custom_cover := self._get_custom_cover():
             cover_pk = custom_cover.pk
@@ -136,7 +127,7 @@ class CoverView(BrowserAnnotationsView):
 
         cover_path = CoverPathMixin.get_cover_path(pk, custom)
         if not cover_path.exists():
-            thumb_buffer = CoverCreateMixin.create_cover_from_path(
+            thumb_buffer = CoverCreateThread.create_cover_from_path(
                 pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
             )
             if not thumb_buffer:
@@ -148,16 +139,19 @@ class CoverView(BrowserAnnotationsView):
         return cover_file, content_type
 
     @extend_schema(
-        parameters=[BrowserAnnotationsView.input_serializer_class],
+        parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
     def get(self, *args, **kwargs):  # type: ignore
         """Get comic cover."""
         try:
-            self.init_request()
-            pk, custom = self._get_cover_pk()
+            try:
+                pk, custom = self._get_cover_pk()
+            except OperationalError as exc:
+                self._handle_operational_error(exc)
+                pk = 0
+                custom = False
             cover_file, content_type = self._get_cover_data(pk, custom)
-
             return StreamingHttpResponse(chunker(cover_file), content_type=content_type)
         except Exception:
-            LOG.exception("get")
+            LOG.exception("Get cover")

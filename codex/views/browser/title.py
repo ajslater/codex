@@ -1,16 +1,11 @@
 """Browser title."""
 
-from codex.models import BrowserGroupModel, Comic, Volume
+from codex.models import Comic, Volume
 from codex.views.browser.breadcrumbs import BrowserBreadcrumbsView
 
 
 class BrowserTitleView(BrowserBreadcrumbsView):
     """Browser title methods."""
-
-    def __init__(self, *args, **kwargs):
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        self.group_instance: BrowserGroupModel | None = None
 
     def _get_root_group_name(self):
         if not self.model:

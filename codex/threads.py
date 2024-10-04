@@ -113,7 +113,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def cleanup_cache(self, keys):
         """Remove sent messages from the cache and record send times."""
         for key in keys:
-            del self.cache[key]
+            self.cache.pop(key, None)
         self._last_send = time.time()
 
     def process_item(self, item):

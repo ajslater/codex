@@ -82,7 +82,9 @@ class OPDS1EntryLinksMixin:
         else:
             mime_type = MimeType.NAV
 
-        thr_count = 0 if self.fake else self.obj.child_count
+        thr_count = (
+            0 if self.fake else 1 if self.obj.group == "c" else self.obj.child_count
+        )
         rel = Rel.ALTERNATE if metadata else "subsection"
 
         return OPDS1Link(rel, href, mime_type, thr_count=thr_count)

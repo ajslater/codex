@@ -2,26 +2,29 @@
 
 from django.db.models import Q
 
+from codex.views.browser.params import BrowserParamsView
 from codex.views.const import (
     FILTER_ONLY_GROUP_RELATION,
     FOLDER_GROUP,
     GROUP_RELATION,
 )
-from codex.views.session import SessionView
+
+_GROUP_REL_TARGETS = frozenset({"cover", "choices"})
+_PK_REL_TARGETS = frozenset({"metadata", "mtime"})
 
 
-class GroupFilterView(SessionView):
+class GroupFilterView(BrowserParamsView):
     """Group Filters."""
 
-    SESSION_KEY = SessionView.BROWSER_SESSION_KEY
+    SESSION_KEY = BrowserParamsView.BROWSER_SESSION_KEY
 
     def _get_rel_for_pks(self, group, page_mtime=False):
         """Get the relation from the model to the pks."""
         # XXX these TARGET refs might be better as subclass get rel methods.
         target: str = self.TARGET  # type: ignore
-        if target in ("cover", "choices"):
+        if target in _GROUP_REL_TARGETS:
             rel = FILTER_ONLY_GROUP_RELATION[group]
-        elif target in ("metadata", "mtime") or page_mtime:
+        elif target in _PK_REL_TARGETS or page_mtime:
             # metadata, mtime, browser.page_mtime
             rel = "pk"
         else:
@@ -42,8 +45,8 @@ class GroupFilterView(SessionView):
             rel = self._get_rel_for_pks(group, page_mtime)
             group_filter_dict = {rel: pks}
         elif group == FOLDER_GROUP:
+            # Top folder search
             group_filter_dict = {"parent_folder": None}
         else:
             group_filter_dict = {}
-
         return Q(**group_filter_dict)

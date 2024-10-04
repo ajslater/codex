@@ -2,6 +2,7 @@
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 
 import asyncio
+import logging
 from os import execv
 
 from django.db import connection
@@ -24,14 +25,11 @@ LOG = get_logger(__name__)
 
 def codex_startup():
     """Start up codex."""
-    loggerd = CodexLogQueueListener(LOG_QUEUE)
-    loggerd.start()
-    LOG.info(f"Running Codex v{VERSION}")
-    codex_init()
-    return loggerd
+    LOG.info(f"Starting Codex v{VERSION}")
+    return codex_init()
 
 
-def database_checkpoint():
+def _database_checkpoint():
     """Write wal to disk and truncate it."""
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
@@ -48,8 +46,9 @@ def restart():
 
 def codex_shutdown(loggerd):
     """Shutdown for codex."""
-    database_checkpoint()
+    _database_checkpoint()
     LOG.info("Goodbye.")
+    logging.shutdown()
     loggerd.stop()
     if RESTART_EVENT.is_set():
         restart()
@@ -57,6 +56,7 @@ def codex_shutdown(loggerd):
 
 def run():
     """Run Codex."""
+    LOG.info(f"Running Codex v{VERSION}")
     librarian = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE, BROADCAST_QUEUE)
     librarian.start()
     asyncio.run(
@@ -71,8 +71,10 @@ def run():
 
 def main():
     """Set up and run Codex."""
-    loggerd = codex_startup()
-    run()
+    loggerd = CodexLogQueueListener(LOG_QUEUE)
+    loggerd.start()
+    if codex_startup():
+        run()
     codex_shutdown(loggerd)
 
 

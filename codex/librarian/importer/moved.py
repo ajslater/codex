@@ -164,16 +164,22 @@ class MovedImporter(AggregateMetadataImporter):
         self.status_controller.finish(status)
 
     def _bulk_move_folders(
-        self, src_folder_paths, dest_parent_folders_map, dirs_moved: bidict, status
+        self,
+        src_folder_paths_with_existing_dest_parents,
+        dest_parent_folders_map,
+        dirs_moved: bidict[str, str],
+        status,
     ):
         """Bulk move folders."""
+        # Move collisions removed before this
         folders_to_move = (
-            Folder.objects.filter(library=self.library, path__in=src_folder_paths)
+            Folder.objects.filter(
+                library=self.library,
+                path__in=src_folder_paths_with_existing_dest_parents,
+            )
             .only(*MOVED_BULK_FOLDER_UPDATE_FIELDS)
             .order_by("path")
         )
-
-        # TODO what if a folder with that path already exists in the db?
 
         new_paths = set()
         update_folders = []
@@ -201,7 +207,7 @@ class MovedImporter(AggregateMetadataImporter):
         self.status_controller.update(status, notify=False)
 
     def _bulk_move_folders_under_existing_parents(
-        self, dest_parent_folder_paths_map, dirs_moved, status
+        self, dest_parent_folder_paths_map, dirs_moved: bidict, status
     ):
         """Move folders under existing folders."""
         while True:
@@ -214,25 +220,32 @@ class MovedImporter(AggregateMetadataImporter):
 
             # Create a list of folders than can be moved under existing folders.
             dest_parent_folders_map = {}
-            src_folder_paths = []
+            src_folder_paths_with_existing_dest_parents = []
             for extant_parent_folder in extant_parent_folders:
                 dest_parent_folders_map[extant_parent_folder.path] = (
                     extant_parent_folder
                 )
                 if dest_folder_paths := dest_parent_folder_paths_map.pop(
-                    extant_parent_folder.path
+                    extant_parent_folder.path, None
                 ):
                     for dest_folder_path in dest_folder_paths:
                         src_path = dirs_moved.inverse[dest_folder_path]
-                        src_folder_paths.append(src_path)
+                        src_folder_paths_with_existing_dest_parents.append(src_path)
 
-            if not src_folder_paths:
+            if not src_folder_paths_with_existing_dest_parents:
                 return
-            src_folder_paths = sorted(src_folder_paths)
-            self.log.debug(f"Moving folders under existing parents: {src_folder_paths}")
+            src_folder_paths_with_existing_dest_parents = sorted(
+                src_folder_paths_with_existing_dest_parents
+            )
+            self.log.debug(
+                f"Moving folders under existing parents: {src_folder_paths_with_existing_dest_parents}"
+            )
 
             self._bulk_move_folders(
-                src_folder_paths, dest_parent_folders_map, dirs_moved, status
+                src_folder_paths_with_existing_dest_parents,
+                dest_parent_folders_map,
+                dirs_moved,
+                status,
             )
 
     def _get_move_create_folders_one_layer(self, dest_parent_folder_paths_map):
@@ -260,12 +273,30 @@ class MovedImporter(AggregateMetadataImporter):
 
         return frozenset(create_folder_paths_one_layer)
 
+    def _remove_move_collisions(self, dirs_moved: bidict[str, str]):
+        """Remove moves that would collide with an existing Folder."""
+        dest_paths = set(dirs_moved.values())
+        collision_dest_paths = Folder.objects.filter(
+            library=self.library, path__in=dest_paths
+        ).values_list("path", flat=True)
+        if not collision_dest_paths:
+            return
+        collision_dest_paths = sorted(set(collision_dest_paths))
+        for collision_dest_path in collision_dest_paths:
+            dirs_moved.inverse.pop(collision_dest_path, None)
+        self.log.warning(
+            f"Not moving folders to destinations that would collide with existing database folders: {collision_dest_paths}"
+        )
+
     def _bulk_move_folders_and_create_parents(self, status):
         """Find folders that can be moved without creating parents."""
         dirs_moved = bidict(self.task.dirs_moved)
 
+        self._remove_move_collisions(dirs_moved)
+
+        dest_paths = sorted(set(dirs_moved.values()))
         dest_parent_folder_paths_map = {}
-        for dest_path in sorted(set(dirs_moved.values())):
+        for dest_path in dest_paths:
             parent = str(Path(dest_path).parent)
             if parent not in dest_parent_folder_paths_map:
                 dest_parent_folder_paths_map[parent] = set()

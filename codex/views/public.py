@@ -3,10 +3,10 @@
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
 
+from codex.choices import ADMIN_FLAG_CHOICES
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer
-from codex.serializers.choices import CHOICES
 
 LOG = get_logger(__name__)
 _ADMIN_FLAG_KEYS = frozenset(
@@ -27,7 +27,7 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
         """Get admin flags."""
         flags = {}
         for obj in self.get_queryset():  # type: ignore
-            name = CHOICES["admin"]["adminFlags"][obj.key].lower().replace(" ", "_")
+            name = ADMIN_FLAG_CHOICES[obj.key].lower().replace(" ", "_")
             flags[name] = obj.on
         return flags
 

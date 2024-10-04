@@ -1,13 +1,13 @@
 <template>
   <div
     v-if="showShowSettings"
-    id="showSettings"
     v-tooltip="{
       openDelay,
       text: 'Show these groups when navigating the browse tree',
     }"
+    class="browserSettingsBlock"
   >
-    <h4 class="settingsHeader">Show Group Levels</h4>
+    <h4 class="browserSettingsHeader">Show Group Levels</h4>
     <v-checkbox
       v-for="choice of groupChoices"
       :key="choice.title"
@@ -21,8 +21,8 @@
     />
   </div>
   <v-divider />
-  <div>
-    <h4 class="settingsHeader">Covers</h4>
+  <div class="browserSettingsBlock">
+    <h4 class="browserSettingsHeader">Covers</h4>
     <v-checkbox
       v-tooltip="{
         openDelay,
@@ -65,8 +65,6 @@
     @update:model-value="setSearchResultsLimit($event)"
   />
   -->
-  <SearchHelp />
-  <v-divider />
   <v-checkbox
     class="browserGroupCheckbox"
     density="compact"
@@ -86,16 +84,12 @@
 import { mdiReload } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 const SHOW_SETTINGS_GROUPS = "rpisv";
 
 export default {
   name: "BrowserSettingsPanel",
-  components: {
-    SearchHelp,
-  },
   data() {
     return {
       mdiReload,
@@ -154,18 +148,18 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#showSettings {
+.browserSettingsBlock {
   padding-top: 10px;
 }
 
 // .searchResultsCheckbox
 .browserGroupCheckbox,
-.settingsHeader {
+.browserSettingsHeader {
   padding-right: 10px;
   padding-left: 15px;
 }
 
-.settingsHeader {
+.browserSettingsHeader {
   color: rgb(var(--v-theme-textDisabled));
 }
 </style>

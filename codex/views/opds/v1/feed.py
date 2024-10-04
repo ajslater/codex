@@ -1,6 +1,5 @@
 """OPDS v1 feed."""
 
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema
@@ -14,10 +13,10 @@ from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
-from codex.views.const import FALSY, MAX_OBJ_PER_PAGE
+from codex.settings.settings import FALSY
+from codex.views.const import MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSTemplateView
-from codex.views.opds.const import BLANK_TITLE, MimeType, UserAgentNames
-from codex.views.opds.util import get_user_agent_name
+from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
@@ -54,14 +53,14 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
     def opds_ns(self):
         """Dynamic opds namespace."""
         try:
-            return OpdsNs.ACQUISITION if self.is_aq_feed else OpdsNs.CATALOG
+            return OpdsNs.ACQUISITION if self.is_opds_acquisition else OpdsNs.CATALOG
         except Exception:
             LOG.exception("Getting OPDS v1 namespace")
 
     @property
     def is_acquisition(self):
         """Is acquisition."""
-        return self.is_aq_feed
+        return self.is_opds_acquisition
 
     @property
     def id_tag(self):
@@ -127,7 +126,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         if objs := self.obj.get(key):
             zero_pad: int = self.obj["zero_pad"]  # type: ignore
             data = OPDS1EntryData(
-                self.acquisition_groups, zero_pad, metadata, self.mime_type_map
+                self.opds_acquisition_groups, zero_pad, metadata, self.mime_type_map
             )
             fallback = bool(self.admin_flags.get("folder_view"))
             import_pks = set()
@@ -165,65 +164,8 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
             LOG.exception("Getting OPDS v1 entries")
         return entries
 
-    def get_object(self):  # type: ignore
-        """Get the browser page and serialize it for this subclass."""
-        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-            super()._get_group_and_books()
-        )
-        book_qs = book_qs.select_related("series", "volume", "language")
-
-        title = self.get_browser_page_title()
-        self.obj = MappingProxyType(
-            {
-                "title": title,
-                "groups": group_qs,
-                "books": book_qs,
-                "zero_pad": zero_pad,
-                "num_pages": num_pages,
-                "total_count": total_count,
-                "mtime": mtime,
-            }
-        )
-
-        self.is_aq_feed = self.model_group in ("c", "f")
-
-        # Do not return a Mapping despite the type. Return self for the serializer.
-        return self
-
-    def _set_user_agent_variables(self):
-        """Set User Agent variables."""
-        user_agent_name = get_user_agent_name(self.request)
-
-        self.user_facets = user_agent_name in UserAgentNames.FACET_SUPPORT
-        self.skip_order_facets = user_agent_name in UserAgentNames.CLIENT_REORDERS
-        if user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES:
-            self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
-
-    def set_opds_request_type(self):
-        """Set the opds request type variables."""
-        group = self.kwargs.get("group")
-        if group == "a":
-            self.acquisition_groups = frozenset({"a", "c"})
-            pks = self.kwargs["pks"]
-            self.is_opds_1_acquisition = group in self.acquisition_groups and pks
-        else:
-            self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
-            self.is_opds_1_acquisition = group in self.acquisition_groups
-        self.is_opds_metadata = (
-            self.request.GET.get("opdsMetadata", "").lower() not in FALSY
-        )
-
-    def init_request(self):
-        """Initialize request."""
-        super().init_request()
-        self.set_opds_request_type()
-        self._set_user_agent_variables()
-        self.skip_order_facets |= self.kwargs.get("group") == "c"
-
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the feed."""
-        self.init_request()
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
+        serializer = self.get_serializer(self)
         return Response(serializer.data, content_type=self.content_type)

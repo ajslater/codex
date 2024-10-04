@@ -1,7 +1,6 @@
 """Functions for dealing with comic cover thumbnails."""
 
-from codex.librarian.covers.create import CoverCreateMixin
-from codex.librarian.covers.purge import CoverPurgeMixin
+from codex.librarian.covers.purge import CoverPurgeThread
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
     CoverRemoveAllTask,
@@ -11,11 +10,11 @@ from codex.librarian.covers.tasks import (
 )
 
 
-class CoverThread(CoverCreateMixin, CoverPurgeMixin):
+class CoverThread(CoverPurgeThread):
     """Create comic covers in it's own thread."""
 
     def process_item(self, item):
-        """Run the contributor."""
+        """Run the task method."""
         task = item
         if isinstance(task, CoverSaveToCache):
             self.save_cover_to_cache(task.cover_path, task.data)

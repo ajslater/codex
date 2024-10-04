@@ -60,4 +60,6 @@ class BrowserPageSerializer(Serializer):
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    fts = BooleanField(read_only=True)
+    search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)

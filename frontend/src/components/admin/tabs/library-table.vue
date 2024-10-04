@@ -31,7 +31,7 @@
       <span class="actionButtonCell">
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
-          :title-text="`Poll for updated ${item.label}s`"
+          :title-text="`Poll for updated ${itemName}s`"
           :object-name="item.path"
           :confirm-text="pollConfirmText(item)"
           :size="iconSize"
@@ -40,7 +40,7 @@
         />
         <ConfirmDialog
           :icon="mdiDatabaseSyncOutline"
-          :title-text="`Force update every ${item.label}`"
+          :title-text="`Force update every ${itemName}`"
           :object-name="item.path"
           confirm-text="Force Update"
           :size="iconSize"
@@ -51,7 +51,7 @@
           table="Library"
           :old-row="item"
           :inputs="AdminLibraryCreateUpdateInputs"
-          :label="updateLabel(item)"
+          :label="updateLabel"
           max-width="22em"
           :size="iconSize"
           density="compact"
@@ -76,8 +76,7 @@ import {
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
-import deepClone from "deep-clone";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
@@ -119,41 +118,9 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
-      // libraries: (state) => state.libraries,
-      // customCoversDirs: (state) => state.customCoversDirs,
-      items(state) {
-        const annotatedItems = [];
-        for (const library of state.libraries) {
-          const annotatedItem = deepClone(library);
-          annotatedItem.label = annotatedItem.coversOnly
-            ? "custom group cover"
-            : "comic";
-          annotatedItems.push(annotatedItem);
-        }
-        return annotatedItems;
-      },
-      headers() {
-        const headers = [
-          { title: "Path", key: "path", align: "start" },
-          {
-            title: "Watch File Events",
-            key: "events",
-          },
-          {
-            title: "Poll Files Periodically",
-            key: "poll",
-          },
-          { title: "Poll Every", key: "pollEvery" },
-          { title: "Last Poll", key: "lastPoll" },
-        ];
-        if (!this.coversDir) {
-          headers.push({ title: "Groups", key: "groups" });
-        }
-        headers.push({ title: "Actions", key: "actions", sortable: false });
-        return headers;
-      },
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form?.errors,
@@ -161,6 +128,35 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
+    headers() {
+      const headers = [
+        { title: "Path", key: "path", align: "start" },
+        {
+          title: "Watch File Events",
+          key: "events",
+        },
+        {
+          title: "Poll Files Periodically",
+          key: "poll",
+        },
+        { title: "Poll Every", key: "pollEvery" },
+        { title: "Last Poll", key: "lastPoll" },
+      ];
+      if (!this.coversDir) {
+        headers.push({ title: "Groups", key: "groups" });
+      }
+      headers.push({ title: "Actions", key: "actions", sortable: false });
+      return headers;
+    },
+    items() {
+      return self.coversDir ? this.customCoverLibraries : this.normalLibraries;
+    },
+    updateLabel() {
+      return this.coversDir ? "Cover Dir" : "";
+    },
+    itemName() {
+      return this.coversDir ? "custom covers" : "comics";
+    },
     iconSize() {
       const display = this.$vuetify.display;
       if (display.xlAndUp) {
@@ -184,7 +180,7 @@ export default {
       "librarianTask",
       "loadTables",
     ]),
-    formatDateTime: (dttm) => {
+    formatDateTime(dttm) {
       return dttm ? getDateTime(dttm, this.twentyFourHourTime) : "";
     },
     changeCol(pk, field, val) {
@@ -225,9 +221,6 @@ export default {
     pollConfirmText(item) {
       const label = this.libraryLabel(item, false);
       return `Poll ${label}`;
-    },
-    updateLabel(item) {
-      return item.coversOnly ? "Cover Dir" : "";
     },
   },
 };

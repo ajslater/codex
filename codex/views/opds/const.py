@@ -1,6 +1,5 @@
 """OPDS Common consts."""
 
-from collections.abc import Mapping
 from types import MappingProxyType
 
 from codex.models import (
@@ -63,7 +62,7 @@ class MimeType:
     HTML = "text/html"
     AUTH_BASIC = "http://opds-spec.org/auth/basic"
     COOKIE = "cookie"
-    FILE_TYPE_MAP: Mapping[str, str] = MappingProxyType(
+    FILE_TYPE_MAP: MappingProxyType[str, str] = MappingProxyType(
         {
             "CBZ": "application/vnd.comicbook+zip",
             "CBR": "application/vnd.comicbook+rar",
@@ -71,7 +70,7 @@ class MimeType:
             "PDF": "application/pdf",
         }
     )
-    SIMPLE_FILE_TYPE_MAP: Mapping[str, str] = MappingProxyType(
+    SIMPLE_FILE_TYPE_MAP: MappingProxyType[str, str] = MappingProxyType(
         {
             # PocketBooks needs app/zip
             "CBZ": "application/zip",
