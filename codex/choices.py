@@ -175,7 +175,7 @@ ADMIN_TASK_GROUPS = MappingProxyType(
         "tasks": (
             {
                 "title": "Libraries",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "poll",
                         "title": "Poll All Libraries",
@@ -198,11 +198,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Sync Watchdog with DB",
                         "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
                     },
-                ),
+                ],
             },
             {
                 "title": "Covers",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "purge_comic_covers",
                         "title": "Remove Comic Covers",
@@ -220,15 +220,20 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Update Group Timestamps",
                         "desc": "Force the update of group timestamps. Will bust the browser cache for browser views and covers.",
                     },
-                ),
+                ],
             },
             {
                 "title": "Search Index",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "search_index_update",
                         "title": "Update Search Index",
                         "desc": "with recently changed comics",
+                    },
+                    {
+                        "value": "search_index_optimize",
+                        "title": "Optimize Search Index",
+                        "desc": "Merge Search Index for optimal lookup time. Runs nightly.",
                     },
                     {
                         "value": "search_index_rebuild",
@@ -242,17 +247,6 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Remove search index entries that are no longer in the library.",
                     },
                     {
-                        "value": "search_index_merge_small",
-                        "title": "Merge Small Search Index Segments",
-                        "desc": "Improves search lookup times. Runs nightly if the Optimize Admin Flag is off.",
-                    },
-                    {
-                        "value": "search_index_optimize",
-                        "title": "Merge Search Index Into One Segment",
-                        "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
-                        "confirm": "This can take a long time.",
-                    },
-                    {
                         "value": "search_index_abort",
                         "title": "Abort Search Indexing",
                         "desc": "Aborts search index update and remove tasks.",
@@ -262,11 +256,21 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Clear Search Index",
                         "desc": "of all entries",
                     },
-                ),
+                    {
+                        "value": "db_fts_integrity_check",
+                        "title": "Integrity Check Search Index",
+                        "desc": "Repairs Search Index on failure. Runs nightly",
+                    },
+                    {
+                        "value": "db_fts_rebuild",
+                        "title": "Repair Search Index",
+                        "desc": "Probably faster than Rebuild if integrity check fails.",
+                    },
+                ],
             },
             {
                 "title": "Database",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "db_vacuum",
                         "title": "Optimize & Compact Database",
@@ -278,15 +282,26 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Runs nightly",
                     },
                     {
-                        "value": "db_search_sync",
-                        "title": "Sync Search Index to DB",
-                        "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup.",
+                        "value": "db_foreign_key_check",
+                        "title": "Remove Illegal Foreign Keys",
+                        "desc": "Check for and remove illegal foreign keys. Mark affected comics for update. Runs nightly.",
                     },
-                ),
+                    {
+                        "value": "db_integrity_check_quick",
+                        "title": "Check Database Integrity Quickly",
+                        "desc": "Check logs for results. Runs nightly.",
+                    },
+                    {
+                        "value": "db_integrity_check_long",
+                        "title": "Check Database Integrity Thoroughly",
+                        "desc": "Check logs for results.",
+                        "confirm": "Can take a while on large databases, Are you sure?",
+                    },
+                ],
             },
             {
                 "title": "Codex Software",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "codex_latest_version",
                         "title": "Check for Codex Latest Version",
@@ -310,11 +325,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Immediately",
                         "confirm": "Are you sure?",
                     },
-                ),
+                ],
             },
             {
                 "title": "Notify",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "notify_library_changed",
                         "title": "Notify Library Changed ",
@@ -325,11 +340,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Notify Librarian Status",
                         "desc": "Signal Admin clients to fetch librarian status.",
                     },
-                ),
+                ],
             },
             {
                 "title": "Cleanup",
-                "tasks": (
+                "tasks": [
                     {
                         "value": "cleanup_fks",
                         "title": "Remove Orphan Tags",
@@ -351,6 +366,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "no longer have source comics or custom images. Runs nightly.",
                     },
                     {
+                        "value": "cleanup_bookmarks",
+                        "title": "Remove Orphan Bookmarks",
+                        "desc": "Owned by no session or user. Runs nightly.",
+                    },
+                    {
                         "value": "adopt_folders",
                         "title": "Adopt Orphan Folders",
                         "desc": "Move orphaned folders from the top of the folder tree to under their correct parent. Runs nightly and at startup.",
@@ -366,7 +386,7 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Runs several tasks above that also run nightly.",
                         "confirm": "Launches several tasks that run nightly anyway.",
                     },
-                ),
+                ],
             },
         )
     }
