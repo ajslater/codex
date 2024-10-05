@@ -43,7 +43,7 @@ install-backend-common:
 ## Install frontend
 ## @category Install
 install-frontend:
-	bash -c "cd frontend && make install"
+	cd frontend && make install
 
 .PHONY: install
 ## Install for production
@@ -73,7 +73,7 @@ fix-backend:
 ## Fix only frontend lint errors
 ## @category Fix 
 fix-frontend:
-	bash -c "cd frontend && make fix"
+	cd frontend && make fix
 
 .PHONY: fix
 ## Fix front and back end lint errors
@@ -90,7 +90,7 @@ lint-backend:
 ## Lint the frontend
 ## @category Lint
 lint-frontend:
-	bash -c "cd frontend && make lint"
+	cd frontend && make lint
 
 .PHONY: lint
 ## Lint front and back end
@@ -119,7 +119,7 @@ test-backend:
 ## Run frontend tests
 ## @category Test
 test-frontend:
-	bash -c "cd frontend && make test"
+	cd frontend && make test
 
 .PHONY: test
 ## Run All Tests
@@ -142,13 +142,13 @@ clean:
 ## Clean static_build
 ## @category Build
 clean-frontend:
-	bash -c "cd frontend && make clean"
+	cd frontend && make clean
 
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
 build-frontend: clean-frontend
-	bash -c "cd frontend && make build"
+	cd frontend && make build
 
 .PHONY: icons
 ## Build all icons from source
@@ -201,7 +201,7 @@ dev-prod-server: build-frontend collectstatic
 ## Run the vite dev frontend
 ## @category Run Server
 dev-frontend-server:
-	frontend/dev-server.sh
+	cd frontend && make dev-server
 
 .PHONY: dev-ttabs
 ## Run the vite dev frontend and dev-server in ttabs
