@@ -61,7 +61,7 @@ export const useAdminStore = defineStore("admin", {
       return libs;
     },
     doNormalComicLibrariesExist() {
-      return Object.keys(this.normalLibraries).length === 0;
+      return Object.keys(this.normalLibraries).length > 0;
     },
   },
   actions: {
