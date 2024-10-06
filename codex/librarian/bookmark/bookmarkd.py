@@ -29,7 +29,7 @@ class BookmarkThread(AggregateMessageQueuedThread, BookmarkUpdate):
                 auth_filter, comic_filter = filters
                 auth_filter = dict(auth_filter)
                 comic_filter = dict(comic_filter)
-                self.update_bookmarks(auth_filter, comic_filter, updates)
+                self.update_bookmarks(auth_filter, comic_filter, updates, self.log)
                 self.log.debug(f"updated {auth_filter | comic_filter}")
                 cleanup.add(filters)
             except Exception:

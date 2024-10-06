@@ -66,5 +66,5 @@ class BookmarkView(AuthFilterGenericAPIView, BookmarkBaseView, BookmarkUpdate):
         pks = self.kwargs.get("pks")
         comic_filter = {rel: pks}
 
-        self.update_bookmarks(auth_filter, comic_filter, updates)
+        self.update_bookmarks(auth_filter, comic_filter, updates, LOG)
         return Response()
