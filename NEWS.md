@@ -12,6 +12,10 @@ border-radius: 128px;
 
   - Always display filename for comics on browser cards in Folder View
 
+- Fixes
+
+  - Don't redirect to issue view on first search in Folder View
+
 ## v1.7.0
 
 - Features
