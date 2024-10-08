@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.1
+
+- Features
+
+  - Always display filename for comics on browser cards in Folder View
+
 ## v1.7.0
 
 - Features

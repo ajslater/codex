@@ -43,7 +43,7 @@ export default {
           this.orderBy === null ||
           (this.orderBy === "sort_name" &&
             (this.item.group !== "c" || this.topGroup !== "f")) ||
-          (this.orderBy === "filename" && this.item.group === "f") ||
+          (this.orderBy === "filename" && this.topGroup === "f") ||
           (this.orderBy === "story_arc_number" && this.item.group === "a") ||
           ov === null ||
           ov === undefined

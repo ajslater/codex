@@ -123,6 +123,17 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
                 self._comic_sort_names = tuple(sort_name_annotations.keys())
         return qs
 
+    def get_filename_func(self, model):
+        """Get the filename creation function."""
+        prefix = "" if model == Comic else self.rel_prefix
+        path_rel = prefix + "path"
+
+        return Right(
+            path_rel,
+            StrIndex(Reverse(F(path_rel)), Value(sep)) - 1,  # type: ignore
+            output_field=CharField(),
+        )
+
     def _alias_filename(self, qs):
         """Calculate filename from path in the db."""
         if self.order_key != "filename":
@@ -130,15 +141,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if qs.model is Folder:
             filename = F("name")
         else:
-            prefix = "" if qs.model == Comic else self.rel_prefix
-            path_rel = prefix + "path"
-            filename = self.order_agg_func(
-                Right(
-                    path_rel,
-                    StrIndex(Reverse(F(path_rel)), Value(sep)) - 1,  # type: ignore
-                    output_field=CharField(),
-                )
-            )
+            filename_func = self.get_filename_func(qs.model)
+            filename = self.order_agg_func(filename_func)
         return qs.alias(filename=filename)
 
     def _alias_story_arc_number(self, qs):
