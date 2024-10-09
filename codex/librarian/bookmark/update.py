@@ -8,6 +8,7 @@ from django.db.models.query import Q
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
+from codex.models.admin import UserActive
 from codex.views.auth import GroupACLMixin
 from codex.views.mixins import BookmarkSearchMixin
 
@@ -136,7 +137,17 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
         return count
 
     @classmethod
-    def update_bookmarks(cls, auth_filter, comic_filter, updates):
+    def _update_user_active(cls, user, log):
+        """Update user active."""
+        # Offline because profile gets hit rapidly in succession.
+        try:
+            UserActive.objects.update_or_create(user=user)
+        except Exception as exc:
+            reason = f"update user activity {exc}"
+            log.warning(reason)
+
+    @classmethod
+    def update_bookmarks(cls, auth_filter, comic_filter, updates, log):
         """Update a user bookmark."""
         search_kwargs = cls.get_bookmark_search_kwargs(auth_filter, comic_filter)
 
@@ -148,6 +159,8 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
 
         count = cls._update_bookmarks(search_kwargs, updates, user)
         count += cls._create_bookmarks(comic_filter, search_kwargs, updates, user)
+        if user:
+            cls._update_user_active(user, log)
         if count:
             uid = next(iter(auth_filter.values()))
             cls._notify_library_changed(uid)

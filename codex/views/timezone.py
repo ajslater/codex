@@ -4,7 +4,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.models import UserActive
 from codex.serializers.auth import TimezoneSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.views.auth import AuthGenericAPIView
@@ -26,12 +25,6 @@ class TimezoneView(AuthGenericAPIView):
         session["django_timezone"] = django_timezone
         session.save()
 
-    def _update_user_active(self):
-        """Update user activity."""
-        user = self.request.user
-        if user and user.is_authenticated:
-            UserActive.objects.update_or_create(user=user)
-
     @extend_schema(request=input_serializer_class)
     def put(self, *args, **kwargs):
         """Get the user info for the current user."""
@@ -39,15 +32,10 @@ class TimezoneView(AuthGenericAPIView):
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         try:
-            self._save_timezone(serializer.validated_data.get("timezone"))  # type: ignore
+            timezone = serializer.validated_data.get("timezone")  # type: ignore
+            self._save_timezone(timezone)
         except Exception as exc:
             reason = f"update user timezone {exc}"
-            LOG.warning(reason)
-
-        try:
-            self._update_user_active()
-        except Exception as exc:
-            reason = f"update user activity {exc}"
             LOG.warning(reason)
 
         serializer = self.get_serializer()

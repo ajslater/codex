@@ -27,6 +27,8 @@ const DEFAULT_BOOKMARK_VALUES = new Set([
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
+const NO_REDIRECT_ON_SEARCH_GROUPS = new Set(["a", "c", "f"]);
+Object.freeze(NO_REDIRECT_ON_SEARCH_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
@@ -297,9 +299,10 @@ export const useBrowserStore = defineStore("browser", {
       data.orderBy = "search_score";
       data.orderReverse = true;
       const group = router.currentRoute.value.params?.group;
-      const noRedirectGroups = new Set(ALWAYS_ENABLED_TOP_GROUPS);
-      noRedirectGroups.add(this.lowestShownGroup);
-      if (noRedirectGroups.has(group)) {
+      if (
+        NO_REDIRECT_ON_SEARCH_GROUPS.has(group) ||
+        group === this.lowestShownGroup
+      ) {
         return;
       }
       return { params: { group: this.lowestShownGroup, pks: "0", page: "1" } };

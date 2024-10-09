@@ -6,6 +6,18 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.1
+
+- Features
+
+  - Always display filename for comics on browser cards in Folder View
+  - Detect .jxl extension (JPEG XL) as a comic page.
+
+- Fixes
+
+  - Fix ignoring MacOS resource forks in archives.
+  - Don't redirect to issue view on first search in Folder View
+
 ## v1.7.0
 
 - Features

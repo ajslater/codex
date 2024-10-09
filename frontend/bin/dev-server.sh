@@ -1,4 +1,5 @@
 #!/bin/sh
 # Run the live reloading front end development server
-cd "$(dirname "$0")" || exit 1
+THIS_DIR="$(dirname "$0")"
+cd "$THIS_DIR" || exit 1
 npm run dev
