@@ -66,7 +66,7 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 versio = "^0.5.0"
 zipstream-ng = "^1.8.0"
-Pillow = "^10.0.0"
+Pillow = "^11.0.0"
 
 [tool.poetry.group.dev.dependencies]
 django-schema-graph = "^3.1.0"
