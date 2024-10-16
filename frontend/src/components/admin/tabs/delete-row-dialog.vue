@@ -2,7 +2,7 @@
   <ConfirmDialog
     :icon="mdiTrashCan"
     :title-text="titleText"
-    :object-name="name"
+    :text="name"
     :confirm-text="titleText"
     @confirm="confirm"
   />

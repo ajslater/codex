@@ -31,10 +31,15 @@ export const getComicPageSource = ({ pk, page, mtime }) => {
   return `${bookAPIPath}/${page}/page.jpg?ts=${mtime}`;
 };
 
-export const getDownloadURL = ({ pk, mtime }) => {
+export const getComicDownloadURL = ({ pk }, fn, ts) => {
   // Gets used by an HTTP.get so already has base path.
   const bookPath = _getReaderPath(pk);
-  return `${bookPath}/download/comic-${pk}.cbz?ts=${mtime}`;
+  if (fn) {
+    fn = encodeURIComponent(fn);
+  } else {
+    fn = `comic-${pk}.cbz`;
+  }
+  return `${bookPath}/download/${fn}?ts=${ts}`;
 };
 
 export const getDownloadPageURL = ({ pk, page, mtime }) => {

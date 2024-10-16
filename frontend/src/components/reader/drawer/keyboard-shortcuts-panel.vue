@@ -2,7 +2,7 @@
   <v-expansion-panels v-if="!isMobile">
     <v-expansion-panel id="readerKeyboardShortcuts">
       <v-expansion-panel-title id="shortcutsTitle">
-        <DrawerItem
+        <CodexListItem
           id="keyboardShortcutsItem"
           :prepend-icon="mdiKeyboardOutline"
           title="Keyboard Shortcuts"
@@ -19,7 +19,7 @@
 import { mdiKeyboardOutline } from "@mdi/js";
 import { mapGetters } from "pinia";
 
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import KeyboardShortcutsTable from "@/components/reader/drawer/keyboard-shortcuts-table.vue";
 import { useCommonStore } from "@/stores/common";
 
@@ -27,7 +27,7 @@ export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "KeyboardShortcutsPanel",
   components: {
-    DrawerItem,
+    CodexListItem,
     KeyboardShortcutsTable,
   },
   data() {

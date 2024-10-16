@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.2
+
+- Features
+
+  - Download entire groups of comics from the browser and metadata screens.
+
 ## v1.7.1
 
 - Features

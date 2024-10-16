@@ -1,13 +1,13 @@
 <template>
   <div v-if="isUserAdmin">
     <v-divider />
-    <DrawerItem
+    <CodexListItem
       v-tooltip="{ openDelay: 2000, text: 'for updated comics' }"
       title="Poll All Libraries"
       :prepend-icon="mdiDatabaseClockOutline"
       @click="onPoll"
     />
-    <DrawerItem
+    <CodexListItem
       v-if="showAdminPanelLink"
       class="adminPanelLink"
       :to="{ name: 'admin' }"
@@ -29,7 +29,7 @@ import {
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminStatusList from "@/components/admin/drawer/status-list.vue";
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
@@ -37,7 +37,7 @@ export default {
   name: "AdminMenu",
   components: {
     AdminStatusList,
-    DrawerItem,
+    CodexListItem,
   },
   data() {
     return {

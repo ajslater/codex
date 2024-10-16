@@ -15,7 +15,7 @@
             <ConfirmDialog
               button-text="Regenerate API Key"
               title-text="Regenerate"
-              object-name="API Key"
+              text="API Key"
               confirm-text="Regenerate"
               @confirm="regenAPIKey"
             />

@@ -40,6 +40,8 @@ const PAGE_LOAD_KEYS = ["breadcrumbs"];
 Object.freeze(PAGE_LOAD_KEYS);
 const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
 Object.freeze(METADATA_LOAD_KEYS);
+const DOWNLOAD_KEYS = ["filters", "q"];
+Object.freeze(DOWNLOAD_KEYS);
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -215,6 +217,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       return settings;
     },
+
     choicesSettings(state) {
       return this._filterSettings(state, CHOICES_KEYS);
     },
@@ -223,6 +226,9 @@ export const useBrowserStore = defineStore("browser", {
     },
     metadataSettings(state) {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
+    },
+    downloadSettings(state) {
+      return this._filterSettings(state, DOWNLOAD_KEYS);
     },
   },
   actions: {

@@ -21,13 +21,13 @@ export const getBrowserHref = ({ group, pks, query }) => {
   return `${base}${hrefPath}/1?${queryString}`;
 };
 
-export const getCoverSrc = ({ group, pks }, data, ts) => {
+export const getCoverSrc = ({ group, pks }, settings, ts) => {
   const base = window.CODEX.API_V3_PATH;
-  delete data.show;
+  delete settings.show;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,
     pks,
-    query: data,
+    query: settings,
     ts,
   });
   return `${base}${hrefPath}/cover.webp?${queryString}`;
@@ -66,11 +66,25 @@ const updateSettings = (settings) => {
   return HTTP.patch("/r/settings", settings);
 };
 
+export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
+  const base = window.CODEX.API_V3_PATH;
+  delete settings.show;
+  const { hrefPath, queryString } = getBrowserHrefPath({
+    group,
+    pks,
+    query: settings,
+    ts,
+  });
+  fn = encodeURIComponent(fn);
+  return `${base}${hrefPath}/download/${fn}?${queryString}`;
+};
+
 export default {
   getAvailableFilterChoices,
   getBrowserHref,
   getCoverSrc,
   getFilterChoices,
+  getGroupDownloadURL,
   getMetadata,
   getSettings,
   getBrowserPage,

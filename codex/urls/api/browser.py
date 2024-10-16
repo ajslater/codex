@@ -8,6 +8,7 @@ from codex.views.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.cover import CoverView
+from codex.views.browser.download import GroupDownloadView
 from codex.views.browser.metadata.metadata import MetadataView
 from codex.views.browser.settings import BrowserSettingsView
 
@@ -54,5 +55,13 @@ urlpatterns = [
         "<int_list:pks>/cover.webp",
         cache_control(max_age=COVER_MAX_AGE, public=True)(CoverView.as_view()),
         name="cover",
+    ),
+    #
+    #
+    # Download
+    path(
+        "<int_list:pks>/download/<str:filename>",
+        GroupDownloadView.as_view(),
+        name="download",
     ),
 ]

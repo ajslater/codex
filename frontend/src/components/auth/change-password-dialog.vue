@@ -15,7 +15,7 @@
         :density="density"
         title="Change Password"
       />
-      <DrawerItem
+      <CodexListItem
         v-else
         :prepend-icon="mdiLockReset"
         v-bind="props"
@@ -84,7 +84,7 @@ import { mdiLockReset } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
@@ -95,7 +95,7 @@ export default {
   components: {
     SubmitFooter,
     CloseButton,
-    DrawerItem,
+    CodexListItem,
   },
   props: {
     user: { type: Object, required: true },
