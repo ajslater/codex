@@ -157,7 +157,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../anchors.scss";
+@forward "../anchors";
 
 .text {
   display: flex;

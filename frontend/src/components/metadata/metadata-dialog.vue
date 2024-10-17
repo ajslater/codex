@@ -480,6 +480,7 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
 
 .closeButton {
   position: fixed;
@@ -594,7 +595,7 @@ export default {
   display: inline-flex;
 }
 
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
     font-size: 12px;
   }

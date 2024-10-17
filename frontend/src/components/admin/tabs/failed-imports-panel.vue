@@ -117,6 +117,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@forward "../../anchors";
 .cli {
   display: block;
   margin-left: 2em;
@@ -138,6 +139,4 @@ export default {
 h4 {
   padding-top: 0.5em;
 }
-
-@import "../../anchors.scss";
 </style>

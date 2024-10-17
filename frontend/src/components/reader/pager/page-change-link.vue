@@ -62,7 +62,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-@import "../change-column.scss";
+@forward "../change-column";
 
 .prev {
   left: 0px;

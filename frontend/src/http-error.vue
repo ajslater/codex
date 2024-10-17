@@ -53,6 +53,7 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
 #httpError {
   padding-top: max(20px, env(safe-area-inset-top));
   padding-left: max(20px, env(safe-area-inset-left));
@@ -85,7 +86,7 @@ export default {
 #link {
   bottom: 50%;
 }
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #title {
     font-size: 32vw;
   }
