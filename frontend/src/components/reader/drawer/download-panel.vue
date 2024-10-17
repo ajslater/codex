@@ -1,14 +1,15 @@
 <template>
   <div v-if="currentBook" id="downloadPanel">
-    <DrawerItem
+    <CodexListItem
       :prepend-icon="mdiFileImage"
       :title="downloadPageTitle"
       @click="downloadPage"
     />
-    <DrawerItem
-      :prepend-icon="mdiDownload"
-      title="Download Book"
-      @click="downloadBook"
+    <DownloadButton
+      :pks="downloadPks"
+      :children="1"
+      :names="downloadNames"
+      :ts="ts"
     />
   </div>
 </template>
@@ -18,15 +19,17 @@ import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadIOSPWAFix } from "@/api/v3/common";
-import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
-import DrawerItem from "@/components/drawer-item.vue";
+import { getDownloadPageURL } from "@/api/v3/reader";
+import CodexListItem from "@/components/codex-list-item.vue";
+import DownloadButton from "@/components/download-button.vue";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "DownloadPanel",
   components: {
-    DrawerItem,
+    CodexListItem,
+    DownloadButton,
   },
   data() {
     return {
@@ -38,20 +41,21 @@ export default {
     ...mapGetters(useReaderStore, ["activeTitle", "routeParams"]),
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current,
+      fileType: (state) => state.books?.current?.fileType,
+      ts: (state) => state.books?.current?.mtime,
+      pk: (state) => state.books?.current?.pk,
+      downloadNames: (state) => [state.books?.current?.filename],
       storePage: (state) => state.page,
     }),
-    downloadURL() {
-      return getDownloadURL(this.currentBook);
-    },
-    filename() {
-      return this.currentBook?.filename;
+    downloadPks() {
+      return [this.pk];
     },
     pageSrc() {
-      const { pk, mtime } = this.currentBook;
-      return getDownloadPageURL({ pk, page: this.storePage, mtime });
+      const pageObj = { pk: this.pk, page: this.storePage, ts: this.ts };
+      return getDownloadPageURL(pageObj);
     },
     pageName() {
-      const suffix = this.currentBook.fileType === "PDF" ? "pdf" : "jpg";
+      const suffix = this.fileType === "PDF" ? "pdf" : "jpg";
       return `${this.activeTitle} - page ${this.storePage}.${suffix}`;
     },
     downloadPageTitle() {
@@ -62,9 +66,6 @@ export default {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     downloadPage() {
       getDownloadIOSPWAFix(this.pageSrc, this.pageName);
-    },
-    downloadBook() {
-      getDownloadIOSPWAFix(this.downloadURL, this.filename);
     },
   },
 };

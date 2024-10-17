@@ -3,12 +3,12 @@
 from types import MappingProxyType
 from typing import Any
 
-from codex.choices import mapping_to_dict
 from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.serializers.reader import (
     ReaderViewInputSerializer,
 )
+from codex.util import mapping_to_dict
 from codex.views.const import FOLDER_GROUP, GROUP_RELATION, STORY_ARC_GROUP
 from codex.views.session import SessionView
 from codex.views.util import reparse_json_query_params

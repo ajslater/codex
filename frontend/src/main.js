@@ -3,8 +3,7 @@ import "vuetify/styles"; // Global CSS has to be imported
 
 import { createHead, VueHeadMixin } from "@unhead/vue";
 import { createApp } from "vue";
-// Exact path fixes eslint-plugin-import
-import VueDragScroller from "vue-drag-scroller/dist/vue-drag-scroller.es.js";
+import VueDragScroller from "vue-drag-scroller";
 
 // This breaks eslint-plugin-import, could be solved with import assertions
 // https://stackoverflow.com/questions/71090960/is-there-a-way-to-make-eslint-understand-the-new-import-assertion-syntax-without

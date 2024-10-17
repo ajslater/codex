@@ -2,7 +2,7 @@
   <h4 class="readerSettingsHeader">Comic Settings Scope</h4>
   <v-radio-group
     v-model="isGlobalScope"
-    class="scopeRadioGroup readerDrawerItem"
+    class="scopeRadioGroup readerCodexListItem"
     density="compact"
     hide-details="auto"
   >
@@ -14,7 +14,7 @@
     />
   </v-radio-group>
   <v-expand-transition>
-    <div id="readerScopedSettings" class="readerDrawerItem">
+    <div id="readerScopedSettings" class="readerCodexListItem">
       <v-radio-group
         class="displayRadioGroup"
         density="compact"
@@ -78,7 +78,7 @@
   <v-divider />
   <h4 class="readerSettingsHeader">Reader Settings</h4>
   <v-checkbox
-    class="readerDrawerItem"
+    class="readerCodexListItem"
     :model-value="finishOnLastPage"
     density="compact"
     label="Finish Book On Last Page"
@@ -88,7 +88,7 @@
   />
   <v-checkbox
     :model-value="selectedSettings.readRtlInReverse"
-    class="readerDrawerItem"
+    class="readerCodexListItem"
     density="compact"
     label="Read RTL Comics as LTR"
     hide-details="auto"
@@ -101,7 +101,7 @@
       text: 'Cache all pages from this book in the browser',
     }"
     :model-value="cacheBook"
-    class="readerDrawerItem cacheBook"
+    class="readerCodexListItem cacheBook"
     density="compact"
     :disabled="disableCacheBook"
     label="Cache Entire Book"
@@ -110,7 +110,7 @@
     @update:model-value="setSettingsClient({ cacheBook: $event })"
   />
   <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
-  <DrawerItem
+  <CodexListItem
     v-if="pdfInBrowserURL"
     :prepend-icon="mdiEye"
     :append-icon="mdiOpenInNew"
@@ -125,7 +125,7 @@ import { mdiEye, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getPDFInBrowserURL } from "@/api/v3/reader";
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 const ATTRS = ["fitTo", "readingDirection", "twoPages"];
@@ -133,7 +133,7 @@ Object.freeze(ATTRS);
 
 export default {
   name: "ReaderSettingsPanel",
-  components: { DrawerItem },
+  components: { CodexListItem },
   data() {
     return {
       isGlobalScope: false,
@@ -290,7 +290,7 @@ export default {
   padding-bottom: 4px;
 }
 
-.readerDrawerItem {
+.readerCodexListItem {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
 }

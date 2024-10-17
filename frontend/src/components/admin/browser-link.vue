@@ -1,17 +1,17 @@
 <template>
-  <DrawerItem :to="lastRoute" :prepend-icon="mdiBookshelf" title="Browser" />
+  <CodexListItem :to="lastRoute" :prepend-icon="mdiBookshelf" title="Browser" />
 </template>
 <script>
 import { mdiBookshelf } from "@mdi/js";
 import { mapGetters } from "pinia";
 
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "AdminBrowserLink",
   components: {
-    DrawerItem,
+    CodexListItem,
   },
   data() {
     return { mdiBookshelf };

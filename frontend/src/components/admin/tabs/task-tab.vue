@@ -30,7 +30,8 @@
             v-if="item.confirm"
             :button-text="item.title"
             :title-text="item.title"
-            :object-name="item.confirm"
+            :text="item.confirm"
+            :block="true"
             confirm-text="Confirm"
             @confirm="librarianTask(item.value, item.title)"
           />

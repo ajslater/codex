@@ -130,7 +130,8 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
-@import "../../book-cover.scss";
+@use "sass:map";
+@use "../../book-cover" as bookcover;
 
 .browserCardCoverWrapper {
   position: relative;
@@ -143,8 +144,8 @@ export default {
   position: absolute;
   top: 0px;
   left: 0px;
-  height: $cover-height;
-  width: $cover-width;
+  height: bookcover.$cover-height;
+  width: bookcover.$cover-width;
   border-radius: 5px;
   border: solid thin transparent;
 }
@@ -168,10 +169,10 @@ export default {
   margin-top: 10px;
 }
 
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {
-    height: $small-cover-height;
-    width: $small-cover-width;
+    height: bookcover.$small-cover-height;
+    width: bookcover.$small-cover-width;
   }
 }
 </style>

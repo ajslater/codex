@@ -7,21 +7,28 @@
   >
     <template #activator="{ props }">
       <v-btn
-        v-if="icon"
+        v-if="button && icon"
         v-bind="props"
+        :block="block"
         :icon="icon"
         :size="size"
         :density="density"
         :title="titleText"
-      >
-      </v-btn>
-      <v-btn v-else block v-bind="props">
+      />
+      <v-btn v-else-if="button" v-bind="props" :block="block">
+        <v-icon v-if="prependIcon">{{ prependIcon }}</v-icon>
         {{ buttonText }}
       </v-btn>
+      <CodexListItem
+        v-else
+        v-bind="props"
+        :prepend-icon="prependIcon"
+        :title="titleText"
+      />
     </template>
     <div class="confirmDialog">
       <h3>{{ titleText }}</h3>
-      {{ objectName }}
+      {{ text }}
       <ConfirmFooter
         :confirm-text="confirmText"
         @confirm="close('confirm')"
@@ -31,18 +38,25 @@
   </v-dialog>
 </template>
 <script>
+import CodexListItem from "@/components/codex-list-item.vue";
 import ConfirmFooter from "@/components/confirm-footer.vue";
 export default {
   name: "ConfirmDialog",
-  components: { ConfirmFooter },
+  components: { ConfirmFooter, CodexListItem },
   props: {
+    button: { type: Boolean, default: true },
     icon: { type: String, default: "" },
+    prependIcon: { type: String, default: "" },
     buttonText: { type: String, default: "" },
     titleText: {
       type: String,
       required: true,
     },
-    objectName: {
+    block: {
+      type: Boolean,
+      default: false,
+    },
+    text: {
       type: String,
       required: true,
     },

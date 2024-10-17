@@ -69,20 +69,25 @@ class ReaderPageView(BookmarkBaseView):
 
     def _get_page_image(self):
         """Get the image data and content type."""
+        # Get comic - Distinct is important
         group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
+        qs = Comic.objects.filter(group_acl_filter).only("path", "file_type").distinct()
         pk = self.kwargs.get("pk")
-        comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
+        comic = qs.get(pk=pk)
+
+        # page_image
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
-        if comic.file_type == FileType.PDF.value and not to_pixmap:
-            content_type = _PDF_MIME_TYPE
-        else:
-            content_type = self.content_type
-
         with Comicbox(comic.path) as cb:
             page_image = cb.get_page_by_index(page, to_pixmap=to_pixmap)
         if not page_image:
             page_image = b""
+
+        # content type
+        if comic.file_type == FileType.PDF.value and not to_pixmap:
+            content_type = _PDF_MIME_TYPE
+        else:
+            content_type = self.content_type
 
         return page_image, content_type
 

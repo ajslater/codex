@@ -46,13 +46,15 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
 #browserToolbarTop {
   padding-top: calc(5px + env(safe-area-inset-top));
   padding-bottom: 5px;
   padding-left: max(18px, calc(env(safe-area-inset-left)/2));
   padding-right: 0px; // given to the settings drawer button
 }
-@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
 #browserToolbarTop {
   padding-top: env(safe-area-inset-top);
   padding-left: max(10px, calc(env(safe-area-inset-left)/2));

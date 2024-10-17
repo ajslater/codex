@@ -13,10 +13,6 @@ app_name = "issue"
 urlpatterns = [
     #
     #
-    # Comic
-    path("<int:pk>/download/<str:filename>", DownloadView.as_view(), name="download"),
-    #
-    #
     # Reader
     path("<int:pk>", ReaderView.as_view(), name="reader"),
     path(
@@ -25,4 +21,12 @@ urlpatterns = [
         name="page",
     ),
     path("settings", ReaderSettingsView.as_view(), name="settings"),
+    #
+    #
+    # Download
+    path(
+        "<int:pk>/download/<str:filename>",
+        DownloadView.as_view(),
+        name="download",
+    ),
 ]

@@ -99,6 +99,7 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
 
 #browserBreadcrumbs {
   max-width: 100vw;
@@ -126,7 +127,7 @@ export default {
   color: white;
 }
 
-@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
   #browserBreadcrumbs {
     padding-left: max(10px, calc(env(safe-area-inset-left)/2));
   }

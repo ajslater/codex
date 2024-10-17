@@ -80,10 +80,12 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
-@import "book-cover.scss";
+@use "sass:map";
+@use "./book-cover" as bookcover;
+
 .coverImg {
-  height: $cover-height;
-  width: $cover-width;
+  height: bookcover.$cover-height;
+  width: bookcover.$cover-width;
 }
 .coverImg {
   border-radius: 5px;
@@ -147,11 +149,10 @@ $primary: rgb(var(--v-theme-primary));
               9px 9px #202020;
 }
 
-
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .coverImg {
-    height: $small-cover-height;
-    width: $small-cover-width;
+    height: bookcover.$small-cover-height;
+    width: bookcover.$small-cover-width;
   }
 }
 </style>

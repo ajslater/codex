@@ -14,7 +14,6 @@ from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
-from codex.views.const import FOLDER_GROUP
 
 _GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
@@ -52,8 +51,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
 
     def _annotate_file_name(self, qs):
         """Annotate the file name for folder view."""
-        group = self.kwargs.get("group")
-        if group != FOLDER_GROUP or qs.model is not Comic:
+        if qs.model is not Comic:
             return qs
         if self.order_key == "filename":
             file_name = F("filename")
