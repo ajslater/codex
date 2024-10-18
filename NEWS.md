@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.3
+
+- Fixes
+
+  - Browser Group Mark Read/Unread obeys browser filters.
+
 ## v1.7.2
 
 - Features

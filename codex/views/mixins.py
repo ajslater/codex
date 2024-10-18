@@ -1,10 +1,13 @@
 """Cross view annotation methods."""
 
 from django.db.models.expressions import F
+from rest_framework.views import APIView
 
+from codex.logger.logging import get_logger
 from codex.models.comic import Comic, Imprint, Volume
 from codex.views.const import GROUP_NAME_MAP
 
+LOG = get_logger(__name__)
 _SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
 
 
@@ -71,18 +74,18 @@ class SharedAnnotationsMixin:
         return qs.annotate(**group_names)
 
 
-class BookmarkSearchMixin:
-    """Create Bookmark Search kwargs."""
+class BookmarkAuthMixin(APIView):
+    """Base class for Bookmark Views."""
 
-    @staticmethod
-    def get_bookmark_search_kwargs(auth_filter, comic_filter=None):
-        """Get the search kwargs for a user's authentication state."""
-        # search kwargs are relative to the bookmark object.
-        search_kwargs = {}
-        search_kwargs.update(auth_filter)
-
-        if comic_filter:
-            for key, value in comic_filter.items():
-                search_kwargs[f"comic__{key}"] = value
-
-        return search_kwargs
+    def get_bookmark_auth_filter(self):
+        """Filter only the user's bookmarks."""
+        if self.request.user.is_authenticated:
+            key = "user_id"
+            value = self.request.user.pk
+        else:
+            if not self.request.session or not self.request.session.session_key:
+                LOG.debug("no session, make one")
+                self.request.session.save()
+            key = "session_id"
+            value = self.request.session.session_key
+        return {key: value}

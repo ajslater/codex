@@ -34,14 +34,12 @@ const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
 const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse", "q"];
 Object.freeze(DYNAMIC_COVER_KEYS);
-const CHOICES_KEYS = ["filters", "q"];
-Object.freeze(CHOICES_KEYS);
+const FILTER_ONLY_KEYS = ["filters", "q"];
+Object.freeze(FILTER_ONLY_KEYS);
 const PAGE_LOAD_KEYS = ["breadcrumbs"];
 Object.freeze(PAGE_LOAD_KEYS);
 const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
 Object.freeze(METADATA_LOAD_KEYS);
-const DOWNLOAD_KEYS = ["filters", "q"];
-Object.freeze(DOWNLOAD_KEYS);
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -217,18 +215,14 @@ export const useBrowserStore = defineStore("browser", {
       }
       return settings;
     },
-
-    choicesSettings(state) {
-      return this._filterSettings(state, CHOICES_KEYS);
+    filterOnlySettings(state) {
+      return this._filterSettings(state, FILTER_ONLY_KEYS);
     },
     pageLoadSettings(state) {
       return this._filterSettings(state, PAGE_LOAD_KEYS);
     },
     metadataSettings(state) {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
-    },
-    downloadSettings(state) {
-      return this._filterSettings(state, DOWNLOAD_KEYS);
     },
   },
   actions: {
@@ -431,7 +425,9 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
-      await COMMON_API.updateGroupBookmarks(params, { finished }).then(() => {
+      await API.updateGroupBookmarks(params, this.filterOnlySettings, {
+        finished,
+      }).then(() => {
         this.loadBrowserPage(getTimestamp());
         return true;
       });
@@ -570,7 +566,7 @@ export const useBrowserStore = defineStore("browser", {
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
-        this.choicesSettings,
+        this.filterOnlySettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -583,7 +579,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getFilterChoices(
         router.currentRoute.value.params,
         fieldName,
-        this.choicesSettings,
+        this.filterOnlySettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -600,7 +596,10 @@ export const useBrowserStore = defineStore("browser", {
       const group =
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
       const pks = params?.pks || "0";
-      return await COMMON_API.getMtime([{ group, pks }], this.choicesSettings)
+      return await COMMON_API.getMtime(
+        [{ group, pks }],
+        this.filterOnlySettings,
+      )
         .then((response) => {
           const newMtime = response?.data?.maxMtime;
           if (newMtime !== this.page.mtime) {

@@ -14,7 +14,8 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings.settings import FALSY
-from codex.views.bookmark import BookmarkBaseView
+from codex.views.auth import AuthFilterAPIView
+from codex.views.mixins import BookmarkAuthMixin
 from codex.views.util import chunker
 
 LOG = get_logger(__name__)
@@ -42,7 +43,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         return (renderer, renderer.media_type)
 
 
-class ReaderPageView(BookmarkBaseView):
+class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     """Display a comic page from the archive itself."""
 
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
@@ -59,12 +60,11 @@ class ReaderPageView(BookmarkBaseView):
             return
 
         auth_filter = self.get_bookmark_auth_filter()
-        pk = self.kwargs.get("pk")
-        comic_filter = {"pk": pk}
+        comic_pks = (self.kwargs.get("pk"),)
         page = self.kwargs.get("page")
         updates = {"page": page}
 
-        task = BookmarkUpdateTask(auth_filter, comic_filter, updates)
+        task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
     def _get_page_image(self):

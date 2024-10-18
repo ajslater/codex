@@ -4,7 +4,7 @@ from django.urls import path
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 
 from codex.urls.const import BROWSER_TIMEOUT, COVER_MAX_AGE, PAGE_MAX_AGE
-from codex.views.bookmark import BookmarkView
+from codex.views.browser.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.cover import CoverView

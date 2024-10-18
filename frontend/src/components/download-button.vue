@@ -70,7 +70,7 @@ export default {
     return { mdiDownload };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["downloadSettings"]),
+    ...mapGetters(useBrowserStore, ["filterOnlySettings"]),
     show() {
       return this.pks && this.pks.length > 0 && !this.pks.includes(0);
     },
@@ -85,7 +85,7 @@ export default {
       } else {
         const group = this.group;
         const pks = this.pks;
-        const settings = this.downloadSettings;
+        const settings = this.filterOnlySettings;
         url = getGroupDownloadURL(
           { group, pks },
           this.downloadFn,

@@ -79,6 +79,16 @@ export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
   return `${base}${hrefPath}/download/${fn}?${queryString}`;
 };
 
+const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
+  const params = serializeParams(settings);
+  const queryString = new URLSearchParams(params).toString();
+  if (updates.fitTo === null) {
+    updates.fitTo = "";
+  }
+  const pkList = ids.join(",");
+  return HTTP.patch(`${group}/${pkList}/bookmark?${queryString}`, updates);
+};
+
 export default {
   getAvailableFilterChoices,
   getBrowserHref,
@@ -88,5 +98,6 @@ export default {
   getMetadata,
   getSettings,
   getBrowserPage,
+  updateGroupBookmarks,
   updateSettings,
 };

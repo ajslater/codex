@@ -1,41 +1,22 @@
-"""Bookmark views."""
+"""Bookmark view."""
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.update import BookmarkUpdate
 from codex.logger.logging import get_logger
+from codex.models.comic import Comic
 from codex.serializers.models.bookmark import (
     BookmarkFinishedSerializer,
     BookmarkSerializer,
 )
-from codex.views.auth import (
-    AuthFilterAPIView,
-    AuthFilterGenericAPIView,
-)
-from codex.views.const import FILTER_ONLY_GROUP_RELATION
+from codex.views.browser.filters.filter import BrowserFilterView
+from codex.views.mixins import BookmarkAuthMixin
 
 LOG = get_logger(__name__)
 
 
-class BookmarkBaseView(AuthFilterAPIView):
-    """Base class for Bookmark Views."""
-
-    def get_bookmark_auth_filter(self):
-        """Filter only the user's bookmarks."""
-        if self.request.user.is_authenticated:
-            key = "user_id"
-            value = self.request.user.pk
-        else:
-            if not self.request.session or not self.request.session.session_key:
-                LOG.debug("no session, make one")
-                self.request.session.save()
-            key = "session_id"
-            value = self.request.session.session_key
-        return {key: value}
-
-
-class BookmarkView(AuthFilterGenericAPIView, BookmarkBaseView, BookmarkUpdate):
+class BookmarkView(BookmarkUpdate, BookmarkAuthMixin, BrowserFilterView):
     """User Bookmark View."""
 
     serializer_class = BookmarkSerializer
@@ -54,17 +35,19 @@ class BookmarkView(AuthFilterGenericAPIView, BookmarkBaseView, BookmarkUpdate):
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 
+    def _get_comic_query(self):
+        """Get comic pks for group."""
+        group = self.kwargs.get("group")
+        pks = self.kwargs.get("pks")
+        return self.get_filtered_queryset(Comic, group=group, pks=pks).only("pk")
+
     @extend_schema(request=serializer_class, responses=None)
     def patch(self, *_args, **_kwargs):
         """Update bookmarks recursively."""
         updates = self._parse_params()
 
         auth_filter = self.get_bookmark_auth_filter()
+        comic_qs = self._get_comic_query()
 
-        group = self.kwargs.get("group")
-        rel = FILTER_ONLY_GROUP_RELATION[group] + "__in"
-        pks = self.kwargs.get("pks")
-        comic_filter = {rel: pks}
-
-        self.update_bookmarks(auth_filter, comic_filter, updates, LOG)
+        self.update_bookmarks(auth_filter, comic_qs, updates, LOG)
         return Response()

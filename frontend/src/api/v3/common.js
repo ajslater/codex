@@ -111,18 +111,9 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
-const updateGroupBookmarks = ({ group, ids }, data) => {
-  if (data.fitTo === null) {
-    data.fitTo = "";
-  }
-  const pks = ids.join(",");
-  return HTTP.patch(`${group}/${pks}/bookmark`, data);
-};
-
 export default {
   getDownloadIOSPWAFix,
   getMtime,
   getOPDSURLs,
   getVersions,
-  updateGroupBookmarks,
 };

@@ -6,7 +6,6 @@ from django.db.models import F
 from django.db.models.query import Q
 
 from codex.models import Bookmark, Comic
-from codex.views.bookmark import BookmarkBaseView
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
     FOLDER_GROUP,
@@ -15,7 +14,7 @@ from codex.views.const import (
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
-from codex.views.mixins import BookmarkSearchMixin, SharedAnnotationsMixin
+from codex.views.mixins import BookmarkAuthMixin, SharedAnnotationsMixin
 from codex.views.reader.params import ReaderParamsView
 
 if TYPE_CHECKING:
@@ -34,9 +33,7 @@ _COMIC_FIELDS = (
 )
 
 
-class ReaderBooksView(
-    BookmarkBaseView, ReaderParamsView, SharedAnnotationsMixin, BookmarkSearchMixin
-):
+class ReaderBooksView(SharedAnnotationsMixin, BookmarkAuthMixin, ReaderParamsView):
     """Get Books methods."""
 
     def _get_reader_arc_pks(
@@ -149,6 +146,19 @@ class ReaderBooksView(
         qs = qs.order_by(*ordering)
         return qs, arc_group
 
+    @staticmethod
+    def _get_bookmark_filter(auth_filter, comic_filter=None):
+        """Get the search kwargs for a user's authentication state."""
+        # search kwargs are relative to the bookmark object.
+        search_kwargs = {}
+        search_kwargs.update(auth_filter)
+
+        if comic_filter:
+            for key, value in comic_filter.items():
+                search_kwargs[f"comic__{key}"] = value
+
+        return search_kwargs
+
     def _append_with_settings(self, book, bookmark_filter):
         """Append bookmark to book list."""
         book.settings = (
@@ -169,7 +179,7 @@ class ReaderBooksView(
         """
         comics, arc_group = self._get_comics_list()
         auth_filter = self.get_bookmark_auth_filter()
-        bookmark_filter = self.get_bookmark_search_kwargs(auth_filter)
+        bookmark_filter = self._get_bookmark_filter(auth_filter)
         books = {}
         prev_book = None
         pk = self.kwargs.get("pk")
