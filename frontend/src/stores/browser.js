@@ -312,14 +312,18 @@ export const useBrowserStore = defineStore("browser", {
       // top group is above the proper nav group
       const oldTopGroup = this.settings.topGroup;
       const newTopGroup = data.topGroup;
+      const currentParams = router?.currentRoute?.value?.params;
       if (
         (!oldTopGroup && newTopGroup) ||
         !newTopGroup ||
-        oldTopGroup === newTopGroup
+        oldTopGroup === newTopGroup ||
+        newTopGroup === currentParams?.group
       ) {
         // First url, initializing settings.
         // or
         // topGroup didn't change.
+        // or
+        // topGroup and group are the same, request is well formed.
         return redirect;
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
@@ -334,7 +338,7 @@ export const useBrowserStore = defineStore("browser", {
         if (oldTopGroupIndex < newTopGroupIndex) {
           // new top group is a parent (REVERSED)
           // Signal that we need new breadcrumbs. we do that by redirecting in place?
-          params = router.currentRoute.value.params;
+          params = currentParams;
           // Make a numeric page so won't trigger the redirect remover and will always
           // redirect so we repopulate breadcrumbs
           params.page = +params.page;

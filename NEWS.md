@@ -15,6 +15,7 @@ border-radius: 128px;
 - Fixes
 
   - Browser Group Mark Read/Unread obeys browser filters.
+  - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
   - Fixed an OPDS Metadata crash
 
 ## v1.7.2
