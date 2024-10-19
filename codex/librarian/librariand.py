@@ -4,9 +4,9 @@ from multiprocessing import Manager, Process
 from threading import active_count
 from types import MappingProxyType
 from typing import NamedTuple
+from codex.settings.settings import SET_PROC_TITLE
 
 from caseconverter import snakecase
-from setproctitle import setproctitle
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread
 from codex.librarian.bookmark.tasks import BookmarkTask
@@ -158,7 +158,9 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def _startup(self):
         """Initialize threads."""
-        setproctitle("Codex"+self.name)
+        if SET_PROC_TITLE:
+            from setproctitle import setproctitle
+            setproctitle("Codex"+self.name)
         self.init_logger(self.log_queue)
         self.log.debug(f"Started {self.name}.")
         self.janitor = Janitor(self.log_queue, self.queue)

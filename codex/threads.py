@@ -5,10 +5,9 @@ from abc import ABC, abstractmethod
 from queue import Empty, SimpleQueue
 from threading import Thread
 
-from setproctitle import setthreadtitle
 
 from codex.worker_base import WorkerBaseMixin
-
+from codex.settings.settings import SET_PROC_TITLE
 
 class BreakLoopError(Exception):
     """Simple way to break out of function nested loop."""
@@ -26,7 +25,9 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        setthreadtitle("Codex" + self.name)
+        if SET_PROC_TITLE:
+            from setproctitle import setthreadtitle
+            setthreadtitle("Codex" + self.name)
         self.log.debug(f"Started {self.name}")
 
 
