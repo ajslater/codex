@@ -46,8 +46,7 @@ class OPDS1EntryLinksMixin:
             }
             href = reverse("opds:bin:cover", kwargs=kwargs)
             href = update_href_query_params(href, query_params)
-            mime_type = "image/webp"
-            return OPDS1Link(rel, href, mime_type)
+            return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
             LOG.exception("create thumb")
 

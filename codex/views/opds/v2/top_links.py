@@ -1,7 +1,8 @@
 """OPDS v2.0 top links section methods."""
 
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v2.links import HrefData, LinkData, OPDS2LinksView
+from codex.views.opds.v2.href import HrefData
+from codex.views.opds.v2.links import LinkData, OPDS2LinksView
 
 
 class OPDS2TopLinksView(OPDS2LinksView):

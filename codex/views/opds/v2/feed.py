@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
-from codex.serializers.opds.v2 import OPDS2FeedSerializer
+from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.views.const import MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
@@ -20,7 +20,8 @@ from codex.views.opds.v2.const import (
     TOP_NAV_GROUP_SECTION_DATA,
     NavigationGroup,
 )
-from codex.views.opds.v2.links import HrefData, LinkData
+from codex.views.opds.v2.href import HrefData
+from codex.views.opds.v2.links import LinkData
 from codex.views.opds.v2.publications import OPDS2PublicationView
 
 LOG = get_logger(__name__)

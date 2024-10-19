@@ -59,8 +59,8 @@ def get_m2m_objects(pks) -> dict:
     for model in OPDS_M2M_MODELS:
         table = model.__name__.lower()
         rel = GroupACLMixin.get_rel_prefix(model)
-        comic_filter = {rel + "__in": pks}
-        qs = model.objects.filter(**comic_filter).order_by("name").only("name")
+        comic_filter = {rel + "in": pks}
+        qs = model.objects.filter(**comic_filter).only("name").order_by("name")
         cats[table] = qs
 
     return cats

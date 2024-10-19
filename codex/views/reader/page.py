@@ -15,7 +15,7 @@ from codex.logger.logging import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings.settings import FALSY
 from codex.views.auth import AuthFilterAPIView
-from codex.views.mixins import BookmarkAuthMixin
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.util import chunker
 
 LOG = get_logger(__name__)

@@ -1,30 +1,17 @@
 """Links methods for OPDS v2.0 Feed."""
 
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
-from django.urls import reverse
 
 from codex.settings.settings import FALSY
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.util import update_href_query_params
-from codex.views.util import pop_name
-
-
-@dataclass
-class HrefData:
-    """Data for creating hrefs."""
-
-    kwargs: dict | None = None
-    query_params: dict | None = None
-    absolute_query_params: bool = False
-    url_name: str | None = None
-    min_page: int | None = None
-    max_page: int | None = None
+from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
 
 
 @dataclass
@@ -40,9 +27,10 @@ class LinkData:
     width: int | None = None
     href: str | None = None
     num_items: int | None = None
+    authenticate: Mapping | None = None
 
 
-class OPDS2LinksView(BrowserView):
+class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
     def __init__(self, *args, **kwargs):
@@ -70,41 +58,12 @@ class OPDS2LinksView(BrowserView):
             self._num_pages = self.group_and_books[2]
         return self._num_pages
 
-    def _href_page_validate(self, kwargs, data):
-        """Validate the page bounds."""
-        min_page = 1 if data.min_page is None else data.min_page
-        max_page = self.num_pages if data.max_page is None else data.max_page
-        page = int(kwargs["page"])
-        return page >= min_page and page <= max_page
-
-    def _href_update_query_params(self, href, data):
-        """Update the query params."""
-        if data.absolute_query_params and data.query_params:
-            href = update_href_query_params(href, data.query_params)
-        elif hasattr(self, "request"):
-            # if request link and not init static links
-            href = update_href_query_params(
-                href, self.request.GET, new_query_params=data.query_params
-            )
-        return href
-
-    def _href(self, data):
-        """Create an href."""
-        url_name = data.url_name if data.url_name else "opds:v2:feed"
-        kwargs = data.kwargs if data.kwargs is not None else self.kwargs
-        if "page" in kwargs and not self._href_page_validate(kwargs, data):
-            return None
-
-        kwargs = pop_name(kwargs)
-        href = reverse(url_name, kwargs=kwargs)
-        return self._href_update_query_params(href, data)
-
     def link(self, data):
         """Create a link element."""
         if data.href:
             href = data.href
         else:
-            href = self._href(data.href_data)
+            href = self.href(data.href_data)
             if not href:
                 return None
         mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
@@ -118,8 +77,15 @@ class OPDS2LinksView(BrowserView):
             link["height"] = data.height
         if data.width:
             link["width"] = data.width
+
+        # Properties
+        if data.num_items or data.authenticate:
+            link["properties"] = {}
         if data.num_items:
-            link["properties"] = {"number_of_items": data.num_items}
+            link["properties"]["number_of_items"] = data.num_items
+        if data.authenticate:
+            link["properties"]["authenticate"] = data.authenticate
+
         return link
 
     @staticmethod

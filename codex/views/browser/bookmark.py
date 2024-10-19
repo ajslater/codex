@@ -10,8 +10,8 @@ from codex.serializers.models.bookmark import (
     BookmarkFinishedSerializer,
     BookmarkSerializer,
 )
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.filter import BrowserFilterView
-from codex.views.mixins import BookmarkAuthMixin
 
 LOG = get_logger(__name__)
 

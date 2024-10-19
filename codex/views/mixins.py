@@ -1,7 +1,6 @@
 """Cross view annotation methods."""
 
 from django.db.models.expressions import F
-from rest_framework.views import APIView
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, Imprint, Volume
@@ -72,20 +71,3 @@ class SharedAnnotationsMixin:
         elif qs.model is Imprint:
             group_names["publisher_name"] = F("publisher__name")
         return qs.annotate(**group_names)
-
-
-class BookmarkAuthMixin(APIView):
-    """Base class for Bookmark Views."""
-
-    def get_bookmark_auth_filter(self):
-        """Filter only the user's bookmarks."""
-        if self.request.user.is_authenticated:
-            key = "user_id"
-            value = self.request.user.pk
-        else:
-            if not self.request.session or not self.request.session.session_key:
-                LOG.debug("no session, make one")
-                self.request.session.save()
-            key = "session_id"
-            value = self.request.session.session_key
-        return {key: value}

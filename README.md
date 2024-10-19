@@ -411,11 +411,17 @@ authentication. In that case the OPDS url will look like:
 
 #### Supported OPDS Specifications
 
+##### OPDS v1
+
 - [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
 - [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
 - [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
 - [OpenSearch 1.1](https://github.com/dewitt/opensearch)
+
+##### OPDS v2
+
 - [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
+- [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 

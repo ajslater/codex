@@ -10,7 +10,9 @@ from codex.models import Comic
 from codex.settings.settings import FALSY
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_contributors, get_m2m_objects
-from codex.views.opds.v2.top_links import HrefData, LinkData, OPDS2TopLinksView
+from codex.views.opds.v2.href import HrefData
+from codex.views.opds.v2.links import LinkData
+from codex.views.opds.v2.top_links import OPDS2TopLinksView
 
 _MD_CONTRIBUTOR_MAP = MappingProxyType(
     {
@@ -154,11 +156,29 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             acq_href_data,
             mime_type=download_mime_type,
         )
+        prog_kwargs = {"group": "c", "pk": obj.pk}
+        prog_href_data = HrefData(prog_kwargs, url_name="opds:v2:position")
+
+        auth_href_data = HrefData({}, url_name="opds:authentication:v1")
+        auth_link_data = LinkData(
+            Rel.AUTHENTICATION,
+            auth_href_data,
+            mime_type=MimeType.AUTHENTICATION,
+        )
+        auth_link = self.link(auth_link_data)
+
+        prog_link_data = LinkData(
+            Rel.PROGRESSION,
+            prog_href_data,
+            mime_type=MimeType.PROGRESSION,
+            authenticate=auth_link,
+        )
         links = [
             # Comic streaming link (unsupported)
             # self.link(self_link_data),
             self.link(alt_link_data),
             self.link(acq_link_data),
+            self.link(prog_link_data),
         ]
         pub["links"] = links
 

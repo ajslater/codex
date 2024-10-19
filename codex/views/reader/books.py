@@ -6,6 +6,7 @@ from django.db.models import F
 from django.db.models.query import Q
 
 from codex.models import Bookmark, Comic
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
     FOLDER_GROUP,
@@ -14,7 +15,7 @@ from codex.views.const import (
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
-from codex.views.mixins import BookmarkAuthMixin, SharedAnnotationsMixin
+from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.reader.params import ReaderParamsView
 
 if TYPE_CHECKING:

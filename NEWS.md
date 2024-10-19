@@ -8,9 +8,14 @@ border-radius: 128px;
 
 ## v1.7.3
 
+- Features
+
+  - Support OPDS v2.0 Progression (streaming) draft proposal.
+
 - Fixes
 
   - Browser Group Mark Read/Unread obeys browser filters.
+  - Fixed an OPDS Metadata crash
 
 ## v1.7.2
 

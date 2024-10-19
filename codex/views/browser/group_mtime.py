@@ -46,8 +46,8 @@ class BrowserGroupMtimeView(BrowserFilterView):
         self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
     ):
         """Get filtered maximum bookmark updated_at relation."""
-        bm_rel = self._get_bm_rel(model)
-        bm_filter = self._get_my_bookmark_filter(bm_rel)
+        bm_rel = self.get_bm_rel(model)
+        bm_filter = self.get_my_bookmark_filter(bm_rel)
         bmua_rel = f"{bm_rel}__updated_at"
         args = {"default": default, "filter": bm_filter}
         if agg_func is JsonGroupArray:

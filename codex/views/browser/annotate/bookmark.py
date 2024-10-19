@@ -9,7 +9,7 @@ from django.db.models import (
 )
 from django.db.models.fields import BooleanField, PositiveSmallIntegerField
 from django.db.models.functions import Least
-from django.db.models.functions.comparison import Coalesce
+from django.db.models.functions.comparison import Coalesce, Greatest
 
 from codex.logger.logging import get_logger
 from codex.models import (
@@ -69,8 +69,8 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
     def annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
-        bm_rel = self._get_bm_rel(qs.model)
-        bm_filter = self._get_my_bookmark_filter(bm_rel)
+        bm_rel = self.get_bm_rel(qs.model)
+        bm_filter = self.get_my_bookmark_filter(bm_rel)
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
@@ -108,5 +108,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         # Page counts can be null with metadata turned off.
         # Least guard is for rare instances when bookmarks are set to
         # invalid high values
-        progress = Least(Coalesce(F("page"), 0) * 100.0 / F("page_count"), Value(100.0))
+        progress = Least(
+            Coalesce(F("page"), 0) * 100.0 / Greatest("page_count", 1), Value(100.0)
+        )
         return qs.annotate(progress=progress)
