@@ -11,6 +11,7 @@ border-radius: 128px;
 - Features
 
   - Support OPDS v2.0 Progression (streaming) draft proposal.
+  - Environment variable CODEX_SET_PROC_TITLE=1 will name processes & threads so you can see what process might be misbehaving.
 
 - Fixes
 
