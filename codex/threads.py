@@ -20,11 +20,11 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
         librarian_queue = kwargs.pop("librarian_queue")
         log_queue = kwargs.pop("log_queue")
         self.init_worker(log_queue, librarian_queue)
-        super().__init__(*args, **kwargs)
+        super().__init__(*args,  name=self.__class__.__name__, **kwargs)
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        self.log.debug(f"Started {self.__class__.__name__}")
+        self.log.debug(f"Started {self.name}")
 
 
 class QueuedThread(NamedThread, ABC):
@@ -36,7 +36,7 @@ class QueuedThread(NamedThread, ABC):
     def __init__(self, *args, **kwargs):
         """Initialize with overridden name and as a daemon thread."""
         self.queue = kwargs.pop("queue", SimpleQueue())
-        super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
+        super().__init__(*args, daemon=True, **kwargs)
 
     @abstractmethod
     def process_item(self, item):
