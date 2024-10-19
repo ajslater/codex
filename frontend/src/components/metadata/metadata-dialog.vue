@@ -11,16 +11,16 @@
         @click.prevent
       />
     </template>
+    <CloseButton
+      class="closeButton"
+      title="Close Metadata (esc)"
+      @click="dialog = false"
+    />
     <div
       v-if="showContainer"
       id="metadataContainer"
       @keyup.esc="dialog = false"
     >
-      <CloseButton
-        class="closeButton"
-        title="Close Metadata (esc)"
-        @click="dialog = false"
-      />
       <header id="metadataHeader">
         <MetadataText
           v-if="q"
