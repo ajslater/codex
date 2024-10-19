@@ -470,6 +470,15 @@ rebuild it. The database lives in the config directory as the file
 original database at `config/backups/codex.sqlite3.before-rebuild`. Codex will
 remove the `rebuild_db` file.
 
+### Warnings to Ignore
+
+#### StreamingHttpResponse Iterator Warning
+```
+packages/django/http/response.py:517: Warning: StreamingHttpResponse must consume synchronous iterators in order to serve them asynchronously. Use an asynchronous iterator instead.
+```
+
+This is a known warning and does not represent anything bad happening. It's an artifact of the Django framework slowly supporting asynchronous server endpoints and unfortunately isn't practical to remove yet. 
+
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing,
