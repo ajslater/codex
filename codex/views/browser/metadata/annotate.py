@@ -86,7 +86,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
 
         return filtered_qs, qs
 
-    def _annotate_values_and_fks(self, qs, filtered_qs):
+    def annotate_values_and_fks(self, qs, filtered_qs):
         """Annotate comic values and comic foreign key values."""
         # Simple Values
         querysets = (filtered_qs, qs)
