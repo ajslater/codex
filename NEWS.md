@@ -21,6 +21,7 @@ border-radius: 128px;
   - Fixed an OPDS Metadata crash
   - Fixed order by name for issues disregarding volume names in browser and
     reader.
+  - Fix display of name and filename on browser cards.
 
 ## v1.7.2
 

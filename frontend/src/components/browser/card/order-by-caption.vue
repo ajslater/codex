@@ -39,14 +39,10 @@ export default {
       let ov = this.item.orderValue;
       try {
         if (
-          this.orderBy === undefined ||
-          this.orderBy === null ||
-          (this.orderBy === "sort_name" &&
-            (this.item.group !== "c" || this.topGroup !== "f")) ||
-          (this.orderBy === "filename" && this.topGroup === "f") ||
+          [null, undefined, "sort_name"].has(this.orderBy) ||
+          (this.orderBy === "filename" && this.item.group !== "c") ||
           (this.orderBy === "story_arc_number" && this.item.group === "a") ||
-          ov === null ||
-          ov === undefined
+          [null, undefined].has(ov)
         ) {
           ov = "";
         } else if (DATE_SORT_BY.has(this.orderBy)) {
