@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Create large numbers of mocks comics."""
+
 import random
 import string
 import sys
@@ -303,7 +304,7 @@ def main(args):
         root = Path(args[1])
         num_comics = int(args[2])
     except Exception:
-        print(f"{args[0]} <path> <num_comics>" )
+        print(f"{args[0]} <path> <num_comics>")
         sys.exit(1)
 
     since = time.time()
