@@ -20,6 +20,8 @@ const TIME_SORT_BY = new Set([
   "created_at",
   "updated_at",
 ]);
+const HIDE_ORDER_BYS = new Set([null, undefined, "sort_name"]);
+const HIDE_ORDER_VALUES = new Set([null, undefined]);
 
 export default {
   name: "OrderByCaption",
@@ -39,10 +41,10 @@ export default {
       let ov = this.item.orderValue;
       try {
         if (
-          [null, undefined, "sort_name"].has(this.orderBy) ||
+          HIDE_ORDER_BYS.has(this.orderBy) ||
           (this.orderBy === "filename" && this.item.group !== "c") ||
           (this.orderBy === "story_arc_number" && this.item.group === "a") ||
-          [null, undefined].has(ov)
+          HIDE_ORDER_VALUES.has(ov)
         ) {
           ov = "";
         } else if (DATE_SORT_BY.has(this.orderBy)) {
