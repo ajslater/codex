@@ -243,7 +243,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if qs.model is Folder and self.order_key == "filename":
             order_value = F("name")
         elif qs.model is Comic:
-            order_key = "sort_name" if self.order_key == "child_count" else self.order_key
+            order_key = (
+                "sort_name" if self.order_key == "child_count" else self.order_key
+            )
             order_value = F(order_key)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotaions
