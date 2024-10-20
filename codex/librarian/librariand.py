@@ -4,7 +4,6 @@ from multiprocessing import Manager, Process
 from threading import active_count
 from types import MappingProxyType
 from typing import NamedTuple
-from codex.settings.settings import SET_PROC_TITLE
 
 from caseconverter import snakecase
 
@@ -43,6 +42,7 @@ from codex.librarian.watchdog.tasks import (
     WatchdogSyncTask,
 )
 from codex.logger_base import LoggerBaseMixin
+from codex.settings.settings import SET_PROC_TITLE
 
 
 class LibrarianDaemon(Process, LoggerBaseMixin):
@@ -160,7 +160,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         """Initialize threads."""
         if SET_PROC_TITLE:
             from setproctitle import setproctitle
-            setproctitle("Codex"+self.name)
+
+            setproctitle("Codex" + self.name)
         self.init_logger(self.log_queue)
         self.log.debug(f"Started {self.name}.")
         self.janitor = Janitor(self.log_queue, self.queue)
