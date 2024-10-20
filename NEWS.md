@@ -17,13 +17,13 @@ border-radius: 128px;
 
 - Fixes
 
-  - Batch import of Contributors better to prevent crash on large imports.
+  - Fix batching import of Contributors to prevent crash on large imports.
   - Browser Group Mark Read/Unread obeys browser filters.
   - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
-  - Fixed an OPDS Metadata crash
   - Fixed order by name for issues disregarding volume names in browser and
-    reader.
+    reader
   - Fix display of name and filename on browser cards.
+  - Fixed an OPDS Metadata crash.
 
 ## v1.7.2
 
