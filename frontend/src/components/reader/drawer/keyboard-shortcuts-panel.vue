@@ -1,5 +1,5 @@
 <template>
-  <v-expansion-panels v-if="!isMobile">
+  <v-expansion-panels v-if="!IS_MOBILE">
     <v-expansion-panel id="readerKeyboardShortcuts">
       <v-expansion-panel-title id="shortcutsTitle">
         <CodexListItem
@@ -17,11 +17,10 @@
 
 <script>
 import { mdiKeyboardOutline } from "@mdi/js";
-import { mapGetters } from "pinia";
 
 import CodexListItem from "@/components/codex-list-item.vue";
 import KeyboardShortcutsTable from "@/components/reader/drawer/keyboard-shortcuts-table.vue";
-import { useCommonStore } from "@/stores/common";
+import { IS_MOBILE } from "@/platform";
 
 export default {
   // eslint-disable-next-line no-secrets/no-secrets
@@ -33,10 +32,8 @@ export default {
   data() {
     return {
       mdiKeyboardOutline,
+      IS_MOBILE,
     };
-  },
-  computed: {
-    ...mapGetters(useCommonStore, ["isMobile"]),
   },
 };
 </script>
