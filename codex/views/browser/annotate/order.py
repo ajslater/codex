@@ -9,7 +9,7 @@ from django.db.models import (
     Q,
     Value,
 )
-from django.db.models.aggregates import Avg, Max, Min, Sum
+from django.db.models.aggregates import Avg, Count, Max, Min, Sum
 from django.db.models.fields import CharField
 from django.db.models.functions import Reverse, Right, StrIndex
 
@@ -33,6 +33,7 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # These are annotated to order_value because they're simple relations
     {
         "age_rating": Avg,
+        "child_count": Min,
         "community_rating": Avg,
         "created_at": Min,
         "critical_rating": Avg,
@@ -45,10 +46,11 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
 _ANNOTATED_ORDER_FIELDS = frozenset(
     # These are annotated with their own functions
     {
-        "filename",
-        "sort_name",
-        "search_score",
         "bookmark_updated_at",
+        "child_count",
+        "filename",
+        "search_score",
+        "sort_name",
         "story_arc_number",
     }
 )
@@ -71,6 +73,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         self._is_opds_acquisition: bool | None = None
         self._opds_acquisition_groups: frozenset[str] | None = None
         self.bmua_is_max = False
+        self._child_count_annotated = False
 
     @property
     def opds_acquisition_groups(self):
@@ -203,6 +206,35 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # This is used by the serializer to compute mtime
         return qs.annotate(bmua_is_max=Value(self.bmua_is_max))
 
+    def _annotate_search_scores(self, qs):
+        """Annotate Search Scores."""
+        if (
+            self.TARGET not in self._COVER_AND_CARD_TARGETS
+            or self.order_key != "search_score"
+        ):
+            return qs
+
+        # Rank is always the max of the relations, cannot aggregate?
+        # group by here fixes duplicates with story_arc, probably because it's a long relation
+        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
+
+    def annotate_child_count(self, qs):
+        """Annotate child count."""
+        if qs.model is Comic or self._child_count_annotated:
+            return qs
+        rel = self.rel_prefix + "pk"
+        count_func = Count(rel, distinct=True)
+        ann = {"child_count": count_func}
+        qs = qs.alias(**ann) if self.TARGET == "opds2" else qs.annotate(**ann)
+        self._child_count_annotated = True
+        return qs
+
+    def _annotate_order_child_count(self, qs):
+        """Annotate child count for order."""
+        if self.order_key != "child_count":
+            return qs
+        return self.annotate_child_count(qs)
+
     def annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""
         # Determine order func
@@ -210,7 +242,10 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         if qs.model is Folder and self.order_key == "filename":
             order_value = F("name")
-        elif qs.model is Comic or self.order_key in _ANNOTATED_ORDER_FIELDS:
+        elif qs.model is Comic:
+            order_key = "sort_name" if self.order_key == "child_count" else self.order_key
+            order_value = F(order_key)
+        elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotaions
             order_value = F(self.order_key)
         else:
@@ -225,18 +260,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
-    def _annotate_search_scores(self, qs):
-        """Annotate Search Scores."""
-        if (
-            self.TARGET not in self._COVER_AND_CARD_TARGETS
-            or self.order_key != "search_score"
-        ):
-            return qs
-
-        # Rank is always the max of the relations, cannot aggregate?
-        # group by here fixes duplicates with story_arc, probably because it's a long relation
-        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
-
     def annotate_order_aggregates(self, qs):
         """Annotate common aggregates between browser and metadata."""
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
@@ -246,6 +269,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._alias_story_arc_number(qs)
         qs = self._annotate_page_count(qs)
         qs = self._annotate_bookmark_updated_at(qs)
+        qs = self._annotate_order_child_count(qs)
         if qs.model is not Comic:
             # comic orders on indexed fields when it can
             qs = self.annotate_order_value(qs)

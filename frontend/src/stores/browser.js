@@ -122,6 +122,7 @@ export const useBrowserStore = defineStore("browser", {
       for (const item of BROWSER_CHOICES.orderBy) {
         if (
           (item.value === "path" && !state.page.adminFlags.folderView) ||
+          (item.value === "child_count" && state.page.modelGroup === "c") ||
           (item.value === "search_score" &&
             (!state.settings.q || !state.page.fts))
         ) {
@@ -552,7 +553,11 @@ export const useBrowserStore = defineStore("browser", {
           this.$patch((state) => {
             state.settings.breadcrumbs = breadcrumbs;
             state.page = page;
-            if (state.settings.orderBy === "search_score" && !page.fts) {
+            if (
+              (state.settings.orderBy === "search_score" && !page.fts) ||
+              (state.settings.orderBy === "child_count" &&
+                page.modelGroup === "c")
+            ) {
               state.settings.orderBy = "sort_name";
             }
             state.choices.dynamic = undefined;

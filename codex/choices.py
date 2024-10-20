@@ -12,17 +12,18 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
 )
 BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
-        "age_rating": "Age Rating",
-        "bookmark_updated_at": "Last Read",
-        "community_rating": "Community Rating",
         "created_at": "Added Time",
+        "age_rating": "Age Rating",
+        "child_count": "Child Count",
+        "community_rating": "Community Rating",
         "critical_rating": "Critical Rating",
-        "date": "Publish Date",
         "filename": "Filename",
-        "page_count": "Page Count",
-        "search_score": "Search Score",
         "size": "File Size",
+        "bookmark_updated_at": "Last Read",
         "sort_name": "Name",
+        "page_count": "Page Count",
+        "date": "Publish Date",
+        "search_score": "Search Score",
         "story_arc_number": "Story Arc Number",
         "updated_at": "Updated Time",
     }

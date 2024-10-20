@@ -19,7 +19,8 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         if not self._order_key:
             order_key: str = self.params["order_by"]
             if (order_key == "search_score" and not self.fts_mode) or (
-                order_key == "filename" and not self.admin_flags["folder_view"]
+                order_key == "filename" and not self.admin_flags["folder_view"] or
+                order_key == "child_count" and self.TARGET == "cover"
             ):
                 order_key = "sort_name"
             self._order_key = order_key
@@ -29,6 +30,8 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         """Order by for comics (and covers)."""
         if not order_key:
             order_key = self.order_key
+        if order_key == "child_count":
+            order_key = "sort_name"
         if order_key == "sort_name":
             if not comic_sort_names:
                 comic_sort_names = self._comic_sort_names
