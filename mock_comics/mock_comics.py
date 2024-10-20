@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Create large numbers of mocks comics."""
-
 import random
 import string
+import sys
 import time
 import zipfile
 from io import BytesIO
@@ -299,8 +299,12 @@ def create_file(root, index):
 
 def main(args):
     """Process args and create mock comics."""
-    root = Path(args[1])
-    num_comics = int(args[2])
+    try:
+        root = Path(args[1])
+        num_comics = int(args[2])
+    except Exception:
+        print(f"{args[0]} <path> <num_comics>" )
+        sys.exit(1)
 
     since = time.time()
     index = 0
@@ -314,6 +318,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    import sys
-
     main(sys.argv)
