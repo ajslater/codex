@@ -109,13 +109,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs.model is StoryArc and self.order_key == "story_arc_number"
         ):
             return qs
+        group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
-        show = MappingProxyType(self.params["show"])  # type: ignore
+        show = MappingProxyType(self.params["show"])
         # TODO too many annotations for order?
         #   Move other annotations to card.
         #   eager publisher for imprint of course
         sort_name_annotations = self.get_sort_name_annotations(
-            qs.model, self.model_group, pks, show
+            qs.model, group, pks, show
         )
         if sort_name_annotations:
             qs = qs.alias(**sort_name_annotations)

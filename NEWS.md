@@ -11,13 +11,16 @@ border-radius: 128px;
 - Features
 
   - Support OPDS v2.0 Progression (streaming) draft proposal.
-  - Environment variable CODEX_SET_PROC_TITLE=1 will name processes & threads so you can see what process might be misbehaving.
+  - Environment variable CODEX_SET_PROC_TITLE=1 will name processes & threads so
+    you can see what process might be misbehaving.
 
 - Fixes
 
   - Browser Group Mark Read/Unread obeys browser filters.
   - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
   - Fixed an OPDS Metadata crash
+  - Fixed order by name for issues disregarding volume names in browser and
+    reader.
 
 ## v1.7.2
 

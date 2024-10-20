@@ -79,10 +79,10 @@ class ReaderBooksView(SharedAnnotationsMixin, BookmarkAuthMixin, ReaderParamsVie
         """Get ordering for query."""
         sort_name_annotations = {}
         if arc_group in ("v", "s"):
+            parent_group = "i" if arc_group == "s" else "s"
             show = self.params["show"]
-            model_group = "i" if arc_group == "s" else "s"
             sort_name_annotations = self.get_sort_name_annotations(
-                model, model_group, arc_pks, show
+                model, parent_group, arc_pks, show
             )
             if sort_name_annotations and model is Comic:
                 ordering += (*sort_name_annotations.keys(),)
