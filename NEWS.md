@@ -23,6 +23,7 @@ border-radius: 128px;
   - Fixed order by name for issues disregarding volume names in browser and
     reader.
   - Fix display of name and filename on browser cards.
+  - Batch import of Contributors better to prevent crash on large imports.
 
 ## v1.7.2
 
