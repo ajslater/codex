@@ -488,12 +488,6 @@ export default {
   right: 20px;
 }
 
-.closeButton {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-}
-
 #metadataContainer {
   display: flex;
   flex-direction: column;

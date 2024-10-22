@@ -170,16 +170,6 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.run_loop = True
         self.log.info(f"{self.name} ready for tasks.")
 
-    def _startup(self):
-        """Initialize threads."""
-        self.init_logger(self.log_queue)
-        self.log.debug(f"Started {self.__class__.__name__}.")
-        self.janitor = Janitor(self.log_queue, self.queue)
-        self._create_threads()  # can't do this in init.
-        self._start_threads()
-        self.run_loop = True
-        self.log.info(f"{self.__class__.__name__} ready for tasks.")
-
     def _stop_threads(self):
         """Stop all librarian's threads."""
         self.log.debug(f"{self.name} stopping all threads...")
@@ -204,19 +194,6 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.queue.close()
         self.queue.join_thread()
         self.log.info(f"{self.name} finished.")
-        self.log_queue.close()
-        self.log_queue.join_thread()
-
-    def _shutdown(self):
-        """Shutdown threads and queues."""
-        self._reversed_threads = reversed(self._threads)
-        self._stop_threads()
-        self._join_threads()
-        while not self.queue.empty():
-            self.queue.get_nowait()
-        self.queue.close()
-        self.queue.join_thread()
-        self.log.info(f"{self.__class__.__name__} finished.")
         self.log_queue.close()
         self.log_queue.join_thread()
 
