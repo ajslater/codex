@@ -10,21 +10,21 @@ border-radius: 128px;
 
 - Features
 
-  - Support OPDS v2.0 Progression (streaming) draft proposal.
-  - Environment variable CODEX_SET_PROC_TITLE=1 will name processes & threads so
-    you can see what process might be misbehaving.
   - Order By Child Count.
   - Customized site title option in Admin Flags.
   - Old Codex logs are now compressed every night.
+  - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.
+  - Experimental environment variable CODEX_SET_PROC_TITLE=1 will name processes
+    & threads so you can see what process might be misbehaving.
 
 - Fixes
 
-  - Fix batching import of Contributors to prevent crash on large imports.
   - Browser Group Mark Read/Unread obeys browser filters.
   - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
   - Fixed order by name for issues disregarding volume names in browser and
     reader
   - Fix display of name and filename on browser cards.
+  - Fix batching import of Contributors to prevent crash on large imports.
   - Fixed an OPDS Metadata crash.
 
 ## v1.7.2
