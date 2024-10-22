@@ -1,7 +1,5 @@
 """Bookmark filter view methods."""
 
-from typing import TYPE_CHECKING
-
 from django.db.models import Q
 
 from codex.views.bookmark import BookmarkFilterMixin

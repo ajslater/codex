@@ -45,7 +45,7 @@ class DownloadView(AuthFilterAPIView):
         filename = comic.get_filename()
         return FileResponse(
             comic_file,
-            as_attachment=self._AS_ATTACHMENT,
+            as_attachment=self.AS_ATTACHMENT,
             content_type=content_type,
             filename=filename,
         )
@@ -54,4 +54,4 @@ class DownloadView(AuthFilterAPIView):
 class FileView(DownloadView):
     """View a single comic in the browser."""
 
-    _AS_ATTACHMENT = False
+    AS_ATTACHMENT = False
