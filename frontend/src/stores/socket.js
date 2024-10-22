@@ -3,13 +3,13 @@ import { defineStore } from "pinia";
 
 import { messages } from "@/choices/websocket-messages.json";
 import router from "@/plugins/router";
-import { useAdminStore } from "@/stores/admin";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 import { store } from "@/stores/store";
 
-const libraryChanged = function () {
+const libraryChanged = function (adminStore) {
   useCommonStore().setTimestamp();
   const routeName = router?.currentRoute?.value?.name;
   switch (routeName) {
@@ -20,16 +20,24 @@ const libraryChanged = function () {
       useReaderStore().loadMtimes();
       break;
     case "admin-libraries":
-      useAdminStore().loadTables(["Library", "FailedImport"]);
+      if (adminStore) {
+        adminStore.loadTables(["Library", "FailedImport"]);
+      }
       break;
     case "admin-users":
-      useAdminStore().loadTables(["User"]);
+      if (adminStore) {
+        adminStore.loadTables(["User"]);
+      }
       break;
     case "admin-groups":
-      useAdminStore().loadTables(["Group"]);
+      if (adminStore) {
+        adminStore.loadTables(["Group"]);
+      }
       break;
     case "admin-stats":
-      useAdminStore().loadStats();
+      if (adminStore) {
+        adminStore.loadStats();
+      }
       break;
   }
 };
@@ -43,6 +51,21 @@ export const useSocketStore = defineStore("socket", {
     heartBeatInterval: 5 * 1000,
     heartBeatTimer: 0,
   }),
+  getters: {
+    adminStore() {
+      // Only load the admin store if the user is an admin.
+      let adminStore;
+      if (useAuthStore().isUserAdmin) {
+        import("@/stores/admin")
+          .then((adminModule) => {
+            adminStore = adminModule.useAdminStore();
+            return adminStore;
+          })
+          .catch(console.error);
+      }
+      return adminStore;
+    },
+  },
   actions: {
     SOCKET_ONOPEN(event) {
       this.app.config.globalProperties.$socket = event.currentTarget;
@@ -82,15 +105,19 @@ export const useSocketStore = defineStore("socket", {
 
       switch (message) {
         case messages.LIBRARY_CHANGED:
-          libraryChanged();
+          libraryChanged(this.adminStore);
 
           break;
         case messages.LIBRARIAN_STATUS:
-          useAdminStore().loadTable("LibrarianStatus");
+          if (this.adminStore) {
+            this.adminStore.loadTable("LibrarianStatus");
+          }
 
           break;
         case messages.FAILED_IMPORTS:
-          useAdminStore().unseenFailedImports = true;
+          if (this.adminStore) {
+            this.adminStore.unseenFailedImports = true;
+          }
 
           break;
         default:
