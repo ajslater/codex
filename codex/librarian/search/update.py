@@ -206,7 +206,9 @@ class FTSUpdateMixin(RemoveMixin):
                 batch_start = time()
                 batch_to = batch_from + SEARCH_INDEX_BATCH_SIZE
                 comics_batch = comics_qs[batch_from:batch_to]
-                self.log.debug(f"Checking {comics_batch.count()}/{count} comics for search index operations...")
+                self.log.debug(
+                    f"Checking {comics_batch.count()}/{count} comics for search index operations..."
+                )
                 if self.abort_event.is_set():
                     break
                 operate_comicfts = self._get_comicfts_list(comics_batch, create)

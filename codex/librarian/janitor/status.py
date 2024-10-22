@@ -20,3 +20,4 @@ class JanitorStatusTypes(Choices):
     INTEGRITY_CHECK = "JIC"
     FTS_INTEGRITY_CHECK = "JFC"
     FTS_REBUILD = "JFR"
+    COMPRESS_LOGS = "JCL"
