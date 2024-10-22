@@ -39,6 +39,7 @@ class AdminFlag(BaseModel):
         AUTO_UPDATE = "AU"
         IMPORT_METADATA = "IM"
         SEND_TELEMETRY = "ST"
+        BANNER_TEXT = "BT"
 
     FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
 
@@ -48,6 +49,7 @@ class AdminFlag(BaseModel):
         choices=FlagChoices.choices,
     )
     on = BooleanField(default=True)
+    value = CharField(max_length=32, default="", blank=True)
 
     class Meta(BaseModel.Meta):
         """Constraints."""
@@ -88,10 +90,9 @@ class Timestamp(BaseModel):
     class TimestampChoices(TextChoices):
         """Choices for Timestamps."""
 
-        JANITOR = "JA", _("Janitor")
-        CODEX_VERSION = "VR", _("Codex Version")
-        SEARCH_INDEX_UUID = "SI", _("Search Index UUID")
         API_KEY = "AP", _("API Key")
+        CODEX_VERSION = "VR", _("Codex Version")
+        JANITOR = "JA", _("Janitor")
         TELEMETER_SENT = "TS", _("Telemeter Sent")
 
     key = CharField(

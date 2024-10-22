@@ -39,7 +39,7 @@ export default {
     ...mapState(useAuthStore, {
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapGetters(useAuthStore, ["isAuthorized", "isBanner"]),
     ...mapGetters(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
@@ -59,10 +59,18 @@ export default {
       isSearchOpen: (state) => state.isSearchOpen,
     }),
     browsePaneClasses() {
-      return {
+      const classes = {
         padFooter: this.numPages > 1,
-        browsePaneSearch: this.isSearchOpen,
       };
+      let marginClass = "browsePane";
+      if (this.isSearchOpen) {
+        marginClass += "Search";
+      }
+      if (this.isBanner) {
+        marginClass += "Banner";
+      }
+      classes[marginClass] = true;
+      return classes;
     },
     showBrowseItems() {
       return (
@@ -96,21 +104,33 @@ export default {
 @use "sass:map";
 @use "../book-cover" as bookcover;
 
-$top-toolbar-margin: 94px;
+$top-toolbar-margin: 102px;
 $card-margin: 32px;
 $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
 
 #browsePane {
-  margin-top: $browse-pane-margin-top;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));
   margin-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: auto;
 }
 
+.browsePane {
+  margin-top: $browse-pane-margin-top;
+}
+
 .browsePaneSearch {
   margin-top: calc($browse-pane-margin-top + 32px) !important;
 }
+
+.browsePaneBanner {
+  margin-top: calc(20px + $browse-pane-margin-top) !important;
+}
+
+.browsePaneSearchBanner {
+  margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
+}
+
 
 #browsePaneContainer {
   margin-top: $card-margin;

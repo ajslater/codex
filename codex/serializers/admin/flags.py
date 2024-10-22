@@ -11,5 +11,5 @@ class AdminFlagSerializer(BaseModelSerializer):
         """Specify Model."""
 
         model = AdminFlag
-        fields = ("key", "on")
+        fields = ("key", "on", "value")
         read_only_fields = ("key",)

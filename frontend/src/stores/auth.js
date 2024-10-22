@@ -10,6 +10,7 @@ export const useAuthStore = defineStore("auth", {
     adminFlags: {
       registration: undefined,
       nonUsers: undefined,
+      bannerText: undefined,
     },
     user: undefined,
     MIN_PASSWORD_LENGTH: 4,
@@ -30,6 +31,9 @@ export const useAuthStore = defineStore("auth", {
     },
     isAuthDialogOpen() {
       return this.showLoginDialog || this.showChangePasswordDialog;
+    },
+    isBanner(state) {
+      return Boolean(state.adminFlags.bannerText);
     },
   },
   actions: {

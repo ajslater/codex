@@ -1,5 +1,6 @@
 <template>
   <v-main v-if="isAuthorized" id="httpError">
+    <AppBanner />
     <h1 id="httpCode">
       {{ code }}
     </h1>
@@ -16,6 +17,7 @@
 <script>
 import { mapGetters } from "pinia";
 
+import AppBanner from "@/components/banner.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 
@@ -30,6 +32,7 @@ Object.freeze(TITLES);
 export default {
   name: "HttpError",
   components: {
+    AppBanner,
     Unauthorized,
   },
   data() {
@@ -54,12 +57,14 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
+
 #httpError {
   padding-top: max(20px, env(safe-area-inset-top));
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
-  padding-bottom: max(20px,env(safe-area-inset-bottom));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
+
 #httpCode,
 #title,
 #link {
@@ -67,14 +72,17 @@ export default {
   left: 50%;
   transform: translateX(-50%) translateY(-25%);
 }
+
 #httpCode,
 #title {
   top: 25%;
 }
+
 #httpCode {
   z-index: 100;
   padding-top: 1em;
 }
+
 #title {
   text-align: center;
   font-size: 6vw;
@@ -83,9 +91,11 @@ export default {
   fill: rgb(var(--v-theme-textDisabled));
   opacity: 25%;
 }
+
 #link {
   bottom: 50%;
 }
+
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #title {
     font-size: 32vw;

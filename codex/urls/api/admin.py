@@ -19,6 +19,7 @@ from codex.views.admin.tasks import (
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
 READ = {"get": "list"}
+RETRIEVE = {"get": "retrieve"}
 CREATE = {"post": "create"}
 UPDATE = {"put": "partial_update"}
 DELETE = {"delete": "destroy"}

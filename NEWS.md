@@ -14,6 +14,7 @@ border-radius: 128px;
   - Environment variable CODEX_SET_PROC_TITLE=1 will name processes & threads so
     you can see what process might be misbehaving.
   - Order By Child Count.
+  - Customized site title option in Admin Flags.
   - Old Codex logs are now compressed every night.
 
 - Fixes

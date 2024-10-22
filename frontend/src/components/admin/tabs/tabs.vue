@@ -1,60 +1,41 @@
 <template>
-  <div id="tabContainer">
-    <v-tabs
-      class="adminTabs"
-      grow
-      show-arrows
-      :class="{ drawerMargin: !mdAndDown }"
-    >
-      <v-tab
-        v-for="tab in tabs"
-        :key="tab"
-        v-model="activeTab"
-        :to="tab.toLowerCase()"
-      >
-        {{ tab }}
-      </v-tab>
-    </v-tabs>
-    <v-window id="tabItems" v-model="activeTab" :touch="false">
-      <router-view v-for="tab in tabs" :key="tab" v-slot="{ Component }">
-        <v-window-item :value="tab" class="tabItemContainer">
-          <component :is="Component" />
-        </v-window-item>
-      </router-view>
-    </v-window>
-    <div v-if="!doNormalComicLibrariesExist" id="noLibraries">
-      Codex has no libraries. Select the Libraries tab and add a comic library.
-    </div>
+  <v-window v-model="activeTab" :class="classes" :touch="false">
+    <router-view v-for="tab in TABS" :key="tab" v-slot="{ Component }">
+      <v-window-item :value="tab" class="tabItemContainer">
+        <component :is="Component" />
+      </v-window-item>
+    </router-view>
+  </v-window>
+  <div v-if="!doNormalComicLibrariesExist" id="noLibraries">
+    Codex has no libraries. Select the Libraries tab and add a comic library.
   </div>
 </template>
 
 <script>
-import { capitalCase } from "change-case-all";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import { useAdminStore } from "@/stores/admin";
+import { TABS, useAdminStore } from "@/stores/admin";
+import { useAuthStore } from "@/stores/auth";
 export default {
   name: "AdminTabs",
   data() {
     return {
-      activeTab: "Libraries",
-      tabs: ["Users", "Groups", "Libraries", "Flags", "Tasks", "Stats"],
+      TABS,
     };
   },
   computed: {
     ...mapGetters(useAdminStore, ["doNormalComicLibrariesExist"]),
+    ...mapGetters(useAuthStore, ["isBanner"]),
     ...mapState(useAdminStore, {
       librariesLoaded: (state) => Boolean(state.libraries),
+      activeTab: (state) => state.activeTab,
     }),
-    mdAndDown() {
-      return this.$vuetify.display.mdAndDown;
-    },
-  },
-  watch: {
-    $route(to) {
-      const parts = to.path.split("/");
-      const lastPart = parts.at(-1);
-      this.activeTab = capitalCase(lastPart);
+    classes() {
+      let marginClass = "tabItems";
+      if (this.isBanner) {
+        marginClass += "Banner";
+      }
+      return { [marginClass]: true };
     },
   },
   mounted() {
@@ -69,26 +50,16 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#tabContainer {
-  padding-top: 48px;
-}
-
-.adminTabs {
-  position: fixed;
-  width: 100%;
-  z-index: 10;
-  background-color: rgb(var(--v-theme-surface));
-}
-
-:deep(.tabHeader) {
-  padding: 10px;
-}
-
 $task-width: 256px;
+$header-top: 92px;
+$header-top-margin: calc($header-top + 24px);
 
-#tabItems {
-  margin-top: 54px;
+.tabItems {
+  margin-top: $header-top-margin;
+}
 
+.tabItemsBanner {
+  margin-top: calc(20px + $header-top-margin);
 }
 
 .tabItemContainer {
@@ -104,7 +75,8 @@ $task-width: 256px;
   padding: 1em;
 }
 
-.drawerMargin {
-  width: calc(100% - 256px) !important;
+:deep(.tabHeader) {
+  // In each tab not here.
+  margin-bottom: 20px;
 }
 </style>

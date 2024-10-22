@@ -11,6 +11,7 @@ import { store } from "@/stores/store";
 
 const libraryChanged = function (adminStore) {
   useCommonStore().setTimestamp();
+  useAuthStore().loadAdminFlags();
   const routeName = router?.currentRoute?.value?.name;
   switch (routeName) {
     case "browser":
@@ -37,6 +38,11 @@ const libraryChanged = function (adminStore) {
     case "admin-stats":
       if (adminStore) {
         adminStore.loadStats();
+      }
+      break;
+    case "admin-flags":
+      if (adminStore) {
+        adminStore.loadTables(["Flag"]);
       }
       break;
   }

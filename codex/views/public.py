@@ -13,6 +13,7 @@ _ADMIN_FLAG_KEYS = frozenset(
     {
         AdminFlag.FlagChoices.NON_USERS.value,
         AdminFlag.FlagChoices.REGISTRATION.value,
+        AdminFlag.FlagChoices.BANNER_TEXT.value,
     }
 )
 
@@ -21,16 +22,22 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     """Get admin flags relevant to auth."""
 
     serializer_class = AuthAdminFlagsSerializer
-    queryset = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only("key", "on")
+    queryset = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only(
+        "key", "on", "value"
+    )
 
     def get_object(self):
         """Get admin flags."""
         flags = {}
         for obj in self.get_queryset():  # type: ignore
             name = ADMIN_FLAG_CHOICES[obj.key].lower().replace(" ", "_")
-            flags[name] = obj.on
+            if obj.key == AdminFlag.FlagChoices.BANNER_TEXT.value:
+                val = obj.value
+            else:
+                val = obj.on
+            flags[name] = val
         return flags
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get admin flags relevant to auth."""
-        return self.retrieve(request, *args, **kwargs)
+        return self.retrieve(*args, **kwargs)
