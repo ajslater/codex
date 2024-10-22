@@ -255,7 +255,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../../../anchors.scss";
+@forward "../../../anchors";
 
 #browserSearchTextContainer {
   padding: auto;

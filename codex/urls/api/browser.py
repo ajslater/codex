@@ -4,10 +4,11 @@ from django.urls import path
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 
 from codex.urls.const import BROWSER_TIMEOUT, COVER_MAX_AGE, PAGE_MAX_AGE
-from codex.views.bookmark import BookmarkView
+from codex.views.browser.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.cover import CoverView
+from codex.views.browser.download import GroupDownloadView
 from codex.views.browser.metadata.metadata import MetadataView
 from codex.views.browser.settings import BrowserSettingsView
 
@@ -54,5 +55,13 @@ urlpatterns = [
         "<int_list:pks>/cover.webp",
         cache_control(max_age=COVER_MAX_AGE, public=True)(CoverView.as_view()),
         name="cover",
+    ),
+    #
+    #
+    # Download
+    path(
+        "<int_list:pks>/download/<str:filename>",
+        GroupDownloadView.as_view(),
+        name="download",
     ),
 ]

@@ -6,6 +6,49 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.3
+
+- Features
+
+  - Order By Child Count.
+  - Customized site title option in Admin Flags.
+  - Old Codex logs are now compressed every night.
+  - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.
+  - Experimental environment variable CODEX_SET_PROC_TITLE=1 will name processes
+    & threads so you can see what process might be misbehaving.
+
+- Fixes
+
+  - Browser Group Mark Read/Unread obeys browser filters.
+  - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
+  - Fixed order by name for issues disregarding volume names in browser and
+    reader
+  - Fix display of name and filename on browser cards.
+  - Fix batching import of Contributors to prevent crash on large imports.
+  - Fixed an OPDS Metadata crash.
+
+## v1.7.2
+
+- Features
+
+  - Download entire groups of comics from the browser and metadata screens.
+
+- Fixes
+
+  - Fix reader page API sometimes crashing.
+
+## v1.7.1
+
+- Features
+
+  - Always display filename for comics on browser cards in Folder View
+  - Detect .jxl extension (JPEG XL) as a comic page.
+
+- Fixes
+
+  - Fix ignoring MacOS resource forks in archives.
+  - Don't redirect to issue view on first search in Folder View
+
 ## v1.7.0
 
 - Features

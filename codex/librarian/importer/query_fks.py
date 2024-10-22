@@ -96,7 +96,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         if extra_fields:
             fields += extra_fields
         flat = len(fields) == 1 and fk_cls != Publisher
-        qs = fk_cls.objects.filter(fk_filter).values_list(*fields, flat=flat)
+        qs = fk_cls.objects.filter(fk_filter).distinct().values_list(*fields, flat=flat)
         return frozenset(qs)
 
     def _query_create_metadata(  # noqa: PLR0913
@@ -449,7 +449,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
         # Build combined query object from the value_filter
         model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
-        if model == Identifier:
+        if model in (Identifier, Contributor):
             for filter_and_prefix, value_filter in query_filter_map.items():
                 self._query_create_metadata(
                     model,

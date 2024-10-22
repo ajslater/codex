@@ -1,6 +1,6 @@
 <template>
   <v-main v-if="isAuthorized" id="browser">
-    <BrowserHeadToolbars />
+    <BrowserHeader />
     <BrowserMain />
     <BrowserNavToolbar />
     <BrowserSettingsDrawer />
@@ -11,9 +11,9 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import BrowserHeader from "@/components/browser/browser-header.vue";
 import BrowserSettingsDrawer from "@/components/browser/drawer/browser-settings-drawer.vue";
 import BrowserMain from "@/components/browser/main.vue";
-import BrowserHeadToolbars from "@/components/browser/toolbars/browser-toolbars-head.vue";
 import BrowserNavToolbar from "@/components/browser/toolbars/nav/browser-toolbar-nav.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -22,7 +22,7 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "MainBrowser",
   components: {
-    BrowserHeadToolbars,
+    BrowserHeader,
     BrowserMain,
     BrowserNavToolbar,
     BrowserSettingsDrawer,

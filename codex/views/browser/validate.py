@@ -1,14 +1,16 @@
 """Browser Settings and URL Validation."""
 
+from collections.abc import Mapping
 from copy import deepcopy
 from types import MappingProxyType
 
 from rest_framework.exceptions import NotFound
 
-from codex.choices import DEFAULT_BROWSER_ROUTE, mapping_to_dict
+from codex.choices import DEFAULT_BROWSER_ROUTE
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models.groups import BrowserGroupModel
+from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
 from codex.views.const import (
     COMIC_GROUP,
@@ -67,12 +69,14 @@ class BrowserValidateView(SearchFilterView):
             self._rel_prefix = self.get_rel_prefix(self.model)
         return self._rel_prefix
 
-    def raise_redirect(self, reason, route_mask=None, settings_mask=None):
+    def raise_redirect(
+        self, reason, route_mask=None, settings_mask: Mapping | None = None
+    ):
         """Redirect the client to a valid group url."""
         route = mapping_to_dict(self.DEFAULT_ROUTE)
         if route_mask:
             route["params"].update(route_mask)  # type: ignore
-        settings = deepcopy(dict(self.params))
+        settings: dict = deepcopy(mapping_to_dict(self.params))  # type: ignore
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}

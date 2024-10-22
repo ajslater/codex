@@ -1,6 +1,6 @@
 <template>
   <div v-if="user">
-    <DrawerItem
+    <CodexListItem
       :prepend-icon="mdiLogout"
       :title="logoutTitle"
       @click.stop="logout"
@@ -16,7 +16,7 @@ import { mapActions, mapState } from "pinia";
 
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
@@ -24,7 +24,7 @@ export default {
   components: {
     AuthLoginDialog,
     ChangePasswordDialog,
-    DrawerItem,
+    CodexListItem,
   },
   props: {
     showChangePassword: {

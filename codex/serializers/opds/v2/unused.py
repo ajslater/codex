@@ -3,7 +3,7 @@
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
 
-from codex.serializers.opds.v2 import OPDS2LinkListField
+from codex.serializers.opds.v2.links import OPDS2LinkListField
 
 
 class RecursiveField(Serializer):

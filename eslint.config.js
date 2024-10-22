@@ -138,8 +138,15 @@ export default [
   },
   {
     files: ["**/*.md/*.sh"],
+    processor: "markdown/markdown",
     rules: {
       "prettier/prettier": ["error", { parser: "sh" }],
+    },
+  },
+  {
+    files: ["**/*.md/*.toml"],
+    rules: {
+      "prettier/prettier": ["error", { parser: "toml" }],
     },
   },
   {

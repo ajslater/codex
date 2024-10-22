@@ -32,7 +32,7 @@
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
           :title-text="`Poll for updated ${itemName}s`"
-          :object-name="item.path"
+          :text="item.path"
           :confirm-text="pollConfirmText(item)"
           :size="iconSize"
           density="compact"
@@ -41,7 +41,7 @@
         <ConfirmDialog
           :icon="mdiDatabaseSyncOutline"
           :title-text="`Force update every ${itemName}`"
-          :object-name="item.path"
+          :text="item.path"
           confirm-text="Force Update"
           :size="iconSize"
           density="compact"

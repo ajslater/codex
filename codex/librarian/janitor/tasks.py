@@ -81,7 +81,7 @@ class JanitorForeignKeyCheck(JanitorTask):
 class JanitorIntegrityCheck(JanitorTask):
     """Check integrity and warn."""
 
-    long: bool = False
+    long: bool = True
 
 
 @dataclass
@@ -107,3 +107,8 @@ class JanitorAdoptOrphanFoldersFinishedTask(JanitorTask):
 @dataclass
 class JanitorSearchOptimizeFinishedTask(JanitorTask):
     """Signals to the Janitor that the Search Optimize task is finished."""
+
+
+@dataclass
+class JanitorCompressOldLogs(JanitorTask):
+    """Compress old logs."""

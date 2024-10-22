@@ -1,6 +1,6 @@
 <template>
   <v-main v-if="isUserAdmin">
-    <AdminTitleToolbar />
+    <AdminHeader />
     <AdminTabs />
     <AdminSettingsDrawer />
   </v-main>
@@ -11,7 +11,7 @@
 import { mdiLogin } from "@mdi/js";
 import { mapGetters } from "pinia";
 
-import AdminTitleToolbar from "@/components/admin/admin-title-toolbar.vue";
+import AdminHeader from "@/components/admin/admin-header.vue";
 import AdminSettingsDrawer from "@/components/admin/drawer/admin-settings-drawer.vue";
 import AdminTabs from "@/components/admin/tabs/tabs.vue";
 import Unauthorized from "@/components/unauthorized.vue";
@@ -20,9 +20,9 @@ import { useAuthStore } from "@/stores/auth";
 export default {
   name: "MainAdmin",
   components: {
-    AdminTitleToolbar,
-    AdminTabs,
+    AdminHeader,
     AdminSettingsDrawer,
+    AdminTabs,
     Unauthorized,
   },
   data() {

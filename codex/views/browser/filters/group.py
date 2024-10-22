@@ -27,6 +27,8 @@ class GroupFilterView(BrowserParamsView):
         elif target in _PK_REL_TARGETS or page_mtime:
             # metadata, mtime, browser.page_mtime
             rel = "pk"
+        elif target == "download":
+            rel = "comic__folders" if group == "f" else "pk"
         else:
             # browser.group, opds
             rel = GROUP_RELATION[group]

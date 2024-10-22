@@ -1,16 +1,20 @@
 <template>
+  <h4 class="readerSettingsHeader">Comic Settings Scope</h4>
   <v-radio-group
     v-model="isGlobalScope"
-    class="scopeRadioButton readerDrawerItem"
+    class="scopeRadioGroup readerCodexListItem"
     density="compact"
-    label="Scope"
     hide-details="auto"
   >
-    <v-radio label="Only this comic" :value="false" />
-    <v-radio label="Default for all comics" :value="true" />
+    <v-radio
+      v-for="item of scopeItems"
+      :key="item.value"
+      :label="item.title"
+      :value="item.value"
+    />
   </v-radio-group>
   <v-expand-transition>
-    <div id="readerScopedSettings" class="readerDrawerItem">
+    <div id="readerScopedSettings" class="readerCodexListItem">
       <v-radio-group
         class="displayRadioGroup"
         density="compact"
@@ -72,8 +76,9 @@
     </div>
   </v-expand-transition>
   <v-divider />
+  <h4 class="readerSettingsHeader">Reader Settings</h4>
   <v-checkbox
-    class="readerDrawerItem"
+    class="readerCodexListItem"
     :model-value="finishOnLastPage"
     density="compact"
     label="Finish Book On Last Page"
@@ -83,7 +88,7 @@
   />
   <v-checkbox
     :model-value="selectedSettings.readRtlInReverse"
-    class="readerDrawerItem"
+    class="readerCodexListItem"
     density="compact"
     label="Read RTL Comics as LTR"
     hide-details="auto"
@@ -96,7 +101,7 @@
       text: 'Cache all pages from this book in the browser',
     }"
     :model-value="cacheBook"
-    class="readerDrawerItem cacheBook"
+    class="readerCodexListItem cacheBook"
     density="compact"
     :disabled="disableCacheBook"
     label="Cache Entire Book"
@@ -105,7 +110,7 @@
     @update:model-value="setSettingsClient({ cacheBook: $event })"
   />
   <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
-  <DrawerItem
+  <CodexListItem
     v-if="pdfInBrowserURL"
     :prepend-icon="mdiEye"
     :append-icon="mdiOpenInNew"
@@ -120,7 +125,7 @@ import { mdiEye, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getPDFInBrowserURL } from "@/api/v3/reader";
-import DrawerItem from "@/components/drawer-item.vue";
+import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 const ATTRS = ["fitTo", "readingDirection", "twoPages"];
@@ -128,13 +133,17 @@ Object.freeze(ATTRS);
 
 export default {
   name: "ReaderSettingsPanel",
-  components: { DrawerItem },
+  components: { CodexListItem },
   data() {
     return {
       isGlobalScope: false,
       mdiOpenInNew,
       mdiEye,
       openDelay: 2000,
+      scopeItems: [
+        { title: "Only this comic", value: false },
+        { title: "Default for all comics", value: true },
+      ],
     };
   },
   computed: {
@@ -270,18 +279,26 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.scopeRadioButton {
+.readerSettingsHeader {
   padding-top: 10px;
+  color: rgb(var(--v-theme-textDisabled));
+  padding-left: 15px;
 }
 
-.readerDrawerItem {
+.scopeRadioGroup {
+  padding-top: 10px;
+  padding-bottom: 4px;
+}
+
+.readerCodexListItem {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
 }
 
 .displayTwoPages {
-  margin-top: 5px;
-  margin-bottom: 10px;
+  padding-left: 6px;
+  padding-top: 5px;
+  padding-bottom: 10px;
 }
 
 #clearSettingsButton {
@@ -290,9 +307,7 @@ export default {
 }
 
 #readerScopedSettings {
-  // halfway between background (18) and surface (33) color
-  background-color: rgb(25, 25, 25); //rgba(var(--v-theme-surface));
-  margin-top: 4px;
+  background-color: rgba(var(--v-theme-surface));
   margin-left: 10px;
   padding-left: 5px;
   padding-top: 4px;

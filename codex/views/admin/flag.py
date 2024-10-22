@@ -13,7 +13,11 @@ LOG = get_logger(__name__)
 
 _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value
-    for flag in (AdminFlag.FlagChoices.FOLDER_VIEW, AdminFlag.FlagChoices.NON_USERS)
+    for flag in (
+        AdminFlag.FlagChoices.FOLDER_VIEW,
+        AdminFlag.FlagChoices.NON_USERS,
+        AdminFlag.FlagChoices.BANNER_TEXT,
+    )
 )
 
 

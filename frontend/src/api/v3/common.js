@@ -92,7 +92,8 @@ export const getDownloadIOSPWAFix = (href, filename) => {
       link.href = window.URL.createObjectURL(blob);
       link.download = filename;
       link.click();
-      return window.URL.revokeObjectURL(response.data);
+      window.URL.revokeObjectURL(response.data);
+      return link.remove();
     })
     .catch(console.warn);
 };
@@ -110,12 +111,9 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
-const updateGroupBookmarks = ({ group, ids }, data) => {
-  if (data.fitTo === null) {
-    data.fitTo = "";
-  }
-  const pks = ids.join(",");
-  return HTTP.patch(`${group}/${pks}/bookmark`, data);
+const getBanner = () => {
+  const params = serializeParams();
+  return HTTP.get("/banner", { params });
 };
 
 export default {
@@ -123,5 +121,5 @@ export default {
   getMtime,
   getOPDSURLs,
   getVersions,
-  updateGroupBookmarks,
+  getBanner,
 };

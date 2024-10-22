@@ -277,23 +277,24 @@ def _is_integrity_ok(results):
     )
 
 
-def integrity_check(long=False, log=None):
+def integrity_check(long=True, log=None):
     """Run sqlite3 integrity check."""
-    pragma = "integrity_check" if long else "quick_check"
-    sql = _PRAGMA_TMPL % pragma
-    results = _exec_sql(sql)
-
     if not log:
         log = LOG
+    pragma = "integrity_check" if long else "quick_check"
+    sql = _PRAGMA_TMPL % pragma
+    log.debug(f"Running database '{sql}'...")
+    results = _exec_sql(sql)
 
     if _is_integrity_ok(results):
-        length = "thorough" if long else "quick"
-        log.info(f"Database passed {length} integrity check.")
+        length = "" if long else "quick "
+        log.info(f"Database passed {length}integrity check.")
     else:
-        log.error(
-            "Database integrity compromised. See the README for database rebuild instructions."
+        log.warning(f"Database '{sql}' returned results:")
+        log.warning(results)
+        log.warning(
+            "See the README for database rebuild instructions if the above warning looks severe."
         )
-        log.error(results)
 
 
 def fts_rebuild(log=None):
@@ -341,7 +342,7 @@ class IntegrityMixin(WorkerBaseMixin):
 
     def integrity_check(self, long=False):
         """Integrity check task."""
-        subtitle = "Thorough" if long else "Quick"
+        subtitle = "" if long else "Quick"
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
         try:
             self.status_controller.start(status)

@@ -71,8 +71,7 @@ def _repair_db():
     if FIX_FOREIGN_KEYS:
         fix_foreign_keys()
     if INTEGRITY_CHECK:
-        long = INTEGRITY_CHECK == "full"
-        integrity_check(long)
+        integrity_check()
     success = fts_integrity_check() if FTS_INTEGRITY_CHECK else True
     if FTS_REBUILD or not success:
         fts_rebuild()

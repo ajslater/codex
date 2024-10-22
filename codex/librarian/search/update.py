@@ -114,7 +114,7 @@ class FTSUpdateMixin(RemoveMixin):
             return ""
         return ",".join((iso_code, field_instance.to_representation(iso_code)))
 
-    def _get_comicts_fts_list(
+    def _get_comics_fts_list(
         self, comics, country_field, language_field, obj_list, create
     ):
         """Prepare a batch of search entries."""
@@ -157,6 +157,7 @@ class FTSUpdateMixin(RemoveMixin):
             if create:
                 comicfts.created_at = now
             obj_list.append(comicfts)
+            self.log.debug(f"{len(obj_list)}/{comics.count()} entries prepped.")
 
     def _get_comicfts_list(self, comics, create=False):
         """Create a ComicFTS object for bulk_create or bulk_update."""
@@ -164,7 +165,7 @@ class FTSUpdateMixin(RemoveMixin):
         language_field = LanguageField()
         obj_list = []
         comics = self._annotate_fts_query(comics)
-        self._get_comicts_fts_list(
+        self._get_comics_fts_list(
             comics, country_field, language_field, obj_list, create
         )
         return obj_list
@@ -205,11 +206,14 @@ class FTSUpdateMixin(RemoveMixin):
                 batch_start = time()
                 batch_to = batch_from + SEARCH_INDEX_BATCH_SIZE
                 comics_batch = comics_qs[batch_from:batch_to]
-
+                self.log.debug(
+                    f"Checking {comics_batch.count()}/{count} comics for search index operations..."
+                )
                 if self.abort_event.is_set():
                     break
                 operate_comicfts = self._get_comicfts_list(comics_batch, create)
                 operate_comicfts_count = len(operate_comicfts)
+                self.log.debug(f"{verb}ing {operate_comicfts_count} search entries...")
                 if self.abort_event.is_set():
                     break
                 if create:
@@ -223,7 +227,7 @@ class FTSUpdateMixin(RemoveMixin):
                 batch_time = time() - batch_start
                 eps = round(count / batch_time)
                 self.log.debug(
-                    f"{verb} {count}/{operate_comicfts_count} search entries in {batch_time}, {eps} per second."
+                    f"{verb} {operate_comicfts_count}/{count} search entries in {batch_time}, {eps} per second."
                 )
                 batch_from = batch_to
         finally:

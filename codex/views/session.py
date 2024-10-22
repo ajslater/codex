@@ -4,8 +4,9 @@ from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
 
-from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS, mapping_to_dict
+from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS
 from codex.logger.logging import get_logger
+from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
 

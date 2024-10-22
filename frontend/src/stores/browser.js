@@ -27,13 +27,15 @@ const DEFAULT_BOOKMARK_VALUES = new Set([
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
+const NO_REDIRECT_ON_SEARCH_GROUPS = new Set(["a", "c", "f"]);
+Object.freeze(NO_REDIRECT_ON_SEARCH_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
 const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse", "q"];
 Object.freeze(DYNAMIC_COVER_KEYS);
-const CHOICES_KEYS = ["filters", "q"];
-Object.freeze(CHOICES_KEYS);
+const FILTER_ONLY_KEYS = ["filters", "q"];
+Object.freeze(FILTER_ONLY_KEYS);
 const PAGE_LOAD_KEYS = ["breadcrumbs"];
 Object.freeze(PAGE_LOAD_KEYS);
 const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
@@ -120,6 +122,7 @@ export const useBrowserStore = defineStore("browser", {
       for (const item of BROWSER_CHOICES.orderBy) {
         if (
           (item.value === "path" && !state.page.adminFlags.folderView) ||
+          (item.value === "child_count" && state.page.modelGroup === "c") ||
           (item.value === "search_score" &&
             (!state.settings.q || !state.page.fts))
         ) {
@@ -213,8 +216,8 @@ export const useBrowserStore = defineStore("browser", {
       }
       return settings;
     },
-    choicesSettings(state) {
-      return this._filterSettings(state, CHOICES_KEYS);
+    filterOnlySettings(state) {
+      return this._filterSettings(state, FILTER_ONLY_KEYS);
     },
     pageLoadSettings(state) {
       return this._filterSettings(state, PAGE_LOAD_KEYS);
@@ -297,9 +300,10 @@ export const useBrowserStore = defineStore("browser", {
       data.orderBy = "search_score";
       data.orderReverse = true;
       const group = router.currentRoute.value.params?.group;
-      const noRedirectGroups = new Set(ALWAYS_ENABLED_TOP_GROUPS);
-      noRedirectGroups.add(this.lowestShownGroup);
-      if (noRedirectGroups.has(group)) {
+      if (
+        NO_REDIRECT_ON_SEARCH_GROUPS.has(group) ||
+        group === this.lowestShownGroup
+      ) {
         return;
       }
       return { params: { group: this.lowestShownGroup, pks: "0", page: "1" } };
@@ -309,14 +313,18 @@ export const useBrowserStore = defineStore("browser", {
       // top group is above the proper nav group
       const oldTopGroup = this.settings.topGroup;
       const newTopGroup = data.topGroup;
+      const currentParams = router?.currentRoute?.value?.params;
       if (
         (!oldTopGroup && newTopGroup) ||
         !newTopGroup ||
-        oldTopGroup === newTopGroup
+        oldTopGroup === newTopGroup ||
+        newTopGroup === currentParams?.group
       ) {
         // First url, initializing settings.
         // or
         // topGroup didn't change.
+        // or
+        // topGroup and group are the same, request is well formed.
         return redirect;
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
@@ -331,7 +339,7 @@ export const useBrowserStore = defineStore("browser", {
         if (oldTopGroupIndex < newTopGroupIndex) {
           // new top group is a parent (REVERSED)
           // Signal that we need new breadcrumbs. we do that by redirecting in place?
-          params = router.currentRoute.value.params;
+          params = currentParams;
           // Make a numeric page so won't trigger the redirect remover and will always
           // redirect so we repopulate breadcrumbs
           params.page = +params.page;
@@ -422,7 +430,9 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
-      await COMMON_API.updateGroupBookmarks(params, { finished }).then(() => {
+      await API.updateGroupBookmarks(params, this.filterOnlySettings, {
+        finished,
+      }).then(() => {
         this.loadBrowserPage(getTimestamp());
         return true;
       });
@@ -543,7 +553,11 @@ export const useBrowserStore = defineStore("browser", {
           this.$patch((state) => {
             state.settings.breadcrumbs = breadcrumbs;
             state.page = page;
-            if (state.settings.orderBy === "search_score" && !page.fts) {
+            if (
+              (state.settings.orderBy === "search_score" && !page.fts) ||
+              (state.settings.orderBy === "child_count" &&
+                page.modelGroup === "c")
+            ) {
               state.settings.orderBy = "sort_name";
             }
             state.choices.dynamic = undefined;
@@ -561,7 +575,7 @@ export const useBrowserStore = defineStore("browser", {
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
-        this.choicesSettings,
+        this.filterOnlySettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -574,7 +588,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getFilterChoices(
         router.currentRoute.value.params,
         fieldName,
-        this.choicesSettings,
+        this.filterOnlySettings,
         this.page.mtime,
       )
         .then((response) => {
@@ -591,7 +605,10 @@ export const useBrowserStore = defineStore("browser", {
       const group =
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
       const pks = params?.pks || "0";
-      return await COMMON_API.getMtime([{ group, pks }], this.choicesSettings)
+      return await COMMON_API.getMtime(
+        [{ group, pks }],
+        this.filterOnlySettings,
+      )
         .then((response) => {
           const newMtime = response?.data?.maxMtime;
           if (newMtime !== this.page.mtime) {

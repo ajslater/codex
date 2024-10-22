@@ -1,6 +1,5 @@
 """Frontend Choices, Defaults and Messages."""
 
-from collections.abc import Mapping
 from types import MappingProxyType
 
 BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
@@ -13,17 +12,18 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
 )
 BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
-        "age_rating": "Age Rating",
-        "bookmark_updated_at": "Last Read",
-        "community_rating": "Community Rating",
         "created_at": "Added Time",
+        "age_rating": "Age Rating",
+        "child_count": "Child Count",
+        "community_rating": "Community Rating",
         "critical_rating": "Critical Rating",
-        "date": "Publish Date",
         "filename": "Filename",
-        "page_count": "Page Count",
-        "search_score": "Search Score",
         "size": "File Size",
+        "bookmark_updated_at": "Last Read",
         "sort_name": "Name",
+        "page_count": "Page Count",
+        "date": "Publish Date",
+        "search_score": "Search Score",
         "story_arc_number": "Story Arc Number",
         "updated_at": "Updated Time",
     }
@@ -117,6 +117,7 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         "NU": "Non Users",
         "RG": "Registration",
         "ST": "Send Stats",
+        "BT": "Banner Text",
     }
 )
 
@@ -160,6 +161,7 @@ ADMIN_STATUS_TITLES = MappingProxyType(
         "JLV": "Check Codex Latest Version",
         "JSD": "Cleanup Expired Sessions",
         "JTD": "Cleanup Stale Tags",
+        "JCL": "Compress Logs",
         "SIC": "Search Index Create",
         "SID": "Search Index Remove Stale Records",
         "SIO": "Search Index Optimize",
@@ -287,14 +289,9 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Check for and remove illegal foreign keys. Mark affected comics for update. Runs nightly.",
                     },
                     {
-                        "value": "db_integrity_check_quick",
-                        "title": "Check Database Integrity Quickly",
+                        "value": "db_integrity_check",
+                        "title": "Check Database Integrity",
                         "desc": "Check logs for results. Runs nightly.",
-                    },
-                    {
-                        "value": "db_integrity_check_long",
-                        "title": "Check Database Integrity Thoroughly",
-                        "desc": "Check logs for results.",
                         "confirm": "Can take a while on large databases, Are you sure?",
                     },
                 ],
@@ -381,6 +378,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Mark all Librarian tasks finished.",
                     },
                     {
+                        "value": "compress_logs",
+                        "title": "Compress Old Logs",
+                        "desc": "Compress old Codex logs. Runs nightly.",
+                    },
+                    {
                         "value": "janitor_nightly",
                         "title": "Run Nightly Maintenance",
                         "desc": "Runs several tasks above that also run nightly.",
@@ -413,12 +415,3 @@ WEBSOCKET_MESSAGES = MappingProxyType(
     }
 )
 DUMMY_NULL_NAME = "_none_"
-
-
-def mapping_to_dict(data):
-    """Convert nested Mapping objects to dicts."""
-    if isinstance(data, Mapping):
-        return {key: mapping_to_dict(value) for key, value in data.items()}
-    if isinstance(data, list | tuple | frozenset | set):
-        return [mapping_to_dict(item) for item in data]
-    return data

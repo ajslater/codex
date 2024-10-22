@@ -1,49 +1,51 @@
 <template>
   <v-slide-y-transition>
-    <v-toolbar
-      v-show="showToolbars"
-      id="readerToolbarTop"
-      density="compact"
-      :extension-height="extensionHeight"
-    >
-      <v-toolbar-items>
-        <v-btn
-          ref="closeBook"
-          class="closeBook"
-          :to="closeRoute"
-          size="large"
-          density="compact"
-          variant="plain"
-          @click="onCloseBook"
-        >
-          close book
-        </v-btn>
-      </v-toolbar-items>
-      <v-spacer />
-      <v-toolbar-items v-if="!empty">
-        <ReaderArcSelect />
-        <MetadataDialog
-          ref="metadataDialog"
-          group="c"
-          :toolbar="true"
-          :book="currentBook"
-        />
-      </v-toolbar-items>
-      <v-toolbar-items>
-        <SettingsDrawerButton />
-      </v-toolbar-items>
-      <template v-if="title" #extension>
-        <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
-        <v-toolbar-title class="readerTitle">
-          <div id="title">
-            {{ title }}
-          </div>
-          <div v-if="subtitle" id="subtitle">
-            {{ subtitle }}
-          </div>
-        </v-toolbar-title>
-      </template>
-    </v-toolbar>
+    <header v-show="showToolbars" id="readerTopToolbarHeader">
+      <AppBanner />
+      <v-toolbar
+        id="readerToolbarTop"
+        density="compact"
+        :extension-height="extensionHeight"
+      >
+        <v-toolbar-items>
+          <v-btn
+            ref="closeBook"
+            class="closeBook"
+            :to="closeRoute"
+            size="large"
+            density="compact"
+            variant="plain"
+            @click="onCloseBook"
+          >
+            close book
+          </v-btn>
+        </v-toolbar-items>
+        <v-spacer />
+        <v-toolbar-items v-if="!empty">
+          <ReaderArcSelect />
+          <MetadataDialog
+            ref="metadataDialog"
+            group="c"
+            :toolbar="true"
+            :book="currentBook"
+          />
+        </v-toolbar-items>
+        <v-toolbar-items>
+          <SettingsDrawerButton />
+        </v-toolbar-items>
+        <template v-if="title" #extension>
+          <!-- eslint-disable-next-line vue/no-v-text-v-html-on-component,vue/no-v-html -->
+          <v-toolbar-title class="readerTitle">
+            <div id="title">
+              {{ title }}
+            </div>
+            <div v-if="subtitle" id="subtitle">
+              {{ subtitle }}
+            </div>
+          </v-toolbar-title>
+        </template>
+      </v-toolbar>
+    </header>
   </v-slide-y-transition>
 </template>
 
@@ -52,6 +54,7 @@ import { mdiClose } from "@mdi/js";
 import deepClone from "deep-clone";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import AppBanner from "@/components/banner.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -62,6 +65,7 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "ReaderTitleToolbar",
   components: {
+    AppBanner,
     MetadataDialog,
     ReaderArcSelect,
     SettingsDrawerButton,
@@ -164,15 +168,17 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
+#readerTopToolbarHeader {
+  position: fixed;
+  width: 100%;
+  z-index: 20;
+}
 
 #readerToolbarTop {
-  position: fixed;
-  top: 0px;
-  width: 100%;
-  padding-top: env(safe-area-inset-top);
   padding-left: 0px; // given to button;
   padding-right: 0px; // given to button.
-  z-index: 20;
 }
 
 .closeBook {
@@ -201,7 +207,7 @@ export default {
   padding-bottom: 10px;
 }
 
-@media #{map-get(vuetify.$display-breakpoints, 'xs')} {
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
   .closeBook {
     padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
   }

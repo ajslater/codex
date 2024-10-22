@@ -2,8 +2,8 @@
   "description": "linting for top level codex project & django backend",
   "type": "module",
   "scripts": {
-    "fix": "eslint_d --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache . && prettier --check . && bin/prettier-nginx.sh --check",
+    "fix": "eslint --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
+    "lint": "eslint --cache . && prettier --check . && bin/prettier-nginx.sh --check",
     "remark-check": "remark .",
     "remark-fix": "remark . --output"
   },
@@ -48,10 +48,7 @@
       "preset-lint-recommended",
       "preset-lint-markdown-style-guide",
       "preset-prettier"
-    ],
-    "settings": {
-      "ignorePath": ".gitignore"
-    }
+    ]
   },
   "devDependencies": {
     "@fsouza/prettierd": "^0.25.0",

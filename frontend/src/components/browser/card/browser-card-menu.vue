@@ -11,36 +11,32 @@
         @click.prevent
       />
     </template>
-    <div class="background-soft-highlight">
-      <v-list-item
-        v-if="item.group === 'c'"
-        :title="markReadText"
-        @click="toggleRead"
+    <v-list class="background-soft-highlight">
+      <MarkReadItem class="listItem" :item="item" />
+      <DownloadButton
+        :group="item?.group"
+        :pks="item?.ids"
+        :children="children"
+        :names="downloadNames"
+        :ts="item?.mtime"
+        class="listItem"
+        :button="false"
       />
-      <ConfirmDialog
-        v-else
-        :button-text="markReadText"
-        :title-text="markReadText"
-        :confirm-text="confirmText"
-        :object-name="itemName"
-        @confirm="toggleRead"
-        @cancel="showMenu = false"
-      />
-    </div>
+    </v-list>
   </v-menu>
 </template>
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
 
-import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { useBrowserStore } from "@/stores/browser";
+import MarkReadItem from "@/components/browser/card/mark-read-item.vue";
+import DownloadButton from "@/components/download-button.vue";
 
 export default {
   name: "BrowserContainerMenu",
   components: {
-    ConfirmDialog,
+    DownloadButton,
+    MarkReadItem,
   },
   props: {
     item: {
@@ -55,37 +51,26 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      groupNames: (state) => state.choices.static.groupNames,
-    }),
-    verb() {
-      return this.item.finished ? "Unread" : "Read";
+    children() {
+      return this.item?.childCount || 1;
     },
-    confirmText() {
-      return `Mark ${this.verb}`;
+    groupNames() {
+      return [
+        this.item?.publisherName,
+        this.item?.imprintName,
+        this.item?.seriesName,
+        this.item?.volumeName,
+        this.item?.name,
+      ];
     },
-    markReadText() {
-      const words = ["Mark"];
-      if (this.item.group != "c") {
-        words.push("Entire");
-      }
-      let groupName = this.groupNames[this.item.group];
-      if (this.item.group !== "s") {
-        groupName = groupName.slice(0, -1);
-      }
-      words.push(groupName, this.verb);
-      return words.join(" ");
-    },
-    itemName() {
-      return this.item.name ? this.item.name : "(Empty)";
-    },
-  },
-  methods: {
-    ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
-    toggleRead: function () {
-      this.setBookmarkFinished(this.item, !this.item.finished);
-      this.showMenu = false;
+    downloadNames() {
+      return this.item?.fileName ? [this.item?.fileName] : this.groupNames;
     },
   },
 };
 </script>
+<style scoped lang="scss">
+:deep(.v-icon) {
+  color: rgb(var(--v-theme-textDisabled));
+}
+</style>

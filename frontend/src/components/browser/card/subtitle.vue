@@ -1,5 +1,8 @@
 <template>
   <div class="browserLink cardSubtitle text-caption">
+    <div v-if="fileName" class="fileName">
+      {{ fileName }}
+    </div>
     <div v-if="seriesName" class="seriesCaption">
       {{ seriesName }}
     </div>
@@ -35,7 +38,8 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      orderByName: (state) => state.settings.orderBy == "sort_name",
+      orderByFilename: (state) => state.settings.orderBy === "filename",
+      orderByName: (state) => state.settings.orderBy === "sort_name",
       topGroup: (state) => state.settings.topGroup,
       showSeries: (state) => state.settings.show["s"],
       showVolume: (state) => state.settings.show["v"],
@@ -61,7 +65,7 @@ export default {
       }
       return false;
     },
-    headerName: function () {
+    headerName() {
       let hn;
       switch (this.item.group) {
         case "i":
@@ -84,12 +88,19 @@ export default {
       }
       return hn;
     },
-    displayName: function () {
+    displayName() {
       return this.item.group === "v"
         ? formattedVolumeName(this.item.name)
         : this.item.name;
     },
-    linkLabel: function () {
+    fileName() {
+      if (this.topGroup === "f" && !this.orderByFilename) {
+        return this.item.fileName;
+      } else {
+        return "";
+      }
+    },
+    linkLabel() {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
       label += " " + this.headerName;
@@ -104,18 +115,23 @@ export default {
   width: 100%;
   text-align: center;
 }
-.seriesCaption, .volumeCaption {
+
+.seriesCaption,
+.volumeCaption {
   color: rgb(var(--v-theme-textDisabled));
   text-align: center;
 }
+
 .headerName {
   padding-top: 5px;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 .headerName,
 .displayName {
   overflow-wrap: break-word;
 }
+
 .displayName {
   min-height: 1em;
 }

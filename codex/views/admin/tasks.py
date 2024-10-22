@@ -23,6 +23,7 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
+    JanitorCompressOldLogs,
     JanitorForeignKeyCheck,
     JanitorFTSIntegrityCheck,
     JanitorFTSRebuildTask,
@@ -73,8 +74,7 @@ _TASK_MAP = MappingProxyType(
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
         "db_foreign_key_check": JanitorForeignKeyCheck(),
-        "db_integrity_check_quick": JanitorIntegrityCheck(),
-        "db_integrity_check_long": JanitorIntegrityCheck(True),
+        "db_integrity_check": JanitorIntegrityCheck(),
         "db_fts_integrity_check": JanitorFTSIntegrityCheck(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
         "watchdog_sync": WatchdogSyncTask(),
@@ -96,6 +96,7 @@ _TASK_MAP = MappingProxyType(
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
         "adopt_folders": AdoptOrphanFoldersTask(),
+        "compress_logs": JanitorCompressOldLogs(),
     }
 )
 

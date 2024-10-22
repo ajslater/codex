@@ -1,15 +1,1 @@
-.circleci
-.git
-.mypy_cache
-.pytest_cache
-.venv*
-/config
-/node_modules
-/test-results
-__pycache__
-cache
-codex/_vendor/haystack
-codex/static_build
-codex/static_root
-comics
-templates
+.gitignore

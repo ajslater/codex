@@ -81,8 +81,6 @@ before installing Codex.
 
 ...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
-<!-- eslint-skip -->
-
 ```sh
 apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
@@ -92,15 +90,11 @@ and versions of your distribution. If the package versions listed in the example
 above are not available, try searching for ones that are with `apt-cache` or
 `aptitude`.
 
-<!-- eslint-skip -->
-
 ```sh
 apt-cache search libjpeg-turbo
 ```
 
 ###### <a href="alpine">Alpine</a> Dependencies
-
-<!-- eslint-skip -->
 
 ```sh
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
@@ -118,8 +112,6 @@ Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15+
 
 Using [Homebrew](https://brew.sh/):
 
-<!-- eslint-skip -->
-
 ```sh
 brew install jpeg libffi libyaml libzip openssl python sqlite unrar webp
 ```
@@ -136,8 +128,6 @@ Dependencies Installation Document</a>.
 
 Once you have installed codex, the codex binary should be on your path. To start
 codex, run:
-
-<!-- eslint-skip -->
 
 ```sh
 codex
@@ -184,15 +174,11 @@ If you forget all your superuser passwords, you may restore the original default
 admin account by running codex with the `CODEX_RESET_ADMIN` environment variable
 set.
 
-<!-- eslint-skip -->
-
 ```sh
 CODEX_RESET_ADMIN=1 codex
 ```
 
 or, if using Docker:
-
-<!-- eslint-skip -->
 
 ```sh
 docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/codex
@@ -253,8 +239,6 @@ a default one to that directory on startup.
 
 The default values for the config options are:
 
-<!-- eslint-skip -->
-
 ```toml
 bind = ["0.0.0.0:9810"]
 quick_bind = ["0.0.0.0:9810"]
@@ -277,10 +261,7 @@ index, a Django cache and comic book cover thumbnails.
   when codex starts.
 - `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
   keys on startup.
-- `CODEX_INTEGRITY_CHECK=1` will perform a quick full database integrity check
-  on startup.
-- `CODEX_INTEGRITY_CHECK=full` will perform a more thorough database integrity
-  check on startup.
+- `CODEX_INTEGRITY_CHECK=1` will perform database integrity check on startup.
 - `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
   search index.
 - `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
@@ -315,8 +296,6 @@ to 2 queries per second.
 
 Here's an example nginx config with a subpath named '/codex'.
 
-<!-- eslint-skip -->
-
 ```nginx
 # HTTP
 proxy_set_header   Host $http_host;
@@ -340,8 +319,6 @@ proxy_set_header Connection "Upgrade" location /codex {
 ```
 
 Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
-
-<!-- eslint-skip -->
 
 ```toml
 root_path = "/codex"
@@ -414,11 +391,17 @@ authentication. In that case the OPDS url will look like:
 
 #### Supported OPDS Specifications
 
+##### OPDS v1
+
 - [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
 - [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
 - [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
 - [OpenSearch 1.1](https://github.com/dewitt/opensearch)
+
+##### OPDS v2
+
 - [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
+- [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
@@ -431,9 +414,7 @@ You can change how much codex logs by setting the `LOGLEVEL` environment
 variable. By default this level is `INFO`. To see more verbose messages, run
 codex like:
 
-<!-- eslint-skip -->
-
-```bash
+```sh
 LOGLEVEL=DEBUG codex
 ```
 
@@ -453,8 +434,6 @@ If the database becomes corrupt, Codex includes a facility to rebuild the
 database. Place a file named `rebuild_db` in your Codex config directory like
 so:
 
-<!-- eslint-skip -->
-
 ```sh
 touch config/rebuild_db
 ```
@@ -466,6 +445,18 @@ rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
 original database at `config/backups/codex.sqlite3.before-rebuild`. Codex will
 remove the `rebuild_db` file.
+
+### Warnings to Ignore
+
+#### StreamingHttpResponse Iterator Warning
+
+```pycon
+packages/django/http/response.py:517: Warning: StreamingHttpResponse must consume synchronous iterators in order to serve them asynchronously. Use an asynchronous iterator instead.
+```
+
+This is a known warning and does not represent anything bad happening. It's an
+artifact of the Django framework slowly supporting asynchronous server endpoints
+and unfortunately isn't practical to remove yet.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 

@@ -21,6 +21,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
+    file_name = CharField(read_only=True)
     name = CharField(read_only=True)
     issue_number = DecimalField(
         max_digits=16,

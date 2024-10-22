@@ -14,7 +14,8 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings.settings import FALSY
-from codex.views.bookmark import BookmarkBaseView
+from codex.views.auth import AuthFilterAPIView
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.util import chunker
 
 LOG = get_logger(__name__)
@@ -42,7 +43,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         return (renderer, renderer.media_type)
 
 
-class ReaderPageView(BookmarkBaseView):
+class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     """Display a comic page from the archive itself."""
 
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
@@ -59,30 +60,34 @@ class ReaderPageView(BookmarkBaseView):
             return
 
         auth_filter = self.get_bookmark_auth_filter()
-        pk = self.kwargs.get("pk")
-        comic_filter = {"pk": pk}
+        comic_pks = (self.kwargs.get("pk"),)
         page = self.kwargs.get("page")
         updates = {"page": page}
 
-        task = BookmarkUpdateTask(auth_filter, comic_filter, updates)
+        task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
     def _get_page_image(self):
         """Get the image data and content type."""
+        # Get comic - Distinct is important
         group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
+        qs = Comic.objects.filter(group_acl_filter).only("path", "file_type").distinct()
         pk = self.kwargs.get("pk")
-        comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
+        comic = qs.get(pk=pk)
+
+        # page_image
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
-        if comic.file_type == FileType.PDF.value and not to_pixmap:
-            content_type = _PDF_MIME_TYPE
-        else:
-            content_type = self.content_type
-
         with Comicbox(comic.path) as cb:
             page_image = cb.get_page_by_index(page, to_pixmap=to_pixmap)
         if not page_image:
             page_image = b""
+
+        # content type
+        if comic.file_type == FileType.PDF.value and not to_pixmap:
+            content_type = _PDF_MIME_TYPE
+        else:
+            content_type = self.content_type
 
         return page_image, content_type
 

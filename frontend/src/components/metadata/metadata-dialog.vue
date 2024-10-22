@@ -11,16 +11,16 @@
         @click.prevent
       />
     </template>
+    <CloseButton
+      class="closeButton"
+      title="Close Metadata (esc)"
+      @click="dialog = false"
+    />
     <div
       v-if="showContainer"
       id="metadataContainer"
       @keyup.esc="dialog = false"
     >
-      <CloseButton
-        class="closeButton"
-        title="Close Metadata (esc)"
-        @click="dialog = false"
-      />
       <header id="metadataHeader">
         <MetadataText
           v-if="q"
@@ -208,17 +208,15 @@
         </section>
       </div>
       <footer id="footerLinks">
-        <v-btn
-          v-if="group === 'c'"
+        <DownloadButton
           id="downloadButton"
-          title="Download Comic Archive"
-          @click="download"
-        >
-          <v-icon v-if="group === 'c'">
-            {{ mdiDownload }}
-          </v-icon>
-          Download
-        </v-btn>
+          :button="true"
+          :group="downloadGroup"
+          :pks="downloadPks"
+          :children="children"
+          :names="downloadNames"
+          :ts="md.mtime"
+        />
         <v-btn
           v-if="isReadButtonShown"
           :to="readerRoute"
@@ -246,11 +244,10 @@ import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import { getDownloadIOSPWAFix } from "@/api/v3/common";
-import { getDownloadURL } from "@/api/v3/reader";
-import { formattedIssue, getFullComicName } from "@/comic-name";
+import { formattedIssue } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
 import CloseButton from "@/components/close-button.vue";
+import DownloadButton from "@/components/download-button.vue";
 import MetadataContributorsTable from "@/components/metadata/contributors-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
@@ -272,6 +269,7 @@ export default {
   components: {
     BookCover,
     CloseButton,
+    DownloadButton,
     MetadataContributorsTable,
     MetadataTags,
     MetadataText,
@@ -310,12 +308,10 @@ export default {
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
       identifierTypes: (state) => state.choices.static.identifierType,
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
+      q: (state) => state.settings.q,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
-    }),
-    ...mapState(useBrowserStore, {
-      q: (state) => state.settings.q,
     }),
     showContainer() {
       return this.md?.loaded || false;
@@ -323,30 +319,27 @@ export default {
     buttonVariant() {
       return this.toolbar ? "plain" : "text";
     },
-    downloadURL() {
-      if (this.book) {
-        return getDownloadURL(this.book);
-      } else {
-        return "";
-      }
+    downloadGroup() {
+      return this.md.group;
     },
-    downloadFilename() {
+    downloadPks() {
+      return this.md.ids;
+    },
+    downloadNames() {
       const md = this.md;
       if (!md) {
-        return "Unknown.cbz";
+        return ["Unknown.cbz"];
+      } else if (md.fileName) {
+        return [md.fileName];
+      } else {
+        return [
+          this.firstNameFromList(md.publisherList),
+          this.firstNameFromList(md.imprintList),
+          this.firstNameFromList(md.seriesList),
+          this.firstNameFromList(md.volumeList),
+          this.md.name,
+        ];
       }
-      if (md.filename) {
-        return md.filename;
-      }
-      const basename = getFullComicName({
-        seriesName: this.firstNameFromList(md.seriesList),
-        volumeName: this.firstNameFromList(md.volumeList),
-        issueNumber: md.issueNumber,
-        issueSuffix: md.issueSuffix,
-      });
-      const suffix = "." + this.fileType.toLowerCase();
-      const filename = basename + suffix;
-      return filename;
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
@@ -469,9 +462,6 @@ export default {
     formatDateTime(ds) {
       return getDateTime(ds, this.twentyFourHourTime);
     },
-    download() {
-      getDownloadIOSPWAFix(this.downloadURL, this.downloadFilename);
-    },
     firstNameFromList(list) {
       let name = "";
       if (list) {
@@ -490,6 +480,13 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
+.closeButton {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
 
 .closeButton {
   position: fixed;
@@ -604,7 +601,7 @@ export default {
   display: inline-flex;
 }
 
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
     font-size: 12px;
   }

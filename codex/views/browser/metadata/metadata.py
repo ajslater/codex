@@ -54,7 +54,7 @@ class MetadataView(MetadataCopyIntersectionsView):
         # Annotate
         qs = self.annotate_order_aggregates(qs)
         qs = self.annotate_card_aggregates(qs)
-        qs = self._annotate_values_and_fks(qs, filtered_qs)
+        qs = self.annotate_values_and_fks(qs, filtered_qs)
         qs = self.add_group_by(qs)
         qs = self.force_inner_joins(qs)
 

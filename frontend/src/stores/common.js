@@ -48,15 +48,6 @@ export const useCommonStore = defineStore("common", {
     isSettingsDrawerOpen: false,
     opdsURLs: undefined,
   }),
-  getters: {
-    isMobile: function () {
-      // Probably janky mobile detection
-      return (
-        window.orientation !== undefined ||
-        navigator.userAgent.includes("IEMobile")
-      );
-    },
-  },
   actions: {
     async loadVersions() {
       await API.getVersions(this.timestamp)

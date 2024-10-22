@@ -6,7 +6,7 @@ from django.http import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 
-from codex.models import Comic
+from codex.models.comic import Comic
 from codex.views.auth import AuthFilterAPIView
 
 
@@ -15,7 +15,7 @@ class DownloadView(AuthFilterAPIView):
 
     content_type = "application/vnd.comicbook+zip"
 
-    _AS_ATTACHMENT = True
+    AS_ATTACHMENT = True
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *_args, **kwargs):
@@ -52,6 +52,6 @@ class DownloadView(AuthFilterAPIView):
 
 
 class FileView(DownloadView):
-    """View a comic in the browser."""
+    """View a single comic in the browser."""
 
     _AS_ATTACHMENT = False

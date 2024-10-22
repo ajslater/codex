@@ -36,4 +36,10 @@ test:
 
 .PHONY: all
 
+.PHONY: dev-server
+## Run Dev Frontend Server
+## @category Run
+dev-server:
+	./bin/dev-server.sh
+
 include ../bin/makefile-help.mk

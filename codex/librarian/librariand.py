@@ -42,6 +42,7 @@ from codex.librarian.watchdog.tasks import (
     WatchdogSyncTask,
 )
 from codex.logger_base import LoggerBaseMixin
+from codex.settings.settings import SET_PROC_TITLE
 
 
 class LibrarianDaemon(Process, LoggerBaseMixin):
@@ -121,7 +122,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             case DelayedTasks():
                 self._threads.delayed_tasks_thread.queue.put(task)
             case LibrarianShutdownTask():
-                self.log.info(f"Shutting down {self.__class__.__name__}...")
+                self.log.info(f"Shutting down {self.name}...")
                 self.run_loop = False
             case _:
                 self.log.warning(f"Unhandled Librarian task: {task}")
@@ -150,10 +151,24 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def _start_threads(self):
         """Start all librarian's threads."""
-        self.log.debug(f"{self.__class__.__name__} starting all threads.")
+        self.log.debug(f"{self.name} starting all threads.")
         for thread in self._threads:
             thread.start()
-        self.log.info(f"{self.__class__.__name__} started all threads.")
+        self.log.info(f"{self.name} started all threads.")
+
+    def _startup(self):
+        """Initialize threads."""
+        if SET_PROC_TITLE:
+            from setproctitle import setproctitle
+
+            setproctitle("Codex" + self.name)
+        self.init_logger(self.log_queue)
+        self.log.debug(f"Started {self.name}.")
+        self.janitor = Janitor(self.log_queue, self.queue)
+        self._create_threads()  # can't do this in init.
+        self._start_threads()
+        self.run_loop = True
+        self.log.info(f"{self.name} ready for tasks.")
 
     def _startup(self):
         """Initialize threads."""
@@ -167,17 +182,30 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
-        self.log.debug(f"{self.__class__.__name__} stopping all threads...")
+        self.log.debug(f"{self.name} stopping all threads...")
         for thread in self._reversed_threads:
             thread.stop()
-        self.log.debug(f"{self.__class__.__name__} stopped all threads.")
+        self.log.debug(f"{self.name} stopped all threads.")
 
     def _join_threads(self):
         """Join all librarian threads."""
-        self.log.debug(f"{self.__class__.__name__} joining all threads...")
+        self.log.debug(f"{self.name} joining all threads...")
         for thread in self._reversed_threads:
             thread.join()
-        self.log.info(f"{self.__class__.__name__} joined all threads.")
+        self.log.info(f"{self.name} joined all threads.")
+
+    def _shutdown(self):
+        """Shutdown threads and queues."""
+        self._reversed_threads = reversed(self._threads)
+        self._stop_threads()
+        self._join_threads()
+        while not self.queue.empty():
+            self.queue.get_nowait()
+        self.queue.close()
+        self.queue.join_thread()
+        self.log.info(f"{self.name} finished.")
+        self.log_queue.close()
+        self.log_queue.join_thread()
 
     def _shutdown(self):
         """Shutdown threads and queues."""
@@ -205,11 +233,11 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                     task = self.queue.get()
                     self._process_task(task)
                 except Exception:
-                    self.log.exception(f"In {self.__class__.__name__} loop")
+                    self.log.exception(f"In {self.name} loop")
         except Exception:
-            self.log.exception(f"{self.__class__.__name__} crashed.")
+            self.log.exception(f"{self.name} crashed.")
         except KeyboardInterrupt:
-            self.log.debug(f"{self.__class__.__name__} Keyboard interrupt")
+            self.log.debug(f"{self.name} Keyboard interrupt")
         finally:
             self._shutdown()
 

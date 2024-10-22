@@ -15,5 +15,5 @@ class BookmarkUpdateTask(BookmarkTask):
     """Bookmark a page."""
 
     auth_filter: Mapping[str, int | str]
-    comic_filter: Mapping[str, Any]
+    comic_pks: tuple[int]
     updates: Mapping[str, Any]

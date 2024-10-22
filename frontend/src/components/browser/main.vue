@@ -39,7 +39,7 @@ export default {
     ...mapState(useAuthStore, {
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapGetters(useAuthStore, ["isAuthorized", "isBanner"]),
     ...mapGetters(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
@@ -59,10 +59,18 @@ export default {
       isSearchOpen: (state) => state.isSearchOpen,
     }),
     browsePaneClasses() {
-      return {
+      const classes = {
         padFooter: this.numPages > 1,
-        browsePaneSearch: this.isSearchOpen,
       };
+      let marginClass = "browsePane";
+      if (this.isSearchOpen) {
+        marginClass += "Search";
+      }
+      if (this.isBanner) {
+        marginClass += "Banner";
+      }
+      classes[marginClass] = true;
+      return classes;
     },
     showBrowseItems() {
       return (
@@ -93,30 +101,49 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
-@import "../book-cover.scss";
-$top-toolbar-margin: 94px;
+@use "sass:map";
+@use "../book-cover" as bookcover;
+
+$top-toolbar-margin: 102px;
 $card-margin: 32px;
 $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
+
 #browsePane {
-  margin-top: $browse-pane-margin-top;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));
   margin-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: auto;
 }
+
+.browsePane {
+  margin-top: $browse-pane-margin-top;
+}
+
 .browsePaneSearch {
   margin-top: calc($browse-pane-margin-top + 32px) !important;
 }
+
+.browsePaneBanner {
+  margin-top: calc(20px + $browse-pane-margin-top) !important;
+}
+
+.browsePaneSearchBanner {
+  margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
+}
+
+
 #browsePaneContainer {
   margin-top: $card-margin;
   display: grid;
-  grid-template-columns: repeat(auto-fit, $cover-width);
+  grid-template-columns: repeat(auto-fit, bookcover.$cover-width);
   grid-gap: $card-margin;
   align-content: flex-start;
 }
+
 .padFooter {
   padding-bottom: 45px !important;
 }
+
 .placeholder {
   position: fixed;
   height: 50vh !important;
@@ -125,6 +152,7 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
 #searchLimitMessage {
   padding-top: 20px;
   text-align: center;
@@ -132,8 +160,9 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
   color: rgb(var(--v-theme-textDisabled));
 }
 
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
+
   #browsePane {
     margin-left: max($small-card-margin, env(safe-area-inset-left));
     margin-right: max($small-card-margin, env(safe-area-inset-right));
@@ -141,7 +170,7 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
   }
 
   #browsePaneContainer {
-    grid-template-columns: repeat(auto-fit, $small-cover-width);
+    grid-template-columns: repeat(auto-fit, bookcover.$small-cover-width);
     grid-gap: $small-card-margin;
     justify-content: space-evenly;
   }
