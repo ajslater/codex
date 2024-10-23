@@ -14,8 +14,6 @@ border-radius: 128px;
   - Customized site title option in Admin Flags.
   - Old Codex logs are now compressed every night.
   - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.
-  - Experimental environment variable CODEX_SET_PROC_TITLE=1 will name processes
-    & threads so you can see what process might be misbehaving.
 
 - Fixes
 

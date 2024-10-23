@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from queue import Empty, SimpleQueue
 from threading import Thread
 
-from codex.settings.settings import SET_PROC_TITLE
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -25,10 +24,6 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        if SET_PROC_TITLE:
-            from setproctitle import setthreadtitle
-
-            setthreadtitle("Codex" + self.name)
         self.log.debug(f"Started {self.name}")
 
 
