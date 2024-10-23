@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="adminflag",
             name="value",
-            field=models.CharField(blank=True, default="", max_length=32),
+            field=models.CharField(blank=True, default="", max_length=128),
         ),
         migrations.AlterField(
             model_name="adminflag",

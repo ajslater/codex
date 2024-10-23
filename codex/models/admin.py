@@ -49,7 +49,7 @@ class AdminFlag(BaseModel):
         choices=FlagChoices.choices,
     )
     on = BooleanField(default=True)
-    value = CharField(max_length=32, default="", blank=True)
+    value = CharField(max_length=MAX_NAME_LEN, default="", blank=True)
 
     class Meta(BaseModel.Meta):
         """Constraints."""
