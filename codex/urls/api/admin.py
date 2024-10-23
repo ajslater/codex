@@ -39,7 +39,7 @@ urlpatterns = [
     path(
         "user/<int:pk>/password",
         AdminUserChangePasswordView.as_view(),
-        name="user_update_delete",
+        name="user_password_update",
     ),
     path("group", AdminGroupViewSet.as_view({**CREATE, **READ}), name="group"),
     path(
@@ -50,8 +50,8 @@ urlpatterns = [
     path("flag", AdminFlagViewSet.as_view({**READ}), name="flag"),
     path(
         "flag/<str:key>/",
-        AdminFlagViewSet.as_view({**UPDATE}),
-        name="flag_update",
+        AdminFlagViewSet.as_view({**RETRIEVE, **UPDATE}),
+        name="one_flag",
     ),
     path(
         "library",
