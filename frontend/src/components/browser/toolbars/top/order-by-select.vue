@@ -16,14 +16,15 @@ import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 const REVERSE_BY_DEFAULT = new Set([
-  "created_at",
   "bookmark_updated_at",
-  "updated_at",
-  "page_count",
-  "size",
-  "critical_rating",
+  "child_count",
   "community_rating",
+  "created_at",
+  "critical_rating",
+  "page_count",
   "search_score",
+  "size",
+  "updated_at",
 ]);
 
 export default {
