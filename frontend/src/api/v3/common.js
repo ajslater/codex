@@ -111,15 +111,9 @@ const getVersions = (ts) => {
   return HTTP.get("/version", { params });
 };
 
-const getBanner = () => {
-  const params = serializeParams();
-  return HTTP.get("/banner", { params });
-};
-
 export default {
   getDownloadIOSPWAFix,
   getMtime,
   getOPDSURLs,
   getVersions,
-  getBanner,
 };
