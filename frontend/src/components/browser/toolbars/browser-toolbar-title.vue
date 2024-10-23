@@ -1,10 +1,5 @@
 <template>
-  <v-toolbar
-    id="browserToolbarTitle"
-    :height="24"
-    :extension-height="24"
-    elevation="8"
-  >
+  <v-toolbar id="browserToolbarTitle" :height="24" :extension-height="24">
     <v-toolbar-title id="browserTitle" class="browserTitle">
       {{ title }}
     </v-toolbar-title>
@@ -82,18 +77,22 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+
 #browserToolbarTitle {
   padding-bottom: 6px;
 }
+
 .browserTitle {
   margin: 0px;
   text-align: center;
   white-space: nowrap;
   overflow: scroll;
 }
+
 #browserTitle {
   font-size: clamp(12px, 2vw, 20px);
 }
+
 #browserSubtitle {
   padding-top: 2px;
   font-size: 15px;
