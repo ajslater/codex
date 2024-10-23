@@ -21,6 +21,7 @@
             label="Banner"
             clearable
             hide-details="auto"
+            :error-messages="errors[item.key]"
             @update:model-value="banner = $event"
             @click:clear="banner = ''"
           />
@@ -36,7 +37,7 @@
             v-else
             :model-value="item.on"
             :true-value="true"
-            :error-messages="getFormErrors(item.key, 'on')"
+            :error-messages="errors[item.key]"
             hide-details="auto"
             @update:model-value="changeCol(item.key, 'on', $event)"
           />
@@ -67,10 +68,13 @@ export default {
         name: "",
         field: undefined,
       },
+      errors: {},
     };
   },
   computed: {
-    ...mapState(useCommonStore, ["formErrors"]),
+    ...mapState(useCommonStore, {
+      formErrors: (state) => state.form.errors,
+    }),
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
@@ -93,16 +97,22 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
+    setError(name, field) {
+      if (this.formErrors && this.formErrors.length) {
+        this.errors[name] = this.formErrors[0][field];
+      } else {
+        delete this.errors[name];
+      }
+    },
     changeCol(name, field, val) {
       this.lastUpdate.name = name;
       this.lastUpdate.field = field;
       const data = { [field]: val };
-      this.updateRow("Flag", name, data);
-    },
-    getFormErrors(name, field) {
-      if (name === this.lastUpdate.name && field === this.lastUpdate.field) {
-        return this.formErrors;
-      }
+      this.updateRow("Flag", name, data)
+        .then(() => {
+          return this.setError(name, field);
+        })
+        .catch(console.error);
     },
     title(item) {
       return ADMIN_FLAGS[item.key];
