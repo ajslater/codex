@@ -90,9 +90,6 @@ export default {
 }
 
 .adminTabs {
-  // position: relative;
-  margin-top: 46px;
-  display: block !important;
   background-color: rgb(var(--v-theme-surface));
 }
 
