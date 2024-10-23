@@ -10,7 +10,6 @@ from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
 from codex.librarian.janitor.integrity import IntegrityMixin
 from codex.librarian.janitor.latest_version import LatestVersionMixin
-from codex.librarian.janitor.log_compress import LogCompressMixin
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -21,7 +20,6 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
-    JanitorCompressOldLogs,
     JanitorForeignKeyCheck,
     JanitorFTSIntegrityCheck,
     JanitorFTSRebuildTask,
@@ -63,7 +61,6 @@ _JANITOR_STATII = (
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE),
-    Status(JanitorStatusTypes.COMPRESS_LOGS),
 )
 
 
@@ -74,7 +71,6 @@ class Janitor(
     UpdateFailedImportsMixin,
     VacuumMixin,
     IntegrityMixin,
-    LogCompressMixin,
 ):
     """Janitor inline task runner."""
 
@@ -156,12 +152,9 @@ class Janitor(
                     next_tasks = (
                         JanitorVacuumTask(),
                         JanitorBackupTask(),
-                        JanitorCompressOldLogs(),
                     )
                     for next_task in next_tasks:
                         self.librarian_queue.put(next_task)
-                case JanitorCompressOldLogs():
-                    self.log_compress()
                 case _:
                     self.log.warning(f"Janitor received unknown task {task}")
         except Exception:

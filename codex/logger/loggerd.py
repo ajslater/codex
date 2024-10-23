@@ -1,4 +1,5 @@
 """Central Logging Thread."""
+
 import logging
 import shutil
 from logging.handlers import QueueListener, RotatingFileHandler
@@ -13,8 +14,9 @@ _DEBUG_LOG_FMT = "{asctime} {levelname:7} {name:25} {message}"
 _DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
 _FORMATTER_STYLE = "{"
 _LOG_PATH = LOG_DIR / "codex.log"
-_LOG_MAX_BYTES = 10 * 2 ** 20 # 10 MiB
+_LOG_MAX_BYTES = 10 * 2**20  # 10 MiB
 _LOG_BACKUP_COUNT = 30
+
 
 class RotatingXZFileHandler(RotatingFileHandler):
     """Rotating File Handler rotates into XZ."""
@@ -28,7 +30,10 @@ class RotatingXZFileHandler(RotatingFileHandler):
     def rotator(source, dest):
         """Compress File."""
         source_path = Path(source)
-        with source_path.open("rb") as f_in, LZMAFile(dest, mode="wb", preset=9) as f_out:
+        with (
+            source_path.open("rb") as f_in,
+            LZMAFile(dest, mode="wb", preset=9) as f_out,
+        ):
             shutil.copyfileobj(f_in, f_out)
         source_path.unlink()
 
@@ -43,11 +48,12 @@ class CodexLogQueueListener(QueueListener):
         try:
             _LOG_PATH.parent.mkdir(exist_ok=True, parents=True)
             handler = RotatingXZFileHandler(
-                _LOG_PATH, maxBytes=_LOG_MAX_BYTES, backupCount=_LOG_BACKUP_COUNT, delay=True
+                _LOG_PATH,
+                maxBytes=_LOG_MAX_BYTES,
+                backupCount=_LOG_BACKUP_COUNT,
+                delay=True,
             )
-            formatter = logging.Formatter(
-                fmt, style=_FORMATTER_STYLE, datefmt=_DATEFMT
-            )
+            formatter = logging.Formatter(fmt, style=_FORMATTER_STYLE, datefmt=_DATEFMT)
             handler.setFormatter(formatter)
         except Exception as exc:
             print("ERROR creating file logging handler", exc)
@@ -59,9 +65,7 @@ class CodexLogQueueListener(QueueListener):
         handler = None
         try:
             handler = logging.StreamHandler()
-            formatter = ColorFormatter(
-                fmt, style=_FORMATTER_STYLE, datefmt=_DATEFMT
-            )
+            formatter = ColorFormatter(fmt, style=_FORMATTER_STYLE, datefmt=_DATEFMT)
             handler.setFormatter(formatter)
         except Exception as exc:
             print("ERROR creating console logging handler", exc)

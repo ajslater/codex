@@ -107,8 +107,3 @@ class JanitorAdoptOrphanFoldersFinishedTask(JanitorTask):
 @dataclass
 class JanitorSearchOptimizeFinishedTask(JanitorTask):
     """Signals to the Janitor that the Search Optimize task is finished."""
-
-
-@dataclass
-class JanitorCompressOldLogs(JanitorTask):
-    """Compress old logs."""

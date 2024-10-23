@@ -161,7 +161,6 @@ ADMIN_STATUS_TITLES = MappingProxyType(
         "JLV": "Check Codex Latest Version",
         "JSD": "Cleanup Expired Sessions",
         "JTD": "Cleanup Stale Tags",
-        "JCL": "Compress Logs",
         "SIC": "Search Index Create",
         "SID": "Search Index Remove Stale Records",
         "SIO": "Search Index Optimize",
@@ -376,11 +375,6 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "value": "librarian_clear_status",
                         "title": "Clear Librarian Statuses",
                         "desc": "Mark all Librarian tasks finished.",
-                    },
-                    {
-                        "value": "compress_logs",
-                        "title": "Compress Old Logs",
-                        "desc": "Compress old Codex logs. Runs nightly.",
                     },
                     {
                         "value": "janitor_nightly",
