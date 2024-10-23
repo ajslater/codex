@@ -63,7 +63,7 @@ class MetadataView(MetadataCopyIntersectionsView):
             obj = qs[0]
             if not obj:
                 reason = "Empty obj"
-                raise ValueError(reason)  # noqa TRY301
+                raise ValueError(reason)  # noqa: TRY301
         except (IndexError, ValueError) as exc:
             return self._raise_not_found(exc)
 

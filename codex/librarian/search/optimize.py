@@ -22,7 +22,7 @@ class OptimizeMixin(QueuedThread):
         self.abort_event = abort_event
         super().__init__(*args, **kwargs)
 
-    def optimize(self, janitor=False):
+    def optimize(self, janitor: bool):
         """Remove records not in the database from the index, trapping exceptions."""
         start_time = time()
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)

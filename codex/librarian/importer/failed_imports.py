@@ -90,7 +90,7 @@ class FailedImportsImporter(DeletedImporter):
                 fi.set_reason(exc)
                 fi.presave()
                 fi.updated_at = Now()
-            except Exception as exc:
+            except Exception as exc:  # noqa: PERF203
                 self.log.exception(
                     f"Error preparing failed import update for {fi.path}"
                 )
@@ -114,13 +114,13 @@ class FailedImportsImporter(DeletedImporter):
                 fi.set_reason(exc)
                 fi.presave()
                 create_objs.append(fi)
-            except Exception as exc:
+            except Exception as exc:  # noqa: PERF203
                 self.log.exception(f"Error preparing failed import create for {path}")
         FailedImport.objects.bulk_create(
             create_objs,
             update_conflicts=True,
             update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
-            unique_fields=FailedImport._meta.unique_together[0],  # type: ignore
+            unique_fields=FailedImport._meta.unique_together[0],
         )
         count = len(create_objs)
         if count:

@@ -18,7 +18,7 @@ class ImportDBDiffTask(ImportTask):
 
     dirs_moved: Mapping[str, str] = field(default_factory=dict)
     dirs_modified: frozenset[str] = frozenset()
-    # dirs_created: frozenset[str] | None = frozenset()
+    # dirs_created: frozenset[str] | None = frozenset() # noqa: ERA001
     dirs_deleted: frozenset[str] = frozenset()
 
     files_moved: Mapping[str, str] = field(default_factory=dict)

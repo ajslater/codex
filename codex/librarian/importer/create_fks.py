@@ -189,7 +189,7 @@ class CreateForeignKeysImporter(CreateCoversImporter):
             create_folders,
             update_conflicts=True,
             update_fields=BULK_UPDATE_FOLDER_FIELDS,
-            unique_fields=Folder._meta.unique_together[0],  # type: ignore
+            unique_fields=Folder._meta.unique_together[0],
         )
         count = len(create_folders)
         status.add_complete(count)
@@ -296,7 +296,7 @@ class CreateForeignKeysImporter(CreateCoversImporter):
             create_objs,
             update_conflicts=True,
             update_fields=CREATE_DICT_UPDATE_FIELDS[model],
-            unique_fields=model._meta.unique_together[0],  # type: ignore
+            unique_fields=model._meta.unique_together[0],
         )
         count = len(create_objs)
         if count:

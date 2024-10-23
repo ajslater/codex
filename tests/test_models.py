@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
-TMP_DIR = Path("/tmp/codex.tests")  # noqa S108
+TMP_DIR = Path("/tmp/codex.tests")  # noqa: S108
 
 
 class ComicTestCase(TestCase):

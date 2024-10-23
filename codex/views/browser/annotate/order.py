@@ -115,9 +115,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         show = MappingProxyType(self.params["show"])
-        # TODO too many annotations for order?
-        #   Move other annotations to card.
-        #   eager publisher for imprint of course
         sort_name_annotations = self.get_sort_name_annotations(
             qs.model, group, pks, show
         )
@@ -134,7 +131,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return Right(
             path_rel,
-            StrIndex(Reverse(F(path_rel)), Value(sep)) - 1,  # type: ignore
+            StrIndex(
+                Reverse(F(path_rel)),  # type: ignore[reportArgumentType]
+                Value(sep),
+            )
+            - 1,
             output_field=CharField(),
         )
 
@@ -159,9 +160,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if group == STORY_ARC_GROUP and pks:
             story_arc_pks = pks
         else:
-            story_arc_pks = self.params.get("filters", {}).get(  # type: ignore
-                "story_arcs", ()
-            )
+            story_arc_pks = self.params.get("filters", {}).get("story_arcs", ())
 
         # If we have one annotate it.
         if story_arc_pks:

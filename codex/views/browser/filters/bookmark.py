@@ -11,7 +11,7 @@ class BrowserFilterBookmarkView(BookmarkFilterMixin, BrowserValidateView):
 
     def get_bookmark_filter(self, model):
         """Build bookmark query."""
-        choice: str = self.params.get("filters", {}).get("bookmark", "")  # type: ignore
+        choice: str = self.params.get("filters", {}).get("bookmark", "")
         if choice:
             bm_rel = self.get_bm_rel(model)
             my_bookmark_filter = self.get_my_bookmark_filter(bm_rel)

@@ -120,7 +120,7 @@ class BookmarkUpdate(GroupACLMixin):
             Bookmark.objects.bulk_create(
                 create_bookmarks,
                 update_fields=tuple(_BOOKMARK_UPDATE_FIELDS),
-                unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
+                unique_fields=Bookmark._meta.unique_together[0],
             )
         return count
 
@@ -131,7 +131,7 @@ class BookmarkUpdate(GroupACLMixin):
         try:
             UserActive.objects.update_or_create(user=user)
         except Exception as exc:
-            reason = f"update user activity {exc}"
+            reason = f"Update user activity {exc}"
             log.warning(reason)
 
     @classmethod

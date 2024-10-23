@@ -4,6 +4,7 @@ from django.db.models.expressions import F
 
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, Imprint, Volume
+from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.const import GROUP_NAME_MAP
 
 LOG = get_logger(__name__)
@@ -12,7 +13,7 @@ _GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"
 
 
-class SharedAnnotationsMixin:
+class SharedAnnotationsMixin(BrowserFilterView):
     """Cross view annotation methods."""
 
     @staticmethod
@@ -54,7 +55,7 @@ class SharedAnnotationsMixin:
     def annotate_group_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
-        target = cls.TARGET  # type: ignore
+        target = cls.TARGET
         if target not in _GROUP_NAME_TARGETS:
             return qs
         group_names = {}

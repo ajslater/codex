@@ -159,7 +159,7 @@ class FTSUpdateMixin(RemoveMixin):
             obj_list.append(comicfts)
             self.log.debug(f"{len(obj_list)}/{comics.count()} entries prepped.")
 
-    def _get_comicfts_list(self, comics, create=False):
+    def _get_comicfts_list(self, comics, create: bool):
         """Create a ComicFTS object for bulk_create or bulk_update."""
         country_field = CountryField()
         language_field = LanguageField()
@@ -178,7 +178,7 @@ class FTSUpdateMixin(RemoveMixin):
             self.log.debug(f"{verb} no search entries.")
         self.status_controller.finish(status)
 
-    def _update_search_index_operate(self, comics_qs, create=False):
+    def _update_search_index_operate(self, comics_qs, create: bool):
         count = comics_qs.count()
         verb = "create" if create else "update"
         if not count:
@@ -285,7 +285,7 @@ class FTSUpdateMixin(RemoveMixin):
         elapsed = naturaldelta(elapsed_time)
         self.log.info(f"Search index updated in {elapsed}.")
 
-    def update_search_index(self, rebuild=False):
+    def update_search_index(self, rebuild: bool):
         """Update or Rebuild the search index."""
         start_time = time()
         self.abort_event.clear()

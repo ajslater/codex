@@ -38,5 +38,5 @@ def _user_group_change(**kwargs):
 
 def connect_signals():
     """Connect actions to signals."""
-    # connection_created.connect(_db_connect)
+    # connection_created.connect(_db_connect) unused atm
     m2m_changed.connect(_user_group_change)

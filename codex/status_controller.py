@@ -33,7 +33,7 @@ class StatusController(LoggerBaseMixin):
         self.init_logger(log_queue)
         self.librarian_queue = librarian_queue
 
-    def _enqueue_notifier_task(self, notify=True, until=0.0):
+    def _enqueue_notifier_task(self, notify: bool, until=0.0):
         """Notify the status has changed."""
         if not notify:
             return
@@ -46,7 +46,7 @@ class StatusController(LoggerBaseMixin):
     def _loggit(self, level, status):
         """Log with a ? in place of none."""
         type_title = ADMIN_STATUS_TITLES[status.status_type]
-        msg = " ".join((type_title, status.subtitle)).strip()
+        msg = f"{type_title} {status.subtitle}".strip()
         msg += ": "
         if status.complete is None and status.total is None:
             msg += "In progress"
@@ -69,9 +69,9 @@ class StatusController(LoggerBaseMixin):
     def start(
         self,
         status,
-        notify=True,
+        notify: bool = True,  # noqa: FBT002
+        preactive: bool = False,  # noqa: FBT002
         now_pad=0.0,
-        preactive=False,
     ):
         """Start a librarian status."""
         try:
@@ -102,9 +102,9 @@ class StatusController(LoggerBaseMixin):
         for status in status_iterable:
             self.start(status, notify=False, now_pad=now_pad, preactive=True)
             now_pad += 0.1
-        self._enqueue_notifier_task()
+        self._enqueue_notifier_task(notify=True)
 
-    def update(self, status, notify=True):
+    def update(self, status, notify: bool = True):  # noqa: FBT002
         """Update a librarian status."""
         if time() - status.since < self._UPDATE_DELTA:
             # noop unless time has expired.
@@ -127,7 +127,7 @@ class StatusController(LoggerBaseMixin):
             title = ADMIN_STATUS_TITLES[status.status_type]
             self.log.warning(f"Update status {title}: {exc}")
 
-    def finish_many(self, statii, notify=True, until=0.0):
+    def finish_many(self, statii, notify: bool = True, until=0.0):  # noqa: FBT002
         """Finish all librarian statuses."""
         try:
             types = []
@@ -143,15 +143,12 @@ class StatusController(LoggerBaseMixin):
                 update_ls.append(ls)
             LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
             self._enqueue_notifier_task(notify, until)
-            if ls_filter:
-                # self.log.debug(f"Cleared {types} librarian statuses")
-                pass
-            else:
+            if not ls_filter:
                 self.log.info("Cleared all librarian statuses")
         except Exception as exc:
             self.log.warning(f"Finish status {statii}: {exc}")
 
-    def finish(self, status, notify=True, until=0.0):
+    def finish(self, status, notify: bool = True, until=0.0):  # noqa: FBT002
         """Finish a librarian status."""
         try:
             self.finish_many((status,), notify=notify, until=until)

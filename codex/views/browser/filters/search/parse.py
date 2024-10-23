@@ -149,7 +149,7 @@ class SearchFilterView(BrowserFTSFilter):
 
     def _preparse_search_query(self):
         """Preparse search fields out of query text."""
-        text = self.params.get("q")  # type: ignore
+        text = self.params.get("q")
         field_tokens = {}
         if not text:
             return field_tokens, text
@@ -158,7 +158,7 @@ class SearchFilterView(BrowserFTSFilter):
         for match in _TOKEN_RE.finditer(text):
             try:
                 self._preparse_search_query_token(match, field_tokens, fts_tokens)
-            except Exception as exc:
+            except Exception as exc:  # noqa: PERF203
                 tok = match.group(0) if match else "<unmatched>"
                 LOG.debug(f"Error preparsing search query token {tok}: {exc}")
                 self.search_error = "Syntax error"
@@ -177,7 +177,7 @@ class SearchFilterView(BrowserFTSFilter):
                 )
             else:
                 # AND and OR
-                # XXX cannot do OR queries with MATCH, it decontextualizes MATCH somehow.
+                # Cannot do OR queries with MATCH, it decontextualizes MATCH somehow.
                 if preop == "or":
                     self.search_error = "OR preceding column tokens with operator expressions will act as AND"
                 include_q_list, exclude_q_list = self.get_search_field_filters(
@@ -227,24 +227,9 @@ class SearchFilterView(BrowserFTSFilter):
 
         return include_q, exclude_q, fts_q
 
-    def _is_search_results_limited(self) -> bool:
-        """Get search result limit from params."""
-        # user = self.request.user  # type: ignore
-        # if user and user.is_authenticated:
-        #    limited = bool(
-        #        self.params.get(  # type: ignore
-        #            "search_results_limit",
-        #            MAX_OBJ_PER_PAGE,
-        #        )
-        #    )
-        # else:
-        #    limited = True
-        # return limited
-        return True
-
     def get_search_limit(self):
         """Get search scores for choices and metadata."""
-        if not self.search_mode or not self._is_search_results_limited():
+        if not self.search_mode:
             return 0
-        page = self.kwargs.get("page", 1)  # type: ignore
+        page = self.kwargs.get("page", 1)
         return page * MAX_OBJ_PER_PAGE + 1

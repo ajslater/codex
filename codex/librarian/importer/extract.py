@@ -94,7 +94,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
 
     @classmethod
     def _clean_decimal(cls, value, field_name: str):
-        field: DecimalField = Comic._meta.get_field(field_name)  # type: ignore
+        field: DecimalField = Comic._meta.get_field(field_name)  # type: ignore[reportAssignmentType]
         try:
             quantize_str = Decimal(f"1e-{field.decimal_places}")
             value = value.quantize(quantize_str, rounding=ROUND_DOWN)
@@ -147,7 +147,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
     @staticmethod
     def _clean_charfield(model, field_name, value):
         try:
-            field: CharField = model._meta.get_field(field_name)  # type: ignore
+            field: CharField = model._meta.get_field(field_name)  # type: ignore[reportAssignmentType]
             if value:
                 value = value[: field.max_length].strip()
             if not value:

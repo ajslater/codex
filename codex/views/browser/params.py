@@ -58,7 +58,7 @@ class BrowserParamsView(SessionView):
             validated_data = serializer.validated_data
 
             if validated_data:
-                params.update(validated_data)  # type: ignore
+                params.update(validated_data)
             self._params = MappingProxyType(params)
             self.validate_settings()
         return self._params

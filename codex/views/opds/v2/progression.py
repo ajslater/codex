@@ -38,7 +38,7 @@ class OPDS2ProgressionView(
     @property
     def modified(self):
         """Get modified from bookmark."""
-        return self._obj.bookmark_updated_at  # type: ignore
+        return self._obj.bookmark_updated_at  # type: ignore[reportAttributeAccessIssue]
 
     @property
     def device(self):
@@ -49,22 +49,21 @@ class OPDS2ProgressionView(
     @property
     def title(self):
         """The locator title is the page number."""
-        return f"Page {self._obj.page}"  # type: ignore
+        return f"Page {self._obj.page}"  # type: ignore[reportAttributeAccessIssue]
 
     @property
     def _progression_href(self):
         """Build a Progression HRef."""
         acq_kwargs = {
             "pk": self._obj.pk,
-            "page": self._obj.page,  # type: ignore
+            "page": self._obj.page,  # type: ignore[reportAttributeAccessIssue]
         }
-        max_page = max_none(self._obj.page_count - 1, 0)  # type: ignore
+        max_page = max_none(self._obj.page_count - 1, 0)  # type: ignore[reportAttributeAccessIssue]
         data = HrefData(
             acq_kwargs,
             url_name="opds:bin:page",
             min_page=0,
-            max_page=max_page,  # type: ignore
-            # absolute_query_params=True,
+            max_page=max_page,
         )
         return self.href(data)
 
@@ -72,9 +71,9 @@ class OPDS2ProgressionView(
     def _locations(self):
         """Build the Locations object."""
         return {
-            "position": self._obj.page,  # type: ignore
-            "progression": self._obj.progress,  # type: ignore
-            "total_progression": self._obj.progress,  # type: ignore
+            "position": self._obj.page,  # type: ignore[reportAttributeAccessIssue]
+            "progression": self._obj.progress,  # type: ignore[reportAttributeAccessIssue]
+            "total_progression": self._obj.progress,  # type: ignore[reportAttributeAccessIssue]
         }
 
     @property

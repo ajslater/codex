@@ -95,7 +95,7 @@ class ReaderBooksView(SharedAnnotationsMixin, BookmarkAuthMixin, ReaderParamsVie
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        arc: Mapping = self.params.get("arc", {})  # type: ignore
+        arc: Mapping = self.params.get("arc", {})
 
         arc_group = arc.get("group", "")
         if not GROUP_MODEL_MAP.get(arc_group):

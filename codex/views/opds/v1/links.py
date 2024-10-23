@@ -105,7 +105,7 @@ class RootTopLinks:
 class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
-    # overwritten in get_object()
+    # overwritten in get_object method
     DEFAULT_ROUTE = MappingProxyType(
         {
             **OPDS1FacetsView.DEFAULT_ROUTE,
@@ -143,7 +143,7 @@ class OPDS1LinksView(OPDS1FacetsView):
     def _root_links(self):
         """Navigation Root Links."""
         links = []
-        if up_route := self.get_last_route():
+        if up_route := self.get_last_route(name=True):
             links += [self._link(up_route, Rel.UP)]
         page = self.kwargs.get("page", 1)
         if page > 1:
@@ -179,7 +179,7 @@ class OPDS1LinksView(OPDS1FacetsView):
                 for top_link in TopLinks.ALL + RootTopLinks.ALL:
                     if not self.is_top_link_displayed(top_link):
                         links += [self._top_link(top_link)]
-                if facets := self.facets():
+                if facets := self.facets(entries=False, root=True):
                     links += facets
         except Exception:
             LOG.exception("Getting OPDS v1 links")
@@ -194,11 +194,16 @@ class OPDS1LinksView(OPDS1FacetsView):
             name=name,
             summary=top_link.desc,
         )
-        zero_pad: int = self.obj["zero_pad"]  # type: ignore
+        zero_pad: int = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.opds_acquisition_groups, zero_pad, False, self.mime_type_map
+            self.opds_acquisition_groups,
+            zero_pad,
+            metadata=False,
+            mime_type_map=self.mime_type_map,
         )
-        return OPDS1Entry(entry_obj, top_link.query_params, data)
+        return OPDS1Entry(
+            entry_obj, top_link.query_params, data, title_filename_fallback=False
+        )
 
     def add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""

@@ -64,11 +64,11 @@ _TASK_MAP = MappingProxyType(
     {
         "purge_comic_covers": CoverRemoveAllTask(),
         "create_all_comic_covers": CoverCreateAllTask(),
-        "search_index_update": SearchIndexUpdateTask(False),
-        "search_index_rebuild": SearchIndexUpdateTask(True),
+        "search_index_update": SearchIndexUpdateTask(rebuild=False),
+        "search_index_rebuild": SearchIndexUpdateTask(rebuild=True),
         "search_index_remove_stale": SearchIndexRemoveStaleTask(),
         "search_index_abort": SearchIndexAbortTask(),
-        "search_index_optimize": SearchIndexOptimizeTask(True),
+        "search_index_optimize": SearchIndexOptimizeTask(janitor=False),
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
@@ -77,8 +77,8 @@ _TASK_MAP = MappingProxyType(
         "db_fts_integrity_check": JanitorFTSIntegrityCheck(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
         "watchdog_sync": WatchdogSyncTask(),
-        "codex_latest_version": JanitorLatestVersionTask(True),
-        "codex_update": JanitorUpdateTask(False),
+        "codex_latest_version": JanitorLatestVersionTask(force=True),
+        "codex_update": JanitorUpdateTask(force=False),
         "codex_shutdown": JanitorShutdownTask(),
         "codex_restart": JanitorRestartTask(),
         "notify_library_changed": LIBRARY_CHANGED_TASK,
@@ -90,8 +90,8 @@ _TASK_MAP = MappingProxyType(
         "cleanup_covers": CoverRemoveOrphansTask(),
         "librarian_clear_status": JanitorClearStatusTask(),
         "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
-        "poll": WatchdogPollLibrariesTask(frozenset(), False),
-        "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
+        "poll": WatchdogPollLibrariesTask(frozenset(), force=False),
+        "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
         "adopt_folders": AdoptOrphanFoldersTask(),
@@ -128,10 +128,10 @@ class AdminLibrarianTaskView(AdminAPIView):
     def post(self, *_args, **_kwargs):
         """Download a comic archive."""
         # DRF does not populate POST correctly, only data
-        data = self.request.data  # type:ignore
+        data = self.request.data
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        validated_data: Mapping = serializer.validated_data  # type: ignore
+        validated_data: Mapping = serializer.validated_data
         task_name = validated_data.get("task")
         pk = validated_data.get("library_id")
         task = self._get_task(task_name, pk)

@@ -27,7 +27,7 @@ class BookmarkView(BookmarkUpdate, BookmarkAuthMixin, BrowserFilterView):
         # If the target is recursive, strip everything but finished state data.
         serializer_class = None if group == "c" else BookmarkFinishedSerializer
 
-        data = self.request.data  # type: ignore
+        data = self.request.data
         if serializer_class:
             serializer = serializer_class(data=data, partial=True)
         else:

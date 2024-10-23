@@ -67,7 +67,7 @@ class QueuedThread(NamedThread, ABC):
         while True:
             try:
                 self._check_item()
-            except BreakLoopError:
+            except BreakLoopError:  # noqa: PERF203
                 break
             except Exception:
                 self.log.exception(f"{self.__class__.__name__} crashed:")

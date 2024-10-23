@@ -46,9 +46,7 @@ class MovedImporter(AggregateMetadataImporter):
             new_path = self.task.files_moved[comic.path]
             comic.path = new_path
             new_path = Path(new_path)
-            comic.parent_folder = Folder.objects.get(  # type: ignore
-                path=new_path.parent
-            )
+            comic.parent_folder = Folder.objects.get(path=new_path.parent)
             comic.updated_at = Now()
             comic.presave()
             folder_m2m_links[comic.pk] = Folder.objects.filter(
@@ -116,7 +114,7 @@ class MovedImporter(AggregateMetadataImporter):
                 cover.presave()
                 moved_covers.append(cover)
                 unlink_pks.add(cover.pk)
-            except Exception:
+            except Exception:  # noqa: PERF203
                 self.log.exception(f"moving {cover.path}")
         return moved_covers, unlink_pks
 
@@ -137,7 +135,7 @@ class MovedImporter(AggregateMetadataImporter):
                     f"Unlinked {len(unlink_groups)} {model.__name__} moved custom covers."
                 )
 
-        self._remove_covers(unlink_pks, custom=True)  # type: ignore
+        self._remove_covers(unlink_pks, custom=True)
 
     def _bulk_covers_moved(self, status=None):
         """Move covers."""
@@ -194,8 +192,6 @@ class MovedImporter(AggregateMetadataImporter):
             folder.updated_at = Now()
             update_folders.append(folder)
 
-        # delete_folders = Folder.objects.filter(library=self.library, path__in=new_paths)
-
         update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
         Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
@@ -212,7 +208,6 @@ class MovedImporter(AggregateMetadataImporter):
         """Move folders under existing folders."""
         while True:
             # Get existing parent folders
-            # dest_parent_paths = tuple(str(path) for path in dest_parent_folder_paths_map)
             dest_parent_paths = tuple(dest_parent_folder_paths_map.keys())
             extant_parent_folders = Folder.objects.filter(
                 library=self.library, path__in=dest_parent_paths

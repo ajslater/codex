@@ -3,12 +3,16 @@
 from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS
 from codex.logger.logging import get_logger
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 LOG = get_logger(__name__)
 
@@ -78,13 +82,15 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             default = self.SESSION_DEFAULTS[session_key][key]
         return session.get(key, default)
 
-    def get_last_route(self, name=True):
+    def get_last_route(self, name: bool):
         """Get the last route from the breadcrumbs."""
         breadcrumbs = self.get_from_session(
             "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
         )
         if not breadcrumbs:
-            default_breadcrumbs: tuple[dict] = BROWSER_DEFAULTS["breadcrumbs"]  # type: ignore
+            default_breadcrumbs: tuple[
+                Mapping[str, str | tuple[int, ...] | int], ...
+            ] = BROWSER_DEFAULTS["breadcrumbs"]  # type: ignore[reportAssignmentType]
             breadcrumbs = default_breadcrumbs
         last_route = breadcrumbs[-1]
         if not name:

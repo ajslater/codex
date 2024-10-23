@@ -78,7 +78,7 @@ class CreateComicsImporter(LinkComicsImporter):
             Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
             count = len(update_comics)
 
-            self._remove_covers(comic_pks, False)  # type: ignore
+            self._remove_covers(comic_pks, custom=False)
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             if count:
                 self.log.info(f"Updated {count} comics.")
@@ -110,7 +110,7 @@ class CreateComicsImporter(LinkComicsImporter):
                 comic = Comic(**md, library=self.library)
                 comic.presave()
                 create_comics.append(comic)
-            except KeyError:
+            except KeyError:  # noqa: PERF203
                 self.log.warning(f"No comic metadata for {path}")
             except Exception:
                 self.log.exception(f"Error preparing {path} for create.")
@@ -126,7 +126,7 @@ class CreateComicsImporter(LinkComicsImporter):
                     create_comics,
                     update_conflicts=True,
                     update_fields=BULK_CREATE_COMIC_FIELDS,
-                    unique_fields=Comic._meta.unique_together[0],  # type: ignore
+                    unique_fields=Comic._meta.unique_together[0],
                 )
                 count = len(create_comics)
                 if count:

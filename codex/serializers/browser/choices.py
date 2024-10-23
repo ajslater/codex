@@ -50,9 +50,9 @@ class BrowserChoicesFilterSerializer(Serializer):
         if serializer_class:
             value = serializer_class(choices, many=True).data
         elif not serializer_class and field_name in _LIST_FIELDS:
-            field: ListField = (
+            field: ListField = (  # type: ignore[reportAssignmentType]
                 BrowserSettingsFilterSerializer().get_fields().get(field_name)
-            )  # type: ignore
+            )
             value = field.to_representation(choices)
         else:
             value = BrowserChoicesIntegerPkSerializer(choices, many=True).data

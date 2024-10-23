@@ -93,7 +93,6 @@ BROWSER_DEFAULTS = MappingProxyType(
         "order_by": "sort_name",
         "order_reverse": False,
         "q": "",
-        # "search_results_limit": 100,
         "show": _DEFAULT_SHOW,
         "top_group": "p",
         "twenty_four_hour_time": False,
@@ -391,11 +390,9 @@ ADMIN_TASK_GROUPS = MappingProxyType(
 
 def _group_task_values(groups):
     """Extract values into sorted tuple."""
-    values = []
-    for group in groups["tasks"]:
-        for item in group["tasks"]:
-            values.append(item["value"])
-    return tuple(sorted(values))
+    return tuple(
+        sorted([item["value"] for group in groups["tasks"] for item in group["tasks"]])
+    )
 
 
 ADMIN_TASKS = _group_task_values(ADMIN_TASK_GROUPS)

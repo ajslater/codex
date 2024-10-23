@@ -9,7 +9,7 @@ class BrowserSettingsView(SettingsView):
     """Get Browser Settings."""
 
     # Put Browser Settings is normally done through BrowserView.get()
-    serializer_class = BrowserSettingsSerializer  # type: ignore
+    serializer_class = BrowserSettingsSerializer
 
     SESSION_KEY = SettingsView.BROWSER_SESSION_KEY
 

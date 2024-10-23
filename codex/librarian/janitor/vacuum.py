@@ -30,7 +30,7 @@ class VacuumMixin(WorkerBaseMixin):
         finally:
             self.status_controller.finish(status)
 
-    def backup_db(self, backup_path=BACKUP_DB_PATH, show_status=True):
+    def backup_db(self, show_status: bool, backup_path=BACKUP_DB_PATH):
         """Backup the database."""
         status = Status(JanitorStatusTypes.DB_BACKUP) if show_status else ""
         try:

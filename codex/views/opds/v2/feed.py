@@ -56,9 +56,9 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
 
     # def _detect_user_agent(self):
     #    """Hacks for individual clients."""
-    #    user_agent = self.request.headers.get("User-Agent")
+    #    user_agent = self.request.headers.get("User-Agent") # noqa: ERA001
     #    if not user_agent:
-    #        return
+    #        return # noqa: ERA001
 
     @staticmethod
     def _is_allowed(link_spec):
@@ -185,7 +185,7 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
         title = self._title(title)
         number_of_items = total_count
         current_page = self.kwargs.get("page")
-        up_route = self.get_last_route()
+        up_route = self.get_last_route(name=True)
         links = self.get_links(up_route)
         facets = self._get_facets()
 

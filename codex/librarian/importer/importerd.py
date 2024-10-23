@@ -35,7 +35,7 @@ class ComicImporterThread(QueuedThread):
         import_comics = Comic.objects.filter(pk__in=task.pks).only("path", "library_id")
         library_path_map = {}
         for import_comic in import_comics:
-            library_id = import_comic.library_id  # type: ignore
+            library_id = import_comic.library_id  # type: ignore[reportAttributeAccessIssue]
             if library_id not in library_path_map:
                 library_path_map[library_id] = set()
             library_path_map[library_id].add(import_comic.path)
@@ -89,7 +89,7 @@ class ComicImporterThread(QueuedThread):
         importer.bulk_folders_moved()
         return True
 
-    def _adopt_orphan_folders(self, janitor=False):
+    def _adopt_orphan_folders(self, janitor: bool):
         """Find orphan folders and move them into their correct place."""
         status = Status(ImportStatusTypes.ADOPT_FOLDERS)
         moved_status = Status(ImportStatusTypes.DIRS_MOVED)
@@ -118,6 +118,6 @@ class ComicImporterThread(QueuedThread):
         elif isinstance(task, UpdateGroupsTask):
             self._update_groups(task)
         elif isinstance(task, AdoptOrphanFoldersTask):
-            self._adopt_orphan_folders(task.janitor)
+            self._adopt_orphan_folders(janitor=task.janitor)
         else:
             self.log.warning(f"Bad task sent to library updater {task}")

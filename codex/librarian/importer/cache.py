@@ -73,7 +73,6 @@ class CacheUpdateImporter(InitImporter):
         try:
             log_list = []
             for model in GROUP_MODELS:
-                # self.log.debug(f"Updating timestamps for {model.__name__}s...")
                 count = self._update_group_model(
                     force_update_group_map, model, start_time, log_list
                 )
@@ -85,9 +84,7 @@ class CacheUpdateImporter(InitImporter):
 
             if total_count:
                 groups_log = ", ".join(log_list)
-                self.log.info(  # type: ignore
-                    f"Updated timestamps for {groups_log}."
-                )
+                self.log.info(f"Updated timestamps for {groups_log}.")
                 self.changed += total_count
         finally:
             self.status_controller.finish(status)

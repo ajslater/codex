@@ -18,6 +18,7 @@ from codex.choices import (
     READER_DEFAULTS,
     WEBSOCKET_MESSAGES,
 )
+from codex.serializers.route import RouteSerializer
 
 _DEFAULTS = MappingProxyType(
     {"browser-choices.json": BROWSER_DEFAULTS, "reader-choices.json": READER_DEFAULTS}
@@ -68,12 +69,11 @@ def _make_json_serializable(data):
     if isinstance(data, Mapping):
         json_dict = {}
         for key, value in data.items():
-            if key == "pks":
-                # Special route serializer
-                # XXX possibly should use actual route serializer for route not just pks
-                json_dict[key] = ",".join(str(pk) for pk in sorted(value))
+            if key == "breadcrumbs":
+                json_value = tuple(RouteSerializer(dict(route)).data for route in value)
             else:
-                json_dict[_json_key(key)] = _make_json_serializable(value)
+                json_value = _make_json_serializable(value)
+            json_dict[_json_key(key)] = json_value
         return json_dict
     if isinstance(data, list | tuple | frozenset | set):
         return [_make_json_serializable(item) for item in data]
@@ -93,7 +93,7 @@ def _to_vuetify_dict(fn, data):
     return vuetify_data
 
 
-def _dump(parent_path, fn, data, vuetify=True):
+def _dump(parent_path, fn, data, vuetify):
     """Dump data to json file."""
     vuetify_data = (
         _to_vuetify_dict(fn, data) if vuetify else _make_json_serializable(data)
@@ -112,10 +112,10 @@ def main():
     parent_path = Path(parent_path)
     parent_path.mkdir(exist_ok=True)
     for fn, data in _DUMPS.items():
-        _dump(parent_path, fn, data)
+        _dump(parent_path, fn, data, vuetify=True)
 
     for fn, data in _MAP_DUMPS.items():
-        _dump(parent_path, fn, data, False)
+        _dump(parent_path, fn, data, vuetify=False)
 
 
 if __name__ == "__main__":

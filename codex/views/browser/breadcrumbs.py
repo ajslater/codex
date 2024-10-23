@@ -87,8 +87,9 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 if not model:
                     model = Publisher
                 group_query = model.objects.none()
-            self._group_instance = group_query.first()
-        return self._group_instance  # type: ignore
+            group_instance: BrowserGroupModel | None = group_query.first()
+            self._group_instance = group_instance
+        return self._group_instance  # type: ignore[reportReturnType]
 
     def _init_breadcrumbs(self, valid_groups):
         """Load breadcrumbs and determine if they should be searched for a graft."""
@@ -103,7 +104,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Save the breadcrumbs to params."""
         params = dict(self.params)
         params["breadcrumbs"] = tuple(crumb.dict() for crumb in breadcrumbs)
-        # HACK rewriting params
+        # The only place I rewrite params
         self._params = MappingProxyType(params)
 
     def _breadcrumbs_graft_or_create_story_arc(self) -> tuple[tuple[Route, ...], bool]:
@@ -146,7 +147,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        folder: Folder | None = self.group_instance  # type: ignore
+        folder: Folder | None = self.group_instance  # type: ignore[reportAssignmentType]
         name = folder.name if folder and pks else ""
         group_crumb = Route(FOLDER_GROUP, pks, page, name)
         new_breadcrumbs = []
@@ -230,7 +231,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Graft or create browse group breadcrumbs."""
         old_breadcrumbs, changed = self._init_breadcrumbs(GROUP_ORDER)
 
-        vng = self.valid_nav_groups  # type: ignore
+        vng = self.valid_nav_groups
         test_groups = tuple(reversed(vng[:-1]))
         new_breadcrumbs = []
         level = done = False

@@ -10,7 +10,7 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
 import logging
-from logging import WARN, getLogger
+from logging import WARNING, getLogger
 from os import environ
 from pathlib import Path
 from types import MappingProxyType
@@ -152,7 +152,7 @@ if DEBUG:
         "nplusone.ext.django.NPlusOneMiddleware",
     ]
     NPLUSONE_LOGGER = getLogger("nplusone")
-    NPLUSONE_LOG_LEVEL = WARN
+    NPLUSONE_LOG_LEVEL = WARNING
 
 if LOG_RESPONSE_TIME:
     MIDDLEWARE += [

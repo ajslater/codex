@@ -632,8 +632,7 @@ class Migration(migrations.Migration):
                         default=None,
                         max_length=6,
                         null=True,
-                        # Removed in the future
-                        # validators=[codex.models.validate_fit_to_choice],
+                        # Old code dependent validators removed in the future
                     ),
                 ),
                 ("two_pages", models.BooleanField(default=None, null=True)),

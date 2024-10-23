@@ -62,11 +62,12 @@ class CodexStats:
         request_model_set = self.params.get(key, {})
         all_models = _KEY_MODELS_MAP[key]
         if request_model_set:
-            models = []
-            for model_name in request_model_set:
-                for model in all_models:
-                    if model.__name__.lower() == model_name.lower():
-                        models.append(model)
+            models = [
+                model
+                for model in all_models
+                for model_name in request_model_set
+                if model.__name__.lower() == model_name.lower()
+            ]
         else:
             models = all_models
         return tuple(models)
@@ -149,7 +150,7 @@ class CodexStats:
 
     def _add_file_types(self, obj):
         """Query for file types."""
-        if self.params and "fileTypes" not in self.params:
+        if self.params and "file_types" not in self.params:
             return
         file_types = {}
         qs = (

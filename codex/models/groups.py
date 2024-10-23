@@ -136,7 +136,7 @@ class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
         super().presave()
         WatchedPath.presave(self)
 
-    class Meta(WatchedPath.Meta):  # type: ignore
+    class Meta(BrowserGroupModel.Meta, WatchedPath.Meta):
         """Use Mixin Meta."""
 
         abstract = True

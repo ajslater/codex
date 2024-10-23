@@ -48,9 +48,9 @@ class MimeType:
 
     ATOM = "application/atom+xml"
     _PROFILE_CATALOG = "profile=opds-catalog"
-    NAV = ";".join((ATOM, _PROFILE_CATALOG, "kind=navigation"))
-    ACQUISITION = ";".join((ATOM, _PROFILE_CATALOG, "kind=acquisition"))
-    ENTRY_CATALOG = ";".join((ATOM, "type=entry", _PROFILE_CATALOG))
+    NAV = f"{ATOM};{_PROFILE_CATALOG};kind=navigation"
+    ACQUISITION = f"{ATOM};{_PROFILE_CATALOG};kind=acquisition"
+    ENTRY_CATALOG = f"{ATOM};type=entry;{_PROFILE_CATALOG}"
     AUTHENTICATION = "application/opds-authentication+json"
     OPENSEARCH = "application/opensearchdescription+xml"
     STREAM = "image/jpeg"
@@ -58,7 +58,7 @@ class MimeType:
     OPDS_PUB = "application/opds-publication+json"
     PROGRESSION = "application/vnd.readium.progression+json"
     BOOK = "http://schema.org/Book"
-    # COMIC = "https://schema.org/ComicStory"
+    # COMIC = "https://schema.org/ComicStory" unused
     JPEG = "image/jpeg"
     WEBP = "image/webp"
     HTML = "text/html"

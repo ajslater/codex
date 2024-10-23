@@ -58,7 +58,7 @@ class ReaderView(ReaderArcsView):
             task = LazyImportComicsTask(frozenset(import_pks))
             LIBRARIAN_QUEUE.put(task)
 
-    def get_object(self):  # type: ignore
+    def get_object(self):
         """Get the previous and next comics in a group or story arc."""
         # Books
         books = self.get_book_collection()
@@ -82,13 +82,13 @@ class ReaderView(ReaderArcsView):
 
         arc = self.params.get("arc", {})
         if not arc.get("group"):
-            arc["group"] = current.arc_group  # type: ignore
+            arc["group"] = current.arc_group
         if not arc.get("pks"):
-            arc["pks"] = (current.arc_pk,)  # type: ignore
-        arc["index"] = current.arc_index  # type:ignore
-        arc["count"] = current.arc_count  # type: ignore
+            arc["pks"] = (current.arc_pk,)
+        arc["index"] = current.arc_index
+        arc["count"] = current.arc_count
 
-        close_route = self.get_last_route()
+        close_route = self.get_last_route(name=True)
 
         return {
             "books": books,

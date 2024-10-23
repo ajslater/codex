@@ -29,7 +29,7 @@ class SettingsView(SessionView, ABC):
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-        only = validated_data.get("only") if validated_data else None  # type: ignore
+        only = validated_data.get("only") if validated_data else None
         params = self.load_params_from_session(only=only)
         params = self.validate_settings_get(validated_data, params)
         serializer = self.get_serializer(params)
@@ -38,7 +38,7 @@ class SettingsView(SessionView, ABC):
     @extend_schema(responses=None)
     def patch(self, *args, **kwargs):
         """Update session settings."""
-        data = self.request.data  # type: ignore
+        data = self.request.data
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         params = self.load_params_from_session()

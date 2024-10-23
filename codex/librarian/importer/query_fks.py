@@ -229,9 +229,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
         group_filter = Q()
         for group_tree, count_value in update_group_trees.items():
-            compare_filter = {}
-            for field_name, value in zip(compare_fields, group_tree, strict=False):
-                compare_filter[field_name] = value
+            compare_filter = dict(zip(compare_fields, group_tree, strict=False))
             compare_filter[count_field_name] = count_value
             group_filter |= Q(**compare_filter)
         return group_filter
@@ -494,7 +492,6 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
     def _query_missing_simple_models(self, names, fk_data, status):
         """Find missing named models and folders."""
-        # count = 0
         if not names:
             return 0
         create_fks, base_cls, field, fk_field = fk_data

@@ -79,7 +79,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
-            SearchIndexUpdateTask(False),
+            SearchIndexUpdateTask(rebuild=False),
         )
 
         for task in startup_tasks:
@@ -204,7 +204,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                 try:
                     task = self.queue.get()
                     self._process_task(task)
-                except Exception:
+                except Exception:  # noqa: PERF203
                     self.log.exception(f"In {self.name} loop")
         except Exception:
             self.log.exception(f"{self.name} crashed.")

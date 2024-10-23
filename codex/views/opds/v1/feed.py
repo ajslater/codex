@@ -75,7 +75,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         """Create the feed title."""
         result = ""
         try:
-            browser_title: Mapping[str, Any] = self.obj.get("title")  # type: ignore
+            browser_title: Mapping[str, Any] = self.obj.get("title", {})
             if browser_title:
                 parent_name = browser_title.get("parent_name", "All")
                 pks = self.kwargs["pks"]
@@ -97,7 +97,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         try:
             mtime = self.obj.get("mtime")
             if mtime:
-                datestr = mtime.isoformat()  # type: ignore
+                datestr = mtime.isoformat()
         except Exception:
             LOG.exception("Getting OPDS v1 updated")
         return datestr
@@ -124,13 +124,13 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
         """Get entries by key section."""
         entries = []
         if objs := self.obj.get(key):
-            zero_pad: int = self.obj["zero_pad"]  # type: ignore
+            zero_pad: int = self.obj["zero_pad"]
             data = OPDS1EntryData(
                 self.opds_acquisition_groups, zero_pad, metadata, self.mime_type_map
             )
             fallback = bool(self.admin_flags.get("folder_view"))
             import_pks = set()
-            for obj in objs:  # type: ignore
+            for obj in objs:
                 entry = OPDS1Entry(
                     obj,
                     self.request.GET,
@@ -157,7 +157,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
                     entries += self.add_top_links(RootTopLinks.ALL)
                 entries += self.facets(entries=True, root=at_root)
 
-            entries += self._get_entries_section("groups", False)
+            entries += self._get_entries_section("groups", metadata=False)
             metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
             entries += self._get_entries_section("books", metadata)
         except Exception:

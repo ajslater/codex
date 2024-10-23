@@ -2,6 +2,7 @@
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
 
 import re
+from typing import TYPE_CHECKING
 
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connections
@@ -18,6 +19,13 @@ from codex.settings.settings import (
 )
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
+
+if TYPE_CHECKING:
+    from django.db.models.manager import BaseManager
+
+    from codex.models.base import BaseModel
+    from codex.models.comic import Comic
+
 
 REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
 REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
@@ -105,7 +113,7 @@ def _null_bad_fk_rels_table(table_name, bad_rows, log):
     fields = model._meta.fields
     field_names = {}
     update_objs = []
-    objs = model.objects.filter(pk__in=bad_rows.keys())
+    objs: BaseManager[BaseModel] = model.objects.filter(pk__in=bad_rows.keys())  # type: ignore[reportAssignmentType]
     update_fields = {"updated_at"}
     now = Now()
     for obj in objs:
@@ -119,7 +127,7 @@ def _null_bad_fk_rels_table(table_name, bad_rows, log):
                 field_name = field_names[fkid]
                 setattr(obj, field_name, None)
                 update_fields.add(field_name)
-            obj.updated_at = now  # type: ignore
+            obj.updated_at = now
             update_objs.append(obj)
         except Exception as exc:
             log.warning(
@@ -142,10 +150,10 @@ def _null_bad_fk_rels(bad_fk_rels, log):
     for table_name, bad_rows in bad_fk_rels.items():
         try:
             fix_comic_pks |= _null_bad_fk_rels_table(table_name, bad_rows, log)
-        except Exception as exc:
+        except Exception:  # noqa: PERF203
             pks = sorted(bad_rows.keys())
-            log.error(  # noqa: TRY400
-                f"Unable to null {len(pks)} {table_name} rows with bad foreign keys - {exc}"
+            log.exception(
+                f"Unable to null {len(pks)} {table_name} rows with bad foreign keys"
             )
             log.error(f"{table_name}: {pks}")  # noqa: TRY400
     return fix_comic_pks
@@ -175,10 +183,8 @@ def _delete_bad_m2m_rows(bad_m2m_rows, log):
     for table_name, ids in bad_m2m_rows.items():
         try:
             count += _delete_bad_m2m_rows_table(table_name, ids, fix_comic_pks, log)
-        except Exception as exc:
-            log.error(  # noqa: TRY400
-                f"Could not delete bad foreign keys in table {table_name} - {exc}"
-            )
+        except Exception:  # noqa: PERF203
+            log.exception(f"Could not delete bad foreign keys in table {table_name}")
     if count:
         log.info(f"Removed {count} bad foreign key relations.")
     return fix_comic_pks
@@ -189,7 +195,9 @@ def _mark_comics_for_update(fix_comic_pks, log):
     if not fix_comic_pks:
         return
     comic_model = apps.get_model(app_label="codex", model_name="comic")
-    outdated_comics = comic_model.objects.filter(pk__in=fix_comic_pks).only(
+    outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
+        pk__in=fix_comic_pks
+    ).only(  # type: ignore[reportAssignmentType]
         "stat", "updated_at"
     )
     if not outdated_comics:
@@ -198,12 +206,12 @@ def _mark_comics_for_update(fix_comic_pks, log):
     update_comics = []
     now = Now()
     for comic in outdated_comics:
-        stat_list = comic.stat  # type: ignore
+        stat_list = comic.stat
         if not stat_list:
             continue
         stat_list[8] = 0.0
-        comic.stat = stat_list  # type: ignore
-        comic.updated_at = now  # type: ignore
+        comic.stat = stat_list  # type: ignore[reportAttributeAccessIssue]
+        comic.updated_at = now
         update_comics.append(comic)
 
     if update_comics:
@@ -227,8 +235,8 @@ def fix_foreign_keys(log=None):
     fix_comic_pks |= _delete_bad_m2m_rows(bad_m2m_rows, log)
     try:
         _mark_comics_for_update(fix_comic_pks, log)
-    except Exception as exc:
-        LOG.warning(f"Could not mark comics with bad relations for update: {exc}")
+    except Exception:
+        LOG.exception("Could not mark comics with bad relations for update")
 
 
 def _repair_extra_custom_cover_libraries(library_model, log):
@@ -277,7 +285,7 @@ def _is_integrity_ok(results):
     )
 
 
-def integrity_check(long=True, log=None):
+def integrity_check(long, log=None):
     """Run sqlite3 integrity check."""
     if not log:
         log = LOG
@@ -318,9 +326,8 @@ def fts_integrity_check(log=None):
         if results:
             # I'm not sure if this raises or puts the error in the results.
             raise ValueError(results)  # noqa: TRY301
-    except Exception as exc:
-        log.warning("Full Text Search Index failed integrity check.")
-        log.warning(exc)
+    except Exception:
+        log.exception("Full Text Search Index failed integrity check.")
     else:
         log.info("Full Text Search Index passed integrity check.")
         success = True
@@ -340,7 +347,7 @@ class IntegrityMixin(WorkerBaseMixin):
         finally:
             self.status_controller.finish(status)
 
-    def integrity_check(self, long=False):
+    def integrity_check(self, long: bool):
         """Integrity check task."""
         subtitle = "" if long else "Quick"
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)

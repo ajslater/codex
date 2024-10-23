@@ -13,8 +13,6 @@ LOG = get_logger(__name__)
 class BrowserFilterView(BrowserFilterBookmarkView):
     """Browser Filters."""
 
-    TARGET = ""
-
     def force_inner_joins(self, qs):
         """Force INNER JOINS to filter empty groups."""
         demote_tables = {"codex_library"}
@@ -28,10 +26,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     def _get_query_filters(
         self,
         model,
+        page_mtime,
+        bookmark_filter,
         group=None,
         pks=None,
-        page_mtime=False,
-        bookmark_filter=True,
     ) -> Q:
         """Return all the filters except the group filter."""
         big_include_filter = Q()
@@ -54,16 +52,16 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         model,
         group=None,
         pks=None,
-        page_mtime=False,
-        bookmark_filter=True,
+        page_mtime=False,  # noqa: FBT002
+        bookmark_filter=True,  # noqa: FBT002
     ) -> QuerySet:
         """Get a filtered queryset for the model."""
         query_filters = self._get_query_filters(
             model,
-            group=group,
-            pks=pks,
             page_mtime=page_mtime,
             bookmark_filter=bookmark_filter,
+            group=group,
+            pks=pks,
         )
         # Distinct necissary for folder view with search
         return model.objects.filter(query_filters).distinct()

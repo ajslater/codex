@@ -37,13 +37,13 @@ class OPDS2LinkPropertiesSerializer(Serializer):
     """
 
     number_of_items = IntegerField(read_only=True, required=False)
-    # price = OPDS2PriceSerializer(read_only=True, required=False)
-    # indirect_aquisition = OPDS2AcquisitionObjectSerializer(
-    #    read_only=True, many=True, required=False
-    # )
-    # holds = OPDS2HoldsSerializer(read_only=True, required=False)
-    # copies = OPDS2CopiesSerializer(read_only=True, required=False)
-    # availability = OPDS2AvailabilitySerializer(read_only=True, required=False)
+    # price = OPDS2PriceSerializer(read_only=True, required=False) unused
+    # indirect_aquisition = OPDS2AcquisitionObjectSerializer( unused
+    #    read_only=True, many=True, required=False unused
+    # ) unused
+    # holds = OPDS2HoldsSerializer(read_only=True, required=False) unused
+    # copies = OPDS2CopiesSerializer(read_only=True, required=False) unused
+    # availability = OPDS2AvailabilitySerializer(read_only=True, required=False) unused
     authenticate = OPSD2AuthenticateSerializer(required=False)
 
 
@@ -59,9 +59,9 @@ class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
     # Uncommon
     height = IntegerField(read_only=True, required=False)
     width = IntegerField(read_only=True, required=False)
-    # bitrate = IntegerField(read_only=True, required=False)
-    # duration = IntegerField(read_only=True, required=False)
-    # language = CharField(many=True, read_only=True, required=False)
+    # bitrate = IntegerField(read_only=True, required=False) unused
+    # duration = IntegerField(read_only=True, required=False) unused
+    # language = CharField(many=True, read_only=True, required=False) unused
     alternate = ListField(child=CharField(), read_only=True, required=False)
     children = ListField(child=CharField(), read_only=True, required=False)
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)

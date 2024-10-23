@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from copy import deepcopy
 from types import MappingProxyType
+from typing import Any
 
 from rest_framework.exceptions import NotFound
 
@@ -73,10 +74,10 @@ class BrowserValidateView(SearchFilterView):
         self, reason, route_mask=None, settings_mask: Mapping | None = None
     ):
         """Redirect the client to a valid group url."""
-        route = mapping_to_dict(self.DEFAULT_ROUTE)
+        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)  # type:ignore[reportAssignmentType]
         if route_mask:
-            route["params"].update(route_mask)  # type: ignore
-        settings: dict = deepcopy(mapping_to_dict(self.params))  # type: ignore
+            route["params"].update(route_mask)
+        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))  # type: ignore[reportAssignmentType]
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}

@@ -38,7 +38,7 @@ class TimestampField(IntegerField):
             value = value.timestamp()
         return int(float(value) * 1000)
 
-    def to_internal_value(self, data) -> datetime:  # type: ignore
+    def to_internal_value(self, data) -> datetime:  # type: ignore[reportIncompatibleMethodOverride]
         """Convert from castable, likely string to datetime."""
         return datetime.fromtimestamp(float(data) / 1000, tz=timezone.utc)
 
@@ -48,7 +48,7 @@ def validate_decade(decade):
     # * We don't need a whole db call just to be perfectly accurate
     # * -1s are decoded back into None before validation
     if decade is not None and decade % 10 != 0:
-        raise ValidationError(_(f"Invalid decade: {decade}"))
+        raise ValidationError(_("Invalid decade: {decade}"), params={"decade": decade})
     return True
 
 
@@ -62,21 +62,21 @@ class VuetifyNullCodeFieldMixin:
         return None if data == self.NULL_CODE else data
 
 
-class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):  # type: ignore
+class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):  # type: ignore[reportIncompatibleMethodOverride]
     """Float Field with null code conversion."""
 
 
-class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # type: ignore
+class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # type: ignore[reportIncompatibleMethodOverride]
     """Integer Field with null code conversion."""
 
 
-class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore
+class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore[reportIncompatibleMethodOverride]
     """Char Field with null code conversion."""
 
     NULL_CODE = str(VUETIFY_NULL_CODE)
 
 
-class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # type: ignore
+class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # type: ignore[reportIncompatibleMethodOverride]
     """Boolean Field with null code conversion."""
 
 
@@ -168,7 +168,7 @@ class StringListMultipleChoiceField(MultipleChoiceField):
         """Convert comma delimited strings to sets."""
         if isinstance(data, str):
             data = frozenset(data.split(","))
-        return super().to_internal_value(data)  # type: ignore
+        return super().to_internal_value(data)  # type: ignore[reportIncompatibleMethodOverride]
 
 
 class SerializerChoicesField(StringListMultipleChoiceField):

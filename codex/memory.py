@@ -26,7 +26,7 @@ def get_cgroups1_mem_limit():
     with Path(MEMORY_STAT_PATH).open("r") as mem_stat_file:
         for line in mem_stat_file:
             parts = line.split()
-            if not parts or len(parts) < 2:  # noqa PLR2004
+            if not parts or len(parts) < 2:  # noqa: PLR2004
                 continue
             if "hierarchical_memory_limit" in parts[0]:
                 return int(parts[1])

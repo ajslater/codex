@@ -29,7 +29,7 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     def get_object(self):
         """Get admin flags."""
         flags = {}
-        for obj in self.get_queryset():  # type: ignore
+        for obj in self.get_queryset():
             name = ADMIN_FLAG_CHOICES[obj.key].lower().replace(" ", "_")
             if obj.key == AdminFlag.FlagChoices.BANNER_TEXT.value:
                 val = obj.value

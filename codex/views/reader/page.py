@@ -32,11 +32,11 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         """Select the first parser in the `.parser_classes` list."""
         return next(iter(parsers))
 
-    def select_renderer(  # type: ignore
+    def select_renderer(
         self,
         request,  # noqa: ARG002
         renderers,
-        _format_suffix="",
+        format_suffix="",  # noqa: ARG002, F841, RUF100
     ):
         """Select the first renderer in the `.renderer_classes` list."""
         renderer = next(iter(renderers))
@@ -48,7 +48,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
 
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
-    content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
+    content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore[reportAssignmentType]
 
     def _update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""

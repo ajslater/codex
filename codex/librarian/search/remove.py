@@ -21,7 +21,7 @@ class RemoveMixin(OptimizeMixin):
         self.status_controller.finish(clear_status)
         self.log.info("Old search index cleared.")
 
-    def _remove_stale_records(self, status):  # type: ignore
+    def _remove_stale_records(self, status):
         """Remove records not in the database from the index."""
         start_time = time()
         delete_comicfts = ComicFTS.objects.filter(comic__isnull=True)

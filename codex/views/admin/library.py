@@ -74,7 +74,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         )
         self._create_library_folder(library)
         self._sync_watchdog()
-        self._poll(library.pk, False)
+        self._poll(library.pk, force=False)
 
     def perform_update(self, serializer):
         """Perform update an run hooks."""
@@ -87,7 +87,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if "groupSet" in validated_keys:
             self._on_change()
         self._sync_watchdog(validated_keys)
-        self._poll(pk, False)
+        self._poll(pk, force=False)
 
     def perform_destroy(self, instance):
         """Perform destroy and run hooks."""
@@ -132,8 +132,8 @@ class AdminFolderListView(AdminGenericAPIView):
         try:
             serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            root_path = Path(serializer.validated_data.get("path", ".")).resolve()  # type: ignore
-            show_hidden = serializer.validated_data.get("show_hidden", False)  # type: ignore
+            root_path = Path(serializer.validated_data.get("path", ".")).resolve()
+            show_hidden = serializer.validated_data.get("show_hidden", False)
 
             dirs = self._get_dirs(root_path, show_hidden)
 

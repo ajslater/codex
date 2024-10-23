@@ -27,8 +27,10 @@ class BaseModel(Model):
     updated_at = DateTimeField(auto_now=True)
     objects = GroupByManager()
 
-    class Meta(ModelBase):  # type: ignore
+    class Meta(ModelBase):  # type: ignore[reportIncompatibleVariableOverride]
         """Without this a real table is created and joined to."""
+
+        # Model.Meta is not inheritable.
 
         abstract = True
         get_latest_by = "updated_at"
