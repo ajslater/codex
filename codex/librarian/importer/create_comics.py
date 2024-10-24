@@ -110,7 +110,7 @@ class CreateComicsImporter(LinkComicsImporter):
                 comic = Comic(**md, library=self.library)
                 comic.presave()
                 create_comics.append(comic)
-            except KeyError:  # noqa: PERF203
+            except KeyError:
                 self.log.warning(f"No comic metadata for {path}")
             except Exception:
                 self.log.exception(f"Error preparing {path} for create.")

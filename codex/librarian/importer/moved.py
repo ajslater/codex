@@ -114,7 +114,7 @@ class MovedImporter(AggregateMetadataImporter):
                 cover.presave()
                 moved_covers.append(cover)
                 unlink_pks.add(cover.pk)
-            except Exception:  # noqa: PERF203
+            except Exception:
                 self.log.exception(f"moving {cover.path}")
         return moved_covers, unlink_pks
 

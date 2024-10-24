@@ -89,7 +89,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
                 try:
                     library_paths.add(library.path)
                     self._sync_library_watch(library)
-                except FileNotFoundError:  # noqa: PERF203
+                except FileNotFoundError:
                     self.log.warning(
                         f"Could not find {library.path} to watch. May be unmounted."
                     )

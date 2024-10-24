@@ -16,7 +16,7 @@ def cast_issue_count(apps, _schema_editor):
         try:
             volume.issue_count = round(volume.issue_count_decimal)
             update_volumes.append(volume)
-        except Exception:  # noqa: PERF203
+        except Exception:
             print(
                 f"unable to cast volume {volume.name} "
                 f"issue_count {volume.old_issue_count} to int"

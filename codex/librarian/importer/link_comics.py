@@ -249,7 +249,7 @@ class LinkComicsImporter(LinkCoversImporter):
                 )
                 created_total += created_count
                 del_total += del_count
-            except Exception:  # noqa: PERF203
+            except Exception:
                 self.log.exception(f"Error recreating m2m field: {field_name}")
 
         if created_total:

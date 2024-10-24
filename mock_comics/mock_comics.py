@@ -92,7 +92,7 @@ LANG_LIST = []
 for lang in languages:
     try:
         LANG_LIST.append(lang.alpha_2)  # type: ignore[reportAttributeAccessIssue]
-    except AttributeError:  # noqa: PERF203
+    except AttributeError:
         LANG_LIST.append(lang.alpha_3)  # type: ignore[reportAttributeAccessIssue]
 COVER_RATIO = 1.5372233400402415
 COVER_WIDTH = 250

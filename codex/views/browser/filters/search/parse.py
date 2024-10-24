@@ -158,7 +158,7 @@ class SearchFilterView(BrowserFTSFilter):
         for match in _TOKEN_RE.finditer(text):
             try:
                 self._preparse_search_query_token(match, field_tokens, fts_tokens)
-            except Exception as exc:  # noqa: PERF203
+            except Exception as exc:
                 tok = match.group(0) if match else "<unmatched>"
                 LOG.debug(f"Error preparsing search query token {tok}: {exc}")
                 self.search_error = "Syntax error"

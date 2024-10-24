@@ -205,7 +205,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                 try:
                     task = self.queue.get()
                     self._process_task(task)
-                except Exception:  # noqa: PERF203
+                except Exception:
                     self.log.exception(f"In {self.name} loop")
         except Exception:
             self.log.exception(f"{self.name} crashed.")

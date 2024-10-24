@@ -35,7 +35,7 @@ class BookmarkThread(AggregateMessageQueuedThread, BookmarkUpdate):
             try:
                 self._send_item(filters, updates)
                 cleanup.add(filters)
-            except Exception:  # noqa: PERF203
+            except Exception:
                 self.log.exception("Updating bookmarks")
 
         self.cleanup_cache(cleanup)

@@ -150,7 +150,7 @@ def _null_bad_fk_rels(bad_fk_rels, log):
     for table_name, bad_rows in bad_fk_rels.items():
         try:
             fix_comic_pks |= _null_bad_fk_rels_table(table_name, bad_rows, log)
-        except Exception:  # noqa: PERF203
+        except Exception:
             pks = sorted(bad_rows.keys())
             log.exception(
                 f"Unable to null {len(pks)} {table_name} rows with bad foreign keys"
@@ -183,7 +183,7 @@ def _delete_bad_m2m_rows(bad_m2m_rows, log):
     for table_name, ids in bad_m2m_rows.items():
         try:
             count += _delete_bad_m2m_rows_table(table_name, ids, fix_comic_pks, log)
-        except Exception:  # noqa: PERF203
+        except Exception:
             log.exception(f"Could not delete bad foreign keys in table {table_name}")
     if count:
         log.info(f"Removed {count} bad foreign key relations.")
