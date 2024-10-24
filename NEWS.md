@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Features
 
-  - Browser can Order By Child Count.
+  - Browser Order By Child Count.
   - Customized site title option in Admin Flags.
   - Codex logs are now compressed when rotated.
   - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.
