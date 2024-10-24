@@ -68,11 +68,11 @@ def pop_name(kwargs: Mapping):
     return kwargs
 
 
-async def chunker(open_file, chunk_size=DEFAULT_CHUNK_SIZE):
+def chunker(open_file, chunk_size=DEFAULT_CHUNK_SIZE):
     """Asynchronous iterator for serving files."""
-    while True:
-        chunk = open_file.read(chunk_size)
-        if not chunk:
-            open_file.close()
-            break
-        yield chunk
+    with open_file:
+        while True:
+            if chunk := open_file.read(chunk_size):
+                yield chunk
+            else:
+                break
