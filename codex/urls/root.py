@@ -1,4 +1,5 @@
-"""Codex URL Configuration.
+"""
+Codex URL Configuration.
 
 https://docs.djangoproject.com/en/dev/topics/http/urls/
 """

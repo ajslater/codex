@@ -1,4 +1,5 @@
-"""OPDS v2 Progression Serializer.
+"""
+OPDS v2 Progression Serializer.
 
 https://github.com/opds-community/drafts/discussions/67
 """
@@ -53,7 +54,8 @@ class OPDS2ProgressionLocatorSerializer(Serializer):
 
 
 class OPDS2ProgressionSerializer(Serializer):
-    """Progression.
+    """
+    Progression.
 
     https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
     """

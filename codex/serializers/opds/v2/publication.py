@@ -22,7 +22,8 @@ class OPDS2FeedMetadataSerializer(OPDS2MetadataSerializer):
 
 
 class OPDS2ContributorObjectSerializer(Serializer):
-    """Contributor Object.
+    """
+    Contributor Object.
 
     https://readium.org/webpub-manifest/schema/contributor-object.schema.json
     """
@@ -37,7 +38,8 @@ class OPDS2ContributorObjectSerializer(Serializer):
 
 
 class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
-    """Metadata for publications.
+    """
+    Metadata for publications.
 
     https://readium.org/webpub-manifest/schema/metadata.schema.json
     """
@@ -68,7 +70,8 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
 
 
 class OPDS2PublicationSerializer(OPDS2FacetSerializer):
-    """Publication.
+    """
+    Publication.
 
     https://drafts.opds.io/schema/publication.schema.json
     """

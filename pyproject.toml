@@ -198,26 +198,20 @@ target-version = "py310"
 
 [tool.ruff.lint]
 extend-ignore = [
-  "BLE001",
-  "COM812",
-  "COM819",
-  "D203",
-  "D206",
-  "D213",
-  "D300",
-  "E111",
-  "E114",
-  "E117",
-  "E501",
-  "FBT001",
-  "ISC001",
-  "ISC002",
-  "Q000",
-  "Q001",
-  "Q002",
-  "Q003",
-  "S101",
-  "W191",
+  "BLE001", # catch bare exception
+  "COM812", # missing trailing comma
+  "COM819", # prohibit trailing comma
+  "D203",   # blank line before class docstring
+  "D206",   # formatted
+  "D212",   # first line multi line docstring.
+  "E111",   # formatted
+  "E114",   # formatted
+  "E117",   # over-indented
+  "E501",   # 88 char line
+  "FBT001", # boolean params
+  "ISC001", # formatted
+  "S101",   # assert
+  "W191",   # formatted
 ]
 extend-select = [
   "A",
@@ -263,7 +257,7 @@ extend-select = [
   "PT",
   "PTH",
   "PYI",
-  "Q",
+  # "Q", Formatted
   "N",
   # NPY,
   "RET",

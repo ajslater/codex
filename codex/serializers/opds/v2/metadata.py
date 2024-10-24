@@ -8,7 +8,8 @@ from rest_framework.serializers import Serializer
 
 
 class OPDS2MetadataSerializer(Serializer):
-    """Metadata.
+    """
+    Metadata.
 
     https://drafts.opds.io/schema/feed-metadata.schema.json
     """

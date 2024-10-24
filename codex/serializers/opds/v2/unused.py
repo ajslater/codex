@@ -7,7 +7,8 @@ from codex.serializers.opds.v2.links import OPDS2LinkListField
 
 
 class RecursiveField(Serializer):
-    """A recursive field type.
+    """
+    A recursive field type.
 
     There is a more comprehensive solution at
     https://pypi.org/project/djangorestframework-recursive/
@@ -22,7 +23,8 @@ class RecursiveField(Serializer):
 
 
 class OPDS2PriceSerializer(Serializer):
-    """Prices.
+    """
+    Prices.
 
     https://drafts.opds.io/schema/properties.schema.json
     """
@@ -33,7 +35,8 @@ class OPDS2PriceSerializer(Serializer):
 
 
 class OPDS2HoldsSerializer(Serializer):
-    """Holds.
+    """
+    Holds.
 
     https://drafts.opds.io/schema/properties.schema.json
     """
@@ -43,7 +46,8 @@ class OPDS2HoldsSerializer(Serializer):
 
 
 class OPDS2CopiesSerializer(Serializer):
-    """Copies.
+    """
+    Copies.
 
     https://drafts.opds.io/schema/properties.schema.json
     """
@@ -53,7 +57,8 @@ class OPDS2CopiesSerializer(Serializer):
 
 
 class OPDS2AcquisitionObjectSerializer(Serializer):
-    """Acquisition Object.
+    """
+    Acquisition Object.
 
     https://drafts.opds.io/schema/acquisition-object.schema.json
     """
@@ -63,7 +68,8 @@ class OPDS2AcquisitionObjectSerializer(Serializer):
 
 
 class OPDS2ProfileSerializer(Serializer):
-    """Profile.
+    """
+    Profile.
 
     https://drafts.opds.io/schema/profile.schema.json
     """
@@ -76,7 +82,8 @@ class OPDS2ProfileSerializer(Serializer):
 
 
 class OPDS2AvailabilitySerializer(Serializer):
-    """Availability.
+    """
+    Availability.
 
     https://drafts.opds.io/schema/properties.schema.json
     """

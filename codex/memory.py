@@ -34,7 +34,8 @@ def get_cgroups1_mem_limit():
 
 
 def get_mem_limit(divisor="b"):
-    """Get the current memlimit.
+    """
+    Get the current memlimit.
 
     If we're in a container set the limit too.
     """

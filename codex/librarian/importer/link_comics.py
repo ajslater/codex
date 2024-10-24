@@ -186,7 +186,8 @@ class LinkComicsImporter(LinkCoversImporter):
         return tms, all_del_pks
 
     def bulk_fix_comic_m2m_field(self, field_name, m2m_links, status):
-        """Recreate an m2m field for a set of comics.
+        """
+        Recreate an m2m field for a set of comics.
 
         Since we can't bulk_update or bulk_create m2m fields use a trick.
         bulk_create() on the through table:

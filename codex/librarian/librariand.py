@@ -193,7 +193,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log_queue.join_thread()
 
     def run(self):
-        """Process tasks from the queue.
+        """
+        Process tasks from the queue.
 
         This process also runs the crond thread and the Watchdog Observer
         threads.

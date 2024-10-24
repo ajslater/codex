@@ -63,7 +63,8 @@ class OPDSSettingsSerializer(BrowserSettingsSerializerBase):
 
 
 class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
-    """Browser Settings that the user can change.
+    """
+    Browser Settings that the user can change.
 
     This is the only browse serializer that's submitted.
     """

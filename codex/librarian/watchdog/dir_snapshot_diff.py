@@ -33,7 +33,8 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
         return self._get_inode(data.ref, path) == self._get_inode(data.snapshot, path)
 
     def _is_stats_equal(self, data, old_path, new_path):
-        """Return if the mtime and size are equal.
+        """
+        Return if the mtime and size are equal.
 
         For old paths in the ref and new paths in the snapshot.
         """

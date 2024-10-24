@@ -107,7 +107,8 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         recursive: bool = False,
         event_filter: list[type[FileSystemEvent]] | None = None,  # noqa: ARG002, F841, RUF100
     ) -> ObservedWatch:
-        """Override BaseObserver for Codex emitter class.
+        """
+        Override BaseObserver for Codex emitter class.
 
         https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver
         """

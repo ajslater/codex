@@ -1,4 +1,5 @@
-"""Create all missing comic foreign keys for an import.
+"""
+Create all missing comic foreign keys for an import.
 
 So we may safely create the comics next.
 """

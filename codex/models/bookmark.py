@@ -23,7 +23,8 @@ def cascade_if_user_null(
     sub_objs,
     using,  # noqa: ARG001
 ):
-    """Cascade only if the user field is null.
+    """
+    Cascade only if the user field is null.
 
     Do this to keep deleting ephemeral session data from Bookmark table.
     Adapted from:

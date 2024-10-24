@@ -31,7 +31,8 @@ class OPSD2AuthenticateSerializer(Serializer):
 
 
 class OPDS2LinkPropertiesSerializer(Serializer):
-    """Link Properties.
+    """
+    Link Properties.
 
     https://drafts.opds.io/schema/properties.schema.json
     """
@@ -48,7 +49,8 @@ class OPDS2LinkPropertiesSerializer(Serializer):
 
 
 class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
-    """Link.
+    """
+    Link.
 
     https://readium.org/webpub-manifest/schema/link.schema.json
     """

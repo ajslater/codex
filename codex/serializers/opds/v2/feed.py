@@ -25,7 +25,8 @@ class OPDS2GroupSerializer(Serializer):
 
 
 class OPDS2FeedSerializer(OPDS2GroupSerializer):
-    """Feed.
+    """
+    Feed.
 
     https://drafts.opds.io/schema/feed.schema.json
     https://readium.org/webpub-manifest/schema/subcollection.schema.json

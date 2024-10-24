@@ -16,7 +16,8 @@ class NotifierThread(AggregateMessageQueuedThread):
         self.cache[item.text] = item
 
     def _send_task(self, task):
-        """Send a group_send message to the mulitprocess broadcast channel.
+        """
+        Send a group_send message to the mulitprocess broadcast channel.
 
         A random consumer awaiting the broadcast channel will consume it,
         and do a group_send with it's message.

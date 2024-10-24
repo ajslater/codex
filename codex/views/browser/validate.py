@@ -84,7 +84,8 @@ class BrowserValidateView(SearchFilterView):
         raise SeeOtherRedirectError(detail=detail)
 
     def _get_valid_browse_top_groups(self):
-        """Get valid top groups for the current settings.
+        """
+        Get valid top groups for the current settings.
 
         Valid top groups are determined by the Browser Settings.
         """
@@ -119,7 +120,8 @@ class BrowserValidateView(SearchFilterView):
             self.raise_redirect(reason, route, settings_mask)
 
     def _get_valid_browse_nav_groups(self, valid_top_groups):
-        """Get valid nav groups for the current settings.
+        """
+        Get valid nav groups for the current settings.
 
         Valid nav groups are the top group and below that are also
         enabled in browser settings.
