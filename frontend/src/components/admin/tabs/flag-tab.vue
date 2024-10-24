@@ -29,6 +29,8 @@
         <td>
           <v-btn
             v-if="item.key === 'BT'"
+            variant="plain"
+            class="flagSaveButton"
             :icon="mdiContentSaveOutline"
             title="Save Banner"
             @click="changeCol(item.key, 'value', banner)"
@@ -142,5 +144,14 @@ export default {
 
 .bannerTextField {
   min-width: 16em;
+}
+
+.flagSaveButton {
+  color: rgb(var(--v-theme-textSecondary));
+  padding-right: 12px;
+}
+
+.flagSaveButton:hover {
+  color: white;
 }
 </style>
