@@ -18,10 +18,10 @@ register_converter(IntListConverter, "int_list")
 urlpatterns = []
 if DEBUG:
     # Pyright doesn't follow logic so will try to find these types.
-    from schema_graph.views import Schema
+    from schema_graph.views import Schema  # type: ignore[reportMissingImports]
 
     urlpatterns += [
-        path("schema/", Schema.as_view()),
+        path("schema/", Schema.as_view()), # type: ignore[reportPossiblyUnboundVariable]
     ]
 
 urlpatterns += [
