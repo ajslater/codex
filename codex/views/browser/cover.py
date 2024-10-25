@@ -52,7 +52,7 @@ class CoverView(BrowserAnnotateOrderView):
         BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
     )
 
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):
+    def get_group_filter(self, group=None, pks=None, page_mtime=False):  # noqa: FBT002
         """Get group filter for First Cover View."""
         if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
@@ -60,7 +60,10 @@ class CoverView(BrowserAnnotateOrderView):
         # First cover group filter relies on sort names to look outside the browser supplied pks
         # For multi_groups not in the browser query.
         pks = self.kwargs["pks"]
-        qs = self.model.objects.filter(pk__in=pks)  # type: ignore
+        if not self.model:
+            qs = Comic.objects.none()
+        else:
+            qs = self.model.objects.filter(pk__in=pks)
         sort_names = qs.values_list("sort_name", flat=True).distinct()
         model_rel = GROUP_RELATION[self.model_group]
         group_filter = {f"{model_rel}__sort_name__in": sort_names}
@@ -142,7 +145,7 @@ class CoverView(BrowserAnnotateOrderView):
         parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
-    def get(self, *args, **kwargs):  # type: ignore
+    def get(self, *args, **kwargs):
         """Get comic cover."""
         try:
             try:

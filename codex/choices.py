@@ -12,17 +12,18 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
 )
 BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
-        "age_rating": "Age Rating",
-        "bookmark_updated_at": "Last Read",
-        "community_rating": "Community Rating",
         "created_at": "Added Time",
+        "age_rating": "Age Rating",
+        "child_count": "Child Count",
+        "community_rating": "Community Rating",
         "critical_rating": "Critical Rating",
-        "date": "Publish Date",
         "filename": "Filename",
-        "page_count": "Page Count",
-        "search_score": "Search Score",
         "size": "File Size",
+        "bookmark_updated_at": "Last Read",
         "sort_name": "Name",
+        "page_count": "Page Count",
+        "date": "Publish Date",
+        "search_score": "Search Score",
         "story_arc_number": "Story Arc Number",
         "updated_at": "Updated Time",
     }
@@ -92,7 +93,6 @@ BROWSER_DEFAULTS = MappingProxyType(
         "order_by": "sort_name",
         "order_reverse": False,
         "q": "",
-        # "search_results_limit": 100,
         "show": _DEFAULT_SHOW,
         "top_group": "p",
         "twenty_four_hour_time": False,
@@ -116,6 +116,7 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         "NU": "Non Users",
         "RG": "Registration",
         "ST": "Send Stats",
+        "BT": "Banner Text",
     }
 )
 
@@ -389,11 +390,9 @@ ADMIN_TASK_GROUPS = MappingProxyType(
 
 def _group_task_values(groups):
     """Extract values into sorted tuple."""
-    values = []
-    for group in groups["tasks"]:
-        for item in group["tasks"]:
-            values.append(item["value"])
-    return tuple(sorted(values))
+    return tuple(
+        sorted([item["value"] for group in groups["tasks"] for item in group["tasks"]])
+    )
 
 
 ADMIN_TASKS = _group_task_values(ADMIN_TASK_GROUPS)

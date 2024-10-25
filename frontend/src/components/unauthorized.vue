@@ -1,5 +1,6 @@
 <template>
   <v-main id="unauthorized">
+    <AppBanner />
     <EmptyState
       v-if="isAuthChecked"
       class="empty"
@@ -22,6 +23,7 @@ import { mapGetters, mapState } from "pinia";
 
 import AdminBrowserLink from "@/components/admin/browser-link.vue";
 import AuthMenu from "@/components/auth/auth-menu.vue";
+import AppBanner from "@/components/banner.vue";
 import EmptyState from "@/components/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -29,6 +31,7 @@ import { useAuthStore } from "@/stores/auth";
 export default {
   name: "UnauthorizedEmptyState",
   components: {
+    AppBanner,
     AdminBrowserLink,
     AuthMenu,
     PlaceholderLoading,

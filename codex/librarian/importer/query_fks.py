@@ -96,7 +96,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         if extra_fields:
             fields += extra_fields
         flat = len(fields) == 1 and fk_cls != Publisher
-        qs = fk_cls.objects.filter(fk_filter).values_list(*fields, flat=flat)
+        qs = fk_cls.objects.filter(fk_filter).distinct().values_list(*fields, flat=flat)
         return frozenset(qs)
 
     def _query_create_metadata(  # noqa: PLR0913
@@ -229,9 +229,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
         group_filter = Q()
         for group_tree, count_value in update_group_trees.items():
-            compare_filter = {}
-            for field_name, value in zip(compare_fields, group_tree, strict=False):
-                compare_filter[field_name] = value
+            compare_filter = dict(zip(compare_fields, group_tree, strict=False))
             compare_filter[count_field_name] = count_value
             group_filter |= Q(**compare_filter)
         return group_filter
@@ -449,7 +447,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
         # Build combined query object from the value_filter
         model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
-        if model == Identifier:
+        if model in (Identifier, Contributor):
             for filter_and_prefix, value_filter in query_filter_map.items():
                 self._query_create_metadata(
                     model,
@@ -494,7 +492,6 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
     def _query_missing_simple_models(self, names, fk_data, status):
         """Find missing named models and folders."""
-        # count = 0
         if not names:
             return 0
         create_fks, base_cls, field, fk_field = fk_data

@@ -20,7 +20,7 @@ class CodexQueueHandler(QueueHandler):
         super().enqueue(record)
 
 
-LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)  # type: ignore
+LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)
 
 
 def _ensure_handler(logger, queue):

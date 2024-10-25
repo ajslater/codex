@@ -596,14 +596,15 @@ export const useReaderStore = defineStore("reader", {
       ) {
         updates["finished"] = true;
       }
-      await COMMON_API.updateGroupBookmarks(groupParams, updates);
+      await BROWSER_API.updateGroupBookmarks(groupParams, {}, updates);
     },
     async setSettingsLocal(data) {
       this._updateSettings(data, true);
 
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await COMMON_API.updateGroupBookmarks(
+      await BROWSER_API.updateGroupBookmarks(
         groupParams,
+        {},
         this.books.current.settings,
       );
     },

@@ -1,7 +1,7 @@
 """Utilities for models."""
 
 _ARTICLES = frozenset(
-    ("a", "an", "the")  # en    # noqa RUF005
+    ("a", "an", "the")  # en    # noqa: RUF005
     + ("un", "unos", "unas", "el", "los", "la", "las")  # es
     + ("un", "une", "le", "les", "la", "les", "l'")  # fr
     + ("o", "a", "os")  # pt

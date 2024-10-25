@@ -31,7 +31,10 @@ FACETS = (
         "Order Direction",
         "orderReverse",
         "⇕",
-        (Facet(False, "Ascending"), Facet(True, "Descending")),
+        (
+            Facet(query_param_value=False, title="Ascending"),
+            Facet(query_param_value=True, title="Descending"),
+        ),
     ),
     FacetGroup(
         "Top Group",
@@ -114,5 +117,5 @@ class LinksSectionData:
 
 
 TOP_NAV_GROUP_SECTION_DATA = LinksSectionData(group_kwarg=True)
-GROUPS_SECTION_DATA = LinksSectionData("Groups", Rel.SUB, True)
+GROUPS_SECTION_DATA = LinksSectionData("Groups", Rel.SUB, group_kwarg=True)
 FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET, links_key="links")

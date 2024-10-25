@@ -6,6 +6,7 @@ from django.views.decorators.cache import cache_page
 from codex.urls.const import BROWSER_TIMEOUT
 from codex.views.opds.util import full_redirect_view
 from codex.views.opds.v2.feed import OPDS2FeedView
+from codex.views.opds.v2.progression import OPDS2ProgressionView
 
 app_name = "v2"
 
@@ -21,6 +22,11 @@ urlpatterns = [
         "c/<str:pk>/<int:page>",
         cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
         name="acq",
+    ),
+    path(
+        "<group:group>/<int:pk>/position",
+        cache_page(BROWSER_TIMEOUT)(OPDS2ProgressionView.as_view()),
+        name="position",
     ),
     #
     # Catch All

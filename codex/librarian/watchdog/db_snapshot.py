@@ -61,12 +61,12 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     def __init__(
         self,
         path,
-        _recursive=True,  # unused, always recursive
+        _recursive=True,  # noqa: FBT002 unused, always recursive
         stat=os.stat,
         _listdir=os.listdir,  # unused for database
-        force=False,
+        force=False,  # noqa: FBT002
         log_queue=None,
-        covers_only=False,
+        covers_only=False,  # noqa: FBT002
     ):
         """Initialize like DirectorySnapshot but use a database walk."""
         self._covers_only = covers_only

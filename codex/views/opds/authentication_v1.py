@@ -40,7 +40,7 @@ _DOC = MappingProxyType(
                 "labels": {"login": "Username", "password": "Password"},
             },
             {
-                # XXX Out of spec type
+                # Out of spec type
                 "type": "cookie",
                 "links": [
                     {

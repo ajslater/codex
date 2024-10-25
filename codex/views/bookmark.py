@@ -1,24 +1,52 @@
-"""Bookmark views."""
+"""Views for reading comic books."""
 
-from drf_spectacular.utils import extend_schema
+from abc import ABC
+from typing import TYPE_CHECKING
+
+from django.db.models import Q
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from codex.librarian.bookmark.update import BookmarkUpdate
+from codex.librarian.bookmark.tasks import BookmarkUpdateTask
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.serializers.models.bookmark import (
-    BookmarkFinishedSerializer,
-    BookmarkSerializer,
-)
-from codex.views.auth import (
-    AuthFilterAPIView,
-    AuthFilterGenericAPIView,
-)
-from codex.views.const import FILTER_ONLY_GROUP_RELATION
+from codex.views.auth import AuthAPIView, GroupACLMixin
+
+if TYPE_CHECKING:
+    from codex.models import BrowserGroupModel
 
 LOG = get_logger(__name__)
 
 
-class BookmarkBaseView(AuthFilterAPIView):
+class BookmarkFilterMixin(GroupACLMixin, ABC):
+    """Bookmark filter methods."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the bm_annotation_data."""
+        super().__init__(*args, **kwargs)
+        self._bm_rels: dict[BrowserGroupModel, str] = {}
+        self._bm_filters: dict[BrowserGroupModel, Q] = {}
+
+    def get_bm_rel(self, model):
+        """Create bookmark relation."""
+        if model not in self._bm_rels:
+            rel_prefix = self.get_rel_prefix(model)
+            self._bm_rels[model] = rel_prefix + "bookmark"
+        return self._bm_rels[model]
+
+    def get_my_bookmark_filter(self, bm_rel):
+        """Get a filter for my session or user defined bookmarks."""
+        if self.request.user and self.request.user.is_authenticated:
+            key = f"{bm_rel}__user"
+            value = self.request.user
+        else:
+            key = f"{bm_rel}__session__session_key"
+            value = self.request.session.session_key
+        my_bookmarks_kwargs = {key: value}
+        return Q(**my_bookmarks_kwargs)
+
+
+class BookmarkAuthMixin(APIView):
     """Base class for Bookmark Views."""
 
     def get_bookmark_auth_filter(self):
@@ -35,36 +63,20 @@ class BookmarkBaseView(AuthFilterAPIView):
         return {key: value}
 
 
-class BookmarkView(AuthFilterGenericAPIView, BookmarkBaseView, BookmarkUpdate):
-    """User Bookmark View."""
+class BookmarkPageView(BookmarkAuthMixin, AuthAPIView):
+    """Display a comic page from the archive itself."""
 
-    serializer_class = BookmarkSerializer
-
-    def _parse_params(self):
-        """Validate and translate the submitted data."""
-        group = self.kwargs.get("group")
-        # If the target is recursive, strip everything but finished state data.
-        serializer_class = None if group == "c" else BookmarkFinishedSerializer
-
-        data = self.request.data  # type: ignore
-        if serializer_class:
-            serializer = serializer_class(data=data, partial=True)
-        else:
-            serializer = self.get_serializer(data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        return serializer.validated_data
-
-    @extend_schema(request=serializer_class, responses=None)
-    def patch(self, *_args, **_kwargs):
-        """Update bookmarks recursively."""
-        updates = self._parse_params()
-
+    def _update_bookmark(self):
+        """Update the bookmark if the bookmark param was passed."""
         auth_filter = self.get_bookmark_auth_filter()
+        comic_pks = (self.kwargs.get("pk"),)
+        page = self.kwargs.get("page")
+        updates = {"page": page}
 
-        group = self.kwargs.get("group")
-        rel = FILTER_ONLY_GROUP_RELATION[group] + "__in"
-        pks = self.kwargs.get("pks")
-        comic_filter = {rel: pks}
+        task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
+        LIBRARIAN_QUEUE.put(task)
 
-        self.update_bookmarks(auth_filter, comic_filter, updates, LOG)
+    def put(self, *_args, **_kwargs):
+        """Get the comic page from the archive."""
+        self._update_bookmark()
         return Response()

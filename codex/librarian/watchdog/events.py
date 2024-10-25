@@ -198,8 +198,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
                 task = WatchdogEventTask(self.library_pk, sub_event)
                 self.librarian_queue.put(task)
 
-            # Calls stub event dispatchers
-            # super().dispatch(event)
+            # Do not call super dispatch to call stub event dispatchers
         except Exception:
             self.log.exception(f"{self.__class__.__name__} dispatch")
 

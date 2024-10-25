@@ -62,7 +62,7 @@ def _backup_db_before_migration():
     """If there are migrations to do, backup the db."""
     backup_path = _get_backup_db_path(f"before-v{VERSION}")
     janitor = Janitor(LOG_QUEUE, LIBRARIAN_QUEUE)
-    janitor.backup_db(backup_path, show_status=False)
+    janitor.backup_db(show_status=False, backup_path=backup_path)
     LOG.info("Backed up database before migrations")
 
 
@@ -71,7 +71,7 @@ def _repair_db():
     if FIX_FOREIGN_KEYS:
         fix_foreign_keys()
     if INTEGRITY_CHECK:
-        integrity_check()
+        integrity_check(long=True)
     success = fts_integrity_check() if FTS_INTEGRITY_CHECK else True
     if FTS_REBUILD or not success:
         fts_rebuild()

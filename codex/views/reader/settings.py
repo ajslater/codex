@@ -7,6 +7,6 @@ from codex.views.settings import SettingsView
 class ReaderSettingsView(SettingsView):
     """Get Reader Settings."""
 
-    serializer_class = ReaderSettingsSerializer  # type: ignore
+    serializer_class = ReaderSettingsSerializer
 
     SESSION_KEY = "reader"

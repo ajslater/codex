@@ -1,5 +1,5 @@
 """Optimize Text Lookups."""
-# XXX Unused XXX multiple like queries test better
+# UNUSED CODE multiple like queries test better
 
 import re
 

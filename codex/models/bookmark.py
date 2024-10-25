@@ -23,18 +23,15 @@ def cascade_if_user_null(
     sub_objs,
     using,  # noqa: ARG001
 ):
-    """Cascade only if the user field is null.
+    """
+    Cascade only if the user field is null.
 
     Do this to keep deleting ephemeral session data from Bookmark table.
     Adapted from:
     https://github.com/django/django/blob/master/django/db/models/deletion.py#L23
     """
-    null_user_sub_objs = []
-    for sub_obj in sub_objs:
-        # only cascade the ones with null user fields.
-        if sub_obj.user is None:
-            null_user_sub_objs.append(sub_obj)
-
+    # only cascade the ones with null user fields.
+    null_user_sub_objs = [sub_obj for sub_obj in sub_objs if sub_obj.user is None]
     if null_user_sub_objs:
         collector.collect(
             null_user_sub_objs,

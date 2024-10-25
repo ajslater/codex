@@ -54,7 +54,7 @@ class MetadataView(MetadataCopyIntersectionsView):
         # Annotate
         qs = self.annotate_order_aggregates(qs)
         qs = self.annotate_card_aggregates(qs)
-        qs = self._annotate_values_and_fks(qs, filtered_qs)
+        qs = self.annotate_values_and_fks(qs, filtered_qs)
         qs = self.add_group_by(qs)
         qs = self.force_inner_joins(qs)
 
@@ -63,7 +63,7 @@ class MetadataView(MetadataCopyIntersectionsView):
             obj = qs[0]
             if not obj:
                 reason = "Empty obj"
-                raise ValueError(reason)  # noqa TRY301
+                raise ValueError(reason)  # noqa: TRY301
         except (IndexError, ValueError) as exc:
             return self._raise_not_found(exc)
 

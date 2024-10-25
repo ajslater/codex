@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="browserToolbarTop" density="compact" :height="48">
+  <v-toolbar id="browserToolbarTop" flat density="compact" :height="48">
     <v-toolbar-items id="browserToolbarLeftItems">
       <BrowserTopGroupSelect />
       <BrowserFilterBySelect />
@@ -54,10 +54,11 @@ export default {
   padding-left: max(18px, calc(env(safe-area-inset-left)/2));
   padding-right: 0px; // given to the settings drawer button
 }
+
 @media #{map.get(vuetify.$display-breakpoints, 'xs')} {
-#browserToolbarTop {
-  padding-top: env(safe-area-inset-top);
-  padding-left: max(10px, calc(env(safe-area-inset-left)/2));
-}
+  #browserToolbarTop {
+    padding-top: env(safe-area-inset-top);
+    padding-left: max(10px, calc(env(safe-area-inset-left)/2));
+  }
 }
 </style>

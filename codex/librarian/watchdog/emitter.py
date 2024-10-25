@@ -46,14 +46,14 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
     _DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
-    def __init__(  # noqa PLR0913
+    def __init__(  # noqa: PLR0913
         self,
         event_queue,
         watch,
         timeout=DEFAULT_EMITTER_TIMEOUT,
         log_queue=None,
         librarian_queue=None,
-        covers_only=False,
+        covers_only=False,  # noqa: FBT002
     ):
         """Initialize snapshot methods."""
         self.init_worker(log_queue, librarian_queue)
@@ -72,7 +72,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             # default stat and listdir params
         )
 
-    def poll(self, force=False):
+    def poll(self, force: bool):
         """Poll now, sooner than timeout."""
         self._force = force
         with self._poll_cond:
@@ -118,7 +118,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         return ok
 
     @property
-    def timeout(self) -> int | None:  # type: ignore
+    def timeout(self) -> int | None:  # type: ignore[reportIncompatibleMethodOverride]
         """Get the timeout for this emitter from its library."""
         # The timeout from the constructor, self._timeout, is thrown away in favor
         # of a dynamic timeout from the database.

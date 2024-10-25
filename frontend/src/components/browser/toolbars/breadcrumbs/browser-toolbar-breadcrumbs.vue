@@ -1,10 +1,5 @@
 <template>
-  <v-toolbar
-    id="breadcrumbsToolbar"
-    :height="24"
-    class="titleToolbar"
-    elevation="8"
-  >
+  <v-toolbar id="breadcrumbsToolbar" :height="24" flat class="titleToolbar">
     <Breadcrumbs />
   </v-toolbar>
 </template>
@@ -22,7 +17,7 @@ export default {
 
 <style scoped lang="scss">
 #breadcrumbsToolbar {
-  padding-top:6px;
+  padding-top: 6px;
   padding-left: 0px; // given to first breadcrumb child
   padding-right: max(calc(env(safe-area-inset-right) /4), 10px);
 }

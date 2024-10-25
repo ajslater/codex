@@ -109,7 +109,7 @@ class Janitor(
                 case JanitorVacuumTask():
                     self.vacuum_db()
                 case JanitorBackupTask():
-                    self.backup_db()
+                    self.backup_db(show_status=True)
                 case JanitorLatestVersionTask():
                     self.update_latest_version(task.force)
                 case JanitorUpdateTask():
@@ -149,7 +149,10 @@ class Janitor(
                     for next_task in next_tasks:
                         self.librarian_queue.put(next_task)
                 case JanitorSearchOptimizeFinishedTask():
-                    next_tasks = (JanitorVacuumTask(), JanitorBackupTask())
+                    next_tasks = (
+                        JanitorVacuumTask(),
+                        JanitorBackupTask(),
+                    )
                     for next_task in next_tasks:
                         self.librarian_queue.put(next_task)
                 case _:

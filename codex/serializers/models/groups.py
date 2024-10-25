@@ -43,7 +43,6 @@ class SeriesSerializer(GroupModelSerializer):
         """Configure model."""
 
         model = Series
-        # fields = (*NamedModelMeta.fields, "volume_count")
 
 
 class VolumeSerializer(GroupModelSerializer):
@@ -53,4 +52,3 @@ class VolumeSerializer(GroupModelSerializer):
         """Configure model."""
 
         model = Volume
-        # fields = (*NamedModelMeta.fields, "issue_count")

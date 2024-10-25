@@ -47,7 +47,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     @classmethod
     def _copy_m2m_intersections(cls, obj, m2m_intersections):
         """Copy the m2m intersections into the object."""
-        # XXX It might even be faster to copy everything to a dict and not use the obj.
+        # It might even be faster to copy everything to a dict and not use the obj.
         for key, qs in m2m_intersections.items():
             serializer_key = (
                 f"{PREFETCH_PREFIX}{key}"

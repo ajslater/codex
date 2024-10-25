@@ -13,7 +13,7 @@ from codex.status import Status
 class DeletedImporter(CacheUpdateImporter):
     """Clean up database methods."""
 
-    def _remove_covers(self, delete_pks, custom=False):
+    def _remove_covers(self, delete_pks, custom: bool):
         task = CoverRemoveTask(delete_pks, custom)
         self.librarian_queue.put(task)
 
@@ -34,7 +34,7 @@ class DeletedImporter(CacheUpdateImporter):
         )
         folders.delete()
 
-        self._remove_covers(delete_comic_pks)
+        self._remove_covers(delete_comic_pks, custom=False)
 
         count = len(delete_comic_pks)
         if count:
@@ -96,7 +96,7 @@ class DeletedImporter(CacheUpdateImporter):
         delete_comic_pks = frozenset(delete_qs.values_list("pk", flat=True))
         delete_qs.delete()
 
-        self._remove_covers(delete_comic_pks)
+        self._remove_covers(delete_comic_pks, custom=False)
 
         count = len(delete_comic_pks)
         if count:

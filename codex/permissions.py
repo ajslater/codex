@@ -8,7 +8,7 @@ from codex.models import Timestamp
 class HasAPIKeyOrIsAdminUser(BasePermission):
     """Does the request have the current api key."""
 
-    def has_permission(self, request, view):  # type: ignore
+    def has_permission(self, request, view):
         """Test the request api key against the database."""
         data = request.GET if request.method == "GET" else request.POST
         api_key = data.get("apiKey")

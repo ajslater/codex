@@ -1,4 +1,5 @@
-"""OPDS Authentication 1.0 Serializer.
+"""
+OPDS Authentication 1.0 Serializer.
 
 https://drafts.opds.io/schema/authentication.schema.json
 """

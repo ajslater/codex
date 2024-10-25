@@ -55,5 +55,5 @@ class ComicFieldFilterView(GroupFilterView):
     def get_comic_field_filter(self, model):
         """Filter the comics based on the form filters."""
         rel_prefix = self.get_rel_prefix(model)
-        filters = self.params["filters"]  # type: ignore
+        filters = self.params["filters"]
         return self.get_all_comic_field_filters(rel_prefix, filters)

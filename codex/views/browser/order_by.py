@@ -19,7 +19,10 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         if not self._order_key:
             order_key: str = self.params["order_by"]
             if (order_key == "search_score" and not self.fts_mode) or (
-                order_key == "filename" and not self.admin_flags["folder_view"]
+                order_key == "filename"
+                and not self.admin_flags["folder_view"]
+                or order_key == "child_count"
+                and self.TARGET == "cover"
             ):
                 order_key = "sort_name"
             self._order_key = order_key
@@ -29,6 +32,8 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         """Order by for comics (and covers)."""
         if not order_key:
             order_key = self.order_key
+        if order_key == "child_count":
+            order_key = "sort_name"
         if order_key == "sort_name":
             if not comic_sort_names:
                 comic_sort_names = self._comic_sort_names
@@ -50,7 +55,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
-    def add_order_by(self, qs, order_key="", do_reverse=True, comic_sort_names=None):
+    def add_order_by(self, qs, order_key="", comic_sort_names=None):
         """Create the order_by list."""
         order_fields_head = ()
         if qs.model is Comic:
@@ -60,11 +65,9 @@ class BrowserOrderByView(BrowserGroupMtimeView):
 
         order_fields = (*order_fields_head, "pk")
 
-        prefix = "-" if do_reverse and self.params.get("order_reverse") else ""
-        order_by = []
+        prefix = "-" if self.params.get("order_reverse") else ""
         if prefix:
-            for field in order_fields:
-                order_by.append(prefix + field)
+            order_by = [prefix + field for field in order_fields]
         else:
             order_by = order_fields
 

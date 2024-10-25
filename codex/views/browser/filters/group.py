@@ -18,10 +18,11 @@ class GroupFilterView(BrowserParamsView):
 
     SESSION_KEY = BrowserParamsView.BROWSER_SESSION_KEY
 
-    def _get_rel_for_pks(self, group, page_mtime=False):
+    TARGET = ""
+
+    def _get_rel_for_pks(self, group, page_mtime: bool):
         """Get the relation from the model to the pks."""
-        # XXX these TARGET refs might be better as subclass get rel methods.
-        target: str = self.TARGET  # type: ignore
+        target: str = self.TARGET
         if target in _GROUP_REL_TARGETS:
             rel = FILTER_ONLY_GROUP_RELATION[group]
         elif target in _PK_REL_TARGETS or page_mtime:
@@ -36,7 +37,7 @@ class GroupFilterView(BrowserParamsView):
         rel += "__in"
         return rel
 
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):
+    def get_group_filter(self, group=None, pks=None, page_mtime=False):  # noqa: FBT002
         """Get filter for the displayed group."""
         if group is None:
             group = self.kwargs["group"]

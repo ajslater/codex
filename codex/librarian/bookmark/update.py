@@ -10,9 +10,8 @@ from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
 from codex.models.admin import UserActive
 from codex.views.auth import GroupACLMixin
-from codex.views.mixins import BookmarkSearchMixin
 
-VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
+_VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
 _BOOKMARK_UPDATE_FIELDS = frozenset(
     {
         "page",
@@ -22,10 +21,9 @@ _BOOKMARK_UPDATE_FIELDS = frozenset(
         "reading_direction",
     }
 )
-_COMIC_ONLY_FIELDS = ("pk", "page_count")
 
 
-class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
+class BookmarkUpdate(GroupACLMixin):
     """Update Bookmarks."""
 
     # Used by Bookmarkd and view.bookmark.
@@ -47,10 +45,8 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
     def _update_bookmarks_validate_two_pages(bm, updates):
         """Force vertical view to not use two pages."""
         rd = updates.get("reading_direction")
-        if (
-            bm.two_pages
-            and rd in VERTICAL_READING_DIRECTIONS
-            or bm.reading_direction in VERTICAL_READING_DIRECTIONS
+        if bm.two_pages and bool(
+            {rd, bm.reading_direction}.intersection(_VERTICAL_READING_DIRECTIONS)
         ):
             updates["two_pages"] = None
 
@@ -62,13 +58,13 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
         LIBRARIAN_QUEUE.put(task)
 
     @classmethod
-    def _update_bookmarks(cls, search_kwargs, updates, user) -> int:
+    def _update_bookmarks(cls, auth_filter, comic_pks, updates, user) -> int:
         """Update existing bookmarks."""
         count = 0
         if not updates:
             return count
         group_acl_filter = cls.get_group_acl_filter(Bookmark, user)
-        query_filter = group_acl_filter & Q(**search_kwargs)
+        query_filter = group_acl_filter & Q(**auth_filter) & Q(comic__in=comic_pks)
         existing_bookmarks = Bookmark.objects.filter(query_filter)
         if updates.get("page") is not None:
             existing_bookmarks = existing_bookmarks.annotate(
@@ -98,12 +94,12 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
         """Force vertical view to not use two pages."""
         if (
             updates.get("two_pages")
-            and updates.get("reading_direction") in VERTICAL_READING_DIRECTIONS
+            and updates.get("reading_direction") in _VERTICAL_READING_DIRECTIONS
         ):
             updates.pop("two_pages", None)
 
     @classmethod
-    def _create_bookmarks(cls, comic_filter, search_kwargs, updates, user) -> int:
+    def _create_bookmarks(cls, auth_filter, comic_pks, updates, user) -> int:
         """Create new bookmarks for comics that don't exist yet."""
         count = 0
         cls._create_bookmarks_validate_two_pages(updates)
@@ -112,27 +108,19 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
         create_bookmarks = []
         group_acl_filter = cls.get_group_acl_filter(Comic, user)
         exclude = {}
-        for key, value in search_kwargs.items():
+        for key, value in auth_filter.items():
             exclude["bookmark__" + key] = value
-        query_filter = group_acl_filter & Q(**comic_filter) & ~Q(**exclude)
-        create_bookmark_comics = Comic.objects.filter(query_filter).only(
-            *_COMIC_ONLY_FIELDS
-        )
+        query_filter = group_acl_filter & Q(pk__in=comic_pks) & ~Q(**exclude)
+        create_bookmark_comics = Comic.objects.filter(query_filter).only("pk")
         for comic in create_bookmark_comics:
-            defaults = {"comic": comic}
-            defaults.update(updates)
-            for key, value in search_kwargs.items():
-                if not key.startswith("comic"):
-                    defaults[key] = value
-
-            bm = Bookmark(**defaults)
+            bm = Bookmark(comic=comic, **auth_filter, **updates)
             create_bookmarks.append(bm)
         count = len(create_bookmarks)
         if count:
             Bookmark.objects.bulk_create(
                 create_bookmarks,
                 update_fields=tuple(_BOOKMARK_UPDATE_FIELDS),
-                unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
+                unique_fields=Bookmark._meta.unique_together[0],
             )
         return count
 
@@ -143,22 +131,20 @@ class BookmarkUpdate(GroupACLMixin, BookmarkSearchMixin):
         try:
             UserActive.objects.update_or_create(user=user)
         except Exception as exc:
-            reason = f"update user activity {exc}"
+            reason = f"Update user activity {exc}"
             log.warning(reason)
 
     @classmethod
-    def update_bookmarks(cls, auth_filter, comic_filter, updates, log):
+    def update_bookmarks(cls, auth_filter, comic_pks, updates, log):
         """Update a user bookmark."""
-        search_kwargs = cls.get_bookmark_search_kwargs(auth_filter, comic_filter)
-
         user = None
         for key, value in auth_filter.items():
             if key == "user":
                 user = User.objects.get(pk=value)
             break
 
-        count = cls._update_bookmarks(search_kwargs, updates, user)
-        count += cls._create_bookmarks(comic_filter, search_kwargs, updates, user)
+        count = cls._update_bookmarks(auth_filter, comic_pks, updates, user)
+        count += cls._create_bookmarks(auth_filter, comic_pks, updates, user)
         if user:
             cls._update_user_active(user, log)
         if count:

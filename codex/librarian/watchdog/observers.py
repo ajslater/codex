@@ -1,5 +1,6 @@
 """The Codex Library Watchdog Observer threads."""
 
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.api import (
     DEFAULT_OBSERVER_TIMEOUT,
@@ -98,14 +99,16 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         except Exception:
             self.log.exception(f"{self.__class__.__name__} sync library watches")
 
-    def schedule(  # type: ignore
+    def schedule(
         self,
-        event_handler,
-        path,
-        recursive=False,
-        _event_filter=None,
-    ):
-        """Override BaseObserver for Codex emitter class.
+        event_handler: FileSystemEventHandler,
+        path: str,
+        *,
+        recursive: bool = False,
+        event_filter: list[type[FileSystemEvent]] | None = None,  # noqa: ARG002, F841, RUF100
+    ) -> ObservedWatch:
+        """
+        Override BaseObserver for Codex emitter class.
 
         https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver
         """
@@ -137,8 +140,10 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 #     watchdog class structure doesn't work that way.
 
 
-class LibraryEventObserver(UatuMixin, Observer):  # type: ignore
+class LibraryEventObserver(UatuMixin, Observer):  # type: ignore[reportGeneralTypeIssues]
     """Regular observer."""
+
+    # Observer is a dynamically generated class by platform at runtime.
 
     ENABLE_FIELD = "events"
 
@@ -156,7 +161,7 @@ class LibraryPollingObserver(UatuMixin):
             *args, emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )
 
-    def poll(self, library_pks, force=False):
+    def poll(self, library_pks, force: bool):
         """Poll each requested emitter."""
         try:
             qs = Library.objects.all()
@@ -165,7 +170,7 @@ class LibraryPollingObserver(UatuMixin):
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
-                polling_emitter: DatabasePollingEmitter = emitter  # type: ignore
+                polling_emitter: DatabasePollingEmitter = emitter  # type: ignore[reportAssignmentType]
                 if emitter.watch.path in paths:
                     polling_emitter.poll(force)
         except Exception:

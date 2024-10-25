@@ -78,3 +78,4 @@ class AuthAdminFlagsSerializer(Serializer):
 
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)
+    banner_text = CharField(read_only=True)

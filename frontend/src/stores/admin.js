@@ -10,6 +10,9 @@ const IRREGULAR_PLURALS = {
   LibrarianStatus: "LibrarianStatuses",
   Library: "Libraries",
 };
+Object.freeze(IRREGULAR_PLURALS);
+export const TABS = ["Users", "Groups", "Libraries", "Flags", "Tasks", "Stats"];
+Object.freeze(TABS);
 
 const getTablePlural = (table) => {
   if (table in IRREGULAR_PLURALS) {
@@ -26,12 +29,14 @@ export const useAdminStore = defineStore("admin", {
     groups: [],
     libraries: undefined,
     failedImports: [],
-    flags: {},
+    flags: [],
     folderPicker: {
       root: undefined,
       folders: [],
     },
+    timestamps: {},
     stats: undefined,
+    activeTab: "Libraries",
   }),
   getters: {
     isUserAdmin() {

@@ -43,7 +43,9 @@ class ComicImporter(MovedImporter):
 
             # Wait to start the search index update in case more updates are incoming.
             until = time() + 1
-            delayed_search_task = DelayedTasks(until, (SearchIndexUpdateTask(False),))
+            delayed_search_task = DelayedTasks(
+                until, (SearchIndexUpdateTask(rebuild=False),)
+            )
             self.librarian_queue.put(delayed_search_task)
         else:
             self.log.info("No updates neccissary.")

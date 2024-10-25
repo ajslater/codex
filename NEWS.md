@@ -6,6 +6,25 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.3
+
+- Features
+
+  - Browser Order By Child Count.
+  - Customized site title option in Admin Flags.
+  - Codex logs are now compressed when rotated.
+  - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.
+
+- Fixes
+
+  - Browser Group Mark Read/Unread obeys browser filters.
+  - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
+  - Fixed order by name for issues disregarding volume names in browser and
+    reader
+  - Fix display of name and filename on browser cards.
+  - Fix batching import of Contributors to prevent crash on large imports.
+  - Fixed an OPDS Metadata crash.
+
 ## v1.7.2
 
 - Features

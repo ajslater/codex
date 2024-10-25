@@ -51,7 +51,6 @@ class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
-    # search_results_limit = IntegerField(required=False)
     top_group = TopGroupField(required=False)
 
 
@@ -64,7 +63,8 @@ class OPDSSettingsSerializer(BrowserSettingsSerializerBase):
 
 
 class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
-    """Browser Settings that the user can change.
+    """
+    Browser Settings that the user can change.
 
     This is the only browse serializer that's submitted.
     """

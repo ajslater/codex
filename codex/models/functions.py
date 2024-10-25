@@ -14,7 +14,10 @@ class JsonGroupArray(Aggregate):
     allow_distinct = True
     function = "JSON_GROUP_ARRAY"
     name = "JsonGroupArray"
-    output_field = JSONField()  # type: ignore
+
+    def __init__(self, *args, **kwargs):
+        """output_field is set in the constructor."""
+        super().__init__(*args, output_field=JSONField(), **kwargs)
 
 
 class GroupConcat(Aggregate):
@@ -25,7 +28,10 @@ class GroupConcat(Aggregate):
     allow_distinct = True
     function = "GROUP_CONCAT"
     name = "GroupConcat"
-    output_field = CharField()  # type: ignore
+
+    def __init__(self, *args, **kwargs):
+        """output_field is set in the constructor."""
+        super().__init__(*args, output_field=CharField(), **kwargs)
 
 
 @OneToOneField.register_lookup
@@ -36,8 +42,6 @@ class FTS5Match(Lookup):
 
     def as_sql(self, compiler, connection):
         """Generate MATCH sql."""
-        # lhs, lhs_params = self.process_lhs(compiler, connection)
-        # fts_table = lhs.split(".")[0]
         rhs, rhs_params = self.process_rhs(compiler, connection)
         # MATCH works on the table itself not the one_to_one rel.
         # Force the table name without substitutions by the optimizer
@@ -67,4 +71,7 @@ class ComicFTSRank(Func):
 
     function = "rank"
     template = '("codex_comicfts"."rank" * -1)'
-    output_field = FloatField()  # type: ignore
+
+    def __init__(self, *args, **kwargs):
+        """output_field is set in the constructor."""
+        super().__init__(*args, output_field=FloatField(), **kwargs)

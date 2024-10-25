@@ -31,7 +31,7 @@ def update_href_query_params(href, old_query_params, new_query_params=None):
     return href
 
 
-def get_contributor_people(comic_pks, roles, exclude=False):
+def get_contributor_people(comic_pks, roles, exclude):
     """Get contributors that are not authors."""
     people = ContributorPerson.objects.filter(
         contributor__comic__in=comic_pks,
@@ -43,7 +43,7 @@ def get_contributor_people(comic_pks, roles, exclude=False):
     return people.distinct().only("name")
 
 
-def get_contributors(comic_pks, roles, exclude=False):
+def get_contributors(comic_pks, roles, exclude):
     """Get credits that are not part of other roles."""
     contributors = Contributor.objects.filter(comic__in=comic_pks)
     if exclude:
@@ -59,8 +59,8 @@ def get_m2m_objects(pks) -> dict:
     for model in OPDS_M2M_MODELS:
         table = model.__name__.lower()
         rel = GroupACLMixin.get_rel_prefix(model)
-        comic_filter = {rel + "__in": pks}
-        qs = model.objects.filter(**comic_filter).order_by("name").only("name")
+        comic_filter = {rel + "in": pks}
+        qs = model.objects.filter(**comic_filter).only("name").order_by("name")
         cats[table] = qs
 
     return cats
@@ -78,7 +78,7 @@ def full_redirect_view(url_name):
         path = request.get_full_path()
         if path:
             parts = path.split("?")
-            if len(parts) >= 2:  # noqa PLR2004
+            if len(parts) >= 2:  # noqa: PLR2004
                 parts[0] = url
                 url = "?".join(parts)
 

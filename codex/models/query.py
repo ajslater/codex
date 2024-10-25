@@ -45,7 +45,7 @@ class GroupByQuery(Query):
         self.force_group_by_table = ""
         self.force_group_by_fields = ()
 
-    def get_compiler(self, using=None, connection=None, elide_empty=True):
+    def get_compiler(self, using=None, connection=None, elide_empty=True):  # noqa: FBT002
         """Use the custom compiler instead of SQLCompiler."""
         if self.compiler == "SQLCompiler":
             if using is None and connection is None:
@@ -59,7 +59,11 @@ class GroupByQuery(Query):
             )
         else:
             # Normal super() operation.
-            compiler = super().get_compiler(using, connection, elide_empty)  # type: ignore
+            compiler = super().get_compiler(
+                using=using,
+                connection=connection,
+                elide_empty=elide_empty,  # type: ignore[reportCallIssue]
+            )
 
         return compiler
 
@@ -82,13 +86,13 @@ class GroupByQuerySet(QuerySet):
 
     def group_by(self, *fields, model=None):
         """Force group_by operator."""
-        obj = self._chain()  # type: ignore
+        obj = self._chain()  # type: ignore[reportAttributeAccessIssue]
         obj.query.set_force_group_by(fields, model=model)
         return obj
 
     def demote_joins(self, tables):
         """Force INNER JOINS."""
-        obj = self._chain()  # type: ignore
+        obj = self._chain()  # type: ignore[reportAttributeAccessIssue]
         obj.query.demote_joins(tables)
         return obj
 

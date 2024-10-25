@@ -14,23 +14,26 @@ class BookmarkThread(AggregateMessageQueuedThread, BookmarkUpdate):
     def aggregate_items(self, item):
         """Aggregate bookmark updates."""
         if isinstance(item, BookmarkUpdateTask):
-            key = (tuple(item.auth_filter.items()), tuple(item.comic_filter.items()))
+            key = (tuple(item.auth_filter.items()), item.comic_pks)
             if key not in self.cache:
                 self.cache[key] = {}
             self.cache[key].update(item.updates)
         else:
             self.log.warning(f"Unknown Bookmark task {item}")
 
+    def _send_item(self, filters, updates):
+        """Process one item."""
+        auth_filter, comic_pks = filters
+        auth_filter = dict(auth_filter)
+        self.update_bookmarks(auth_filter, comic_pks, updates, self.log)
+        self.log.debug(f"updated {auth_filter} pk__in={comic_pks}")
+
     def send_all_items(self):
         """Run the task method."""
         cleanup = set()
         for filters, updates in self.cache.items():
             try:
-                auth_filter, comic_filter = filters
-                auth_filter = dict(auth_filter)
-                comic_filter = dict(comic_filter)
-                self.update_bookmarks(auth_filter, comic_filter, updates, self.log)
-                self.log.debug(f"updated {auth_filter | comic_filter}")
+                self._send_item(filters, updates)
                 cleanup.add(filters)
             except Exception:
                 self.log.exception("Updating bookmarks")

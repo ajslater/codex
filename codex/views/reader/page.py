@@ -14,7 +14,8 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings.settings import FALSY
-from codex.views.bookmark import BookmarkBaseView
+from codex.views.auth import AuthFilterAPIView
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.util import chunker
 
 LOG = get_logger(__name__)
@@ -31,23 +32,23 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         """Select the first parser in the `.parser_classes` list."""
         return next(iter(parsers))
 
-    def select_renderer(  # type: ignore
+    def select_renderer(
         self,
         request,  # noqa: ARG002
         renderers,
-        _format_suffix="",
+        format_suffix="",  # noqa: ARG002, F841, RUF100
     ):
         """Select the first renderer in the `.renderer_classes` list."""
         renderer = next(iter(renderers))
         return (renderer, renderer.media_type)
 
 
-class ReaderPageView(BookmarkBaseView):
+class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     """Display a comic page from the archive itself."""
 
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
-    content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
+    content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore[reportAssignmentType]
 
     def _update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""
@@ -59,12 +60,11 @@ class ReaderPageView(BookmarkBaseView):
             return
 
         auth_filter = self.get_bookmark_auth_filter()
-        pk = self.kwargs.get("pk")
-        comic_filter = {"pk": pk}
+        comic_pks = (self.kwargs.get("pk"),)
         page = self.kwargs.get("page")
         updates = {"page": page}
 
-        task = BookmarkUpdateTask(auth_filter, comic_filter, updates)
+        task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
     def _get_page_image(self):

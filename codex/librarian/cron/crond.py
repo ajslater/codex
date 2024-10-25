@@ -28,7 +28,7 @@ class CronThread(NamedThread):
         self._stop_event = Event()
         self._cond = Condition()
         self._task_times = ()
-        super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
+        super().__init__(*args, daemon=True, **kwargs)
 
     def _create_task_times(self):
         task_times = {}

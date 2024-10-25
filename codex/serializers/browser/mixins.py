@@ -64,5 +64,9 @@ class BrowserAggregateSerializerMixin(Serializer):
         )
         mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
         if obj.bmua_is_max:
-            mtime: datetime = max_none(mtime, obj.bookmark_updated_at, EPOCH_START)  # type: ignore
+            mtime: datetime | None = max_none(
+                mtime, obj.bookmark_updated_at, EPOCH_START
+            )
+        if mtime is None:
+            return 0
         return int(mtime.timestamp() * 1000)

@@ -18,6 +18,11 @@
     <v-expand-transition>
       <AdminCustomCoversPanel id="customCovers" />
     </v-expand-transition>
+    <p id="libraryHelp">
+      Each Watched File Events box checked creates a thread to monitor the
+      Library. An large number of watching threads may exceed the limits of your
+      operating system or container.
+    </p>
   </div>
 </template>
 
@@ -59,5 +64,11 @@ export default {
 <style scoped lang="scss">
 #customCovers {
   margin-top: 60px;
+}
+
+#libraryHelp {
+  margin-top: 2em;
+  font-size: smaller;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>
