@@ -25,7 +25,7 @@
     "pinia": "^2.1.4",
     "pretty-bytes": "^6.1.1",
     "vue": "^3.5.2",
-    "vue-drag-scroller": "^1.7.0",
+    "vue-drag-scroller": "^1.8.6",
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
