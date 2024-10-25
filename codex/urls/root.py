@@ -21,7 +21,7 @@ if DEBUG:
     from schema_graph.views import Schema  # type: ignore[reportMissingImports]
 
     urlpatterns += [
-        path("schema/", Schema.as_view()), # type: ignore[reportPossiblyUnboundVariable]
+        path("schema/", Schema.as_view()),  # type: ignore[reportPossiblyUnboundVariable]
     ]
 
 urlpatterns += [
