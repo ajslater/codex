@@ -1,13 +1,15 @@
 """Codex Auth Serializers."""
 
 from django.contrib.auth.models import User
-from rest_framework.fields import BooleanField, CharField
+from rest_framework.fields import BooleanField
 from rest_framework.serializers import (
     Serializer,
     SerializerMethodField,
 )
 
 from codex.models import AdminFlag
+from codex.serializers.fields.auth import TimezoneField
+from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.models.base import BaseModelSerializer
 
 
@@ -49,7 +51,7 @@ class UserSerializer(BaseModelSerializer):
 class TimezoneSerializer(Serializer):
     """Serialize Timezone submission from front end."""
 
-    timezone = CharField(min_length=2)
+    timezone = TimezoneField(write_only=True)
 
 
 class UserCreateSerializer(BaseModelSerializer, TimezoneSerializer):
@@ -67,7 +69,7 @@ class UserLoginSerializer(UserCreateSerializer):
     """Serialize user login input."""
 
     # specify this so it doesn't trigger the username unique constraint.
-    username = CharField(min_length=2)
+    username = SanitizedCharField(min_length=2)
 
     class Meta(UserCreateSerializer.Meta):
         """Explicit meta inheritance required."""
@@ -78,4 +80,4 @@ class AuthAdminFlagsSerializer(Serializer):
 
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)
-    banner_text = CharField(read_only=True)
+    banner_text = SanitizedCharField(read_only=True)

@@ -5,7 +5,6 @@ from itertools import chain
 
 from rest_framework.serializers import (
     BooleanField,
-    CharField,
     DecimalField,
     IntegerField,
     ListField,
@@ -14,6 +13,7 @@ from rest_framework.serializers import (
 )
 
 from codex.logger.logging import get_logger
+from codex.serializers.fields import TopGroupField
 from codex.util import max_none
 from codex.views.const import EPOCH_START
 
@@ -23,7 +23,7 @@ LOG = get_logger(__name__)
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser, opds & metadata serializers."""
 
-    group = CharField(read_only=True, max_length=1)
+    group = TopGroupField(read_only=True)
     ids = ListField(child=IntegerField(), read_only=True)
 
     # Aggregate Annotations

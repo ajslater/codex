@@ -1,10 +1,12 @@
 """Versions Serializer."""
 
-from rest_framework.serializers import CharField, Serializer
+from rest_framework.serializers import Serializer
+
+from codex.serializers.fields import SanitizedCharField
 
 
 class VersionsSerializer(Serializer):
     """Codex version information."""
 
-    installed = CharField(read_only=True)
-    latest = CharField(read_only=True)
+    installed = SanitizedCharField(read_only=True)
+    latest = SanitizedCharField(read_only=True)

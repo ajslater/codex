@@ -9,8 +9,13 @@ from rest_framework.serializers import (
 )
 
 from codex.choices import BROWSER_ORDER_BY_CHOICES
-from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
-from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
+from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
+from codex.serializers.fields import (
+    BreadcrumbsField,
+    SanitizedCharField,
+    TimestampField,
+    TopGroupField,
+)
 from codex.serializers.route import SimpleRouteSerializer
 
 
@@ -26,7 +31,8 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
 class BrowserFilterChoicesInputSerilalizer(Serializer):
     """Browser Settings for the filter choices response."""
 
-    filters = BrowserSettingsFilterSerializer(required=False)
+    filters = BrowserSettingsFilterInputSerializer(required=False)
+    # NOT Sanitized because so complex.
     q = CharField(allow_blank=True, required=False)
 
 
@@ -59,7 +65,7 @@ class OPDSSettingsSerializer(BrowserSettingsSerializerBase):
 
     limit = IntegerField(required=False)
     opds_metadata = BooleanField(required=False)
-    query = CharField(allow_blank=True, required=False)  # OPDS 2.0
+    query = SanitizedCharField(allow_blank=True, required=False)  # OPDS 2.0
 
 
 class BrowserSettingsSerializer(BrowserSettingsSerializerBase):

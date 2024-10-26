@@ -3,13 +3,15 @@
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 
+from codex.serializers.fields.group import BrowseGroupField
+from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
 
 class SimpleRouteSerializer(Serializer):
     """A an abbreviated vue route for the browser."""
 
-    group = CharField()
+    group = BrowseGroupField()
     pks = CharField()
 
     def to_representation(self, instance):
@@ -42,4 +44,4 @@ class RouteSerializer(SimpleRouteSerializer):
     """A vue route for the browser."""
 
     page = IntegerField()
-    name = CharField(allow_blank=True, required=False)
+    name = SanitizedCharField(allow_blank=True, required=False)

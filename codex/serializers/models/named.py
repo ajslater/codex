@@ -1,7 +1,5 @@
 """Named model Serializers."""
 
-from rest_framework.serializers import CharField
-
 from codex.models import (
     AgeRating,
     Character,
@@ -21,6 +19,7 @@ from codex.models import (
     Team,
 )
 from codex.models.named import Identifier, IdentifierType
+from codex.serializers.fields import SanitizedCharField
 from codex.serializers.models.base import BaseModelSerializer
 
 
@@ -96,7 +95,7 @@ class IdentifierTypeSerializer(NamedModelSerializer):
 class IdentifierSeralizer(BaseModelSerializer):
     """Identifier model."""
 
-    name = CharField(read_only=True)
+    name = SanitizedCharField(read_only=True)
 
     class Meta(BaseModelSerializer.Meta):
         """Configure model."""
@@ -145,7 +144,7 @@ class StoryArcSerializer(NamedModelSerializer):
 class StoryArcNumberSerializer(BaseModelSerializer):
     """StoryArc model."""
 
-    name = CharField(read_only=True)
+    name = SanitizedCharField(read_only=True)
 
     class Meta(BaseModelSerializer.Meta):
         """Configure model."""

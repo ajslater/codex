@@ -18,8 +18,6 @@ from codex.models import (
 from codex.models.named import IdentifierType
 from codex.serializers.browser.choices import (
     BrowserChoicesFilterSerializer,
-)
-from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer

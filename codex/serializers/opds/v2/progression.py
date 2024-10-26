@@ -7,7 +7,6 @@ https://github.com/opds-community/drafts/discussions/67
 from decimal import Decimal
 
 from rest_framework.fields import (
-    CharField,
     DateTimeField,
     DecimalField,
     IntegerField,
@@ -15,18 +14,20 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
+from codex.serializers.fields import SanitizedCharField
+
 
 class OPDS2ProgressionDeviceSerializer(Serializer):
     """Progression Device Element."""
 
-    id = CharField(read_only=True)
-    name = CharField(read_only=True)
+    id = SanitizedCharField(read_only=True)
+    name = SanitizedCharField(read_only=True)
 
 
 class OPDS2ProgressionLocationsSerializer(Serializer):
     """Progression Location Element."""
 
-    fragments = ListField(child=CharField(), read_only=True)
+    fragments = ListField(child=SanitizedCharField(), read_only=True)
     position = IntegerField(read_only=True)
     progression = DecimalField(
         max_digits=7,
@@ -47,9 +48,9 @@ class OPDS2ProgressionLocationsSerializer(Serializer):
 class OPDS2ProgressionLocatorSerializer(Serializer):
     """Progression Locator Element."""
 
-    title = CharField(read_only=True)
-    href = CharField(read_only=True)
-    type = CharField(read_only=True)
+    title = SanitizedCharField(read_only=True)
+    href = SanitizedCharField(read_only=True)
+    type = SanitizedCharField(read_only=True)
     locations = OPDS2ProgressionLocationsSerializer()
 
 

@@ -1,8 +1,9 @@
 """Unused OPDS v2 Serializers."""
 
-from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
+from rest_framework.fields import DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
 
+from codex.serializers.fields import SanitizedCharField
 from codex.serializers.opds.v2.links import OPDS2LinkListField
 
 
@@ -31,7 +32,7 @@ class OPDS2PriceSerializer(Serializer):
 
     value = DecimalField(read_only=True, max_digits=10, decimal_places=2)
     # by schema this should be a choices for allowed currencies.
-    currency = CharField(read_only=True, max_length=3)
+    currency = SanitizedCharField(read_only=True, max_length=3)
 
 
 class OPDS2HoldsSerializer(Serializer):
@@ -63,7 +64,7 @@ class OPDS2AcquisitionObjectSerializer(Serializer):
     https://drafts.opds.io/schema/acquisition-object.schema.json
     """
 
-    type = CharField(read_only=True)
+    type = SanitizedCharField(read_only=True)
     child = RecursiveField(many=True, required=False)
 
 
@@ -74,8 +75,8 @@ class OPDS2ProfileSerializer(Serializer):
     https://drafts.opds.io/schema/profile.schema.json
     """
 
-    name = CharField(read_only=True)
-    email = CharField(read_only=True)
+    name = SanitizedCharField(read_only=True)
+    email = SanitizedCharField(read_only=True)
     links = OPDS2LinkListField(read_only=True, required=False)
     loans = OPDS2CopiesSerializer(read_only=True)
     holds = OPDS2HoldsSerializer(read_only=True)

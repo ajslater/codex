@@ -13,7 +13,7 @@ from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.choices import DEFAULT_BROWSER_ROUTE
 from codex.logger.logging import get_logger
-from codex.serializers.fields import BreadcrumbsField
+from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.route import RouteSerializer
 from codex.views.util import pop_name
 
