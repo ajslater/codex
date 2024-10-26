@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.4
+
+- Fixes
+
+  - Sanitize HTML out of imported comic metadata fields and admin page fields.
+
 ## v1.7.3
 
 - Features
