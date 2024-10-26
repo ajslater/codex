@@ -9,7 +9,7 @@ from codex.views.const import (
     GROUP_RELATION,
 )
 
-_GROUP_REL_TARGETS = frozenset({"cover", "choices"})
+_GROUP_REL_TARGETS = frozenset({"cover", "choices", "bookmark"})
 _PK_REL_TARGETS = frozenset({"metadata", "mtime"})
 
 
@@ -22,13 +22,12 @@ class GroupFilterView(BrowserParamsView):
 
     def _get_rel_for_pks(self, group, page_mtime: bool):
         """Get the relation from the model to the pks."""
-        target: str = self.TARGET
-        if target in _GROUP_REL_TARGETS:
+        if self.TARGET in _GROUP_REL_TARGETS:
             rel = FILTER_ONLY_GROUP_RELATION[group]
-        elif target in _PK_REL_TARGETS or page_mtime:
+        elif self.TARGET in _PK_REL_TARGETS or page_mtime:
             # metadata, mtime, browser.page_mtime
             rel = "pk"
-        elif target == "download":
+        elif self.TARGET == "download":
             rel = "comic__folders" if group == "f" else "pk"
         else:
             # browser.group, opds
