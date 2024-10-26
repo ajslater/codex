@@ -11,6 +11,7 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from comicbox.schemas.comicbox_mixin import CONTRIBUTORS_KEY
 from django.db.models import CharField
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
+from nh3 import clean
 from rarfile import BadRarFile
 
 from codex.librarian.importer.const import FIS, STORY_ARCS_METADATA_KEY
@@ -149,7 +150,9 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         try:
             field: CharField = model._meta.get_field(field_name)  # type: ignore[reportAssignmentType]
             if value:
-                value = value[: field.max_length].strip()
+                value = value.strip()
+                value = value[: field.max_length]
+                value = clean(value)
             if not value:
                 value = None
         except Exception:
