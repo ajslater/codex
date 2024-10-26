@@ -12,7 +12,6 @@ from codex.choices import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import (
     BreadcrumbsField,
-    SanitizedCharField,
     TimestampField,
     TopGroupField,
 )
@@ -65,7 +64,7 @@ class OPDSSettingsSerializer(BrowserSettingsSerializerBase):
 
     limit = IntegerField(required=False)
     opds_metadata = BooleanField(required=False)
-    query = SanitizedCharField(allow_blank=True, required=False)  # OPDS 2.0
+    query = CharField(allow_blank=True, required=False)  # OPDS 2.0
 
 
 class BrowserSettingsSerializer(BrowserSettingsSerializerBase):

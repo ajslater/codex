@@ -2,16 +2,17 @@
 
 from zoneinfo import ZoneInfo
 
-from rest_framework.serializers import (
+from rest_framework.fields import (
     BooleanField,
+    CharField,
     DateField,
     DateTimeField,
     DictField,
     IntegerField,
-    Serializer,
 )
+from rest_framework.serializers import Serializer
 
-from codex.serializers.fields import SanitizedCharField, TopGroupField
+from codex.serializers.fields import TopGroupField
 from codex.serializers.models.pycountry import LanguageSerializer
 
 UTC_TZ = ZoneInfo("UTC")
@@ -20,10 +21,10 @@ UTC_TZ = ZoneInfo("UTC")
 class OPDS1TemplateLinkSerializer(Serializer):
     """OPDS Link Template Serializer."""
 
-    href = SanitizedCharField(read_only=True)
-    rel = SanitizedCharField(read_only=True)
-    mime_type = SanitizedCharField(read_only=True)
-    title = SanitizedCharField(read_only=True, required=False)
+    href = CharField(read_only=True)
+    rel = CharField(read_only=True)
+    mime_type = CharField(read_only=True)
+    title = CharField(read_only=True, required=False)
     length = IntegerField(read_only=True, required=False)
     facet_group = TopGroupField(read_only=True, required=False)
     facet_active = BooleanField(read_only=True, required=False)
@@ -36,22 +37,22 @@ class OPDS1TemplateLinkSerializer(Serializer):
 class OPDS1ContributorSerializer(Serializer):
     """OPDS 1 Contributor."""
 
-    name = SanitizedCharField(read_only=True)
-    url = SanitizedCharField(read_only=True, required=False)
+    name = CharField(read_only=True)
+    url = CharField(read_only=True, required=False)
 
 
 class OPDS1TemplateEntrySerializer(Serializer):
     """OPDS Entry Template Serializer."""
 
-    id_tag = SanitizedCharField(read_only=True)
-    title = SanitizedCharField(read_only=True)
+    id_tag = CharField(read_only=True)
+    title = CharField(read_only=True)
     links = OPDS1TemplateLinkSerializer(many=True, read_only=True)
     issued = DateField(read_only=True, required=False)
     updated = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
     published = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
-    publisher = SanitizedCharField(read_only=True, required=False)
+    publisher = CharField(read_only=True, required=False)
     language = LanguageSerializer(read_only=True, required=False)
-    summary = SanitizedCharField(read_only=True, required=False)
+    summary = CharField(read_only=True, required=False)
     authors = OPDS1ContributorSerializer(many=True, required=False, read_only=True)
     contributors = OPDS1ContributorSerializer(many=True, required=False, read_only=True)
     category_groups = DictField(required=False, read_only=True)
@@ -60,10 +61,10 @@ class OPDS1TemplateEntrySerializer(Serializer):
 class OPDS1TemplateSerializer(Serializer):
     """OPDS Browser Template Serializer."""
 
-    opds_ns = SanitizedCharField(read_only=True)
+    opds_ns = CharField(read_only=True)
     is_acquisition = BooleanField(read_only=True)
-    id_tag = SanitizedCharField(read_only=True)
-    title = SanitizedCharField(read_only=True)
+    id_tag = CharField(read_only=True)
+    title = CharField(read_only=True)
     updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)
     links = OPDS1TemplateLinkSerializer(many=True, read_only=True)
     entries = OPDS1TemplateEntrySerializer(many=True, read_only=True)

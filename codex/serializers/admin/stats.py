@@ -2,13 +2,13 @@
 
 from rest_framework.serializers import (
     BooleanField,
+    CharField,
     IntegerField,
     Serializer,
 )
 
 from codex.serializers.fields import (
     CountDictField,
-    SanitizedCharField,
     SerializerChoicesField,
     StringListMultipleChoiceField,
 )
@@ -19,19 +19,19 @@ FILE_TYPES_CHOICES = ("CBZ", "CBR", "CBT", "PDF", "UNKNOWN")
 class StatsSystemSerializer(Serializer):
     """Platform System Information."""
 
-    name = SanitizedCharField(required=False, read_only=True)
-    release = SanitizedCharField(required=False, read_only=True)
+    name = CharField(read_only=True, required=False)
+    release = CharField(read_only=True, required=False)
 
 
 class StatsPlatformSerializer(Serializer):
     """Platform Information."""
 
     docker = BooleanField(read_only=True)
-    machine = SanitizedCharField(read_only=True)
+    machine = CharField(read_only=True)
     cores = IntegerField(read_only=True)
     system = StatsSystemSerializer(read_only=True)
-    python_version = SanitizedCharField(read_only=True)
-    codex_version = SanitizedCharField(read_only=True)
+    python_version = CharField(read_only=True)
+    codex_version = CharField(read_only=True)
 
 
 class StatsConfigSerializer(Serializer):
@@ -42,7 +42,7 @@ class StatsConfigSerializer(Serializer):
     user_registered_count = IntegerField(required=False, read_only=True)
     auth_group_count = IntegerField(required=False, read_only=True)
     # Only for api
-    api_key = SanitizedCharField(required=False, read_only=True)
+    api_key = CharField(read_only=True, required=False)
 
 
 class StatsSessionsSerializer(Serializer):
@@ -123,4 +123,4 @@ class AdminStatsRequestSerializer(Serializer):
 class APIKeySerializer(Serializer):
     """API Key."""
 
-    api_key = SanitizedCharField(source="name", read_only=True)
+    api_key = CharField(source="name", read_only=True)

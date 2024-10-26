@@ -2,21 +2,20 @@
 
 from rest_framework.fields import (
     BooleanField,
+    CharField,
     IntegerField,
     ListField,
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
 
-from codex.serializers.fields import SanitizedCharField
-
 
 class OPSD2AuthenticateSerializer(Serializer):
     """Minimal Link Serializer for Authenticate."""
 
-    href = SanitizedCharField(read_only=True)
+    href = CharField(read_only=True)
     rel = SerializerMethodField(read_only=True)
-    type = SanitizedCharField(read_only=True, required=False)
+    type = CharField(read_only=True, required=False)
 
     def get_rel(self, obj) -> str | None:
         """Allow for SanitizedCharField or CharListField types."""
@@ -53,16 +52,20 @@ class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
     """
 
     templated = BooleanField(read_only=True, required=False)
-    title = SanitizedCharField(read_only=True, required=False)
+    title = CharField(read_only=True, required=False)
 
     # Uncommon
     height = IntegerField(read_only=True, required=False)
     width = IntegerField(read_only=True, required=False)
     # bitrate = IntegerField(read_only=True, required=False) unused
     # duration = IntegerField(read_only=True, required=False) unused
-    # language = SanitizedCharField(many=True, read_only=True, required=False) unused
-    alternate = ListField(child=SanitizedCharField(), read_only=True, required=False)
-    children = ListField(child=SanitizedCharField(), read_only=True, required=False)
+    # language = CharField(many=True, read_only=True, required=False) unused
+    alternate = ListField(
+        child=CharField(read_only=True), read_only=True, required=False
+    )
+    children = ListField(
+        child=CharField(read_only=True), read_only=True, required=False
+    )
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
 

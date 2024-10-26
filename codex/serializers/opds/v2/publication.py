@@ -1,13 +1,8 @@
 """OPDS 2 Publication Serializers."""
 
-from rest_framework.fields import (
-    DateField,
-    IntegerField,
-    ListField,
-)
+from rest_framework.fields import CharField, DateField, IntegerField, ListField
 from rest_framework.serializers import Serializer
 
-from codex.serializers.fields import SanitizedCharField
 from codex.serializers.opds.v2.facet import OPDS2FacetSerializer
 from codex.serializers.opds.v2.links import OPDS2LinkListField
 from codex.serializers.opds.v2.metadata import OPDS2MetadataSerializer
@@ -28,10 +23,10 @@ class OPDS2ContributorObjectSerializer(Serializer):
     https://readium.org/webpub-manifest/schema/contributor-object.schema.json
     """
 
-    name = SanitizedCharField(read_only=True)
-    # identifier= SanitizedCharField(read_only=True, required=False)  unused
-    # sort_as = SanitizedCharField(read_only=True, required=False)  unused
-    role = SanitizedCharField(read_only=True, source="role_name")
+    name = CharField(read_only=True)
+    # identifier= CharField(read_only=True, required=False)  unused
+    # sort_as = CharField(read_only=True, required=False)  unused
+    role = CharField(read_only=True, source="role_name")
     # role = CharListField(read_only=True)  unused
     # position = IntegerField(read_only=True, required=False)  unused
     # links = LinkListField(read_only=True)  unused
@@ -45,10 +40,10 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     """
 
     # possibly change to @ on output if this is really needed
-    # @type = SanitizedCharField(read_only=True, required=False)
-    publisher = SanitizedCharField(read_only=True, required=False)
-    imprint = SanitizedCharField(read_only=True, required=False)
-    language = SanitizedCharField(read_only=True, required=False)
+    # @type = CharField(read_only=True, required=False)
+    publisher = CharField(read_only=True, required=False)
+    imprint = CharField(read_only=True, required=False)
+    language = CharField(read_only=True, required=False)
     published = DateField(read_only=True, required=False)
     number_of_pages = IntegerField(read_only=True, required=False)
     # reading_progression = ChoiceField() unused
@@ -56,7 +51,7 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     #####################
     # Extended metadata #
     #####################
-    subject = ListField(child=SanitizedCharField(), read_only=True, required=False)
+    subject = ListField(child=CharField(read_only=True), read_only=True, required=False)
     author = OPDS2ContributorObjectSerializer(many=True, required=False)
     # translator = OPDS2ContributorObjectSerializer(many=True, required=False) unused
     editor = OPDS2ContributorObjectSerializer(many=True, required=False)

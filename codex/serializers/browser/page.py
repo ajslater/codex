@@ -1,18 +1,18 @@
 """Browser Page Serializer."""
 
-from rest_framework.serializers import (
+from rest_framework.fields import (
     BooleanField,
+    CharField,
     DecimalField,
     IntegerField,
-    Serializer,
 )
+from rest_framework.serializers import Serializer
 
 from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
 from codex.serializers.fields import (
     BreadcrumbsField,
-    SanitizedCharField,
     TimestampField,
 )
 from codex.serializers.fields.browser import TopGroupField
@@ -22,21 +22,21 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     """Browse card displayed in the browser."""
 
     pk = IntegerField(read_only=True)
-    publisher_name = SanitizedCharField(read_only=True)
-    series_name = SanitizedCharField(read_only=True)
-    volume_name = SanitizedCharField(read_only=True)
-    file_name = SanitizedCharField(read_only=True)
-    name = SanitizedCharField(read_only=True)
+    publisher_name = CharField(read_only=True)
+    series_name = CharField(read_only=True)
+    volume_name = CharField(read_only=True)
+    file_name = CharField(read_only=True)
+    name = CharField(read_only=True)
     issue_number = DecimalField(
         max_digits=16,
         decimal_places=3,
         read_only=True,
         coerce_to_string=False,
     )
-    issue_suffix = SanitizedCharField(read_only=True)
-    order_value = SanitizedCharField(read_only=True)
+    issue_suffix = CharField(read_only=True)
+    order_value = CharField(read_only=True)
     page_count = IntegerField(read_only=True)
-    reading_direction = SanitizedCharField(read_only=True)
+    reading_direction = CharField(read_only=True)
 
 
 class BrowserAdminFlagsSerializer(Serializer):
@@ -49,7 +49,7 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    group_name = SanitizedCharField(read_only=True)
+    group_name = CharField(read_only=True)
     group_count = IntegerField(read_only=True, allow_null=True)
 
 
@@ -66,5 +66,5 @@ class BrowserPageSerializer(Serializer):
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     fts = BooleanField(read_only=True)
-    search_error = SanitizedCharField(read_only=True)
+    search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)

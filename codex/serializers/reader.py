@@ -2,6 +2,7 @@
 
 from rest_framework.serializers import (
     BooleanField,
+    CharField,
     DecimalField,
     IntegerField,
     Serializer,
@@ -15,7 +16,6 @@ from codex.serializers.fields import (
     BreadcrumbsField,
     FitToField,
     ReadingDirectionField,
-    SanitizedCharField,
     TimestampField,
     TopGroupField,
 )
@@ -50,7 +50,7 @@ class ReaderArcSerializer(SimpleRouteSerializer):
     index = IntegerField(required=False)
     filters = BrowserSettingsFilterInputSerializer(required=False)
     mtime = TimestampField(read_only=True)
-    name = SanitizedCharField(required=False, read_only=True)
+    name = CharField(required=False, read_only=True)
 
 
 class ReaderViewInputSerializer(Serializer):
@@ -67,8 +67,8 @@ class ReaderCurrentComicSerializer(ReaderComicSerializer):
     """Current comic only Serializer."""
 
     # For title
-    series_name = SanitizedCharField(read_only=True, required=False)
-    volume_name = SanitizedCharField(read_only=True, required=False)
+    series_name = CharField(read_only=True, required=False)
+    volume_name = CharField(read_only=True, required=False)
     issue_number = DecimalField(
         max_digits=None,
         decimal_places=3,
@@ -76,15 +76,15 @@ class ReaderCurrentComicSerializer(ReaderComicSerializer):
         coerce_to_string=False,
         required=False,
     )
-    issue_suffix = SanitizedCharField(read_only=True, required=False)
+    issue_suffix = CharField(read_only=True, required=False)
     issue_count = IntegerField(
         read_only=True,
         required=False,
     )
 
-    file_type = SanitizedCharField(read_only=True, required=False)
-    filename = SanitizedCharField(read_only=True, required=False)
-    name = SanitizedCharField(read_only=True, required=False)
+    file_type = CharField(read_only=True, required=False)
+    filename = CharField(read_only=True, required=False)
+    name = CharField(read_only=True, required=False)
 
 
 class ReaderBooksSerializer(Serializer):

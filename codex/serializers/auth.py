@@ -1,7 +1,7 @@
 """Codex Auth Serializers."""
 
 from django.contrib.auth.models import User
-from rest_framework.fields import BooleanField
+from rest_framework.fields import BooleanField, CharField
 from rest_framework.serializers import (
     Serializer,
     SerializerMethodField,
@@ -80,4 +80,4 @@ class AuthAdminFlagsSerializer(Serializer):
 
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)
-    banner_text = SanitizedCharField(read_only=True)
+    banner_text = CharField(read_only=True)
