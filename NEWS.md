@@ -11,7 +11,7 @@ border-radius: 128px;
 - Fixes
 
   - Fix setting bookmarks and book settings bug.
-  - Sanitize HTML out of imported comic metadata fields and admin page fields.
+  - Sanitize HTML out of imported comic metadata fields and admin inputs.
 
 ## v1.7.3
 
