@@ -2,7 +2,7 @@
 
 from rest_framework.fields import ChoiceField
 
-from codex.choices import BROWSER_GROUP_CHOICES
+from codex.choices.browser import BROWSER_GROUP_CHOICES
 
 
 class BrowseGroupField(ChoiceField):

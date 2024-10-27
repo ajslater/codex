@@ -1,115 +1,6 @@
-"""Frontend Choices, Defaults and Messages."""
+"""Admin Choices."""
 
 from types import MappingProxyType
-
-BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
-    {
-        "": "All",
-        "IN_PROGRESS": "In Progress",
-        "READ": "Read",
-        "UNREAD": "Unread",
-    },
-)
-BROWSER_ORDER_BY_CHOICES = MappingProxyType(
-    {
-        "created_at": "Added Time",
-        "age_rating": "Age Rating",
-        "child_count": "Child Count",
-        "community_rating": "Community Rating",
-        "critical_rating": "Critical Rating",
-        "filename": "Filename",
-        "size": "File Size",
-        "bookmark_updated_at": "Last Read",
-        "sort_name": "Name",
-        "page_count": "Page Count",
-        "date": "Publish Date",
-        "search_score": "Search Score",
-        "story_arc_number": "Story Arc Number",
-        "updated_at": "Updated Time",
-    }
-)
-_GROUP_NAMES = MappingProxyType(
-    {
-        "p": "Publishers",
-        "i": "Imprints",
-        "s": "Series",
-        "v": "Volumes",
-    }
-)
-BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
-    {
-        **_GROUP_NAMES,
-        "c": "Issues",
-        "f": "Folders",
-        "a": "Story Arcs",
-    },
-)
-BROWSER_GROUP_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
-VUETIFY_NULL_CODE = -1
-BROWSER_CHOICES = MappingProxyType(
-    {
-        "bookmark_filter": BROWSER_BOOKMARK_FILTER_CHOICES,
-        "order_by": BROWSER_ORDER_BY_CHOICES,
-        "top_group": BROWSER_TOP_GROUP_CHOICES,
-        "vuetify_null_code": VUETIFY_NULL_CODE,
-        "settings_group": {**_GROUP_NAMES},
-        "identifier_types": {
-            "comicvine": "Comic Vine",
-            "comixology": "Comixology",
-            "asin": "Amazon",
-            "gtin": "GTIN",
-            "isbn": "ISBN",
-            "upc": "UPC",
-        },
-    }
-)
-
-READER_CHOICES = MappingProxyType(
-    {
-        "fit_to": MappingProxyType(
-            {
-                "H": "Fit to Height",
-                "O": "Original Size",
-                "S": "Fit to Screen",
-                "W": "Fit to Width",
-            }
-        ),
-        "reading_direction": MappingProxyType(
-            {
-                "btt": "Bottom to Top",
-                "ltr": "Left to Right",
-                "rtl": "Right to Left",
-                "ttb": "Top to Bottom",
-            }
-        ),
-    }
-)
-DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
-_DEFAULT_BROWSER_BREADCRUMBS = (DEFAULT_BROWSER_ROUTE,)
-_DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
-BROWSER_DEFAULTS = MappingProxyType(
-    {
-        "bookmark_filter": "",
-        "breadcrumbs": _DEFAULT_BROWSER_BREADCRUMBS,
-        "custom_covers": True,
-        "dynamic_covers": True,
-        "order_by": "sort_name",
-        "order_reverse": False,
-        "q": "",
-        "show": _DEFAULT_SHOW,
-        "top_group": "p",
-        "twenty_four_hour_time": False,
-    }
-)
-READER_DEFAULTS = MappingProxyType(
-    {
-        "finish_on_last_page": True,
-        "fit_to": "S",
-        "reading_direction": "ltr",
-        "read_rtl_in_reverse": False,
-        "two_pages": False,
-    }
-)
 
 ADMIN_FLAG_CHOICES = MappingProxyType(
     {
@@ -326,21 +217,6 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                 ],
             },
             {
-                "title": "Notify",
-                "tasks": [
-                    {
-                        "value": "notify_library_changed",
-                        "title": "Notify Library Changed ",
-                        "desc": "Signal all clients that the libraries have changed and the browser should fetch new data.",
-                    },
-                    {
-                        "value": "notify_librarian_status",
-                        "title": "Notify Librarian Status",
-                        "desc": "Signal Admin clients to fetch librarian status.",
-                    },
-                ],
-            },
-            {
                 "title": "Cleanup",
                 "tasks": [
                     {
@@ -386,26 +262,51 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                     },
                 ],
             },
-        )
+            {
+                "title": "Notify",
+                "tasks": [
+                    {
+                        "value": "notify_admin_flags_changed",
+                        "title": "Notify Admin Flags Changed",
+                        "desc": "Notify all users that admin flags have changed.",
+                    },
+                    {
+                        "value": "notify_bookmark_changed",
+                        "title": "Notify Bookmark Changed",
+                        "desc": "Notify only your user that a bookmark changed.",
+                    },
+                    {
+                        "value": "notify_covers_changed",
+                        "title": "Notify Covers Changed",
+                        "desc": "Notify all users that covers have changed.",
+                    },
+                    {
+                        "value": "notify_failed_imports_changed",
+                        "title": "Notify Failed Imports Changed",
+                        "desc": "Notify admin users that failed imports have changed",
+                    },
+                    {
+                        "value": "notify_groups_changed",
+                        "title": "Notify Groups Changed",
+                        "desc": "Notify all users that ACL groups have changed.",
+                    },
+                    {
+                        "value": "notify_library_changed",
+                        "title": "Notify Library Changed ",
+                        "desc": "Notify all users libraries have changed.",
+                    },
+                    {
+                        "value": "notify_librarian_status",
+                        "title": "Notify Librarian Status",
+                        "desc": "Notify admin users that a librarian job status changed..",
+                    },
+                    {
+                        "value": "notify_users_changed",
+                        "title": "Notify Users Changed",
+                        "desc": "Notify one user that their users changed or all users if a user was deleted.",
+                    },
+                ],
+            },
+        ),
     }
 )
-
-
-def _group_task_values(groups):
-    """Extract values into sorted tuple."""
-    return tuple(
-        sorted([item["value"] for group in groups["tasks"] for item in group["tasks"]])
-    )
-
-
-ADMIN_TASKS = _group_task_values(ADMIN_TASK_GROUPS)
-WEBSOCKET_MESSAGES = MappingProxyType(
-    {
-        "messages": {
-            "FAILED_IMPORTS": "FAILED_IMPORTS",
-            "LIBRARY_CHANGED": "LIBRARY_CHANGED",
-            "LIBRARIAN_STATUS": "LIBRARIAN_STATUS",
-        }
-    }
-)
-DUMMY_NULL_NAME = "_none_"

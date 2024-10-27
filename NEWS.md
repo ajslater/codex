@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.5
+
+- Fixes
+
+  - More granular websocket notifications means the web UI does fewer more
+    targeted data updates.
+  - Prevent deactivating and deprivileging the logged in user.
+  - Fix resetting active flag when resetting admin user with environment
+    variable.
+  - Fix crash in auto-update when unable to determine current Codex version.
+
 ## v1.7.4
 
 - Fixes

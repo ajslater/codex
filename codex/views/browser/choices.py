@@ -8,7 +8,7 @@ from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
+from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.logger.logging import get_logger
 from codex.models import (
     Comic,

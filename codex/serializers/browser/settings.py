@@ -8,7 +8,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.choices import BROWSER_ORDER_BY_CHOICES
+from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField

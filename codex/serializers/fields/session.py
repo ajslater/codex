@@ -2,7 +2,8 @@
 
 from rest_framework.fields import ChoiceField
 
-from codex.choices import BROWSER_DEFAULTS, READER_DEFAULTS
+from codex.choices.browser import BROWSER_DEFAULTS
+from codex.choices.reader import READER_DEFAULTS
 
 _SESSION_KEYS = (*READER_DEFAULTS.keys(), *BROWSER_DEFAULTS.keys(), "filters")
 

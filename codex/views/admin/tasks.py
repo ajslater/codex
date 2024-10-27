@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.choices.notifications import Notifications
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
     CoverRemoveAllTask,
@@ -35,7 +36,16 @@ from codex.librarian.janitor.tasks import (
     JanitorVacuumTask,
 )
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import (
+    ADMIN_FLAGS_CHANGED_TASK,
+    COVERS_CHANGED_TASK,
+    FAILED_IMPORTS_CHANGED_TASK,
+    GROUPS_CHANGED_TASK,
+    LIBRARIAN_STATUS_TASK,
+    LIBRARY_CHANGED_TASK,
+    USERS_CHANGED_TASK,
+    NotifierTask,
+)
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
     SearchIndexClearTask,
@@ -81,8 +91,13 @@ _TASK_MAP = MappingProxyType(
         "codex_update": JanitorUpdateTask(force=False),
         "codex_shutdown": JanitorShutdownTask(),
         "codex_restart": JanitorRestartTask(),
+        "notify_admin_flags_changed": ADMIN_FLAGS_CHANGED_TASK,
+        "notify_covers_changed": COVERS_CHANGED_TASK,
+        "notify_failed_imports_changed": FAILED_IMPORTS_CHANGED_TASK,
+        "notify_groups_changed": GROUPS_CHANGED_TASK,
         "notify_library_changed": LIBRARY_CHANGED_TASK,
         "notify_librarian_status": LIBRARIAN_STATUS_TASK,
+        "notify_users_changed": USERS_CHANGED_TASK,
         "cleanup_fks": JanitorCleanFKsTask(),
         "cleanup_db_custom_covers": JanitorCleanCoversTask(),
         "cleanup_sessions": JanitorCleanupSessionsTask(),
@@ -114,10 +129,14 @@ class AdminLibrarianTaskView(AdminAPIView):
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
-    @classmethod
-    def _get_task(cls, name, pk):
+    def _get_task(self, name, pk):
         """Stuff library ids into tasks."""
-        task = _TASK_MAP.get(name)
+        if name == "notify_bookmark_changed":
+            uid = self.request.user.pk
+            group = f"user_{uid}"
+            task = NotifierTask(Notifications.BOOKMARK.value, group)
+        else:
+            task = _TASK_MAP.get(name)
         if pk and isinstance(
             task, WatchdogPollLibrariesTask | WatchdogPollLibrariesTask
         ):

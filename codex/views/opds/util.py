@@ -5,7 +5,7 @@ from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.http import urlencode
 
-from codex.choices import DEFAULT_BROWSER_ROUTE
+from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
     Contributor,
     ContributorPerson,

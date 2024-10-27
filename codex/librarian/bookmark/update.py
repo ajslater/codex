@@ -5,6 +5,7 @@ from django.db.models.expressions import F
 from django.db.models.functions import Now
 from django.db.models.query import Q
 
+from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
@@ -84,7 +85,7 @@ class BookmarkUpdate(GroupACLMixin):
     def _notify_library_changed(uid):
         """Notify one user that their library changed."""
         group = f"user_{uid}"
-        task = NotifierTask("LIBRARY_CHANGED", group)
+        task = NotifierTask(Notifications.BOOKMARK.value, group)
         LIBRARIAN_QUEUE.put(task)
 
     @classmethod

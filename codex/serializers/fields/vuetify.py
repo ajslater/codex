@@ -9,7 +9,7 @@ from rest_framework.serializers import (
     IntegerField,
 )
 
-from codex.choices import VUETIFY_NULL_CODE
+from codex.choices.browser import VUETIFY_NULL_CODE
 from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)

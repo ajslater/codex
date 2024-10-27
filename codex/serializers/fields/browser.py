@@ -8,7 +8,7 @@ from rest_framework.serializers import (
     ListField,
 )
 
-from codex.choices import (
+from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
     BROWSER_TOP_GROUP_CHOICES,
     DUMMY_NULL_NAME,

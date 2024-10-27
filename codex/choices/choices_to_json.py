@@ -8,16 +8,14 @@ from types import MappingProxyType
 
 from caseconverter import camelcase
 
-from codex.choices import (
+from codex.choices.admin import (
     ADMIN_FLAG_CHOICES,
     ADMIN_STATUS_TITLES,
     ADMIN_TASK_GROUPS,
-    BROWSER_CHOICES,
-    BROWSER_DEFAULTS,
-    READER_CHOICES,
-    READER_DEFAULTS,
-    WEBSOCKET_MESSAGES,
 )
+from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
+from codex.choices.notifications import Notifications
+from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.serializers.route import RouteSerializer
 
 _DEFAULTS = MappingProxyType(
@@ -39,12 +37,11 @@ _MAP_DUMPS = MappingProxyType(
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
         "reader-map.json": READER_CHOICES,
-        "websocket-messages.json": WEBSOCKET_MESSAGES,
     }
 )
 
 
-def _to_vuetify_choices(defaults, key, obj_map):
+def _to_vuetify_choices(defaults, key: str, obj_map):
     """Transform a dict into a list of vuetify choices."""
     default = defaults.get(key)
     vuetify_list = []
@@ -59,7 +56,7 @@ def _to_vuetify_choices(defaults, key, obj_map):
     return vuetify_list
 
 
-def _json_key(key):
+def _json_key(key: str):
     """Transform key to json version."""
     return key if key.upper() == key else camelcase(key)
 
@@ -80,7 +77,7 @@ def _make_json_serializable(data):
     return data
 
 
-def _to_vuetify_dict(fn, data):
+def _to_vuetify_dict(fn: str, data):
     """Convert mappings to vuetify dict list."""
     vuetify_data = {}
     defaults = _DEFAULTS.get(fn) or {}
@@ -93,15 +90,21 @@ def _to_vuetify_dict(fn, data):
     return vuetify_data
 
 
-def _dump(parent_path, fn, data, vuetify):
+def _dump(parent_path: Path, fn: str, data, vuetify: bool):
     """Dump data to json file."""
     vuetify_data = (
         _to_vuetify_dict(fn, data) if vuetify else _make_json_serializable(data)
     )
-    path = parent_path / Path(fn)
+    path = parent_path / fn
     with path.open("w") as json_file:
         json.dump(vuetify_data, json_file, indent=2)
         json_file.write("\n")
+
+
+def _make_websocket_messages():
+    return MappingProxyType(
+        {"messages": {msg.name: msg.value for msg in Notifications}}
+    )
 
 
 def main():
@@ -116,6 +119,9 @@ def main():
 
     for fn, data in _MAP_DUMPS.items():
         _dump(parent_path, fn, data, vuetify=False)
+
+    ws_messages = _make_websocket_messages()
+    _dump(parent_path, "websocket-messages.json", ws_messages, vuetify=False)
 
 
 if __name__ == "__main__":

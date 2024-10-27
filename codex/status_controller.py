@@ -6,7 +6,7 @@ from time import time
 
 from django.db.models.functions.datetime import Now
 
-from codex.choices import ADMIN_STATUS_TITLES
+from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
 from codex.logger_base import LoggerBaseMixin

@@ -32,6 +32,14 @@ export default [
     },
   },
   {
+    rules: {
+      "no-secrets/no-secrets": [
+        "error",
+        { ignoreContent: "notify_groups_changed" },
+      ],
+    },
+  },
+  {
     files: ["tests/**"],
     plugins: {
       vitest: eslintPluginVitest,

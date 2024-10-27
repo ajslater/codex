@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
 
-from codex.choices import ADMIN_FLAG_CHOICES, ADMIN_STATUS_TITLES
+from codex.choices.admin import ADMIN_FLAG_CHOICES, ADMIN_STATUS_TITLES
 from codex.db import ensure_db_schema
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
@@ -30,7 +30,7 @@ def ensure_superuser():
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
         admin_user, created = User.objects.update_or_create(
             username="admin",
-            defaults={"is_staff": True, "is_superuser": True},
+            defaults={"is_staff": True, "is_superuser": True, "is_active": True},
         )
         admin_user.set_password("admin")
         admin_user.save()
