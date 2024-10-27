@@ -5,7 +5,7 @@ from codex.models import (
     Country,
     Language,
 )
-from codex.serializers.fields import CountryField, LanguageField
+from codex.serializers.fields.browser import CountryField, LanguageField
 from codex.serializers.models.named import NamedModelSerializer
 
 LOG = get_logger(__name__)

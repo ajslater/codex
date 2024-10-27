@@ -3,12 +3,12 @@
 from rest_framework.serializers import ListField, Serializer
 
 from codex.serializers.fields import (
-    BookmarkFilterField,
     VuetifyBooleanField,
     VuetifyDecadeField,
     VuetifyFloatField,
     VuetifyIntegerField,
 )
+from codex.serializers.fields.browser import BookmarkFilterField
 
 
 class BrowserSettingsFilterInputSerializer(Serializer):

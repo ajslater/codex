@@ -1,13 +1,6 @@
 """Custom Serializer Fields."""
 
 from codex.serializers.fields.auth import TimestampField, TimezoneField
-from codex.serializers.fields.browser import (
-    BookmarkFilterField,
-    BreadcrumbsField,
-    CountryField,
-    LanguageField,
-    TopGroupField,
-)
 from codex.serializers.fields.group import BrowseGroupField
 from codex.serializers.fields.reader import FitToField, ReadingDirectionField
 from codex.serializers.fields.sanitized import SanitizedCharField
@@ -28,12 +21,7 @@ from codex.serializers.fields.vuetify import (
 __all__ = (
     "TimestampField",
     "TimezoneField",
-    "TopGroupField",
     "BrowseGroupField",
-    "BookmarkFilterField",
-    "CountryField",
-    "LanguageField",
-    "BreadcrumbsField",
     "SanitizedCharField",
     "StringListMultipleChoiceField",
     "SerializerChoicesField",

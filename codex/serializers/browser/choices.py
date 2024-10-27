@@ -11,13 +11,13 @@ from rest_framework.fields import (
 from rest_framework.serializers import Serializer
 
 from codex.serializers.fields import (
-    BookmarkFilterField,
     VuetifyBooleanField,
     VuetifyCharField,
     VuetifyDecadeField,
     VuetifyFloatField,
     VuetifyIntegerField,
 )
+from codex.serializers.fields.browser import BookmarkFilterField
 from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
 

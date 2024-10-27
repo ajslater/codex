@@ -12,7 +12,7 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
-from codex.serializers.fields import TopGroupField
+from codex.serializers.fields.browser import TopGroupField
 from codex.serializers.models.pycountry import LanguageSerializer
 
 UTC_TZ = ZoneInfo("UTC")

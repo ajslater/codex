@@ -10,11 +10,8 @@ from rest_framework.serializers import (
 
 from codex.choices import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
-from codex.serializers.fields import (
-    BreadcrumbsField,
-    TimestampField,
-    TopGroupField,
-)
+from codex.serializers.fields import TimestampField
+from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField
 from codex.serializers.route import SimpleRouteSerializer
 
 

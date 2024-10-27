@@ -13,10 +13,12 @@ from codex.serializers.browser.settings import (
     BrowserSettingsShowGroupFlagsSerializer,
 )
 from codex.serializers.fields import (
-    BreadcrumbsField,
     FitToField,
     ReadingDirectionField,
     TimestampField,
+)
+from codex.serializers.fields.browser import (
+    BreadcrumbsField,
     TopGroupField,
 )
 from codex.serializers.route import RouteSerializer, SimpleRouteSerializer

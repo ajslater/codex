@@ -11,11 +11,8 @@ from rest_framework.serializers import Serializer
 from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
-from codex.serializers.fields import (
-    BreadcrumbsField,
-    TimestampField,
-)
-from codex.serializers.fields.browser import TopGroupField
+from codex.serializers.fields import TimestampField
+from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin):
