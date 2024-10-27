@@ -13,16 +13,12 @@ from rest_framework.serializers import Serializer
 class OPSD2AuthenticateSerializer(Serializer):
     """Minimal Link Serializer for Authenticate."""
 
-    href = CharField(
-        read_only=True,
-    )
-    rel = SerializerMethodField(
-        read_only=True,
-    )
+    href = CharField(read_only=True)
+    rel = SerializerMethodField(read_only=True)
     type = CharField(read_only=True, required=False)
 
     def get_rel(self, obj) -> str | None:
-        """Allow for CharField or CharListField types."""
+        """Allow for SanitizedCharField or CharListField types."""
         rel = obj.get("rel")
         if not isinstance(rel, list | str):
             reason = "OPDS2LinkSerializer.rel is not a list or a string."
@@ -64,8 +60,12 @@ class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
     # bitrate = IntegerField(read_only=True, required=False) unused
     # duration = IntegerField(read_only=True, required=False) unused
     # language = CharField(many=True, read_only=True, required=False) unused
-    alternate = ListField(child=CharField(), read_only=True, required=False)
-    children = ListField(child=CharField(), read_only=True, required=False)
+    alternate = ListField(
+        child=CharField(read_only=True), read_only=True, required=False
+    )
+    children = ListField(
+        child=CharField(read_only=True), read_only=True, required=False
+    )
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
 

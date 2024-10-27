@@ -1,17 +1,18 @@
 """Browser Page Serializer."""
 
-from rest_framework.serializers import (
+from rest_framework.fields import (
     BooleanField,
     CharField,
     DecimalField,
     IntegerField,
-    Serializer,
 )
+from rest_framework.serializers import Serializer
 
 from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
-from codex.serializers.fields import BreadcrumbsField, TimestampField
+from codex.serializers.fields import TimestampField
+from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin):
@@ -57,7 +58,7 @@ class BrowserPageSerializer(Serializer):
     title = BrowserTitleSerializer(read_only=True)
     zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)
-    model_group = CharField(read_only=True)
+    model_group = TopGroupField(read_only=True)
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)

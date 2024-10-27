@@ -28,12 +28,14 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "updated_at": "Updated Time",
     }
 )
-_GROUP_NAMES = {
-    "p": "Publishers",
-    "i": "Imprints",
-    "s": "Series",
-    "v": "Volumes",
-}
+_GROUP_NAMES = MappingProxyType(
+    {
+        "p": "Publishers",
+        "i": "Imprints",
+        "s": "Series",
+        "v": "Volumes",
+    }
+)
 BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
     {
         **_GROUP_NAMES,
@@ -42,6 +44,7 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
         "a": "Story Arcs",
     },
 )
+BROWSER_GROUP_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 VUETIFY_NULL_CODE = -1
 BROWSER_CHOICES = MappingProxyType(
     {

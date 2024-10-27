@@ -9,8 +9,13 @@ from comicbox.box import Comicbox
 from comicbox.box.computed import IDENTIFIERS_KEY
 from comicbox.exceptions import UnsupportedArchiveTypeError
 from comicbox.schemas.comicbox_mixin import CONTRIBUTORS_KEY
-from django.db.models import CharField
-from django.db.models.fields import DecimalField, PositiveSmallIntegerField
+from django.db.models.fields import (
+    CharField,
+    DecimalField,
+    PositiveSmallIntegerField,
+    TextField,
+)
+from nh3 import clean
 from rarfile import BadRarFile
 
 from codex.librarian.importer.const import FIS, STORY_ARCS_METADATA_KEY
@@ -36,29 +41,39 @@ _MD_INVALID_KEYS = frozenset(
         "updated_at",
     )
 )
-_MD_VALID_KEYS = frozenset(
-    (
-        *(
-            field.name
-            for field in Comic._meta.get_fields()
-            if field.name not in _MD_INVALID_KEYS
-        ),
-        "story_arcs",
+_MD_VALID_KEYS = tuple(
+    sorted(
+        frozenset(
+            (
+                *(
+                    field.name
+                    for field in Comic._meta.get_fields()
+                    if field.name not in _MD_INVALID_KEYS
+                ),
+                "story_arcs",
+            )
+        )
     )
 )
-_MD_CHAR_KEYS = frozenset(
-    field.name for field in Comic._meta.get_fields() if isinstance(field, CharField)
-)
-_MD_DECIMAL_KEYS = frozenset(
-    field.name for field in Comic._meta.get_fields() if isinstance(field, DecimalField)
-)
-_MD_PSI_KEYS = frozenset(
-    {
-        field.name
-        for field in Comic._meta.get_fields()
-        if isinstance(field, PositiveSmallIntegerField)
-    }
-)
+
+
+def _get_keys_by_field_type(field_type):
+    return tuple(
+        sorted(
+            frozenset(
+                field.name
+                for field in Comic._meta.get_fields()
+                if isinstance(field, field_type)
+            )
+        )
+    )
+
+
+_MD_CHAR_KEYS = _get_keys_by_field_type(CharField)
+_MD_TEXT_KEYS = _get_keys_by_field_type(TextField)
+_MD_STR_KEYS = tuple(sorted(_MD_CHAR_KEYS + _MD_TEXT_KEYS))
+_MD_DECIMAL_KEYS = _get_keys_by_field_type(DecimalField)
+_MD_PSI_KEYS = _get_keys_by_field_type(PositiveSmallIntegerField)
 _PSI_MAX = 2**31 - 1
 _SI_MIN = 2**15 * -1
 _SI_MAX = 2**15 - 1
@@ -145,11 +160,15 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         cls._assign_or_pop(obj, key, value)
 
     @staticmethod
-    def _clean_charfield(model, field_name, value):
+    def _clean_strfield(model, field_name, value):
         try:
-            field: CharField = model._meta.get_field(field_name)  # type: ignore[reportAssignmentType]
             if value:
-                value = value[: field.max_length].strip()
+                value = value.strip()
+                field = model._meta.get_field(field_name)  # type: ignore[reportAssignmentType]
+                max_length = getattr(field, "max_length", 0)
+                if max_length:
+                    value = value[:max_length]
+                value = clean(value)
             if not value:
                 value = None
         except Exception:
@@ -157,10 +176,10 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         return value
 
     @classmethod
-    def _clean_charfields(cls, md: dict[str, Any]) -> None:
-        for key in _MD_CHAR_KEYS:
+    def _clean_strfields(cls, md: dict[str, Any]) -> None:
+        for key in _MD_STR_KEYS:
             value = md.get(key)
-            value = cls._clean_charfield(Comic, key, value)
+            value = cls._clean_strfield(Comic, key, value)
             cls._assign_or_pop(md, key, value)
 
     @classmethod
@@ -182,10 +201,10 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             return
         clean_contributors = {}
         for role, persons in contributors.items():
-            clean_role = cls._clean_charfield(ContributorRole, "name", role)
+            clean_role = cls._clean_strfield(ContributorRole, "name", role)
             clean_persons = set()
             for person in persons:
-                clean_person = cls._clean_charfield(ContributorPerson, "name", person)
+                clean_person = cls._clean_strfield(ContributorPerson, "name", person)
                 if clean_person:
                     clean_persons.add(clean_person)
             clean_contributors[clean_role] = clean_persons
@@ -198,7 +217,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             return
         clean_story_arcs = {}
         for story_arc, number in story_arcs.items():
-            clean_story_arc = cls._clean_charfield(StoryArc, "name", story_arc)
+            clean_story_arc = cls._clean_strfield(StoryArc, "name", story_arc)
             if clean_story_arc:
                 clean_story_arcs[clean_story_arc] = number
         cls._assign_or_pop(md, STORY_ARCS_METADATA_KEY, clean_story_arcs)
@@ -210,11 +229,11 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             return
         clean_identifiers = {}
         for nid, identifier in identifiers.items():
-            clean_id_type = cls._clean_charfield(IdentifierType, "name", nid)
+            clean_id_type = cls._clean_strfield(IdentifierType, "name", nid)
             nss = identifier.get("nss")
-            clean_nss = cls._clean_charfield(Identifier, "nss", nss)
+            clean_nss = cls._clean_strfield(Identifier, "nss", nss)
             url = identifier.get("url")
-            clean_url = cls._clean_charfield(Identifier, "url", url)
+            clean_url = cls._clean_strfield(Identifier, "url", url)
             if clean_nss:
                 clean_identifier = {"nss": nss}
                 if clean_url:
@@ -230,7 +249,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         cls._clean_comic_positive_small_ints(md)
         cls._clean_comic_small_ints(md)
         cls._clean_comic_decimals(md)
-        cls._clean_charfields(md)
+        cls._clean_strfields(md)
         cls._clean_contributors(md)
         cls._clean_story_arcs(md)
         cls._clean_identifiers(md)

@@ -1,11 +1,6 @@
 """OPDS 2 Publication Serializers."""
 
-from rest_framework.fields import (
-    CharField,
-    DateField,
-    IntegerField,
-    ListField,
-)
+from rest_framework.fields import CharField, DateField, IntegerField, ListField
 from rest_framework.serializers import Serializer
 
 from codex.serializers.opds.v2.facet import OPDS2FacetSerializer
@@ -56,7 +51,7 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     #####################
     # Extended metadata #
     #####################
-    subject = ListField(child=CharField(), read_only=True, required=False)
+    subject = ListField(child=CharField(read_only=True), read_only=True, required=False)
     author = OPDS2ContributorObjectSerializer(many=True, required=False)
     # translator = OPDS2ContributorObjectSerializer(many=True, required=False) unused
     editor = OPDS2ContributorObjectSerializer(many=True, required=False)

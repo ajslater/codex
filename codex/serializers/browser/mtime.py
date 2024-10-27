@@ -1,17 +1,15 @@
 """Group Mtimes."""
 
-from rest_framework.serializers import CharField, Serializer
+from rest_framework.serializers import Serializer
 
-from codex.serializers.browser.settings import BrowserSettingsFilterSerializer
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.serializers.fields import TimestampField
 from codex.serializers.route import SimpleRouteSerializer
 
 
-class GroupsMtimeSerializer(Serializer):
+class GroupsMtimeSerializer(BrowserFilterChoicesInputSerilalizer):
     """Groups Mtimes."""
 
-    filters = BrowserSettingsFilterSerializer(required=False)
-    q = CharField(allow_blank=True, required=False)
     groups = SimpleRouteSerializer(many=True, required=True)
 
 

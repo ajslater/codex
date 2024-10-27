@@ -14,7 +14,7 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.models import Comic, Library
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
-from codex.serializers.fields import CountryField, LanguageField, PyCountryField
+from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
 from codex.settings.settings import SEARCH_INDEX_BATCH_SIZE
 from codex.status import Status
 

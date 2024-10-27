@@ -21,6 +21,8 @@ class BookmarkView(BookmarkUpdate, BookmarkAuthMixin, BrowserFilterView):
 
     serializer_class = BookmarkSerializer
 
+    TARGET = "bookmark"
+
     def _parse_params(self):
         """Validate and translate the submitted data."""
         group = self.kwargs.get("group")

@@ -1,6 +1,7 @@
 """Codex Serializers for the metadata box."""
 
-from rest_framework.serializers import CharField, IntegerField, ListField, Serializer
+from rest_framework.fields import CharField
+from rest_framework.serializers import IntegerField, ListField, Serializer
 
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer

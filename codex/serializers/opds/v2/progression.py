@@ -26,7 +26,7 @@ class OPDS2ProgressionDeviceSerializer(Serializer):
 class OPDS2ProgressionLocationsSerializer(Serializer):
     """Progression Location Element."""
 
-    fragments = ListField(child=CharField(), read_only=True)
+    fragments = ListField(child=CharField(read_only=True), read_only=True)
     position = IntegerField(read_only=True)
     progression = DecimalField(
         max_digits=7,

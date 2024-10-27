@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
-version = "1.7.3"
+version = "1.7.4"
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -67,6 +67,7 @@ whitenoise = { extras = ["brotli"], version = "^6.0" }
 versio = "^0.5.0"
 zipstream-ng = "^1.8.0"
 Pillow = "^11.0.0"
+nh3 = "^0.2.18"
 
 [tool.poetry.group.dev.dependencies]
 django-schema-graph = "^3.1.0"

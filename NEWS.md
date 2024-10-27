@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.4
+
+- Fixes
+
+  - Fix setting bookmarks and book settings bug.
+  - Sanitize HTML out of imported comic metadata fields and admin inputs.
+
 ## v1.7.3
 
 - Features
