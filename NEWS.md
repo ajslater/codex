@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix setting bookmarks in the browser from folder view.
+  - Fix setting bookmarks and book settings bug.
   - Sanitize HTML out of imported comic metadata fields and admin page fields.
 
 ## v1.7.3
