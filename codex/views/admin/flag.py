@@ -1,7 +1,7 @@
 """Admin Flag View."""
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
 from codex.librarian.tasks import WakeCronTask
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
@@ -39,7 +39,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
         if key in _REFRESH_LIBRARY_FLAGS:
-            LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
+            LIBRARIAN_QUEUE.put(ADMIN_FLAGS_CHANGED_TASK)
 
     def perform_update(self, serializer):
         """Perform update and hook for change."""

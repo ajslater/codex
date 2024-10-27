@@ -22,6 +22,9 @@ class UpdateMixin(WorkerBaseMixin):
     def _is_outdated(self):
         """Is codex outdated."""
         result = False
+        if VERSION is None:
+            self.log.warning("Cannot determine installed Codex version.")
+            return result
         ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
         latest_version = ts.version
         versio_latest_version = Version(latest_version)

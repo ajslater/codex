@@ -7,7 +7,7 @@ from typing import Any
 
 from rest_framework.exceptions import NotFound
 
-from codex.choices import DEFAULT_BROWSER_ROUTE
+from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models.groups import BrowserGroupModel

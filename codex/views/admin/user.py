@@ -2,18 +2,24 @@
 
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
 
+from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import (
+    ADMIN_USERS_CHANGED_TASK,
+    USERS_CHANGED_TASK,
+    NotifierTask,
+)
 from codex.logger.logging import get_logger
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 LOG = get_logger(__name__)
+
+_BAD_CURRENT_USER_FALSE_KEYS = ("is_active", "is_staff", "is_superuser")
 
 
 class AdminUserViewSet(AdminModelViewSet):
@@ -28,9 +34,17 @@ class AdminUserViewSet(AdminModelViewSet):
     INPUT_METHODS = ("POST", "PUT")
 
     @staticmethod
-    def _on_change():
-        cache.clear()
-        LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
+    def _on_change(uid: int):
+        if uid:
+            group = f"user_{uid}"
+            tasks = (
+                ADMIN_USERS_CHANGED_TASK,
+                NotifierTask(Notifications.USERS.value, group),
+            )
+        else:
+            tasks = (USERS_CHANGED_TASK,)
+        for task in tasks:
+            LIBRARIAN_QUEUE.put(task)
 
     def get_serializer(self, *args, **kwargs):
         """Allow partial data for update methods."""
@@ -38,18 +52,30 @@ class AdminUserViewSet(AdminModelViewSet):
             kwargs["partial"] = True
         return super().get_serializer(*args, **kwargs)
 
+    def _is_change_to_current_user(self):
+        instance = self.get_object()
+        return instance == self.request.user
+
     def destroy(self, request, *args, **kwargs):
         """Destroy with guard for logged in user."""
-        instance = self.get_object()
-        if instance == request.user:
+        if self._is_change_to_current_user():
             reason = "Cannot delete logged in user."
-            raise ValueError(reason)
-        return super().destroy(request, *args, **kwargs)
+            raise ValidationError(reason)
+        res = super().destroy(request, *args, **kwargs)
+        self._on_change(0)
+        return res
 
     def perform_update(self, serializer):
         """Add hook after update."""
+        data = serializer.validated_data
+        if self._is_change_to_current_user() and False in {
+            data.get(key) for key in _BAD_CURRENT_USER_FALSE_KEYS
+        }:
+            reason = "Cannot deactivate logged in user."
+            raise ValidationError(reason)
+        uid = self.kwargs.get("pk", 0)
         super().perform_update(serializer)
-        self._on_change()
+        self._on_change(uid)
 
     def perform_create(self, serializer):
         """Create user."""

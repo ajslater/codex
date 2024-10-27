@@ -58,16 +58,9 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
             self._num_pages = self.group_and_books[2]
         return self._num_pages
 
-    def link(self, data):
-        """Create a link element."""
-        if data.href:
-            href = data.href
-        else:
-            href = self.href(data.href_data)
-            if not href:
-                return None
-        mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
-        link = {"href": href, "rel": data.rel, "type": mime_type}
+    @staticmethod
+    def _link_attributes(data, link):
+        """Add attributes to link."""
         if data.title:
             link["title"] = data.title
         if data.template:
@@ -78,7 +71,9 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
         if data.width:
             link["width"] = data.width
 
-        # Properties
+    @staticmethod
+    def _link_properties(data, link):
+        """Add properties attribute to link."""
         if data.num_items or data.authenticate:
             link["properties"] = {}
         if data.num_items:
@@ -86,6 +81,18 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
         if data.authenticate:
             link["properties"]["authenticate"] = data.authenticate
 
+    def link(self, data):
+        """Create a link element."""
+        if data.href:
+            href = data.href
+        else:
+            href = self.href(data.href_data)
+            if not href:
+                return None
+        mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
+        link = {"href": href, "rel": data.rel, "type": mime_type}
+        self._link_attributes(data, link)
+        self._link_properties(data, link)
         return link
 
     @staticmethod

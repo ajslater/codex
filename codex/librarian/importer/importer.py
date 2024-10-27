@@ -7,7 +7,10 @@ from humanize import naturaldelta
 
 from codex.librarian.importer.moved import MovedImporter
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import (
+    FAILED_IMPORTS_CHANGED_TASK,
+    LIBRARY_CHANGED_TASK,
+)
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 
@@ -50,7 +53,7 @@ class ComicImporter(MovedImporter):
         else:
             self.log.info("No updates neccissary.")
         if new_failed_imports:
-            self.librarian_queue.put(FAILED_IMPORTS_TASK)
+            self.librarian_queue.put(FAILED_IMPORTS_CHANGED_TASK)
 
     def apply(self):
         """Bulk import comics."""
