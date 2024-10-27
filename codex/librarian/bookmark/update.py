@@ -29,18 +29,16 @@ class BookmarkUpdate(GroupACLMixin):
     # Used by Bookmarkd and view.bookmark.
 
     @classmethod
-    def _get_existing_bookmarks_for_update(cls, auth_filter, comic_pks, updates, user):
+    def _get_existing_bookmarks_for_update(cls, auth_filter, comic_pks, updates):
         # Get existing bookmarks
-        group_acl_filter = cls.get_group_acl_filter(Bookmark, user)
-        query_filter = group_acl_filter & Q(**auth_filter) & Q(comic__in=comic_pks)
+        query_filter = Q(**auth_filter) & Q(comic__in=comic_pks)
         existing_bookmarks = Bookmark.objects.filter(query_filter)
         if updates.get("page") is not None:
             existing_bookmarks = existing_bookmarks.annotate(
                 page_count=F("comic__page_count")
             )
 
-        update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
-        update_fields.add("updated_at")
+        update_fields = (set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS) | {"updated_at"}
         only_fields = (*update_fields, "pk")
 
         existing_bookmarks = existing_bookmarks.only(*only_fields)
@@ -90,14 +88,14 @@ class BookmarkUpdate(GroupACLMixin):
         LIBRARIAN_QUEUE.put(task)
 
     @classmethod
-    def _update_bookmarks(cls, auth_filter, comic_pks, updates, user) -> int:
+    def _update_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
         """Update existing bookmarks."""
         count = 0
         if not updates:
             return count
 
         existing_bookmarks, update_fields = cls._get_existing_bookmarks_for_update(
-            auth_filter, comic_pks, updates, user
+            auth_filter, comic_pks, updates
         )
         update_bookmarks = cls._prepare_bookmark_updates(existing_bookmarks, updates)
         count = len(update_bookmarks)
@@ -108,13 +106,12 @@ class BookmarkUpdate(GroupACLMixin):
         return count
 
     @classmethod
-    def _get_comics_without_bookmarks(cls, auth_filter, comic_pks, user):
+    def _get_comics_without_bookmarks(cls, auth_filter, comic_pks):
         """Get comics without bookmarks."""
-        group_acl_filter = cls.get_group_acl_filter(Comic, user)
         exclude = {}
         for key, value in auth_filter.items():
             exclude["bookmark__" + key] = value
-        query_filter = group_acl_filter & Q(pk__in=comic_pks) & ~Q(**exclude)
+        query_filter = Q(pk__in=comic_pks) & ~Q(**exclude)
         return Comic.objects.filter(query_filter).only("pk")
 
     @classmethod
@@ -136,7 +133,7 @@ class BookmarkUpdate(GroupACLMixin):
             updates.pop("two_pages", None)
 
     @classmethod
-    def _create_bookmarks(cls, auth_filter, comic_pks, updates, user) -> int:
+    def _create_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
         """Create new bookmarks for comics that don't exist yet."""
         count = 0
         cls._create_bookmarks_validate_two_pages(updates)
@@ -144,7 +141,7 @@ class BookmarkUpdate(GroupACLMixin):
             return count
 
         create_bookmark_comics = cls._get_comics_without_bookmarks(
-            auth_filter, comic_pks, user
+            auth_filter, comic_pks
         )
         create_bookmarks = cls._prepare_bookmark_creates(
             create_bookmark_comics, auth_filter, updates
@@ -161,11 +158,19 @@ class BookmarkUpdate(GroupACLMixin):
         return count
 
     @classmethod
-    def _update_user_active(cls, user, log):
+    def _update_user_active(cls, auth_filter, log):
         """Update user active."""
         # Offline because profile gets hit rapidly in succession.
         try:
-            UserActive.objects.update_or_create(user=user)
+            user = None
+            for key, value in auth_filter.items():
+                if key == "user":
+                    user = User.objects.get(pk=value)
+                    if user:
+                        UserActive.objects.update_or_create(user=user)
+                break
+        except User.DoesNotExist:
+            pass
         except Exception as exc:
             reason = f"Update user activity {exc}"
             log.warning(reason)
@@ -173,16 +178,9 @@ class BookmarkUpdate(GroupACLMixin):
     @classmethod
     def update_bookmarks(cls, auth_filter, comic_pks, updates, log):
         """Update a user bookmark."""
-        user = None
-        for key, value in auth_filter.items():
-            if key == "user":
-                user = User.objects.get(pk=value)
-            break
-
-        count = cls._update_bookmarks(auth_filter, comic_pks, updates, user)
-        count += cls._create_bookmarks(auth_filter, comic_pks, updates, user)
-        if user:
-            cls._update_user_active(user, log)
+        count = cls._update_bookmarks(auth_filter, comic_pks, updates)
+        count += cls._create_bookmarks(auth_filter, comic_pks, updates)
+        cls._update_user_active(auth_filter, log)
         if count:
             uid = next(iter(auth_filter.values()))
             cls._notify_library_changed(uid)
