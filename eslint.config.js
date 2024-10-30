@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
@@ -55,6 +56,7 @@ export default [
   },
   js.configs.recommended,
   eslintPluginArrayFunc.configs.all,
+  eslintPluginComments.recommended,
   eslintPluginCompat.configs[FLAT_RECOMMENDED],
   eslintPluginDepend.configs[FLAT_RECOMMENDED],
   eslintPluginImport.flatConfigs.recommended,

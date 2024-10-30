@@ -78,7 +78,7 @@ nplusone = "^1.0.0"
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.0" }
 pytest-asyncio = "^0.24.0"
-pytest-cov = "^5.0"
+pytest-cov = "^6.0"
 pytest-django = "^4.1"
 pytest-gitignore = "^1.3"
 
