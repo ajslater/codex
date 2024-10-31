@@ -147,13 +147,7 @@ export default [
     },
   },
   {
-    files: ["**/*.md/*.toml"],
-    rules: {
-      "prettier/prettier": ["error", { parser: "toml" }],
-    },
-  },
-  {
-    files: ["**/*.toml"],
+    files: ["**/*.md/*.toml", "**/*.toml"],
     rules: {
       "prettier/prettier": ["error", { parser: "toml" }],
     },
