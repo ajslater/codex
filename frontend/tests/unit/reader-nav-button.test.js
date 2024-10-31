@@ -4,9 +4,6 @@ import { mount } from "@vue/test-utils";
 import { expect, test } from "vitest";
 import { createRouter, createWebHistory } from "vue-router";
 
-// This breaks eslint-plugin-import, could be solved with import assertions
-// https://stackoverflow.com/questions/71090960/is-there-a-way-to-make-eslint-understand-the-new-import-assertion-syntax-without
-// eslint-disable-next-line
 import ReaderNavButton from "@/components/reader/toolbars/nav/reader-nav-button.vue";
 import vuetify from "@/plugins/vuetify";
 import { useReaderStore } from "@/stores/reader";

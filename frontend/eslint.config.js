@@ -24,6 +24,9 @@ export default [
     },
     settings: {
       "import/extensions": [".js", ".vue"],
+      "import/parsers": {
+        "vue-eslint-parser": [".vue"],
+      },
       "import/resolver": {
         alias: {
           map: [["@", path.resolve(__dirname, "src")]],

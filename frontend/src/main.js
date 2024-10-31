@@ -5,9 +5,6 @@ import { createHead, VueHeadMixin } from "@unhead/vue";
 import { createApp } from "vue";
 import VueDragScroller from "vue-drag-scroller";
 
-// This breaks eslint-plugin-import, could be solved with import assertions
-// https://stackoverflow.com/questions/71090960/is-there-a-way-to-make-eslint-understand-the-new-import-assertion-syntax-without
-// eslint-disable-next-line
 import App from "@/app.vue";
 import router from "@/plugins/router";
 import { setupNativeSock } from "@/plugins/vue-native-sock";
