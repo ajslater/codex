@@ -143,6 +143,7 @@ export default [
     processor: "markdown/markdown",
     rules: {
       "prettier/prettier": ["error", { parser: "sh" }],
+      "sonarjs/no-implicit-global": "off",
     },
   },
   {
