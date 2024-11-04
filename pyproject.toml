@@ -56,18 +56,18 @@ fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.17.3" }
+nh3 = "^0.2.18"
 psutil = "^6.0.0"
 pyparsing = "^3.1.2"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
 tzlocal = "^5.0"
-watchdog = "^5.0.2"
+watchdog = "^6.0.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 versio = "^0.5.0"
 zipstream-ng = "^1.8.0"
 Pillow = "^11.0.0"
-nh3 = "^0.2.18"
 
 [tool.poetry.group.dev.dependencies]
 django-schema-graph = "^3.1.0"
