@@ -157,5 +157,5 @@ administering Codex.
 
 ## Special Thanks
 
-- To [ProfessionalTart](https://github.com/professionaltart) for providing the
+* To [ProfessionalTart](https://github.com/professionaltart) for providing the
   majority of these instructions.
