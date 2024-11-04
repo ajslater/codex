@@ -10,28 +10,28 @@ border-radius: 128px;
 
 ## <a name="features">✨ Features</a>
 
-* Codex is a web server.
-* GPLv3 Licenced.
-* Full text search of metadata and bookmarks.
-* Filter and sort on all comic metadata and unread status per user.
-* Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
+- Codex is a web server.
+- GPLv3 Licenced.
+- Full text search of metadata and bookmarks.
+- Filter and sort on all comic metadata and unread status per user.
+- Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
   hierarchy, or by tagged Story Arc.
-* Read comics in a variety of aspect ratios and directions that fit your screen.
-* Watches the filesystem and automatically imports new or changed comics.
-* Anonymous browsing and reading or reigistered users only, to your preference.
-* Per user bookmarking & settings, even before you make an account.
-* Private Libraries accessible only to certain groups of users.
-* Reads CBZ, CBR, CBT, and PDF formatted comics.
-* Syndication with OPDS 1 & 2, streaming, search and authentication.
-* Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
-* Runs in 1GB of RAM, faster with more.
+- Read comics in a variety of aspect ratios and directions that fit your screen.
+- Watches the filesystem and automatically imports new or changed comics.
+- Anonymous browsing and reading or reigistered users only, to your preference.
+- Per user bookmarking & settings, even before you make an account.
+- Private Libraries accessible only to certain groups of users.
+- Reads CBZ, CBR, CBT, and PDF formatted comics.
+- Syndication with OPDS 1 & 2, streaming, search and authentication.
+- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
+- Runs in 1GB of RAM, faster with more.
 
 ### Examples
 
-* *Filter by* Story Arc and Unread, *Order by* Publish Date to create an event
+- _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event
   reading list.
-* *Filter by* Unread and *Order by* Added Time to see your latest unread comics.
-* *Search by* your favorite character to find their appearances across different
+- _Filter by_ Unread and _Order by_ Added Time to see your latest unread comics.
+- _Search by_ your favorite character to find their appearances across different
   comics.
 
 ## <a name="demonstration">👀 Demonstration</a>
@@ -60,11 +60,11 @@ document.
 If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
 be installed with the following steps :
 
-* Add the `https://github.com/alexbelgium/hassio-addons` repository by
+- Add the `https://github.com/alexbelgium/hassio-addons` repository by
   [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
-* Install the addon :
+- Install the addon :
   [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
-* Customize addon options, then then start the add-on.
+- Customize addon options, then then start the add-on.
 
 ### Install & Run as a Native Application
 
@@ -141,10 +141,10 @@ Once installed and running you may navigate to <http://localhost:9810/>
 
 ### Navigate to the Admin Panel
 
-* Click the hamburger menu ☰ to open the browser settings drawer.
-* Log in as the 'admin' user. The default administrator password is also
+- Click the hamburger menu ☰ to open the browser settings drawer.
+- Log in as the 'admin' user. The default administrator password is also
   'admin'.
-* Navigate to the Admin Panel by clicking on its link in the browser settings
+- Navigate to the Admin Panel by clicking on its link in the browser settings
   drawer after you have logged in.
 
 ### Change the Admin password
@@ -152,11 +152,11 @@ Once installed and running you may navigate to <http://localhost:9810/>
 The first thing you should do is log in as the admin user and change the admin
 password.
 
-* Navigate to the Admin Panel as described above.
-* Select the Users tab.
-* Change the admin user's password using the small lock button.
-* You may also change the admin user's name with the edit button.
-* You may create other users and grant them admin privileges by making them
+- Navigate to the Admin Panel as described above.
+- Select the Users tab.
+- Change the admin user's password using the small lock button.
+- You may also change the admin user's name with the edit button.
+- You may create other users and grant them admin privileges by making them
   staff.
 
 ### Add Comic Libraries
@@ -164,9 +164,9 @@ password.
 The second thing you will want to do is log in as an Administrator and add one
 or more comic libraries.
 
-* Navigate to the Admin Panel as described above.
-* Select the Libraries tab in the Admin Panel
-* Add a Library with the "+ LIBRARY" button in the upper left.
+- Navigate to the Admin Panel as described above.
+- Select the Libraries tab in the Admin Panel
+- Add a Library with the "+ LIBRARY" button in the upper left.
 
 ### Reset the admin password
 
@@ -189,10 +189,10 @@ docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/cod
 In the Admin Panel you may configure private libraries that are only accessible
 to specific groups.
 
-A library with *no* groups is accessible to every user including anonymous
+A library with _no_ groups is accessible to every user including anonymous
 users.
 
-A library with *any* groups is accessible only to users who are in those groups.
+A library with _any_ groups is accessible only to users who are in those groups.
 
 Use the Groups admin panel to create groups and the Users admin panel to add and
 remove users to groups.
@@ -252,31 +252,31 @@ index, a Django cache and comic book cover thumbnails.
 
 #### General
 
-* `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
+- `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
-* `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
+- `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
   `$CWD/config`
-* `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
+- `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
   when codex starts.
-* `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
+- `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
   keys on startup.
-* `CODEX_INTEGRITY_CHECK=1` will perform database integrity check on startup.
-* `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
+- `CODEX_INTEGRITY_CHECK=1` will perform database integrity check on startup.
+- `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
   search index.
-* `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
-* `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
+- `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
+- `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
   reads all archive metadata sources and transforms it into a the comicbox
   schema.
 
 #### Logging
 
-* `LOGLEVEL` will change how verbose codex's logging is. Valid values are
+- `LOGLEVEL` will change how verbose codex's logging is. Valid values are
   `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
-* `CODEX_LOG_DIR` sets a custom directory for saving logfiles. Defaults to
+- `CODEX_LOG_DIR` sets a custom directory for saving logfiles. Defaults to
   `$CODEX_CONFIG_DIR/logs`
-* `CODEX_LOG_TO_FILE=0` will not log to files.
-* `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
+- `CODEX_LOG_TO_FILE=0` will not log to files.
+- `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
 
 #### Throttling
 
@@ -285,10 +285,10 @@ these variables will be interpreted as the maximum number of allowed requests
 per minute. For example, the following settings would limit each described group
 to 2 queries per second.
 
-* `CODEX_THROTTLE_ANON=30` Anonymous users
-* `CODEX_THROTTLE_USER=30` Authenticated users
-* `CODEX_THROTTLE_OPDS=30` The OPDS v1 & v2 APIs (Panels uses this for search)
-* `CODEX_THROTTLE_OPENSEARCH=30` The OPDS v1 Opensearch API
+- `CODEX_THROTTLE_ANON=30` Anonymous users
+- `CODEX_THROTTLE_USER=30` Authenticated users
+- `CODEX_THROTTLE_OPDS=30` The OPDS v1 & v2 APIs (Panels uses this for search)
+- `CODEX_THROTTLE_OPENSEARCH=30` The OPDS v1 Opensearch API
 
 ### Reverse Proxy
 
@@ -370,10 +370,10 @@ OPDS 2.0 book readers exist, but I am not yet aware of an OPDS 2.0 comic reader.
 
 #### Clients
 
-* iOS has [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
+- iOS has [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
   [KYBook 3](http://kybook-reader.com/), and
   [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
-* Android has
+- Android has
   [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
   and
   [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
@@ -393,15 +393,15 @@ authentication. In that case the OPDS url will look like:
 
 ##### OPDS v1
 
-* [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
-* [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
-* [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
-* [OpenSearch 1.1](https://github.com/dewitt/opensearch)
+- [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
+- [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
+- [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
+- [OpenSearch 1.1](https://github.com/dewitt/opensearch)
 
 ##### OPDS v2
 
-* [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
-* [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
+- [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
+- [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
@@ -460,13 +460,13 @@ and unfortunately isn't practical to remove yet.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
-* [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing,
+- [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing,
   supports comics, eBooks, and features for manga.
-* [Komga](https://komga.org/) has light metadata editing.
-* [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
-* [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which
+- [Komga](https://komga.org/) has light metadata editing.
+- [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
+- [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which
   also has a built in reader.
-* [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
+- [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
   editor. It comes with a powerful command line and desktop GUI.
 
 ## <a name="contributing">🤝 Contributing</a>
@@ -478,8 +478,8 @@ Issues and feature requests are best filed on the
 
 ### <a name="out-of-scope">🚫 Out of Scope</a>
 
-* I have no intention of making this an eBook reader.
-* I think metadata editing would be better placed in a comic manager than a
+- I have no intention of making this an eBook reader.
+- I think metadata editing would be better placed in a comic manager than a
   reader.
 
 ### <a name="develop-codex">🛠 Develop</a>
@@ -503,17 +503,17 @@ questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
 
 ## <a name="links">🔗 Links</a>
 
-* [Docker Image](https://hub.docker.com/r/ajslater/codex)
-* [PyPi Package](https://pypi.org/project/codex/)
-* [GitHub Project](https://github.com/ajslater/codex/)
+- [Docker Image](https://hub.docker.com/r/ajslater/codex)
+- [PyPi Package](https://pypi.org/project/codex/)
+- [GitHub Project](https://github.com/ajslater/codex/)
 
 ## <a name="special-thanks">🙏🏻 Special Thanks</a>
 
-* Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me
+- Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me
   to use the PyPi name 'codex'.
-* To [ProfessionalTart](https://github.com/professionaltart) for providing
+- To [ProfessionalTart](https://github.com/professionaltart) for providing
   native Windows installation instructions.
-* Thanks to the good people of
+- Thanks to the good people of
   [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for
   continuous feedback and comic ecosystem education.
 
