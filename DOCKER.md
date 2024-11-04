@@ -6,12 +6,12 @@ Codex is a web server comic book browser and reader.
 
 [Codex on GitHub](https://github.com/ajslater/codex)
 
-# Usage
+## Usage
 
 Here are some example snippets to help you get started creating a container from
 this image.
 
-## docker
+### docker
 
 ```sh
 docker create \
@@ -25,7 +25,7 @@ docker create \
   docker.io/ajslater/codex
 ```
 
-## docker-compose.yaml
+### docker-compose.yaml
 
 ```yaml
 services:
@@ -57,36 +57,36 @@ volumes:
       device: //my-nas-network-name/share
 ```
 
-## Environment Variables Unique to Docker
+### Environment Variables Unique to Docker
 
-- `PUID`: Sets the UID for the default user on startup
-- `PGID`: Sets the GID for the default user on startup
+* `PUID`: Sets the UID for the default user on startup
+* `PGID`: Sets the GID for the default user on startup
 
-## General Codex Environment Variables
+### General Codex Environment Variables
 
-- `LOGLEVEL` will change how verbose codex's logging is. Valid values are
+* `LOGLEVEL` will change how verbose codex's logging is. Valid values are
   `ERROR`, `WARNING`, `INFO`, `VERBOSE`, `DEBUG`. The default is `INFO`.
-- `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g.
+* `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
-- `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
+* `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
   `$CWD/config`
-- `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
+* `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
   when codex starts.
 
 More environment variables documented in the
 [Codex README](https://github.com/ajslater/codex?tab=readme-ov-file#environment-variables)
 
-## Support Info
+### Support Info
 
-- Shell access whilst the container is running:
-  - docker exec -it codex /bin/sh
-- Monitor the logs of the container in realtime:
-  - docker logs -f codex
-- Container version number
-  - docker inspect -f '{{ index .Config.Labels "build_version" }}' codex
-- Image version number
-  - docker inspect -f '{{ index .Config.Labels "build_version" }}'
+* Shell access whilst the container is running:
+  * docker exec -it codex /bin/sh
+* Monitor the logs of the container in realtime:
+  * docker logs -f codex
+* Container version number
+  * docker inspect -f '{{ index .Config.Labels "build\_version" }}' codex
+* Image version number
+  * docker inspect -f '{{ index .Config.Labels "build\_version" }}'
     ajslater/codex
 
 ## Docker Image
