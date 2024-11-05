@@ -1,12 +1,12 @@
 import js from "@eslint/js";
+import eslintPluginJson from "@eslint/json";
+import eslintPluginMarkdown from "@eslint/markdown";
 import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
 import eslintPluginDepend from "eslint-plugin-depend";
 import eslintPluginImport from "eslint-plugin-import";
-import eslintPluginJsonc from "eslint-plugin-jsonc";
-import eslintPluginMarkdown from "eslint-plugin-markdown";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginPrettier from "eslint-plugin-prettier";
@@ -60,7 +60,6 @@ export default [
   eslintPluginCompat.configs[FLAT_RECOMMENDED],
   eslintPluginDepend.configs[FLAT_RECOMMENDED],
   eslintPluginImport.flatConfigs.recommended,
-  ...eslintPluginJsonc.configs["flat/recommended-with-jsonc"],
   ...eslintPluginMarkdown.configs.recommended,
   eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginPrettierRecommended,
@@ -86,7 +85,7 @@ export default [
     },
     plugins: {
       arrayFunc: eslintPluginArrayFunc,
-      jsonc: eslintPluginJsonc,
+      json: eslintPluginJson,
       markdown: eslintPluginMarkdown,
       "no-secrets": eslintPluginNoSecrets,
       prettier: eslintPluginPrettier,
