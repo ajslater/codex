@@ -1,5 +1,5 @@
+import eslintPluginVitest from "@vitest/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier";
-import eslintPluginVitest from "eslint-plugin-vitest";
 import eslintPluginVue from "eslint-plugin-vue";
 import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 import path from "path";
