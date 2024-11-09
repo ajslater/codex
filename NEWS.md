@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.6
+
+- Fixes
+
+  - Fix page range crash in reader.
+
 ## v1.7.5
 
 - Fixes
