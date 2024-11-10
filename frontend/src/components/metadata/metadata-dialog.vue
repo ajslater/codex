@@ -47,7 +47,7 @@
             aria-label="% read"
           />
         </div>
-        <div id="seriesRow" class="inlineRow">
+        <div id="seriesRow" class="inlineRow" :class="seriesRowClasses">
           <MetadataText
             v-for="series of md.seriesList"
             id="series"
@@ -276,6 +276,7 @@ import { useMetadataStore } from "@/stores/metadata";
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
+const SERIES_ROW_LARGE_LIMIT = 4;
 
 export default {
   name: "MetadataButton",
@@ -332,6 +333,10 @@ export default {
     },
     buttonVariant() {
       return this.toolbar ? "plain" : "text";
+    },
+    seriesRowClasses() {
+      const count = this.md.seriesList.length + this.md.volumeList.length;
+      return { shortSeriesRow: count <= SERIES_ROW_LARGE_LIMIT };
     },
     downloadGroup() {
       return this.md.group;
@@ -398,7 +403,6 @@ export default {
         // comic-name.formattedIssue() shows 0 for null issue.
         return;
       }
-      console.log(this.md.issueNumber, this.md.issueSuffix);
       return "#" + formattedIssue(this.md);
     },
     readingDirectionText() {
@@ -580,10 +584,10 @@ export default {
   margin-top: 25px;
 }
 
-#seriesRow {
-  font-size: xx-large;
+.shortSeriesRow {
+  min-height: 93px;
   margin-top: -24px;
-  min-height: 93px
+  font-size: xx-large;
 }
 
 #titleRow {
