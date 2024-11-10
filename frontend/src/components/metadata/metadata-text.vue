@@ -11,9 +11,9 @@
           {{ mdiOpenInNew }}
         </v-icon>
       </a>
-      <div v-else class="textContent">
+      <span v-else class="textContent">
         {{ displayValue }}
-      </div>
+      </span>
       <span v-if="baseName">{{ baseName }} </span>
     </div>
   </div>
