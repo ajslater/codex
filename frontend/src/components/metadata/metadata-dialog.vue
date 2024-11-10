@@ -53,31 +53,38 @@
             id="series"
             :key="series.ids"
             :value="series"
-            label="Series"
             group="s"
             :obj="{ ids: md.ids, group: md.group }"
+            :label="md.seriesList.length > 1 ? 'Series' : ''"
           />
           <MetadataText
             v-for="volume of md.volumeList"
             id="volume"
             :key="volume.ids"
             :value="volume"
-            label="Volume"
             group="v"
             :obj="{ ids: md.ids, group: md.group }"
+            :label="md.volumeList.length > 1 ? 'Volume' : ''"
           />
-          <MetadataText :value="md.seriesVolumeCount" label="Volume Count" />
+          <MetadataText
+            :value="md.seriesVolumeCount"
+            class="subdued"
+            prefix="of"
+          />
           <MetadataText
             id="issue"
-            :value="formattedIssue"
-            label="Issue"
+            :value="formattedIssueNumber"
             group="c"
             :obj="{ ids: md.ids, group: md.group }"
           />
-          <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
+          <MetadataText
+            :value="md.volumeIssueCount"
+            class="subdued"
+            prefix="/"
+          />
         </div>
-        <div id="issueRow" class="inlineRow">
-          <MetadataText :value="md.name" label="Title" />
+        <div id="titleRow" class="inlineRow">
+          <MetadataText :value="md.name" />
         </div>
         <div id="publisherRow" class="inlineRow">
           <MetadataText
@@ -100,52 +107,52 @@
           />
         </div>
 
-        <div v-if="pages || md.year || md.month || md.day" class="inlineRow">
-          <MetadataText :value="pages" label="Pages" />
-          <MetadataText
-            :value="md.year"
-            label="Year"
-            class="datePicker"
-            type="number"
-          />
-          <MetadataText :value="md.month" label="Month" class="datePicker" />
-          <MetadataText :value="md.day" label="Day" class="datePicker" />
+        <div
+          v-if="pages || md.year || md.month || md.day"
+          class="inlineRow"
+          id="pageDateRow"
+        >
+          <MetadataText :value="pages" />
+          <MetadataText :value="md.year" class="datePicker" type="number" />
+          <MetadataText :value="month" class="datePicker" />
+          <MetadataText :value="md.day" class="datePicker" />
         </div>
+        <section id="controls">
+          <section id="controlRow">
+            <DownloadButton
+              id="downloadButton"
+              class="controlButton"
+              :button="true"
+              :group="downloadGroup"
+              :pks="downloadPks"
+              :children="children"
+              :names="downloadNames"
+              :ts="md.mtime"
+            />
+            <MarkReadButton
+              id="markReadButton"
+              class="controlButton"
+              :button="true"
+              :item="markReadItem"
+            />
+            <v-btn
+              v-if="isReadButtonShown"
+              id="readButton"
+              class="controlButton"
+              :to="readerRoute"
+              title="Read Comic"
+              :disabled="!isReadButtonEnabled"
+            >
+              <v-icon>{{ readButtonIcon }}</v-icon>
+              Read
+            </v-btn>
+          </section>
+        </section>
       </header>
       <div id="metadataBody">
-        <section id="controls">
-          <DownloadButton
-            id="downloadButton"
-            class="controlButton"
-            :button="true"
-            :group="downloadGroup"
-            :pks="downloadPks"
-            :children="children"
-            :names="downloadNames"
-            :ts="md.mtime"
-          />
-          <MarkReadButton
-            id="markReadButton"
-            class="controlButton"
-            :button="true"
-            :item="markReadItem"
-          />
-          <v-btn
-            v-if="isReadButtonShown"
-            id="readButton"
-            class="controlButton"
-            :to="readerRoute"
-            title="Read Comic"
-            :disabled="!isReadButtonEnabled"
-          >
-            <v-icon>{{ readButtonIcon }}</v-icon>
-            Read
-          </v-btn>
-        </section>
-
         <section class="mdSection">
-          <MetadataText :value="md.summary" label="Summary" />
-          <MetadataText :value="md.review" label="Review" />
+          <MetadataText :value="md.summary" label="Summary" :maxHeight="100" />
+          <MetadataText :value="md.review" label="Review" :maxHeight="100" />
         </section>
         <section class="mdSection">
           <MetadataContributorsTable :value="md.contributors" />
@@ -363,6 +370,13 @@ export default {
         children: this.md.children,
       };
     },
+    month() {
+      if (!this.md.month) {
+        return "";
+      }
+      const date = new Date(1970, this.md.month, 1);
+      return date.toLocaleString("default", { month: "long" });
+    },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
@@ -373,7 +387,7 @@ export default {
         return {};
       }
     },
-    formattedIssue() {
+    formattedIssueNumber() {
       if (!this.md) {
         return "Unknown";
       }
@@ -384,7 +398,8 @@ export default {
         // comic-name.formattedIssue() shows 0 for null issue.
         return;
       }
-      return formattedIssue(this.md);
+      console.log(this.md.issueNumber, this.md.issueSuffix);
+      return "#" + formattedIssue(this.md);
     },
     readingDirectionText() {
       if (!this.md) {
@@ -402,7 +417,10 @@ export default {
         pages += `Read ${humanBookmark} of `;
       }
       const humanPages = NUMBER_FORMAT.format(this.md.pageCount);
-      pages += `${humanPages} pages`;
+      pages += `${humanPages} page`;
+      if (this.md.pageCount !== 1) {
+        pages += "s";
+      }
       if (this.md.progress > 0) {
         pages += ` (${Math.round(this.md.progress)}%)`;
       }
@@ -504,6 +522,10 @@ export default {
   right: 20px;
 }
 
+.subdued {
+  color: rgb(var(--v-theme-textDisabled))
+}
+
 #metadataContainer {
   display: flex;
   flex-direction: column;
@@ -559,15 +581,31 @@ export default {
 }
 
 #seriesRow {
-  font-size: x-large;
+  font-size: xx-large;
+  margin-top: -24px;
+  min-height: 93px
 }
 
-#issueRow {
+#titleRow {
   font-size: large;
+  margin-top: -16px;
+  min-height: 56.5px
+}
+
+#publisherRow {
+  min-height: 62px
+}
+
+#pageDateRow {
+  font-size: smaller;
+  min-height: 44.5px
 }
 
 #controls {
-  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin-top: 4px;
 }
 
 .controlButton {
