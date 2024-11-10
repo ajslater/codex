@@ -23,7 +23,6 @@
     >
       <MetadataHeader :group="group" />
       <MetadataBody :book="book" :group="group" />
-      {{ md.group }} : {{ md.ids }} : {{ md.child_count }}
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
