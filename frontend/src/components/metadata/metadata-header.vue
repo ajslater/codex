@@ -92,7 +92,7 @@
 
 <script>
 import { mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";

@@ -21,97 +21,8 @@
       id="metadataContainer"
       @keyup.esc="dialog = false"
     >
-      <MetadataHeader :group="group" :children="children" />
-      <div id="metadataBody">
-        <section class="mdSection">
-          <MetadataText :value="md.summary" label="Summary" :maxHeight="100" />
-          <MetadataText :value="md.review" label="Review" :maxHeight="100" />
-        </section>
-        <section class="mdSection">
-          <MetadataContributorsTable :value="md.contributors" />
-        </section>
-        <section class="mdSection">
-          <div class="quarterRow">
-            <MetadataText
-              v-if="md.createdAt"
-              :value="formatDateTime(md.createdAt)"
-              label="Created at"
-              class="mtime"
-            />
-            <MetadataText
-              v-if="md.updatedAt"
-              :value="formatDateTime(md.updatedAt)"
-              label="Updated at"
-              class="mtime"
-            />
-            <MetadataText :value="size" label="Size" />
-            <MetadataText :value="fileType" label="File Type" />
-          </div>
-          <div class="thirdRow">
-            <MetadataText
-              label="Reading Direction"
-              :value="readingDirectionText"
-            />
-            <MetadataText :value="md.original_format" label="Original Format" />
-            <MetadataText
-              :value="Boolean(md.monochrome).toString()"
-              label="Monochrome"
-            />
-          </div>
-          <div class="lastSmallRow">
-            <MetadataText
-              group="f"
-              :value="{ pk: md.parentFolderId, name: md.path }"
-              label="Path"
-            />
-          </div>
-        </section>
-        <section class="halfRow mdSection">
-          <MetadataText :value="md.country" label="Country" />
-          <MetadataText :value="md.language" label="Language" />
-        </section>
-        <section class="mdSection">
-          <MetadataTags :values="titledIdentifiers" label="Identifiers" />
-        </section>
-        <section class="mdSection">
-          <MetadataText :value="md.communityRating" label="Community Rating" />
-          <MetadataText :value="md.criticalRating" label="Critical Rating" />
-          <MetadataText :value="md.ageRating" label="Age Rating" />
-        </section>
-        <section class="mdSection">
-          <MetadataTags :values="md.genres" label="Genres" filter="genres" />
-          <MetadataTags
-            :values="md.characters"
-            label="Characters"
-            filter="characters"
-          />
-          <MetadataTags :values="md.teams" label="Teams" filter="teams" />
-          <MetadataTags
-            :values="md.locations"
-            label="Locations"
-            filter="locations"
-          />
-          <MetadataTags
-            :values="md.seriesGroups"
-            label="Series Groups"
-            filter="seriesGroups"
-          />
-          <MetadataTags :values="md.stories" label="Stories" filter="stories" />
-          <MetadataTags
-            :values="md.storyArcNumbers"
-            label="Story Arcs"
-            filter="storyArcs"
-          />
-          <MetadataTags :values="md.tags" label="Tags" filter="tags" />
-        </section>
-        <section class="mdSection inlineRow">
-          <MetadataText :value="md.notes" label="Notes" />
-        </section>
-        <section class="inlineRow">
-          <MetadataText :value="md.tagger" label="Tagger" />
-          <MetadataText :value="md.scanInfo" label="Scan" />
-        </section>
-      </div>
+      <MetadataHeader :children="children" :group="group" />
+      <MetadataBody :book="book" :group="group" :children="children" />
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
@@ -126,18 +37,13 @@
 
 <script>
 import { mdiTagOutline } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import CloseButton from "@/components/close-button.vue";
-import MetadataContributorsTable from "@/components/metadata/contributors-table.vue";
+import MetadataBody from "@/components/metadata/metadata-body.vue";
 import MetadataHeader from "@/components/metadata/metadata-header.vue";
-import MetadataTags from "@/components/metadata/metadata-tags.vue";
-import MetadataText from "@/components/metadata/metadata-text.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
-import { getDateTime } from "@/datetime";
-import { useAuthStore } from "@/stores/auth";
-import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
 // Progress circle
@@ -145,23 +51,16 @@ import { useMetadataStore } from "@/stores/metadata";
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
-const SERIES_ROW_LARGE_LIMIT = 4;
 
 export default {
   name: "MetadataButton",
   components: {
     CloseButton,
-    MetadataContributorsTable,
+    MetadataBody,
     MetadataHeader,
-    MetadataTags,
-    MetadataText,
     PlaceholderLoading,
   },
   props: {
-    group: {
-      type: String,
-      required: true,
-    },
     book: {
       type: Object,
       required: true,
@@ -169,6 +68,10 @@ export default {
     children: {
       type: Number,
       default: 1,
+    },
+    group: {
+      type: String,
+      required: true,
     },
     toolbar: {
       type: Boolean,
@@ -183,11 +86,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
-      readingDirectionTitles: (state) => state.choices.static.readingDirection,
-      identifierTypes: (state) => state.choices.static.identifierType,
-    }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
@@ -196,38 +94,6 @@ export default {
     },
     buttonVariant() {
       return this.toolbar ? "plain" : "text";
-    },
-    readingDirectionText() {
-      if (!this.md) {
-        return "Unknown";
-      }
-      return this.readingDirectionTitles[this.md.readingDirection];
-    },
-    size() {
-      return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
-    },
-    fileType() {
-      return this?.md?.fileType || "Unknown";
-    },
-    titledIdentifiers() {
-      const titledIdentifiers = [];
-      if (!this?.md?.identifiers) {
-        return titledIdentifiers;
-      }
-      for (const identifier of this.md.identifiers) {
-        const parts = identifier.name.split(":");
-        const idType = parts[0];
-        const code = parts[1];
-        const finalTitle = this.identifierTypeTitle(idType);
-        let name = "";
-        if (finalTitle && finalTitle !== "None") {
-          name += finalTitle + ":";
-        }
-        name += code;
-
-        titledIdentifiers.push({ ...identifier, name });
-      }
-      return titledIdentifiers;
     },
   },
   watch: {
@@ -241,7 +107,6 @@ export default {
   },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
-    ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
     dialogOpened() {
       const pks = this.book.ids ? this.book.ids : [this.book.pk];
       const data = {
@@ -266,9 +131,6 @@ export default {
       setTimeout(() => {
         this.updateProgress();
       }, UPDATE_INTERVAL);
-    },
-    formatDateTime(ds) {
-      return getDateTime(ds, this.twentyFourHourTime);
     },
   },
 };
@@ -302,14 +164,6 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
 }
 
-.inlineRow>* {
-  display: inline-flex;
-}
-
-.mdSection {
-  margin-top: 25px;
-}
-
 #metadataContainer,
 #placeholderContainer {
   padding-top: max(20px, env(safe-area-inset-top));
@@ -323,21 +177,6 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-.halfRow>* {
-  width: 50%;
-  display: inline-flex;
-}
-
-.thirdRow>* {
-  width: 33.333%;
-  display: inline-flex;
-}
-
-.quarterRow>* {
-  width: 25%;
-  display: inline-flex;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
