@@ -2,20 +2,35 @@
   <div v-if="displayValue" class="text" :class="{ highlight }">
     <div class="textLabel">
       {{ label }}
+      <v-btn
+        v-if="showExpandButton"
+        id="expandButton"
+        density="compact"
+        text="...expand"
+        variant="text"
+        @click="expanded = true"
+      />
     </div>
-    <div class="textValue" :class="{ empty }">
-      <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-      <a v-if="href" :href="href" :title="title" :target="target">
-        {{ displayValue }}
-        <v-icon v-if="link" size="small">
-          {{ mdiOpenInNew }}
-        </v-icon>
-      </a>
-      <div v-else class="textContent">
-        {{ displayValue }}
+    <v-expand-transition>
+      <div
+        class="textValue"
+        :class="{ empty }"
+        :ref="textValueRefName"
+        :style="textValueStyles"
+      >
+        <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
+        <a v-if="href" :href="href" :title="title" :target="target">
+          {{ displayValue }}
+          <v-icon v-if="link" size="small">
+            {{ mdiOpenInNew }}
+          </v-icon>
+        </a>
+        <span v-else class="textContent">
+          {{ displayValue }}
+        </span>
+        <span v-if="baseName">{{ baseName }} </span>
       </div>
-      <span v-if="baseName">{{ baseName }} </span>
-    </div>
+    </v-expand-transition>
   </div>
 </template>
 
@@ -24,6 +39,7 @@ import { mdiOpenInNew } from "@mdi/js";
 import { mapState } from "pinia";
 
 import { getBrowserHref } from "@/api/v3/browser";
+import { formattedVolumeName } from "@/comic-name";
 import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
 const EMPTY_VALUE = "(Empty)";
 
@@ -32,7 +48,7 @@ export default {
   props: {
     label: {
       type: String,
-      required: true,
+      default: "",
     },
     value: {
       type: [Object, String, Number, Boolean],
@@ -50,11 +66,24 @@ export default {
       type: Object,
       default: undefined,
     },
+    maxHeight: {
+      type: Number,
+      default: 0,
+    },
+    prefix: {
+      type: String,
+      default: "",
+    },
   },
   data() {
     return {
       mdiOpenInNew,
+      expanded: false,
+      mounted: false,
     };
+  },
+  mounted() {
+    this.mounted = true;
   },
   computed: {
     ...mapState(useBrowserStore, {
@@ -76,13 +105,47 @@ export default {
         value = EMPTY_VALUE;
       } else if (this.group === "f" && this.computedValue) {
         value = this.computedValue.substring(0, this.lastSlashIndex);
+      } else if (this.group === "v" && this.computedValue) {
+        if (this.computedValue > 999 && this.computedValue < 10000) {
+          value = `(${this.computedValue})`;
+        } else {
+          value = `vol. ${this.computedValue}`;
+        }
       } else {
         value = this.computedValue;
+      }
+      if (value && this.prefix) {
+        value = this.prefix + " " + value;
       }
       return value;
     },
     empty() {
       return this.displayValue === EMPTY_VALUE;
+    },
+    textValueStyles() {
+      const maxHeight =
+        this.maxHeight > 0 && !this.expanded ? this.maxHeight : 0;
+      if (maxHeight) {
+        return "max-height: " + maxHeight + "px;";
+      }
+      return "";
+    },
+    textValueRefName() {
+      const name = "mdTextValue" + this.label.replaceAll(" ", "");
+      return name;
+    },
+    isOverflow() {
+      if (!this.mounted) {
+        return false;
+      }
+      const el = this.$refs[this.textValueRefName];
+      if (!el) {
+        return false;
+      }
+      return el.clientHeight < el.scrollHeight;
+    },
+    showExpandButton() {
+      return !this.expanded && this.maxHeight > 0 && this.isOverflow;
     },
     _browserGroupHref() {
       // Using router-link gets hijacked and topGroup is not submitted.
@@ -175,6 +238,14 @@ export default {
 
 .textContent {
   border: solid thin transparent;
+}
+
+.textValue {
+  overflow-y: scroll;
+}
+
+#expandButton {
+  float: right;
 }
 
 .highlight .textContent {

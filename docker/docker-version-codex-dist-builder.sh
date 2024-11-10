@@ -22,7 +22,6 @@ DEPS=(
   "$0"
   .dockerignore
   .prettierignore
-  .remarkignore
   .shellcheckrc
   docker/dist-builder.Dockerfile
   eslint.config.js

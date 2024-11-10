@@ -44,7 +44,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     contributors = ContributorSerializer(
         source=f"{PREFETCH_PREFIX}contributors", many=True, allow_null=True
     )
-    stroy_arc_numbers = StoryArcNumberSerializer(
+    story_arc_numbers = StoryArcNumberSerializer(
         source=f"{PREFETCH_PREFIX}story_arc_numbers", many=True, allow_null=True
     )
 

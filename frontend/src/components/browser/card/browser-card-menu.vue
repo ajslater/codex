@@ -12,7 +12,7 @@
       />
     </template>
     <v-list class="background-soft-highlight">
-      <MarkReadItem class="listItem" :item="item" />
+      <MarkReadButton class="listItem" :item="item" />
       <DownloadButton
         :group="item?.group"
         :pks="item?.ids"
@@ -29,14 +29,14 @@
 <script>
 import { mdiDotsVertical } from "@mdi/js";
 
-import MarkReadItem from "@/components/browser/card/mark-read-item.vue";
 import DownloadButton from "@/components/download-button.vue";
+import MarkReadButton from "@/components/mark-read-button.vue";
 
 export default {
   name: "BrowserContainerMenu",
   components: {
     DownloadButton,
-    MarkReadItem,
+    MarkReadButton,
   },
   props: {
     item: {

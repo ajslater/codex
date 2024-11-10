@@ -1,20 +1,23 @@
 <template>
+  <v-btn v-if="show && !confirm && button" @click="toggleRead">
+    <v-icon>{{ icon }}</v-icon>
+    {{ markReadText }}
+  </v-btn>
   <CodexListItem
-    v-if="item.group === 'c'"
+    v-else-if="item.group === 'c'"
     :prepend-icon="icon"
     :title="markReadText"
     @click="toggleRead"
   />
   <ConfirmDialog
     v-else
-    :button="false"
+    :button="button"
     :prepend-icon="icon"
     :button-text="markReadText"
     :title-text="markReadText"
     :confirm-text="confirmText"
     :text="itemName"
     @confirm="toggleRead"
-    @cancel="showMenu = false"
   />
 </template>
 
@@ -26,13 +29,19 @@ import CodexListItem from "@/components/codex-list-item.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useBrowserStore } from "@/stores/browser";
 
+const CHILD_WARNING_LIMIT = 1;
+
 export default {
-  name: "BrowserMarkReadItem",
+  name: "MarkReadButton",
   components: {
     ConfirmDialog,
     CodexListItem,
   },
   props: {
+    button: {
+      type: Boolean,
+      default: false,
+    },
     item: {
       type: Object,
       required: true,
@@ -44,6 +53,14 @@ export default {
     }),
     verb() {
       return this.item.finished ? "Unread" : "Read";
+    },
+    confirm() {
+      return this.item.children > CHILD_WARNING_LIMIT;
+    },
+    show() {
+      return (
+        this.item.ids && this.item.ids.length > 0 && !this.item.ids.includes(0)
+      );
     },
     icon() {
       return this.item.finished
@@ -73,7 +90,6 @@ export default {
     ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
     toggleRead: function () {
       this.setBookmarkFinished(this.item, !this.item.finished);
-      this.showMenu = false;
     },
   },
 };

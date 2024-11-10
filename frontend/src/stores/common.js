@@ -41,7 +41,7 @@ export const useCommonStore = defineStore("common", {
     },
     versions: {
       // This is injected by vite define
-      installed: CODEX_PACKAGE_VERSION, // eslint-disable-line no-undef
+      installed: CODEX_PACKAGE_VERSION,
       latest: undefined,
     },
     timestamp: Date.now(),
