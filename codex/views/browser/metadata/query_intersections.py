@@ -8,24 +8,20 @@ from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
 from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.models.functions import JsonGroupArray
+from codex.models.groups import Imprint, Publisher, Series, Volume
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
-from codex.views.const import METADATA_GROUP_RELATION
+from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
 
 LOG = get_logger(__name__)
 _CONTRIBUTOR_RELATIONS = ("role", "person")
-_GROUP_RELS = MappingProxyType(
+_GROUP_MODELS = MappingProxyType(
     {
-        "i": ("publisher",),
-        "s": (
-            "publisher",
-            "imprint",
-        ),
-        "v": (
-            "publisher",
-            "imprint",
-            "series",
-        ),
-        "c": ("publisher", "imprint", "series", "volume"),
+        "i": (Publisher,),
+        "s": (Publisher, Imprint),
+        "v": (Publisher, Imprint, Series),
+        "c": (Publisher, Imprint, Series, Volume),
+        "f": (Publisher, Imprint, Series, Volume),
+        "a": (Publisher, Imprint, Series, Volume),
     }
 )
 
@@ -46,15 +42,11 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         pks = self.kwargs["pks"]
         group_filter = {rel: pks}
 
-        for field_name in _GROUP_RELS.get(group, ()):
-            field = self.model._meta.get_field(field_name)
-            model = field.related_model
-            if not model:
-                continue
-
+        for model in _GROUP_MODELS.get(group, ()):
+            field_name = MODEL_REL_MAP[model]
             qs = model.objects.filter(**group_filter)
             qs = qs.only("name").distinct()
-            qs = qs.group_by("name")
+            qs = qs.group_by("name")  # type:ignore[reportAttributeAccessIssue]
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
             qs = qs.values("ids", "name")
             groups[field_name] = qs
