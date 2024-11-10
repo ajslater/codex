@@ -39,6 +39,10 @@ from codex.models import (
 )
 from codex.settings.settings import CODEX_PATH
 
+ROOT_GROUP = "r"
+FOLDER_GROUP = "f"
+STORY_ARC_GROUP = "a"
+COMIC_GROUP = "c"
 GROUP_NAME_MAP = MappingProxyType(
     {"p": "publisher", "i": "imprint", "s": "series", "v": "volume"}
 )
@@ -46,18 +50,13 @@ STATIC_IMG_PATH = CODEX_PATH / "static_root/img"
 MISSING_COVER_NAME_MAP = MappingProxyType(
     {
         **GROUP_NAME_MAP,
-        "f": "folder",
-        "a": "story-arc",
+        FOLDER_GROUP: "folder",
+        STORY_ARC_GROUP: "story-arc",
     }
 )
 MISSING_COVER_FN = "missing-cover-165.webp"
 MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 
-
-ROOT_GROUP = "r"
-FOLDER_GROUP = "f"
-STORY_ARC_GROUP = "a"
-COMIC_GROUP = "c"
 GROUP_RELATION = MappingProxyType(
     {
         **GROUP_NAME_MAP,
@@ -76,6 +75,8 @@ METADATA_GROUP_RELATION = MappingProxyType(
     {
         **GROUP_NAME_MAP,
         COMIC_GROUP: "comic",
+        FOLDER_GROUP: "comic__folders",
+        STORY_ARC_GROUP: "comic__story_arc_numbers__story_arc",
     }
 )
 CUSTOM_COVER_GROUP_RELATION = MappingProxyType(

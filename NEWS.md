@@ -15,6 +15,7 @@ border-radius: 128px;
 - Fixes
 
   - Fix page range crash in reader.
+  - Fix group tags not aggregated properly in metadata screen for folders and story arcs.
 
 ## v1.7.5
 
