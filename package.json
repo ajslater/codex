@@ -46,6 +46,7 @@
     "@fsouza/prettierd": "^0.25.0",
     "@prettier/plugin-xml": "^3.0.0",
     "eslint": "^9.3.0",
+    "eslint_d": "^14.2.2",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-array-func": "^5.0.1",
@@ -64,13 +65,13 @@
     "eslint-plugin-toml": "^0.11.0",
     "eslint-plugin-unicorn": "^56.0.0",
     "eslint-plugin-yml": "^1.12.2",
-    "eslint_d": "^14.2.2",
     "prettier": "^3.0.0",
     "prettier-plugin-nginx": "^1.0.3",
     "prettier-plugin-packagejson": "^2.4.4",
     "prettier-plugin-sh": "^0.14.0",
     "prettier-plugin-toml": "^2.0.1",
     "prettier-plugin-vue": "^1.1.6",
-    "svgo": "^3.0.0"
+    "svgo": "^3.0.0",
+    "toml": "^3.0.0"
   }
 }
