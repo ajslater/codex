@@ -18,7 +18,6 @@
     :confirm-text="confirmText"
     :text="itemName"
     @confirm="toggleRead"
-    @cancel="showMenu = false"
   />
 </template>
 
@@ -91,7 +90,6 @@ export default {
     ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
     toggleRead: function () {
       this.setBookmarkFinished(this.item, !this.item.finished);
-      this.showMenu = false;
     },
   },
 };

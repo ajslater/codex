@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Features
 
+  - Always Show Filenames setting for browser cards.
   - Tags page layout changes with notes from @beville.
 
 - Fixes
