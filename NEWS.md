@@ -8,6 +8,10 @@ border-radius: 128px;
 
 ## v1.7.6
 
+- Features
+
+  - Tags page layout changes with notes from @beville.
+
 - Fixes
 
   - Fix page range crash in reader.
