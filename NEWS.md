@@ -15,6 +15,8 @@ border-radius: 128px;
 - Fixes
 
   - Fix page range crash in reader.
+  - Fix import crash on files with escapable html characters in the filename.
+  - Fix overzealous escaping of html in metadata strings.
   - Fix group tags not aggregated properly in metadata screen for folders and story arcs.
 
 ## v1.7.5

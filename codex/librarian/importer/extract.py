@@ -1,7 +1,7 @@
 """Clean metadata before importing."""
-
 from contextlib import suppress
 from decimal import ROUND_DOWN, Decimal
+from html import unescape
 from typing import Any
 from zipfile import BadZipFile
 
@@ -57,19 +57,20 @@ _MD_VALID_KEYS = tuple(
 )
 
 
-def _get_keys_by_field_type(field_type):
+def _get_keys_by_field_type(field_type, exclude=None):
+    exclude_set = exclude if exclude else set()
     return tuple(
         sorted(
             frozenset(
                 field.name
                 for field in Comic._meta.get_fields()
-                if isinstance(field, field_type)
+                if field not in exclude_set and isinstance(field, field_type)
             )
         )
     )
 
 
-_MD_CHAR_KEYS = _get_keys_by_field_type(CharField)
+_MD_CHAR_KEYS = _get_keys_by_field_type(CharField, exclude={"path"})
 _MD_TEXT_KEYS = _get_keys_by_field_type(TextField)
 _MD_STR_KEYS = tuple(sorted(_MD_CHAR_KEYS + _MD_TEXT_KEYS))
 _MD_DECIMAL_KEYS = _get_keys_by_field_type(DecimalField)
@@ -169,6 +170,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
                 if max_length:
                     value = value[:max_length]
                 value = clean(value)
+                value = unescape(value)
             if not value:
                 value = None
         except Exception:
