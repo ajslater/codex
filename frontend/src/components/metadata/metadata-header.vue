@@ -76,7 +76,6 @@
         :obj="{ ids: md.ids, group: md.group }"
       />
     </div>
-
     <div
       v-if="pages || md.year || md.month || md.day"
       class="inlineRow"
@@ -87,49 +86,18 @@
       <MetadataText :value="month" class="datePicker" />
       <MetadataText :value="md.day" class="datePicker" />
     </div>
-    <section id="controls">
-      <section id="controlRow">
-        <DownloadButton
-          id="downloadButton"
-          class="controlButton"
-          :button="true"
-          :group="downloadGroup"
-          :pks="downloadPks"
-          :children="children"
-          :names="downloadNames"
-          :ts="md.mtime"
-        />
-        <MarkReadButton
-          id="markReadButton"
-          class="controlButton"
-          :button="true"
-          :item="markReadItem"
-        />
-        <v-btn
-          v-if="isReadButtonShown"
-          id="readButton"
-          class="controlButton"
-          :to="readerRoute"
-          title="Read Comic"
-          :disabled="!isReadButtonEnabled"
-        >
-          <v-icon>{{ readButtonIcon }}</v-icon>
-          Read
-        </v-btn>
-      </section>
-    </section>
+    <MetadataControls :group="group" :children="children" />
   </header>
 </template>
 
 <script>
-import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
+import { mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
-import DownloadButton from "@/components/download-button.vue";
-import MarkReadButton from "@/components/mark-read-button.vue";
+import MetadataControls from "@/components/metadata/metadata-controls.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
@@ -142,8 +110,6 @@ export default {
   name: "MetadataHeader",
   components: {
     BookCover,
-    DownloadButton,
-    MarkReadButton,
     MetadataText,
   },
   props: {
@@ -168,52 +134,12 @@ export default {
       const count = this.md.seriesList.length + this.md.volumeList.length;
       return { shortSeriesRow: count <= SERIES_ROW_LARGE_LIMIT };
     },
-    downloadGroup() {
-      return this.md.group;
-    },
-    downloadPks() {
-      return this.md.ids;
-    },
-    downloadNames() {
-      const md = this.md;
-      if (!md) {
-        return ["Unknown.cbz"];
-      } else if (md.fileName) {
-        return [md.fileName];
-      } else {
-        return [
-          this.firstNameFromList(md.publisherList),
-          this.firstNameFromList(md.imprintList),
-          this.firstNameFromList(md.seriesList),
-          this.firstNameFromList(md.volumeList),
-          this.md.name,
-        ];
-      }
-    },
-    isReadButtonShown() {
-      return this.group === "c" && this.$route.name != "reader";
-    },
-    isReadButtonEnabled() {
-      return Boolean(this.readerRoute);
-    },
-    markReadItem() {
-      return {
-        group: this.md.group,
-        ids: this.md.ids,
-        finished: this.md.finished,
-        name: this.downloadNames,
-        children: this.md.children,
-      };
-    },
     month() {
       if (!this.md.month) {
         return "";
       }
       const date = new Date(1970, this.md.month, 1);
       return date.toLocaleString("default", { month: "long" });
-    },
-    readButtonIcon() {
-      return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
       if (this.md?.ids) {
@@ -259,20 +185,6 @@ export default {
     },
     fileType() {
       return this?.md?.fileType || "Unknown";
-    },
-  },
-  methods: {
-    firstNameFromList(list) {
-      let name = "";
-      if (list) {
-        for (const obj of Object.values(list)) {
-          if (obj.name) {
-            name = obj.name;
-            break;
-          }
-        }
-      }
-      return name;
     },
   },
 };
@@ -337,16 +249,5 @@ export default {
 #pageDateRow {
   font-size: smaller;
   min-height: 44.5px
-}
-
-#controls {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
-
-.controlButton {
-  margin-right: 10px;
 }
 </style>
