@@ -47,7 +47,39 @@
             aria-label="% read"
           />
         </div>
-        <div class="inlineRow">
+        <div id="seriesRow" class="inlineRow">
+          <MetadataText
+            v-for="series of md.seriesList"
+            id="series"
+            :key="series.ids"
+            :value="series"
+            label="Series"
+            group="s"
+            :obj="{ ids: md.ids, group: md.group }"
+          />
+          <MetadataText
+            v-for="volume of md.volumeList"
+            id="volume"
+            :key="volume.ids"
+            :value="volume"
+            label="Volume"
+            group="v"
+            :obj="{ ids: md.ids, group: md.group }"
+          />
+          <MetadataText :value="md.seriesVolumeCount" label="Volume Count" />
+          <MetadataText
+            id="issue"
+            :value="formattedIssue"
+            label="Issue"
+            group="c"
+            :obj="{ ids: md.ids, group: md.group }"
+          />
+          <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
+        </div>
+        <div id="issueRow" class="inlineRow">
+          <MetadataText :value="md.name" label="Title" />
+        </div>
+        <div id="publisherRow" class="inlineRow">
           <MetadataText
             v-for="publisher of md.publisherList"
             id="publisher"
@@ -67,39 +99,9 @@
             :obj="{ ids: md.ids, group: md.group }"
           />
         </div>
-        <div class="inlineRow">
-          <MetadataText
-            v-for="series of md.seriesList"
-            id="series"
-            :key="series.ids"
-            :value="series"
-            label="Series"
-            group="s"
-            :obj="{ ids: md.ids, group: md.group }"
-          />
-        </div>
-        <div class="inlineRow">
-          <MetadataText
-            v-for="volume of md.volumeList"
-            id="volume"
-            :key="volume.ids"
-            :value="volume"
-            label="Volume"
-            group="v"
-            :obj="{ ids: md.ids, group: md.group }"
-          />
-          <MetadataText :value="md.seriesVolumeCount" label="Volume Count" />
-          <MetadataText
-            id="issue"
-            :value="formattedIssue"
-            label="Issue"
-            group="c"
-            :obj="{ ids: md.ids, group: md.group }"
-          />
-          <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
-          <MetadataText :value="md.name" label="Title" />
-        </div>
-        <div v-if="md.year || md.month || md.day" class="inlineRow">
+
+        <div v-if="pages || md.year || md.month || md.day" class="inlineRow">
+          <MetadataText :value="pages" label="Pages" />
           <MetadataText
             :value="md.year"
             label="Year"
@@ -111,23 +113,42 @@
         </div>
       </header>
       <div id="metadataBody">
+        <section id="controls">
+          <DownloadButton
+            id="downloadButton"
+            class="controlButton"
+            :button="true"
+            :group="downloadGroup"
+            :pks="downloadPks"
+            :children="children"
+            :names="downloadNames"
+            :ts="md.mtime"
+          />
+          <MarkReadButton
+            id="markReadButton"
+            class="controlButton"
+            :button="true"
+            :item="markReadItem"
+          />
+          <v-btn
+            v-if="isReadButtonShown"
+            id="readButton"
+            class="controlButton"
+            :to="readerRoute"
+            title="Read Comic"
+            :disabled="!isReadButtonEnabled"
+          >
+            <v-icon>{{ readButtonIcon }}</v-icon>
+            Read
+          </v-btn>
+        </section>
+
         <section class="mdSection">
-          <div class="quintRow">
-            <MetadataText :value="pages" label="Pages" />
-            <MetadataText
-              label="Finished"
-              :value="Boolean(md.finished).toString()"
-            />
-            <MetadataText
-              label="Reading Direction"
-              :value="readingDirectionText"
-            />
-            <MetadataText
-              :value="Boolean(md.monochrome).toString()"
-              label="Monochrome"
-            />
-            <MetadataText :value="md.original_format" label="Original Format" />
-          </div>
+          <MetadataText :value="md.summary" label="Summary" />
+          <MetadataText :value="md.review" label="Review" />
+        </section>
+        <section class="mdSection">
+          <MetadataContributorsTable :value="md.contributors" />
         </section>
         <section class="mdSection">
           <div class="quarterRow">
@@ -146,6 +167,17 @@
             <MetadataText :value="size" label="Size" />
             <MetadataText :value="fileType" label="File Type" />
           </div>
+          <div class="thirdRow">
+            <MetadataText
+              label="Reading Direction"
+              :value="readingDirectionText"
+            />
+            <MetadataText :value="md.original_format" label="Original Format" />
+            <MetadataText
+              :value="Boolean(md.monochrome).toString()"
+              label="Monochrome"
+            />
+          </div>
           <div class="lastSmallRow">
             <MetadataText
               group="f"
@@ -160,10 +192,6 @@
         </section>
         <section class="mdSection">
           <MetadataTags :values="titledIdentifiers" label="Identifiers" />
-        </section>
-        <section class="mdSection">
-          <MetadataText :value="md.summary" label="Summary" />
-          <MetadataText :value="md.review" label="Review" />
         </section>
         <section class="mdSection">
           <MetadataText :value="md.communityRating" label="Community Rating" />
@@ -196,9 +224,6 @@
           />
           <MetadataTags :values="md.tags" label="Tags" filter="tags" />
         </section>
-        <section class="mdSection">
-          <MetadataContributorsTable :value="md.contributors" />
-        </section>
         <section class="mdSection inlineRow">
           <MetadataText :value="md.notes" label="Notes" />
         </section>
@@ -207,26 +232,6 @@
           <MetadataText :value="md.scanInfo" label="Scan" />
         </section>
       </div>
-      <footer id="footerLinks">
-        <DownloadButton
-          id="downloadButton"
-          :button="true"
-          :group="downloadGroup"
-          :pks="downloadPks"
-          :children="children"
-          :names="downloadNames"
-          :ts="md.mtime"
-        />
-        <v-btn
-          v-if="isReadButtonShown"
-          :to="readerRoute"
-          title="Read Comic"
-          :disabled="!isReadButtonEnabled"
-        >
-          <v-icon>{{ readButtonIcon }}</v-icon>
-          Read
-        </v-btn>
-      </footer>
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
@@ -248,6 +253,7 @@ import { formattedIssue } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
 import CloseButton from "@/components/close-button.vue";
 import DownloadButton from "@/components/download-button.vue";
+import MarkReadButton from "@/components/mark-read-button.vue";
 import MetadataContributorsTable from "@/components/metadata/contributors-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
@@ -270,6 +276,7 @@ export default {
     BookCover,
     CloseButton,
     DownloadButton,
+    MarkReadButton,
     MetadataContributorsTable,
     MetadataTags,
     MetadataText,
@@ -346,6 +353,15 @@ export default {
     },
     isReadButtonEnabled() {
       return Boolean(this.readerRoute);
+    },
+    markReadItem() {
+      return {
+        group: this.md.group,
+        ids: this.md.ids,
+        finished: this.md.finished,
+        name: this.downloadNames,
+        children: this.md.children,
+      };
     },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
@@ -542,11 +558,19 @@ export default {
   margin-top: 25px;
 }
 
-#footerLinks {
+#seriesRow {
+  font-size: x-large;
+}
+
+#issueRow {
+  font-size: large;
+}
+
+#controls {
   padding-top: 20px;
 }
 
-#downloadButton {
+.controlButton {
   margin-right: 10px;
 }
 
