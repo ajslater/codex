@@ -1,6 +1,6 @@
 <template>
   <div v-if="Object.keys(contributorsDict).length > 0">
-    <h3>Contributors</h3>
+    <h3 class="blockHeader">Contributors</h3>
     <MetadataTags
       v-for="[roleName, persons] of Object.entries(contributorsDict)"
       :key="roleName"
@@ -56,3 +56,10 @@ export default {
   },
 };
 </script>
+<style lang="scss" scoped>
+.blockHeader{
+  padding: 8px;
+  background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-textSecondary))
+}
+</style>
