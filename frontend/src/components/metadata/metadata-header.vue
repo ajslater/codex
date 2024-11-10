@@ -86,7 +86,7 @@
       <MetadataText :value="month" class="datePicker" />
       <MetadataText :value="md.day" class="datePicker" />
     </div>
-    <MetadataControls :group="group" :children="children" />
+    <MetadataControls :group="group" />
   </header>
 </template>
 
@@ -110,16 +110,13 @@ export default {
   name: "MetadataHeader",
   components: {
     BookCover,
+    MetadataControls,
     MetadataText,
   },
   props: {
     group: {
       type: String,
       required: true,
-    },
-    children: {
-      type: Number,
-      default: 1,
     },
   },
   computed: {

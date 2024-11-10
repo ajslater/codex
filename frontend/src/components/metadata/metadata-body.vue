@@ -115,10 +115,6 @@ export default {
       type: Object,
       required: true,
     },
-    children: {
-      type: Number,
-      default: 1,
-    },
   },
   computed: {
     ...mapState(useBrowserStore, {

@@ -7,7 +7,7 @@
         :button="true"
         :group="downloadGroup"
         :pks="downloadPks"
-        :children="children"
+        :children="md.childCount"
         :names="downloadNames"
         :ts="md.mtime"
       />
@@ -52,10 +52,6 @@ export default {
       type: String,
       required: true,
     },
-    children: {
-      type: Number,
-      default: 1,
-    },
   },
   computed: {
     ...mapState(useMetadataStore, {
@@ -95,7 +91,7 @@ export default {
         ids: this.md.ids,
         finished: this.md.finished,
         name: this.downloadNames,
-        children: this.md.children,
+        children: this.md.childCount,
       };
     },
     month() {
