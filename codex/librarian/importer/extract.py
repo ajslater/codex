@@ -1,4 +1,5 @@
 """Clean metadata before importing."""
+
 from contextlib import suppress
 from decimal import ROUND_DOWN, Decimal
 from html import unescape
