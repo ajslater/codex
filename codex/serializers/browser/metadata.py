@@ -33,6 +33,8 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     imprint_list = GroupSerializer(many=True, required=False)
     series_list = GroupSerializer(many=True, required=False)
     volume_list = GroupSerializer(many=True, required=False)
+    folder_list = GroupSerializer(many=True, required=False)
+    story_arc_list = GroupSerializer(many=True, required=False)
     publisher = None
     imprint = None
     series = None
