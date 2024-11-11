@@ -5,6 +5,7 @@ from logging import DEBUG, INFO
 from time import time
 
 from django.db.models.functions.datetime import Now
+from django.utils.timezone import now, timedelta
 
 from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
@@ -71,18 +72,19 @@ class StatusController(LoggerBaseMixin):
         status,
         notify: bool = True,  # noqa: FBT002
         preactive: bool = False,  # noqa: FBT002
-        now_pad=0.0,
+        active_pad_ms=0,
     ):
         """Start a librarian status."""
         try:
             if not status.status_type:
                 reason = f"Bad status type: {status.status_type}"
                 raise ValueError(reason)  # noqa: TRY301
+            active = now() + timedelta(milliseconds=active_pad_ms)
             updates = {
                 "preactive": preactive,
                 "complete": status.complete,
                 "total": status.total,
-                "active": Now() + now_pad,
+                "active": active,
                 "subtitle": status.subtitle,
                 "updated_at": Now(),
             }
@@ -98,10 +100,8 @@ class StatusController(LoggerBaseMixin):
 
     def start_many(self, status_iterable):
         """Start many librarian statuses."""
-        now_pad = 0.0  # a little hack to order these things
-        for status in status_iterable:
-            self.start(status, notify=False, now_pad=now_pad, preactive=True)
-            now_pad += 0.1
+        for active_pad_ms, status in enumerate(status_iterable):
+            self.start(status, notify=False, active_pad_ms=active_pad_ms, preactive=True)
         self._enqueue_notifier_task(notify=True)
 
     def update(self, status, notify: bool = True):  # noqa: FBT002
