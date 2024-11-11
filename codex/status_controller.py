@@ -101,7 +101,9 @@ class StatusController(LoggerBaseMixin):
     def start_many(self, status_iterable):
         """Start many librarian statuses."""
         for active_pad_ms, status in enumerate(status_iterable):
-            self.start(status, notify=False, active_pad_ms=active_pad_ms, preactive=True)
+            self.start(
+                status, notify=False, active_pad_ms=active_pad_ms, preactive=True
+            )
         self._enqueue_notifier_task(notify=True)
 
     def update(self, status, notify: bool = True):  # noqa: FBT002
