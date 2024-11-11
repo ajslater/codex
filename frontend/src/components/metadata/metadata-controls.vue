@@ -7,7 +7,7 @@
         :button="true"
         :group="downloadGroup"
         :pks="downloadPks"
-        :children="md.childCount"
+        :children="md?.childCount || 1"
         :names="downloadNames"
         :ts="md.mtime"
       />
@@ -33,12 +33,14 @@
 </template>
 
 <script>
+import { mdiEye, mdiEyeOff } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import DownloadButton from "@/components/download-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
+import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
 export default {
@@ -56,6 +58,9 @@ export default {
   computed: {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
+    }),
+    ...mapState(useBrowserStore, {
+      importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
     downloadGroup() {
       return this.md.group;
@@ -93,13 +98,6 @@ export default {
         name: this.downloadNames,
         children: this.md.childCount,
       };
-    },
-    month() {
-      if (!this.md.month) {
-        return "";
-      }
-      const date = new Date(1970, this.md.month, 1);
-      return date.toLocaleString("default", { month: "long" });
     },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;

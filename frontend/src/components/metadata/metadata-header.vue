@@ -91,7 +91,6 @@
 </template>
 
 <script>
-import { mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
