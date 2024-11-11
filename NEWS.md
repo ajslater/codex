@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.7
+
+- Fixes
+  - Tags screen crash with untagged series or volumes.
+  - Fix tags screen Mark Read confirmation names.
+  - Order Tags Contributors by relevance not alphabetically.
+
 ## v1.7.6
 
 - Features
