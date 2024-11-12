@@ -39,6 +39,7 @@ import { mdiOpenInNew } from "@mdi/js";
 import { mapState } from "pinia";
 
 import { getBrowserHref } from "@/api/v3/browser";
+import { topGroup } from "@/choices/browser-map";
 import { formattedVolumeName } from "@/comic-name";
 import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
 const EMPTY_VALUE = "(Empty)";
@@ -182,7 +183,15 @@ export default {
       return this.link ? "_blank" : "";
     },
     title() {
-      return this._browserGroupHref ? `Browse to ${this.label}` : this.label;
+      let label = this.label
+        ? this.label
+        : this.group
+          ? topGroup[this.group]
+          : "";
+      if (label !== "Series") {
+        label = label.slice(0, -1);
+      }
+      return this._browserGroupHref ? `Browse to ${label}` : label;
     },
     baseName() {
       return this.group === "f"
