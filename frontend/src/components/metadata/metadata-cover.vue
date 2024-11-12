@@ -47,6 +47,7 @@ export default {
 @use "sass:map";
 
 .bookCoverWrapper {
+  position: relative;
   width: 165px;
 }
 
