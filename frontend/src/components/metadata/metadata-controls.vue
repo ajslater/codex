@@ -81,10 +81,11 @@ export default {
     },
     downloadNames() {
       const md = this.md;
+      let names = [];
       if (!md) {
-        return ["Unknown.cbz"];
+        names = ["Unknown.cbz"];
       } else if (md.fileName) {
-        return [md.fileName];
+        names = [md.fileName];
       } else {
         if (this.md.group === "f") {
           return [this.firstNameFromList(md.folderList)];
@@ -92,7 +93,7 @@ export default {
         if (this.md.group === "a") {
           return [this.firstNameFromList(md.storyArcList)];
         }
-        let names = [
+        names = [
           this.firstNameFromList(md.publisherList),
           this.firstNameFromList(md.imprintList),
           this.firstNameFromList(md.seriesList),
@@ -104,6 +105,7 @@ export default {
         }
         names.push(this.md.name);
       }
+      return names;
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
