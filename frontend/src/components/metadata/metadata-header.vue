@@ -33,7 +33,7 @@
         :value="series"
         group="s"
         :obj="{ ids: md.ids, group: md.group }"
-        :label="md.seriesList.length > 1 ? 'Series' : ''"
+        :label="seriesLabel"
       />
       <MetadataText
         v-for="volume of md.volumeList"
@@ -42,7 +42,7 @@
         :value="volume"
         group="v"
         :obj="{ ids: md.ids, group: md.group }"
-        :label="md.volumeList.length > 1 ? 'Volume' : ''"
+        :label="volumeLabel"
       />
       <MetadataText :value="md.seriesVolumeCount" class="subdued" prefix="of" />
       <MetadataText
@@ -91,7 +91,6 @@
 </template>
 
 <script>
-import { mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
@@ -128,8 +127,17 @@ export default {
       md: (state) => state.md,
     }),
     seriesRowClasses() {
-      const count = this.md.seriesList.length + this.md.volumeList.length;
+      let count = 0;
+      for (const key of ["seriesList", "volumeList"]) {
+        count += this.md[key]?.length || 0;
+      }
       return { shortSeriesRow: count <= SERIES_ROW_LARGE_LIMIT };
+    },
+    seriesLabel() {
+      return this.md?.seriesList?.length > 1 ? "Series" : "";
+    },
+    volumeLabel() {
+      return this.md?.volumeList?.length > 1 ? "Volume" : "";
     },
     month() {
       if (!this.md.month) {

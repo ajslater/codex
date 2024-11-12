@@ -7,7 +7,7 @@
         :button="true"
         :group="downloadGroup"
         :pks="downloadPks"
-        :children="md.childCount"
+        :children="md?.childCount || 1"
         :names="downloadNames"
         :ts="md.mtime"
       />
@@ -33,13 +33,26 @@
 </template>
 
 <script>
+import { mdiEye, mdiEyeOff } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import { formattedIssue, formattedVolumeName } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
+import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
+
+const GROUP_MAP = {
+  p: "publisher",
+  i: "imprint",
+  s: "series",
+  v: "volume",
+  f: "folder",
+  a: "storyArc",
+};
+Object.freeze(GROUP_MAP);
 
 export default {
   name: "MetadataControls",
@@ -57,6 +70,9 @@ export default {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
+    ...mapState(useBrowserStore, {
+      importMetadata: (state) => state.page?.adminFlags?.importMetadata,
+    }),
     downloadGroup() {
       return this.md.group;
     },
@@ -70,13 +86,23 @@ export default {
       } else if (md.fileName) {
         return [md.fileName];
       } else {
-        return [
+        if (this.md.group === "f") {
+          return [this.firstNameFromList(md.folderList)];
+        }
+        if (this.md.group === "a") {
+          return [this.firstNameFromList(md.storyArcList)];
+        }
+        let names = [
           this.firstNameFromList(md.publisherList),
           this.firstNameFromList(md.imprintList),
           this.firstNameFromList(md.seriesList),
           this.firstNameFromList(md.volumeList),
-          this.md.name,
         ];
+        const issue = formattedIssue(this.md, 3);
+        if (issue) {
+          names.push(issue);
+        }
+        names.push(this.md.name);
       }
     },
     isReadButtonShown() {
@@ -86,20 +112,22 @@ export default {
       return Boolean(this.readerRoute);
     },
     markReadItem() {
+      let name = "";
+      const prefix = GROUP_MAP[this.md.group];
+      if (prefix) {
+        const nameList = this.md[prefix + "List"] || [];
+        const names = nameList.map(({ name }) => name);
+        name = names.join(", ");
+      } else {
+        name = this.md.name;
+      }
       return {
         group: this.md.group,
         ids: this.md.ids,
         finished: this.md.finished,
-        name: this.downloadNames,
+        name,
         children: this.md.childCount,
       };
-    },
-    month() {
-      if (!this.md.month) {
-        return "";
-      }
-      const date = new Date(1970, this.md.month, 1);
-      return date.toLocaleString("default", { month: "long" });
     },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
@@ -115,12 +143,13 @@ export default {
   methods: {
     firstNameFromList(list) {
       let name = "";
-      if (list) {
-        for (const obj of Object.values(list)) {
-          if (obj.name) {
-            name = obj.name;
-            break;
-          }
+      if (!list) {
+        return name;
+      }
+      for (const obj of Object.values(list)) {
+        if (obj.name) {
+          name = obj.name;
+          break;
         }
       }
       return name;

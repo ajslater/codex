@@ -106,11 +106,7 @@ export default {
       } else if (this.group === "f" && this.computedValue) {
         value = this.computedValue.substring(0, this.lastSlashIndex);
       } else if (this.group === "v" && this.computedValue) {
-        if (this.computedValue > 999 && this.computedValue < 10000) {
-          value = `(${this.computedValue})`;
-        } else {
-          value = `vol. ${this.computedValue}`;
-        }
+        value = formattedVolumeName(this.computedValue);
       } else {
         value = this.computedValue;
       }
