@@ -39,23 +39,27 @@
         <MetadataText :value="md.volumeIssueCount" class="subdued" prefix="/" />
       </div>
     </section>
-    <div id="titleRow" class="inlineRow" v-if="md.name">
+    <span id="titleRow" v-if="md.name">
       {{ md.name }}
-    </div>
+    </span>
     <MetadataTags
       v-if="md.seriesList?.length > 1"
       id="seriesTags"
+      class="groupTags"
       label="Series"
       :values="md.seriesList"
       filter="s"
     />
-    <MetadataTags
-      v-if="md.volumeList?.length > 1"
-      id="volumeTags"
-      label="Volumes"
-      :values="md.volumeList"
-      filter="v"
-    />
+    <div>
+      <MetadataTags
+        v-if="md.volumeList?.length > 1"
+        id="volumeTags"
+        class="groupTags"
+        label="Volumes"
+        :values="md.volumeList"
+        filter="v"
+      />
+    </div>
     <div
       id="publisherRow"
       class="inlineRow"
@@ -80,6 +84,7 @@
     <MetadataTags
       v-if="md.publisherList?.length > 1"
       id="publisherTags"
+      class="groupTags"
       label="Publishers"
       :values="md.publisherList"
       filter="p"
@@ -87,6 +92,7 @@
     <MetadataTags
       v-if="md.imprintList?.length > 1"
       id="imprintTags"
+      class="groupTags"
       label="Imprints"
       :values="md.imprintList"
       filter="i"
@@ -231,7 +237,7 @@ export default {
 
 #metadataBookCover {
   float: left;
-  margin-right: 10px;
+  margin-right: 15px;
 }
 
 #headerText {
@@ -239,20 +245,20 @@ export default {
   flex-direction: column;
 }
 
+.inlineRow,
 .inlineRow>* {
   display: inline-flex;
-}
-
-#seriesTags,
-#volumeTags,
-#publisherTags,
-#imprintTags {
-  margin-left: 8px !important;
 }
 
 #seriesRow {
   margin-top: -10px;
   font-size: xx-large;
+}
+#seriesRow div:first-child,
+#publisherRow div:first-child,
+#pageDateRow div:first-child
+{
+  padding-left: 0px;
 }
 
 #seriesRow * {
@@ -261,7 +267,6 @@ export default {
 
 #titleRow {
   font-size: large;
-  margin-left: 185px
 }
 
 .subdued {
@@ -269,6 +274,7 @@ export default {
 }
 
 #pageDateRow {
+  display: block;
   font-size: smaller;
 }
 
@@ -288,7 +294,6 @@ export default {
 
   #titleRow {
     font-size: x-small;
-    margin-left: 110px
   }
 }
 </style>

@@ -139,6 +139,7 @@ export default {
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .chipGroupLabel,
   .chip {
     font-size: x-small !important;
   }
