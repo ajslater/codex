@@ -74,3 +74,4 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     breadcrumbs = BreadcrumbsField(required=False)
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
+    always_show_filename = BooleanField(required=False)

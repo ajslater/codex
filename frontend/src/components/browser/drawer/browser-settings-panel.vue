@@ -34,7 +34,7 @@
       :model-value="dynamicCovers"
       :true-value="true"
       label="Dynamic Covers"
-      @update:model-value="setDynamicCovers($event)"
+      @update:model-value="setSetting('dynamicCovers', $event)"
     />
     <v-checkbox
       v-tooltip="{
@@ -47,24 +47,22 @@
       :model-value="customCovers"
       :true-value="true"
       label="Custom Covers"
-      @update:model-value="setCustomCovers($event)"
+      @update:model-value="setSetting('customCovers', $event)"
     />
   </div>
   <v-divider />
-  <!--
   <v-checkbox
     v-tooltip="{
       openDelay: 1000,
-      text: 'Speed up search results by searching one page at a time',
+      text: 'Always show filenames on the browser cards',
     }"
-    class="searchResultsCheckbox"
+    class="browserGroupCheckbox"
     density="compact"
-    label="Incremental Search"
+    label="Always Show Filenames"
     hide-details="auto"
-    :model-value="Boolean(searchResultsLimit)"
-    @update:model-value="setSearchResultsLimit($event)"
+    :model-value="Boolean(alwaysShowFilename)"
+    @update:model-value="setSetting('alwaysShowFilename', $event)"
   />
-  -->
   <v-checkbox
     class="browserGroupCheckbox"
     density="compact"
@@ -73,7 +71,7 @@
     :true-value="true"
     indeterminate
     label="Force 24 Hour Time"
-    @update:model-value="set24HourTime($event)"
+    @update:model-value="setSetting('twentyFourHourTime', $event)"
   />
   <v-divider />
   <!--
@@ -111,6 +109,8 @@ export default {
         state.choices?.static?.twentyFourHourTime?.title || "",
       dynamicCovers: (state) => state.settings?.dynamicCovers || false,
       customCovers: (state) => state.settings?.customCovers || false,
+      alwaysShowFilename: (state) =>
+        state.settings?.alwaysShowFilename || false,
     }),
     showShowSettings() {
       return SHOW_SETTINGS_GROUPS.includes(this.$route?.params?.group);
@@ -125,25 +125,10 @@ export default {
       const data = { show: { [group]: value === true } };
       this.setSettings(data);
     },
-    set24HourTime(value) {
-      const data = { twentyFourHourTime: value === true };
+    setSetting(key, value) {
+      const data = { [key]: value === true };
       this.setSettings(data);
     },
-    setDynamicCovers(value) {
-      const data = { dynamicCovers: value === true };
-      this.setSettings(data);
-    },
-    setCustomCovers(value) {
-      const data = { customCovers: value === true };
-      this.setSettings(data);
-    },
-    /*
-    setSearchResultsLimit(value) {
-      const searchResultsLimit = value ? 100 : 0;
-      const data = { searchResultsLimit };
-      this.setSettings(data);
-    },
-    */
   },
 };
 </script>
@@ -152,7 +137,7 @@ export default {
   padding-top: 10px;
 }
 
-// .searchResultsCheckbox
+// .brResultsCheckbox
 .browserGroupCheckbox,
 .browserSettingsHeader {
   padding-right: 10px;

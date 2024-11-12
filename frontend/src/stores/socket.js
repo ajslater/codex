@@ -21,17 +21,17 @@ export const useSocketStore = defineStore("socket", {
     heartBeatTimer: 0,
   }),
   getters: {
-    adminStore() {
+    async adminStore() {
       // Only load the admin store if the user is an admin.
-      let adminStore;
-      if (useAuthStore().isUserAdmin) {
-        import("@/stores/admin")
-          .then((adminModule) => {
-            return adminModule.useAdminStore();
-          })
-          .catch(console.error);
+      if (!useAuthStore().isUserAdmin) {
+        return;
       }
-      return adminStore;
+      // Returns a promise that must be awaited!
+      return import("@/stores/admin")
+        .then((adminModule) => {
+          return adminModule.useAdminStore();
+        })
+        .catch(console.error);
     },
   },
   actions: {
@@ -104,9 +104,9 @@ export const useSocketStore = defineStore("socket", {
       console.error("socket reconnect error");
       this.reconnectError = true;
     },
-    adminLoadTables(tables) {
+    async adminLoadTables(tables) {
       if (this.adminStore) {
-        this.adminStore.loadTables(tables);
+        (await this.adminStore).loadTables(tables);
       }
     },
     adminFlagsNotified() {
@@ -140,7 +140,7 @@ export const useSocketStore = defineStore("socket", {
         this.adminLoadTables(["User"]);
       }
     },
-    libraryNotified() {
+    async libraryNotified() {
       useCommonStore().setTimestamp();
       const routeName = router?.currentRoute?.value?.name;
       switch (routeName) {
@@ -158,14 +158,14 @@ export const useSocketStore = defineStore("socket", {
           break;
         case "admin-stats":
           if (this.adminStore) {
-            this.adminStore.loadStats();
+            (await this.adminStore).loadStats();
           }
           break;
       }
     },
-    failedImportsNotified() {
+    async failedImportsNotified() {
       if (this.adminStore) {
-        this.adminStore.unseenFailedImports = true;
+        (await this.adminStore).unseenFailedImports = true;
       }
     },
   },

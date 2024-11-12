@@ -6,16 +6,26 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.7
+
+- Fixes
+  - Fix Librarians Statuses not loading in UI.
+  - Tags screen crash with untagged series or volumes.
+  - Fix tags screen Mark Read confirmation names.
+  - Order Tags Contributors by relevance not alphabetically.
+
 ## v1.7.6
 
 - Features
 
+  - Always Show Filenames setting for browser cards.
   - Tags page layout changes with notes from @beville.
 
 - Fixes
 
+  - Fix import crash on files with escapable html characters or utf-8 chars in
+    the filename.
   - Fix page range crash in reader.
-  - Fix import crash on files with escapable html characters in the filename.
   - Fix overzealous escaping of html in metadata strings.
   - Fix group tags not aggregated properly in metadata screen for folders and
     story arcs.

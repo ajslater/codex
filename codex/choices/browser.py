@@ -79,6 +79,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "show": _DEFAULT_SHOW,
         "top_group": "p",
         "twenty_four_hour_time": False,
+        "always_show_filename": False,
     }
 )
 
