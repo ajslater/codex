@@ -142,8 +142,9 @@ export default {
 
 .closeButton {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 0px;
+  right: 0px;
+  opacity: 0.5;
 }
 
 #metadataContainer {

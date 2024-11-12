@@ -36,5 +36,17 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
 @use "./table";
+
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .key {
+    font-size: x-small;
+    padding-right: 3px !important;
+  }
+  .tags {
+    padding-left: 3px !important;
+  }
+}
 </style>

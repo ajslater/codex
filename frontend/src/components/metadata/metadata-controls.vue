@@ -5,10 +5,11 @@
         id="downloadButton"
         class="controlButton"
         :button="true"
-        :group="downloadGroup"
-        :pks="downloadPks"
         :children="md?.childCount || 1"
+        :group="downloadGroup"
         :names="downloadNames"
+        :pks="downloadPks"
+        :size="size"
         :ts="md.mtime"
       />
       <MarkReadButton
@@ -16,14 +17,16 @@
         class="controlButton"
         :button="true"
         :item="markReadItem"
+        :size="size"
       />
       <v-btn
         v-if="isReadButtonShown"
         id="readButton"
         class="controlButton"
-        :to="readerRoute"
         title="Read Comic"
         :disabled="!isReadButtonEnabled"
+        :size="size"
+        :to="readerRoute"
       >
         <v-icon>{{ readButtonIcon }}</v-icon>
         Read
@@ -141,6 +144,9 @@ export default {
         return {};
       }
     },
+    size() {
+      return this.$vuetify.display.smAndDown ? "x-small" : "default";
+    },
   },
   methods: {
     firstNameFromList(list) {
@@ -164,14 +170,13 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-#controls {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
-
 .controlButton {
   margin-right: 10px;
+}
+
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .controlButton {
+    margin-right: 1px;
+  }
 }
 </style>

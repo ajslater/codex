@@ -1,6 +1,6 @@
 <template>
   <div v-if="displayValue" class="text" :class="{ highlight }">
-    <div class="textLabel">
+    <div class="textLabel" v-if="label">
       {{ label }}
       <v-btn
         v-if="showExpandButton"

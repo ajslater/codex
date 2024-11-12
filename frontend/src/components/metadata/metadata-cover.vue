@@ -43,10 +43,6 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#bookCover {
-  position: relative;
-}
-
 .bookCoverProgress {
   margin-top: 1px;
 }

@@ -14,10 +14,20 @@ const toVuetifyItem = function (item) {
   if (NULL_PKS.has(item)) {
     vuetifyItem = item;
   } else if (item instanceof Object) {
-    if (NULL_PKS.has(item.pk)) {
-      vuetifyItem = undefined;
+    if ("ids" in item) {
+      const idSet = new Set(item.ids);
+      if (NULL_PKS.intersection(idSet).size > 0) {
+        vuetifyItem = undefined;
+      } else {
+        const value = item.ids.join(",");
+        vuetifyItem = { value, title: item.name };
+      }
     } else {
-      vuetifyItem = { value: item.pk, title: item.name };
+      if (NULL_PKS.has(item.pk)) {
+        vuetifyItem = undefined;
+      } else {
+        vuetifyItem = { value: item.pk, title: item.name };
+      }
     }
   } else {
     vuetifyItem = { value: item, title: item.toString() };
