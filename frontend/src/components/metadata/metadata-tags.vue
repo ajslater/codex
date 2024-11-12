@@ -103,13 +103,14 @@ export default {
         group = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
       }
       const storyArcMode = group !== "a" && this.filter === "storyArcs";
-      if (!storyArcMode && !this.groupMode) {
+      if (storyArcMode || this.groupMode) {
+        const pks = [itemPk].join(",");
+        const params = { group, pks, page: 1 };
+      } else {
         const settings = { filters: { [this.filter]: [itemPk] } };
         this.setSettings(settings);
+        const params = { group, pks: "0", page: 1 };
       }
-      const pk = storyArcMode || this.groupMode ? itemPk : 0;
-      const pks = [pk].join(",");
-      const params = { group, pks, page: 1 };
       const route = { name: "browser", params };
       this.$router.push(route);
     },
@@ -139,6 +140,7 @@ export default {
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+
   .chipGroupLabel,
   .chip {
     font-size: x-small !important;

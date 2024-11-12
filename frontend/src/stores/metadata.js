@@ -68,7 +68,7 @@ export const useMetadataStore = defineStore("metadata", {
         const tags = contributors[roleName].sort((a, b) =>
           a.name.localeCompare(b.name),
         );
-        sortedContributors[roleName] = { tags, filter: "persons" };
+        sortedContributors[roleName] = { tags, filter: "contributors" };
       }
 
       return sortedContributors;
