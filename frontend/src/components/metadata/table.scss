@@ -1,0 +1,8 @@
+td {
+  border-bottom: none !important;
+}
+td.key {
+  color: rgb(var(--v-theme-textSecondary));
+  width: 1%;
+  white-space: nowrap;
+}

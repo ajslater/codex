@@ -62,7 +62,7 @@
         id="publisher"
         group="p"
         :key="publisher.ids"
-        :label="publisherList"
+        :label="publisherLabel"
         :obj="{ ids: md.ids, group: md.group }"
         :value="publisher"
       />
@@ -71,7 +71,7 @@
         id="imprint"
         group="i"
         :key="imprint.ids"
-        :label="imprintList"
+        :label="imprintLabel"
         :obj="{ ids: md.ids, group: md.group }"
         :value="imprint"
       />

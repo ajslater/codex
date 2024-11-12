@@ -15,12 +15,26 @@ const ROLE_ORDER = [
   "Editors",
 ];
 Object.freeze(ROLE_ORDER);
+const RATINGS = ["communityRating", "criticalRating", "ageRating"];
+const TAGS = [
+  "genres",
+  "characters",
+  "teams",
+  "locations",
+  "seriesGroups",
+  "stories",
+  "storyArcNumbers",
+  "tags",
+];
 
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
     md: undefined,
   }),
   getters: {
+    tags() {
+      return this.mapTags(TAGS);
+    },
     contributors() {
       const contributors = {};
       if (!this?.md?.contributors) {
@@ -51,10 +65,10 @@ export const useMetadataStore = defineStore("metadata", {
       // Reconstruct the map based on the sorted roles;
       const sortedContributors = {};
       for (const roleName of sortedRoles) {
-        const persons = contributors[roleName];
-        sortedContributors[roleName] = persons.sort((a, b) =>
+        const tags = contributors[roleName].sort((a, b) =>
           a.name.localeCompare(b.name),
         );
+        sortedContributors[roleName] = { tags, filter: "persons" };
       }
 
       return sortedContributors;
@@ -76,6 +90,24 @@ export const useMetadataStore = defineStore("metadata", {
     },
     clearMetadata() {
       this.md = undefined;
+    },
+    mapTags(tagList) {
+      const tagMap = {};
+
+      for (const key of tagList) {
+        const tags = this.md[key];
+        if (!tags?.length) {
+          continue;
+        }
+        // Special sub
+        const filter = key === "storyArcNumbers" ? "storyArcs" : key;
+        const tagName = capitalCase(filter);
+        tagMap[tagName] = {
+          filter,
+          tags,
+        };
+      }
+      return tagMap;
     },
   },
 });

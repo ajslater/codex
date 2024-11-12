@@ -1,6 +1,6 @@
 <template>
   <div v-if="model && model.length > 0" class="tags">
-    <div class="chipGroupLabel">
+    <div v-if="label" class="chipGroupLabel">
       {{ label }}
     </div>
     <v-chip-group :column="true" multiple :value="model">
@@ -32,7 +32,7 @@ export default {
   props: {
     label: {
       type: String,
-      required: true,
+      default: "",
     },
     values: {
       type: Array,
