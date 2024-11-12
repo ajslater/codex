@@ -7,24 +7,7 @@
       label="Search Query"
       :highlight="true"
     />
-    <div id="metadataBookCoverWrapper">
-      <BookCover
-        id="bookCover"
-        :group="group"
-        :pks="md.ids"
-        :child-count="md.childCount"
-        :finished="md.finished"
-        :mtime="md.mtime"
-      />
-      <v-progress-linear
-        class="bookCoverProgress"
-        :model-value="md.progress"
-        rounded
-        background-color="inherit"
-        height="2"
-        aria-label="% read"
-      />
-    </div>
+    <MetadataBookCover id="metadataBookCover" :group="group" />
     <div id="seriesRow" class="inlineRow" :class="seriesRowClasses">
       <MetadataText
         v-for="series of md.seriesList"
@@ -95,8 +78,8 @@ import { mapActions, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
-import BookCover from "@/components/book-cover.vue";
 import MetadataControls from "@/components/metadata/metadata-controls.vue";
+import MetadataBookCover from "@/components/metadata/metadata-cover.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
@@ -108,7 +91,7 @@ const SERIES_ROW_LARGE_LIMIT = 4;
 export default {
   name: "MetadataHeader",
   components: {
-    BookCover,
+    MetadataBookCover,
     MetadataControls,
     MetadataText,
   },
@@ -218,23 +201,9 @@ export default {
   max-width: 100vw;
 }
 
-#metadataBookCoverWrapper {
+#metadataBookCover {
   float: left;
-  position: relative;
-  padding-top: 0px !important;
   margin-right: 15px;
-}
-
-#bookCover {
-  position: relative;
-}
-
-.bookCoverProgress {
-  margin-top: 1px;
-}
-
-#bookCover {
-  padding-top: 0px !important;
 }
 
 .inlineRow>* {
