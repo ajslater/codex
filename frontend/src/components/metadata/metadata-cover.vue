@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="bookCoverWrapper">
     <BookCover
       id="bookCover"
       :group="group"
@@ -43,11 +43,29 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.bookCoverProgress {
-  margin-top: 1px;
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
+.bookCoverWrapper {
+  width: 165px;
 }
 
 #bookCover {
   padding-top: 0px !important;
+}
+
+.bookCoverProgress {
+  margin-top: -11px;
+}
+
+
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .bookCoverWrapper {
+    width: 100px;
+  }
+
+  .bookCoverProgress {
+    margin-top: -7px;
+  }
 }
 </style>

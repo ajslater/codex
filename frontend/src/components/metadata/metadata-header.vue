@@ -8,105 +8,99 @@
       :highlight="true"
     />
     <MetadataBookCover id="metadataBookCover" :group="group" />
-    <section id="headerText">
-      <section id="seriesHeader" v-if="md.seriesList?.length === 1">
-        <div id="seriesRow" class="inlineRow">
-          <MetadataText
-            id="series"
-            :key="md.seriesList[0].ids"
-            :value="md.seriesList[0]"
-            group="s"
-            :obj="{ ids: md.ids, group: md.group }"
-          />
-          <MetadataText
-            v-if="md.volumeList?.length === 1"
-            id="volume"
-            :key="md.volumeList[0].ids"
-            :value="md.volumeList[0]"
-            group="v"
-            :obj="{ ids: md.ids, group: md.group }"
-          />
-          <MetadataText
-            :value="md.seriesVolumeCount"
-            class="subdued"
-            prefix="of"
-          />
-          <MetadataText
-            id="issue"
-            :value="formattedIssueNumber"
-            group="c"
-            :obj="{ ids: md.ids, group: md.group }"
-          />
-          <MetadataText
-            :value="md.volumeIssueCount"
-            class="subdued"
-            prefix="/"
-          />
-        </div>
-        <div id="titleRow" class="inlineRow">
-          <MetadataText :value="md.name" />
-        </div>
-      </section>
-      <MetadataTags
-        v-if="md.seriesList?.length > 1"
-        id="seriesTags"
-        label="Series"
-        :values="md.seriesList"
-        filter="s"
-      />
-      <MetadataTags
-        v-if="md.volumeList?.length > 1"
-        id="volumeTags"
-        label="Volumes"
-        :values="md.volumeList"
-        filter="v"
-      />
-      <div
-        id="publisherRow"
-        class="inlineRow"
-        v-if="md.publisherList?.length === 1"
-      >
+    <section id="seriesHeader" v-if="md.seriesList?.length === 1">
+      <div id="seriesRow" class="inlineRow">
         <MetadataText
-          id="publisher"
-          group="p"
-          :key="md.publisherList[0].ids"
+          id="series"
+          :key="md.seriesList[0].ids"
+          :value="md.seriesList[0]"
+          group="s"
           :obj="{ ids: md.ids, group: md.group }"
-          :value="md.publisherList[0]"
         />
         <MetadataText
-          v-if="md.imprintList?.length === 1"
-          id="imprint"
-          group="i"
-          :key="md.imprintList[0].ids"
+          v-if="md.volumeList?.length === 1"
+          id="volume"
+          :key="md.volumeList[0].ids"
+          :value="md.volumeList[0]"
+          group="v"
           :obj="{ ids: md.ids, group: md.group }"
-          :value="md.imprintList[0]"
         />
-      </div>
-      <MetadataTags
-        v-if="md.publisherList?.length > 1"
-        id="publisherTags"
-        label="Publishers"
-        :values="md.publisherList"
-        filter="p"
-      />
-      <MetadataTags
-        v-if="md.imprintList?.length > 1"
-        id="imprintTags"
-        label="Imprints"
-        :values="md.imprintList"
-        filter="i"
-      />
-      <div
-        v-if="pages || md.year || md.month || md.day"
-        class="inlineRow"
-        id="pageDateRow"
-      >
-        <MetadataText :value="pages" />
-        <MetadataText :value="date" class="datePicker" />
+        <MetadataText
+          :value="md.seriesVolumeCount"
+          class="subdued"
+          prefix="of"
+        />
+        <MetadataText
+          id="issue"
+          :value="formattedIssueNumber"
+          group="c"
+          :obj="{ ids: md.ids, group: md.group }"
+        />
+        <MetadataText :value="md.volumeIssueCount" class="subdued" prefix="/" />
       </div>
     </section>
-    <MetadataControls id="controls" :group="group" />
+    <div id="titleRow" class="inlineRow" v-if="md.name">
+      {{ md.name }}
+    </div>
+    <MetadataTags
+      v-if="md.seriesList?.length > 1"
+      id="seriesTags"
+      label="Series"
+      :values="md.seriesList"
+      filter="s"
+    />
+    <MetadataTags
+      v-if="md.volumeList?.length > 1"
+      id="volumeTags"
+      label="Volumes"
+      :values="md.volumeList"
+      filter="v"
+    />
+    <div
+      id="publisherRow"
+      class="inlineRow"
+      v-if="md.publisherList?.length === 1"
+    >
+      <MetadataText
+        id="publisher"
+        group="p"
+        :key="md.publisherList[0].ids"
+        :obj="{ ids: md.ids, group: md.group }"
+        :value="md.publisherList[0]"
+      />
+      <MetadataText
+        v-if="md.imprintList?.length === 1"
+        id="imprint"
+        group="i"
+        :key="md.imprintList[0].ids"
+        :obj="{ ids: md.ids, group: md.group }"
+        :value="md.imprintList[0]"
+      />
+    </div>
+    <MetadataTags
+      v-if="md.publisherList?.length > 1"
+      id="publisherTags"
+      label="Publishers"
+      :values="md.publisherList"
+      filter="p"
+    />
+    <MetadataTags
+      v-if="md.imprintList?.length > 1"
+      id="imprintTags"
+      label="Imprints"
+      :values="md.imprintList"
+      filter="i"
+    />
+    <div
+      v-if="pages || md.year || md.month || md.day"
+      class="inlineRow"
+      id="pageDateRow"
+    >
+      <MetadataText :value="pages" />
+      <MetadataText :value="date" class="datePicker" />
+    </div>
   </header>
+  <MetadataControls id="controls" :group="group" />
 </template>
 
 <script>
@@ -228,32 +222,22 @@ export default {
 #metadataHeader {
   height: fit-content;
   max-width: 100vw;
-  display: grid;
-  column-gap: 10px;
-  grid-template-columns: 165px auto;
-  align-items: start;
 }
 
 #search {
-  grid-column-start: 1;
-  grid-column-end: 3;
-  grid-row: 1;
+  width: 100%;
   margin-bottom: 10px;
 }
 
 #metadataBookCover {
-  grid-column: 1;
-  grid-row: 2;
-  max-width: 165px;
+  float: left;
+  margin-right: 10px;
 }
 
 #headerText {
-  grid-column: 2;
-  grid-row: 2;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
 }
-
 
 .inlineRow>* {
   display: inline-flex;
@@ -277,35 +261,34 @@ export default {
 
 #titleRow {
   font-size: large;
-  margin-top: -16px;
+  margin-left: 185px
 }
 
 .subdued {
   color: rgb(var(--v-theme-textDisabled))
 }
 
-
 #pageDateRow {
   font-size: smaller;
 }
 
 #controls {
-  grid-column-start: 1;
-  grid-column-end: 3;
-  grid-row: 3;
   margin-top: 10px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  #metadataHeader {
-    grid-template-columns: 100px auto;
+  #metadataBookCover {
+    margin-right: 10px;
   }
+
   #seriesRow {
     margin-top: 0px;
     font-size: small;
   }
+
   #titleRow {
     font-size: x-small;
+    margin-left: 110px
   }
 }
 </style>

@@ -126,7 +126,7 @@ export default {
 }
 
 .chipGroupLabel {
-  font-size: x-small;
+  font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
 }
 
