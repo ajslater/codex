@@ -98,7 +98,6 @@ export default {
       this.showDialog = false;
     },
     autoConfirm() {
-      console.log("autoConfirm", this.confirm);
       if (!this.confirm) {
         this.close("confirm");
       }
