@@ -2,33 +2,37 @@
   <div v-if="displayValue" class="text" :class="{ highlight }">
     <div class="textLabel" v-if="label">
       {{ label }}
-      <v-btn
+      <ExpandButton
         v-if="showExpandButton"
-        id="expandButton"
-        density="compact"
-        text="...expand"
-        variant="text"
+        class="expandButton"
         @click="expanded = true"
       />
     </div>
     <v-expand-transition>
-      <div
-        class="textValue"
-        :class="{ empty }"
-        :ref="textValueRefName"
-        :style="textValueStyles"
-      >
-        <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-        <a v-if="href" :href="href" :title="title" :target="target">
-          {{ displayValue }}
-          <v-icon v-if="link" size="small">
-            {{ mdiOpenInNew }}
-          </v-icon>
-        </a>
-        <span v-else class="textContent">
-          {{ displayValue }}
-        </span>
-        <span v-if="baseName">{{ baseName }} </span>
+      <div>
+        <div
+          class="textValue"
+          :class="{ empty }"
+          :ref="textValueRefName"
+          :style="textValueStyles"
+        >
+          <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
+          <a v-if="href" :href="href" :title="title" :target="target">
+            {{ displayValue }}
+            <v-icon v-if="link" size="small">
+              {{ mdiOpenInNew }}
+            </v-icon>
+          </a>
+          <span v-else class="textContent">
+            {{ displayValue }}
+          </span>
+          <span v-if="baseName">{{ baseName }} </span>
+        </div>
+        <ExpandButton
+          v-if="showExpandButton && !label"
+          class="expandButton"
+          @click="expanded = true"
+        />
       </div>
     </v-expand-transition>
   </div>
@@ -41,11 +45,15 @@ import { mapState } from "pinia";
 import { getBrowserHref } from "@/api/v3/browser";
 import { topGroup } from "@/choices/browser-map";
 import { formattedVolumeName } from "@/comic-name";
+import ExpandButton from "@/components/metadata/expand-button.vue";
 import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
 const EMPTY_VALUE = "(Empty)";
 
 export default {
   name: "MetadataTextBox",
+  components: {
+    ExpandButton,
+  },
   props: {
     label: {
       type: String,
@@ -248,7 +256,7 @@ export default {
   overflow-y: scroll;
 }
 
-#expandButton {
+.expandButton {
   float: right;
 }
 
