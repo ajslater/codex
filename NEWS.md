@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.8
+
+- Fixes
+  - Filter menu wasn't populating for top folder.
+
 ## v1.7.7
 
 - Fixes

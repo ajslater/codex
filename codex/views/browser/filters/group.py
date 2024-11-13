@@ -46,7 +46,7 @@ class GroupFilterView(BrowserParamsView):
         if pks and 0 not in pks:
             rel = self._get_rel_for_pks(group, page_mtime)
             group_filter_dict = {rel: pks}
-        elif group == FOLDER_GROUP:
+        elif group == FOLDER_GROUP and self.TARGET != "choices":
             # Top folder search
             group_filter_dict = {"parent_folder": None}
         else:

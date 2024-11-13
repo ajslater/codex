@@ -5,12 +5,7 @@
         id="downloadButton"
         class="controlButton"
         :button="true"
-        :children="md?.childCount || 1"
-        :group="downloadGroup"
-        :names="downloadNames"
-        :pks="downloadPks"
-        :size="size"
-        :ts="md.mtime"
+        :item="downloadItem"
       />
       <MarkReadButton
         id="markReadButton"
@@ -76,19 +71,13 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
-    downloadGroup() {
-      return this.md.group;
-    },
-    downloadPks() {
-      return this.md.ids;
-    },
-    downloadNames() {
+    downloadName() {
       const md = this.md;
-      let names = [];
+      let name;
       if (!md) {
-        names = ["Unknown.cbz"];
+        name = "Unknown.cbz";
       } else if (md.fileName) {
-        names = [md.fileName];
+        name = md.fileName;
       } else {
         if (this.md.group === "f") {
           return [this.firstNameFromList(md.folderList)];
@@ -101,14 +90,21 @@ export default {
           this.firstNameFromList(md.imprintList),
           this.firstNameFromList(md.seriesList),
           this.firstNameFromList(md.volumeList),
+          formattedIssue(this.md, 3),
+          this.md.name,
         ];
-        const issue = formattedIssue(this.md, 3);
-        if (issue) {
-          names.push(issue);
-        }
-        names.push(this.md.name);
+        name = names.filter((x) => x).join(" ");
       }
-      return names;
+      return name;
+    },
+    downloadItem() {
+      return {
+        group: this.md?.group,
+        ids: this.md?.ids,
+        childCount: this.md?.childCount,
+        mtime: this.md?.mtime,
+        name: this.downloadName,
+      };
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
@@ -131,7 +127,7 @@ export default {
         ids: this.md.ids,
         finished: this.md.finished,
         name,
-        children: this.md.childCount,
+        children: this.md.childCount || 1,
       };
     },
     readButtonIcon() {
