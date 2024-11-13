@@ -18,8 +18,9 @@ export default [
     ...configs.js,
   },
   ...eslintPluginVue.configs[FLAT_BASE],
+  ...eslintPluginVueScopedCSS.configs[FLAT_BASE],
   {
-    files: ["**/*.vue"],
+    files: ["**/*.js", "**/*.vue"],
     rules: {
       ...eslintPluginVue.configs[FLAT_RECOMMENDED].rules,
       ...eslintPluginVueScopedCSS.configs[FLAT_RECOMMENDED].rules,
