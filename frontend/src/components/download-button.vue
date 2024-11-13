@@ -1,24 +1,13 @@
 <template>
-  <v-btn v-if="show && !confirm && button" @click="download">
-    <v-icon>
-      {{ mdiDownload }}
-    </v-icon>
-    {{ title }}
-  </v-btn>
-  <CodexListItem
-    v-else-if="show && !confirm"
-    :prepend-icon="mdiDownload"
-    :title="title"
-    @click="download"
-  />
   <ConfirmDialog
-    v-else-if="show"
+    v-if="show"
     :button="button"
-    :prepend-icon="mdiDownload"
     :button-text="title"
+    :confirm="confirm"
+    confirm-text="Download"
+    :prepend-icon="mdiDownload"
     :title-text="title"
     text="May take a while"
-    confirm-text="Download"
     @confirm="download"
   />
 </template>
@@ -30,7 +19,6 @@ import { getGroupDownloadURL } from "@/api/v3/browser";
 import { getDownloadIOSPWAFix } from "@/api/v3/common";
 import { getComicDownloadURL } from "@/api/v3/reader";
 import { topGroup as GROUP_NAME_MAP } from "@/choices/browser-map.json";
-import CodexListItem from "@/components/codex-list-item.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
@@ -39,31 +27,15 @@ const CHILD_WARNING_LIMIT = 10;
 
 export default {
   name: "DownloadButton",
-  components: { ConfirmDialog, CodexListItem },
+  components: { ConfirmDialog },
   props: {
     button: {
       type: Boolean,
       default: false,
     },
-    group: {
-      type: String,
-      default: "c",
-    },
-    pks: {
-      type: Array,
+    item: {
+      type: Object,
       required: true,
-    },
-    children: {
-      type: Number,
-      required: true,
-    },
-    names: {
-      type: Array,
-      required: true,
-    },
-    ts: {
-      type: Number,
-      default: undefined,
     },
   },
   data() {
@@ -72,43 +44,42 @@ export default {
   computed: {
     ...mapGetters(useBrowserStore, ["filterOnlySettings"]),
     show() {
-      return this.pks && this.pks.length > 0 && !this.pks.includes(0);
+      return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
     isOneComic() {
-      return this.group === "c" && this.pks.length === 1;
+      return this.item?.group === "c" && this.item?.ids?.length === 1;
+    },
+    downloadFn() {
+      if (this.isOneComic) {
+        return this.item.name;
+      } else {
+        let groupName = GROUP_NAME_MAP[this.item?.group];
+        if (groupName !== "Series") {
+          groupName = groupName.slice(0, -1);
+        }
+        return `${groupName} - ${this.item.name} Comics.zip`;
+      }
     },
     downloadURL() {
       let url = "";
       if (this.isOneComic) {
         const pk = this.pks[0];
-        url = getComicDownloadURL({ pk }, this.downloadFn, this.ts);
+        url = getComicDownloadURL({ pk }, this.downloadFn, this.item?.mtime);
       } else {
-        const group = this.group;
-        const pks = this.pks;
+        const group = this.item?.group;
+        const pks = this.item?.ids;
         const settings = this.filterOnlySettings;
         url = getGroupDownloadURL(
           { group, pks },
           this.downloadFn,
           settings,
-          this.ts,
+          this.item?.mtime,
         );
       }
       return url;
     },
     formattedChildren() {
-      return NUMBER_FORMAT.format(this.children);
-    },
-    downloadFn() {
-      const name = this.names.filter((x) => x).join(" ");
-      if (this.isOneComic) {
-        return name;
-      } else {
-        let groupName = GROUP_NAME_MAP[this.group];
-        if (groupName !== "Series") {
-          groupName = groupName.slice(0, -1);
-        }
-        return `${groupName} - ${name} Comics.zip`;
-      }
+      return NUMBER_FORMAT.format(this.item?.childCount);
     },
     title() {
       let titleStr = "Download";
@@ -120,9 +91,12 @@ export default {
       return titleStr;
     },
     confirm() {
-      return this.children > CHILD_WARNING_LIMIT;
+      return this.item?.childCount > CHILD_WARNING_LIMIT;
     },
     confirmText() {
+      if (!this.confirm) {
+        return "";
+      }
       return `Download ${this.formattedChildren} books`;
     },
   },

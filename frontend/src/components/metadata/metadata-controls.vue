@@ -5,11 +5,7 @@
         id="downloadButton"
         class="controlButton"
         :button="true"
-        :group="downloadGroup"
-        :pks="downloadPks"
-        :children="md?.childCount || 1"
-        :names="downloadNames"
-        :ts="md.mtime"
+        :item="downloadItem"
       />
       <MarkReadButton
         id="markReadButton"
@@ -73,18 +69,13 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
-    downloadGroup() {
-      return this.md.group;
-    },
-    downloadPks() {
-      return this.md.ids;
-    },
-    downloadNames() {
+    downloadName() {
       const md = this.md;
+      let name;
       if (!md) {
-        return ["Unknown.cbz"];
+        name = "Unknown.cbz";
       } else if (md.fileName) {
-        return [md.fileName];
+        name = md.fileName;
       } else {
         if (this.md.group === "f") {
           return [this.firstNameFromList(md.folderList)];
@@ -97,13 +88,21 @@ export default {
           this.firstNameFromList(md.imprintList),
           this.firstNameFromList(md.seriesList),
           this.firstNameFromList(md.volumeList),
+          formattedIssue(this.md, 3),
+          this.md.name,
         ];
-        const issue = formattedIssue(this.md, 3);
-        if (issue) {
-          names.push(issue);
-        }
-        names.push(this.md.name);
+        name = names.filter((x) => x).join(" ");
       }
+      return name;
+    },
+    downloadItem() {
+      return {
+        group: this.md?.group,
+        ids: this.md?.ids,
+        childCount: this.md?.childCount,
+        mtime: this.md?.mtime,
+        name: this.downloadName,
+      };
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
@@ -126,7 +125,7 @@ export default {
         ids: this.md.ids,
         finished: this.md.finished,
         name,
-        children: this.md.childCount,
+        children: this.md.childCount || 1,
       };
     },
     readButtonIcon() {

@@ -12,16 +12,8 @@
       />
     </template>
     <v-list class="background-soft-highlight">
-      <MarkReadButton class="listItem" :item="item" />
-      <DownloadButton
-        :group="item?.group"
-        :pks="item?.ids"
-        :children="children"
-        :names="downloadNames"
-        :ts="item?.mtime"
-        class="listItem"
-        :button="false"
-      />
+      <MarkReadButton class="listItem" :button="false" :item="item" />
+      <DownloadButton class="listItem" :button="false" :item="downloadItem" />
     </v-list>
   </v-menu>
 </template>
@@ -29,6 +21,7 @@
 <script>
 import { mdiDotsVertical } from "@mdi/js";
 
+import { formattedIssue, formattedVolumeName } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 
@@ -51,20 +44,22 @@ export default {
     };
   },
   computed: {
-    children() {
-      return this.item?.childCount || 1;
-    },
-    groupNames() {
-      return [
+    _groupName() {
+      const names = [
         this.item?.publisherName,
         this.item?.imprintName,
         this.item?.seriesName,
-        this.item?.volumeName,
+        formattedVolumeName(this.item?.volumeName),
+        formattedIssue(this.item, 3),
         this.item?.name,
       ];
+      return names.filter((x) => x).join(" ");
     },
-    downloadNames() {
-      return this.item?.fileName ? [this.item?.fileName] : this.groupNames;
+    downloadName() {
+      return this.item?.fileName ? this.item?.fileName : this._groupName;
+    },
+    downloadItem() {
+      return { ...this.item, name: this.downloadName };
     },
   },
 };
