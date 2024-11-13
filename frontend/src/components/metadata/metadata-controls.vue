@@ -1,32 +1,23 @@
 <template>
-  <section id="controls">
-    <section id="controlRow">
-      <DownloadButton
-        id="downloadButton"
-        class="controlButton"
-        :button="true"
-        :item="downloadItem"
-      />
-      <MarkReadButton
-        id="markReadButton"
-        class="controlButton"
-        :button="true"
-        :item="markReadItem"
-        :size="size"
-      />
-      <v-btn
-        v-if="isReadButtonShown"
-        id="readButton"
-        class="controlButton"
-        title="Read Comic"
-        :disabled="!isReadButtonEnabled"
-        :size="size"
-        :to="readerRoute"
-      >
-        <v-icon>{{ readButtonIcon }}</v-icon>
-        Read
-      </v-btn>
-    </section>
+  <section class="controlRow">
+    <DownloadButton id="downloadButton" :button="true" :item="downloadItem" />
+    <MarkReadButton
+      id="markReadButton"
+      :button="true"
+      :item="markReadItem"
+      :size="size"
+    />
+    <v-btn
+      v-if="isReadButtonShown"
+      id="readButton"
+      title="Read Comic"
+      :disabled="!isReadButtonEnabled"
+      :size="size"
+      :to="readerRoute"
+    >
+      <v-icon>{{ readButtonIcon }}</v-icon>
+      Read
+    </v-btn>
   </section>
 </template>
 
@@ -166,12 +157,12 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.controlButton {
+.controlRow>* {
   margin-right: 10px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .controlButton {
+  .controlRow>* {
     margin-right: 1px;
   }
 }
