@@ -1854,18 +1854,19 @@ files = [
 
 [[package]]
 name = "pynvim"
-version = "0.5.1"
+version = "0.5.2"
 description = "Python client for Neovim"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pynvim-0.5.1-py2.py3-none-any.whl", hash = "sha256:cf8d9141109e5319388ff06df641c35d2c1bffc763a4da2345a63a71079ce353"},
-    {file = "pynvim-0.5.1.tar.gz", hash = "sha256:ed99cbaf286998aad48564ae13d26933b9106fc5a917a719798d2f2b2b8683ae"},
+    {file = "pynvim-0.5.2-py3-none-any.whl", hash = "sha256:20b1c5a18c4cddfc480950094d4135f782b1a98c32149ea63e24bbdb7021eb54"},
+    {file = "pynvim-0.5.2.tar.gz", hash = "sha256:734a2432db8683519f58572617528ecb4a2f321bc7b27f034b3f9b2322c15615"},
 ]
 
 [package.dependencies]
-greenlet = ">=3.0"
+greenlet = {version = ">=3.0", markers = "platform_python_implementation != \"PyPy\""}
 msgpack = ">=0.5.0"
+typing-extensions = {version = ">=4.5", markers = "python_version < \"3.12\""}
 
 [package.extras]
 docs = ["sphinx", "sphinx-rtd-theme"]

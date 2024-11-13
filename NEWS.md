@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.7.8
 
 - Features
+
   - Tags page layout changes with more notes from @beville.
 
 - Fixes
