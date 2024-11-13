@@ -4,17 +4,17 @@ import { defineStore } from "pinia";
 import API from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
 
-const ROLE_ORDER = [
-  "Creators",
-  "Writers",
-  "Pencillers",
-  "Inkers",
-  "Cover Artists",
-  "Colorists",
-  "Letterers",
-  "Editors",
+const ROLES = [
+  "creators",
+  "writers",
+  "pencillers",
+  "inkers",
+  "cover_artists",
+  "colorists",
+  "letterers",
+  "editors",
 ];
-Object.freeze(ROLE_ORDER);
+Object.freeze(ROLES);
 const RATINGS = ["communityRating", "criticalRating", "ageRating"];
 const TAGS = [
   "genres",
@@ -32,46 +32,45 @@ export const useMetadataStore = defineStore("metadata", {
     md: undefined,
   }),
   getters: {
-    tags() {
-      return this.mapTags(TAGS);
-    },
-    contributors() {
+    _mappedContributors(state) {
       const contributors = {};
-      if (!this?.md?.contributors) {
+      if (!state?.md?.contributors) {
         return contributors;
       }
 
       // Convert contributors into a role based map
-      for (const { role, person } of this.md.contributors) {
-        const roleName = capitalCase(role.name) + "s";
-        if (!contributors[roleName]) {
+      for (const { role, person } of state.md.contributors) {
+        const roleName = role.name + "s";
+        const tags = contributors[roleName];
+        if (!(roleName in contributors)) {
           contributors[roleName] = [];
         }
         contributors[roleName].push(person);
       }
-
-      // Sort the roles
+      return contributors;
+    },
+    _sortedRoles(state) {
+      // Sort the roles by known order and then alphabetically.
       let sortedRoles = [];
-      const roles = new Set(Object.keys(contributors));
-      for (const role of ROLE_ORDER) {
+      const roles = new Set(Object.keys(state._mappedContributors));
+      for (const role of ROLES) {
         if (roles.has(role)) {
           sortedRoles.push(role);
           roles.delete(role);
         }
       }
       const tailRoles = Array.from(roles).sort();
-      sortedRoles = sortedRoles.concat(tailRoles);
-
-      // Reconstruct the map based on the sorted roles;
-      const sortedContributors = {};
-      for (const roleName of sortedRoles) {
-        const tags = contributors[roleName].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
-        sortedContributors[roleName] = { tags, filter: "contributors" };
-      }
-
-      return sortedContributors;
+      return sortedRoles.concat(tailRoles);
+    },
+    contributors(state) {
+      return this.mapTag(
+        state._mappedContributors,
+        state._sortedRoles,
+        "contributors",
+      );
+    },
+    tags(state) {
+      return state.mapTag(state.md, TAGS);
     },
   },
   actions: {
@@ -91,21 +90,25 @@ export const useMetadataStore = defineStore("metadata", {
     clearMetadata() {
       this.md = undefined;
     },
-    mapTags(tagList) {
+    mapTag(tagSource, keys, fixedFilter) {
       const tagMap = {};
 
-      for (const key of tagList) {
-        const tags = this.md[key];
+      for (const key of keys) {
+        let tags = tagSource[key];
         if (!tags?.length) {
           continue;
         }
+
         // Special sub
-        const filter = key === "storyArcNumbers" ? "storyArcs" : key;
-        const tagName = capitalCase(filter);
-        tagMap[tagName] = {
-          filter,
-          tags,
-        };
+        const filter = fixedFilter
+          ? fixedFilter
+          : key === "storyArcNumbers"
+            ? "storyArcs"
+            : key;
+
+        const tagName = capitalCase(key);
+        tags = tags.sort((a, b) => a.name.localeCompare(b.name));
+        tagMap[tagName] = { filter, tags };
       }
       return tagMap;
     },
