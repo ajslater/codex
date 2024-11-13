@@ -11,7 +11,6 @@
         :value="item.value"
         @click="onClick(item.value)"
       >
-        <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
         <span class="chip" :class="chipClass(item.value)">
           <a v-if="item.url" :href="item.url" target="_blank"
             >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
@@ -103,14 +102,16 @@ export default {
         group = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
       }
       const storyArcMode = group !== "a" && this.filter === "storyArcs";
+      let pks;
       if (storyArcMode || this.groupMode) {
-        const pks = [itemPk].join(",");
-        const params = { group, pks, page: 1 };
+        pks = [itemPk].join(",");
       } else {
+        pks = "0";
         const settings = { filters: { [this.filter]: [itemPk] } };
+        // This side effect prevents using :to
         this.setSettings(settings);
-        const params = { group, pks: "0", page: 1 };
       }
+      const params = { group, pks, page: 1 };
       const route = { name: "browser", params };
       this.$router.push(route);
     },
