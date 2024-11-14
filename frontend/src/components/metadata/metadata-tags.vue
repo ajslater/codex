@@ -3,8 +3,13 @@
     <div v-if="label" class="chipGroupLabel">
       {{ label }}
     </div>
-    <v-chip-group :column="true" multiple>
-      <MetadataChip v-for="item in items" :filter="filter" :item="item" />
+    <v-chip-group>
+      <MetadataChip
+        v-for="item in items"
+        :filter="filter"
+        :item="item"
+        :key="`${filter}/${item.value}`"
+      />
     </v-chip-group>
   </div>
 </template>
