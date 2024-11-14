@@ -120,7 +120,7 @@ class FailedImportsImporter(DeletedImporter):
             create_objs,
             update_conflicts=True,
             update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
-            unique_fields=FailedImport._meta.unique_together[0],  # type: ignore
+            unique_fields=FailedImport._meta.unique_together[0],
         )
         count = len(create_objs)
         if count:

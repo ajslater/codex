@@ -1,6 +1,7 @@
 """Codex Serializers for the metadata box."""
 
-from rest_framework.serializers import CharField, IntegerField, ListField, Serializer
+from rest_framework.fields import CharField
+from rest_framework.serializers import IntegerField, ListField, Serializer
 
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
@@ -32,6 +33,8 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     imprint_list = GroupSerializer(many=True, required=False)
     series_list = GroupSerializer(many=True, required=False)
     volume_list = GroupSerializer(many=True, required=False)
+    folder_list = GroupSerializer(many=True, required=False)
+    story_arc_list = GroupSerializer(many=True, required=False)
     publisher = None
     imprint = None
     series = None
@@ -43,7 +46,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     contributors = ContributorSerializer(
         source=f"{PREFETCH_PREFIX}contributors", many=True, allow_null=True
     )
-    stroy_arc_numbers = StoryArcNumberSerializer(
+    story_arc_numbers = StoryArcNumberSerializer(
         source=f"{PREFETCH_PREFIX}story_arc_numbers", many=True, allow_null=True
     )
 

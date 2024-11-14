@@ -3,7 +3,7 @@
 from django.urls import reverse
 from rest_framework.response import Response
 
-from codex.choices import DEFAULT_BROWSER_ROUTE
+from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.serializers.opds.urls import OPDSURLsSerializer
 from codex.views.auth import AuthGenericAPIView
 from codex.views.util import pop_name

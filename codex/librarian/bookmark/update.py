@@ -5,6 +5,7 @@ from django.db.models.expressions import F
 from django.db.models.functions import Now
 from django.db.models.query import Q
 
+from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
@@ -28,6 +29,35 @@ class BookmarkUpdate(GroupACLMixin):
 
     # Used by Bookmarkd and view.bookmark.
 
+    @classmethod
+    def _get_existing_bookmarks_for_update(cls, auth_filter, comic_pks, updates):
+        # Get existing bookmarks
+        query_filter = Q(**auth_filter) & Q(comic__in=comic_pks)
+        existing_bookmarks = Bookmark.objects.filter(query_filter)
+        if updates.get("page") is not None:
+            existing_bookmarks = existing_bookmarks.annotate(
+                page_count=F("comic__page_count")
+            )
+
+        update_fields = (set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS) | {"updated_at"}
+        only_fields = (*update_fields, "pk")
+
+        existing_bookmarks = existing_bookmarks.only(*only_fields)
+        return existing_bookmarks, update_fields
+
+    @classmethod
+    def _prepare_bookmark_updates(cls, existing_bookmarks, updates):
+        # Prepare updates
+        update_bookmarks = []
+        for bm in existing_bookmarks:
+            cls._update_bookmarks_validate_page(bm, updates)
+            cls._update_bookmarks_validate_two_pages(bm, updates)
+            for key, value in updates.items():
+                setattr(bm, key, value)
+            bm.updated_at = Now()
+            update_bookmarks.append(bm)
+        return update_bookmarks
+
     @staticmethod
     def _update_bookmarks_validate_page(bm, updates):
         """Force bookmark page into valid range."""
@@ -44,9 +74,10 @@ class BookmarkUpdate(GroupACLMixin):
     @staticmethod
     def _update_bookmarks_validate_two_pages(bm, updates):
         """Force vertical view to not use two pages."""
-        rd = updates.get("reading_direction")
         if bm.two_pages and bool(
-            {rd, bm.reading_direction}.intersection(_VERTICAL_READING_DIRECTIONS)
+            {bm.reading_direction, updates.get("reading_direction")}.intersection(
+                _VERTICAL_READING_DIRECTIONS
+            )
         ):
             updates["two_pages"] = None
 
@@ -54,40 +85,44 @@ class BookmarkUpdate(GroupACLMixin):
     def _notify_library_changed(uid):
         """Notify one user that their library changed."""
         group = f"user_{uid}"
-        task = NotifierTask("LIBRARY_CHANGED", group)
+        task = NotifierTask(Notifications.BOOKMARK.value, group)
         LIBRARIAN_QUEUE.put(task)
 
     @classmethod
-    def _update_bookmarks(cls, auth_filter, comic_pks, updates, user) -> int:
+    def _update_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
         """Update existing bookmarks."""
         count = 0
         if not updates:
             return count
-        group_acl_filter = cls.get_group_acl_filter(Bookmark, user)
-        query_filter = group_acl_filter & Q(**auth_filter) & Q(comic__in=comic_pks)
-        existing_bookmarks = Bookmark.objects.filter(query_filter)
-        if updates.get("page") is not None:
-            existing_bookmarks = existing_bookmarks.annotate(
-                page_count=F("comic__page_count")
-            )
 
-        update_fields = set(updates.keys()) & _BOOKMARK_UPDATE_FIELDS
-        update_fields.add("updated_at")
-        only_fields = (*update_fields, "pk")
-
-        existing_bookmarks = existing_bookmarks.only(*only_fields)
-        update_bookmarks = []
-        for bm in existing_bookmarks:
-            cls._update_bookmarks_validate_page(bm, updates)
-            cls._update_bookmarks_validate_two_pages(bm, updates)
-            for key, value in updates.items():
-                setattr(bm, key, value)
-            bm.updated_at = Now()
-            update_bookmarks.append(bm)
+        existing_bookmarks, update_fields = cls._get_existing_bookmarks_for_update(
+            auth_filter, comic_pks, updates
+        )
+        update_bookmarks = cls._prepare_bookmark_updates(existing_bookmarks, updates)
         count = len(update_bookmarks)
+
+        # Bulk update
         if count:
             Bookmark.objects.bulk_update(update_bookmarks, tuple(update_fields))
         return count
+
+    @classmethod
+    def _get_comics_without_bookmarks(cls, auth_filter, comic_pks):
+        """Get comics without bookmarks."""
+        exclude = {}
+        for key, value in auth_filter.items():
+            exclude["bookmark__" + key] = value
+        query_filter = Q(pk__in=comic_pks) & ~Q(**exclude)
+        return Comic.objects.filter(query_filter).only("pk")
+
+    @classmethod
+    def _prepare_bookmark_creates(cls, create_bookmark_comics, auth_filter, updates):
+        # Prepare creates
+        create_bookmarks = []
+        for comic in create_bookmark_comics:
+            bm = Bookmark(comic=comic, **auth_filter, **updates)
+            create_bookmarks.append(bm)
+        return create_bookmarks
 
     @staticmethod
     def _create_bookmarks_validate_two_pages(updates):
@@ -99,54 +134,54 @@ class BookmarkUpdate(GroupACLMixin):
             updates.pop("two_pages", None)
 
     @classmethod
-    def _create_bookmarks(cls, auth_filter, comic_pks, updates, user) -> int:
+    def _create_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
         """Create new bookmarks for comics that don't exist yet."""
         count = 0
         cls._create_bookmarks_validate_two_pages(updates)
         if not updates:
             return count
-        create_bookmarks = []
-        group_acl_filter = cls.get_group_acl_filter(Comic, user)
-        exclude = {}
-        for key, value in auth_filter.items():
-            exclude["bookmark__" + key] = value
-        query_filter = group_acl_filter & Q(pk__in=comic_pks) & ~Q(**exclude)
-        create_bookmark_comics = Comic.objects.filter(query_filter).only("pk")
-        for comic in create_bookmark_comics:
-            bm = Bookmark(comic=comic, **auth_filter, **updates)
-            create_bookmarks.append(bm)
+
+        create_bookmark_comics = cls._get_comics_without_bookmarks(
+            auth_filter, comic_pks
+        )
+        create_bookmarks = cls._prepare_bookmark_creates(
+            create_bookmark_comics, auth_filter, updates
+        )
         count = len(create_bookmarks)
+
+        # Bulk create
         if count:
             Bookmark.objects.bulk_create(
                 create_bookmarks,
                 update_fields=tuple(_BOOKMARK_UPDATE_FIELDS),
-                unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
+                unique_fields=Bookmark._meta.unique_together[0],
             )
         return count
 
     @classmethod
-    def _update_user_active(cls, user, log):
+    def _update_user_active(cls, auth_filter, log):
         """Update user active."""
         # Offline because profile gets hit rapidly in succession.
         try:
-            UserActive.objects.update_or_create(user=user)
+            user = None
+            for key, value in auth_filter.items():
+                if key == "user":
+                    user = User.objects.get(pk=value)
+                    if user:
+                        UserActive.objects.update_or_create(user=user)
+                break
+        except User.DoesNotExist:
+            pass
         except Exception as exc:
-            reason = f"update user activity {exc}"
+            reason = f"Update user activity {exc}"
             log.warning(reason)
 
     @classmethod
     def update_bookmarks(cls, auth_filter, comic_pks, updates, log):
         """Update a user bookmark."""
-        user = None
-        for key, value in auth_filter.items():
-            if key == "user":
-                user = User.objects.get(pk=value)
-            break
-
-        count = cls._update_bookmarks(auth_filter, comic_pks, updates, user)
-        count += cls._create_bookmarks(auth_filter, comic_pks, updates, user)
-        if user:
-            cls._update_user_active(user, log)
+        count = cls._update_bookmarks(auth_filter, comic_pks, updates)
+        count += cls._create_bookmarks(auth_filter, comic_pks, updates)
+        cls._update_user_active(auth_filter, log)
         if count:
             uid = next(iter(auth_filter.values()))
             cls._notify_library_changed(uid)

@@ -263,7 +263,7 @@ class Comic(WatchedPathBrowserGroup):
 
     @classmethod
     def get_title(
-        cls, obj, volume=True, zero_pad=None, name=True, filename_fallback=False
+        cls, obj, volume: bool, name: bool, filename_fallback: bool, zero_pad=None
     ):
         """Create the comic title for display."""
         names = []
@@ -293,7 +293,7 @@ class Comic(WatchedPathBrowserGroup):
 
     def __str__(self):
         """Most common text representation for logging."""
-        return self.get_title(self, filename_fallback=True)
+        return self.get_title(self, volume=True, name=True, filename_fallback=True)
 
     def issue(self) -> str:
         """Combine issue parts for search."""

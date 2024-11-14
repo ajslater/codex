@@ -1,7 +1,5 @@
 """Views authorization bases."""
 
-from typing import TYPE_CHECKING
-
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework.generics import GenericAPIView
@@ -10,9 +8,6 @@ from rest_framework.views import APIView
 
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc
-
-if TYPE_CHECKING:
-    from django.contrib.auth.models import User
 
 LOG = get_logger(__name__)
 
@@ -46,15 +41,15 @@ class AuthGenericAPIView(AuthMixin, GenericAPIView):
     """Auth Policy GenericAPIView."""
 
 
-class GroupACLMixin:
+class GroupACLMixin(APIView):
     """Filter group ACLS for views."""
 
     @property
     def is_admin(self):
         """Is the current user an admin."""
         if self._is_admin is None:
-            user: User = self.request.user  # type: ignore
-            self._is_admin = user and user.is_staff
+            user = self.request.user
+            self._is_admin = user and getattr(user, "is_staff", False)
         return self._is_admin
 
     @staticmethod

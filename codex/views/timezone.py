@@ -28,11 +28,11 @@ class TimezoneView(AuthGenericAPIView):
     @extend_schema(request=input_serializer_class)
     def put(self, *args, **kwargs):
         """Get the user info for the current user."""
-        data = self.request.data  # type: ignore
+        data = self.request.data
         serializer = self.input_serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         try:
-            timezone = serializer.validated_data.get("timezone")  # type: ignore
+            timezone = serializer.validated_data.get("timezone")
             self._save_timezone(timezone)
         except Exception as exc:
             reason = f"update user timezone {exc}"

@@ -51,10 +51,10 @@ class LinkCoversImporter(FailedImportsImporter):
         """Link Custom Covers to Groups."""
         link_cover_pks = self.metadata.get(LINK_COVER_PKS, {})
         num_link_cover_pks = len(link_cover_pks)
-        if not num_link_cover_pks:
-            return 0
         status = Status(ImportStatusTypes.COVERS_LINK, 0, num_link_cover_pks)
         try:
+            if not num_link_cover_pks:
+                return 0
             self.status_controller.start(status)
             # Aggregate objs to update for each group model.
             model_map = {}

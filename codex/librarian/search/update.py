@@ -7,14 +7,14 @@ from zoneinfo import ZoneInfo
 from django.db.models.aggregates import Max
 from django.db.models.expressions import F
 from django.db.models.functions.datetime import Now
-from humanize import naturaldelta
+from humanize import intword, naturaldelta
 
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.models import Comic, Library
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
-from codex.serializers.fields import CountryField, LanguageField, PyCountryField
+from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
 from codex.settings.settings import SEARCH_INDEX_BATCH_SIZE
 from codex.status import Status
 
@@ -159,7 +159,7 @@ class FTSUpdateMixin(RemoveMixin):
             obj_list.append(comicfts)
             self.log.debug(f"{len(obj_list)}/{comics.count()} entries prepped.")
 
-    def _get_comicfts_list(self, comics, create=False):
+    def _get_comicfts_list(self, comics, create: bool):
         """Create a ComicFTS object for bulk_create or bulk_update."""
         country_field = CountryField()
         language_field = LanguageField()
@@ -178,26 +178,29 @@ class FTSUpdateMixin(RemoveMixin):
             self.log.debug(f"{verb} no search entries.")
         self.status_controller.finish(status)
 
-    def _update_search_index_operate(self, comics_qs, create=False):
+    def _update_search_index_operate(self, comics_qs, create: bool):
         count = comics_qs.count()
         verb = "create" if create else "update"
         if not count:
             self.log.info(f"No search entries to {verb}.")
 
         if count > SEARCH_INDEX_BATCH_SIZE:
+            human_size = intword(SEARCH_INDEX_BATCH_SIZE)
             self.log.debug(
-                f"Batching this search engine {verb} operation in to chunks of {SEARCH_INDEX_BATCH_SIZE}."
+                f"Batching this search engine {verb} operation in to chunks of {human_size}."
                 f" Search engine {verb}s run much faster as one large batch but then there's no progress updates."
                 " You may adjust the batch size with the environment variable CODEX_SEARCH_INDEX_BATCH_SIZE."
             )
+            subtitle = f"Chunks of {human_size}"
+        else:
+            subtitle = ""
 
         status_type = (
             SearchIndexStatusTypes.SEARCH_INDEX_CREATE
             if create
             else SearchIndexStatusTypes.SEARCH_INDEX_UPDATE
         )
-        complete = None if count <= SEARCH_INDEX_BATCH_SIZE else 0
-        operate_status = Status(status_type, complete, count)
+        operate_status = Status(status_type, total=count, subtitle=subtitle)
         self.status_controller.start(operate_status)
 
         batch_from = 0
@@ -213,9 +216,13 @@ class FTSUpdateMixin(RemoveMixin):
                     break
                 operate_comicfts = self._get_comicfts_list(comics_batch, create)
                 operate_comicfts_count = len(operate_comicfts)
-                self.log.debug(f"{verb}ing {operate_comicfts_count} search entries...")
+                verbing = (verb[:-1] + "ing").capitalize()
+                self.log.debug(f"{verbing} {operate_comicfts_count} search entries...")
                 if self.abort_event.is_set():
                     break
+                if operate_status.complete is None:
+                    operate_status.add_complete(0)
+                    self.status_controller.update(operate_status, notify=True)
                 if create:
                     ComicFTS.objects.bulk_create(operate_comicfts)
                 else:
@@ -226,8 +233,9 @@ class FTSUpdateMixin(RemoveMixin):
                 self.status_controller.update(operate_status)
                 batch_time = time() - batch_start
                 eps = round(count / batch_time)
+                verbed = (verb + "d").capitalize()
                 self.log.debug(
-                    f"{verb} {operate_comicfts_count}/{count} search entries in {batch_time}, {eps} per second."
+                    f"{verbed} {operate_comicfts_count}/{count} search entries in {batch_time}, {eps} per second."
                 )
                 batch_from = batch_to
         finally:
@@ -285,7 +293,7 @@ class FTSUpdateMixin(RemoveMixin):
         elapsed = naturaldelta(elapsed_time)
         self.log.info(f"Search index updated in {elapsed}.")
 
-    def update_search_index(self, rebuild=False):
+    def update_search_index(self, rebuild: bool):
         """Update or Rebuild the search index."""
         start_time = time()
         self.abort_event.clear()

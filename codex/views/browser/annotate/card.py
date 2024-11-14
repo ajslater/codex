@@ -25,13 +25,13 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
 
     def add_group_by(self, qs):
         """Get the group by for the model."""
-        if group_by := _GROUP_BY.get(qs.model):  # type: ignore
+        if group_by := _GROUP_BY.get(qs.model):
             qs = qs.group_by(group_by)
         return qs
 
     def _annotate_group(self, qs):
         """Annotate Group."""
-        value = "c" if qs.model is Comic else self.model_group  # type: ignore
+        value = "c" if qs.model is Comic else self.model_group
         return qs.annotate(group=Value(value, CharField(max_length=1)))
 
     def _annotate_file_name(self, qs):

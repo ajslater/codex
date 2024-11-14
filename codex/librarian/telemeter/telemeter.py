@@ -68,7 +68,6 @@ def _send_telemetry(log):
     stats = CodexStats().get()
     data = {"stats": stats, "uuid": ts.version}
     _post_stats(log, data)
-    # log.debug("Sent anonymous stats")
     ts.save()  # update updated_at
 
 

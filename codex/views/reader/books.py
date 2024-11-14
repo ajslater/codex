@@ -95,7 +95,7 @@ class ReaderBooksView(SharedAnnotationsMixin, BookmarkAuthMixin, ReaderParamsVie
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        arc: Mapping = self.params.get("arc", {})  # type: ignore
+        arc: Mapping = self.params.get("arc", {})
 
         arc_group = arc.get("group", "")
         if not GROUP_MODEL_MAP.get(arc_group):
@@ -170,7 +170,8 @@ class ReaderBooksView(SharedAnnotationsMixin, BookmarkAuthMixin, ReaderParamsVie
         return book
 
     def get_book_collection(self):
-        """Get the -1, +1 window around the current issue.
+        """
+        Get the -1, +1 window around the current issue.
 
         Uses iteration in python. There are some complicated ways of
         doing this with __gt[0] & __lt[0] in the db, but I think they

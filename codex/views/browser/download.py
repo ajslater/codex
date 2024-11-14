@@ -54,7 +54,8 @@ class GroupDownloadView(BrowserFilterView):
         filename = kwargs.get("filename")
         if not filename:
             pks = self.kwargs.get("pks")
-            filename = f"{self.model.__name__} {pks} Comics.zip"  # type: ignore
+            name = self.model.__name__ if self.model else "No Model"
+            filename = f"{name} {pks} Comics.zip"
 
         headers = {"Content-Length": len(zs), "Last-Modified": zs.last_modified}
         return FileResponse(

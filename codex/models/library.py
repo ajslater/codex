@@ -23,7 +23,7 @@ __all__ = ("Library", "validate_dir_exists")
 def validate_dir_exists(path):
     """Validate that a library exists."""
     if not Path(path).is_dir():
-        raise ValidationError(_(f"{path} is not a directory"), params={"path": path})
+        raise ValidationError(_("{path} is not a directory"), params={"path": path})
 
 
 class Library(BaseModel):

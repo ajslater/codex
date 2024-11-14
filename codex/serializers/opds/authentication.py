@@ -1,9 +1,11 @@
-"""OPDS Authentication 1.0 Serializer.
+"""
+OPDS Authentication 1.0 Serializer.
 
 https://drafts.opds.io/schema/authentication.schema.json
 """
 
-from rest_framework.serializers import CharField, IntegerField, Serializer
+from rest_framework.fields import CharField
+from rest_framework.serializers import IntegerField, Serializer
 
 
 class OPDSAuth1LinksSerializer(Serializer):

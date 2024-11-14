@@ -63,7 +63,7 @@ def run():
         serve(
             application,
             HYPERCORN_CONFIG,
-            shutdown_trigger=SHUTDOWN_EVENT.wait,  # type: ignore
+            shutdown_trigger=SHUTDOWN_EVENT.wait,
         )
     )
     librarian.stop()

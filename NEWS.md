@@ -6,11 +6,65 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.8
+
+- Features
+
+  - Tags page layout changes with more notes from @beville.
+
+- Fixes
+  - Tags for simple comic fields were incorrcetly taken from the first comic in
+    a group.
+  - Filter menu wasn't populating for top folder.
+  - Librarian status tasks would appear out of order.
+
+## v1.7.7
+
+- Fixes
+  - Fix Librarians Statuses not loading in UI.
+  - Tags screen crash with untagged series or volumes.
+  - Fix tags screen Mark Read confirmation names.
+  - Order Tags Contributors by relevance not alphabetically.
+
+## v1.7.6
+
+- Features
+
+  - Always Show Filenames setting for browser cards.
+  - Tags page layout changes with notes from @beville.
+
+- Fixes
+
+  - Fix import crash on files with escapable html characters or utf-8 chars in
+    the filename.
+  - Fix page range crash in reader.
+  - Fix overzealous escaping of html in metadata strings.
+  - Fix group tags not aggregated properly in metadata screen for folders and
+    story arcs.
+
+## v1.7.5
+
+- Fixes
+
+  - More granular websocket notifications means the web UI does fewer more
+    targeted data updates.
+  - Prevent deactivating and deprivileging the logged in user.
+  - Fix resetting active flag when resetting admin user with environment
+    variable.
+  - Fix crash in auto-update when unable to determine current Codex version.
+
+## v1.7.4
+
+- Fixes
+
+  - Fix setting bookmarks and book settings bug.
+  - Sanitize HTML out of imported comic metadata fields and admin inputs.
+
 ## v1.7.3
 
 - Features
 
-  - Browser can Order By Child Count.
+  - Browser Order By Child Count.
   - Customized site title option in Admin Flags.
   - Codex logs are now compressed when rotated.
   - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.

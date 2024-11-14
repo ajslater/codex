@@ -109,7 +109,7 @@ class Janitor(
                 case JanitorVacuumTask():
                     self.vacuum_db()
                 case JanitorBackupTask():
-                    self.backup_db()
+                    self.backup_db(show_status=True)
                 case JanitorLatestVersionTask():
                     self.update_latest_version(task.force)
                 case JanitorUpdateTask():

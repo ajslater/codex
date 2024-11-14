@@ -21,15 +21,19 @@ class BookmarkThread(AggregateMessageQueuedThread, BookmarkUpdate):
         else:
             self.log.warning(f"Unknown Bookmark task {item}")
 
+    def _send_item(self, filters, updates):
+        """Process one item."""
+        auth_filter, comic_pks = filters
+        auth_filter = dict(auth_filter)
+        self.update_bookmarks(auth_filter, comic_pks, updates, self.log)
+        self.log.debug(f"updated {auth_filter} pk__in={comic_pks}")
+
     def send_all_items(self):
         """Run the task method."""
         cleanup = set()
         for filters, updates in self.cache.items():
             try:
-                auth_filter, comic_pks = filters
-                auth_filter = dict(auth_filter)
-                self.update_bookmarks(auth_filter, comic_pks, updates, self.log)
-                self.log.debug(f"updated {auth_filter} pk__in={comic_pks}")
+                self._send_item(filters, updates)
                 cleanup.add(filters)
             except Exception:
                 self.log.exception("Updating bookmarks")

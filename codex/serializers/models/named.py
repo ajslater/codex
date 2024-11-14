@@ -1,6 +1,6 @@
 """Named model Serializers."""
 
-from rest_framework.serializers import CharField
+from rest_framework.fields import CharField
 
 from codex.models import (
     AgeRating,

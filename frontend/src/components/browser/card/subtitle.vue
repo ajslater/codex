@@ -44,6 +44,7 @@ export default {
       showSeries: (state) => state.settings.show["s"],
       showVolume: (state) => state.settings.show["v"],
       zeroPad: (state) => state.page.zeroPad,
+      alwaysShowFilename: (state) => state.settings.alwaysShowFilename,
     }),
     seriesName() {
       if (
@@ -94,7 +95,10 @@ export default {
         : this.item.name;
     },
     fileName() {
-      if (this.topGroup === "f" && !this.orderByFilename) {
+      if (
+        !this.orderByFilename &&
+        (this.alwaysShowFilename || this.topGroup === "f")
+      ) {
         return this.item.fileName;
       } else {
         return "";

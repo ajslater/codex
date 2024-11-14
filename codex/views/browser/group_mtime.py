@@ -54,7 +54,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
             args["distinct"] = True
         return agg_func(bmua_rel, **args)
 
-    def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):
+    def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):  # noqa: FBT002
         """Get a filtered mtime for browser pages and mtime checker."""
         qs = self.get_filtered_queryset(
             model,

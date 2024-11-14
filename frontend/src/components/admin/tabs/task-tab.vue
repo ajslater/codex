@@ -19,28 +19,51 @@
       <h3>
         {{ group.title }}
       </h3>
-      <div
-        v-for="item in group.tasks"
-        :key="item.value"
-        class="trow"
-        :class="{ selected: false }"
-      >
-        <div class="taskBox">
-          <ConfirmDialog
-            v-if="item.confirm"
-            :button-text="item.title"
-            :title-text="item.title"
-            :text="item.confirm"
-            :block="true"
-            confirm-text="Confirm"
-            @confirm="librarianTask(item.value, item.title)"
-          />
-          <v-btn v-else block @click="librarianTask(item.value, item.title)">
-            {{ item.title }}
-          </v-btn>
-          <div class="taskDesc">
-            {{ item.desc }}
+      <div v-if="!SELECT_GROUPS.includes(group.title)">
+        <div
+          v-for="item in group.tasks"
+          :key="item.value"
+          class="trow"
+          :class="{ selected: false }"
+        >
+          <div class="taskBox">
+            <ConfirmDialog
+              v-if="item.confirm"
+              :button-text="item.title"
+              :title-text="item.title"
+              :text="item.confirm"
+              :block="true"
+              confirm-text="Confirm"
+              @confirm="librarianTask(item.value, item.title)"
+            />
+            <v-btn v-else block @click="librarianTask(item.value, item.title)">
+              {{ item.title }}
+            </v-btn>
+            <div class="taskDesc">
+              {{ item.desc }}
+            </div>
           </div>
+        </div>
+      </div>
+      <div v-else class="taskBox">
+        <v-select
+          :items="group.tasks"
+          :model-value="selectValues[group.title]"
+          @update:model-value="selectValues[group.title] = $event"
+        />
+        <v-btn
+          block
+          @click="
+            librarianTask(
+              selectValues[group.title],
+              selectAttr(group.title, 'title'),
+            )
+          "
+        >
+          {{ selectAttr(group.title, "title") }}
+        </v-btn>
+        <div class="taskDesc">
+          {{ selectAttr(group.title, "desc") }}
         </div>
       </div>
     </div>
@@ -55,6 +78,9 @@ import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
+const SELECT_GROUPS = ["Notify"];
+Object.freeze(SELECT_GROUPS);
+
 export default {
   name: "AdminTasksTab",
   components: {
@@ -62,6 +88,10 @@ export default {
   },
   data() {
     return {
+      SELECT_GROUPS,
+      selectValues: {
+        Notify: "notify_library_changed",
+      },
       tasks,
     };
   },
@@ -70,9 +100,27 @@ export default {
       formSuccess: (state) => state.form.success,
       formErrors: (state) => state.form.errors,
     }),
+    selectMaps() {
+      // Construct a value keyed map from the vuetified task list.
+      const maps = {};
+      for (const group of tasks) {
+        if (SELECT_GROUPS.includes(group.title)) {
+          maps[group.title] = {};
+          for (const item of group.tasks) {
+            maps[group.title][item.value] = item;
+          }
+        }
+      }
+      return maps;
+    },
   },
   methods: {
     ...mapActions(useAdminStore, ["librarianTask"]),
+    selectAttr(title, attr) {
+      // Get the attribute from the map lookup
+      const value = this.selectValues[title];
+      return this.selectMaps[title][value][attr];
+    },
   },
 };
 </script>

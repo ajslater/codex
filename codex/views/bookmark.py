@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.views.auth import AuthAPIView
+from codex.views.auth import AuthAPIView, GroupACLMixin
 
 if TYPE_CHECKING:
     from codex.models import BrowserGroupModel
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 LOG = get_logger(__name__)
 
 
-class BookmarkFilterMixin(APIView, ABC):
+class BookmarkFilterMixin(GroupACLMixin, ABC):
     """Bookmark filter methods."""
 
     def __init__(self, *args, **kwargs):
@@ -30,7 +30,7 @@ class BookmarkFilterMixin(APIView, ABC):
     def get_bm_rel(self, model):
         """Create bookmark relation."""
         if model not in self._bm_rels:
-            rel_prefix = self.get_rel_prefix(model)  # type: ignore
+            rel_prefix = self.get_rel_prefix(model)
             self._bm_rels[model] = rel_prefix + "bookmark"
         return self._bm_rels[model]
 

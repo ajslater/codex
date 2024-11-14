@@ -55,7 +55,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
-    def add_order_by(self, qs, order_key="", do_reverse=True, comic_sort_names=None):
+    def add_order_by(self, qs, order_key="", comic_sort_names=None):
         """Create the order_by list."""
         order_fields_head = ()
         if qs.model is Comic:
@@ -65,11 +65,9 @@ class BrowserOrderByView(BrowserGroupMtimeView):
 
         order_fields = (*order_fields_head, "pk")
 
-        prefix = "-" if do_reverse and self.params.get("order_reverse") else ""
-        order_by = []
+        prefix = "-" if self.params.get("order_reverse") else ""
         if prefix:
-            for field in order_fields:
-                order_by.append(prefix + field)
+            order_by = [prefix + field for field in order_fields]
         else:
             order_by = order_fields
 

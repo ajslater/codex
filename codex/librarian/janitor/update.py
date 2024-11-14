@@ -22,12 +22,15 @@ class UpdateMixin(WorkerBaseMixin):
     def _is_outdated(self):
         """Is codex outdated."""
         result = False
+        if VERSION is None:
+            self.log.warning("Cannot determine installed Codex version.")
+            return result
         ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
         latest_version = ts.version
         versio_latest_version = Version(latest_version)
 
         installed_versio_version = Version(VERSION)
-        if versio_latest_version.parts[1] and not installed_versio_version.parts[1]:  # type: ignore
+        if versio_latest_version.parts[1] and not installed_versio_version.parts[1]:  # type: ignore[reportIndexIssue]
             pre_blurb = "latest version is a prerelease. But installed version is not."
         else:
             result = versio_latest_version > installed_versio_version
@@ -35,7 +38,7 @@ class UpdateMixin(WorkerBaseMixin):
         self.log.debug(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
         return result
 
-    def update_codex(self, force=False):
+    def update_codex(self, force: bool):
         """Update the package and restart everything if the version changed."""
         status = Status(JanitorStatusTypes.CODEX_UPDATE)
         try:

@@ -38,8 +38,8 @@ class ComicSerializer(BaseModelSerializer):
     pk = IntegerField(source="id")
 
     # Annotations
-    # issue_count = IntegerField(allow_null=True)
-    # volume_count = IntegerField(allow_null=True)
+    # issue_count = IntegerField(allow_null=True) could be 1
+    # volume_count = IntegerField(allow_null=True) could be 1
 
     # Group FKs
     publisher = PublisherSerializer(allow_null=True)

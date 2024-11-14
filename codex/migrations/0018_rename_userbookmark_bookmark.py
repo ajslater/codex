@@ -28,8 +28,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 default="",
                 max_length=6,
-                # removed in the future
-                # validators=[codex.models.validate_fit_to_choice],
+                # Code dependent validators removed in the future
             ),
         ),
         migrations.AlterField(

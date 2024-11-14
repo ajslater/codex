@@ -169,11 +169,14 @@ class OPDS1FacetsView(BrowserView):
         )
         qps = {**self.request.GET}
         qps.update(query_params)
-        zero_pad: int = self.obj["zero_pad"]  # type: ignore
+        zero_pad: int = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.opds_acquisition_groups, zero_pad, False, self.mime_type_map
+            self.opds_acquisition_groups,
+            zero_pad,
+            metadata=False,
+            mime_type_map=self.mime_type_map,
         )
-        return OPDS1Entry(entry_obj, qps, data)
+        return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
 
     def _is_facet_active(self, facet_group, facet):
         compare = [facet.value]
@@ -231,7 +234,8 @@ class OPDS1FacetsView(BrowserView):
                 facets += [facet_obj]
         return facets
 
-    def facets(self, entries=False, root=True):
+    def facets(self, entries: bool, root: bool):
+        # entries false, root true
         """Return facets."""
         facets = []
         group = self.kwargs.get("group")

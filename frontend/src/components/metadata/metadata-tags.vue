@@ -1,38 +1,30 @@
 <template>
-  <div v-if="model && model.length > 0" class="tags">
-    <div class="chipGroupLabel">
+  <div v-if="items?.length > 0" class="tags">
+    <div v-if="label" class="chipGroupLabel">
       {{ label }}
     </div>
-    <v-chip-group :column="true" multiple :value="model">
-      <v-chip
-        v-for="item in model"
-        :key="`${label}/${item.value}`"
-        :color="chipColor(item.value)"
-        :value="item.value"
-        @click="onClick(item.value)"
-      >
-        <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-        <a v-if="item.url" :href="item.url" target="_blank"
-          >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
-        ><span v-else :class="chipClass">{{ item.title }}</span>
-      </v-chip>
-    </v-chip-group>
+    <div class="chips">
+      <MetadataChip
+        v-for="item in items"
+        :filter="filter"
+        :item="item"
+        :key="`${filter}/${item.value}`"
+      />
+    </div>
   </div>
 </template>
 
 <script>
-import { mdiFilter, mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
-
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
-import { useBrowserStore } from "@/stores/browser";
+import MetadataChip from "@/components/metadata/metadata-chip.vue";
 
 export default {
   name: "MetadataTags",
+  components: { MetadataChip },
   props: {
     label: {
       type: String,
-      required: true,
+      default: "",
     },
     values: {
       type: Array,
@@ -46,66 +38,33 @@ export default {
       default: undefined,
     },
   },
-  data() {
-    return {
-      mdiFilter,
-      mdiOpenInNew,
-    };
-  },
   computed: {
-    ...mapState(useBrowserStore, {
-      filterValues(state) {
-        const filterName = this.filter || this.label.toLowerCase();
-        return state.settings.filters[filterName];
-      },
-      topGroup: (state) => state.settings.topGroup,
-    }),
-    model() {
+    items() {
       return toVuetifyItems(this.values);
-    },
-    chipClass(pk) {
-      return { browseChip: this.filter && pk };
-    },
-  },
-  methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
-    chipColor(pk) {
-      return this.filterValues && this.filterValues.includes(pk)
-        ? this.$vuetify.theme.current.colors["primary-darken-1"]
-        : "";
-    },
-    onClick(itemPk) {
-      if (!this.filter || !itemPk) {
-        return;
-      }
-      const group = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
-      const storyArcMode = group === "s" && this.filter === "storyArcs";
-      if (!storyArcMode) {
-        const settings = { filters: { [this.filter]: [itemPk] } };
-        this.setSettings(settings);
-      }
-      const pk = storyArcMode ? itemPk : 0;
-      const params = { group, pk, page: 1 };
-      const route = { name: "browser", params };
-      this.$router.push(route);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
 .tags {
-  padding: 10px;
-  background-color: rgb(var(--v-theme-surface));
+  padding: 5px;
 }
+
 .chipGroupLabel {
   font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
 }
-.browseChip {
-  color: rgb(var(--v-theme-primary));
+.chips * {
+  margin-right: 5px;
 }
-.browseChip:hover {
-  color: rgb(var(--v-theme-linkHover));
+
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .chipGroupLabel {
+    font-size: x-small !important;
+  }
 }
 </style>

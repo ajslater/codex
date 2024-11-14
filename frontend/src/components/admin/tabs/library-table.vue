@@ -31,7 +31,7 @@
       <span class="actionButtonCell">
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
-          :title-text="`Poll for updated ${itemName}s`"
+          :title-text="`Poll for updated ${itemName}`"
           :text="item.path"
           :confirm-text="pollConfirmText(item)"
           :size="iconSize"

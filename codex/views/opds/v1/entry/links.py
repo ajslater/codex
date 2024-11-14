@@ -20,7 +20,7 @@ class OPDS1EntryLinksMixin:
     """OPDS v1 Entry Links Methods."""
 
     def __init__(
-        self, obj, query_params, data: OPDS1EntryData, title_filename_fallback=False
+        self, obj, query_params, data: OPDS1EntryData, title_filename_fallback: bool
     ):
         """Initialize params."""
         self.obj = obj
@@ -35,7 +35,6 @@ class OPDS1EntryLinksMixin:
     def _cover_link(self, rel):
         if self.fake:
             return None
-        # cover_pk = getattr(self.obj, "cover_pk", None)
         try:
             kwargs = {"group": self.obj.group, "pks": self.obj.ids}
             ts = floor(datetime.timestamp(self.obj.updated_at))
@@ -50,7 +49,7 @@ class OPDS1EntryLinksMixin:
         except Exception:
             LOG.exception("create thumb")
 
-    def _nav_href(self, metadata=False):
+    def _nav_href(self, metadata: bool):
         try:
             pks = sorted(self.obj.ids)
             kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
@@ -72,7 +71,7 @@ class OPDS1EntryLinksMixin:
             LOG.exception(msg)
             raise
 
-    def _nav_link(self, metadata=False):
+    def _nav_link(self, metadata: bool):
         href = self._nav_href(metadata)
 
         group = self.obj.group
@@ -154,7 +153,7 @@ class OPDS1EntryLinksMixin:
 
             if self.obj.group == "c" and not self.fake:
                 result += self._links_comic()
-            elif nav := self._nav_link():
+            elif nav := self._nav_link(metadata=False):
                 result += [nav]
 
         except Exception:

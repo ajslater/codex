@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from pyparsing.helpers import InfixNotationOperatorSpec
 
 _QUOTES_REXP = r"(?:\".*?\")"
-_OPERATORS_REXP = "|".join(("and not", "or not", "and", "or"))
+_OPERATORS_REXP = "and not|or not|and|or"
 _BEGIN_NOT_REXP = r"^\s*\(?\s*(?P<not>not)"
 _IMPLICIT_AND_REXP = (
     rf"{_QUOTES_REXP}|\ (?P<ok>{_OPERATORS_REXP})\ |(?P<bare>(?:\ not)?\ )\S"
@@ -183,5 +183,5 @@ def get_field_query(rel, rel_class, exp, model, many_to_many):
     bool_expr = _create_context_expression(context)
 
     parsed_result = bool_expr.parse_string(exp)
-    root_bool_operand: BoolOperand = parsed_result[0]  # type:ignore
+    root_bool_operand: BoolOperand = parsed_result[0]  # type:ignore[reportAssignmentType]
     return root_bool_operand.to_query()

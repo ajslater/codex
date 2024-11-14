@@ -23,7 +23,7 @@ LOG = get_logger(__name__)
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]  # type: ignore
+    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
@@ -40,14 +40,14 @@ class AdminStatsView(AdminGenericAPIView):
 
             input_serializer = self.input_serializer_class(data=data)
             input_serializer.is_valid(raise_exception=True)
-            params = {}
-            if input_serializer.validated_data and not isinstance(
-                input_serializer.validated_data, empty
-            ):
-                for key, value in input_serializer.validated_data.items():
-                    if value:
-                        params[key] = value
-            self._params = MappingProxyType(params)
+            self._params = MappingProxyType(
+                {
+                    key: value
+                    for key, value in input_serializer.validated_data.items()
+                    if input_serializer.validated_data
+                    and not isinstance(input_serializer.validated_data, empty)
+                }
+            )
         return self._params
 
     def _add_api_key(self, obj):
@@ -62,7 +62,7 @@ class AdminStatsView(AdminGenericAPIView):
             obj["config"] = {}
         obj["config"]["api_key"] = api_key
 
-    def get_object(self):  # type: ignore
+    def get_object(self):
         """Get the stats object with an api key."""
         getter = CodexStats(self.params)
         obj = getter.get()

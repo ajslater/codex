@@ -355,6 +355,23 @@ export const useBrowserStore = defineStore("browser", {
       }
       return { params };
     },
+    getTopGroup(group) {
+      // Very similar to browser store logic, could possibly combine.
+      let topGroup;
+      if (this.settings.topGroup === group || ["a", "f"].includes(group)) {
+        topGroup = group;
+      } else {
+        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
+        // Determine browse top group
+        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
+          if (testGroup !== "r" && this.settings.show[testGroup]) {
+            topGroup = testGroup;
+            break;
+          }
+        }
+      }
+      return topGroup;
+    },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
     _addSettings(data) {
@@ -618,6 +635,14 @@ export const useBrowserStore = defineStore("browser", {
           return true;
         })
         .catch(console.error);
+    },
+    routeWithSettings(settings, route) {
+      if (!route) {
+        return;
+      }
+      this._validateAndSaveSettings(settings);
+      // ignore redirect
+      router.push(route).catch(console.error);
     },
   },
 });

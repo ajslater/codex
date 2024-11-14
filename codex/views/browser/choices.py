@@ -8,7 +8,7 @@ from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.choices import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
+from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.logger.logging import get_logger
 from codex.models import (
     Comic,
@@ -18,8 +18,6 @@ from codex.models import (
 from codex.models.named import IdentifierType
 from codex.serializers.browser.choices import (
     BrowserChoicesFilterSerializer,
-)
-from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
@@ -98,7 +96,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
 
         return rel, model
 
-    def get_object(self) -> QuerySet:  # type: ignore
+    def get_object(self) -> QuerySet:
         """Get the comic subquery use for the choices."""
         return self.get_filtered_queryset(Comic)
 
@@ -136,12 +134,13 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         return count
 
-    def get_object(self) -> dict[str, Any]:  # type: ignore
+    def get_object(self) -> dict[str, Any]:  # type: ignore[reportIncompatibleMethodOverride]
         """Get choice counts."""
         qs = super().get_object()
         filters = self.params.get("filters", {})
         data = {}
-        for field_name in self.serializer_class().get_fields():  # type: ignore
+        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # type: ignore[reportOptionalCall, reportAssignmentType]
+        for field_name in serializer.get_fields():
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
@@ -154,7 +153,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
             try:
                 is_filter_set = bool(filters.get(field_name))
-                flag = is_filter_set or count > 1  # type: ignore
+                flag = is_filter_set or count > 1
             except TypeError:
                 flag = False
             data[field_name] = flag
@@ -185,7 +184,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
 
-    def get_object(self) -> dict[str, Any]:  # type: ignore
+    def get_object(self) -> dict[str, Any]:  # type: ignore[reportIncompatibleMethodOverride]
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()

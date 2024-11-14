@@ -8,9 +8,10 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.choices import BROWSER_ORDER_BY_CHOICES
-from codex.serializers.browser.filters import BrowserSettingsFilterSerializer
-from codex.serializers.fields import BreadcrumbsField, TimestampField, TopGroupField
+from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
+from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
+from codex.serializers.fields import TimestampField
+from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField
 from codex.serializers.route import SimpleRouteSerializer
 
 
@@ -26,7 +27,8 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
 class BrowserFilterChoicesInputSerilalizer(Serializer):
     """Browser Settings for the filter choices response."""
 
-    filters = BrowserSettingsFilterSerializer(required=False)
+    filters = BrowserSettingsFilterInputSerializer(required=False)
+    # NOT Sanitized because so complex.
     q = CharField(allow_blank=True, required=False)
 
 
@@ -51,7 +53,6 @@ class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
-    # search_results_limit = IntegerField(required=False)
     top_group = TopGroupField(required=False)
 
 
@@ -64,7 +65,8 @@ class OPDSSettingsSerializer(BrowserSettingsSerializerBase):
 
 
 class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
-    """Browser Settings that the user can change.
+    """
+    Browser Settings that the user can change.
 
     This is the only browse serializer that's submitted.
     """
@@ -72,3 +74,4 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     breadcrumbs = BreadcrumbsField(required=False)
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
+    always_show_filename = BooleanField(required=False)

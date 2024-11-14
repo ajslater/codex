@@ -3,10 +3,11 @@
 from collections.abc import Mapping
 from copy import deepcopy
 from types import MappingProxyType
+from typing import Any
 
 from rest_framework.exceptions import NotFound
 
-from codex.choices import DEFAULT_BROWSER_ROUTE
+from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models.groups import BrowserGroupModel
@@ -73,17 +74,18 @@ class BrowserValidateView(SearchFilterView):
         self, reason, route_mask=None, settings_mask: Mapping | None = None
     ):
         """Redirect the client to a valid group url."""
-        route = mapping_to_dict(self.DEFAULT_ROUTE)
+        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)  # type:ignore[reportAssignmentType]
         if route_mask:
-            route["params"].update(route_mask)  # type: ignore
-        settings: dict = deepcopy(mapping_to_dict(self.params))  # type: ignore
+            route["params"].update(route_mask)
+        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))  # type: ignore[reportAssignmentType]
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
     def _get_valid_browse_top_groups(self):
-        """Get valid top groups for the current settings.
+        """
+        Get valid top groups for the current settings.
 
         Valid top groups are determined by the Browser Settings.
         """
@@ -118,7 +120,8 @@ class BrowserValidateView(SearchFilterView):
             self.raise_redirect(reason, route, settings_mask)
 
     def _get_valid_browse_nav_groups(self, valid_top_groups):
-        """Get valid nav groups for the current settings.
+        """
+        Get valid nav groups for the current settings.
 
         Valid nav groups are the top group and below that are also
         enabled in browser settings.

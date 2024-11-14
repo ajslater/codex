@@ -151,8 +151,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 default="comic",
                 max_length=5,
-                # Removed in the future
-                # validators=[codex.models.validate_file_format_choice],
+                # codex dependent validators removed in the future
             ),
         ),
         migrations.AddField(

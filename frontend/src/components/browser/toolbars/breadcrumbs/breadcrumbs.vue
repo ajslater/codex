@@ -34,6 +34,7 @@ const GROUP_ICON_MAP = {
 export default {
   name: "BrowserBreadcrumbs",
   computed: {
+    ...mapGetters(useBrowserStore, ["groupNames"]),
     ...mapState(useCommonStore, ["timestamp"]),
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
@@ -51,18 +52,14 @@ export default {
           const text = crumb.name ? crumb.name : "";
           const group = crumb.group;
           const icon = this.getIcon(crumb.pks, text, group);
-          let tooltip;
+          let tooltipText;
           if (crumb.group === "r") {
-            tooltip = "Top";
+            tooltipText = "Top";
           } else {
-            tooltip = state.choices.static.groupNames[group];
-            if (crumb.pks == 0) {
-              tooltip = "All " + tooltip;
-            } else if (tooltip != "Series") {
-              tooltip = tooltip.slice(0, -1);
-            }
+            tooltipText = crumb.pks == 0 ? "All " : "";
+            tooltipText += this.groupNames[group];
           }
-          tooltip = { text: tooltip, openDelay: 1500 };
+          tooltip = { text: tooltipTextb, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;

@@ -222,10 +222,10 @@ class AggregateMetadataImporter(ExtractMetadataImporter):
         if self.task.force_import_metadata:
             import_metadata = True
         else:
-            key = AdminFlag.FlagChoices.IMPORT_METADATA.value  # type: ignore
+            key = AdminFlag.FlagChoices.IMPORT_METADATA.value
             import_metadata = AdminFlag.objects.get(key=key).on
         if not import_metadata:
-            self.log.warn("Admin flag set to NOT import metadata.")
+            self.log.warning("Admin flag set to NOT import metadata.")
 
         # Init metadata, extract and aggregate
         self.metadata[MDS] = {}

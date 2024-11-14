@@ -50,8 +50,8 @@ class CreateComicsImporter(LinkComicsImporter):
         self.log.debug(
             f"Preparing {num_comics} comics for update in library {self.library.path}."
         )
-        status = Status(ImportStatusTypes.FILES_MODIFIED, 0, num_comics)
-        self.status_controller.start(status, notify=False)
+        status = Status(ImportStatusTypes.FILES_MODIFIED, None, num_comics)
+        self.status_controller.start(status)
         # Get existing comics to update
         comics = Comic.objects.filter(
             library=self.library, path__in=self.task.files_modified
@@ -78,7 +78,7 @@ class CreateComicsImporter(LinkComicsImporter):
             Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
             count = len(update_comics)
 
-            self._remove_covers(comic_pks, False)  # type: ignore
+            self._remove_covers(comic_pks, custom=False)
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             if count:
                 self.log.info(f"Updated {count} comics.")
@@ -99,8 +99,8 @@ class CreateComicsImporter(LinkComicsImporter):
         self.log.debug(
             f"Preparing {num_comics} comics for creation in library {self.library.path}."
         )
-        status = Status(ImportStatusTypes.FILES_CREATED, 0, num_comics)
-        self.status_controller.start(status, notify=False)
+        status = Status(ImportStatusTypes.FILES_CREATED, None, num_comics)
+        self.status_controller.start(status)
 
         create_comics = []
         for path in sorted(self.task.files_created):
@@ -126,7 +126,7 @@ class CreateComicsImporter(LinkComicsImporter):
                     create_comics,
                     update_conflicts=True,
                     update_fields=BULK_CREATE_COMIC_FIELDS,
-                    unique_fields=Comic._meta.unique_together[0],  # type: ignore
+                    unique_fields=Comic._meta.unique_together[0],
                 )
                 count = len(create_comics)
                 if count:

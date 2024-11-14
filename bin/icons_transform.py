@@ -99,7 +99,7 @@ def transform_icon(name, size):
 
 def picopt():
     """Optimize output with picopt."""
-    args = ("picopt", "-rtx" "SVG", "-c", "WEBP", STATIC_IMG_PATH)
+    args = ("picopt", "-rtx", "SVG", "-c", "WEBP", STATIC_IMG_PATH)
     subprocess.run(args, check=False)  # noqa: S603
 
 

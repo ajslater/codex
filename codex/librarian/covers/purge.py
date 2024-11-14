@@ -6,7 +6,7 @@ from pathlib import Path
 
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
 from codex.models import Comic
 from codex.models.paths import CustomCover
 from codex.status import Status
@@ -67,9 +67,9 @@ class CoverPurgeThread(CoverCreateThread):
             self.log.info("Removed entire comic cover cache.")
             shutil.rmtree(self.CUSTOM_COVERS_ROOT)
             self.log.info("Removed entire custom cover cache.")
-        except Exception as exc:
+        except OSError as exc:
             self.log.warning(exc)
-        librarian_queue.put(LIBRARY_CHANGED_TASK)
+        librarian_queue.put(COVERS_CHANGED_TASK)
 
     def _cleanup_orphan_covers(self, cover_class, cover_root, name):
         """Remove all orphan cover thumbs."""
@@ -77,7 +77,7 @@ class CoverPurgeThread(CoverCreateThread):
             self.log.debug(f"Removing covers from missing {name}.")
             self.status_controller.start_many(self._CLEANUP_STATUS_MAP)
             pks = cover_class.objects.all().values_list("pk", flat=True)
-            db_cover_paths = self.get_cover_paths(pks)
+            db_cover_paths = self.get_cover_paths(pks, custom=False)
 
             orphan_cover_paths = set()
             for root, _, filenames in os.walk(cover_root):

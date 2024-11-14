@@ -32,7 +32,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin):
             with Image.open(image_io) as cover_image:
                 cover_image.thumbnail(
                     _THUMBNAIL_SIZE,
-                    Image.Resampling.LANCZOS,  # type: ignore
+                    Image.Resampling.LANCZOS,
                     reducing_gap=3.0,
                 )
                 cover_image.save(cover_thumb_buffer, "WEBP", method=6)
@@ -41,7 +41,8 @@ class CoverCreateThread(QueuedThread, CoverPathMixin):
 
     @classmethod
     def _get_comic_cover_image(cls, comic_path):
-        """Create comic cover if none exists.
+        """
+        Create comic cover if none exists.
 
         Return image thumb data or path to missing file thumb.
         """
@@ -59,8 +60,9 @@ class CoverCreateThread(QueuedThread, CoverPathMixin):
             return f.read()
 
     @classmethod
-    def create_cover_from_path(cls, pk, cover_path, log, librarian_queue, custom=False):
-        """Create cover for path.
+    def create_cover_from_path(cls, pk, cover_path, log, librarian_queue, custom):
+        """
+        Create cover for path.
 
         Called from views/cover.
         """
@@ -95,7 +97,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin):
             # zero length file is code for missing.
             cover_path.touch()
 
-    def _bulk_create_comic_covers(self, pks, custom=False):
+    def _bulk_create_comic_covers(self, pks, custom):
         """Create bulk comic covers."""
         num_comics = len(pks)
         if not num_comics:
@@ -115,7 +117,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin):
                 else:
                     # bulk contributor creates covers inline
                     data = self.create_cover_from_path(
-                        pk, cover_path, self.log, self.librarian_queue
+                        pk, cover_path, self.log, self.librarian_queue, custom=False
                     )
                     if data:
                         data.close()
@@ -134,6 +136,6 @@ class CoverCreateThread(QueuedThread, CoverPathMixin):
     def create_all_covers(self):
         """Create all covers for all libraries."""
         pks = CustomCover.objects.values_list("pk", flat=True)
-        self._bulk_create_comic_covers(pks, True)
+        self._bulk_create_comic_covers(pks, custom=True)
         pks = Comic.objects.values_list("pk", flat=True)
-        self._bulk_create_comic_covers(pks, False)
+        self._bulk_create_comic_covers(pks, custom=False)

@@ -47,8 +47,10 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                 elif group == "c":
                     title = Comic.get_title(
                         self.obj,
-                        zero_pad=self.zero_pad,
+                        volume=True,
+                        name=True,
                         filename_fallback=self.title_filename_fallback,
+                        zero_pad=self.zero_pad,
                     )
                     parts.append(title)
 
@@ -133,7 +135,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES)
+        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=False)
         return self._add_url_to_obj(people, "contributors")
 
     @property

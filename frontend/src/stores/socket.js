@@ -9,45 +9,8 @@ import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 import { store } from "@/stores/store";
 
-const libraryChanged = function (adminStore) {
-  useCommonStore().setTimestamp();
-  useAuthStore().loadAdminFlags();
-  const routeName = router?.currentRoute?.value?.name;
-  switch (routeName) {
-    case "browser":
-      useBrowserStore().loadMtimes();
-      break;
-    case "reader":
-      useReaderStore().loadMtimes();
-      break;
-    case "admin-libraries":
-      if (adminStore) {
-        adminStore.loadTables(["Library", "FailedImport"]);
-      }
-      break;
-    case "admin-users":
-      if (adminStore) {
-        adminStore.loadTables(["User"]);
-      }
-      break;
-    case "admin-groups":
-      if (adminStore) {
-        adminStore.loadTables(["Group"]);
-      }
-      break;
-    case "admin-stats":
-      if (adminStore) {
-        adminStore.loadStats();
-      }
-      break;
-    case "admin-flags":
-      if (adminStore) {
-        adminStore.loadTables(["Flag"]);
-      }
-      break;
-  }
-};
-
+const USER_GROUP_ROUTES = ["admin-groups", "admin-users", "admin-libraries"];
+Object.freeze(USER_GROUP_ROUTES);
 // vue-native-websockets doesn't put socket stuff in its own module :/
 export const useSocketStore = defineStore("socket", {
   state: () => ({
@@ -58,18 +21,17 @@ export const useSocketStore = defineStore("socket", {
     heartBeatTimer: 0,
   }),
   getters: {
-    adminStore() {
+    async adminStore() {
       // Only load the admin store if the user is an admin.
-      let adminStore;
-      if (useAuthStore().isUserAdmin) {
-        import("@/stores/admin")
-          .then((adminModule) => {
-            adminStore = adminModule.useAdminStore();
-            return adminStore;
-          })
-          .catch(console.error);
+      if (!useAuthStore().isUserAdmin) {
+        return;
       }
-      return adminStore;
+      // Returns a promise that must be awaited!
+      return import("@/stores/admin")
+        .then((adminModule) => {
+          return adminModule.useAdminStore();
+        })
+        .catch(console.error);
     },
   },
   actions: {
@@ -106,25 +68,30 @@ export const useSocketStore = defineStore("socket", {
       // Would be nicer if components could add their own listeners.
       const message = event.data;
       console.debug(message);
-
-      // Cannot instantiate store outside of case blocks.
-
       switch (message) {
-        case messages.LIBRARY_CHANGED:
-          libraryChanged(this.adminStore);
-
+        case messages.ADMIN_FLAGS:
+          this.adminFlagsNotified();
+          break;
+        case messages.BOOKMARK:
+          this.bookmarksNotified();
+          break;
+        case messages.COVERS:
+          this.coversNotified();
+          break;
+        case messages.GROUPS:
+          this.groupsNotified();
+          break;
+        case messages.USERS:
+          this.usersNotified();
+          break;
+        case messages.LIBRARY:
+          this.libraryNotified();
           break;
         case messages.LIBRARIAN_STATUS:
-          if (this.adminStore) {
-            this.adminStore.loadTable("LibrarianStatus");
-          }
-
+          this.adminLoadTables(["LibrarianStatus"]);
           break;
         case messages.FAILED_IMPORTS:
-          if (this.adminStore) {
-            this.adminStore.unseenFailedImports = true;
-          }
-
+          this.failedImportsNotified();
           break;
         default:
           console.debug("Unhandled websocket message:", message);
@@ -136,6 +103,70 @@ export const useSocketStore = defineStore("socket", {
     SOCKET_RECONNECT_ERROR() {
       console.error("socket reconnect error");
       this.reconnectError = true;
+    },
+    async adminLoadTables(tables) {
+      if (this.adminStore) {
+        (await this.adminStore).loadTables(tables);
+      }
+    },
+    adminFlagsNotified() {
+      useAuthStore().loadAdminFlags();
+      const routeName = router?.currentRoute?.value?.name;
+      if (routeName === "admin-flags") {
+        this.adminLoadTables(["Flag"]);
+      }
+    },
+    reloadBrowser() {
+      const routeName = router?.currentRoute?.value?.name;
+      if (routeName === "browser") {
+        useBrowserStore().loadMtimes();
+      }
+    },
+    bookmarksNotified() {
+      this.reloadBrowser();
+    },
+    coversNotified() {
+      this.reloadBrowser();
+    },
+    groupsNotified() {
+      const routeName = router?.currentRoute?.value?.name;
+      if (USER_GROUP_ROUTES.includes(routeName)) {
+        this.adminLoadTables(["Group"]);
+      }
+    },
+    usersNotified() {
+      const routeName = router?.currentRoute?.value?.name;
+      if (USER_GROUP_ROUTES.includes(routeName)) {
+        this.adminLoadTables(["User"]);
+      }
+    },
+    async libraryNotified() {
+      useCommonStore().setTimestamp();
+      const routeName = router?.currentRoute?.value?.name;
+      switch (routeName) {
+        case "browser":
+          useBrowserStore().loadMtimes();
+          break;
+        case "reader":
+          useReaderStore().loadMtimes();
+          break;
+        case "admin-groups":
+          this.adminLoadTables(["Library"]);
+          break;
+        case "admin-libraries":
+          this.adminLoadTables(["Library", "FailedImport"]);
+          break;
+        case "admin-stats":
+          if (this.adminStore) {
+            (await this.adminStore).loadStats();
+          }
+          break;
+      }
+    },
+    async failedImportsNotified() {
+      if (this.adminStore) {
+        (await this.adminStore).unseenFailedImports = true;
+      }
     },
   },
 });

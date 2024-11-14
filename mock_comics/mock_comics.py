@@ -91,9 +91,9 @@ STATUS_DELAY = 5
 LANG_LIST = []
 for lang in languages:
     try:
-        LANG_LIST.append(lang.alpha_2)  # type: ignore
+        LANG_LIST.append(lang.alpha_2)  # type: ignore[reportAttributeAccessIssue]
     except AttributeError:
-        LANG_LIST.append(lang.alpha_3)  # type: ignore
+        LANG_LIST.append(lang.alpha_3)  # type: ignore[reportAttributeAccessIssue]
 COVER_RATIO = 1.5372233400402415
 COVER_WIDTH = 250
 COVER_HEIGHT = int(COVER_RATIO * COVER_WIDTH)
@@ -284,9 +284,7 @@ def _hex_path(num):
     num_str = f"{num:07}"
     fnv = fnv1a_32(bytes(num_str, "utf-8"))
     hex_str = format(fnv, f"0{HEX_FILL}x")
-    parts = []
-    for i in range(0, len(hex_str), PATH_STEP):
-        parts.append(hex_str[i : i + PATH_STEP])
+    parts = [hex_str[i : i + PATH_STEP] for i in range(0, len(hex_str), PATH_STEP)]
     path = Path("/".join(parts))
     return path.with_suffix(".cbz")
 

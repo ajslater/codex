@@ -1,4 +1,5 @@
-"""ASGI config for codex project.
+"""
+ASGI config for codex project.
 
 It exposes the ASGI callable as a module-level variable named ``DJANGO_APPLICATION``.
 

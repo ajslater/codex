@@ -1,23 +1,15 @@
 """Copy Intersections Into Comic Fields."""
 
-from codex.logger.logging import get_logger
 from codex.models.comic import Comic
 from codex.serializers.browser.metadata import PREFETCH_PREFIX
+from codex.views.browser.metadata.annotate import (
+    COMIC_VALUE_FIELDS_CONFLICTING,
+    COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+    PATH_GROUPS,
+)
 from codex.views.browser.metadata.query_intersections import (
     MetadataQueryIntersectionsView,
 )
-
-LOG = get_logger(__name__)
-_COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
-    {
-        "created_at",
-        "name",
-        "path",
-        "updated_at",
-    }
-)
-_COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-_PATH_GROUPS = frozenset({"c", "f"})
 
 
 class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
@@ -26,7 +18,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     def _path_security(self, obj):
         """Secure filesystem information for acl situation."""
         group = self.kwargs["group"]
-        is_path_group = group in _PATH_GROUPS
+        is_path_group = group in PATH_GROUPS
         if is_path_group:
             if self.is_admin:
                 return
@@ -47,7 +39,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     @classmethod
     def _copy_m2m_intersections(cls, obj, m2m_intersections):
         """Copy the m2m intersections into the object."""
-        # XXX It might even be faster to copy everything to a dict and not use the obj.
+        # It might even be faster to copy everything to a dict and not use the obj.
         for key, qs in m2m_intersections.items():
             serializer_key = (
                 f"{PREFETCH_PREFIX}{key}"
@@ -72,10 +64,10 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
 
     @staticmethod
     def _copy_conflicting_simple_fields(obj):
-        for field in _COMIC_VALUE_FIELDS_CONFLICTING:
+        for field in COMIC_VALUE_FIELDS_CONFLICTING:
             """Copy conflicting fields over naturral fields."""
-            conflict_field = _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX + field
-            val = getattr(obj, conflict_field)
+            conflict_field = COMIC_VALUE_FIELDS_CONFLICTING_PREFIX + field
+            val = getattr(obj, conflict_field, None)
             setattr(obj, field, val)
 
     def copy_intersections_into_comic_fields(self, obj, groups, m2m_intersections):

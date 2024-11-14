@@ -1,4 +1,5 @@
-"""Batch watchdog events into bulk database tasks.
+"""
+Batch watchdog events into bulk database tasks.
 
 Watchdog actually starts events as bulk events with the DirSnapshotDiff
 but the built-in filesystem event emitters serialize them, so the most

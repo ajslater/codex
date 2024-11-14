@@ -79,8 +79,7 @@ def _cast_value(rel, rel_class, value):
         value = parse(value)
         if rel_class == DateField and value:
             value = value.date()
-    # elif rel_class in (CharField, TextField):
-    #    value = value
+    # (CharField, TextField):
     return value
 
 

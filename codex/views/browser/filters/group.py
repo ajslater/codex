@@ -9,7 +9,7 @@ from codex.views.const import (
     GROUP_RELATION,
 )
 
-_GROUP_REL_TARGETS = frozenset({"cover", "choices"})
+_GROUP_REL_TARGETS = frozenset({"cover", "choices", "bookmark"})
 _PK_REL_TARGETS = frozenset({"metadata", "mtime"})
 
 
@@ -18,16 +18,16 @@ class GroupFilterView(BrowserParamsView):
 
     SESSION_KEY = BrowserParamsView.BROWSER_SESSION_KEY
 
-    def _get_rel_for_pks(self, group, page_mtime=False):
+    TARGET = ""
+
+    def _get_rel_for_pks(self, group, page_mtime: bool):
         """Get the relation from the model to the pks."""
-        # XXX these TARGET refs might be better as subclass get rel methods.
-        target: str = self.TARGET  # type: ignore
-        if target in _GROUP_REL_TARGETS:
+        if self.TARGET in _GROUP_REL_TARGETS:
             rel = FILTER_ONLY_GROUP_RELATION[group]
-        elif target in _PK_REL_TARGETS or page_mtime:
+        elif self.TARGET in _PK_REL_TARGETS or page_mtime:
             # metadata, mtime, browser.page_mtime
             rel = "pk"
-        elif target == "download":
+        elif self.TARGET == "download":
             rel = "comic__folders" if group == "f" else "pk"
         else:
             # browser.group, opds
@@ -36,7 +36,7 @@ class GroupFilterView(BrowserParamsView):
         rel += "__in"
         return rel
 
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):
+    def get_group_filter(self, group=None, pks=None, page_mtime=False):  # noqa: FBT002
         """Get filter for the displayed group."""
         if group is None:
             group = self.kwargs["group"]
@@ -46,7 +46,7 @@ class GroupFilterView(BrowserParamsView):
         if pks and 0 not in pks:
             rel = self._get_rel_for_pks(group, page_mtime)
             group_filter_dict = {rel: pks}
-        elif group == FOLDER_GROUP:
+        elif group == FOLDER_GROUP and self.TARGET != "choices":
             # Top folder search
             group_filter_dict = {"parent_folder": None}
         else:

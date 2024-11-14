@@ -17,7 +17,7 @@ class IndexView(SessionView):
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
 
     permission_classes = (AllowAny,)
-    renderer_classes: ClassVar[list] = [TemplateHTMLRenderer]  # type: ignore
+    renderer_classes: ClassVar[list] = [TemplateHTMLRenderer]  # type: ignore[reportIncompatibleVariableOverride]
     template_name = "index.html"
 
     def _get_last_route(self):
