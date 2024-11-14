@@ -1,5 +1,5 @@
 <template>
-  <div v-if="displayValue" class="text" :class="{ highlight }">
+  <div v-if="displayValue" class="text">
     <div class="textLabel" v-if="label">
       {{ label }}
       <ExpandButton
@@ -16,11 +16,12 @@
           :ref="textValueRefName"
           :style="textValueStyles"
         >
-          <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-          <a v-if="groupHref" :href="groupHref" :title="title">
-            {{ displayValue }}
-          </a>
-          <span v-else class="textContent">
+          <span
+            class="textContent"
+            :class="classes"
+            :title="title"
+            @click="onClick"
+          >
             {{ displayValue }}
           </span>
           <span v-if="baseName" class="textContent">{{ baseName }} </span>
@@ -141,29 +142,49 @@ export default {
     showExpandButton() {
       return !this.expanded && this.maxHeight > 0 && this.isOverflow;
     },
-    groupHref() {
-      // Using router-link gets hijacked and topGroup is not submitted.
-      const group = this.group;
+    linkPks() {
+      const pks = this.value.ids ? this.value.ids : [this.value.pk];
+      return pks.join(",");
+    },
+    clickable() {
       const params = this.$router.currentRoute.value.params;
 
       // Validate Group
       if (
-        !group ||
-        params.group === group ||
-        (group === "f" && !this.folderViewEnabled) ||
-        (!["a", "f"].includes(group) && !this.browserShow[group])
+        !this.group ||
+        params.group === this.group ||
+        (this.group === "f" && !this.folderViewEnabled) ||
+        (!["a", "f"].includes(this.group) && !this.browserShow[this.group])
       ) {
-        return;
+        return false;
       }
 
       // Get & validate pks
-      const pks = this.value.ids ? this.value.ids : [this.value.pk];
-      if (!pks || !pks.length) {
-        return;
+      if (!this.linkPks?.length) {
+        return false;
       }
+      return true;
+    },
+    classes() {
+      return {
+        clickable: this.clickable,
+        highlight: this.highlight,
+      };
+    },
+    toRoute() {
+      // Using router-link gets hijacked and topGroup is not submitted.
+      if (!this.clickable) {
+        return "";
+      }
+
+      const group = this.group;
+      const pks = this.linkPks;
+      const params = { group, pks, page: 1 };
+      return { name: "browser", params };
+    },
+    linkSettings() {
       const topGroup = this.getTopGroup(this.group);
-      const query = { topGroup };
-      return getBrowserHref({ group, pks, query });
+      return { topGroup };
     },
     title() {
       let label = this.label
@@ -183,7 +204,14 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["getTopGroup"]),
+    ...mapActions(useBrowserStore, ["validateAndSaveSettings", "getTopGroup"]),
+    onClick() {
+      if (!this.clickable || !this.toRoute) {
+        return;
+      }
+      this.validateAndSaveSettings(this.linkSettings);
+      this.$router.push(this.toRoute);
+    },
   },
 };
 </script>
@@ -216,20 +244,27 @@ export default {
   float: right;
 }
 
-.highlight .textContent {
-  background-color: rgb(var(--v-theme-primary-darken-1));
-  padding: 0px 8px 0px 8px;
-  border-radius: 12px;
+.clickable {
+  cursor: pointer;
+  color: rgb(var(--v-theme-primary));
 }
 
-// eslint-disable-next-line vue-scoped-css/no-unused-selector
-.highlight a.textContent {
+.clickable:hover {
+  color: white;
+}
+
+.highlight {
+  padding: 0px 8px 0px 8px;
+  border-radius: 12px;
+  background-color: rgb(var(--v-theme-primary-darken-1));
+}
+
+.highlight {
   color: rgb(var(--v-theme-textPrimary)) !important;
   background-color: rgb(var(--v-theme-primary-darken-1));
 }
 
-// eslint-disable-next-line vue-scoped-css/no-unused-selector
-.highlight a.textContent:hover {
+.clickable.highlight:hover {
   border: solid thin rgb(var(--v-theme-textPrimary));
 }
 

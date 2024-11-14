@@ -90,7 +90,7 @@ export default {
       return groupMode ? this.item.value.toString() : "0";
     },
     toRoute() {
-      if (!this.filter || !this.item.value) {
+      if (!this.clickable) {
         return "";
       }
       const group = this.linkGroup;
