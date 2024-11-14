@@ -22,7 +22,7 @@
         :block="block"
         :density="density"
         :size="size"
-        title="titleText"
+        :title="titleText"
         @click="autoConfirm"
       >
         <v-icon v-if="prependIcon">{{ prependIcon }}</v-icon>

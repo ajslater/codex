@@ -19,7 +19,7 @@
           label="Updated at"
           class="mtime"
         />
-        <MetadataText :value="size" label="Size" />
+        <MetadataText :value="size" :label="sizeLabel" />
         <MetadataText :value="fileType" label="File Type" />
       </div>
       <div class="thirdRow">
@@ -126,6 +126,9 @@ export default {
     },
     size() {
       return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
+    },
+    sizeLabel() {
+      return this?.md?.group === "c" ? "Size" : "Total Size";
     },
     fileType() {
       return this?.md?.fileType || "Unknown";

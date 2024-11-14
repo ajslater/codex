@@ -1,15 +1,14 @@
 <template>
   <v-chip
+    :class="classes"
     :color="color"
-    :key="`${filter}/${item.value}`"
     :value="item.value"
+    :variant="variant"
     @click="onClick"
   >
-    <span class="chip" :class="classes">
-      <a v-if="item.url" :href="item.url" target="_blank"
-        >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
-      ><span v-else>{{ item.title }}</span>
-    </span>
+    <a v-if="item.url" :href="item.url" target="_blank"
+      >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
+    ><span v-else>{{ item.title }}</span>
   </v-chip>
 </template>
 
@@ -63,18 +62,24 @@ export default {
       );
     },
     classes() {
-      return { browseChip: this.clickable || this.item.url };
+      return {
+        clickable: (this.clickable || this.item.url) && !this.highlight,
+      };
     },
-    color() {
-      const highlight =
+    highlight() {
+      return Boolean(
         (this.groupMode &&
           this.filter === this.mdGroup &&
           this.mdIds.includes(this.item.value)) ||
-        (this.filterValues && this.filterValues.includes(this.item.value));
-
-      return highlight
-        ? this.$vuetify.theme.current.colors["primary-darken-1"]
-        : "";
+          this.filterValues?.includes(this.item.value),
+      );
+    },
+    variant() {
+      return this.highlight ? "flat" : "tonal";
+    },
+    color() {
+      const colors = this.$vuetify.theme.current.colors;
+      return this.highlight ? colors["primary-darken-1"] : "";
     },
     linkGroup() {
       return this.groupMode
@@ -125,16 +130,16 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.browseChip {
+.clickable :deep(.v-chip__content) {
   color: rgb(var(--v-theme-primary));
 }
 
-.browseChip:hover {
+.clickable:hover :deep(.v-chip__content) {
   color: rgb(var(--v-theme-linkHover));
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .chip {
+  .v-chip {
     font-size: x-small !important;
   }
 }

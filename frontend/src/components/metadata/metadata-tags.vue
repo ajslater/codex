@@ -59,7 +59,7 @@ export default {
   color: rgb(var(--v-theme-textSecondary));
 }
 .chips * {
-  margin-left: 2px;
+  margin-right: 5px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

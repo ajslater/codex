@@ -100,7 +100,8 @@ class StatusController(LoggerBaseMixin):
 
     def start_many(self, status_iterable):
         """Start many librarian statuses."""
-        for active_pad_ms, status in enumerate(status_iterable):
+        for index, status in enumerate(status_iterable):
+            active_pad_ms = index * 100
             self.start(
                 status, notify=False, active_pad_ms=active_pad_ms, preactive=True
             )

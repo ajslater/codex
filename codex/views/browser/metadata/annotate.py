@@ -2,13 +2,10 @@
 
 from django.db.models import Count, IntegerField, Sum, Value
 
-from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
 
-LOG = get_logger(__name__)
-_ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
-_COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
+COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     {
         "created_at",
         "name",
@@ -16,8 +13,11 @@ _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
         "updated_at",
     }
 )
+COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
+PATH_GROUPS = frozenset({"c", "f"})
+_ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
 _DISABLED_VALUE_FIELD_NAMES = frozenset(
-    {"id", "pk", "sort_name", "stat"} | _COMIC_VALUE_FIELDS_CONFLICTING
+    {"id", "pk", "sort_name", "stat"} | COMIC_VALUE_FIELDS_CONFLICTING
 )
 _COMIC_VALUE_FIELD_NAMES = frozenset(
     # contains path
@@ -25,9 +25,7 @@ _COMIC_VALUE_FIELD_NAMES = frozenset(
     for field in Comic._meta.get_fields()
     if not field.is_relation and field.name not in _DISABLED_VALUE_FIELD_NAMES
 )
-_COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
 _COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_count"})
-_PATH_GROUPS = frozenset({"c", "f"})
 _SUM_FIELDS = frozenset({"page_count", "size"})
 
 
@@ -40,7 +38,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
         group = self.kwargs["group"]
         if (
             not (self.is_admin and self.admin_flags["folder_view"])
-            or group not in _PATH_GROUPS
+            or group not in PATH_GROUPS
         ):
             fields -= _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return tuple(fields)
@@ -67,16 +65,17 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
             else:
                 # group_by makes the filter work, but prevents its
                 # use as a subquery in the big query.
-                sq = filtered_qs.alias(
-                    filter_count=Count(full_field, distinct=True)
-                ).filter(filter_count=1)
+                sq = filtered_qs.annotate(filter_count=Count(full_field, distinct=True))
+                sq = sq.filter(filter_count=1)
                 sq = self.add_group_by(sq)
                 sq = self.force_inner_joins(sq)
+                if not sq.count():
+                    continue
                 sq = sq.values_list(full_field + related_suffix, flat=True)
                 try:
                     val = sq[0]
                 except IndexError:
-                    val = None
+                    continue
                 if field.endswith("count"):
                     output_field = IntegerField()
                 else:
@@ -97,8 +96,8 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
             # Conflicting Simple Values
             querysets = self._intersection_annotate(
                 querysets,
-                _COMIC_VALUE_FIELDS_CONFLICTING,
-                annotation_prefix=_COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+                COMIC_VALUE_FIELDS_CONFLICTING,
+                annotation_prefix=COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
 
         # Foreign Keys with special count values
