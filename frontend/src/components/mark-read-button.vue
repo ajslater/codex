@@ -14,7 +14,7 @@
 
 <script>
 import { mdiBookmarkCheckOutline, mdiBookmarkMinusOutline } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -35,9 +35,7 @@ export default {
     },
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      groupNames: (state) => state.choices.static.groupNames,
-    }),
+    ...mapGetters(useBrowserStore, ["groupNames"]),
     verb() {
       return this.item.finished ? "Unread" : "Read";
     },
@@ -63,10 +61,7 @@ export default {
       if (this.item.group != "c") {
         words.push("Entire");
       }
-      let groupName = this.groupNames[this.item.group];
-      if (this.item.group !== "s") {
-        groupName = groupName.slice(0, -1);
-      }
+      const groupName = this.groupNames[this.item.group];
       words.push(groupName, this.verb);
       return words.join(" ");
     },

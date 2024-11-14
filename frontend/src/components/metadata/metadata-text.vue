@@ -38,10 +38,9 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGettters, mapState } from "pinia";
 
 import { getBrowserHref } from "@/api/v3/browser";
-import { topGroup } from "@/choices/browser-map";
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -87,6 +86,7 @@ export default {
     this.mounted = true;
   },
   computed: {
+    ...mapGetters(useBrowserStore, ["groupNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
       browserTopGroup: (state) => state.settings.topGroup,
@@ -187,14 +187,11 @@ export default {
       return { topGroup };
     },
     title() {
-      let label = this.label
+      const label = this.label
         ? this.label
         : this.group
-          ? topGroup[this.group]
+          ? this.groupNames[this.group]
           : "";
-      if (label !== "Series") {
-        label = label.slice(0, -1);
-      }
       return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {

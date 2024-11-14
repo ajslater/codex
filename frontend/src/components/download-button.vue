@@ -18,7 +18,6 @@ import { mapGetters } from "pinia";
 import { getGroupDownloadURL } from "@/api/v3/browser";
 import { getDownloadIOSPWAFix } from "@/api/v3/common";
 import { getComicDownloadURL } from "@/api/v3/reader";
-import { topGroup as GROUP_NAME_MAP } from "@/choices/browser-map.json";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
@@ -42,7 +41,7 @@ export default {
     return { mdiDownload };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["filterOnlySettings"]),
+    ...mapGetters(useBrowserStore, ["filterOnlySettings", "groupNames"]),
     show() {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
@@ -53,10 +52,7 @@ export default {
       if (this.isOneComic) {
         return this.item.name;
       } else {
-        let groupName = GROUP_NAME_MAP[this.item?.group];
-        if (groupName !== "Series") {
-          groupName = groupName.slice(0, -1);
-        }
+        const groupName = groupNames[this.item?.group];
         return `${groupName} - ${this.item.name} Comics.zip`;
       }
     },
