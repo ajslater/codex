@@ -38,7 +38,7 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGettters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getBrowserHref } from "@/api/v3/browser";
 import { formattedVolumeName } from "@/comic-name";
