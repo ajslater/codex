@@ -3,6 +3,7 @@
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
+from django.db.models.query_utils import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -117,9 +118,9 @@ _TASK_MAP = MappingProxyType(
 class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
     """Librarian Task Statuses."""
 
-    queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
-        "active", "pk"
-    )
+    queryset = LibrarianStatus.objects.filter(
+        Q(preactive__isnull=False) | Q(active__isnull=False)
+    ).order_by("preactive", "active", "pk")
     serializer_class = LibrarianStatusSerializer
 
 

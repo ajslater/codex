@@ -71,11 +71,11 @@ class LibrarianStatus(BaseModel):
     status_type = CharField(
         db_index=True, max_length=max_choices_len(CHOICES), choices=CHOICES
     )
-    preactive = BooleanField(default=False)
+    subtitle = CharField(db_index=True, max_length=MAX_NAME_LEN)
     complete = PositiveSmallIntegerField(null=True, default=None)
     total = PositiveSmallIntegerField(null=True, default=None)
+    preactive = DateTimeField(null=True, default=None)
     active = DateTimeField(null=True, default=None)
-    subtitle = CharField(db_index=True, max_length=MAX_NAME_LEN)
 
     class Meta(BaseModel.Meta):
         """Constraints."""

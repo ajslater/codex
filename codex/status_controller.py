@@ -1,11 +1,11 @@
 """Librarian Status."""
 
 from enum import Enum
-from logging import DEBUG, INFO
+from logging import DEBUG
 from time import time
 
 from django.db.models.functions.datetime import Now
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import datetime, now, timedelta
 
 from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
@@ -67,27 +67,29 @@ class StatusController(LoggerBaseMixin):
             status = status.value
         return status
 
-    def start(
+    def _update(
         self,
         status,
-        notify: bool = True,  # noqa: FBT002
-        preactive: bool = False,  # noqa: FBT002
-        active_pad_ms=0,
+        notify: bool,
+        active: datetime | None = None,
+        preactive: datetime | None = None,
     ):
         """Start a librarian status."""
         try:
             if not status.status_type:
                 reason = f"Bad status type: {status.status_type}"
                 raise ValueError(reason)  # noqa: TRY301
-            active = now() + timedelta(milliseconds=active_pad_ms)
             updates = {
-                "preactive": preactive,
                 "complete": status.complete,
                 "total": status.total,
-                "active": active,
-                "subtitle": status.subtitle,
                 "updated_at": Now(),
             }
+            if preactive is not None:
+                updates["preactive"] = preactive
+            if active:
+                updates["active"] = active
+            if status.subtitle:
+                updates["subtitle"] = status.subtitle
             LibrarianStatus.objects.filter(status_type=status.status_type).update(
                 **updates
             )
@@ -96,15 +98,23 @@ class StatusController(LoggerBaseMixin):
             status.since = time()
         except Exception:
             title = ADMIN_STATUS_TITLES[status.status_type]
-            self.log.exception(f"Start status: {title}")
+            self.log.exception(f"Update status: {title}")
+
+    def start(
+        self,
+        status,
+        notify: bool = True,  # noqa: FBT002
+        preactive: datetime | None = None,
+    ):
+        """Start a librarian status."""
+        self._update(status, notify=notify, preactive=preactive, active=now())
 
     def start_many(self, status_iterable):
         """Start many librarian statuses."""
         for index, status in enumerate(status_iterable):
-            active_pad_ms = index * 100
-            self.start(
-                status, notify=False, active_pad_ms=active_pad_ms, preactive=True
-            )
+            pad_ms = index * 100
+            preactive = now() + timedelta(milliseconds=pad_ms)
+            self._update(status, notify=False, preactive=preactive)
         self._enqueue_notifier_task(notify=True)
 
     def update(self, status, notify: bool = True):  # noqa: FBT002
@@ -112,23 +122,7 @@ class StatusController(LoggerBaseMixin):
         if time() - status.since < self._UPDATE_DELTA:
             # noop unless time has expired.
             return
-        updates = {
-            "preactive": False,
-            "complete": status.complete,
-            "total": status.total,
-            "updated_at": Now(),
-        }
-        try:
-            LibrarianStatus.objects.filter(status_type=status.status_type).update(
-                **updates
-            )
-            self._enqueue_notifier_task(notify)
-            if notify:
-                self._loggit(INFO, status)
-                status.since = time()
-        except Exception as exc:
-            title = ADMIN_STATUS_TITLES[status.status_type]
-            self.log.warning(f"Update status {title}: {exc}")
+        self._update(status, notify=notify)
 
     def finish_many(self, statii, notify: bool = True, until=0.0):  # noqa: FBT002
         """Finish all librarian statuses."""

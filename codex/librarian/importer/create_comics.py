@@ -50,8 +50,8 @@ class CreateComicsImporter(LinkComicsImporter):
         self.log.debug(
             f"Preparing {num_comics} comics for update in library {self.library.path}."
         )
-        status = Status(ImportStatusTypes.FILES_MODIFIED, 0, num_comics)
-        self.status_controller.start(status, notify=False)
+        status = Status(ImportStatusTypes.FILES_MODIFIED, None, num_comics)
+        self.status_controller.start(status)
         # Get existing comics to update
         comics = Comic.objects.filter(
             library=self.library, path__in=self.task.files_modified
@@ -99,8 +99,8 @@ class CreateComicsImporter(LinkComicsImporter):
         self.log.debug(
             f"Preparing {num_comics} comics for creation in library {self.library.path}."
         )
-        status = Status(ImportStatusTypes.FILES_CREATED, 0, num_comics)
-        self.status_controller.start(status, notify=False)
+        status = Status(ImportStatusTypes.FILES_CREATED, None, num_comics)
+        self.status_controller.start(status)
 
         create_comics = []
         for path in sorted(self.task.files_created):

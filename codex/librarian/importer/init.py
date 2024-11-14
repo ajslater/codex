@@ -224,8 +224,7 @@ class InitImporter(WorkerBaseMixin):
         status_list += [
             Status(
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                0,
-                search_index_updates,
+                total=search_index_updates,
             ),
             Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
         ]
