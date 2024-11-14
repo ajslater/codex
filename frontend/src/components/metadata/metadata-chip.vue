@@ -18,7 +18,7 @@ import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
-import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
+import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
 const GROUP_SET = new Set(["p", "i", "s", "v"]);
@@ -98,38 +98,19 @@ export default {
       const params = { group, pks, page: 1 };
       return { name: "browser", params };
     },
-    linkTopGroup() {
-      // TODO duplicate with metadata-text
-      // Very similar to browser store logic, could possibly combine.
-      let topGroup;
-      const group = this.toRoute?.params.group;
-      if (this.topGroup === group || ["a", "f"].includes(group)) {
-        topGroup = group;
-      } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
-        // Determine browse top group
-        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "r" && this.browserShow[testGroup]) {
-            topGroup = testGroup;
-            break;
-          }
-        }
-      }
-      return topGroup;
-    },
     linkSettings() {
       let settings;
       if (this.linkPks === "0") {
         settings = { filters: { [this.filter]: [this.item.value] } };
       } else {
-        const topGroup = this.linkTopGroup;
+        const topGroup = this.getTopGroup(this.linkGroup);
         settings = { topGroup };
       }
       return settings;
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["validateAndSaveSettings"]),
+    ...mapActions(useBrowserStore, ["validateAndSaveSettings", "getTopGroup"]),
     async onClick() {
       if (!this.clickable || !this.toRoute) {
         return;

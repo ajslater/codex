@@ -112,5 +112,22 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return tagMap;
     },
+    getTopGroup(group, browserTopGrop, browserShow) {
+      // Very similar to browser store logic, could possibly combine.
+      let topGroup;
+      if (browserTopGroup === group || ["a", "f"].includes(group)) {
+        topGroup = group;
+      } else {
+        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
+        // Determine browse top group
+        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
+          if (testGroup !== "r" && browserShow[testGroup]) {
+            topGroup = testGroup;
+            break;
+          }
+        }
+      }
+      return topGroup;
+    },
   },
 });

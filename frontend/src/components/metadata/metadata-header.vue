@@ -15,7 +15,7 @@
           :key="md.seriesList[0].ids"
           :value="md.seriesList[0]"
           group="s"
-          :obj="{ ids: md.ids, group: md.group }"
+          :highlight="'s' === md.group"
         />
         <MetadataText
           v-if="md.volumeList?.length === 1"
@@ -23,20 +23,16 @@
           :key="md.volumeList[0].ids"
           :value="md.volumeList[0]"
           group="v"
-          :obj="{ ids: md.ids, group: md.group }"
+          :highlight="'v' === md.group"
         />
-        <MetadataText
-          :value="md.seriesVolumeCount"
-          class="subdued"
-          prefix="of"
-        />
+        <MetadataText :value="seriesVolumeCount" class="subdued" />
         <MetadataText
           id="issue"
           :value="formattedIssueNumber"
           group="c"
-          :obj="{ ids: md.ids, group: md.group }"
+          :highlight="'c' === md.group"
         />
-        <MetadataText :value="md.volumeIssueCount" class="subdued" prefix="/" />
+        <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
     </section>
     <span id="titleRow" v-if="md.name">
@@ -69,7 +65,7 @@
         id="publisher"
         group="p"
         :key="md.publisherList[0].ids"
-        :obj="{ ids: md.ids, group: md.group }"
+        :highlight="'p' === md.group"
         :value="md.publisherList[0]"
       />
       <MetadataText
@@ -77,7 +73,7 @@
         id="imprint"
         group="i"
         :key="md.imprintList[0].ids"
-        :obj="{ ids: md.ids, group: md.group }"
+        :highlight="'i' === md.group"
         :value="md.imprintList[0]"
       />
     </div>
@@ -217,6 +213,14 @@ export default {
     fileType() {
       return this?.md?.fileType || "Unknown";
     },
+    seriesVolumeCount() {
+      const count = this.md.seriesVolumeCount;
+      return count ? `of ${count}` : "";
+    },
+    volumeIssueCount() {
+      const count = this.md.volumeIssueCount;
+      return count ? `/ ${count}` : "";
+    },
   },
 };
 </script>
@@ -254,10 +258,10 @@ export default {
   margin-top: -10px;
   font-size: xx-large;
 }
+
 #seriesRow div:first-child,
 #publisherRow div:first-child,
-#pageDateRow div:first-child
-{
+#pageDateRow div:first-child {
   padding-left: 0px;
 }
 

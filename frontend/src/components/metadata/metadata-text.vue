@@ -17,16 +17,13 @@
           :style="textValueStyles"
         >
           <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-          <a v-if="href" :href="href" :title="title" :target="target">
+          <a v-if="groupHref" :href="groupHref" :title="title">
             {{ displayValue }}
-            <v-icon v-if="link" size="small">
-              {{ mdiOpenInNew }}
-            </v-icon>
           </a>
           <span v-else class="textContent">
             {{ displayValue }}
           </span>
-          <span v-if="baseName">{{ baseName }} </span>
+          <span v-if="baseName" class="textContent">{{ baseName }} </span>
         </div>
         <ExpandButton
           v-if="showExpandButton && !label"
@@ -40,13 +37,13 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { getBrowserHref } from "@/api/v3/browser";
 import { topGroup } from "@/choices/browser-map";
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
-import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
+import { useBrowserStore } from "@/stores/browser";
 const EMPTY_VALUE = "(Empty)";
 
 export default {
@@ -55,33 +52,27 @@ export default {
     ExpandButton,
   },
   props: {
-    label: {
-      type: String,
-      default: "",
-    },
-    value: {
-      type: [Object, String, Number, Boolean],
-      default: undefined,
-    },
-    link: {
-      type: [Boolean, String],
-      default: false,
-    },
     group: {
       type: String,
       default: "",
     },
-    obj: {
-      type: Object,
-      default: undefined,
+    highlight: {
+      type: Boolean,
+      default: false,
+    },
+    label: {
+      // Body
+      type: String,
+      default: "",
     },
     maxHeight: {
       type: Number,
       default: 0,
     },
-    prefix: {
-      type: String,
-      default: "",
+    value: {
+      // Header -GroupObj, "text to Display",
+      type: [Object, String, Number, Boolean],
+      default: undefined,
     },
   },
   data() {
@@ -119,15 +110,13 @@ export default {
       } else {
         value = this.computedValue;
       }
-      if (value && this.prefix) {
-        value = this.prefix + " " + value;
-      }
       return value;
     },
     empty() {
       return this.displayValue === EMPTY_VALUE;
     },
     textValueStyles() {
+      // makes expandable.
       const maxHeight =
         this.maxHeight > 0 && !this.expanded ? this.maxHeight : 0;
       if (maxHeight) {
@@ -152,7 +141,7 @@ export default {
     showExpandButton() {
       return !this.expanded && this.maxHeight > 0 && this.isOverflow;
     },
-    _browserGroupHref() {
+    groupHref() {
       // Using router-link gets hijacked and topGroup is not submitted.
       const group = this.group;
       const params = this.$router.currentRoute.value.params;
@@ -172,23 +161,9 @@ export default {
       if (!pks || !pks.length) {
         return;
       }
-      const topGroup = this.getTopGroup(group);
+      const topGroup = this.getTopGroup(this.group);
       const query = { topGroup };
       return getBrowserHref({ group, pks, query });
-    },
-    _linkHref() {
-      if (this.link === true) {
-        return this.displayValue;
-      } else if (this.link) {
-        return this.link;
-      }
-      return false;
-    },
-    href() {
-      return this._browserGroupHref ? this._browserGroupHref : this._linkHref;
-    },
-    target() {
-      return this.link ? "_blank" : "";
     },
     title() {
       let label = this.label
@@ -199,35 +174,16 @@ export default {
       if (label !== "Series") {
         label = label.slice(0, -1);
       }
-      return this._browserGroupHref ? `Browse to ${label}` : label;
+      return this.groupHref ? `Browse to ${label}` : label;
     },
     baseName() {
       return this.group === "f"
         ? this.computedValue.substring(this.lastSlashIndex)
         : "";
     },
-    highlight() {
-      return this.obj?.group === this.group;
-    },
   },
   methods: {
-    getTopGroup(group) {
-      // Very similar to browser store logic, could possibly combine.
-      let topGroup;
-      if (this.browserTopGroup === group || ["a", "f"].includes(group)) {
-        topGroup = group;
-      } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
-        // Determine browse top group
-        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "r" && this.browserShow[testGroup]) {
-            topGroup = testGroup;
-            break;
-          }
-        }
-      }
-      return topGroup;
-    },
+    ...mapActions(useBrowserStore, ["getTopGroup"]),
   },
 };
 </script>
