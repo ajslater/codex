@@ -3,14 +3,14 @@
     <div v-if="label" class="chipGroupLabel">
       {{ label }}
     </div>
-    <v-chip-group>
+    <div class="chips">
       <MetadataChip
         v-for="item in items"
         :filter="filter"
         :item="item"
         :key="`${filter}/${item.value}`"
       />
-    </v-chip-group>
+    </div>
   </div>
 </template>
 
@@ -57,6 +57,9 @@ export default {
 .chipGroupLabel {
   font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
+}
+.chips * {
+  margin-left: 2px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
