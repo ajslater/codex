@@ -195,7 +195,7 @@ export default {
       if (label !== "Series") {
         label = label.slice(0, -1);
       }
-      return this.groupHref ? `Browse to ${label}` : label;
+      return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {
       return this.group === "f"
@@ -204,13 +204,12 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["validateAndSaveSettings", "getTopGroup"]),
+    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
     onClick() {
-      if (!this.clickable || !this.toRoute) {
+      if (!this.clickable) {
         return;
       }
-      this.validateAndSaveSettings(this.linkSettings);
-      this.$router.push(this.toRoute);
+      this.routeWithSettings(this.linkSettings, this.toRoute);
     },
   },
 };

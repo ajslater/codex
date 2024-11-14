@@ -110,14 +110,12 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["validateAndSaveSettings", "getTopGroup"]),
+    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
     async onClick() {
-      if (!this.clickable || !this.toRoute) {
+      if (!this.clickable) {
         return;
       }
-      this.validateAndSaveSettings(this.linkSettings);
-      // NOT obeying redirect.
-      this.$router.push(this.toRoute);
+      this.routeWithSettings(this.linkSettings, this.toRoute);
     },
   },
 };

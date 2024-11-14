@@ -396,7 +396,7 @@ export const useBrowserStore = defineStore("browser", {
       });
       this.startSearchHideTimeout();
     },
-    validateAndSaveSettings(data) {
+    _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
       redirect = this._validateTopGroup(data, redirect);
       if (dequal(redirect?.params, router.currentRoute.value.params)) {
@@ -414,7 +414,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async setSettings(data) {
       // Save settings to state and re-get the objects.
-      const redirect = this.validateAndSaveSettings(data);
+      const redirect = this._validateAndSaveSettings(data);
       this.browserPageLoaded = true;
       if (redirect) {
         redirectRoute(redirect);
@@ -533,7 +533,7 @@ export const useBrowserStore = defineStore("browser", {
       await API.getSettings({ group })
         .then((response) => {
           const data = response.data;
-          const redirect = this.validateAndSaveSettings(data);
+          const redirect = this._validateAndSaveSettings(data);
           this.browserPageLoaded = true;
           if (redirect) {
             return redirectRoute(redirect);
@@ -635,6 +635,14 @@ export const useBrowserStore = defineStore("browser", {
           return true;
         })
         .catch(console.error);
+    },
+    routeWithSettings(settings, route) {
+      if (!route) {
+        return;
+      }
+      this._validateAndSaveSettings(settings);
+      // ignore redirect
+      router.push(route).catch(console.error);
     },
   },
 });
