@@ -8,7 +8,7 @@
       :highlight="true"
     />
     <MetadataBookCover id="metadataBookCover" :group="group" />
-    <section id="seriesHeader" v-if="md.seriesList?.length === 1">
+    <section v-if="md.seriesList?.length === 1" id="seriesHeader">
       <div id="seriesRow" class="inlineRow">
         <MetadataText
           id="series"
@@ -35,7 +35,7 @@
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
     </section>
-    <span id="titleRow" v-if="md.name">
+    <span v-if="md.name" id="titleRow">
       {{ md.name }}
     </span>
     <MetadataTags
@@ -57,22 +57,22 @@
       />
     </div>
     <div
+      v-if="md.publisherList?.length === 1"
       id="publisherRow"
       class="inlineRow"
-      v-if="md.publisherList?.length === 1"
     >
       <MetadataText
         id="publisher"
-        group="p"
         :key="md.publisherList[0].ids"
+        group="p"
         :highlight="'p' === md.group"
         :value="md.publisherList[0]"
       />
       <MetadataText
         v-if="md.imprintList?.length === 1"
         id="imprint"
-        group="i"
         :key="md.imprintList[0].ids"
+        group="i"
         :highlight="'i' === md.group"
         :value="md.imprintList[0]"
       />
@@ -95,8 +95,8 @@
     />
     <div
       v-if="pages || md.year || md.month || md.day"
-      class="inlineRow"
       id="pageDateRow"
+      class="inlineRow"
     >
       <MetadataText :value="pages" />
       <MetadataText :value="date" class="datePicker" />
@@ -106,7 +106,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
@@ -145,31 +145,25 @@ export default {
       if (!this.md.year && !this.md.month && !this.md.day) {
         return "";
       }
-      if (this.md.year && this.md.month && this.md.day) {
-        const date = new Date(
-          this.md.year || 1970,
-          this.md.month || 1,
-          this.md.day || 1,
-        );
-        const options = {};
-        if (this.md.year) {
-          options.year = "numeric";
-        }
-        if (this.md.month) {
-          options.month = this.$vuetify.display.smAndDown ? "short" : "long";
-        }
-        if (this.md.day) {
-          options.day = "numeric";
-        }
-        return date.toLocaleDateString("default", options);
+      const date = new Date(
+        this.md.year || 1970,
+        this.md.month || 1,
+        this.md.day || 1,
+      );
+      const options = {};
+      if (this.md.year) {
+        options.year = "numeric";
       }
+      if (this.md.month) {
+        options.month = this.$vuetify.display.smAndDown ? "short" : "long";
+      }
+      if (this.md.day) {
+        options.day = "numeric";
+      }
+      return date.toLocaleDateString("default", options);
     },
     readerRoute() {
-      if (this.md?.ids) {
-        return getReaderRoute(this.md, this.importMetadata);
-      } else {
-        return {};
-      }
+      return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
     },
     formattedIssueNumber() {
       if (!this.md) {
@@ -191,11 +185,9 @@ export default {
       }
       if (this.md.page) {
         const humanBookmark = NUMBER_FORMAT.format(this.md.page);
-        if (this.$vuetify.display.smAndDown) {
-          pages += `${humanBookmark} / `;
-        } else {
-          pages += `Read ${humanBookmark} of `;
-        }
+        pages += this.$vuetify.display.smAndDown
+          ? `${humanBookmark} / `
+          : `Read ${humanBookmark} of `;
       }
       const humanPages = NUMBER_FORMAT.format(this.md.pageCount);
       pages += `${humanPages} page`;
@@ -244,10 +236,6 @@ export default {
   margin-right: 15px;
 }
 
-#headerText {
-  display: inline-flex;
-  flex-direction: column;
-}
 
 .inlineRow,
 .inlineRow>* {
@@ -259,9 +247,9 @@ export default {
   font-size: xx-large;
 }
 
-#seriesRow div:first-child,
-#publisherRow div:first-child,
-#pageDateRow div:first-child {
+#seriesRow :deep(.text:first-child),
+#publisherRow :deep(.text:first-child),
+#pageDateRow :deep(.text:first-child) {
   padding-left: 0px;
 }
 

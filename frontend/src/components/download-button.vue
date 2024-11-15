@@ -52,14 +52,14 @@ export default {
       if (this.isOneComic) {
         return this.item.name;
       } else {
-        const groupName = groupNames[this.item?.group];
+        const groupName = this.groupNames[this.item?.group];
         return `${groupName} - ${this.item.name} Comics.zip`;
       }
     },
     downloadURL() {
       let url = "";
       if (this.isOneComic) {
-        const pk = this.pks[0];
+        const pk = this.item.ids[0];
         url = getComicDownloadURL({ pk }, this.downloadFn, this.item?.mtime);
       } else {
         const group = this.item?.group;
@@ -79,11 +79,9 @@ export default {
     },
     title() {
       let titleStr = "Download";
-      if (this.isOneComic) {
-        titleStr += " Book";
-      } else {
-        titleStr += ` ${this.formattedChildren} Books`;
-      }
+      titleStr += this.isOneComic
+        ? " Book"
+        : ` ${this.formattedChildren} Books`;
       return titleStr;
     },
     confirm() {

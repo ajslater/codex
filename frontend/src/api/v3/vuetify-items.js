@@ -22,6 +22,8 @@ const toVuetifyItem = function (item) {
         const value = item.ids.join(",");
         vuetifyItem = { value, title: item.name };
       }
+    } else if (NULL_PKS.has(item.pk)) {
+      vuetifyItem = undefined;
     } else {
       if (NULL_PKS.has(item.pk)) {
         vuetifyItem = undefined;

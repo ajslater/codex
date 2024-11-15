@@ -41,6 +41,7 @@ export const useCommonStore = defineStore("common", {
     },
     versions: {
       // This is injected by vite define
+      // eslint-disable-next-line no-undef
       installed: CODEX_PACKAGE_VERSION,
       latest: undefined,
     },

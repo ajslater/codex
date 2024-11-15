@@ -100,7 +100,7 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
     setError(name, field) {
-      if (this.formErrors && this.formErrors.length) {
+      if (this.formErrors && this.formErrors.length > 0) {
         this.errors[name] = this.formErrors[0][field];
       } else {
         delete this.errors[name];

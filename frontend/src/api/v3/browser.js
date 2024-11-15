@@ -12,7 +12,7 @@ const getBrowserHrefPath = ({ group, pks, query, ts }) => {
 };
 
 export const getBrowserHref = ({ group, pks, query }) => {
-  const base = window.CODEX.APP_PATH;
+  const base = globalThis.CODEX.APP_PATH;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,
     pks,
@@ -22,7 +22,7 @@ export const getBrowserHref = ({ group, pks, query }) => {
 };
 
 export const getCoverSrc = ({ group, pks }, settings, ts) => {
-  const base = window.CODEX.API_V3_PATH;
+  const base = globalThis.CODEX.API_V3_PATH;
   delete settings.show;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,
@@ -67,7 +67,7 @@ const updateSettings = (settings) => {
 };
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
-  const base = window.CODEX.API_V3_PATH;
+  const base = globalThis.CODEX.API_V3_PATH;
   delete settings.show;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,

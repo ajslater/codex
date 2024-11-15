@@ -19,7 +19,7 @@ import {
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
 import deepClone from "deep-clone";
-import { mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -39,17 +39,14 @@ export default {
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
         const vueCrumbs = [];
-        const parentBreadcrumbs = state.settings.breadcrumbs.slice(
-          0,
-          state.settings.breadcrumbs.length - 1,
-        );
+        const parentBreadcrumbs = state.settings.breadcrumbs.slice(0, -1);
         if (!parentBreadcrumbs) {
           return vueCrumbs;
         }
         let parentPks = "";
         for (const crumb of parentBreadcrumbs) {
           const to = this.getTo(crumb, parentPks);
-          const text = crumb.name ? crumb.name : "";
+          const text = crumb.name || "";
           const group = crumb.group;
           const icon = this.getIcon(crumb.pks, text, group);
           let tooltipText;
@@ -59,7 +56,7 @@ export default {
             tooltipText = crumb.pks == 0 ? "All " : "";
             tooltipText += this.groupNames[group];
           }
-          tooltip = { text: tooltipTextb, openDelay: 1500 };
+          const tooltip = { text: tooltipText, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;
@@ -81,12 +78,12 @@ export default {
     },
     getIcon(pks, title, group) {
       let icon;
-      if ("rfa".indexOf(group) != -1 && pks === "0") {
+      if ("rfa".includes(group) && pks === "0") {
         icon = mdiFormatVerticalAlignTop;
-      } else if (!title) {
-        icon = GROUP_ICON_MAP[group];
-      } else {
+      } else if (title) {
         icon = "";
+      } else {
+        icon = GROUP_ICON_MAP[group];
       }
       return icon;
     },

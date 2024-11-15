@@ -20,8 +20,10 @@ const TIME_SORT_BY = new Set([
   "created_at",
   "updated_at",
 ]);
+/* eslint-disable unicorn/no-null */
 const HIDE_ORDER_BYS = new Set([null, undefined, "sort_name"]);
 const HIDE_ORDER_VALUES = new Set([null, undefined]);
+/* eslint-enable unicorn/no-null */
 
 export default {
   name: "OrderByCaption",
@@ -74,7 +76,7 @@ export default {
     format_search_score(ov) {
       // Round Whoosh float into a two digit integer.
       ov = NUMBER_FORMAT.format(Math.round(Number.parseFloat(ov) * 10));
-      if (isNaN(ov)) {
+      if (Number.isNaN(ov)) {
         ov = "";
       }
       return ov;

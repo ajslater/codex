@@ -6,9 +6,9 @@
     <div class="chips">
       <MetadataChip
         v-for="item in items"
+        :key="`${filter}/${item.value}`"
         :filter="filter"
         :item="item"
-        :key="`${filter}/${item.value}`"
       />
     </div>
   </div>

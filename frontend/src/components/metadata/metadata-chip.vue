@@ -6,6 +6,7 @@
     :variant="variant"
     @click="onClick"
   >
+    <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
     <a v-if="item.url" :href="item.url" target="_blank"
       >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
     ><span v-else>{{ item.title }}</span>
@@ -16,7 +17,6 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
@@ -27,7 +27,7 @@ export default {
   props: {
     item: {
       type: Object,
-      require: true,
+      required: true,
     },
     filter: {
       type: String,
@@ -82,11 +82,13 @@ export default {
       return this.highlight ? colors["primary-darken-1"] : "";
     },
     linkGroup() {
-      return this.groupMode
-        ? this.filter
-        : ["f", "s"].includes(this.topGroup)
-          ? this.topGroup
-          : "r";
+      let linkGroup;
+      if (this.groupMode) {
+        linkGroup = this.filter;
+      } else {
+        linkGroup = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
+      }
+      return linkGroup;
     },
     linkPks() {
       const groupMode =

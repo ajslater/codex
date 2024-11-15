@@ -7,7 +7,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.codexListItem > :deep(.v-list-item__prepend > .v-list-item__spacer) {
+.codexListItem :deep(> .v-list-item__prepend > .v-list-item__spacer) {
   display: none;
 }
 </style>

@@ -5,7 +5,7 @@ export const getReaderRoute = (
   importMetadata,
 ) => {
   // Get the route to a comic with the correct entry page.
-  if (ids.length < 1 || (importMetadata && !pageCount)) {
+  if (ids.length === 0 || (importMetadata && !pageCount)) {
     return "";
   }
   const pk = ids[0];

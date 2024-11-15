@@ -15,7 +15,6 @@ const ROLES = [
   "editors",
 ];
 Object.freeze(ROLES);
-const RATINGS = ["communityRating", "criticalRating", "ageRating"];
 const TAGS = [
   "genres",
   "characters",
@@ -26,6 +25,7 @@ const TAGS = [
   "storyArcNumbers",
   "tags",
 ];
+Object.freeze(TAGS);
 
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
@@ -41,7 +41,6 @@ export const useMetadataStore = defineStore("metadata", {
       // Convert contributors into a role based map
       for (const { role, person } of state.md.contributors) {
         const roleName = role.name + "s";
-        const tags = contributors[roleName];
         if (!(roleName in contributors)) {
           contributors[roleName] = [];
         }
@@ -59,8 +58,8 @@ export const useMetadataStore = defineStore("metadata", {
           roles.delete(role);
         }
       }
-      const tailRoles = Array.from(roles).sort();
-      return sortedRoles.concat(tailRoles);
+      const tailRoles = [...roles].sort();
+      return [...sortedRoles, ...tailRoles];
     },
     contributors(state) {
       return this.mapTag(
@@ -100,34 +99,19 @@ export const useMetadataStore = defineStore("metadata", {
         }
 
         // Special sub
-        const filter = fixedFilter
-          ? fixedFilter
-          : key === "storyArcNumbers"
-            ? "storyArcs"
-            : key;
-
+        let filter;
+        if (fixedFilter) {
+          filter = fixedFilter;
+        } else if (key === "storyArcNumbers") {
+          filter = "storyArcs";
+        } else {
+          filter = key;
+        }
         const tagName = capitalCase(key);
         tags = tags.sort((a, b) => a.name.localeCompare(b.name));
         tagMap[tagName] = { filter, tags };
       }
       return tagMap;
-    },
-    getTopGroup(group, browserTopGrop, browserShow) {
-      // Very similar to browser store logic, could possibly combine.
-      let topGroup;
-      if (browserTopGroup === group || ["a", "f"].includes(group)) {
-        topGroup = group;
-      } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
-        // Determine browse top group
-        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "r" && browserShow[testGroup]) {
-            topGroup = testGroup;
-            break;
-          }
-        }
-      }
-      return topGroup;
     },
   },
 });
