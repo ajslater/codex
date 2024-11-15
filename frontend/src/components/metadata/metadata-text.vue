@@ -81,9 +81,6 @@ export default {
       mounted: false,
     };
   },
-  mounted() {
-    this.mounted = true;
-  },
   computed: {
     ...mapGetters(useBrowserStore, ["groupNames"]),
     ...mapState(useBrowserStore, {

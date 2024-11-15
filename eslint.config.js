@@ -64,10 +64,15 @@ export default [
   eslintPluginRegexp.configs[FLAT_RECOMMENDED],
   eslintPluginSecurity.configs.recommended,
   eslintPluginSonarjs.configs.recommended,
+  ...eslintPluginToml.configs[FLAT_RECOMMENDED],
   eslintPluginUnicorn.configs[FLAT_RECOMMENDED],
+  ...eslintPluginYml.configs[FLAT_RECOMMENDED],
+  ...eslintPluginYml.configs["flat/prettier"],
   eslintPluginPrettierRecommended,
   {
     languageOptions: {
+      // eslint-plugin-import sets this to 2018.
+      ecmaVersion: "latest",
       globals: {
         ...globals.node,
         ...globals.browser,
@@ -81,7 +86,30 @@ export default [
       "simple-import-sort": eslintPluginSimpleImportSort,
     },
     rules: {
+      "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
+      "depend/ban-dependencies": [
+        "error",
+        {
+          // import-x doesn't work with eslint 9 yet
+          allowed: ["eslint-plugin-import"],
+        },
+      ],
+      "max-params": ["warn", 4],
+      "no-console": "warn",
+      "no-debugger": "warn",
+      "no-secrets/no-secrets": "error",
       "prettier/prettier": "warn",
+      "security/detect-object-injection": "off",
+      "simple-import-sort/exports": "warn",
+      "simple-import-sort/imports": "warn",
+      "space-before-function-paren": "off",
+      "unicorn/filename-case": [
+        "error",
+        { case: "kebabCase", ignore: [".*.md"] },
+      ],
+      "unicorn/prefer-node-protocol": "off",
+      "unicorn/prevent-abbreviations": "off",
+      "unicorn/switch-case-braces": ["warn", "avoid"],
     },
   },
   {
@@ -96,21 +124,15 @@ export default [
       "prettier/prettier": ["warn", { parser: "markdown" }],
     },
   },
-  ...eslintPluginToml.configs[FLAT_RECOMMENDED],
   {
     files: ["*.toml", "**/*.toml"],
     rules: {
-      // https://github.com/ota-meshi/eslint-plugin-toml/issues/234
-      ...eslintPluginToml.configs[FLAT_RECOMMENDED].rules,
       "prettier/prettier": ["error", { parser: "toml" }],
     },
   },
-  ...eslintPluginYml.configs[FLAT_RECOMMENDED],
-  ...eslintPluginYml.configs["flat/prettier"],
   {
     files: ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
     rules: {
-      // https://github.com/ota-meshi/eslint-plugin-toml/issues/234
       "prettier/prettier": ["error", { parser: "yaml" }],
     },
   },
