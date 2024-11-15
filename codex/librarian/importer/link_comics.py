@@ -95,6 +95,7 @@ class LinkComicsImporter(LinkCoversImporter):
 
     def _link_named_m2ms(self, all_m2m_links, comic_pk, md):
         """Set the ids of all named m2m fields into the comic dict."""
+        total = 0
         for field, names in md.items():
             related_model = Comic._meta.get_field(field).related_model
             if related_model is None:
@@ -106,6 +107,8 @@ class LinkComicsImporter(LinkCoversImporter):
             if field not in all_m2m_links:
                 all_m2m_links[field] = {}
             all_m2m_links[field][comic_pk] = frozenset(pks)
+            total += len(pks)
+        return total
 
     def _link_prepare_special_m2ms(self, link_data, key, model, get_link_filter_method):
         """Prepare special m2m for linking."""
@@ -125,6 +128,7 @@ class LinkComicsImporter(LinkCoversImporter):
 
     def _link_comic_m2m_fields(self):
         """Get the complete m2m field data to create."""
+        total = 0
         all_m2m_links = {}
         comic_paths = frozenset(self.metadata.get(M2M_MDS, {}).keys())
         if not comic_paths:
@@ -143,9 +147,9 @@ class LinkComicsImporter(LinkCoversImporter):
                     method = self._get_link_dict_filter
                 self._link_prepare_special_m2ms(link_data, field_name, model, method)
 
-            self._link_named_m2ms(all_m2m_links, comic_pk, md)
+            total += self._link_named_m2ms(all_m2m_links, comic_pk, md)
         self.metadata.pop(M2M_MDS)
-        return all_m2m_links
+        return all_m2m_links, total
 
     def _query_relation_adjustments(
         self,
@@ -237,9 +241,12 @@ class LinkComicsImporter(LinkCoversImporter):
 
     def bulk_query_and_link_comic_m2m_fields(self):
         """Combine query and bulk link into a batch."""
-        status = Status(ImportStatusTypes.LINK_M2M_FIELDS)
+        status = Status(ImportStatusTypes.LINK_M2M_FIELDS, None, None)
         self.status_controller.start(status)
-        all_m2m_links = self._link_comic_m2m_fields()
+        all_m2m_links, link_total = self._link_comic_m2m_fields()
+        status.complete = 0
+        status.total = link_total
+        self.status_controller.update(status)
         created_total = 0
         del_total = 0
         for field_name, m2m_links in all_m2m_links.items():
@@ -249,6 +256,8 @@ class LinkComicsImporter(LinkCoversImporter):
                 )
                 created_total += created_count
                 del_total += del_count
+                status.complete += created_count + del_count
+                self.status_controller.update(status, notify=False)
             except Exception:
                 self.log.exception(f"Error recreating m2m field: {field_name}")
 

@@ -11,6 +11,7 @@ import READER_CHOICES from "@/choices/reader-choices.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 
+/* eslint-disable unicorn/no-null */
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
@@ -18,12 +19,14 @@ const NULL_READER_SETTINGS = {
   readingDirection: "",
   readRtlInReverse: null,
 };
+/* eslint-enable unicorn/no-null */
 Object.freeze(NULL_READER_SETTINGS);
 const NULL_CLIENT_SETTINGS = {
   cacheBook: false,
 };
 Object.freeze(NULL_CLIENT_SETTINGS);
 
+// eslint-disable-next-line unicorn/no-null
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
 
@@ -45,7 +48,7 @@ const OPPOSITE_READING_DIRECTIONS = {
   btt: "ttb",
 };
 Object.freeze(OPPOSITE_READING_DIRECTIONS);
-export const SCALE_DEFAULT = 1.0;
+export const SCALE_DEFAULT = 1;
 const FIT_TO_CLASSES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CLASSES);
 const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
@@ -132,17 +135,6 @@ export const useReaderStore = defineStore("reader", {
     bookSettings: {},
   }),
   getters: {
-    groupBooks(state) {
-      const books = [];
-      if (state.books.prev[0]) {
-        books.push[state.books.prev[0]];
-      }
-      books.push[state.books.current];
-      if (state.books.next[0]) {
-        books.push[state.books.next[0]];
-      }
-      return books;
-    },
     activeSettings(state) {
       // the empty settings guarantee here is for vitest.
       return state.getBookSettings(state.books.current) || {};
@@ -204,7 +196,7 @@ export const useReaderStore = defineStore("reader", {
           route.hash = `#card-${cardPk}`;
         }
       } else {
-        params = window.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
+        params = globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
       }
       route.params = params;
       return route;
@@ -240,7 +232,7 @@ export const useReaderStore = defineStore("reader", {
           usedKeys[key] = value;
         }
       }
-      if (state.arc && Object.keys(state.arc).length) {
+      if (state.arc && Object.keys(state.arc).length > 0) {
         usedKeys.arc = {
           group: state.arc.group,
           pks: state.arc.pks,
@@ -358,11 +350,10 @@ export const useReaderStore = defineStore("reader", {
     fitToClass(bookSettings) {
       const classes = {};
       let fitTo;
-      if (this.clientSettings.scale > SCALE_DEFAULT) {
-        fitTo = "Orig";
-      } else {
-        fitTo = FIT_TO_CLASSES[bookSettings.fitTo];
-      }
+      fitTo =
+        this.clientSettings.scale > SCALE_DEFAULT
+          ? "Orig"
+          : FIT_TO_CLASSES[bookSettings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
         fitToClass += capitalCase(fitTo);
@@ -468,7 +459,7 @@ export const useReaderStore = defineStore("reader", {
       if (this.isPagesNotRoutes) {
         const route = { params: { pk: this.books.current.pk, page } };
         const { href } = router.resolve(route);
-        window.history.pushState({}, undefined, href);
+        globalThis.history.pushState({}, undefined, href);
       } else {
         window.scrollTo(0, 0);
       }

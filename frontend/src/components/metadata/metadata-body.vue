@@ -1,12 +1,10 @@
 <template>
   <div id="metadataBody">
     <section class="mdSection">
-      <MetadataText :value="md.summary" label="Summary" :maxHeight="100" />
-      <MetadataText :value="md.review" label="Review" :maxHeight="100" />
+      <MetadataText :value="md.summary" :max-height="100" />
+      <MetadataText :value="md.review" label="Review" :max-height="100" />
     </section>
-    <section class="mdSection">
-      <MetadataContributorsTable :value="md.contributors" />
-    </section>
+    <MetadataTagsTable :tag-map="contributors" class="mdSection" />
     <section class="mdSection">
       <div class="quarterRow">
         <MetadataText
@@ -21,7 +19,7 @@
           label="Updated at"
           class="mtime"
         />
-        <MetadataText :value="size" label="Size" />
+        <MetadataText :value="size" :label="sizeLabel" />
         <MetadataText :value="fileType" label="File Type" />
       </div>
       <div class="thirdRow">
@@ -47,54 +45,48 @@
     <section class="mdSection">
       <MetadataTags :values="titledIdentifiers" label="Identifiers" />
     </section>
+    <v-table v-if="showRatings" class="mdSection">
+      <tbody>
+        <tr v-if="md.communityRating">
+          <td class="key">Community Rating</td>
+          <td>
+            <MetadataText :value="md.communityRating" />
+          </td>
+        </tr>
+        <tr v-if="md.criticalRating">
+          <td class="key">Critical Rating</td>
+          <td>
+            <MetadataText :value="md.criticalRating" />
+          </td>
+        </tr>
+        <tr v-if="md.ageRating">
+          <td class="key">Age Rating</td>
+          <td>
+            <MetadataText :value="md.ageRating" />
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
+    <MetadataTagsTable :tag-map="tags" class="mdSection" />
     <section class="mdSection">
-      <MetadataText :value="md.communityRating" label="Community Rating" />
-      <MetadataText :value="md.criticalRating" label="Critical Rating" />
-      <MetadataText :value="md.ageRating" label="Age Rating" />
-    </section>
-    <section class="mdSection">
-      <MetadataTags :values="md.genres" label="Genres" filter="genres" />
-      <MetadataTags
-        :values="md.characters"
-        label="Characters"
-        filter="characters"
-      />
-      <MetadataTags :values="md.teams" label="Teams" filter="teams" />
-      <MetadataTags
-        :values="md.locations"
-        label="Locations"
-        filter="locations"
-      />
-      <MetadataTags
-        :values="md.seriesGroups"
-        label="Series Groups"
-        filter="seriesGroups"
-      />
-      <MetadataTags :values="md.stories" label="Stories" filter="stories" />
-      <MetadataTags
-        :values="md.storyArcNumbers"
-        label="Story Arcs"
-        filter="storyArcs"
-      />
-      <MetadataTags :values="md.tags" label="Tags" filter="tags" />
-    </section>
-    <section class="mdSection inlineRow">
-      <MetadataText :value="md.notes" label="Notes" />
-    </section>
-    <section class="inlineRow">
-      <MetadataText :value="md.tagger" label="Tagger" />
-      <MetadataText :value="md.scanInfo" label="Scan" />
+      <section class="inlineRow">
+        <MetadataText :value="md.notes" label="Notes" />
+      </section>
+      <section class="inlineRow">
+        <MetadataText :value="md.tagger" label="Tagger" />
+        <MetadataText :value="md.scanInfo" label="Scan" />
+      </section>
     </section>
   </div>
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import MetadataContributorsTable from "@/components/metadata/contributors-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
+import MetadataTagsTable from "@/components/metadata/tags-table.vue";
 import { getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
@@ -102,7 +94,7 @@ import { useMetadataStore } from "@/stores/metadata";
 export default {
   name: "MetadataBody",
   components: {
-    MetadataContributorsTable,
+    MetadataTagsTable,
     MetadataTags,
     MetadataText,
   },
@@ -117,6 +109,7 @@ export default {
     },
   },
   computed: {
+    ...mapGetters(useMetadataStore, ["contributors", "ratings", "tags"]),
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
@@ -133,6 +126,9 @@ export default {
     },
     size() {
       return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
+    },
+    sizeLabel() {
+      return this?.md?.group === "c" ? "Size" : "Total Size";
     },
     fileType() {
       return this?.md?.fileType || "Unknown";
@@ -157,6 +153,11 @@ export default {
       }
       return titledIdentifiers;
     },
+    showRatings() {
+      return (
+        this.md.communityRating || this.md.criticRating || this.md.ageRating
+      );
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
@@ -168,8 +169,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@use "vuetify/styles/settings/variables" as vuetify;
-@use "sass:map";
+@use "./table";
 
 .inlineRow>* {
   display: inline-flex;
@@ -177,6 +177,7 @@ export default {
 
 .mdSection {
   margin-top: 25px;
+  background-color: rgb(var(--v-theme-surface));
 }
 
 .halfRow>* {

@@ -95,14 +95,10 @@ export default {
         : this.item.name;
     },
     fileName() {
-      if (
-        !this.orderByFilename &&
+      return !this.orderByFilename &&
         (this.alwaysShowFilename || this.topGroup === "f")
-      ) {
-        return this.item.fileName;
-      } else {
-        return "";
-      }
+        ? this.item.fileName
+        : "";
     },
     linkLabel() {
       let label = "";

@@ -5,12 +5,7 @@
       :title="downloadPageTitle"
       @click="downloadPage"
     />
-    <DownloadButton
-      :pks="downloadPks"
-      :children="1"
-      :names="downloadNames"
-      :ts="ts"
-    />
+    <DownloadButton :button="false" :item="downloadItem" />
   </div>
 </template>
 
@@ -42,14 +37,11 @@ export default {
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current,
       fileType: (state) => state.books?.current?.fileType,
-      ts: (state) => state.books?.current?.mtime,
+      mtime: (state) => state.books?.current?.mtime,
       pk: (state) => state.books?.current?.pk,
-      downloadNames: (state) => [state.books?.current?.filename],
+      filename: (state) => state.books?.current?.filename,
       storePage: (state) => state.page,
     }),
-    downloadPks() {
-      return [this.pk];
-    },
     pageSrc() {
       const pageObj = { pk: this.pk, page: this.storePage, ts: this.ts };
       return getDownloadPageURL(pageObj);
@@ -60,6 +52,15 @@ export default {
     },
     downloadPageTitle() {
       return `Download Page ${this.storePage}`;
+    },
+    downloadItem() {
+      return {
+        group: "c",
+        ids: [this.pk],
+        childCount: 1,
+        name: this.filename,
+        mtime: this.mtime,
+      };
     },
   },
   methods: {

@@ -181,10 +181,10 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("keyup", this._keyUpListener);
+    globalThis.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    window.removeEventListener("keyup", this._keyUpListener);
+    globalThis.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),

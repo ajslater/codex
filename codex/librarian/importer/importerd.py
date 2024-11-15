@@ -94,8 +94,7 @@ class ComicImporterThread(QueuedThread):
         status = Status(ImportStatusTypes.ADOPT_FOLDERS)
         moved_status = Status(ImportStatusTypes.DIRS_MOVED)
         try:
-            self.status_controller.start(status)
-            self.status_controller.start(moved_status)
+            self.status_controller.start_many((status, moved_status))
             libraries = Library.objects.filter(covers_only=False).only("path")
             for library in libraries.iterator():
                 folders_left = True

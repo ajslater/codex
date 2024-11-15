@@ -38,7 +38,6 @@
 <script>
 import { mdiTagOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
-import prettyBytes from "pretty-bytes";
 
 import CloseButton from "@/components/close-button.vue";
 import MetadataBody from "@/components/metadata/metadata-body.vue";
@@ -108,7 +107,7 @@ export default {
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     dialogOpened() {
-      const pks = this.book.ids ? this.book.ids : [this.book.pk];
+      const pks = this.book.ids || [this.book.pk];
       const data = {
         group: this.group,
         pks,
@@ -142,8 +141,9 @@ export default {
 
 .closeButton {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 0px;
+  right: 0px;
+  opacity: 0.5;
 }
 
 #metadataContainer {

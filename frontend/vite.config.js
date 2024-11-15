@@ -82,7 +82,7 @@ const config = defineConfig(({ mode }) => {
     publicDir: false,
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "src"),
+        "@": path.resolve(import.meta.dirname, "src"),
       },
     },
     server: {

@@ -20,10 +20,11 @@ class QueryCustomCoversImporter(CreateForeignKeysImporter):
         """Identify update & create covers."""
         cover_paths = self.task.covers_created | self.task.covers_modified
         num_cover_paths = len(cover_paths)
+        status = Status(ImportStatusTypes.QUERY_MISSING_COVERS, None, num_cover_paths)
         if not num_cover_paths:
+            self.status_controller.finish(status)
             return
         self.log.debug(f"Querying {num_cover_paths} custom cover_paths")
-        status = Status(ImportStatusTypes.QUERY_MISSING_COVERS, None, num_cover_paths)
         self.status_controller.start(status)
 
         update_covers_qs = CustomCover.objects.filter(

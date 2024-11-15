@@ -23,7 +23,7 @@ const updateReaderSettings = (data) => {
 };
 
 const _getReaderAPIPath = (pk) => {
-  return window.CODEX.API_V3_PATH + _getReaderPath(pk);
+  return globalThis.CODEX.API_V3_PATH + _getReaderPath(pk);
 };
 
 export const getComicPageSource = ({ pk, page, mtime }) => {
@@ -34,11 +34,7 @@ export const getComicPageSource = ({ pk, page, mtime }) => {
 export const getComicDownloadURL = ({ pk }, fn, ts) => {
   // Gets used by an HTTP.get so already has base path.
   const bookPath = _getReaderPath(pk);
-  if (fn) {
-    fn = encodeURIComponent(fn);
-  } else {
-    fn = `comic-${pk}.cbz`;
-  }
+  fn = fn ? encodeURIComponent(fn) : `comic-${pk}.cbz`;
   return `${bookPath}/download/${fn}?ts=${ts}`;
 };
 

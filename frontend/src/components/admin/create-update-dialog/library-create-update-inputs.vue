@@ -1,41 +1,43 @@
 <template>
-  <AdminServerFolderPicker
-    v-if="!oldRow"
-    :rules="rules.path"
-    autofocus
-    label="Library Folder"
-    @change="row.path = $event"
-  />
-  <div v-else>
-    {{ oldRow.path }}
-  </div>
-  <v-checkbox
-    v-model="row.events"
-    hide-details="auto"
-    hint="Update Codex instantly when the filesystem changes"
-    label="Watch Filesystem Events"
-    :persistent-hint="true"
-  />
-  <v-checkbox
-    v-model="row.poll"
-    label="Poll Filesystem Periodically"
-    hide-details="auto"
-    hint="Periodically poll the library for changes"
-    :persistent-hint="true"
-  />
-  <TimeTextField
-    v-model="row.pollEvery"
-    label="Poll Every"
-    :disabled="!row.poll"
-  />
-  <AdminRelationPicker
-    v-if="!row.coversOnly"
-    v-model="row.groups"
-    label="Groups"
-    :objs="groups"
-    group-type
-    title-key="name"
-  />
+  <section>
+    <AdminServerFolderPicker
+      v-if="!oldRow"
+      :rules="rules.path"
+      autofocus
+      label="Library Folder"
+      @change="row.path = $event"
+    />
+    <div v-else>
+      {{ oldRow.path }}
+    </div>
+    <v-checkbox
+      v-model="row.events"
+      hide-details="auto"
+      hint="Update Codex instantly when the filesystem changes"
+      label="Watch Filesystem Events"
+      :persistent-hint="true"
+    />
+    <v-checkbox
+      v-model="row.poll"
+      label="Poll Filesystem Periodically"
+      hide-details="auto"
+      hint="Periodically poll the library for changes"
+      :persistent-hint="true"
+    />
+    <TimeTextField
+      v-model="row.pollEvery"
+      label="Poll Every"
+      :disabled="!row.poll"
+    />
+    <AdminRelationPicker
+      v-if="!row.coversOnly"
+      v-model="row.groups"
+      label="Groups"
+      :objs="groups"
+      group-type
+      title-key="name"
+    />
+  </section>
 </template>
 
 <script>

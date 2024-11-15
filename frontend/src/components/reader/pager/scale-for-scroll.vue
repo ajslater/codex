@@ -46,8 +46,8 @@ export default {
     ...mapActions(useReaderStore, ["setSettingsClient"]),
     clearSelection() {
       // Desktop safari often selects text on double-click.
-      if (window.getSelection) {
-        window.getSelection().removeAllRanges();
+      if (globalThis.getSelection) {
+        globalThis.getSelection().removeAllRanges();
       }
     },
     onDoubleClick() {

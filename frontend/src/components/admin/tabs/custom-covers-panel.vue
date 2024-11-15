@@ -86,7 +86,7 @@ export default {
   color: rgb(var(--v-theme-textSecondary));
 }
 
-#customCoversHelp .v-expansion-panel-text h4 {
+#customCoversHelp :deep(.v-expansion-panel-text h4) {
   margin-top: 0.5em;
 }
 </style>

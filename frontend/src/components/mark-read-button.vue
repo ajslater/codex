@@ -1,21 +1,12 @@
 <template>
-  <v-btn v-if="show && !confirm && button" @click="toggleRead">
-    <v-icon>{{ icon }}</v-icon>
-    {{ markReadText }}
-  </v-btn>
-  <CodexListItem
-    v-else-if="item.group === 'c'"
-    :prepend-icon="icon"
-    :title="markReadText"
-    @click="toggleRead"
-  />
   <ConfirmDialog
-    v-else
+    v-if="show"
     :button="button"
-    :prepend-icon="icon"
     :button-text="markReadText"
-    :title-text="markReadText"
+    :confirm="confirm"
     :confirm-text="confirmText"
+    :prepend-icon="icon"
+    :title-text="markReadText"
     :text="itemName"
     @confirm="toggleRead"
   />
@@ -23,9 +14,8 @@
 
 <script>
 import { mdiBookmarkCheckOutline, mdiBookmarkMinusOutline } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 
-import CodexListItem from "@/components/codex-list-item.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -33,10 +23,7 @@ const CHILD_WARNING_LIMIT = 1;
 
 export default {
   name: "MarkReadButton",
-  components: {
-    ConfirmDialog,
-    CodexListItem,
-  },
+  components: { ConfirmDialog },
   props: {
     button: {
       type: Boolean,
@@ -48,9 +35,7 @@ export default {
     },
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      groupNames: (state) => state.choices.static.groupNames,
-    }),
+    ...mapGetters(useBrowserStore, ["groupNames"]),
     verb() {
       return this.item.finished ? "Unread" : "Read";
     },
@@ -58,9 +43,7 @@ export default {
       return this.item.children > CHILD_WARNING_LIMIT;
     },
     show() {
-      return (
-        this.item.ids && this.item.ids.length > 0 && !this.item.ids.includes(0)
-      );
+      return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
     icon() {
       return this.item.finished
@@ -68,6 +51,9 @@ export default {
         : mdiBookmarkCheckOutline;
     },
     confirmText() {
+      if (!this.confirm) {
+        return "";
+      }
       return `Mark ${this.verb}`;
     },
     markReadText() {
@@ -75,15 +61,12 @@ export default {
       if (this.item.group != "c") {
         words.push("Entire");
       }
-      let groupName = this.groupNames[this.item.group];
-      if (this.item.group !== "s") {
-        groupName = groupName.slice(0, -1);
-      }
+      const groupName = this.groupNames[this.item.group];
       words.push(groupName, this.verb);
       return words.join(" ");
     },
     itemName() {
-      return this.item.name ? this.item.name : "(Empty)";
+      return this.item.name || "(Empty)";
     },
   },
   methods: {

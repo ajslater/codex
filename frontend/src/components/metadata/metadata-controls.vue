@@ -1,45 +1,33 @@
 <template>
-  <section id="controls">
-    <section id="controlRow">
-      <DownloadButton
-        id="downloadButton"
-        class="controlButton"
-        :button="true"
-        :group="downloadGroup"
-        :pks="downloadPks"
-        :children="md?.childCount || 1"
-        :names="downloadNames"
-        :ts="md.mtime"
-      />
-      <MarkReadButton
-        id="markReadButton"
-        class="controlButton"
-        :button="true"
-        :item="markReadItem"
-      />
-      <v-btn
-        v-if="isReadButtonShown"
-        id="readButton"
-        class="controlButton"
-        :to="readerRoute"
-        title="Read Comic"
-        :disabled="!isReadButtonEnabled"
-      >
-        <v-icon>{{ readButtonIcon }}</v-icon>
-        Read
-      </v-btn>
-    </section>
+  <section class="controlRow">
+    <DownloadButton id="downloadButton" :button="true" :item="downloadItem" />
+    <MarkReadButton
+      id="markReadButton"
+      :button="true"
+      :item="markReadItem"
+      :size="size"
+    />
+    <v-btn
+      v-if="isReadButtonShown"
+      id="readButton"
+      title="Read Comic"
+      :disabled="!isReadButtonEnabled"
+      :size="size"
+      :to="readerRoute"
+    >
+      <v-icon>{{ readButtonIcon }}</v-icon>
+      Read
+    </v-btn>
   </section>
 </template>
 
 <script>
 import { mdiEye, mdiEyeOff } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
-import { formattedIssue, formattedVolumeName } from "@/comic-name";
+import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
-import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
@@ -73,18 +61,13 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
-    downloadGroup() {
-      return this.md.group;
-    },
-    downloadPks() {
-      return this.md.ids;
-    },
-    downloadNames() {
+    downloadName() {
       const md = this.md;
+      let name;
       if (!md) {
-        return ["Unknown.cbz"];
+        name = "Unknown.cbz";
       } else if (md.fileName) {
-        return [md.fileName];
+        name = md.fileName;
       } else {
         if (this.md.group === "f") {
           return [this.firstNameFromList(md.folderList)];
@@ -92,18 +75,26 @@ export default {
         if (this.md.group === "a") {
           return [this.firstNameFromList(md.storyArcList)];
         }
-        let names = [
+        const names = [
           this.firstNameFromList(md.publisherList),
           this.firstNameFromList(md.imprintList),
           this.firstNameFromList(md.seriesList),
           this.firstNameFromList(md.volumeList),
+          formattedIssue(this.md, 3),
+          this.md.name,
         ];
-        const issue = formattedIssue(this.md, 3);
-        if (issue) {
-          names.push(issue);
-        }
-        names.push(this.md.name);
+        name = names.filter(Boolean).join(" ");
       }
+      return name;
+    },
+    downloadItem() {
+      return {
+        group: this.md?.group,
+        ids: this.md?.ids,
+        childCount: this.md?.childCount,
+        mtime: this.md?.mtime,
+        name: this.downloadName,
+      };
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
@@ -126,18 +117,17 @@ export default {
         ids: this.md.ids,
         finished: this.md.finished,
         name,
-        children: this.md.childCount,
+        children: this.md.childCount || 1,
       };
     },
     readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
-      if (this.md?.ids) {
-        return getReaderRoute(this.md, this.importMetadata);
-      } else {
-        return {};
-      }
+      return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
+    },
+    size() {
+      return this.$vuetify.display.smAndDown ? "x-small" : "default";
     },
   },
   methods: {
@@ -162,14 +152,13 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-#controls {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  margin-top: 4px;
+.controlRow>* {
+  margin-right: 10px;
 }
 
-.controlButton {
-  margin-right: 10px;
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .controlRow>* {
+    margin-right: 1px;
+  }
 }
 </style>

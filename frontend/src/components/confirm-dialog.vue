@@ -10,12 +10,21 @@
         v-if="button && icon"
         v-bind="props"
         :block="block"
+        :density="density"
         :icon="icon"
         :size="size"
-        :density="density"
         :title="titleText"
+        @click="autoConfirm"
       />
-      <v-btn v-else-if="button" v-bind="props" :block="block">
+      <v-btn
+        v-else-if="button"
+        v-bind="props"
+        :block="block"
+        :density="density"
+        :size="size"
+        :title="titleText"
+        @click="autoConfirm"
+      >
         <v-icon v-if="prependIcon">{{ prependIcon }}</v-icon>
         {{ buttonText }}
       </v-btn>
@@ -24,6 +33,7 @@
         v-bind="props"
         :prepend-icon="prependIcon"
         :title="titleText"
+        @click="autoConfirm"
       />
     </template>
     <div class="confirmDialog">
@@ -44,33 +54,37 @@ export default {
   name: "ConfirmDialog",
   components: { ConfirmFooter, CodexListItem },
   props: {
-    button: { type: Boolean, default: true },
-    icon: { type: String, default: "" },
-    prependIcon: { type: String, default: "" },
-    buttonText: { type: String, default: "" },
-    titleText: {
-      type: String,
-      required: true,
-    },
     block: {
       type: Boolean,
       default: false,
     },
-    text: {
-      type: String,
-      required: true,
+    button: { type: Boolean, default: true },
+    buttonText: { type: String, default: "" },
+    confirm: {
+      type: Boolean,
+      default: true,
     },
     confirmText: {
       type: String,
       required: true,
     },
+    density: {
+      type: String,
+      default: "default",
+    },
+    icon: { type: String, default: "" },
+    prependIcon: { type: String, default: "" },
     size: {
       type: String,
       default: "default",
     },
-    density: {
+    text: {
       type: String,
-      default: "default",
+      required: true,
+    },
+    titleText: {
+      type: String,
+      required: true,
     },
   },
   data() {
@@ -82,6 +96,11 @@ export default {
     close(event) {
       this.$emit(event);
       this.showDialog = false;
+    },
+    autoConfirm() {
+      if (!this.confirm) {
+        this.close("confirm");
+      }
     },
   },
 };

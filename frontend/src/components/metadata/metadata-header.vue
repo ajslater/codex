@@ -7,109 +7,124 @@
       label="Search Query"
       :highlight="true"
     />
-    <div id="metadataBookCoverWrapper">
-      <BookCover
-        id="bookCover"
-        :group="group"
-        :pks="md.ids"
-        :child-count="md.childCount"
-        :finished="md.finished"
-        :mtime="md.mtime"
-      />
-      <v-progress-linear
-        class="bookCoverProgress"
-        :model-value="md.progress"
-        rounded
-        background-color="inherit"
-        height="2"
-        aria-label="% read"
-      />
-    </div>
-    <div id="seriesRow" class="inlineRow" :class="seriesRowClasses">
-      <MetadataText
-        v-for="series of md.seriesList"
-        id="series"
-        :key="series.ids"
-        :value="series"
-        group="s"
-        :obj="{ ids: md.ids, group: md.group }"
-        :label="seriesLabel"
-      />
-      <MetadataText
-        v-for="volume of md.volumeList"
-        id="volume"
-        :key="volume.ids"
-        :value="volume"
-        group="v"
-        :obj="{ ids: md.ids, group: md.group }"
-        :label="volumeLabel"
-      />
-      <MetadataText :value="md.seriesVolumeCount" class="subdued" prefix="of" />
-      <MetadataText
-        id="issue"
-        :value="formattedIssueNumber"
-        group="c"
-        :obj="{ ids: md.ids, group: md.group }"
-      />
-      <MetadataText :value="md.volumeIssueCount" class="subdued" prefix="/" />
-    </div>
-    <div id="titleRow" class="inlineRow">
-      <MetadataText :value="md.name" />
-    </div>
-    <div id="publisherRow" class="inlineRow">
-      <MetadataText
-        v-for="publisher of md.publisherList"
-        id="publisher"
-        :key="publisher.ids"
-        :value="publisher"
-        group="p"
-        label="Publisher"
-        :obj="{ ids: md.ids, group: md.group }"
-      />
-      <MetadataText
-        v-for="imprint of md.imprintList"
-        id="imprint"
-        :key="imprint.ids"
-        :value="imprint"
-        group="i"
-        label="Imprint"
-        :obj="{ ids: md.ids, group: md.group }"
+    <MetadataBookCover id="metadataBookCover" :group="group" />
+    <section v-if="md.seriesList?.length === 1" id="seriesHeader">
+      <div id="seriesRow" class="inlineRow">
+        <MetadataText
+          id="series"
+          :key="md.seriesList[0].ids"
+          :value="md.seriesList[0]"
+          group="s"
+          :highlight="'s' === md.group"
+        />
+        <MetadataText
+          v-if="md.volumeList?.length === 1"
+          id="volume"
+          :key="md.volumeList[0].ids"
+          :value="md.volumeList[0]"
+          group="v"
+          :highlight="'v' === md.group"
+        />
+        <MetadataText :value="seriesVolumeCount" class="subdued" />
+        <MetadataText
+          id="issue"
+          :value="formattedIssueNumber"
+          group="c"
+          :highlight="'c' === md.group"
+        />
+        <MetadataText :value="volumeIssueCount" class="subdued" />
+      </div>
+    </section>
+    <span v-if="md.name" id="titleRow">
+      {{ md.name }}
+    </span>
+    <MetadataTags
+      v-if="md.seriesList?.length > 1"
+      id="seriesTags"
+      class="groupTags"
+      label="Series"
+      :values="md.seriesList"
+      filter="s"
+    />
+    <div>
+      <MetadataTags
+        v-if="md.volumeList?.length > 1"
+        id="volumeTags"
+        class="groupTags"
+        label="Volumes"
+        :values="md.volumeList"
+        filter="v"
       />
     </div>
     <div
-      v-if="pages || md.year || md.month || md.day"
+      v-if="md.publisherList?.length === 1"
+      id="publisherRow"
       class="inlineRow"
+    >
+      <MetadataText
+        id="publisher"
+        :key="md.publisherList[0].ids"
+        group="p"
+        :highlight="'p' === md.group"
+        :value="md.publisherList[0]"
+      />
+      <MetadataText
+        v-if="md.imprintList?.length === 1"
+        id="imprint"
+        :key="md.imprintList[0].ids"
+        group="i"
+        :highlight="'i' === md.group"
+        :value="md.imprintList[0]"
+      />
+    </div>
+    <MetadataTags
+      v-if="md.publisherList?.length > 1"
+      id="publisherTags"
+      class="groupTags"
+      label="Publishers"
+      :values="md.publisherList"
+      filter="p"
+    />
+    <MetadataTags
+      v-if="md.imprintList?.length > 1"
+      id="imprintTags"
+      class="groupTags"
+      label="Imprints"
+      :values="md.imprintList"
+      filter="i"
+    />
+    <div
+      v-if="pages || md.year || md.month || md.day"
       id="pageDateRow"
+      class="inlineRow"
     >
       <MetadataText :value="pages" />
-      <MetadataText :value="md.year" class="datePicker" type="number" />
-      <MetadataText :value="month" class="datePicker" />
-      <MetadataText :value="md.day" class="datePicker" />
+      <MetadataText :value="date" class="datePicker" />
     </div>
-    <MetadataControls :group="group" />
   </header>
+  <MetadataControls id="controls" :group="group" />
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
-import BookCover from "@/components/book-cover.vue";
 import MetadataControls from "@/components/metadata/metadata-controls.vue";
+import MetadataBookCover from "@/components/metadata/metadata-cover.vue";
+import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const SERIES_ROW_LARGE_LIMIT = 4;
-
 export default {
   name: "MetadataHeader",
   components: {
-    BookCover,
+    MetadataBookCover,
     MetadataControls,
+    MetadataTags,
     MetadataText,
   },
   props: {
@@ -126,32 +141,29 @@ export default {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
-    seriesRowClasses() {
-      let count = 0;
-      for (const key of ["seriesList", "volumeList"]) {
-        count += this.md[key]?.length || 0;
-      }
-      return { shortSeriesRow: count <= SERIES_ROW_LARGE_LIMIT };
-    },
-    seriesLabel() {
-      return this.md?.seriesList?.length > 1 ? "Series" : "";
-    },
-    volumeLabel() {
-      return this.md?.volumeList?.length > 1 ? "Volume" : "";
-    },
-    month() {
-      if (!this.md.month) {
+    date() {
+      if (!this.md.year && !this.md.month && !this.md.day) {
         return "";
       }
-      const date = new Date(1970, this.md.month, 1);
-      return date.toLocaleString("default", { month: "long" });
+      const date = new Date(
+        this.md.year || 1970,
+        this.md.month || 1,
+        this.md.day || 1,
+      );
+      const options = {};
+      if (this.md.year) {
+        options.year = "numeric";
+      }
+      if (this.md.month) {
+        options.month = this.$vuetify.display.smAndDown ? "short" : "long";
+      }
+      if (this.md.day) {
+        options.day = "numeric";
+      }
+      return date.toLocaleDateString("default", options);
     },
     readerRoute() {
-      if (this.md?.ids) {
-        return getReaderRoute(this.md, this.importMetadata);
-      } else {
-        return {};
-      }
+      return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
     },
     formattedIssueNumber() {
       if (!this.md) {
@@ -173,14 +185,16 @@ export default {
       }
       if (this.md.page) {
         const humanBookmark = NUMBER_FORMAT.format(this.md.page);
-        pages += `Read ${humanBookmark} of `;
+        pages += this.$vuetify.display.smAndDown
+          ? `${humanBookmark} / `
+          : `Read ${humanBookmark} of `;
       }
       const humanPages = NUMBER_FORMAT.format(this.md.pageCount);
       pages += `${humanPages} page`;
       if (this.md.pageCount !== 1) {
         pages += "s";
       }
-      if (this.md.progress > 0) {
+      if (this.$vuetify.display.smAndUp && this.md.progress > 0) {
         pages += ` (${Math.round(this.md.progress)}%)`;
       }
       return pages;
@@ -191,6 +205,14 @@ export default {
     fileType() {
       return this?.md?.fileType || "Unknown";
     },
+    seriesVolumeCount() {
+      const count = this.md.seriesVolumeCount;
+      return count ? `of ${count}` : "";
+    },
+    volumeIssueCount() {
+      const count = this.md.volumeIssueCount;
+      return count ? `/ ${count}` : "";
+    },
   },
 };
 </script>
@@ -199,60 +221,71 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.subdued {
-  color: rgb(var(--v-theme-textDisabled))
-}
-
-#search {
-  margin-bottom: 10px;
-}
-
 #metadataHeader {
   height: fit-content;
   max-width: 100vw;
 }
 
-#metadataBookCoverWrapper {
+#search {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+#metadataBookCover {
   float: left;
-  position: relative;
-  padding-top: 0px !important;
   margin-right: 15px;
 }
 
-#bookCover {
-  position: relative;
-}
 
-.bookCoverProgress {
-  margin-top: 1px;
-}
-
-#bookCover {
-  padding-top: 0px !important;
-}
-
+.inlineRow,
 .inlineRow>* {
   display: inline-flex;
 }
 
-.shortSeriesRow {
-  min-height: 93px;
-  margin-top: -24px;
+#seriesRow {
+  margin-top: -10px;
   font-size: xx-large;
+}
+
+#seriesRow :deep(.text:first-child),
+#publisherRow :deep(.text:first-child),
+#pageDateRow :deep(.text:first-child) {
+  padding-left: 0px;
+}
+
+#seriesRow * {
+  padding-top: 0px;
 }
 
 #titleRow {
   font-size: large;
-  margin-top: -16px;
-  min-height: 56.5px
 }
 
-#publisherRow {
-  min-height: 62px
+.subdued {
+  color: rgb(var(--v-theme-textDisabled))
 }
 
 #pageDateRow {
+  display: block;
   font-size: smaller;
-  min-height: 44.5px
+}
+
+#controls {
+  margin-top: 10px;
+}
+
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  #metadataBookCover {
+    margin-right: 10px;
+  }
+
+  #seriesRow {
+    margin-top: 0px;
+    font-size: small;
+  }
+
+  #titleRow {
+    font-size: x-small;
+  }
 }
 </style>

@@ -41,7 +41,7 @@ export const useSocketStore = defineStore("socket", {
         state.isConnected = true;
         state.reconnectError = false;
       });
-      this.heartBeatTimer = window.setInterval(() => {
+      this.heartBeatTimer = globalThis.setInterval(() => {
         try {
           if (this.isConnected) {
             this.app.config.globalProperties.$socket.send("");
@@ -53,7 +53,7 @@ export const useSocketStore = defineStore("socket", {
     },
     SOCKET_ONCLOSE() {
       this.isConnected = false;
-      window.clearInterval(this.heartBeatTimer);
+      globalThis.clearInterval(this.heartBeatTimer);
       this.heartBeatTimer = 0;
     },
     SOCKET_ONERROR(event) {
@@ -106,7 +106,8 @@ export const useSocketStore = defineStore("socket", {
     },
     async adminLoadTables(tables) {
       if (this.adminStore) {
-        (await this.adminStore).loadTables(tables);
+        const adminStore = await this.adminStore;
+        adminStore.loadTables(tables);
       }
     },
     adminFlagsNotified() {
@@ -158,14 +159,16 @@ export const useSocketStore = defineStore("socket", {
           break;
         case "admin-stats":
           if (this.adminStore) {
-            (await this.adminStore).loadStats();
+            const adminStore = await this.adminStore;
+            adminStore.loadStats();
           }
           break;
       }
     },
     async failedImportsNotified() {
       if (this.adminStore) {
-        (await this.adminStore).unseenFailedImports = true;
+        const adminStore = await this.adminStore;
+        adminStore.unseenFailedImports = true;
       }
     },
   },

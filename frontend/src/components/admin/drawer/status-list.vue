@@ -75,10 +75,9 @@ export default {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
     showComplete: (status) => Number.isInteger(status.complete),
     indeterminate: (status) =>
-      !status.preactive &&
-      (!status.total || !Number.isInteger(status.complete)),
+      status.active && (!status.total || !Number.isInteger(status.complete)),
     progress(status) {
-      if (status.preactive || self.indeterminate) {
+      if (!status.total || globalThis.indeterminate) {
         return 0;
       }
       return (100 * +status.complete) / +status.total;
@@ -106,20 +105,24 @@ h4 {
   padding-right: 10px;
   padding-bottom: 10px;
 }
+
 .statusItem {
   padding-left: 16px;
   padding-right: 5px;
   padding-bottom: 10px;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 .statusItemSubtitle {
   padding-left: 1rem;
   opacity: 0.75;
 }
+
 #noTasksRunning {
   margin-left: 1em;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 #clearButton {
   float: right;
 }

@@ -1,34 +1,36 @@
 <template>
-  <div v-if="displayValue" class="text" :class="{ highlight }">
-    <div class="textLabel">
+  <div v-if="displayValue" class="text">
+    <div v-if="label" class="textLabel">
       {{ label }}
-      <v-btn
+      <ExpandButton
         v-if="showExpandButton"
-        id="expandButton"
-        density="compact"
-        text="...expand"
-        variant="text"
+        class="expandButton"
         @click="expanded = true"
       />
     </div>
     <v-expand-transition>
-      <div
-        class="textValue"
-        :class="{ empty }"
-        :ref="textValueRefName"
-        :style="textValueStyles"
-      >
-        <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-        <a v-if="href" :href="href" :title="title" :target="target">
-          {{ displayValue }}
-          <v-icon v-if="link" size="small">
-            {{ mdiOpenInNew }}
-          </v-icon>
-        </a>
-        <span v-else class="textContent">
-          {{ displayValue }}
-        </span>
-        <span v-if="baseName">{{ baseName }} </span>
+      <div>
+        <div
+          :ref="textValueRefName"
+          class="textValue"
+          :class="{ empty }"
+          :style="textValueStyles"
+        >
+          <span
+            class="textContent"
+            :class="classes"
+            :title="title"
+            @click="onClick"
+          >
+            {{ displayValue }}
+          </span>
+          <span v-if="baseName" class="textContent">{{ baseName }} </span>
+        </div>
+        <ExpandButton
+          v-if="showExpandButton && !label"
+          class="expandButton"
+          @click="expanded = true"
+        />
       </div>
     </v-expand-transition>
   </div>
@@ -36,43 +38,40 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
-import { getBrowserHref } from "@/api/v3/browser";
 import { formattedVolumeName } from "@/comic-name";
-import { GROUPS_REVERSED, useBrowserStore } from "@/stores/browser";
+import ExpandButton from "@/components/metadata/expand-button.vue";
+import { useBrowserStore } from "@/stores/browser";
 const EMPTY_VALUE = "(Empty)";
 
 export default {
   name: "MetadataTextBox",
+  components: {
+    ExpandButton,
+  },
   props: {
-    label: {
-      type: String,
-      default: "",
-    },
-    value: {
-      type: [Object, String, Number, Boolean],
-      default: undefined,
-    },
-    link: {
-      type: [Boolean, String],
-      default: false,
-    },
     group: {
       type: String,
       default: "",
     },
-    obj: {
-      type: Object,
-      default: undefined,
+    highlight: {
+      type: Boolean,
+      default: false,
+    },
+    label: {
+      // Body
+      type: String,
+      default: "",
     },
     maxHeight: {
       type: Number,
       default: 0,
     },
-    prefix: {
-      type: String,
-      default: "",
+    value: {
+      // Header -GroupObj, "text to Display",
+      type: [Object, String, Number, Boolean],
+      default: undefined,
     },
   },
   data() {
@@ -82,10 +81,8 @@ export default {
       mounted: false,
     };
   },
-  mounted() {
-    this.mounted = true;
-  },
   computed: {
+    ...mapGetters(useBrowserStore, ["groupNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
       browserTopGroup: (state) => state.settings.topGroup,
@@ -104,14 +101,11 @@ export default {
       if (this.group && this.computedValue === "") {
         value = EMPTY_VALUE;
       } else if (this.group === "f" && this.computedValue) {
-        value = this.computedValue.substring(0, this.lastSlashIndex);
+        value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
       } else if (this.group === "v" && this.computedValue) {
         value = formattedVolumeName(this.computedValue);
       } else {
         value = this.computedValue;
-      }
-      if (value && this.prefix) {
-        value = this.prefix + " " + value;
       }
       return value;
     },
@@ -119,6 +113,7 @@ export default {
       return this.displayValue === EMPTY_VALUE;
     },
     textValueStyles() {
+      // makes expandable.
       const maxHeight =
         this.maxHeight > 0 && !this.expanded ? this.maxHeight : 0;
       if (maxHeight) {
@@ -143,73 +138,74 @@ export default {
     showExpandButton() {
       return !this.expanded && this.maxHeight > 0 && this.isOverflow;
     },
-    _browserGroupHref() {
-      // Using router-link gets hijacked and topGroup is not submitted.
-      const group = this.group;
+    linkPks() {
+      const pks = this.value.ids || [this.value.pk];
+      return pks.join(",");
+    },
+    clickable() {
       const params = this.$router.currentRoute.value.params;
 
       // Validate Group
       if (
-        !group ||
-        params.group === group ||
-        (group === "f" && !this.folderViewEnabled) ||
-        (!["a", "f"].includes(group) && !this.browserShow[group])
+        !this.group ||
+        params.group === this.group ||
+        (this.group === "f" && !this.folderViewEnabled) ||
+        (!["a", "f"].includes(this.group) && !this.browserShow[this.group])
       ) {
-        return;
+        return false;
       }
 
       // Get & validate pks
-      const pks = this.value.ids ? this.value.ids : [this.value.pk];
-      if (!pks || !pks.length) {
-        return;
+      return Boolean(this.linkPks?.length);
+    },
+    classes() {
+      return {
+        clickable: this.clickable,
+        highlight: this.highlight,
+      };
+    },
+    toRoute() {
+      // Using router-link gets hijacked and topGroup is not submitted.
+      if (!this.clickable) {
+        return "";
       }
-      const topGroup = this.getTopGroup(group);
-      const query = { topGroup };
-      return getBrowserHref({ group, pks, query });
+
+      const group = this.group;
+      const pks = this.linkPks;
+      const params = { group, pks, page: 1 };
+      return { name: "browser", params };
     },
-    _linkHref() {
-      if (this.link === true) {
-        return this.displayValue;
-      } else if (this.link) {
-        return this.link;
-      }
-      return false;
-    },
-    href() {
-      return this._browserGroupHref ? this._browserGroupHref : this._linkHref;
-    },
-    target() {
-      return this.link ? "_blank" : "";
+    linkSettings() {
+      const topGroup = this.getTopGroup(this.group);
+      return { topGroup };
     },
     title() {
-      return this._browserGroupHref ? `Browse to ${this.label}` : this.label;
+      let label;
+      if (this.label) {
+        label = this.label;
+      } else if (this.group) {
+        label = this.groupNames[this.group];
+      } else {
+        label = "";
+      }
+      return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {
       return this.group === "f"
-        ? this.computedValue.substring(this.lastSlashIndex)
+        ? this.computedValue.slice(Math.max(0, this.lastSlashIndex))
         : "";
     },
-    highlight() {
-      return this.obj?.group === this.group;
-    },
+  },
+  mounted() {
+    this.mounted = true;
   },
   methods: {
-    getTopGroup(group) {
-      // Very similar to browser store logic, could possibly combine.
-      let topGroup;
-      if (this.browserTopGroup === group || ["a", "f"].includes(group)) {
-        topGroup = group;
-      } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
-        // Determine browse top group
-        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "r" && this.browserShow[testGroup]) {
-            topGroup = testGroup;
-            break;
-          }
-        }
+    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
+    onClick() {
+      if (!this.clickable) {
+        return;
       }
-      return topGroup;
+      this.routeWithSettings(this.linkSettings, this.toRoute);
     },
   },
 };
@@ -224,7 +220,6 @@ export default {
   padding: 10px;
   border-radius: 3px;
   max-width: 100%;
-  background-color: rgb(var(--v-theme-surface));
 }
 
 .textLabel {
@@ -240,24 +235,31 @@ export default {
   overflow-y: scroll;
 }
 
-#expandButton {
+.expandButton {
   float: right;
 }
 
-.highlight .textContent {
-  background-color: rgb(var(--v-theme-primary-darken-1));
-  padding: 0px 8px 0px 8px;
-  border-radius: 12px;
+.clickable {
+  cursor: pointer;
+  color: rgb(var(--v-theme-primary));
 }
 
-// eslint-disable-next-line vue-scoped-css/no-unused-selector
-.highlight a.textContent {
+.clickable:hover {
+  color: white;
+}
+
+.highlight {
+  padding: 0px 8px 0px 8px;
+  border-radius: 12px;
+  background-color: rgb(var(--v-theme-primary-darken-1));
+}
+
+.highlight {
   color: rgb(var(--v-theme-textPrimary)) !important;
   background-color: rgb(var(--v-theme-primary-darken-1));
 }
 
-// eslint-disable-next-line vue-scoped-css/no-unused-selector
-.highlight a.textContent:hover {
+.clickable.highlight:hover {
   border: solid thin rgb(var(--v-theme-textPrimary));
 }
 
