@@ -39,12 +39,7 @@ export default {
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .key {
-    font-size: x-small;
-    padding-right: 3px !important;
-  }
-
-  .tags {
-    padding-left: 3px !important;
+    font-size: small;
   }
 }
 </style>

@@ -144,7 +144,7 @@ export default {
   color: rgb(var(--v-theme-linkHover));
 }
 
-@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
   .v-chip {
     margin: 2px;
     font-size: x-small !important;
