@@ -6,8 +6,7 @@ import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import baseConfig from "../eslint.config.js";
-import { FLAT_RECOMMENDED } from "../eslint.config.js";
+import baseConfig, { FLAT_RECOMMENDED } from "../eslint.config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
