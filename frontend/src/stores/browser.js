@@ -71,8 +71,6 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
       q: BROWSER_DEFAULTS.q,
-      /* eslint-disable-next-line no-secrets/no-secrets */
-      // searchResultsLimit: BROWSER_CHOICES.searchResultsLimit,
       show: BROWSER_DEFAULTS.show,
       topGroup: BROWSER_DEFAULTS.topGroup,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
@@ -105,6 +103,14 @@ export const useBrowserStore = defineStore("browser", {
     searchHideTimeout: undefined,
   }),
   getters: {
+    groupNames() {
+      const groupNames = {};
+      for (const [key, pluralName] of Object.entries(GROUP_NAMES)) {
+        groupNames[key] =
+          pluralName === "Series" ? pluralName : pluralName.slice(0, -1);
+      }
+      return groupNames;
+    },
     topGroupChoices() {
       const choices = [];
       for (const item of BROWSER_CHOICES.topGroup) {

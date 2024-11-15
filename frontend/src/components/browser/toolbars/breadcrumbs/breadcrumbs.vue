@@ -19,7 +19,7 @@ import {
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
 import deepClone from "deep-clone";
-import { mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -59,7 +59,7 @@ export default {
             tooltipText = crumb.pks == 0 ? "All " : "";
             tooltipText += this.groupNames[group];
           }
-          tooltip = { text: tooltipTextb, openDelay: 1500 };
+          const tooltip = { text: tooltipText, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.pks;

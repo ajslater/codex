@@ -21,11 +21,63 @@ import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import eslintPluginYml from "eslint-plugin-yml";
 import globals from "globals";
 
-export const FLAT_BASE = "flat/base";
 export const FLAT_RECOMMENDED = "flat/recommended";
+const FLAT_BASE = "flat/base";
 
-export const configs = {
-  js: {
+export default [
+  {
+    ignores: [
+      "!.circleci",
+      "**/__pycache__/",
+      "**/*min.css",
+      "**/*min.js",
+      "**/*.json",
+      "*~",
+      ".git/",
+      ".mypy_cache/",
+      ".pytest_cache/",
+      ".ruff_cache/",
+      ".venv/",
+      "bin/docker/registry.yaml", // breaks prettier plugin idk why
+      "codex/_vendor/",
+      "codex/static_build/",
+      "codex/static_root/",
+      "codex/templates/*.html", // Handled by djlint
+      "codex/templates/**/*.html", // Handled by djlint
+      "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
+      "comics/",
+      "config/",
+      "dist/",
+      "frontend/",
+      "node_modules/",
+      "package-lock.json",
+      "poetry.lock",
+      "test-results/",
+      "typings/",
+    ],
+  },
+  eslintPluginPrettierRecommended,
+  eslintPluginSecurity.configs.recommended,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: "warn",
+    },
+    plugins: {
+      prettier: eslintPluginPrettier,
+      security: eslintPluginSecurity,
+    },
+    rules: {
+      "prettier/prettier": "warn",
+    },
+  },
+  {
+    // JS
     ...eslintJs.configs.recommended,
     ...eslintPluginArrayFunc.configs.all,
     ...eslintPluginComments.recommended,
@@ -73,68 +125,6 @@ export const configs = {
       "unicorn/prevent-abbreviations": "off",
       "unicorn/switch-case-braces": ["warn", "avoid"],
     },
-  },
-};
-
-export default [
-  {
-    ignores: [
-      "!.circleci",
-      "**/__pycache__/",
-      "**/*min.css",
-      "**/*min.js",
-      "*~",
-      ".git/",
-      ".mypy_cache/",
-      ".pytest_cache/",
-      ".ruff_cache/",
-      ".venv/",
-      "bin/docker/registry.yaml", // breaks prettier plugin idk why
-      "codex/_vendor/",
-      "codex/static_build/",
-      "codex/static_root/",
-      "codex/templates/*.html", // Handled by djlint
-      "codex/templates/**/*.html", // Handled by djlint
-      "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
-      "comics/",
-      "config/",
-      "dist/",
-      "frontend/",
-      "node_modules/",
-      "package-lock.json",
-      "poetry.lock",
-      "test-results/",
-      "typings/",
-    ],
-  },
-  eslintPluginPrettierRecommended,
-  eslintPluginSecurity.configs.recommended,
-  {
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.browser,
-      },
-    },
-    linterOptions: {
-      reportUnusedDisableDirectives: "warn",
-    },
-    plugins: {
-      prettier: eslintPluginPrettier,
-      security: eslintPluginSecurity,
-    },
-    rules: {
-      "prettier/prettier": "warn",
-    },
-  },
-  {
-    files: ["**/*.js"],
-    ...configs.js,
-  },
-  {
-    files: ["*.json", "**/*.json"],
-    ...eslintJson.configs.recommended,
-    language: "json/json",
   },
   {
     files: ["*.md", "**/*.md"],

@@ -14,7 +14,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.closeButton .v-icon {
+.closeButton :deep(.v-icon) {
   margin-right: 0 !important;
 }
 </style>

@@ -27,7 +27,7 @@ export default {
   props: {
     item: {
       type: Object,
-      require: true,
+      required: true,
     },
     filter: {
       type: String,

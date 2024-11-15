@@ -1,3 +1,4 @@
+import eslintJson from "@eslint/json";
 import eslintPluginVitest from "@vitest/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginVue from "eslint-plugin-vue";
@@ -6,28 +7,17 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import baseConfig from "../eslint.config.js";
-import { configs, FLAT_BASE, FLAT_RECOMMENDED } from "../eslint.config.js";
+import { FLAT_RECOMMENDED } from "../eslint.config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default [
   ...baseConfig,
+  ...eslintPluginVue.configs[FLAT_RECOMMENDED],
+  ...eslintPluginVueScopedCSS.configs["flat/all"],
   {
-    files: ["**/*.vue"],
-    ...configs.js,
-  },
-  ...eslintPluginVue.configs[FLAT_BASE],
-  ...eslintPluginVueScopedCSS.configs[FLAT_BASE],
-  {
-    files: ["**/*.js", "**/*.vue"],
-    rules: {
-      ...eslintPluginVue.configs[FLAT_RECOMMENDED].rules,
-      ...eslintPluginVueScopedCSS.configs[FLAT_RECOMMENDED].rules,
-    },
-  },
-  {
-    files: ["**/*.js", "**/*.vue"],
+    ignores: ["**/*.json"],
     rules: {
       "no-console": [
         "warn",

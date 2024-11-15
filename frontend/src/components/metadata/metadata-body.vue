@@ -1,8 +1,8 @@
 <template>
   <div id="metadataBody">
     <section class="mdSection">
-      <MetadataText :value="md.summary" :maxHeight="100" />
-      <MetadataText :value="md.review" label="Review" :maxHeight="100" />
+      <MetadataText :value="md.summary" :max-height="100" />
+      <MetadataText :value="md.review" label="Review" :max-height="100" />
     </section>
     <MetadataTagsTable :tag-map="contributors" class="mdSection" />
     <section class="mdSection">
@@ -45,7 +45,7 @@
     <section class="mdSection">
       <MetadataTags :values="titledIdentifiers" label="Identifiers" />
     </section>
-    <v-table class="mdSection" v-if="showRatings">
+    <v-table v-if="showRatings" class="mdSection">
       <tbody>
         <tr v-if="md.communityRating">
           <td class="key">Community Rating</td>

@@ -1,6 +1,6 @@
 <template>
   <div v-if="displayValue" class="text">
-    <div class="textLabel" v-if="label">
+    <div v-if="label" class="textLabel">
       {{ label }}
       <ExpandButton
         v-if="showExpandButton"
@@ -11,9 +11,9 @@
     <v-expand-transition>
       <div>
         <div
+          :ref="textValueRefName"
           class="textValue"
           :class="{ empty }"
-          :ref="textValueRefName"
           :style="textValueStyles"
         >
           <span
@@ -81,9 +81,6 @@ export default {
       expanded: false,
       mounted: false,
     };
-  },
-  mounted() {
-    this.mounted = true;
   },
   computed: {
     ...mapGetters(useBrowserStore, ["groupNames"]),
@@ -199,6 +196,9 @@ export default {
         ? this.computedValue.substring(this.lastSlashIndex)
         : "";
     },
+  },
+  mounted() {
+    this.mounted = true;
   },
   methods: {
     ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
