@@ -138,22 +138,19 @@ export default [
       "prettier/prettier": ["warn", { parser: "markdown" }],
     },
   },
-  ...eslintPluginToml.configs[FLAT_BASE],
+  ...eslintPluginToml.configs[FLAT_RECOMMENDED],
   {
     files: ["*.toml", "**/*.toml"],
     rules: {
-      // https://github.com/ota-meshi/eslint-plugin-toml/issues/234
-      ...eslintPluginToml.configs[FLAT_RECOMMENDED].rules,
       "prettier/prettier": ["error", { parser: "toml" }],
     },
   },
-  ...eslintPluginYml.configs[FLAT_BASE],
+  ...eslintPluginYml.configs[FLAT_RECOMMENDED],
+  ...eslintPluginYml.configs["flat/prettier"],
   {
     files: ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
     rules: {
       // https://github.com/ota-meshi/eslint-plugin-toml/issues/234
-      ...eslintPluginYml.configs[FLAT_RECOMMENDED].rules,
-      ...eslintPluginYml.configs["flat/prettier"].rules,
       "prettier/prettier": ["error", { parser: "yaml" }],
     },
   },
