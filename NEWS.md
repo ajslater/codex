@@ -13,7 +13,7 @@ border-radius: 128px;
   - Tags page layout changes with more notes from @beville.
 
 - Fixes
-  - Tags for simple comic fields were incorrcetly taken from the first comic in
+  - Tags for simple comic fields were incorrectly taken from the first comic in
     a group.
   - Filter menu wasn't populating for top folder.
   - Librarian status tasks would appear out of order.
