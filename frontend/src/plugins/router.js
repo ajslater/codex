@@ -15,7 +15,7 @@ const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 
 const LAST_ROUTE = {
   name: "browser",
-  params: window.CODEX.LAST_ROUTE || breadcrumbs[0],
+  params: globalThis.CODEX.LAST_ROUTE || breadcrumbs[0],
 };
 
 const routes = [
@@ -61,6 +61,6 @@ const routes = [
 ];
 
 export default new createRouter({
-  history: createWebHistory(window.CODEX.APP_PATH),
+  history: createWebHistory(globalThis.CODEX.APP_PATH),
   routes,
 });

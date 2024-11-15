@@ -15,12 +15,13 @@ import { range } from "@/util";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
-export const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
+export const GROUPS_REVERSED = [...GROUPS].reverse().join("");
 Object.freeze(GROUPS_REVERSED);
 const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
+  // eslint-disable-next-line unicorn/no-null
   null,
   BROWSER_DEFAULTS.bookmarkFilter,
 ]);
@@ -48,7 +49,7 @@ const redirectRoute = (route) => {
 };
 
 const notEmptyOrBool = (value) => {
-  return (value && Object.keys(value).length) || typeof value === "boolean";
+  return (value && Object.keys(value).length > 0) || typeof value === "boolean";
 };
 
 export const useBrowserStore = defineStore("browser", {
@@ -166,7 +167,7 @@ export const useBrowserStore = defineStore("browser", {
     lowestShownGroup(state) {
       let lowestGroup = "r";
       const topGroupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
-      for (const [index, group] of Array.from(GROUPS_REVERSED).entries()) {
+      for (const [index, group] of [...GROUPS_REVERSED].entries()) {
         const show = state.settings.show[group];
         if (show) {
           if (index <= topGroupIndex) {
@@ -189,7 +190,7 @@ export const useBrowserStore = defineStore("browser", {
     */
     lastRoute(state) {
       const bc = state.settings.breadcrumbs;
-      const params = bc[bc.length - 1];
+      const params = bc.at(-1);
       const route = {};
       if (params) {
         route.name = "browser";
@@ -209,7 +210,7 @@ export const useBrowserStore = defineStore("browser", {
       let keys = COVER_KEYS;
       const dc = state.settings.dynamicCovers;
       if (dc) {
-        keys = keys.concat(DYNAMIC_COVER_KEYS);
+        keys = [...keys, ...DYNAMIC_COVER_KEYS];
       }
 
       const settings = this._filterSettings(state, keys);
@@ -239,6 +240,7 @@ export const useBrowserStore = defineStore("browser", {
       return Object.fromEntries(
         Object.entries(state.settings).filter(([k, v]) => {
           if (!keys.includes(k)) {
+            // eslint-disable-next-line unicorn/no-null
             return null;
           }
           if (k === "filters") {
@@ -291,11 +293,8 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.settings.q && !data.q) {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
-          if (this.settings.topGroup === "f") {
-            data.orderBy = "filename";
-          } else {
-            data.orderBy = "sort_name";
-          }
+          data.orderBy =
+            this.settings.topGroup === "f" ? "filename" : "sort_name";
         }
         return;
       } else if (this.settings.q) {
@@ -335,9 +334,9 @@ export const useBrowserStore = defineStore("browser", {
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
       const newTopGroupIndex = GROUPS_REVERSED.indexOf(newTopGroup);
-      const newTopGroupIsBrowse = newTopGroupIndex >= 0;
+      const newTopGroupIsBrowse = newTopGroupIndex !== -1;
       const oldAndNewBothBrowseGroups =
-        newTopGroupIsBrowse && oldTopGroupIndex >= 0;
+        newTopGroupIsBrowse && oldTopGroupIndex !== -1;
 
       // Construct and return new redirect
       let params;
@@ -384,14 +383,11 @@ export const useBrowserStore = defineStore("browser", {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
           let newValue;
-          if (
+          newValue =
             typeof state.settings[key] === "object" &&
             !Array.isArray(state.settings[key])
-          ) {
-            newValue = { ...state.settings[key], ...value };
-          } else {
-            newValue = value;
-          }
+              ? { ...state.settings[key], ...value }
+              : value;
           if (!dequal(state.settings[key], newValue)) {
             state.settings[key] = newValue;
           }
@@ -484,7 +480,7 @@ export const useBrowserStore = defineStore("browser", {
       this.startSearchHideTimeout();
     },
     setPageMtime(mtime) {
-      self.mtime = mtime;
+      globalThis.mtime = mtime;
     },
     async updateBreadcrumbs(oldBreadcrumbs) {
       const breadcrumbs = this.settings.breadcrumbs || [];
@@ -563,10 +559,10 @@ export const useBrowserStore = defineStore("browser", {
           mtime = this.page.mtime;
         }
       }
-      if (!this.browserPageLoaded) {
-        return this.loadSettings();
-      } else {
+      if (this.browserPageLoaded) {
         this.browserPageLoaded = false;
+      } else {
+        return this.loadSettings();
       }
       const oldBreadcrumbs = this.settings.breadcrumbs;
       await API.getBrowserPage(route.params, this.settings, mtime)

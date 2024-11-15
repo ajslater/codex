@@ -66,7 +66,7 @@ export default {
       return words.join(" ");
     },
     itemName() {
-      return this.item.name ? this.item.name : "(Empty)";
+      return this.item.name || "(Empty)";
     },
   },
   methods: {

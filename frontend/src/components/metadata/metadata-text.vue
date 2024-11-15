@@ -40,7 +40,6 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import { getBrowserHref } from "@/api/v3/browser";
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -102,7 +101,7 @@ export default {
       if (this.group && this.computedValue === "") {
         value = EMPTY_VALUE;
       } else if (this.group === "f" && this.computedValue) {
-        value = this.computedValue.substring(0, this.lastSlashIndex);
+        value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
       } else if (this.group === "v" && this.computedValue) {
         value = formattedVolumeName(this.computedValue);
       } else {
@@ -140,7 +139,7 @@ export default {
       return !this.expanded && this.maxHeight > 0 && this.isOverflow;
     },
     linkPks() {
-      const pks = this.value.ids ? this.value.ids : [this.value.pk];
+      const pks = this.value.ids || [this.value.pk];
       return pks.join(",");
     },
     clickable() {
@@ -157,10 +156,7 @@ export default {
       }
 
       // Get & validate pks
-      if (!this.linkPks?.length) {
-        return false;
-      }
-      return true;
+      return Boolean(this.linkPks?.length);
     },
     classes() {
       return {
@@ -184,16 +180,19 @@ export default {
       return { topGroup };
     },
     title() {
-      const label = this.label
-        ? this.label
-        : this.group
-          ? this.groupNames[this.group]
-          : "";
+      let label;
+      if (this.label) {
+        label = this.label;
+      } else if (this.group) {
+        label = this.groupNames[this.group];
+      } else {
+        label = "";
+      }
       return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {
       return this.group === "f"
-        ? this.computedValue.substring(this.lastSlashIndex)
+        ? this.computedValue.slice(Math.max(0, this.lastSlashIndex))
         : "";
     },
   },

@@ -84,7 +84,7 @@ export default {
     return {
       showTooltip: { show: false },
       schemaHref:
-        window.CODEX.API_V3_PATH + "#/api/api_v3_admin_stats_retrieve",
+        globalThis.CODEX.API_V3_PATH + "#/api/api_v3_admin_stats_retrieve",
     };
   },
   computed: {
@@ -134,11 +134,7 @@ export default {
         const lookup = LOOKUPS[key];
         for (const [typeKey, count] of Object.entries(countObj)) {
           let typeLabel;
-          if (lookup) {
-            typeLabel = lookup[snakeCase(typeKey)];
-          } else {
-            typeLabel = typeKey;
-          }
+          typeLabel = lookup ? lookup[snakeCase(typeKey)] : typeKey;
           countTable[typeLabel] = count;
         }
         const label = this.keyToLabel(key);

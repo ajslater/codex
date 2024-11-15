@@ -91,7 +91,7 @@ export default {
         : this.browserRoute;
     },
     progressBGOpacity() {
-      return this.item.progress ? 0.1 : 0.0;
+      return this.item.progress ? 0.1 : 0;
     },
   },
   mounted() {

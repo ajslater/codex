@@ -170,11 +170,9 @@ export default {
         return true;
       },
       pdfInBrowserURL(state) {
-        if (this.isPDF && state.books?.current) {
-          return getPDFInBrowserURL(state.books?.current);
-        } else {
-          return "";
-        }
+        return this.isPDF && state.books?.current
+          ? getPDFInBrowserURL(state.books?.current)
+          : "";
       },
       finishOnLastPage: (state) => state.readerSettings.finishOnLastPage,
     }),

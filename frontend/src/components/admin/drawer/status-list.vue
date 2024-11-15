@@ -77,7 +77,7 @@ export default {
     indeterminate: (status) =>
       status.active && (!status.total || !Number.isInteger(status.complete)),
     progress(status) {
-      if (!status.total || self.indeterminate) {
+      if (!status.total || globalThis.indeterminate) {
         return 0;
       }
       return (100 * +status.complete) / +status.total;

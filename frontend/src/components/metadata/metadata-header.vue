@@ -106,7 +106,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
@@ -163,11 +163,7 @@ export default {
       return date.toLocaleDateString("default", options);
     },
     readerRoute() {
-      if (this.md?.ids) {
-        return getReaderRoute(this.md, this.importMetadata);
-      } else {
-        return {};
-      }
+      return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
     },
     formattedIssueNumber() {
       if (!this.md) {
@@ -189,11 +185,9 @@ export default {
       }
       if (this.md.page) {
         const humanBookmark = NUMBER_FORMAT.format(this.md.page);
-        if (this.$vuetify.display.smAndDown) {
-          pages += `${humanBookmark} / `;
-        } else {
-          pages += `Read ${humanBookmark} of `;
-        }
+        pages += this.$vuetify.display.smAndDown
+          ? `${humanBookmark} / `
+          : `Read ${humanBookmark} of `;
       }
       const humanPages = NUMBER_FORMAT.format(this.md.pageCount);
       pages += `${humanPages} page`;

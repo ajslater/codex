@@ -23,12 +23,11 @@
 
 <script>
 import { mdiEye, mdiEyeOff } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
-import { formattedIssue, formattedVolumeName } from "@/comic-name";
+import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
-import { NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
@@ -76,7 +75,7 @@ export default {
         if (this.md.group === "a") {
           return [this.firstNameFromList(md.storyArcList)];
         }
-        names = [
+        const names = [
           this.firstNameFromList(md.publisherList),
           this.firstNameFromList(md.imprintList),
           this.firstNameFromList(md.seriesList),
@@ -84,7 +83,7 @@ export default {
           formattedIssue(this.md, 3),
           this.md.name,
         ];
-        name = names.filter((x) => x).join(" ");
+        name = names.filter(Boolean).join(" ");
       }
       return name;
     },
@@ -125,11 +124,7 @@ export default {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
-      if (this.md?.ids) {
-        return getReaderRoute(this.md, this.importMetadata);
-      } else {
-        return {};
-      }
+      return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
     },
     size() {
       return this.$vuetify.display.smAndDown ? "x-small" : "default";

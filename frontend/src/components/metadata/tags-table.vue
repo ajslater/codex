@@ -12,10 +12,7 @@
 </template>
 
 <script>
-import { mapGetters } from "pinia";
-
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
-import { useMetadataStore } from "@/stores/metadata";
 
 export default {
   name: "MetadataTagsTable",
@@ -45,6 +42,7 @@ export default {
     font-size: x-small;
     padding-right: 3px !important;
   }
+
   .tags {
     padding-left: 3px !important;
   }

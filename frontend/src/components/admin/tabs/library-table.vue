@@ -149,7 +149,9 @@ export default {
       return headers;
     },
     items() {
-      return self.coversDir ? this.customCoverLibraries : this.normalLibraries;
+      return globalThis.coversDir
+        ? this.customCoverLibraries
+        : this.normalLibraries;
     },
     updateLabel() {
       return this.coversDir ? "Cover Dir" : "";

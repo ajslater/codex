@@ -1,4 +1,3 @@
-import eslintJson from "@eslint/json";
 import eslintPluginVitest from "@vitest/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginVue from "eslint-plugin-vue";

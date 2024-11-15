@@ -61,11 +61,11 @@ export default {
         if (this.isUserAdmin) {
           res.title =
             "Use the top right ☰ menu to navigate to the admin panel and add a comic library";
-        } else if (!this.isAuthorized) {
+        } else if (this.isAuthorized) {
+          res.title = "An administrator must add some comics libraries";
+        } else {
           res.title =
             "Use the top right ☰ menu to log in as an administrator to add libraries";
-        } else {
-          res.title = "An administrator must add some comics libraries";
         }
         res.icon = mdiShieldCrownOutline;
       }

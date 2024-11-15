@@ -90,11 +90,10 @@ export default {
     change(path) {
       let relativePath;
       if (path) {
-        if (path.startsWith("/") || path.startsWith("\\")) {
-          relativePath = path;
-        } else {
-          relativePath = [this.rootFolder, path].join("/");
-        }
+        relativePath =
+          path.startsWith("/") || path.startsWith("\\")
+            ? path
+            : [this.rootFolder, path].join("/");
       } else {
         relativePath = this.rootFolder;
       }

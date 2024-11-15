@@ -53,10 +53,10 @@ export default {
         formattedIssue(this.item, 3),
         this.item?.name,
       ];
-      return names.filter((x) => x).join(" ");
+      return names.filter(Boolean).join(" ");
     },
     downloadName() {
-      return this.item?.fileName ? this.item?.fileName : this._groupName;
+      return this.item?.fileName || this._groupName;
     },
     downloadItem() {
       return { ...this.item, name: this.downloadName };

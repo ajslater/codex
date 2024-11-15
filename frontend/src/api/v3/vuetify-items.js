@@ -22,12 +22,10 @@ const toVuetifyItem = function (item) {
         const value = item.ids.join(",");
         vuetifyItem = { value, title: item.name };
       }
+    } else if (NULL_PKS.has(item.pk)) {
+      vuetifyItem = undefined;
     } else {
-      if (NULL_PKS.has(item.pk)) {
-        vuetifyItem = undefined;
-      } else {
-        vuetifyItem = { value: item.pk, title: item.name };
-      }
+      vuetifyItem = { value: item.pk, title: item.name };
     }
   } else {
     vuetifyItem = { value: item, title: item.toString() };

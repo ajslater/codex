@@ -34,14 +34,10 @@ export default {
       return "";
     },
     value() {
-      if (this.item) {
-        if (this.groupType) {
-          return this.item.exclude;
-        } else {
-          return this.item.value;
-        }
+      if (!this.item) {
+        return;
       }
-      return undefined;
+      return this.groupType ? this.item.exclude : this.item.value;
     },
   },
 };
@@ -50,7 +46,8 @@ export default {
 .include {
   background-color: rgb(var(--v-theme-includeGroup));
 }
-.exclude{
+
+.exclude {
   background-color: rgb(var(--v-theme-excludeGroup));
 }
 </style>

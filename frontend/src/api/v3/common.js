@@ -6,7 +6,7 @@ const map = (obj, func) => {
   // Generic map for arrays and objects
   switch (obj?.constructor) {
     case Array:
-      return obj.map(func);
+      return obj.map((x) => func(x));
     case Object:
       return Object.fromEntries(
         Object.entries(obj).map(([key, val]) => [key, func(val, key)]),
@@ -20,7 +20,7 @@ const filter = (obj, func) => {
   // Generic filter for arrays and objects
   switch (obj?.constructor) {
     case Array:
-      return obj.filter(func);
+      return obj.filter((x) => func(x));
     case Object:
       return Object.fromEntries(
         Object.entries(obj).filter(([key, val]) => func(val, key)),
@@ -89,10 +89,10 @@ export const getDownloadIOSPWAFix = (href, filename) => {
       const blob = new Blob([response.data], {
         type: "application/octet-stream",
       });
-      link.href = window.URL.createObjectURL(blob);
+      link.href = globalThis.URL.createObjectURL(blob);
       link.download = filename;
       link.click();
-      window.URL.revokeObjectURL(response.data);
+      globalThis.URL.revokeObjectURL(response.data);
       return link.remove();
     })
     .catch(console.warn);

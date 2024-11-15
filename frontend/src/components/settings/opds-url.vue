@@ -61,7 +61,7 @@ export default {
       return TOOLTIP ? this.clipBoardEnabled : undefined;
     },
     url() {
-      return window.origin + this.urlPath;
+      return globalThis.origin + this.urlPath;
     },
   },
   methods: {
