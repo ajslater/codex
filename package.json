@@ -39,6 +39,15 @@
       }
     ]
   },
+  "remarkConfig": {
+    "plugins": [
+      "gfm",
+      "preset-lint-consistent",
+      "preset-lint-recommended",
+      "preset-lint-markdown-style-guide",
+      "preset-prettier"
+    ]
+  },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
     "@eslint/json": "^0.6.0",
@@ -52,6 +61,7 @@
     "eslint-plugin-compat": "^6.0.0",
     "eslint-plugin-depend": "^0.12.0",
     "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-mdx": "^3.1.5",
     "eslint-plugin-no-secrets": "^1.0.2",
     "eslint-plugin-no-unsanitized": "^4.1.0",
     "eslint-plugin-prettier": "^5.1.3",
@@ -71,6 +81,11 @@
     "prettier-plugin-sh": "^0.14.0",
     "prettier-plugin-toml": "^2.0.1",
     "prettier-plugin-vue": "^1.1.6",
+    "remark-gfm": "^4.0.0",
+    "remark-preset-lint-consistent": "^6.0.0",
+    "remark-preset-lint-markdown-style-guide": "^6.0.0",
+    "remark-preset-lint-recommended": "^7.0.0",
+    "remark-preset-prettier": "^2.0.1",
     "svgo": "^3.0.0",
     "toml": "^3.0.0"
   }
