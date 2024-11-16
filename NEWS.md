@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.9
+
+- Fixes
+
+  - Tags page layout fixes.
+
 ## v1.7.8
 
 - Features

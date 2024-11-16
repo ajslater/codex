@@ -1,9 +1,9 @@
 <template>
-  <div v-if="items?.length > 0" class="tags">
+  <div v-if="items?.length > 0">
     <div v-if="label" class="chipGroupLabel">
       {{ label }}
     </div>
-    <div class="chips">
+    <div>
       <MetadataChip
         v-for="item in items"
         :key="`${filter}/${item.value}`"
@@ -50,16 +50,9 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.tags {
-  padding: 5px;
-}
-
 .chipGroupLabel {
   font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
-}
-.chips * {
-  margin-right: 5px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

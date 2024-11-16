@@ -68,8 +68,40 @@ export const useMetadataStore = defineStore("metadata", {
         "contributors",
       );
     },
+    identifiers(state) {
+      const identifiers = [];
+      if (!state.md?.identifiers) {
+        return identifiers;
+      }
+      for (const identifier of this.md.identifiers) {
+        const parts = identifier.name.split(":");
+        const idType = parts[0];
+        const code = parts[1];
+        const finalTitle = useBrowserStore().identifierTypeTitle(idType);
+        let name = "";
+        if (finalTitle && finalTitle !== "None") {
+          name += finalTitle + ":";
+        }
+        name += code;
+
+        const item = {
+          pk: identifier.pk,
+          url: identifier.url,
+          name,
+        };
+        identifiers.push(item);
+      }
+      return identifiers;
+    },
     tags(state) {
-      return state.mapTag(state.md, TAGS);
+      const tags = state.mapTag(state.md, TAGS);
+      if (this.identifiers) {
+        tags["Identifiers"] = {
+          filter: "identifiers",
+          tags: this.identifiers,
+        };
+      }
+      return tags;
     },
   },
   actions: {

@@ -281,7 +281,7 @@ export default {
 
   #seriesRow {
     margin-top: 0px;
-    font-size: small;
+    font-size: large;
   }
 
   #titleRow {
