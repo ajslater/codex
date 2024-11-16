@@ -5,7 +5,7 @@ import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
 import eslintPluginDepend from "eslint-plugin-depend";
 import eslintPluginImport from "eslint-plugin-import";
-import * as mdxEslintPlugin from "eslint-plugin-mdx";
+import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
@@ -59,8 +59,8 @@ export default [
   eslintPluginCompat.configs[FLAT_RECOMMENDED],
   eslintPluginDepend.configs[FLAT_RECOMMENDED],
   eslintPluginImport.flatConfigs.recommended,
-  mdxEslintPlugin.flat,
-  mdxEslintPlugin.flatCodeBlocks,
+  eslintPluginMdx.flat,
+  eslintPluginMdx.flatCodeBlocks,
   eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginPromise.configs[FLAT_RECOMMENDED],
   eslintPluginRegexp.configs[FLAT_RECOMMENDED],
@@ -116,7 +116,7 @@ export default [
   },
   {
     files: ["**/.{md,mdx}"],
-    processor: mdxEslintPlugin.createRemarkProcessor({
+    processor: eslintPluginMdx.createRemarkProcessor({
       lintCodeBlocks: true,
     }),
   },
