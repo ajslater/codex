@@ -1,11 +1,11 @@
 import eslintJs from "@eslint/js";
-import eslintMarkdown from "@eslint/markdown";
 import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
 import eslintPluginDepend from "eslint-plugin-depend";
 import eslintPluginImport from "eslint-plugin-import";
+import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
@@ -59,6 +59,8 @@ export default [
   eslintPluginCompat.configs[FLAT_RECOMMENDED],
   eslintPluginDepend.configs[FLAT_RECOMMENDED],
   eslintPluginImport.flatConfigs.recommended,
+  eslintPluginMdx.flat,
+  eslintPluginMdx.flatCodeBlocks,
   eslintPluginNoUnsanitized.configs.recommended,
   eslintPluginPromise.configs[FLAT_RECOMMENDED],
   eslintPluginRegexp.configs[FLAT_RECOMMENDED],
@@ -113,25 +115,19 @@ export default [
     },
   },
   {
-    files: ["*.md", "**/*.md"],
-    language: "markdown/gfm",
-    plugins: { markdown: eslintMarkdown },
-    processor: "markdown/markdown",
-    rules: {
-      ...eslintMarkdown.configs.recommended.rules,
-      "no-undef": "off",
-      "no-unused-vars": "off",
-      "prettier/prettier": ["warn", { parser: "markdown" }],
-    },
+    files: ["**/.{md,mdx}"],
+    processor: eslintPluginMdx.createRemarkProcessor({
+      lintCodeBlocks: true,
+    }),
   },
   {
-    files: ["*.toml", "**/*.toml"],
+    files: ["**/*.toml", "**/*.md/*.toml"],
     rules: {
       "prettier/prettier": ["error", { parser: "toml" }],
     },
   },
   {
-    files: ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
+    files: ["**/*.yaml", "**/*.yml", "**/*.md/*.yaml"],
     rules: {
       "prettier/prettier": ["error", { parser: "yaml" }],
     },

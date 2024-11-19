@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.10
+
+- Fixes
+
+  - Fix occasional import link tags crash.
+
 ## v1.7.9
 
 - Fixes
