@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix occasional import link M2M values crash.
+  - Fix occasional import link tags crash.
 
 ## v1.7.9
 
