@@ -1,5 +1,6 @@
 """Bulk update m2m fields."""
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from django.db.models import Q
@@ -126,13 +127,13 @@ class LinkComicsImporter(LinkCoversImporter):
         result = frozenset(pks)
         all_m2m_links[key][comic_pk] = result
 
-    def _link_comic_m2m_fields(self):
+    def _link_comic_m2m_fields(self) -> tuple[Mapping, int]:
         """Get the complete m2m field data to create."""
         total = 0
         all_m2m_links = {}
         comic_paths = frozenset(self.metadata.get(M2M_MDS, {}).keys())
         if not comic_paths:
-            return all_m2m_links
+            return all_m2m_links, total
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = self.metadata[M2M_MDS][comic_path]
