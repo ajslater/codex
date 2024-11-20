@@ -15,7 +15,7 @@ codex/static_build
 codex/static_src/img/*.svg
 codex/static_root
 codex/templates/**/*.html
-codex/templates/*.html
+codex/templates/**/*.xml
 codex/templates/pwa/manifest.webmanifest
 comics
 dist
