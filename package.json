@@ -14,6 +14,7 @@
   ],
   "prettier": {
     "plugins": [
+      "@prettier/plugin-xml",
       "prettier-plugin-nginx",
       "prettier-plugin-packagejson",
       "prettier-plugin-sh",

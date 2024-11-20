@@ -12,6 +12,7 @@ __pycache__
 cache
 codex/_vendor
 codex/static_build
+codex/static_src/img/*.svg
 codex/static_root
 codex/templates/**/*.html
 codex/templates/*.html
