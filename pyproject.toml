@@ -104,7 +104,7 @@ codex = "codex.run:main"
 "Report Issues" = "https://github.com/ajslater/codex/issues"
 
 [tool.codespell]
-skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,poetry.lock,run.spec'
+skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,poetry.lock,run.spec,.eslintcache'
 builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
