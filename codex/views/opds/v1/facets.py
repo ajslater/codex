@@ -189,11 +189,8 @@ class OPDS1FacetsView(BrowserView):
     def _did_special_group_change(group, facet_group):
         """Test if one of the special groups changed."""
         for test_group in ("f", "a"):
-            if (
-                group == test_group
-                and facet_group != test_group
-                or group != test_group
-                and facet_group == test_group
+            if (group == test_group and facet_group != test_group) or (
+                group != test_group and facet_group == test_group
             ):
                 return True
         return False
