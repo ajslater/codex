@@ -1,4 +1,4 @@
-@use 'sass:math';
+@use "sass:math";
 $cover-ratio: 1.5372233400402415; /* Modal cover ratio */
 $cover-width: 165px;
 $cover-height: math.round(calc($cover-ratio * $cover-width));
