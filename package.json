@@ -71,7 +71,7 @@
     "eslint-plugin-security": "^3.0.0",
     "eslint-plugin-simple-import-sort": "^12.1.0",
     "eslint-plugin-sonarjs": "^2.0.2",
-    "eslint-plugin-toml": "^0.11.0",
+    "eslint-plugin-toml": "^0.12.0",
     "eslint-plugin-unicorn": "^56.0.0",
     "eslint-plugin-yml": "^1.12.2",
     "eslint_d": "^14.2.2",

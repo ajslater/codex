@@ -46,7 +46,7 @@
     "sass": "^1.55.0",
     "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
-    "vite": "^5.4.6",
+    "vite": "^6.0.1",
     "vite-plugin-checker": "^0.8.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-run": "^0.6.0",
