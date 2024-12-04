@@ -35,6 +35,7 @@ export default [
       "import/extensions": [".js", ".vue"],
       "import/parsers": {
         "vue-eslint-parser": [".vue"],
+        "@eslint/json": [".json"],
       },
       "import/resolver": {
         alias: {
