@@ -2,8 +2,8 @@
   "description": "linting for top level codex project & django backend",
   "type": "module",
   "scripts": {
-    "fix": "eslint_d --cache --fix . && eslint_d --cache --fix --config eslint.config.json.js . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache . && eslint_d --cache --fix --config eslint.config.json.js . && prettier --check . && bin/prettier-nginx.sh --check"
+    "fix": "eslint_d --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
+    "lint": "eslint_d --cache . && prettier --check . && bin/prettier-nginx.sh --check"
   },
   "browserslist": [
     "> 1%",
@@ -51,10 +51,10 @@
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
-    "@eslint/json": "^0.8.0",
+    "@eslint/json": "^0.9.0",
     "@fsouza/prettierd": "^0.25.0",
     "@prettier/plugin-xml": "^3.0.0",
-    "eslint": "9.14.0",
+    "eslint": "^9.16.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-array-func": "^5.0.1",
@@ -70,7 +70,7 @@
     "eslint-plugin-scanjs-rules": "^0.2.1",
     "eslint-plugin-security": "^3.0.0",
     "eslint-plugin-simple-import-sort": "^12.1.0",
-    "eslint-plugin-sonarjs": "^2.0.4",
+    "eslint-plugin-sonarjs": "^3.0.1",
     "eslint-plugin-toml": "^0.12.0",
     "eslint-plugin-unicorn": "^56.0.0",
     "eslint-plugin-yml": "^1.12.2",
