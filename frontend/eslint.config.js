@@ -4,18 +4,44 @@ import eslintPluginVue from "eslint-plugin-vue";
 import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 import path from "path";
 import { fileURLToPath } from "url";
+import vueEslintParser from "vue-eslint-parser";
 
-import baseConfig, { FLAT_RECOMMENDED } from "../eslint.config.js";
+import baseConfig, {
+  configs,
+  FLAT_ALL,
+  FLAT_RECOMMENDED,
+} from "../eslint.config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default [
   ...baseConfig,
-  ...eslintPluginVue.configs[FLAT_RECOMMENDED],
-  ...eslintPluginVueScopedCSS.configs["flat/all"],
   {
-    ignores: ["**/*.json"],
+    files: ["**/*.vue"],
+    ...configs.js,
+  },
+  {
+    // Manually config vue plugins.
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueEslintParser,
+    },
+    plugins: {
+      vue: eslintPluginVue,
+      vueScopedCSS: eslintPluginVueScopedCSS,
+    },
+    processor: "vue/vue",
+    rules: {
+      ...eslintPluginVue.configs["flat/base"].rules,
+      ...eslintPluginVue.configs["flat/essential"].rules,
+      ...eslintPluginVue.configs["flat/strongly-recommended"].rules,
+      ...eslintPluginVue.configs[FLAT_RECOMMENDED].rules,
+      ...eslintPluginVueScopedCSS.configs[FLAT_ALL].rules,
+    },
+  },
+  {
+    files: ["**/*.js", "**/*.vue"],
     rules: {
       "no-console": [
         "warn",
@@ -52,12 +78,7 @@ export default [
   },
   {
     files: ["tests/**"],
-    plugins: {
-      vitest: eslintPluginVitest,
-    },
-    rules: {
-      ...eslintPluginVitest.configs.recommended.rules,
-    },
+    ...eslintPluginVitest.configs.recommended,
   },
   eslintConfigPrettier, // Best if last
 ];
