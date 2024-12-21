@@ -1,9 +1,9 @@
 """Cover status types."""
 
-from django.db.models import Choices
+from django.db.models import TextChoices
 
 
-class CoverStatusTypes(Choices):
+class CoverStatusTypes(TextChoices):
     """Cover Types."""
 
     CREATE_COVERS = "CCC"

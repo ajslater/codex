@@ -11,7 +11,6 @@ if ("serviceWorker" in navigator) {
         registration.scope,
       );
       return true;
-      // eslint-disable-next-line unicorn/prefer-top-level-await
     })
     .catch(function (error) {
       // registration failed :(

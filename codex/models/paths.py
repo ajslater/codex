@@ -3,8 +3,7 @@
 from pathlib import Path
 from types import MappingProxyType
 
-from django.db.models import CASCADE, CharField, ForeignKey, JSONField
-from django.db.models.enums import Choices
+from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoices
 
 from codex.models.base import MAX_NAME_LEN, BaseModel, max_choices_len
 from codex.models.library import MAX_PATH_LEN, Library
@@ -81,7 +80,7 @@ class FailedImport(WatchedPath):
 class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
-    class GroupChoice(Choices):
+    class GroupChoice(TextChoices):
         """Reading direction choices."""
 
         P = "p"

@@ -25,6 +25,7 @@ export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
 export const getTimestamp = function () {
   return Math.floor(Date.now() / 1000);
 };
+var foo = 1;
 
 export default {
   DATE_FORMAT,

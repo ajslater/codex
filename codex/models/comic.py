@@ -11,7 +11,6 @@ from django.db.models import (
     CASCADE,
     BooleanField,
     CharField,
-    Choices,
     DateField,
     DateTimeField,
     DecimalField,
@@ -20,6 +19,7 @@ from django.db.models import (
     OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
+    TextChoices,
     TextField,
 )
 
@@ -59,7 +59,7 @@ from codex.models.named import (
 __all__ = ("Comic",)
 
 
-class ReadingDirection(Choices):
+class ReadingDirection(TextChoices):
     """Reading direction choices."""
 
     LTR = ReadingDirectionEnum.LTR.value
@@ -68,7 +68,7 @@ class ReadingDirection(Choices):
     BTT = ReadingDirectionEnum.BTT.value
 
 
-class FileType(Choices):
+class FileType(TextChoices):
     """Identifiers for file formats."""
 
     CBZ = "CBZ"

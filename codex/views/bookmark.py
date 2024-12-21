@@ -49,7 +49,7 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
 class BookmarkAuthMixin(APIView):
     """Base class for Bookmark Views."""
 
-    def get_bookmark_auth_filter(self):
+    def get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
         """Filter only the user's bookmarks."""
         if self.request.user.is_authenticated:
             key = "user_id"

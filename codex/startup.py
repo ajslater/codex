@@ -6,7 +6,6 @@ from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
 
-from codex.choices.admin import ADMIN_FLAG_CHOICES, ADMIN_STATUS_TITLES
 from codex.db import ensure_db_schema
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
@@ -52,11 +51,10 @@ def init_admin_flags():
     """Init admin flag rows."""
     _delete_orphans(AdminFlag, "key", AdminFlag.FlagChoices.values)
 
-    for key in AdminFlag.FlagChoices.values:
+    for key, title in AdminFlag.FlagChoices.choices:
         defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
-            title = ADMIN_FLAG_CHOICES[flag.key]
             LOG.info(f"Created AdminFlag: {title} = {flag.on}")
 
 
@@ -75,15 +73,13 @@ def init_timestamps():
 
 def init_librarian_statuses():
     """Init librarian statuses."""
-    status_types = [choice[0] for choice in LibrarianStatus.CHOICES]
-    _delete_orphans(LibrarianStatus, "status_type", status_types)
+    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES.labels)
 
-    for status_type in status_types:
+    for status_type, title in LibrarianStatus.CHOICES.choices:
         _, created = LibrarianStatus.objects.update_or_create(
             defaults=STATUS_DEFAULTS, status_type=status_type
         )
         if created:
-            title = ADMIN_STATUS_TITLES[status_type]
             LOG.debug(f"Created {title} LibrarianStatus.")
 
 

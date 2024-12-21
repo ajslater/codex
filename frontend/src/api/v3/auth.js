@@ -6,8 +6,7 @@ const getAdminFlags = async () => {
   return await HTTP.get("/auth/flags/");
 };
 
-// eslint-disable-next-line sonarjs/new-cap
-const get_tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+const get_tz = () => new Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const updateTimezone = async () => {
   const data = {

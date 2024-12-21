@@ -1,9 +1,9 @@
 """Librarian Status for imports."""
 
-from django.db.models import Choices
+from django.db.models import TextChoices
 
 
-class ImportStatusTypes(Choices):
+class ImportStatusTypes(TextChoices):
     """Keys for Import tasks."""
 
     DIRS_MOVED = "IDM"
