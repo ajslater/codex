@@ -24,7 +24,7 @@ export const FLAT_ALL = "flat/all";
 export const FLAT_BASE = "flat/base";
 export const FLAT_RECOMMENDED = "flat/recommended";
 
-export const configs = {
+export const CONFIGS = {
   js: {
     ...eslintJs.configs.recommended,
     ...eslintPluginArrayFunc.configs.all,
@@ -76,6 +76,7 @@ export const configs = {
     },
   },
 };
+Object.freeze(CONFIGS);
 
 export default [
   {
@@ -86,9 +87,7 @@ export default [
       "**/*min.js",
       "*~",
       ".git/",
-      ".mypy_cache/",
-      ".pytest_cache/",
-      ".ruff_cache/",
+      ".*cache/",
       ".venv/",
       "codex/_vendor/",
       "codex/static_build/",
@@ -124,7 +123,7 @@ export default [
   },
   {
     files: ["**/*.js"],
-    ...configs.js,
+    ...CONFIGS.js,
   },
   {
     files: ["**/*.json", "**/*.md/*.json"],

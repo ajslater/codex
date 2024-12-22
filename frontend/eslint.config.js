@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import vueEslintParser from "vue-eslint-parser";
 
 import baseConfig, {
-  configs,
+  CONFIGS,
   FLAT_ALL,
   FLAT_RECOMMENDED,
 } from "../eslint.config.js";
@@ -19,7 +19,7 @@ export default [
   ...baseConfig,
   {
     files: ["**/*.vue"],
-    ...configs.js,
+    ...CONFIGS.js,
   },
   {
     // Manually config vue plugins.
