@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from codex.choices.browser import BROWSER_DEFAULTS
 from codex.choices.reader import READER_DEFAULTS
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name

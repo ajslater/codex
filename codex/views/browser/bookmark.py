@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.update import BookmarkUpdate
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.serializers.models.bookmark import (
     BookmarkFinishedSerializer,

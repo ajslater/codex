@@ -51,7 +51,7 @@
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-run": "^0.6.0",
     "vite-plugin-vuetify": "^2.0.1",
-    "vitest": "^2.0.1",
+    "vitest": "^3.0.2",
     "vue-eslint-parser": "^9.0.2"
   }
 }

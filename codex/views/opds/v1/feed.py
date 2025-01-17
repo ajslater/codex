@@ -8,7 +8,7 @@ from rest_framework.throttling import ScopedRateThrottle
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,

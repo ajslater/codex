@@ -4,7 +4,7 @@ from contextlib import suppress
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     BrowserGroupModel,
     Comic,

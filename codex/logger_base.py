@@ -1,6 +1,6 @@
 """Class to run librarian tasks inline without a thread."""
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 
 class LoggerBaseMixin:

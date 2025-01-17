@@ -4,7 +4,7 @@ import asyncio
 import signal
 from asyncio import Event
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 LOG = get_logger(__name__)
 STOP_SIGNAL_NAMES = (

@@ -6,7 +6,7 @@ from django.db.models.aggregates import Aggregate, Max
 from django.db.models.functions import Greatest
 from django.db.utils import OperationalError
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.const import EPOCH_START, EPOCH_START_DATETIMEFIELD, NONE_DATETIMEFIELD

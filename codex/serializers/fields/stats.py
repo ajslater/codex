@@ -3,7 +3,7 @@
 from rest_framework.fields import DictField, IntegerField
 from rest_framework.serializers import MultipleChoiceField
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 LOG = get_logger(__name__)
 

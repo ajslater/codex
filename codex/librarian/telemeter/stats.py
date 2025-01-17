@@ -9,7 +9,7 @@ from caseconverter import snakecase
 from django.contrib.sessions.models import Session
 from django.db.models import Count
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     Library,

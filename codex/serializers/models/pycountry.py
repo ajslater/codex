@@ -1,6 +1,6 @@
 """Pycountry Model Serializers."""
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     Country,
     Language,

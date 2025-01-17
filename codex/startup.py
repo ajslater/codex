@@ -7,7 +7,7 @@ from django.db.models import F, Q
 from django.db.models.functions import Now
 
 from codex.db import ensure_db_schema
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
 from codex.settings.settings import (

@@ -1,6 +1,6 @@
 """Search Filters Methods."""
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.browser.filters.search.field.filter import BrowserFieldQueryFilter
 
 LOG = get_logger(__name__)

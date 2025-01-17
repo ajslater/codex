@@ -5,7 +5,7 @@ from time import time
 from django.db import connection
 from django.utils import timezone
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.settings.settings import LOG_RESPONSE_TIME, SLOW_QUERY_LIMIT
 
 LOG = get_logger(__name__)

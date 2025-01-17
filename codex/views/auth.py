@@ -6,7 +6,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc
 
 LOG = get_logger(__name__)

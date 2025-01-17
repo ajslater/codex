@@ -2,7 +2,7 @@
 
 from django.urls.converters import StringConverter
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 LOG = get_logger(__name__)
 

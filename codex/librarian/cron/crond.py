@@ -6,10 +6,10 @@ from types import MappingProxyType
 
 from django.utils import timezone as django_timezone
 
+from codex.librarian.janitor.scheduled_time import get_janitor_time
 from codex.librarian.janitor.tasks import JanitorNightlyTask
-from codex.librarian.janitor.time import get_janitor_time
+from codex.librarian.telemeter.scheduled_time import get_telemeter_time
 from codex.librarian.telemeter.tasks import TelemeterTask
-from codex.librarian.telemeter.time import get_telemeter_time
 from codex.threads import NamedThread
 
 _TASK_TIME_FUNCTION_MAP = MappingProxyType(

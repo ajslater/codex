@@ -4,7 +4,7 @@ from enum import Enum
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 ChannelGroups = Enum("ChannelGroups", "ALL ADMIN")
 

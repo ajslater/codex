@@ -3,7 +3,7 @@
 from types import MappingProxyType
 from typing import Any
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import Comic
 from codex.serializers.reader import (
     ReaderViewInputSerializer,

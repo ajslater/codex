@@ -31,15 +31,15 @@ class OPDS2ProgressionLocationsSerializer(Serializer):
     progression = DecimalField(
         max_digits=7,
         decimal_places=6,
-        max_value=Decimal(1.0),
-        min_value=Decimal(0.0),
+        max_value=Decimal("1.0"),
+        min_value=Decimal("0.0"),
         read_only=True,
     )
     total_progression = DecimalField(
         max_digits=7,
         decimal_places=6,
-        max_value=Decimal(1.0),
-        min_value=Decimal(0.0),
+        max_value=Decimal("1.0"),
+        min_value=Decimal("0.0"),
         read_only=True,
     )
 

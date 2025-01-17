@@ -8,7 +8,7 @@ from django.db.models.signals import m2m_changed
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 GROUP_CHANGE_MODEL_NAMES = frozenset(("User", "Library"))
 GROUP_CHANGE_ACTIONS = frozenset(

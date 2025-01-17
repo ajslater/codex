@@ -473,7 +473,7 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         db_index=True,
                         decimal_places=2,
-                        default=Decimal(0.0),
+                        default=Decimal("0.0"),
                         max_digits=6,
                     ),
                 ),

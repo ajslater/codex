@@ -9,7 +9,7 @@ from rest_framework.exceptions import NotFound
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.exceptions import SeeOtherRedirectError
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.groups import BrowserGroupModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView

@@ -4,7 +4,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer
 
