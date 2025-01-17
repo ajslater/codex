@@ -101,8 +101,10 @@ export default {
         state.settings.filters.bookmark || state.choices.static.bookmark[0],
       filters: (state) => state.settings.filters,
       filterMenuClass: function (state) {
-        // Lets me hide bookmark menu items with css when the filterMode
-        //   changes.
+        /*
+         * Lets me hide bookmark menu items with css when the filterMode
+         *   changes.
+         */
         let clsName = "filterMenu";
         if (state.filterMode !== "base") {
           clsName += "Hidden";

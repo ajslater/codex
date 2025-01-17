@@ -1,8 +1,10 @@
-// Date & time formats
-// Date is forced to YYYY-MM-DD with sv-SE
-// Time is by default undefined and browser based but can be forced to sv-SE 24 HR.
-// XXX Force to 24 hr is probably superfluous at this point
-// const TWELVE_HOUR_LOCALE = "en-NZ";
+/*
+ * Date & time formats
+ * Date is forced to YYYY-MM-DD with sv-SE
+ * Time is by default undefined and browser based but can be forced to sv-SE 24 HR.
+ * XXX Force to 24 hr is probably superfluous at this point
+ * const TWELVE_HOUR_LOCALE = "en-NZ";
+ */
 const TWENTY_FOUR_HOUR_LOCALE = "sv-SE";
 export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE);
 export const NUMBER_FORMAT = new Intl.NumberFormat();

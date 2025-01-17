@@ -54,6 +54,7 @@
     "@eslint/json": "^0.9.1",
     "@fsouza/prettierd": "^0.26.0",
     "@prettier/plugin-xml": "^3.0.0",
+    "@stylistic/eslint-plugin": "^2.13.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-import-resolver-alias": "^1.1.2",

@@ -8,8 +8,10 @@ export const NULL_PKS = new Set([
 ]);
 
 const toVuetifyItem = function (item) {
-  // Translates an raw value or an item item into a vuetify item.
-  // Removes nulls, they're detected directly from the choices source.
+  /*
+   * Translates an raw value or an item item into a vuetify item.
+   * Removes nulls, they're detected directly from the choices source.
+   */
   let vuetifyItem;
   if (NULL_PKS.has(item)) {
     vuetifyItem = item;
@@ -47,8 +49,10 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
 };
 
 export const toVuetifyItems = function (items, filter, numeric = false) {
-  // Takes a value (can be a list) and a list of items and
-  // Returns a list of valid items with items arg having preference.
+  /*
+   * Takes a value (can be a list) and a list of items and
+   * Returns a list of valid items with items arg having preference.
+   */
   const sourceItems = items || [];
 
   // Case insensitive search for filter-sub-menu

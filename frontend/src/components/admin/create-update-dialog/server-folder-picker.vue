@@ -101,8 +101,10 @@ export default {
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
         .then(() => {
-          // menuProps: closeOnContentClick doesn't seem to work.
-          //  menu still flashes, not great.
+          /*
+           * menuProps: closeOnContentClick doesn't seem to work.
+           *  menu still flashes, not great.
+           */
           this.menuOpen = isMenuOpen;
           let changePath = "";
           if (this.formErrors.length === 0) {

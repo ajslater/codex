@@ -43,8 +43,10 @@ export default {
   },
   data() {
     return {
-      // If the window is small on mount, the intersection observer
-      // goes crazy and scrolls to 0.
+      /*
+       * If the window is small on mount, the intersection observer
+       * goes crazy and scrolls to 0.
+       */
       innerHeight: window.innerHeight,
       innerWidth: window.innerWidth,
       intersectorOn: false,
