@@ -37,11 +37,6 @@ export const CONFIGS = {
     ...eslintPluginPromise.configs[FLAT_RECOMMENDED],
     ...eslintPluginRegexp.configs[FLAT_RECOMMENDED],
     ...eslintPluginSonarjs.configs.recommended,
-    /*
-     * ...eslintPluginStylistic.configs["recommended-flat"],
-     * ...eslintPluginStylistic.configs["all-flat"],
-     * ...eslintPluginUnicorn.configs[FLAT_ALL],
-     */
     plugins: {
       depend: eslintPluginDepend,
       "no-secrets": eslintPluginNoSecrets,
@@ -111,9 +106,9 @@ export default [
       "typings/",
     ],
   },
-  eslintPluginStylistic.configs["all-flat"],
   eslintPluginPrettierRecommended,
   eslintPluginSecurity.configs.recommended,
+  eslintPluginStylistic.configs["all-flat"],
   {
     languageOptions: {
       globals: {
