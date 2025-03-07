@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
-version = "1.7.10"
+version = "1.7.11"
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -42,7 +42,7 @@ ansicolors = "^1.1"
 bidict = "^0.23.1"
 case-converter = "^1.1.0"
 channels = "^4.0.0"
-comicbox = { extras = ["pdf"], version = "^1.2.1" }
+comicbox = { extras = ["pdf"], version = "^1.2.3" }
 dateparser = "^1.2.0"
 django = "^5.1.4"
 djangorestframework = "^3.15.1"
@@ -57,7 +57,7 @@ humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.17.3" }
 nh3 = "^0.2.18"
-psutil = "^6.0.0"
+psutil = "^7.0.0"
 pyparsing = "^3.1.2"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
@@ -167,6 +167,8 @@ reportMissingImports = true
 reportImportCycles = true
 pythonVersion = "3.10"
 pythonPlatform = "All"
+venvPath = "."
+venv = ".venv"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -183,6 +185,7 @@ addopts = """
 junit_family = "xunit2"
 testpaths = "tests"
 DJANGO_SETTINGS_MODULE = "codex.settings.settings"
+pythonpath = ["."]
 
 [tool.radon]
 exclude = """\

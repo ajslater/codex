@@ -1,5 +1,5 @@
 import eslintPluginVitest from "@vitest/eslint-plugin";
-import eslintConfigPrettier from "eslint-config-prettier";
+import eslintPluginVueConfigPrettier from "@vue/eslint-config-prettier";
 import eslintPluginVue from "eslint-plugin-vue";
 import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 import path from "path";
@@ -80,5 +80,5 @@ export default [
     files: ["tests/**"],
     ...eslintPluginVitest.configs.recommended,
   },
-  eslintConfigPrettier, // Best if last
+  eslintPluginVueConfigPrettier, // Best if last
 ];
