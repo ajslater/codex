@@ -66,7 +66,6 @@ export default [
       "**/__pycache__/",
       "**/*min.css",
       "**/*min.js",
-      "**/*.json",
       "*~",
       ".git/",
       ".*cache/",
@@ -126,7 +125,6 @@ export default [
       "depend/ban-dependencies": "error",
     },
   },
-  ...eslintPluginToml.configs[FLAT_RECOMMENDED],
   {
     files: ["**/*.{md,mdx}"],
     ...eslintPluginMdx.flat,
