@@ -241,7 +241,6 @@ export const useBrowserStore = defineStore("browser", {
       return Object.fromEntries(
         Object.entries(state.settings).filter(([k, v]) => {
           if (!keys.includes(k)) {
-            // eslint-disable-next-line unicorn/no-null
             return null;
           }
           if (k === "filters") {

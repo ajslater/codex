@@ -11,7 +11,6 @@ import READER_CHOICES from "@/choices/reader-choices.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 
-/* eslint-disable unicorn/no-null */
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
@@ -26,7 +25,6 @@ const NULL_CLIENT_SETTINGS = {
 };
 Object.freeze(NULL_CLIENT_SETTINGS);
 
-// eslint-disable-next-line unicorn/no-null
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
 

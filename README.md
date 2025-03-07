@@ -82,7 +82,7 @@ before installing Codex.
 ...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
 ```sh
-apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl  libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
 
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
@@ -97,8 +97,15 @@ apt-cache search libjpeg-turbo
 ###### <a href="alpine">Alpine</a> Dependencies
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp mupdf openssl-dev sqlite yaml-dev zlib-dev
 ```
+
+Alpine on ARM (AARCH64) may require:
+
+```sh
+apk add libstdc++6
+```
+To build pymupdf.
 
 ##### Install unrar Runtime Dependency on non-debian Linux
 
