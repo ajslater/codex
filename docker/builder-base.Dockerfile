@@ -8,24 +8,24 @@ COPY docker/debian.sources /etc/apt/sources.list.d/
 # hadolint ignore=DL3008
 RUN apt-get clean \
   && apt-get update \
-  && apt-get install --no-install-recommends -y \
-    # Codex base
-    libimagequant0 \
-    libjpeg62-turbo \
-    libopenjp2-7 \
-    libssl3 \
-    libyaml-0-2 \
-    libtiff6 \
-    libwebp7 \
-    mupdf \
-    ruamel.yaml.clib \
-    unrar \
-    zlib1g \
-    # Builder base
-    bash \
-    build-essential \
-    git \
-    python3-dev \
+  && apt-get install --no-install-recommends -y
+# Codex base
+libimagequant0 \
+  libjpeg62-turbo \
+  libopenjp2-7 \
+  libssl3 \
+  libyaml-0-2 \
+  libtiff6 \
+  libwebp7 \
+  mupdf \
+  ruamel.yaml.clib \
+  unrar \
+  zlib1g
+# Builder base
+bash \
+  build-essential \
+  git \
+  python3-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
