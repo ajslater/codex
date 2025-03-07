@@ -5,7 +5,7 @@
         <v-icon v-if="item.icon">
           {{ item.icon }}
         </v-icon>
-        <span v-else>{{ item.text }}</span>
+        <span v-else v-html="item.text" />
       </v-breadcrumbs-item>
     </template>
   </v-breadcrumbs>
