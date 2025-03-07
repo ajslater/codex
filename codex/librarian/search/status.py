@@ -1,9 +1,9 @@
 """Search Index Status Types."""
 
-from django.db.models import Choices
+from django.db.models import TextChoices
 
 
-class SearchIndexStatusTypes(Choices):
+class SearchIndexStatusTypes(TextChoices):
     """Search Index Status Types."""
 
     SEARCH_INDEX_CLEAR = "SIX"

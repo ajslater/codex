@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.11
+
+- Fixes
+
+  - Fix importing of story arc tags
+
 ## v1.7.10
 
 - Fixes

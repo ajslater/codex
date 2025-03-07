@@ -19,10 +19,8 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         if not self._order_key:
             order_key: str = self.params["order_by"]
             if (order_key == "search_score" and not self.fts_mode) or (
-                order_key == "filename"
-                and not self.admin_flags["folder_view"]
-                or order_key == "child_count"
-                and self.TARGET == "cover"
+                (order_key == "filename" and not self.admin_flags["folder_view"])
+                or (order_key == "child_count" and self.TARGET == "cover")
             ):
                 order_key = "sort_name"
             self._order_key = order_key

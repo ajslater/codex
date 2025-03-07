@@ -269,8 +269,10 @@ export default {
       if (updates) {
         this.setSettingsLocal(updates);
       }
-      // metadata and close are attached to to title-toolbar
-      // No default
+      /*
+       * metadata and close are attached to to title-toolbar
+       * No default
+       */
     },
   },
 };

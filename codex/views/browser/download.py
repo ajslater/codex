@@ -6,7 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from zipstream import ZipStream
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.browser.filters.filter import BrowserFilterView
 
 LOG = get_logger()

@@ -2,7 +2,7 @@
 
 from django.db.models.expressions import F
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.comic import Comic, Imprint, Volume
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.const import GROUP_NAME_MAP

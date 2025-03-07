@@ -22,7 +22,7 @@ from watchdog.events import (
 )
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.logger_base import LoggerBaseMixin
 from codex.models import CustomCover
 from codex.settings.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS

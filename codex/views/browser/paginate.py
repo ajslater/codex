@@ -4,7 +4,7 @@ from math import ceil
 
 from django.core.paginator import EmptyPage, Paginator
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
 from codex.views.const import MAX_OBJ_PER_PAGE
 

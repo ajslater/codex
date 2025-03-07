@@ -311,9 +311,9 @@ def main(args):
         create_file(root, index)
         now = time.time()
         if now - since > STATUS_DELAY:
-            print(f"{index+1}/{num_comics}")
+            print(f"{index + 1}/{num_comics}")
             since = now
-    print(f"{index+1}/{num_comics}")
+    print(f"{index + 1}/{num_comics}")
 
 
 if __name__ == "__main__":

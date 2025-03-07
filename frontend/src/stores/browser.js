@@ -21,7 +21,7 @@ const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
-  // eslint-disable-next-line unicorn/no-null
+
   null,
   BROWSER_DEFAULTS.bookmarkFilter,
 ]);
@@ -182,12 +182,12 @@ export const useBrowserStore = defineStore("browser", {
       return Boolean(state.settings.q);
     },
     /*
-    isSearchLimitedMode(state) {
-      return (
-        Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
-      );
-    },
-    */
+     *isSearchLimitedMode(state) {
+     *  return (
+     *    Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
+     *  );
+     *},
+     */
     lastRoute(state) {
       const bc = state.settings.breadcrumbs;
       const params = bc.at(-1);
@@ -234,13 +234,13 @@ export const useBrowserStore = defineStore("browser", {
     },
   },
   actions: {
-    ////////////////////////////////////////////////////////////////////////
-    // UTILITY
+    /*
+     * UTILITY
+     */
     _filterSettings(state, keys) {
       return Object.fromEntries(
         Object.entries(state.settings).filter(([k, v]) => {
           if (!keys.includes(k)) {
-            // eslint-disable-next-line unicorn/no-null
             return null;
           }
           if (k === "filters") {
@@ -278,8 +278,9 @@ export const useBrowserStore = defineStore("browser", {
     setIsSearchOpen(value) {
       this.isSearchOpen = value;
     },
-    ////////////////////////////////////////////////////////////////////////
-    // VALIDATORS
+    /*
+     * VALIDATORS
+     */
     _isRootGroupEnabled(topGroup) {
       if (ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)) {
         return true;
@@ -314,8 +315,10 @@ export const useBrowserStore = defineStore("browser", {
       return { params: { group: this.lowestShownGroup, pks: "0", page: "1" } };
     },
     _validateTopGroup(data, redirect) {
-      // If the top group changed supergroups or we're at the root group and the new
-      // top group is above the proper nav group
+      /*
+       * If the top group changed supergroups or we're at the root group and the new
+       * top group is above the proper nav group
+       */
       const oldTopGroup = this.settings.topGroup;
       const newTopGroup = data.topGroup;
       const currentParams = router?.currentRoute?.value?.params;
@@ -325,11 +328,13 @@ export const useBrowserStore = defineStore("browser", {
         oldTopGroup === newTopGroup ||
         newTopGroup === currentParams?.group
       ) {
-        // First url, initializing settings.
-        // or
-        // topGroup didn't change.
-        // or
-        // topGroup and group are the same, request is well formed.
+        /*
+         * First url, initializing settings.
+         * or
+         * topGroup didn't change.
+         * or
+         * topGroup and group are the same, request is well formed.
+         */
         return redirect;
       }
       const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
@@ -342,15 +347,21 @@ export const useBrowserStore = defineStore("browser", {
       let params;
       if (oldAndNewBothBrowseGroups) {
         if (oldTopGroupIndex < newTopGroupIndex) {
-          // new top group is a parent (REVERSED)
-          // Signal that we need new breadcrumbs. we do that by redirecting in place?
+          /*
+           * new top group is a parent (REVERSED)
+           * Signal that we need new breadcrumbs. we do that by redirecting in place?
+           */
           params = currentParams;
-          // Make a numeric page so won't trigger the redirect remover and will always
-          // redirect so we repopulate breadcrumbs
+          /*
+           * Make a numeric page so won't trigger the redirect remover and will always
+           * redirect so we repopulate breadcrumbs
+           */
           params.page = +params.page;
         } else {
-          // New top group is a child (REVERSED)
-          // Redrect to the new root.
+          /*
+           * New top group is a child (REVERSED)
+           * Redrect to the new root.
+           */
           params = { group: "r", pks: "0", page: "1" };
         }
       } else {
@@ -377,8 +388,9 @@ export const useBrowserStore = defineStore("browser", {
       }
       return topGroup;
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // MUTATIONS
+    /*
+     * MUTATIONS
+     */
     _addSettings(data) {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
@@ -498,8 +510,9 @@ export const useBrowserStore = defineStore("browser", {
         }
       }
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // ROUTE
+    /*
+     * ROUTE
+     */
     routeToPage(page) {
       const route = deepClone(router.currentRoute.value);
       route.params.page = page;
@@ -521,8 +534,9 @@ export const useBrowserStore = defineStore("browser", {
         return console.error(error);
       }
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // LOAD
+    /*
+     * LOAD
+     */
     async loadSettings() {
       if (!this.isAuthorized) {
         return;

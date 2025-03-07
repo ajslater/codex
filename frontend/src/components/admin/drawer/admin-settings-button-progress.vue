@@ -4,7 +4,6 @@
     class="progress"
     :indeterminate="progress == null"
     :model-value="progress"
-    :size="size"
     aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
   />
 </template>
@@ -42,9 +41,6 @@ export default {
         return;
       }
       return (100 * complete) / total;
-    },
-    size() {
-      return this.$vuetify.display.xs ? "small" : "default";
     },
   },
   created() {

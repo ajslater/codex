@@ -6,9 +6,9 @@ from django.db.models import (
     CASCADE,
     BooleanField,
     CharField,
-    Choices,
     ForeignKey,
     PositiveSmallIntegerField,
+    TextChoices,
 )
 
 from codex.models.base import BaseModel, max_choices_len
@@ -49,7 +49,7 @@ def cascade_if_user_null(
 class Bookmark(BaseModel):
     """Persist user's bookmarks and settings."""
 
-    class FitTo(Choices):
+    class FitTo(TextChoices):
         """Identifiers for Readder fit_to choices."""
 
         SCREEN = "S"

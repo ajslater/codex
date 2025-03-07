@@ -5,7 +5,7 @@ from django.core.cache import cache
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import GROUPS_CHANGED_TASK
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.admin.groups import GroupSerializer
 from codex.views.admin.auth import AdminModelViewSet
 

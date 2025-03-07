@@ -13,7 +13,7 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 

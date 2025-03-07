@@ -2,8 +2,8 @@
   "description": "linting for top level codex project & django backend",
   "type": "module",
   "scripts": {
-    "fix": "eslint_d --cache --fix . && eslint_d --cache --fix --config eslint.config.json.js . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache . && eslint_d --cache --fix --config eslint.config.json.js . && prettier --check . && bin/prettier-nginx.sh --check"
+    "fix": "eslint_d --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
+    "lint": "eslint_d --cache . && prettier --check . && bin/prettier-nginx.sh --check"
   },
   "browserslist": [
     "> 1%",
@@ -14,6 +14,7 @@
   ],
   "prettier": {
     "plugins": [
+      "@prettier/plugin-xml",
       "prettier-plugin-nginx",
       "prettier-plugin-packagejson",
       "prettier-plugin-sh",
@@ -48,36 +49,38 @@
       "preset-prettier"
     ]
   },
+  "dependencies": {
+    "eslint-config-prettier": "^10.1.1"
+  },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
-    "@eslint/json": "^0.7.0",
-    "@fsouza/prettierd": "^0.25.0",
+    "@eslint/json": "^0.10.0",
+    "@fsouza/prettierd": "^0.26.0",
     "@prettier/plugin-xml": "^3.0.0",
-    "eslint": "9.14.0",
-    "eslint-config-prettier": "^9.1.0",
+    "@stylistic/eslint-plugin": "^4.1.0",
+    "eslint": "^9.21.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-array-func": "^5.0.1",
-    "eslint-plugin-compat": "^6.0.0",
     "eslint-plugin-depend": "^0.12.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-mdx": "^3.1.5",
-    "eslint-plugin-no-secrets": "^1.0.2",
+    "eslint-plugin-no-secrets": "^2.1.1",
     "eslint-plugin-no-unsanitized": "^4.1.0",
-    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-prettier": "^5.2.2",
     "eslint-plugin-promise": "^7.0.0",
     "eslint-plugin-regexp": "^2.6.0",
     "eslint-plugin-scanjs-rules": "^0.2.1",
     "eslint-plugin-security": "^3.0.0",
     "eslint-plugin-simple-import-sort": "^12.1.0",
-    "eslint-plugin-sonarjs": "^2.0.2",
-    "eslint-plugin-toml": "^0.11.0",
-    "eslint-plugin-unicorn": "^56.0.0",
+    "eslint-plugin-sonarjs": "^3.0.1",
+    "eslint-plugin-toml": "^0.12.0",
+    "eslint-plugin-unicorn": "^57.0.0",
     "eslint-plugin-yml": "^1.12.2",
     "eslint_d": "^14.2.2",
-    "prettier": "^3.0.0",
+    "prettier": "3.4.2",
     "prettier-plugin-nginx": "^1.0.3",
-    "prettier-plugin-packagejson": "^2.4.4",
-    "prettier-plugin-sh": "^0.14.0",
+    "prettier-plugin-packagejson": "^2.5.8",
+    "prettier-plugin-sh": "^0.15.0",
     "prettier-plugin-toml": "^2.0.1",
     "prettier-plugin-vue": "^1.1.6",
     "remark-gfm": "^4.0.0",

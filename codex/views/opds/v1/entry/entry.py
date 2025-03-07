@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 from dateutil import parser
 from django.urls import reverse
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import Comic
 from codex.views.opds.const import (
     AUTHOR_ROLES,

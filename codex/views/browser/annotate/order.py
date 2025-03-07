@@ -13,7 +13,7 @@ from django.db.models.aggregates import Avg, Count, Max, Min, Sum
 from django.db.models.fields import CharField
 from django.db.models.functions import Reverse, Right, StrIndex
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     Folder,

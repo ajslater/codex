@@ -114,8 +114,10 @@ export default {
         function () {
           // This works while nextTick() does not.
           el.scrollIntoView();
-          // Adjust for toolbars
-          // For some reason with vue3 i need another delay.
+          /*
+           * Adjust for toolbars
+           * For some reason with vue3 i need another delay.
+           */
           setTimeout(function () {
             window.scrollBy(0, HEADER_OFFSET);
           }, SCROLL_DELAY);

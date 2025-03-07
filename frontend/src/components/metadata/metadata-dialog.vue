@@ -45,8 +45,10 @@ import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useMetadataStore } from "@/stores/metadata";
 
-// Progress circle
-// Can take 19 seconds for 22k children on huge collections
+/*
+ * Progress circle
+ * Can take 19 seconds for 22k children on huge collections
+ */
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;

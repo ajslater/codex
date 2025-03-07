@@ -11,7 +11,7 @@ from django.db.models.fields import BooleanField, PositiveSmallIntegerField
 from django.db.models.functions import Least
 from django.db.models.functions.comparison import Coalesce, Greatest
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
 )

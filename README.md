@@ -97,7 +97,7 @@ apt-cache search libjpeg-turbo
 ###### <a href="alpine">Alpine</a> Dependencies
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp mupdf openssl-dev sqlite yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on non-debian Linux
@@ -123,6 +123,15 @@ natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the <a href="/WINDOWS.md">Native Windows
 Dependencies Installation Document</a>.
+
+#### Installing Codex on ARM (AARCH64) with Python 3.13
+
+Pymupdf has no pre-built wheels for AARCH64 so pip must build it and the build
+fails on Python 3.13 without this environment variable set:
+
+```sh
+PYMUPDF_SETUP_PY_LIMITED_API=0 pip install codex
+```
 
 #### <a href="#run">Run</a> Codex Natively
 

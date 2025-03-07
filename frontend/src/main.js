@@ -1,7 +1,7 @@
 import "@mdi/font/css/materialdesignicons.css";
 import "vuetify/styles"; // Global CSS has to be imported
 
-import { createHead, VueHeadMixin } from "@unhead/vue";
+import { createHead, VueHeadMixin } from "@unhead/vue/client";
 import { createApp } from "vue";
 import VueDragScroller from "vue-drag-scroller";
 
@@ -29,7 +29,7 @@ router
     return app.mount("#App");
   })
   // Top level await would require a plugin
-  // eslint-disable-next-line unicorn/prefer-top-level-await
+
   .catch(console.error);
 
 export default app;

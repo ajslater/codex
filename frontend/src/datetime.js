@@ -1,8 +1,10 @@
-// Date & time formats
-// Date is forced to YYYY-MM-DD with sv-SE
-// Time is by default undefined and browser based but can be forced to sv-SE 24 HR.
-// XXX Force to 24 hr is probably superfluous at this point
-// const TWELVE_HOUR_LOCALE = "en-NZ";
+/*
+ * Date & time formats
+ * Date is forced to YYYY-MM-DD with sv-SE
+ * Time is by default undefined and browser based but can be forced to sv-SE 24 HR.
+ * XXX Force to 24 hr is probably superfluous at this point
+ * const TWELVE_HOUR_LOCALE = "en-NZ";
+ */
 const TWENTY_FOUR_HOUR_LOCALE = "sv-SE";
 export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE);
 export const NUMBER_FORMAT = new Intl.NumberFormat();
@@ -25,6 +27,7 @@ export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
 export const getTimestamp = function () {
   return Math.floor(Date.now() / 1000);
 };
+var foo = 1;
 
 export default {
   DATE_FORMAT,

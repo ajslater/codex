@@ -8,7 +8,7 @@ from django.db.models import (
 )
 from django.db.models.fields import CharField
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume

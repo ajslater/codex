@@ -14,9 +14,9 @@ from codex.models.groups import BrowserGroupModel
 __all__ = (
     "AgeRating",
     "Character",
+    "Contributor",
     "ContributorPerson",
     "ContributorRole",
-    "Contributor",
     "Country",
     "Genre",
     "Identifier",

@@ -16,7 +16,7 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,

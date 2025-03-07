@@ -10,7 +10,7 @@ from rest_framework.renderers import BaseRenderer
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover

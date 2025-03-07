@@ -13,7 +13,7 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_CHOICES,
     DUMMY_NULL_NAME,
 )
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.route import RouteSerializer
 

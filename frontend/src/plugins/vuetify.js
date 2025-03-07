@@ -10,9 +10,11 @@ const codexTheme = {
     // -- built in ---
     primary: "#CC7B19", // codex orange // '#1976D2' - light blue
     "primary-darken-1": "#965B13",
-    // secondary: "#03DAC5", // blue
-    // "secondary-darken-1": "#02a191",
-    // accent: "#FF4081", // pinkish
+    /*
+     * secondary: "#03DAC5", // blue
+     * "secondary-darken-1": "#02a191",
+     * accent: "#FF4081", // pinkish
+     */
     error: "#DC143C", // crimson
     // info: "#2196F3", // lightblue (similar to primary)
     success: "#14dc3c", // crimsongreen

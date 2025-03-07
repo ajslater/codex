@@ -7,7 +7,7 @@ from django.db.models import (
 )
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.browser.filters.search.aliases import FIELD_TYPE_MAP
 
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(

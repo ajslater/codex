@@ -8,7 +8,7 @@ from types import MappingProxyType
 import simplejson as json
 from django.urls import reverse
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
