@@ -182,7 +182,7 @@ class LibraryPollingObserver(UatuMixin):
         """Put a dummy event on the queue that blocks forever."""
         # The global timeout is None because the emitters have their own
         # per watch timeout. This makes self.dispatch_events() block
-        # forever on the queue. Sending it an event lets it check the
+        # forever on the queue. Sending it an event makes it check the
         # shutdown event next.
         self.event_queue.put(self._SHUTDOWN_EVENT)
         super().on_thread_stop()

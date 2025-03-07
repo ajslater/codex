@@ -6,13 +6,13 @@
     @click="toggleOrderReverse"
   >
     <v-icon :class="iconClasses">
-      {{ mdiSortVariant }}
+      {{ mdiSortAscending }}
     </v-icon>
   </ToolbarButton>
 </template>
 
 <script>
-import { mdiSortVariant } from "@mdi/js";
+import { mdiSortAscending } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ToolbarButton from "@/components/browser/toolbars/top/toolbar-button.vue";
@@ -25,7 +25,7 @@ export default {
   },
   data() {
     return {
-      mdiSortVariant,
+      mdiSortAscending,
     };
   },
   computed: {
@@ -37,7 +37,7 @@ export default {
     },
     iconClasses() {
       return {
-        inverted: !this.orderReverseSetting,
+        inverted: this.orderReverseSetting,
       };
     },
   },

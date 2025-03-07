@@ -3,7 +3,7 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.groups import Publisher
 from codex.serializers.browser.mtime import GroupsMtimeSerializer, MtimeSerializer
 from codex.util import max_none

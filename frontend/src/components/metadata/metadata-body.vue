@@ -38,35 +38,11 @@
         />
       </div>
     </section>
-    <section class="halfRow mdSection">
+    <section v-if="md?.country || md?.language" class="halfRow mdSection">
       <MetadataText :value="md.country" label="Country" />
       <MetadataText :value="md.language" label="Language" />
     </section>
-    <section class="mdSection">
-      <MetadataTags :values="titledIdentifiers" label="Identifiers" />
-    </section>
-    <v-table v-if="showRatings" class="mdSection">
-      <tbody>
-        <tr v-if="md.communityRating">
-          <td class="key">Community Rating</td>
-          <td>
-            <MetadataText :value="md.communityRating" />
-          </td>
-        </tr>
-        <tr v-if="md.criticalRating">
-          <td class="key">Critical Rating</td>
-          <td>
-            <MetadataText :value="md.criticalRating" />
-          </td>
-        </tr>
-        <tr v-if="md.ageRating">
-          <td class="key">Age Rating</td>
-          <td>
-            <MetadataText :value="md.ageRating" />
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
+    <MetadataRatings class="mdSection" />
     <MetadataTagsTable :tag-map="tags" class="mdSection" />
     <section class="mdSection">
       <section class="inlineRow">
@@ -81,10 +57,10 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import MetadataTags from "@/components/metadata/metadata-tags.vue";
+import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
 import { getDateTime } from "@/datetime";
@@ -94,8 +70,8 @@ import { useMetadataStore } from "@/stores/metadata";
 export default {
   name: "MetadataBody",
   components: {
+    MetadataRatings,
     MetadataTagsTable,
-    MetadataTags,
     MetadataText,
   },
   props: {
@@ -113,7 +89,6 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
-      identifierTypes: (state) => state.choices.static.identifierType,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
@@ -133,34 +108,8 @@ export default {
     fileType() {
       return this?.md?.fileType || "Unknown";
     },
-    titledIdentifiers() {
-      const titledIdentifiers = [];
-      if (!this?.md?.identifiers) {
-        return titledIdentifiers;
-      }
-      for (const identifier of this.md.identifiers) {
-        const parts = identifier.name.split(":");
-        const idType = parts[0];
-        const code = parts[1];
-        const finalTitle = this.identifierTypeTitle(idType);
-        let name = "";
-        if (finalTitle && finalTitle !== "None") {
-          name += finalTitle + ":";
-        }
-        name += code;
-
-        titledIdentifiers.push({ ...identifier, name });
-      }
-      return titledIdentifiers;
-    },
-    showRatings() {
-      return (
-        this.md.communityRating || this.md.criticRating || this.md.ageRating
-      );
-    },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
     formatDateTime(ds) {
       return getDateTime(ds, this.twentyFourHourTime);
     },

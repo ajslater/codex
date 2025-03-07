@@ -10,7 +10,7 @@ from rest_framework.serializers import (
 )
 
 from codex.choices.browser import VUETIFY_NULL_CODE
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 
 LOG = get_logger(__name__)
 

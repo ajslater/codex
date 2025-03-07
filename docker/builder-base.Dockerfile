@@ -5,6 +5,9 @@ ARG CODEX_BUILDER_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
+# hadolint ignore=DL4006
+RUN curl -fsSL https://deb.nodesource.com/setup_23.x | bash -o pipefail -s --
+
 # **** install codex system build dependency packages ****"
 # hadolint ignore=DL3008
 RUN apt-get clean \

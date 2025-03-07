@@ -1,9 +1,9 @@
 """Watchdog Status Types."""
 
-from django.db.models import Choices
+from django.db.models import TextChoices
 
 
-class WatchdogStatusTypes(Choices):
+class WatchdogStatusTypes(TextChoices):
     """Watchdog Status Types."""
 
     POLL = "WPO"

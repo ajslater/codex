@@ -271,7 +271,7 @@ export default {
 }
 
 #controls {
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
@@ -281,7 +281,7 @@ export default {
 
   #seriesRow {
     margin-top: 0px;
-    font-size: small;
+    font-size: large;
   }
 
   #titleRow {

@@ -4,7 +4,7 @@ from contextlib import suppress
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     BrowserGroupModel,
     Comic,
@@ -214,8 +214,10 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         if old_breadcrumbs and (
             (group_crumb == old_breadcrumbs[-1])
-            or (changed and (group_crumb & old_breadcrumbs[-1]))
-            and not old_breadcrumbs[0].pks
+            or (
+                (changed and (group_crumb & old_breadcrumbs[-1]))
+                and not old_breadcrumbs[0].pks
+            )
         ):
             # Graft. Hurray
             new_breadcrumbs[0:0] = old_breadcrumbs

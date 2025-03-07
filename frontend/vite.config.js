@@ -8,6 +8,7 @@ import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
+import { hostname } from "os";
 
 import package_json from "./package.json";
 
@@ -37,6 +38,9 @@ console.info(defineObj);
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
+  // https://github.com/vitejs/vite/issues/19242
+  const ALLOWED_HOSTS = DEV ? [hostname().toLowerCase()] : [];
+
   return {
     base: BASE_PATH,
     build: {
@@ -87,6 +91,7 @@ const config = defineConfig(({ mode }) => {
     },
     server: {
       host: true,
+      allowedHosts: ALLOWED_HOSTS,
       strictPort: true,
     },
     test: {

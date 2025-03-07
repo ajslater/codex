@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer

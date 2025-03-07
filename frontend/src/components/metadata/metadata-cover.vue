@@ -66,7 +66,7 @@ export default {
   }
 
   .bookCoverProgress {
-    margin-top: -7px;
+    margin-top: 1px;
   }
 }
 </style>

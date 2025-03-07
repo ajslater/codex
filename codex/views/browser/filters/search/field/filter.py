@@ -2,7 +2,7 @@
 
 from django.db.models import Q
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.browser.filters.search.field.column import parse_field
 from codex.views.browser.filters.search.field.parse import get_field_query

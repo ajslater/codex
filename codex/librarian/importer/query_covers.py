@@ -6,7 +6,7 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.create_fks import CreateForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.paths import CustomCover
 from codex.status import Status
 

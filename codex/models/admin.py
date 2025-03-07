@@ -9,7 +9,6 @@ from django.db.models import (
     CASCADE,
     BooleanField,
     CharField,
-    Choices,
     DateTimeField,
     OneToOneField,
     PositiveSmallIntegerField,
@@ -17,11 +16,7 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy as _
 
-from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.watchdog.status import WatchdogStatusTypes
+from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
@@ -30,7 +25,7 @@ __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
 class AdminFlag(BaseModel):
     """Flags set by administrators."""
 
-    class FlagChoices(Choices):
+    class FlagChoices(TextChoices):
         """Choices for Admin Flags."""
 
         FOLDER_VIEW = "FV"
@@ -60,16 +55,12 @@ class AdminFlag(BaseModel):
 class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
-    CHOICES = tuple(
-        CoverStatusTypes.choices
-        + ImportStatusTypes.choices
-        + JanitorStatusTypes.choices
-        + SearchIndexStatusTypes.choices
-        + WatchdogStatusTypes.choices
-    )
+    CHOICES = TextChoices("LibrarianStatusTypes", ADMIN_STATUS_TITLES.inverse)
 
     status_type = CharField(
-        db_index=True, max_length=max_choices_len(CHOICES), choices=CHOICES
+        db_index=True,
+        max_length=max_choices_len(CHOICES),
+        choices=CHOICES.choices,
     )
     subtitle = CharField(db_index=True, max_length=MAX_NAME_LEN)
     complete = PositiveSmallIntegerField(null=True, default=None)

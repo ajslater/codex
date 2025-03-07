@@ -16,7 +16,7 @@ from django.db.models import (
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
 from humanfriendly import parse_size
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.settings.settings import FALSY
 
 _QUOTES_RE = re.compile(r"[\"']")

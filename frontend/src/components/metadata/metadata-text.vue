@@ -10,12 +10,7 @@
     </div>
     <v-expand-transition>
       <div>
-        <div
-          :ref="textValueRefName"
-          class="textValue"
-          :class="{ empty }"
-          :style="textValueStyles"
-        >
+        <div :ref="textValueRefName" class="textValue" :style="textValueStyles">
           <span
             class="textContent"
             :class="classes"
@@ -43,7 +38,6 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
 import { useBrowserStore } from "@/stores/browser";
-const EMPTY_VALUE = "(Empty)";
 
 export default {
   name: "MetadataTextBox",
@@ -98,9 +92,7 @@ export default {
     },
     displayValue() {
       let value;
-      if (this.group && this.computedValue === "") {
-        value = EMPTY_VALUE;
-      } else if (this.group === "f" && this.computedValue) {
+      if (this.group === "f" && this.computedValue) {
         value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
       } else if (this.group === "v" && this.computedValue) {
         value = formattedVolumeName(this.computedValue);
@@ -108,9 +100,6 @@ export default {
         value = this.computedValue;
       }
       return value;
-    },
-    empty() {
-      return this.displayValue === EMPTY_VALUE;
     },
     textValueStyles() {
       // makes expandable.
@@ -261,9 +250,5 @@ export default {
 
 .clickable.highlight:hover {
   border: solid thin rgb(var(--v-theme-textPrimary));
-}
-
-.empty {
-  opacity: 0.5;
 }
 </style>

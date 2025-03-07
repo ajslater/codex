@@ -19,13 +19,6 @@ class CoverRemoveOrphansTask(CoverTask):
 
 
 @dataclass
-class LibrariesTask:
-    """Tasks over a set of libraries."""
-
-    library_ids: frozenset
-
-
-@dataclass
 class CoverRemoveTask(CoverTask):
     """Purge a set of comic covers."""
 

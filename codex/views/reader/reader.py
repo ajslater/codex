@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.reader.arcs import ReaderArcsView

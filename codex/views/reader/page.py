@@ -11,7 +11,7 @@ from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings.settings import FALSY
 from codex.views.auth import AuthFilterAPIView

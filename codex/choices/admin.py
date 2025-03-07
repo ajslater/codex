@@ -2,6 +2,14 @@
 
 from types import MappingProxyType
 
+from bidict import frozenbidict
+
+from codex.librarian.covers.status import CoverStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.watchdog.status import WatchdogStatusTypes
+
 ADMIN_FLAG_CHOICES = MappingProxyType(
     {
         "AU": "Auto Update",
@@ -14,53 +22,18 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
     }
 )
 
-ADMIN_STATUS_TITLES = MappingProxyType(
-    {
-        "CCC": "Create Covers",
-        "CCD": "Remove Covers",
-        "CFO": "Find Orphan Covers",
-        "IAF": "Adopt Orphan Folders",
-        "ICC": "Create Custom Covers",
-        "ICD": "Delete Custom Covers",
-        "ICL": "Link Custom Covers",
-        "ICM": "Custom Covers Moved",
-        "ICQ": "Discover Missing Custom Covers",
-        "ICU": "Modify Custom Covers",
-        "IDD": "Remove Folders",
-        "IDM": "Move Folders",
-        "IDU": "Modify Folders",
-        "IFC": "Create Books",
-        "IFD": "Remove Books",
-        "IFI": "Record Failed Imports",
-        "IFM": "Move Books",
-        "IFU": "Modify Books",
-        "IGU": "Update First Covers",
-        "IMC": "Link Books to Tags",
-        "IMQ": "Prepare Tags for Linking",
-        "ITC": "Create Missing Tags",
-        "ITQ": "Discover Missing Tags",
-        "ITR": "Read Book Tags",
-        "JCB": "Cleanup Orphan Bookmarks",
-        "JCD": "Cleanup Custom Covers",
-        "JCR": "Restart Codex",
-        "JCS": "Stop Codex",
-        "JCU": "Update Codex Software",
-        "JDB": "Backup Database",
-        "JDO": "Optimize Database",
-        "JFC": "Search Index Integrity Check",
-        "JFR": "Search Index Repair",
-        "JIC": "Database Integrity Check",
-        "JIF": "Database Foreign Key Check",
-        "JLV": "Check Codex Latest Version",
-        "JSD": "Cleanup Expired Sessions",
-        "JTD": "Cleanup Stale Tags",
-        "SIC": "Search Index Create",
-        "SID": "Search Index Remove Stale Records",
-        "SIO": "Search Index Optimize",
-        "SIU": "Search Index Update",
-        "SIX": "Search Index Clear",
-        "WPO": "Poll Library",
-    }
+ADMIN_STATUS_TITLES = frozenbidict(
+    sorted(
+        (key, val)
+        for status_types in (
+            CoverStatusTypes,
+            ImportStatusTypes,
+            JanitorStatusTypes,
+            SearchIndexStatusTypes,
+            WatchdogStatusTypes,
+        )
+        for key, val in status_types.choices
+    )
 )
 
 # Easier to store in vuetify format

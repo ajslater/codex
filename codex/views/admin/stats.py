@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import empty
 
 from codex.librarian.telemeter.stats import CodexStats
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models.admin import Timestamp
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin.stats import (

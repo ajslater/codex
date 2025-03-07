@@ -1,6 +1,11 @@
 <template>
   <section class="controlRow">
-    <DownloadButton id="downloadButton" :button="true" :item="downloadItem" />
+    <DownloadButton
+      id="downloadButton"
+      :button="true"
+      :item="downloadItem"
+      :size="size"
+    />
     <MarkReadButton
       id="markReadButton"
       :button="true"

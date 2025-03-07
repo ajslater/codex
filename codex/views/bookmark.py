@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.auth import AuthAPIView, GroupACLMixin
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
 class BookmarkAuthMixin(APIView):
     """Base class for Bookmark Views."""
 
-    def get_bookmark_auth_filter(self):
+    def get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
         """Filter only the user's bookmarks."""
         if self.request.user.is_authenticated:
             key = "user_id"

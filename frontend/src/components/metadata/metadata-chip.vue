@@ -132,6 +132,10 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
+.v-chip {
+  margin: 4px;
+}
+
 .clickable :deep(.v-chip__content) {
   color: rgb(var(--v-theme-primary));
 }
@@ -140,8 +144,9 @@ export default {
   color: rgb(var(--v-theme-linkHover));
 }
 
-@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
   .v-chip {
+    margin: 2px;
     font-size: x-small !important;
   }
 }

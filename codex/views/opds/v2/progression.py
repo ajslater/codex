@@ -10,7 +10,7 @@ from django.db.models.query_utils import FilteredRelation
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
 from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView

@@ -19,7 +19,7 @@ const NULL_READER_SETTINGS = {
   readingDirection: "",
   readRtlInReverse: null,
 };
-/* eslint-enable unicorn/no-null */
+
 Object.freeze(NULL_READER_SETTINGS);
 const NULL_CLIENT_SETTINGS = {
   cacheBook: false,
@@ -244,8 +244,9 @@ export const useReaderStore = defineStore("reader", {
     },
   },
   actions: {
-    ///////////////////////////////////////////////////////////////////////////
-    // GETTER Algorithms
+    /*
+     * GETTER Algorithms
+     */
     setReadRTLInReverse(bookSettings) {
       // Special setting for RTL books
       return this.readerSettings.readRtlInReverse &&
@@ -316,8 +317,9 @@ export const useReaderStore = defineStore("reader", {
       }
       return isDown ? mdiBookArrowDown : mdiBookArrowUp;
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // UTIL
+    /*
+     * UTIL
+     */
     isCoverPage(book, page) {
       return (
         (book.readLtr !== false && page === 0) ||
@@ -366,8 +368,9 @@ export const useReaderStore = defineStore("reader", {
       }
       return classes;
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // MUTATIONS
+    /*
+     * MUTATIONS
+     */
     _updateSettings(updates, local) {
       // Doing this with $patch breaks reactivity
       this.$patch((state) => {
@@ -401,8 +404,9 @@ export const useReaderStore = defineStore("reader", {
         state.bookSettings = {};
       });
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // ACTIONS
+    /*
+     * ACTIONS
+     */
     _getBookRoutePage(book, isPrev) {
       let bookPage = 0;
       if (
@@ -470,9 +474,11 @@ export const useReaderStore = defineStore("reader", {
         breadcrumbNames: false,
       })
         .then((response) => {
-          // Get reader settings before getting books ensures closeRoute.
-          // Get browser settings before getting books gets filters & breadcrumbs.
-          // Ensures getting the reader arc from breadcrumbs.
+          /*
+           * Get reader settings before getting books ensures closeRoute.
+           * Get browser settings before getting books gets filters & breadcrumbs.
+           * Ensures getting the reader arc from breadcrumbs.
+           */
           this.$patch((state) => {
             state.browserSettings = response.data;
             if (!state.routes.close && state.browserSettings.breadcrumbs) {
@@ -619,8 +625,9 @@ export const useReaderStore = defineStore("reader", {
       const prefix = direction === "prev" ? "Previous" : "Next";
       return `${prefix} ${suffix}`;
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // ROUTE
+    /*
+     * ROUTE
+     */
     normalizeDirection(direction) {
       return this.activeSettings.isReadInReverse
         ? DIRECTION_REVERSE_MAP[direction]

@@ -10,7 +10,6 @@ from requests import Session
 
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import AdminFlag, Timestamp
-from codex.settings.settings import DEBUG
 
 # Version
 _APP_NAME = "codex"
@@ -43,23 +42,19 @@ def get_telemeter_timestamp():
     return ts
 
 
-def _post_stats(log, data):
+def _post_stats(data):
     """Post telemetry to endpoint."""
     data_json = json.dumps(data)
     json_bytes = data_json.encode()
     compressed_data = compress(json_bytes)
-    if DEBUG:
-        msg = f"{_POST} {len(compressed_data)}, {_HEADERS}, {_TIMEOUT}"
-        log.debug(msg)
-    else:
-        with Session() as session:
-            response = session.post(
-                _POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT
-            )
-            response.raise_for_status()
+    with Session() as session:
+        response = session.post(
+            _POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT
+        )
+        response.raise_for_status()
 
 
-def _send_telemetry(log):
+def _send_telemetry():
     """Send telemetry to server."""
     if not AdminFlag.objects.get(key=AdminFlag.FlagChoices.SEND_TELEMETRY.value).on:
         reason = "Send Telemetry flag is off."
@@ -67,13 +62,13 @@ def _send_telemetry(log):
     ts = get_telemeter_timestamp()
     stats = CodexStats().get()
     data = {"stats": stats, "uuid": ts.version}
-    _post_stats(log, data)
+    _post_stats(data)
     ts.save()  # update updated_at
 
 
 def send_telemetry(log):
     """Send anonymous telemetry during one window per week."""
     try:
-        _send_telemetry(log)
+        _send_telemetry()
     except Exception as exc:
         log.debug(f"Failed to send anonyomous stats: {exc}")

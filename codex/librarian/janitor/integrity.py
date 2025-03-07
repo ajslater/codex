@@ -11,7 +11,7 @@ from django.db.utils import OperationalError
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.settings.settings import (
     CONFIG_PATH,
     CUSTOM_COVERS_DIR,

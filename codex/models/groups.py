@@ -11,7 +11,7 @@ from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.paths import CustomCover, WatchedPath
 from codex.models.util import get_sort_name
 
-__all__ = ("BrowserGroupModel", "Publisher", "Imprint", "Series", "Volume", "Folder")
+__all__ = ("BrowserGroupModel", "Folder", "Imprint", "Publisher", "Series", "Volume")
 
 
 class BrowserGroupModel(BaseModel):

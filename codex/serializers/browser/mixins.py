@@ -12,7 +12,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.serializers.fields.browser import TopGroupField
 from codex.util import max_none
 from codex.views.const import EPOCH_START

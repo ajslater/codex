@@ -1,6 +1,6 @@
 """Browser Page Bounds Checking."""
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
 from codex.views.util import Route
 

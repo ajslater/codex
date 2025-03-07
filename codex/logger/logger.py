@@ -20,7 +20,7 @@ class CodexQueueHandler(QueueHandler):
         super().enqueue(record)
 
 
-LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)
+_LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)
 
 
 def _ensure_handler(logger, queue):
@@ -33,7 +33,7 @@ def _ensure_handler(logger, queue):
             logger.removeHandler(handler)
 
     if not logger.handlers:
-        handler = LOG_HANDLER if queue == LOG_QUEUE else CodexQueueHandler(queue)
+        handler = _LOG_HANDLER if queue == LOG_QUEUE else CodexQueueHandler(queue)
         logger.addHandler(handler)
 
 

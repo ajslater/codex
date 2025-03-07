@@ -64,8 +64,10 @@ export const useSocketStore = defineStore("socket", {
       });
     },
     SOCKET_ONMESSAGE(event) {
-      // The main message dispatcher.
-      // Would be nicer if components could add their own listeners.
+      /*
+       * The main message dispatcher.
+       * Would be nicer if components could add their own listeners.
+       */
       const message = event.data;
       console.debug(message);
       switch (message) {

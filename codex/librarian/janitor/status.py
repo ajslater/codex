@@ -1,9 +1,9 @@
 """Janitor Status Types."""
 
-from django.db.models import Choices
+from django.db.models import TextChoices
 
 
-class JanitorStatusTypes(Choices):
+class JanitorStatusTypes(TextChoices):
     """Janitor Status Types."""
 
     CLEANUP_FK = "JTD"

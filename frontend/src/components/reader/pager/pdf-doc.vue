@@ -49,9 +49,11 @@ export default {
       );
     },
     width() {
-      // Wide PDFs will not fit to SCREEN well.
-      // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
-      // Maybe not impossible but I'm lazy right now.
+      /*
+       * Wide PDFs will not fit to SCREEN well.
+       * vue-pdf-embed internal canvas sizing algorithm makes this difficult.
+       * Maybe not impossible but I'm lazy right now.
+       */
       let width = ["W", "O"].includes(this.bookSettings.fitTo)
         ? this.innerWidth
         : 0;

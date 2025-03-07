@@ -35,7 +35,7 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.query_covers import QueryCustomCoversImporter
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     Contributor,

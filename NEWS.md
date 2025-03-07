@@ -6,6 +6,24 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.11
+
+- Fixes
+
+  - Fix importing of story arc tags
+
+## v1.7.10
+
+- Fixes
+
+  - Fix occasional import link tags crash.
+
+## v1.7.9
+
+- Fixes
+
+  - Tags page layout fixes.
+
 ## v1.7.8
 
 - Features
@@ -13,7 +31,7 @@ border-radius: 128px;
   - Tags page layout changes with more notes from @beville.
 
 - Fixes
-  - Tags for simple comic fields were incorrcetly taken from the first comic in
+  - Tags for simple comic fields were incorrectly taken from the first comic in
     a group.
   - Filter menu wasn't populating for top folder.
   - Librarian status tasks would appear out of order.

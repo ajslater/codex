@@ -5,7 +5,7 @@ from types import MappingProxyType
 
 from django.db.models.query import Q
 
-from codex.logger.logging import get_logger
+from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
@@ -42,7 +42,7 @@ _NON_FTS_COLUMNS = frozenset(
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
 _QUOTES_REXP = r"\".*?\""
 _COLUMN_EXPRESSION_OPERATORS_REXP = (
-    rf"(?:{_QUOTES_REXP})|(?P<star>\B[\*\<\>]\w|\.{2,}|\w\*\w)"
+    rf"(?:{_QUOTES_REXP})|(?P<star>\B[\*\<\>]\w|\.{(2,)}|\w\*\w)"
 )
 _COLUMN_EXPRESSION_OPERATORS_RE = re.compile(_COLUMN_EXPRESSION_OPERATORS_REXP)
 _FTS_OPERATORS = frozenset({"and", "not", "or", "near"})
