@@ -20,10 +20,9 @@ const TIME_SORT_BY = new Set([
   "created_at",
   "updated_at",
 ]);
-/* eslint-disable unicorn/no-null */
+
 const HIDE_ORDER_BYS = new Set([null, undefined, "sort_name"]);
 const HIDE_ORDER_VALUES = new Set([null, undefined]);
-/* eslint-enable unicorn/no-null */
 
 export default {
   name: "OrderByCaption",

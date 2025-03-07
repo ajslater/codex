@@ -102,7 +102,7 @@ export default {
       filters: (state) => state.settings.filters,
       filterMenuClass: function (state) {
         /*
-         * Lets me hide bookmark menu items with css when the filterMode
+         * Let me hide bookmark menu items with css when the filterMode
          *   changes.
          */
         let clsName = "filterMenu";

@@ -2,7 +2,7 @@ import eslintJs from "@eslint/js";
 import eslintJson from "@eslint/json";
 import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintPluginStylistic from "@stylistic/eslint-plugin";
-import eslintPluginVueConfigPrettier from "@vue/eslint-config-prettier";
+import eslintPluginConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginDepend from "eslint-plugin-depend";
 import eslintPluginImport from "eslint-plugin-import";
@@ -165,5 +165,5 @@ export default [
       "yml/no-empty-mapping-value": "off",
     },
   },
-  eslintPluginVueConfigPrettier, // Best if last
+  eslintPluginConfigPrettier, // Best if last
 ];

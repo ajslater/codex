@@ -29,7 +29,7 @@ router
     return app.mount("#App");
   })
   // Top level await would require a plugin
-  // eslint-disable-next-line unicorn/prefer-top-level-await
+
   .catch(console.error);
 
 export default app;

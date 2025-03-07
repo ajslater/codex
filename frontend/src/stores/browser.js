@@ -21,7 +21,7 @@ const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
-  // eslint-disable-next-line unicorn/no-null
+
   null,
   BROWSER_DEFAULTS.bookmarkFilter,
 ]);
@@ -241,7 +241,6 @@ export const useBrowserStore = defineStore("browser", {
       return Object.fromEntries(
         Object.entries(state.settings).filter(([k, v]) => {
           if (!keys.includes(k)) {
-            // eslint-disable-next-line unicorn/no-null
             return null;
           }
           if (k === "filters") {
