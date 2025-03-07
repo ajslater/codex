@@ -13,10 +13,10 @@ RUN apt-get clean \
     libjpeg62-turbo \
     libopenjp2-7 \
     libssl3 \
+    libstdc++6 \
     libyaml-0-2 \
     libtiff6 \
     libwebp7 \
-    mupdf \
     ruamel.yaml.clib \
     unrar \
     zlib1g \

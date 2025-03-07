@@ -85,6 +85,12 @@ before installing Codex.
 apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
 
+Debian on ARM (AARCH64) requires libstdc++ to build pymupdf:
+
+```sh
+apt install libstdc++6
+```
+
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
 and versions of your distribution. If the package versions listed in the example
 above are not available, try searching for ones that are with `apt-cache` or
@@ -100,7 +106,7 @@ apt-cache search libjpeg-turbo
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp mupdf openssl-dev sqlite yaml-dev zlib-dev
 ```
 
-Alpine on ARM (AARCH64) may require:
+Alpine on ARM (AARCH64) requires libstdc++ build pymupdf:
 
 ```sh
 apk add libstdc++6
