@@ -85,12 +85,6 @@ before installing Codex.
 apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
 ```
 
-Debian on ARM (AARCH64) requires libstdc++ to build pymupdf:
-
-```sh
-apt install libstdc++6
-```
-
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
 and versions of your distribution. If the package versions listed in the example
 above are not available, try searching for ones that are with `apt-cache` or
@@ -105,14 +99,6 @@ apt-cache search libjpeg-turbo
 ```sh
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp mupdf openssl-dev sqlite yaml-dev zlib-dev
 ```
-
-Alpine on ARM (AARCH64) requires libstdc++ build pymupdf:
-
-```sh
-apk add libstdc++6
-```
-
-To build pymupdf.
 
 ##### Install unrar Runtime Dependency on non-debian Linux
 
@@ -137,6 +123,15 @@ natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the <a href="/WINDOWS.md">Native Windows
 Dependencies Installation Document</a>.
+
+#### Installing Codex on ARM (AARCH64) with Python 3.13
+
+Pymupdf has no pre-built wheels for AARCH64 so pip must build it and the build
+fails on Python 3.13 without this environment variable set:
+
+```sh
+PYMUPDF_SETUP_PY_LIMITED_API=0 pip install codex
+```
 
 #### <a href="#run">Run</a> Codex Natively
 

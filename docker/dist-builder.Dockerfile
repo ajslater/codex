@@ -16,7 +16,7 @@ WORKDIR /app
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
 COPY pyproject.toml poetry.lock ./
-RUN PIP_CACHE_DIR=$(pip3 cache dir) poetry sync --no-root --without dev
+RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 poetry sync --no-root --without dev
 
 # *** install node lint & test dependency packages ***
 COPY package.json package-lock.json ./

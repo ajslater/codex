@@ -9,7 +9,7 @@ WORKDIR /app
 COPY ./dist/$CODEX_WHEEL ./dist/$CODEX_WHEEL
 
 # hadolint ignore=DL3059,DL3013
-RUN pip3 install --no-cache-dir ./dist/$CODEX_WHEEL
+RUN PYMUPDF_SETUP_PY_LIMITED_API=0 pip3 install --no-cache-dir ./dist/$CODEX_WHEEL
 
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG PKG_VERSION
