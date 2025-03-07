@@ -1,18 +1,26 @@
-ARG CODEX_BASE_VERSION
-# hadolint ignore=DL3007
-FROM ajslater/codex-base:${CODEX_BASE_VERSION}
+FROM nikolaik/python-nodejs:python3.13-nodejs23
 ARG CODEX_BUILDER_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
-
-# hadolint ignore=DL4006
-RUN curl -fsSL https://deb.nodesource.com/setup_23.x | bash -o pipefail -s --
 
 # **** install codex system build dependency packages ****"
 # hadolint ignore=DL3008
 RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
+    # Codex base
+    libimagequant0 \
+    libjpeg62-turbo \
+    libopenjp2-7 \
+    libssl3 \
+    libyaml-0-2 \
+    libtiff6 \
+    libwebp7 \
+    mupdf \
+    ruamel.yaml.clib \
+    unrar \
+    zlib1g \
+    # Builder base
     bash \
     build-essential \
     git \
