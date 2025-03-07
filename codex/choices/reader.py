@@ -6,18 +6,18 @@ READER_CHOICES = MappingProxyType(
     {
         "fit_to": MappingProxyType(
             {
-                "H": "Fit to Height",
-                "O": "Original Size",
                 "S": "Fit to Screen",
                 "W": "Fit to Width",
+                "H": "Fit to Height",
+                "O": "Original Size",
             }
         ),
         "reading_direction": MappingProxyType(
             {
-                "btt": "Bottom to Top",
                 "ltr": "Left to Right",
                 "rtl": "Right to Left",
                 "ttb": "Top to Bottom",
+                "btt": "Bottom to Top",
             }
         ),
     }
