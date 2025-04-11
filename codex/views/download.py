@@ -25,6 +25,7 @@ class DownloadView(AuthFilterAPIView):
             group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
             comic = (
                 Comic.objects.filter(group_acl_filter)
+                .distinct()
                 .only("path", "file_type")
                 .get(pk=pk)
             )
