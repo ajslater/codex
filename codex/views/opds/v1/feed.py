@@ -13,6 +13,7 @@ from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
+from codex.views.mixins import UserActiveViewMixin
 from codex.settings.settings import FALSY
 from codex.views.const import MAX_OBJ_PER_PAGE
 from codex.views.opds.auth import OPDSTemplateView
@@ -39,7 +40,7 @@ class OpdsNs:
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
 
-class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
+class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView, UserActiveViewMixin):
     """OPDS 1 Feed."""
 
     template_name = "opds_v1/index.xml"
@@ -168,4 +169,5 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView):
     def get(self, *_args, **_kwargs):
         """Get the feed."""
         serializer = self.get_serializer(self)
+        self.mark_user_active()
         return Response(serializer.data, content_type=self.content_type)

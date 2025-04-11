@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fixes
 
 - Crash downloading comics when user is in a group.
+- User ast active activity was often not recorded.
 
 ## v1.7.11
 

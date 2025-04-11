@@ -51,5 +51,5 @@ class BookmarkView(BookmarkUpdate, BookmarkAuthMixin, BrowserFilterView):
         auth_filter = self.get_bookmark_auth_filter()
         comic_qs = self._get_comic_query()
 
-        self.update_bookmarks(auth_filter, comic_qs, updates, LOG)
+        self.update_bookmarks(auth_filter, comic_qs, updates)
         return Response()

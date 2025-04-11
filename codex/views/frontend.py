@@ -8,10 +8,11 @@ from rest_framework.response import Response
 
 from codex.models.admin import AdminFlag
 from codex.serializers.route import RouteSerializer
+from codex.views.mixins import UserActiveViewMixin
 from codex.views.session import SessionView
 
 
-class IndexView(SessionView):
+class IndexView(SessionView, UserActiveViewMixin):
     """The main app."""
 
     SESSION_KEY = SessionView.BROWSER_SESSION_KEY
@@ -40,4 +41,5 @@ class IndexView(SessionView):
             "last_route": self._get_last_route(),
             "title": self._get_title(),
         }
+        self.mark_user_active()
         return Response(extra_context)
