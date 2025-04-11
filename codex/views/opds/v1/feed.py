@@ -13,9 +13,9 @@ from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
-from codex.views.mixins import UserActiveViewMixin
 from codex.settings.settings import FALSY
 from codex.views.const import MAX_OBJ_PER_PAGE
+from codex.views.mixins import UserActiveViewMixin
 from codex.views.opds.auth import OPDSTemplateView
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v1.entry.data import OPDS1EntryData

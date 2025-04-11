@@ -5,8 +5,6 @@ from types import MappingProxyType
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.librarian.bookmark.tasks import UserActiveTask
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
