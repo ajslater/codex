@@ -20,7 +20,8 @@
       disabled
       :eager="eager(book.pk)"
       :value="book.pk"
-      :transition="true"
+      :transition="transition"
+      :reverse-transitin="transition"
     >
       <Pager :book="book" @click="click" />
     </v-window-item>
@@ -50,6 +51,7 @@ export default {
       bookChange: (state) => state.bookChange,
       currentBookPk: (state) => state.books?.current?.pk || 0,
       bookRoutes: (state) => state.routes.books,
+      transition: (state) => state.readerSettings.pageTransition,
     }),
     bookChangePrev() {
       return this.bookChangeShow("prev");

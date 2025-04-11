@@ -10,8 +10,11 @@ border-radius: 128px;
 
 - Fixes
 
-- Crash downloading comics when user is in a group.
-- User ast active activity was often not recorded.
+  - Crash downloading comics when user is in a group.
+  - User ast active activity was often not recorded.
+
+- Features
+  - Animate Pages option in reader settings
 
 ## v1.7.11
 
