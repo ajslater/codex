@@ -74,6 +74,7 @@ django-schema-graph = "^3.1.0"
 picopt = "^4.0.1"
 neovim = "^0.3.1"
 nplusone = "^1.0.0"
+icecream = "^2.1.4"
 
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.0" }
