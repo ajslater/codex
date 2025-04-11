@@ -33,7 +33,6 @@ export default {
 
 <style scoped lang="scss">
 .paginationNavButton {
-
 }
 .narrowButton {
   margin-inline-start: 0 !important;

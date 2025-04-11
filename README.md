@@ -133,7 +133,8 @@ fails on Python 3.13 without this environment variable set:
 PYMUPDF_SETUP_PY_LIMITED_API=0 pip install codex
 ```
 
-You will also have to have the `build-essential` and `python3-dev` or equivalent packages installed on on your Linux.
+You will also have to have the `build-essential` and `python3-dev` or equivalent
+packages installed on on your Linux.
 
 #### <a href="#run">Run</a> Codex Natively
 

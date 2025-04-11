@@ -222,10 +222,10 @@ export default {
 .clearFilter {
   color: black;
   background-color: rgb(var(--v-theme-primary));
-  opacity: .7;
+  opacity: 0.7;
 }
 
 .clearFilter:hover {
-  opacity: 1.0;
+  opacity: 1;
 }
 </style>

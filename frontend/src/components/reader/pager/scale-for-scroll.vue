@@ -82,6 +82,6 @@ export default {
 }
 
 .resetIcon:hover {
-  opacity: 1.0;
+  opacity: 1;
 }
 </style>

@@ -140,13 +140,15 @@ $primary: rgb(var(--v-theme-primary));
   box-shadow: 3px 3px #606060;
 }
 .stack3 {
-  box-shadow: 3px 3px #606060,
-              6px 6px #404040;
+  box-shadow:
+    3px 3px #606060,
+    6px 6px #404040;
 }
 .stack4 {
-  box-shadow: 3px 3px #606060,
-              6px 6px #404040,
-              9px 9px #202020;
+  box-shadow:
+    3px 3px #606060,
+    6px 6px #404040,
+    9px 9px #202020;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

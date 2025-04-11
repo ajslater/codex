@@ -101,7 +101,7 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
   padding-top: 0px;
   padding-bottom: 0px;
-  padding-left: max(18px, calc(env(safe-area-inset-left)/2));
+  padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
   padding-right: 0px;
 }
 
@@ -123,7 +123,7 @@ export default {
 
 @media #{map.get(vuetify.$display-breakpoints, 'xs')} {
   #browserBreadcrumbs {
-    padding-left: max(10px, calc(env(safe-area-inset-left)/2));
+    padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
   }
 }
 </style>

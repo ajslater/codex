@@ -120,7 +120,7 @@ export default {
 <style scoped lang="scss">
 @use "./table";
 
-.inlineRow>* {
+.inlineRow > * {
   display: inline-flex;
 }
 
@@ -129,17 +129,17 @@ export default {
   background-color: rgb(var(--v-theme-surface));
 }
 
-.halfRow>* {
+.halfRow > * {
   width: 50%;
   display: inline-flex;
 }
 
-.thirdRow>* {
+.thirdRow > * {
   width: 33.333%;
   display: inline-flex;
 }
 
-.quarterRow>* {
+.quarterRow > * {
   width: 25%;
   display: inline-flex;
 }

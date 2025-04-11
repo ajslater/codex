@@ -206,7 +206,7 @@ export default {
   background-color: rgb(var(--v-theme-background));
 }
 
-#schemaDoc>td {
+#schemaDoc > td {
   border-bottom: none !important;
 }
 </style>

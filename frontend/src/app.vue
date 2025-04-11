@@ -62,16 +62,16 @@ a {
   border-radius: 5px;
 }
 
-.v-tooltip>.v-overlay__content {
+.v-tooltip > .v-overlay__content {
   color: rgb(var(--v-theme-textDisabled)) !important;
 }
 
-.highlight-table tbody>tr>td {
+.highlight-table tbody > tr > td {
   border: 0;
 }
 
-.highlight-table thead>tr>th,
-.highlight-table tbody>tr:nth-child(even) {
+.highlight-table thead > tr > th,
+.highlight-table tbody > tr:nth-child(even) {
   background-color: rgb(var(--v-theme-background)) !important;
 }
 
@@ -83,7 +83,7 @@ a {
   margin-inline-start: 0 !important;
 }
 
-.codexToolbarTitle>.v-toolbar-title__placeholder {
+.codexToolbarTitle > .v-toolbar-title__placeholder {
   text-align: center;
 }
 </style>
