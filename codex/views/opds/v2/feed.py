@@ -10,6 +10,7 @@ from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.views.const import MAX_OBJ_PER_PAGE
+from codex.views.mixins import UserActiveViewMixin
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
@@ -27,7 +28,7 @@ from codex.views.opds.v2.publications import OPDS2PublicationView
 LOG = get_logger(__name__)
 
 
-class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
+class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView, UserActiveViewMixin):
     """OPDS 2.0 Feed."""
 
     DEFAULT_ROUTE = MappingProxyType(
@@ -216,4 +217,5 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView):
         """Get the feed."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)
+        self.mark_user_active()
         return Response(serializer.data)

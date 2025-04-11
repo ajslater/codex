@@ -34,24 +34,24 @@ def not_falsy_env(name):
 
 
 DEBUG = not_falsy_env("DEBUG")
-BUILD = environ.get("BUILD", False)
+BUILD = not_falsy_env("BUILD")
 # Slow query middleware
 # limit in seconds
-SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
+SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", "0.5"))
 LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
 # Search indexing memory controls
-MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
-WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
-CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", 1.25))
-CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", 250))
-MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
+MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", "240"))
+WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", "0.6"))
+CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", "1.25"))
+CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", "250"))
+MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", "1000"))
 # sqlite parser breaks with more than 1000 variables in a query and
 # django only fixes this in the bulk_create & bulk_update functions.
 # So for complicated queries I gotta batch them myself. Filter arg
 # count is a proxy, but it works. 990 errors sometimes.
-FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 900))
+FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
 VITE_HOST = environ.get("VITE_HOST")
-SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", 10000))
+SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", "10000"))
 
 ####################################
 # Documented Environment Variables #
@@ -63,12 +63,12 @@ RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
 LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
-THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", 0))
-THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", 0))
-THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", 0))
-THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", 0))
+THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", "0"))
+THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", "0"))
+THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", "0"))
+THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", "0"))
 FIX_FOREIGN_KEYS = not_falsy_env("CODEX_FIX_FOREIGN_KEYS")
-INTEGRITY_CHECK = environ.get("CODEX_INTEGRITY_CHECK", False)
+INTEGRITY_CHECK = not_falsy_env("CODEX_INTEGRITY_CHECK")
 FTS_INTEGRITY_CHECK = not_falsy_env("CODEX_FTS_INTEGRITY_CHECK")
 FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 

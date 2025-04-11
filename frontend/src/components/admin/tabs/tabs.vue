@@ -67,7 +67,6 @@ $header-top-margin: calc($header-top + 24px);
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
   padding-bottom: max(10px, env(safe-area-inset-bottom));
-
 }
 
 #noLibraries {

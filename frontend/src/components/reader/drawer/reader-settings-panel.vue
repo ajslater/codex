@@ -32,7 +32,7 @@
       </v-radio-group>
       <v-checkbox
         :disabled="disableTwoPages"
-        class="displayTwoPages"
+        class="scopedCheckbox"
         density="compact"
         label="Two pages"
         hide-details="auto"
@@ -61,6 +61,18 @@
           :value="item.value"
         />
       </v-radio-group>
+      <v-checkbox
+        :model-value="selectedSettings.readRtlInReverse"
+        class="scopedCheckbox"
+        density="compact"
+        label="Read RTL Comics LTR"
+        hide-details="auto"
+        :true-value="true"
+        @update:model-value="
+          settingsDialogChanged({ readRtlInReverse: $event })
+        "
+      />
+
       <v-btn
         v-if="!isGlobalScope"
         id="clearSettingsButton"
@@ -84,16 +96,21 @@
     label="Finish Book On Last Page"
     hide-details="auto"
     :true-value="true"
-    @update:model-value="settingsDialogChanged({ finishOnLastPage: $event })"
+    @update:model-value="setSettingsGlobal({ finishOnLastPage: $event })"
   />
   <v-checkbox
-    :model-value="selectedSettings.readRtlInReverse"
+    v-tooltip="{
+      openDelay,
+      text: 'Animate page turns when reading horizontally.',
+    }"
+    :model-value="pageTransition"
     class="readerCodexListItem"
     density="compact"
-    label="Read RTL Comics as LTR"
+    :disabled="disablePageTransition"
+    label="Animate Page Turns"
     hide-details="auto"
     :true-value="true"
-    @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
+    @update:model-value="setSettingsGlobal({ pageTransition: $event })"
   />
   <v-checkbox
     v-tooltip="{
@@ -101,7 +118,7 @@
       text: 'Cache all pages from this book in the browser',
     }"
     :model-value="cacheBook"
-    class="readerCodexListItem cacheBook"
+    class="readerCodexListItem"
     density="compact"
     :disabled="disableCacheBook"
     label="Cache Entire Book"
@@ -109,6 +126,7 @@
     :true-value="true"
     @update:model-value="setSettingsClient({ cacheBook: $event })"
   />
+
   <!-- eslint-disable sonarjs/no-vue-bypass-sanitization -->
   <CodexListItem
     v-if="pdfInBrowserURL"
@@ -175,6 +193,7 @@ export default {
           : "";
       },
       finishOnLastPage: (state) => state.readerSettings.finishOnLastPage,
+      pageTransition: (state) => state.readerSettings.pageTransition,
     }),
     ...mapWritableState(useReaderStore, ["readRtlInReverse"]),
     fitToChoices() {
@@ -187,6 +206,9 @@ export default {
       return this.isVertical || (this.isPDF && this.cacheBook);
     },
     disableCacheBook() {
+      return this.isVertical && this.isPDF;
+    },
+    disablePageTransition() {
       return this.isVertical && this.isPDF;
     },
   },
@@ -290,15 +312,15 @@ export default {
   padding-bottom: 4px;
 }
 
-.readerCodexListItem {
-  padding-left: 15px;
-  padding-right: env(safe-area-inset-right);
-}
-
-.displayTwoPages {
+.scopedCheckbox {
   padding-left: 6px;
   padding-top: 5px;
   padding-bottom: 10px;
+}
+
+.readerCodexListItem {
+  padding-left: 15px;
+  padding-right: env(safe-area-inset-right);
 }
 
 #clearSettingsButton {

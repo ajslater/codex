@@ -107,6 +107,7 @@ export const useReaderStore = defineStore("reader", {
       readingDirection: "ltr",
       readRtlInReverse: READER_CHOICES.readRtlInReverse,
       finishOnLastPage: READER_CHOICES.finishOnLastPage,
+      pageTransition: true,
     },
     browserSettings: {
       breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,

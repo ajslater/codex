@@ -33,6 +33,7 @@ class ReaderSettingsSerializer(Serializer):
     read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
     finish_on_last_page = BooleanField(allow_null=True, required=False)
     mtime = TimestampField(read_only=True)
+    page_transition = BooleanField(allow_null=True, required=False)
 
 
 class ReaderComicSerializer(Serializer):

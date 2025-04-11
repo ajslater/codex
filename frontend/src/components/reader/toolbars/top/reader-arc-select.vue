@@ -132,7 +132,7 @@ export default {
   height: 22.75px;
   padding-top: 4px;
   font-size: 16px;
-  letter-spacing: -.15em;
+  letter-spacing: -0.15em;
 }
 
 :deep(.v-select__selection) {

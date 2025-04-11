@@ -1,7 +1,10 @@
 """Cross view annotation methods."""
 
 from django.db.models.expressions import F
+from rest_framework.views import APIView
 
+from codex.librarian.bookmark.tasks import UserActiveTask
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logger import get_logger
 from codex.models.comic import Comic, Imprint, Volume
 from codex.views.browser.filters.filter import BrowserFilterView
@@ -75,3 +78,13 @@ class SharedAnnotationsMixin(BrowserFilterView):
         elif qs.model is Imprint:
             group_names["publisher_name"] = F("publisher__name")
         return qs.annotate(**group_names)
+
+
+class UserActiveViewMixin(APIView):
+    """View that records user activity."""
+
+    def mark_user_active(self):
+        """Get the app index page."""
+        if self.request.user and self.request.user.pk:
+            task = UserActiveTask(pk=self.request.user.pk)
+            LIBRARIAN_QUEUE.put(task)

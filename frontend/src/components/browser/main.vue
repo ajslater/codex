@@ -131,7 +131,6 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
   margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
 }
 
-
 #browsePaneContainer {
   margin-top: $card-margin;
   display: grid;

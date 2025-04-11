@@ -174,8 +174,18 @@ export default {
   margin-bottom: 2em;
   color: rgb(var(--v-theme-textSecondary));
 }
-#groupTable { border: solid thin; margin-top: 1em;}
-#groupTable th, #groupTable td { padding: 0.25em;}
-.see { background-color: rgb(var(--v-theme-includeGroup))}
-.hidden { background-color: rgb(var(--v-theme-excludeGroup));}
+#groupTable {
+  border: solid thin;
+  margin-top: 1em;
+}
+#groupTable th,
+#groupTable td {
+  padding: 0.25em;
+}
+.see {
+  background-color: rgb(var(--v-theme-includeGroup));
+}
+.hidden {
+  background-color: rgb(var(--v-theme-excludeGroup));
+}
 </style>

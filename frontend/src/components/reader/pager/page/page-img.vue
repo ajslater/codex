@@ -55,9 +55,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
+/*
 .img {
   transition: transform 0.5s ease-in-out;
 }
+*/
 
 .fitToScreen,
 .fitToScreenTwo,

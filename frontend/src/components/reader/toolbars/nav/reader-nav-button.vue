@@ -78,7 +78,6 @@ export default {
 .readerNavButton {
   padding-left: 15px;
   padding-right: 15px;
-
 }
 .readerNavButtonLeft {
   padding-left: max(15px, calc(env(safe-area-inset-left) / 3)) !important;

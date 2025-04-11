@@ -236,9 +236,8 @@ export default {
   margin-right: 15px;
 }
 
-
 .inlineRow,
-.inlineRow>* {
+.inlineRow > * {
   display: inline-flex;
 }
 
@@ -262,7 +261,7 @@ export default {
 }
 
 .subdued {
-  color: rgb(var(--v-theme-textDisabled))
+  color: rgb(var(--v-theme-textDisabled));
 }
 
 #pageDateRow {

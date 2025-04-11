@@ -59,7 +59,6 @@ export default {
   margin-top: -11px;
 }
 
-
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .bookCoverWrapper {
     width: 100px;

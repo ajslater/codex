@@ -53,7 +53,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-:deep(.v-label.v-field-label) {  
+:deep(.v-label.v-field-label) {
   top: 13px;
 }
 :deep(.v-label.v-field-label--floating) {
@@ -69,7 +69,7 @@ export default {
 :deep(.v-select__menu-icon) {
   margin-left: 0px !important;
 }
-:deep(.v-select__selection){
+:deep(.v-select__selection) {
   font-size: small;
 }
 </style>
