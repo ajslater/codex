@@ -1,3 +1,4 @@
+__pycache__
 !codex/templates/pwa/serviceworkerRegister.js
 .circleci
 .git
@@ -8,12 +9,11 @@
 /config
 /node_modules
 /test-results
-__pycache__
 cache
 codex/_vendor
 codex/static_build
-codex/static_src/img/*.svg
 codex/static_root
+codex/static_src/img/*.svg
 codex/templates/**/*.html
 codex/templates/**/*.xml
 codex/templates/pwa/manifest.webmanifest
@@ -21,5 +21,5 @@ comics
 dist
 frontend
 package-lock.json
-poetry.lock
+uv.lock
 webpack-stats.json

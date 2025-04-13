@@ -32,15 +32,12 @@ ensure_latest_jar() {
   fi
 }
 
-# Hacky sed regex gets the first include value in packages.
-PACKAGE_DIR=$(tq -f pyproject.toml tool.poetry.packages | sed -n 's/^\[{ include = "\([^"]*\)".*/\1/p')
-
 UML_OUT_OF_DATE=$(is_uml_out_of_date "$CLASSES_UML" "$PACKAGE_DIR")
 
 if [ "$UML_OUT_OF_DATE" != "" ]; then
   export PYTHONPATH="${PYTHONPATH:-}:$THIS_DIR"
   echo "Generating UML..."
-  poetry run pyreverse --colorized --output plantuml "$PACKAGE_DIR"
+  uv run pyreverse --colorized --output plantuml "$PACKAGE_DIR"
   echo "done."
 else
   echo "UML is up to date."

@@ -1,13 +1,18 @@
 #!/bin/bash
 # Fix common linting errors
 set -euxo pipefail
-# bin/sortignore.sh borks order for !ignores it think
+
+################
+# Ignore files #
+################
+bin/sortignore.sh
+
 ####################
 ###### Python ######
 ###################
-poetry run ruff check --fix .
-poetry run ruff format .
-poetry run djlint codex/templates --profile=django --reformat
+uv run ruff check --fix .
+uv run ruff format .
+uv run djlint codex/templates --profile=django --reformat
 
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####

@@ -16,6 +16,5 @@ RUN pip3 install --upgrade --no-cache-dir \
  pip
 
 WORKDIR /app
-RUN poetry config virtualenvs.in-project false
 COPY pyproject.toml .
-RUN poetry update
+RUN uv sync --no-install-project --all-extras --upgrade
