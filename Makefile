@@ -1,8 +1,8 @@
 SHELL := /usr/bin/env bash
 
-## version
+## Show version. Use V variable to set version
 ## @category Update
-V := 
+V :=
 .PHONY: version
 ## Show or set project version
 ## @category Update
@@ -10,7 +10,7 @@ version:
 	bin/version.sh $(V)
 
 .PHONY: install-deps
-## Upgrade pip and install node packages
+## Update pip and install node packages
 ## @category Install
 install-deps:
 	BREW_PREFIX=$(brew --prefix)
@@ -26,20 +26,20 @@ install-deps:
 install-frontend:
 	cd frontend && make install
 
-.PHONY: install
-## Install for production
-## @category Install
-install: install-deps install-frontend
-	uv sync --no-install-project --no-dev
-
 .PHONY: install-dev
 ## Install dev requirements
 ## @category Install
 install-dev: install-deps install-frontend
 	uv sync --no-install-project
 
+.PHONY: install
+## Install for production
+## @category Install
+install-prod: install-deps
+	uv sync --no-install-project --no-dev
+
 .PHONY: install-all
-## Install all extras
+## Install with all extras
 ## @category Install
 install-all: install-deps install-frontend
 	uv sync --no-install-project --all-extras
@@ -56,13 +56,19 @@ clean:
 clean-frontend:
 	cd frontend && make clean
 
+.PHONY: build-choices
+## Build JSON choices for frontend
+## @category Build
+build-choices:
+	./bin/build-choices.sh
+
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-build-frontend: clean-frontend
+build-frontend: clean-frontend build-choices
 	cd frontend && make build
 
-.PHONY: icons
+.PHONY: build-icons
 ## Build all icons from source
 ## @category Build
 icons:
@@ -77,7 +83,7 @@ collectstatic:
 .PHONY: build-backend
 ## Build python package
 ## @category Build
-build-backend: collectstatic check
+build-backend: build-icons collectstatic check
 	uv build
 
 .PHONY: build
@@ -85,18 +91,12 @@ build-backend: collectstatic check
 ## @category Build
 build: build-frontend build-backend
 
-.PHONY: choices
-## Build JSON choices for frontend
-## @category Build
-choices:
-	./bin/build-choices.sh
 
 .PHONY: publish
 ## Publish package to pypi
 ## @category Deploy
 publish:
-	./bin/pypi-deploy.sh
-
+	uv publish
 
 .PHONY: update
 ## Update dependencies
@@ -110,34 +110,28 @@ update:
 kill-eslint_d:
 	bin/kill-eslint_d.sh
 
-.PHONY: fix-backend
-## Fix only backend lint errors
-## @category Fix
-fix-backend:
-	./bin/fix-lint-backend.sh
-
 .PHONY: fix-frontend
 ## Fix only frontend lint errors
 ## @category Fix 
 fix-frontend:
 	cd frontend && make fix
 
+.PHONY: fix-backend
+## Fix only backend lint errors
+## @category Fix
+fix-backend:
+	./bin/fix-lint-backend.sh
+
 .PHONY: fix
 ## Fix front and back end lint errors
 ## @category Fix
-fix: fix-frontend fix-backend
+fix: fix-backend fix-frontend
 
-.PHONY: typecheck 
+.PHONY: typecheck
 ## Static typecheck
 ## @category Lint
 typecheck:
 	uv run pyright .
-
-.PHONY: lint-backend
-## Lint the backend
-## @category Lint
-lint-backend:
-	./bin/lint-backend.sh
 
 .PHONY: lint-frontend
 ## Lint the frontend
@@ -145,16 +139,41 @@ lint-backend:
 lint-frontend:
 	cd frontend && make lint
 
+.PHONY: django-check
+## Check django is ok
+## @category Lint
+django-check:
+	./bin/pm check
+
+.PHONY: lint-backend
+## Lint the backend
+## @category Lint
+lint-backend: django-check
+	./bin/lint-backend.sh
+
 .PHONY: lint
 ## Lint front and back end
 ## @category Lint
-lint: lint-frontend lint-backend
+lint: lint-backend lint-frontend
 
-.PHONY: check
-## Check django is ok
+.PHONY: uml
+## Create a UML class diagram
+## #category Lint
+uml:
+	bin/uml.sh
+
+.PHONY: cycle
+## Detect Circular imports
 ## @category Lint
-check:
-	./bin/pm check
+cycle:
+	uvx pycycle --ignore node_modules,.venv --verbose --here
+
+.PHONY: test-frontend
+## Run frontend tests
+## Test
+ ## @category Test
+test-frontend:
+	cd frontend && make test
 
 .PHONY: test-backend
 ## Run backend tests
@@ -162,16 +181,10 @@ check:
 test-backend:
 	./bin/test-backend.sh
 
-.PHONY: test-frontend
-## Run frontend tests
-## @category Test
-test-frontend:
-	cd frontend && make test
-
 .PHONY: test
-## Run All Tests
+## Run Tests.
 ## @category Test
-test: test-frontend test-backend
+test: test-frontend test-backand
 
 .PHONY: benchmark-opds
 ## Time opds requests
@@ -179,16 +192,16 @@ test: test-frontend test-backend
 benchmark-opds:
 	bin/benchmark-opds.sh
 
-.PHONY: kill
-## Kill lingering codex processes
+.PHONY: dev-frontend-server
+## Run the vite dev frontend
 ## @category Run Server
-kill:
-	bin/kill-codex.sh || true
+dev-frontend-server:
+	cd frontend && make dev-server
 
 .PHONY: dev-server
 ## Run the dev webserver
-## @category Run Server
-dev-server: kill 
+## @category Test
+dev-server:
 	./bin/dev-server.sh
 
 .PHONY: dev-prod-server
@@ -196,12 +209,6 @@ dev-server: kill
 ## @category Run Server
 dev-prod-server: build-frontend collectstatic
 	./bin/dev-prod-server.sh
-
-.PHONY: dev-frontend-server
-## Run the vite dev frontend
-## @category Run Server
-dev-frontend-server:
-	cd frontend && make dev-server
 
 .PHONY: dev-ttabs
 ## Run the vite dev frontend and dev-server in ttabs
@@ -223,24 +230,24 @@ dev-docker:
 
 ## Module to run
 ## @category Run Server
-M := 
+M :=
 .PHONY: dev-module
 ## Run a single codex module in dev mode
 ## @category Run Server
 dev-module:
 	./bin/dev-module.sh $(M)
 
+.PHONY: kill
+## Kill lingering codex processes
+## @category Run Server
+kill:
+	bin/kill-codex.sh || true
+
 .PHONY: news
 ## Show recent NEWS
 ## @category Deploy
 news:
 	head -40 NEWS.md
-
-.PHONE: uml
-## Create uml diagrams
-## @category Dev
-uml:
-	./bin/uml.sh
 
 .PHONY: all
 
