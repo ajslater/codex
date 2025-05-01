@@ -30,6 +30,9 @@ jobs:
       - run:
           command: ./docker/docker-build-image.sh codex-builder-base
           name: Build Builder Base Image
+      - run:
+          command: ./docker/docker-build-image.sh amd64 codex-dist-builder
+          name: Build Distribution Builder Image
       - persist_to_workspace:
           paths:
             - ./.env-*
@@ -41,8 +44,9 @@ jobs:
   build-base-arm64:
     !!merge <<: *build-base
     executor: arm64-medium-executor
-  build-dist:
-    executor: amd64-large-executor
+  test-amd64:
+    type: approval
+    executor: amd64-medium-executor
     steps:
       - checkout
       - attach_workspace:
@@ -50,9 +54,6 @@ jobs:
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
-      - run:
-          command: ./docker/docker-build-image.sh codex-dist-builder
-          name: Build Distribution Builder Image
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"
@@ -76,6 +77,19 @@ jobs:
           path: test-results/coverage
       - store_artifacts:
           path: frontend/coverage
+      - discord/status:
+          fail_only: false
+          webhook: "${DISCORD_STATUS_WEBHOOK}"
+          failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
+  build-dist:
+    executor: amd64-medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          command: ./docker/docker-init.sh
+          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
@@ -87,7 +101,6 @@ jobs:
           fail_only: false
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
-          success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** built."
   build-amd64: &build
     executor: amd64-medium-executor
     steps:
@@ -104,16 +117,18 @@ jobs:
           fail_only: true
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
+          success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** built."
   build-arm64:
     !!merge <<: *build
     executor: arm64-medium-executor
   deploy:
+    type: release
     executor: amd64-medium-executor
     steps:
       - checkout
       - attach_workspace:
           at: .
-        run: uv publish
+      - run: uv publish
       - run:
           command: ./docker/docker-install-api-deps.sh
           name: Install docker API dependencies
@@ -132,7 +147,7 @@ jobs:
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
           success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** deployed."
     docker:
-      - image: ghcr.io/astral-sh/uv:bookworm-slim
+      - image: nikolaik/python-nodejs:latest
 version: 2.1
 workflows:
   main:
@@ -151,10 +166,14 @@ workflows:
               only:
                 - pre-release
                 - main
-      - build-dist:
+      - test-amd64:
           !!merge <<: *filters-all
           requires:
             - build-base-amd64
+      - build-dist:
+          !!merge <<: *filters-all
+          requires:
+            - test-amd64
       - build-amd64:
           !!merge <<: *filters-release
           requires:
@@ -170,4 +189,3 @@ workflows:
           requires:
             - build-amd64
             - build-arm64
-  version: 2.1
