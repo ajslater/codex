@@ -10,17 +10,8 @@ from io import BytesIO
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
-from comicbox.identifiers import (
-    ASIN_NID,
-    COMICVINE_NID,
-    COMIXOLOGY_NID,
-    GCD_NID,
-    IDENTIFIER_URL_MAP,
-    ISBN_NID,
-    LCG_NID,
-    METRON_NID,
-    UPC_NID,
-)
+from comicbox.identifiers.const import NIDs
+from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32
 from PIL import Image
@@ -152,23 +143,24 @@ def create_web(md, key, _limit):
     """Create a valid parsable web key."""
     if is_valid() is None:
         return
-    nid = random.choice(tuple(IDENTIFIER_URL_MAP.keys()))
-    if nid == COMICVINE_NID:
-        suffix = "4000-" + rand_digits(6)
-    elif nid in (METRON_NID, GCD_NID, LCG_NID):
-        suffix = rand_string(5) + "/" + rand_string(5)
-    elif nid == ASIN_NID:
-        suffix = rand_string(10)
-    elif nid == COMIXOLOGY_NID:
-        suffix = "x/x/" + rand_string(10)
-    elif nid == ISBN_NID:
-        suffix = rand_digits(10)
-    elif nid == UPC_NID:
-        suffix = rand_digits(12)
+    nid = random.choice(tuple(IDENTIFIER_PARTS_MAP.keys()))
+    if nid == NIDs.COMICVINE:
+        nss = "4000-" + rand_digits(6)
+    elif nid in (NIDs.METRON, NIDs.GCD, NIDs.LCG):
+        nss = rand_string(5) + "/" + rand_string(5)
+    elif nid == NIDs.ASIN:
+        nss = rand_string(10)
+    elif nid == NIDs.COMIXOLOGY:
+        nss = "x/x/" + rand_string(10)
+    elif nid == NIDs.ISBN:
+        nss = rand_digits(10)
+    elif nid == NIDs.UPC:
+        nss = rand_digits(12)
     else:
         return
 
-    url = IDENTIFIER_URL_MAP[nid] + suffix
+    id_parts = IDENTIFIER_PARTS_MAP[nid]
+    url = id_parts.unparse_url("issue", nss)
 
     md[key] = url
 
@@ -248,7 +240,7 @@ def create_metadata():
     create_manga(md)
     create_contributors(md)
 
-    root = Element(ComicInfoSchema.ROOT_TAGS[0])
+    root = Element(ComicInfoSchema.ROOT_TAG)
     root.attrib["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
     root.attrib["xmlns:xsd"] = "http://www.w3.org/2001/XMLSchema"
 

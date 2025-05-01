@@ -36,6 +36,14 @@
         "options": {
           "parser": "nginx"
         }
+      },
+      {
+        "files": [
+          "**/*Dockerfile"
+        ],
+        "options": {
+          "parser": "sh"
+        }
       }
     ]
   },
@@ -53,7 +61,7 @@
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
-    "@eslint/json": "^0.11.0",
+    "@eslint/json": "^0.12.0",
     "@fsouza/prettierd": "^0.26.0",
     "@prettier/plugin-xml": "^3.0.0",
     "@stylistic/eslint-plugin": "^4.1.0",
@@ -73,7 +81,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.0",
     "eslint-plugin-sonarjs": "^3.0.1",
     "eslint-plugin-toml": "^0.12.0",
-    "eslint-plugin-unicorn": "^58.0.0",
+    "eslint-plugin-unicorn": "^59.0.0",
     "eslint-plugin-yml": "^1.12.2",
     "eslint_d": "^14.2.2",
     "prettier": "^3.5.3",

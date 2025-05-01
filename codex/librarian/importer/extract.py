@@ -7,9 +7,8 @@ from typing import Any
 from zipfile import BadZipFile
 
 from comicbox.box import Comicbox
-from comicbox.box.computed import IDENTIFIERS_KEY
 from comicbox.exceptions import UnsupportedArchiveTypeError
-from comicbox.schemas.comicbox_mixin import CONTRIBUTORS_KEY
+from comicbox.schemas.comicbox import CREDITS_KEY, IDENTIFIERS_KEY
 from django.db.models.fields import (
     CharField,
     DecimalField,
@@ -198,8 +197,8 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         cls._assign_or_pop(md, key, value)
 
     @classmethod
-    def _clean_contributors(cls, md):
-        contributors = md.get(CONTRIBUTORS_KEY)
+    def _clean_credits(cls, md):
+        contributors = md.get(CREDITS_KEY)
         if not contributors:
             return
         clean_contributors = {}
@@ -211,7 +210,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
                 if clean_person:
                     clean_persons.add(clean_person)
             clean_contributors[clean_role] = clean_persons
-        cls._assign_or_pop(md, CONTRIBUTORS_KEY, clean_contributors)
+        cls._assign_or_pop(md, CREDITS_KEY, clean_contributors)
 
     @classmethod
     def _clean_story_arcs(cls, md):
@@ -253,7 +252,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         cls._clean_comic_small_ints(md)
         cls._clean_comic_decimals(md)
         cls._clean_strfields(md)
-        cls._clean_contributors(md)
+        cls._clean_credits(md)
         cls._clean_story_arcs(md)
         cls._clean_identifiers(md)
         return md
