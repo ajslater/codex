@@ -68,6 +68,7 @@ codex = "codex.run:main"
 
 [dependency-groups]
 dev = [
+  "basedpyright~=1.29.1",
   "cairosvg<3.0.0,>=2.7.1",
   "codespell<3.0.0,>=2.1.0",
   "coverage[toml]<8.0,>=7.0",
@@ -80,7 +81,6 @@ dev = [
   "neovim<1.0.0,>=0.3.1",
   "nplusone<2.0.0,>=1.0.0",
   "picopt>=5.0.0",
-  "pyright<2.0.0,>=1.1.357",
   "pytest-asyncio<1.0.0,>=0.26.0",
   "pytest-cov<7.0,>=6.0",
   "pytest-django<5.0,>=4.1",
@@ -104,8 +104,44 @@ exclude = [
   "codex/static_src/*",
   "codex/static_build/*",
 ]
+
+[tool.basedpyright]
+exclude = [
+  "**/.*",
+  "**/__pycache__",
+  "**/node_modules",
+  "codex/_vendor",
+  "codex/search/backend_search.py",
+  "codex/static_build",
+  "codex/static_root",
+  "comics",
+  "config",
+  "dist",
+  "frontend",
+  "test-results",
+  "typings",
+  "vulture_whitelist.py",
+]
+pythonVersion = "3.10"
+failOnWarnings = false
+reportAny = false
+reportExplicitAny = false
+reportImportCycles = true
+reportIncompatibleUnannotatedOverride = true
+reportMissingParameterType = false
+reportMissingTypeArgument = false
+reportUnannotatedClassAttribute = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportUnusedCallResult = false
+reportUnusedParameter = false # ruff does this 
+reportMissingTypeStubs = false
+
 [tool.codespell]
-skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,uv.lock,run.spec,.eslintcache'
+skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./uv.lock,./test-results"
+
 builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
@@ -120,12 +156,8 @@ source = ["codex"]
 branch = true
 concurrency = ["multiprocessing"]
 omit = [
-  ".git/*",
-  ".mypy_cache/*",
-  ".pytest_cache/*",
-  ".venv*/*",
+  "*/.*",
   "*__pycache__*",
-  "cache/*",
   "codex/_vendor/*",
   "codex/static_build/*",
   "codex/static_root/*",
@@ -139,37 +171,7 @@ omit = [
 
 [tool.djlint]
 ignore = "H030,H031"
-extend_exclude = "dist"
-
-[tool.pyright]
-exclude = [
-  "**/__pycache__",
-  "**/node_modules",
-  ".git",
-  ".mypy_cache",
-  ".pytest_cache",
-  ".venv*",
-  "cache",
-  "codex/_vendor",
-  "codex/search/backend_search.py",
-  "codex/static_build",
-  "codex/static_root",
-  "comics",
-  "config",
-  "dist",
-  "frontend",
-  "package-lock.json",
-  "uv.lock",
-  "test-results",
-  "typings",
-]
-useLibraryCodeForTypes = true
-reportMissingImports = true
-reportImportCycles = true
-pythonVersion = "3.10"
-pythonPlatform = "All"
-venvPath = "."
-venv = ".venv"
+extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static_root,./comics,dist,test-results,typings"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -190,14 +192,21 @@ pythonpath = ["."]
 
 [tool.radon]
 exclude = """\
-  *~,.git/*,.mypy_cache/*,.pytest_cache/*,.venv*,__pycache__/*\
-  ,cache/*,codex/_vendor/*,codex/static_build/*,codex/static_root/*\
-  ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*\
-  ,codex/search/backend_search.py\
+  *~,.*,.*/*,__pycache__/*
+  ,codex/_vendor/*,codex/static_build/*,codex/static_root/*
+  ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*
   """
 
 [tool.ruff]
-extend-exclude = ["cache", "codex/_vendor", "frontend", "typings"]
+extend-exclude = [
+  "**/.*",
+  "**/__pycache__",
+  "codex/_vendor",
+  "dist",
+  "frontend",
+  "test-results",
+  "typings",
+]
 show-fixes = true
 target-version = "py310"
 
@@ -321,20 +330,16 @@ ignore-overlong-task-comments = true
 
 [tool.vulture]
 exclude = [
-  ".git/",
-  ".mypy_cache/",
-  ".pytest_cache/",
-  "*.venv*",
-  "*/__pycache__",
-  "cache/",
+  "*/.*",
+  "*/__pycache__*",
+  "*/node_modules*",
   "codex/_vendor",
   "codex/search/backend_search.py",
   "codex/static_build/",
   "codex/static_root/",
-  "frontend/",
   "comics/",
   "dist/",
-  "node_modules/",
+  "frontend/",
   "test_results/",
   "typings/",
 ]

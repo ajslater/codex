@@ -131,7 +131,7 @@ fix: fix-backend fix-frontend
 ## Static typecheck
 ## @category Lint
 typecheck:
-	uv run pyright .
+	uv run basedpyright .
 
 .PHONY: lint-frontend
 ## Lint the frontend
