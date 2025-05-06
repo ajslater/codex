@@ -12,7 +12,7 @@ bin/sortignore.sh
 ###################
 uv run ruff check --fix .
 uv run ruff format .
-uv run djlint codex/templates --profile=django --reformat
+uv run djlint codex/templates/*.html codex/templates/pwa/*.html --reformat
 
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####

@@ -14,7 +14,7 @@ if [ "$(uname)" = "Darwin" ]; then
   uv run radon mi --min B .
   uv run radon cc --min C .
 fi
-uv run djlint codex/templates --profile=django --lint
+uv run djlint codex/templates/*.html codex/templates/pwa/*.html --lint
 
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
