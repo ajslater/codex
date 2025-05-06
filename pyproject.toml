@@ -28,6 +28,7 @@ dependencies = [
   "python-dateutil<3.0.0,>=2.8.2",
   "py7zr>=1.0.0-rc2",
   "requests<3.0,>=2.24",
+  "typing-extensions>=4.13.2",
   "tzlocal<6.0,>=5.0",
   "watchdog<7.0.0,>=6.0.0",
   "websocket-client<2.0,>=1.2",
@@ -130,6 +131,7 @@ reportImportCycles = true
 reportIncompatibleUnannotatedOverride = true
 reportMissingParameterType = false
 reportMissingTypeArgument = false
+reportPrivateUsage = false # ruff does this
 reportUnannotatedClassAttribute = false
 reportUnknownArgumentType = false
 reportUnknownMemberType = false
@@ -170,8 +172,10 @@ omit = [
 ]
 
 [tool.djlint]
-ignore = "H030,H031"
 extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static_root,./comics,dist,test-results,typings"
+ignore = "H030,H031"
+profile = "django"
+use_gitignore = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

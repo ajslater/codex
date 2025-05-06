@@ -485,6 +485,7 @@ dependencies = [
     { name = "pyparsing" },
     { name = "python-dateutil" },
     { name = "requests" },
+    { name = "typing-extensions" },
     { name = "tzlocal" },
     { name = "versio" },
     { name = "watchdog" },
@@ -547,6 +548,7 @@ requires-dist = [
     { name = "pyparsing", specifier = ">=3.1.2,<4.0.0" },
     { name = "python-dateutil", specifier = ">=2.8.2,<3.0.0" },
     { name = "requests", specifier = ">=2.24,<3.0" },
+    { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "tzlocal", specifier = ">=5.0,<6.0" },
     { name = "versio", specifier = ">=0.5.0,<1.0.0" },
     { name = "watchdog", specifier = ">=6.0.0,<7.0.0" },
@@ -1060,9 +1062,12 @@ wheels = [
 
 [[package]]
 name = "fnvhash"
-version = "0.1.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2f/01/14ef74ea03ac12e8a80d43bbad5356ae809b125cd2072766e459bcc7d388/fnvhash-0.1.0.tar.gz", hash = "sha256:3e82d505054f9f3987b2b5b649f7e7b6f48349f6af8a1b8e4d66779699c85a8e", size = 1902, upload-time = "2015-11-28T12:21:00.722Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/43/30d2dd2b14621b2004f658ba5335e5a6f5a9c1338ed37678d7fd247b7a9c/fnvhash-0.2.1.tar.gz", hash = "sha256:0c7e885f44c8f06de07f442befebc590ee9ca0cc88846681f608496284ce9cd5", size = 19057, upload-time = "2025-05-05T16:59:10.819Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/92/7c8abc21a1de7159013c0b0bd2ecf06530959bb14fd5c3bf0045e788c6d9/fnvhash-0.2.1-py3-none-any.whl", hash = "sha256:00fab14bec841e4cb29b4fd2ed9358f8bf9f4600d9d8149cde27a191193a33e8", size = 18115, upload-time = "2025-05-05T16:59:09.269Z" },
+]
 
 [[package]]
 name = "glom"
