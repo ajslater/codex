@@ -7,7 +7,7 @@ set -euxo pipefail
 ####################
 uv run ruff check .
 uv run ruff format --check .
-uv run pyright
+uv run basedpyright
 uv run vulture .
 if [ "$(uname)" = "Darwin" ]; then
   # Radon is only of interest to development
