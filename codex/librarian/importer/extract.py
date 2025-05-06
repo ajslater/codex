@@ -75,7 +75,8 @@ _MD_TEXT_KEYS = _get_keys_by_field_type(TextField)
 _MD_STR_KEYS = tuple(sorted(_MD_CHAR_KEYS + _MD_TEXT_KEYS))
 _MD_DECIMAL_KEYS = _get_keys_by_field_type(DecimalField)
 _MD_PSI_KEYS = _get_keys_by_field_type(PositiveSmallIntegerField)
-_PSI_MAX = 2**31 - 1
+_PSI_MIN = 0
+_PSI_MAX = 2**15 - 1
 _SI_MIN = 2**15 * -1
 _SI_MAX = 2**15 - 1
 _DECIMAL_ZERO = Decimal("0.00")
@@ -149,7 +150,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
     ) -> None:
         """Clean positive small integers."""
         for key in _MD_PSI_KEYS:
-            value = cls._clean_int(md, key, 0, _PSI_MAX)
+            value = cls._clean_int(md, key, _PSI_MIN, _PSI_MAX)
             cls._assign_or_pop(md, key, value)
 
     @classmethod
