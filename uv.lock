@@ -529,7 +529,7 @@ requires-dist = [
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
     { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a2,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
-    { name = "django", specifier = ">=5.1.3,<6.0.0" },
+    { name = "django", specifier = ">=5.2.0,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
     { name = "django-cors-headers", specifier = ">=4.0,<5.0" },
     { name = "django-rest-registration", specifier = ">=0.9.0,<1.0.0" },
@@ -840,16 +840,16 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "5.2"
+version = "5.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/1b/c6da718c65228eb3a7ff7ba6a32d8e80fa840ca9057490504e099e4dd1ef/Django-5.2.tar.gz", hash = "sha256:1a47f7a7a3d43ce64570d350e008d2949abe8c7e21737b351b6a1611277c6d89", size = 10824891, upload-time = "2025-04-02T13:08:06.874Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/10/0d546258772b8f31398e67c85e52c66ebc2b13a647193c3eef8ee433f1a8/django-5.2.1.tar.gz", hash = "sha256:57fe1f1b59462caed092c80b3dd324fd92161b620d59a9ba9181c34746c97284", size = 10818735, upload-time = "2025-05-07T14:06:17.543Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/e0/6a5b5ea350c5bd63fe94b05e4c146c18facb51229d9dee42aa39f9fc2214/Django-5.2-py3-none-any.whl", hash = "sha256:91ceed4e3a6db5aedced65e3c8f963118ea9ba753fc620831c77074e620e7d83", size = 8301361, upload-time = "2025-04-02T13:08:01.465Z" },
+    { url = "https://files.pythonhosted.org/packages/90/92/7448697b5838b3a1c6e1d2d6a673e908d0398e84dc4f803a2ce11e7ffc0f/django-5.2.1-py3-none-any.whl", hash = "sha256:a9b680e84f9a0e71da83e399f1e922e1ab37b2173ced046b541c72e1589a5961", size = 8301833, upload-time = "2025-05-07T14:06:10.955Z" },
 ]
 
 [[package]]
@@ -1562,11 +1562,11 @@ wheels = [
 
 [[package]]
 name = "orderly-set"
-version = "5.4.0"
+version = "5.4.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e4/20/6afbd546526c8b97ca1f53cfef395c59c403bb7f1e9fd54cbfae141c9d77/orderly_set-5.4.0.tar.gz", hash = "sha256:c8ff5ba824abe4eebcbbdd3f646ff3648ad0dd52239319d90056d8d30b6cccdd", size = 20934, upload-time = "2025-04-11T18:30:24.126Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/03/4a/38030da31c13dcd5a531490006e63a0954083fb115113be9393179738e25/orderly_set-5.4.1.tar.gz", hash = "sha256:a1fb5a4fdc5e234e9e8d8e5c1bbdbc4540f4dfe50d12bf17c8bc5dbf1c9c878d", size = 20943, upload-time = "2025-05-06T22:34:13.512Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/16/f731425dfd047513aac23e70ae527050868afc823585f52d3e39eb70f2e2/orderly_set-5.4.0-py3-none-any.whl", hash = "sha256:f0192a7f9ae3385b587b71688353fae491d1ca45878496eb71ea118be1623639", size = 12340, upload-time = "2025-04-11T18:30:23.09Z" },
+    { url = "https://files.pythonhosted.org/packages/12/bc/e0dfb4db9210d92b44e49d6e61ba5caefbd411958357fa9d7ff489eeb835/orderly_set-5.4.1-py3-none-any.whl", hash = "sha256:b5e21d21680bd9ef456885db800c5cb4f76a03879880c0175e1b077fb166fd83", size = 12339, upload-time = "2025-05-06T22:34:12.564Z" },
 ]
 
 [[package]]
@@ -2807,11 +2807,11 @@ wheels = [
 
 [[package]]
 name = "trove-classifiers"
-version = "2025.5.1.12"
+version = "2025.5.7.19"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dc/81/a43db75173e49b1204d2a826b2a3a0e2dee45fb0d9abfac2ce1ff928eebf/trove_classifiers-2025.5.1.12.tar.gz", hash = "sha256:28d24c3d043dc6b0459813d6bf4a231e788509b55ee3d54ba08ce72638031182", size = 16876, upload-time = "2025-05-01T12:46:02.238Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/a7/1f28746c2d07066b7bebcfa8b6d60dc50eb9648b9eb78000e793e2afbc9f/trove_classifiers-2025.5.7.19.tar.gz", hash = "sha256:a775b23f73f3d9b69ee8b58985dfce8a21e29cd75380e9b94926b3f53f1ed81a", size = 16891, upload-time = "2025-05-07T19:01:22.982Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/dd/915b914cfbaf91a46560083519be825ee65d3f955a7797ecf0ecf271559d/trove_classifiers-2025.5.1.12-py3-none-any.whl", hash = "sha256:9ed1030cfcc8d0eb944155f05b4add4efaceba4ba6aca3f9f348a21f1e700404", size = 14041, upload-time = "2025-05-01T12:46:00.556Z" },
+    { url = "https://files.pythonhosted.org/packages/97/7f/2df97a25646ec6e5d02b676952ba5ad0a8c50d8f5a2b14b6e200e588ca1f/trove_classifiers-2025.5.7.19-py3-none-any.whl", hash = "sha256:758828b1a20e678b6a278e855d8359ad0d3a42048904a7879add8bdefca1a87e", size = 14043, upload-time = "2025-05-07T19:01:20.943Z" },
 ]
 
 [[package]]

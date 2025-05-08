@@ -15,7 +15,7 @@
     "test:ci": "vitest run --reporter verbose --update"
   },
   "dependencies": {
-    "@unhead/vue": "^2.0.0-rc.5",
+    "@unhead/vue": "^2.0.8",
     "axios": "^1.4.0",
     "change-case-all": "^2.1.0",
     "core-js": "^3.31",
@@ -23,19 +23,19 @@
     "dequal": "^2.0.3",
     "pinia": "^3.0.1",
     "pretty-bytes": "^7.0.0",
-    "vue": "^3.5.2",
+    "vue": "^3.5.12",
     "vue-drag-scroller": "^1.8.6",
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
-    "vuetify": "^3.7.1"
+    "vuetify": "^3.8.4"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
     "@mdi/js": "^7.0.96",
     "@nabla/vite-plugin-eslint": "^2.0.2",
     "@pinia/testing": "^1.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.15.16",
     "@unhead/addons": "^2.0.0-rc.5",
     "@vitejs/plugin-vue": "^5.0.2",
     "@vitest/eslint-plugin": "^1.1.7",
@@ -47,7 +47,7 @@
     "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^6.0.1",
-    "vite-plugin-checker": "^0.9.0",
+    "vite-plugin-checker": "^0.9.3",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-run": "^0.6.0",
     "vite-plugin-vuetify": "^2.0.1",
