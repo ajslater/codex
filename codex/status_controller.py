@@ -2,6 +2,7 @@
 
 from enum import Enum
 from logging import DEBUG
+from multiprocessing import Queue
 from time import time
 
 from django.db.models.functions.datetime import Now
@@ -29,12 +30,12 @@ class StatusController(LoggerBaseMixin):
 
     _UPDATE_DELTA = 5
 
-    def __init__(self, log_queue, librarian_queue):
+    def __init__(self, log_queue: Queue, librarian_queue: Queue):
         """Iinitialize logger and librarian queue."""
         self.init_logger(log_queue)
         self.librarian_queue = librarian_queue
 
-    def _enqueue_notifier_task(self, notify: bool, until=0.0):
+    def _enqueue_notifier_task(self, until=0.0, *, notify: bool = True):
         """Notify the status has changed."""
         if not notify:
             return
@@ -70,6 +71,7 @@ class StatusController(LoggerBaseMixin):
     def _update(
         self,
         status,
+        *,
         notify: bool,
         active: datetime | None = None,
         preactive: datetime | None = None,
@@ -93,7 +95,7 @@ class StatusController(LoggerBaseMixin):
             LibrarianStatus.objects.filter(status_type=status.status_type).update(
                 **updates
             )
-            self._enqueue_notifier_task(notify)
+            self._enqueue_notifier_task(notify=notify)
             self._loggit(DEBUG, status)
             status.since = time()
         except Exception:
@@ -103,7 +105,8 @@ class StatusController(LoggerBaseMixin):
     def start(
         self,
         status,
-        notify: bool = True,  # noqa: FBT002
+        *,
+        notify: bool = True,
         preactive: datetime | None = None,
     ):
         """Start a librarian status."""
@@ -117,14 +120,14 @@ class StatusController(LoggerBaseMixin):
             self._update(status, notify=False, preactive=preactive)
         self._enqueue_notifier_task(notify=True)
 
-    def update(self, status, notify: bool = True):  # noqa: FBT002
+    def update(self, status, *, notify: bool = True):
         """Update a librarian status."""
         if time() - status.since < self._UPDATE_DELTA:
             # noop unless time has expired.
             return
         self._update(status, notify=notify)
 
-    def finish_many(self, statii, notify: bool = True, until=0.0):  # noqa: FBT002
+    def finish_many(self, statii, until=0.0, *, notify: bool = True):
         """Finish all librarian statuses."""
         try:
             types = []
@@ -139,13 +142,13 @@ class StatusController(LoggerBaseMixin):
                     setattr(ls, key, value)
                 update_ls.append(ls)
             LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
-            self._enqueue_notifier_task(notify, until)
+            self._enqueue_notifier_task(notify=notify, until=until)
             if not ls_filter:
                 self.log.info("Cleared all librarian statuses")
         except Exception as exc:
             self.log.warning(f"Finish status {statii}: {exc}")
 
-    def finish(self, status, notify: bool = True, until=0.0):  # noqa: FBT002
+    def finish(self, status, until=0.0, *, notify: bool = True):
         """Finish a librarian status."""
         try:
             self.finish_many((status,), notify=notify, until=until)

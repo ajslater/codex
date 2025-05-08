@@ -58,7 +58,7 @@ class CoverView(BrowserAnnotateOrderView):
     )
 
     @override
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):
+    def get_group_filter(self, group=None, pks=None, *, page_mtime=False):
         """Get group filter for First Cover View."""
         if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)

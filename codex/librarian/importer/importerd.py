@@ -90,7 +90,7 @@ class ComicImporterThread(QueuedThread):
         importer.bulk_folders_moved()
         return True
 
-    def _adopt_orphan_folders(self, janitor: bool):
+    def _adopt_orphan_folders(self, *, janitor: bool):
         """Find orphan folders and move them into their correct place."""
         status = Status(ImportStatusTypes.ADOPT_FOLDERS)
         moved_status = Status(ImportStatusTypes.DIRS_MOVED)

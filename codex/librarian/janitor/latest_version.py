@@ -28,7 +28,7 @@ class LatestVersionMixin(WorkerBaseMixin):
         response = requests.get(_REPO_URL, timeout=_REPO_TIMEOUT)
         return json.loads(response.text)["info"]["version"]
 
-    def update_latest_version(self, force: bool):
+    def update_latest_version(self, *, force: bool):
         """Get the latest version from a remote repo using a cache."""
         status = Status(JanitorStatusTypes.CODEX_LATEST_VERSION)
         try:

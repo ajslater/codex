@@ -347,7 +347,7 @@ class IntegrityMixin(WorkerBaseMixin):
         finally:
             self.status_controller.finish(status)
 
-    def integrity_check(self, long: bool):
+    def integrity_check(self, *, long: bool):
         """Integrity check task."""
         subtitle = "" if long else "Quick"
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)

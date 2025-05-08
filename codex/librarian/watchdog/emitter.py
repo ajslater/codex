@@ -79,7 +79,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             # default stat and listdir params
         )
 
-    def poll(self, force: bool):
+    def poll(self, *, force: bool):
         """Poll now, sooner than timeout."""
         self._force = force
         with self._poll_cond:

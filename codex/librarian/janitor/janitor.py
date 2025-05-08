@@ -111,9 +111,9 @@ class Janitor(
                 case JanitorBackupTask():
                     self.backup_db(show_status=True)
                 case JanitorLatestVersionTask():
-                    self.update_latest_version(task.force)
+                    self.update_latest_version(force=task.force)
                 case JanitorUpdateTask():
-                    self.update_codex(task.force)
+                    self.update_codex(force=task.force)
                 case JanitorRestartTask():
                     self.restart_codex()
                 case JanitorShutdownTask():
@@ -133,7 +133,7 @@ class Janitor(
                 case JanitorForeignKeyCheck():
                     self.foreign_key_check()
                 case JanitorIntegrityCheck():
-                    self.integrity_check(task.long)
+                    self.integrity_check(long=task.long)
                 case JanitorFTSIntegrityCheck():
                     self.fts_integrity_check()
                 case JanitorFTSRebuildTask():

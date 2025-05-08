@@ -160,7 +160,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             obj_list.append(comicfts)
             self.log.debug(f"{len(obj_list)}/{comics.count()} entries prepped.")
 
-    def _get_comicfts_list(self, comics, create: bool):
+    def _get_comicfts_list(self, comics, *, create: bool):
         """Create a ComicFTS object for bulk_create or bulk_update."""
         country_field = CountryField()
         language_field = LanguageField()
@@ -179,7 +179,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             self.log.debug(f"{verb} no search entries.")
         self.status_controller.finish(status)
 
-    def _update_search_index_operate(self, comics_qs, create: bool):
+    def _update_search_index_operate(self, comics_qs, *, create: bool):
         count = comics_qs.count()
         verb = "create" if create else "update"
         if not count:
@@ -216,7 +216,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
                 )
                 if self.abort_event.is_set():
                     break
-                operate_comicfts = self._get_comicfts_list(comics_batch, create)
+                operate_comicfts = self._get_comicfts_list(comics_batch, create=create)
                 operate_comicfts_count = len(operate_comicfts)
                 verbing = (verb[:-1] + "ing").capitalize()
                 self.log.debug(f"{verbing} {operate_comicfts_count} search entries...")
@@ -295,7 +295,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         elapsed = naturaldelta(elapsed_time)
         self.log.info(f"Search index updated in {elapsed}.")
 
-    def update_search_index(self, rebuild: bool):
+    def update_search_index(self, *, rebuild: bool):
         """Update or Rebuild the search index."""
         start_time = time()
         self.abort_event.clear()

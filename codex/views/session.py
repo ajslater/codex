@@ -79,7 +79,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             default = self.SESSION_DEFAULTS[session_key][key]
         return session.get(key, default)
 
-    def get_last_route(self, name: bool):
+    def get_last_route(self, *, name: bool):
         """Get the last route from the breadcrumbs."""
         breadcrumbs: tuple
         breadcrumbs = self.get_from_session(

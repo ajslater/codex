@@ -13,7 +13,7 @@ from codex.status import Status
 class DeletedImporter(CacheUpdateImporter):
     """Clean up database methods."""
 
-    def _remove_covers(self, delete_pks, custom: bool):
+    def _remove_covers(self, delete_pks, *, custom: bool):
         task = CoverRemoveTask(delete_pks, custom)
         self.librarian_queue.put(task)
 

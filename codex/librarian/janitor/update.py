@@ -38,7 +38,7 @@ class UpdateMixin(WorkerBaseMixin):
         self.log.debug(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
         return result
 
-    def update_codex(self, force: bool):
+    def update_codex(self, *, force: bool):
         """Update the package and restart everything if the version changed."""
         status = Status(JanitorStatusTypes.CODEX_UPDATE)
         try:

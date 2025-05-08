@@ -54,7 +54,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             self.status_controller.finish(status)
         return status.complete
 
-    def purge_comic_covers(self, pks: frozenset[int], custom: bool):
+    def purge_comic_covers(self, pks: frozenset[int], *, custom: bool):
         """Purge a set a cover paths."""
         cover_paths = self.get_cover_paths(pks, custom)
         cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT

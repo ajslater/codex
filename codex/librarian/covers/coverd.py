@@ -24,7 +24,7 @@ class CoverThread(CoverPurgeThread):
         elif isinstance(task, CoverRemoveAllTask):
             self.purge_all_comic_covers(self.librarian_queue)
         elif isinstance(task, CoverRemoveTask):
-            self.purge_comic_covers(task.pks, task.custom)
+            self.purge_comic_covers(task.pks, custom=task.custom)
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
         elif isinstance(task, CoverCreateAllTask):

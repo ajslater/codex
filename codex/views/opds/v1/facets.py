@@ -231,7 +231,7 @@ class OPDS1FacetsView(BrowserView):
                 facets += [facet_obj]
         return facets
 
-    def facets(self, entries: bool, root: bool):
+    def facets(self, *, entries: bool, root: bool):
         # entries false, root true
         """Return facets."""
         facets = []

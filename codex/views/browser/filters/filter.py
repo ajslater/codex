@@ -52,8 +52,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         model,
         group=None,
         pks=None,
-        page_mtime=False,  # noqa: FBT002
-        bookmark_filter=True,  # noqa: FBT002
+        *,
+        page_mtime=False,
+        bookmark_filter=True,
     ) -> QuerySet:
         """Get a filtered queryset for the model."""
         query_filters = self._get_query_filters(

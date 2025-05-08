@@ -20,7 +20,7 @@ class OPDS1EntryLinksMixin:
     """OPDS v1 Entry Links Methods."""
 
     def __init__(
-        self, obj, query_params, data: OPDS1EntryData, title_filename_fallback: bool
+        self, obj, query_params, data: OPDS1EntryData, *, title_filename_fallback: bool
     ):
         """Initialize params."""
         self.obj = obj
@@ -49,7 +49,7 @@ class OPDS1EntryLinksMixin:
         except Exception:
             LOG.exception("create thumb")
 
-    def _nav_href(self, metadata: bool):
+    def _nav_href(self, *, metadata: bool):
         try:
             pks = sorted(self.obj.ids)
             kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
@@ -71,8 +71,8 @@ class OPDS1EntryLinksMixin:
             LOG.exception(msg)
             raise
 
-    def _nav_link(self, metadata: bool):
-        href = self._nav_href(metadata)
+    def _nav_link(self, *, metadata: bool):
+        href = self._nav_href(metadata=metadata)
 
         group = self.obj.group
         if group in self.acquision_groups:

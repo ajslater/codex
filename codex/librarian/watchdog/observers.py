@@ -172,7 +172,7 @@ class LibraryPollingObserver(UatuObserver):
             emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )
 
-    def poll(self, library_pks, force: bool):
+    def poll(self, library_pks, *, force: bool):
         """Poll each requested emitter."""
         try:
             qs = Library.objects.all()
@@ -183,7 +183,7 @@ class LibraryPollingObserver(UatuObserver):
             for emitter in self.emitters:
                 polling_emitter: DatabasePollingEmitter = emitter  # pyright: ignore[reportAssignmentType]
                 if emitter.watch.path in paths:
-                    polling_emitter.poll(force)
+                    polling_emitter.poll(force=force)
         except Exception:
             self.log.exception(
                 f"{self.__class__.__name__}.poll({library_pks}, {force})"

@@ -226,7 +226,6 @@ extend-ignore = [
   "E114",    # formatted
   "E117",    # over-indented
   "E501",    # 88 char line
-  "FBT001",  # boolean params
   "ISC001",  # formatted
   "PERF203", # try block in loop
   "S101",    # assert

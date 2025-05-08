@@ -90,7 +90,7 @@ def _to_vuetify_dict(fn: str, data):
     return vuetify_data
 
 
-def _dump(parent_path: Path, fn: str, data, vuetify: bool):
+def _dump(parent_path: Path, fn: str, data, *, vuetify: bool):
     """Dump data to json file."""
     vuetify_data = (
         _to_vuetify_dict(fn, data) if vuetify else _make_json_serializable(data)

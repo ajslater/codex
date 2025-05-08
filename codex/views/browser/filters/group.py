@@ -20,7 +20,7 @@ class GroupFilterView(BrowserParamsView):
 
     TARGET: str = ""
 
-    def _get_rel_for_pks(self, group, page_mtime: bool):
+    def _get_rel_for_pks(self, group, *, page_mtime: bool):
         """Get the relation from the model to the pks."""
         if self.TARGET in _GROUP_REL_TARGETS:
             rel = FILTER_ONLY_GROUP_RELATION[group]
@@ -36,7 +36,7 @@ class GroupFilterView(BrowserParamsView):
         rel += "__in"
         return rel
 
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):  # noqa: FBT002
+    def get_group_filter(self, group=None, pks=None, *, page_mtime=False):
         """Get filter for the displayed group."""
         if group is None:
             group = self.kwargs["group"]
@@ -44,7 +44,7 @@ class GroupFilterView(BrowserParamsView):
             pks = self.kwargs["pks"]
 
         if pks and 0 not in pks:
-            rel = self._get_rel_for_pks(group, page_mtime)
+            rel = self._get_rel_for_pks(group, page_mtime=page_mtime)
             group_filter_dict = {rel: pks}
         elif group == FOLDER_GROUP and self.TARGET != "choices":
             # Top folder search

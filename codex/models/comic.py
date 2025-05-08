@@ -265,7 +265,7 @@ class Comic(WatchedPathBrowserGroup):
 
     @classmethod
     def get_title(
-        cls, obj, volume: bool, name: bool, filename_fallback: bool, zero_pad=None
+        cls, obj, *, volume: bool, name: bool, filename_fallback: bool, zero_pad=None
     ):
         """Create the comic title for display."""
         names = []

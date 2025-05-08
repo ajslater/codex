@@ -58,7 +58,7 @@ class QueuedThread(NamedThread, ABC):
         try:
             item = self.queue.get(timeout=timeout)
             if item == self.SHUTDOWN_MSG:
-                raise BreakLoopError  # TRY301
+                raise BreakLoopError
             self.process_item(item)
         except Empty:
             self.timed_out()

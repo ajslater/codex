@@ -24,7 +24,7 @@ class SearchIndexerThread(SearchFTSUpdateThread):
             case SearchIndexRemoveStaleTask():
                 self.remove_stale_records()
             case SearchIndexOptimizeTask():
-                self.optimize(task.janitor)
+                self.optimize(janitor=task.janitor)
             case SearchIndexClearTask():
                 self.clear_search_index()
             case _:
