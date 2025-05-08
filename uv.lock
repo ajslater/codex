@@ -2807,11 +2807,11 @@ wheels = [
 
 [[package]]
 name = "trove-classifiers"
-version = "2025.5.7.19"
+version = "2025.5.8.15"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/09/a7/1f28746c2d07066b7bebcfa8b6d60dc50eb9648b9eb78000e793e2afbc9f/trove_classifiers-2025.5.7.19.tar.gz", hash = "sha256:a775b23f73f3d9b69ee8b58985dfce8a21e29cd75380e9b94926b3f53f1ed81a", size = 16891, upload-time = "2025-05-07T19:01:22.982Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/1d/ba00fcbd5d52b2369a5a1dec07d5d7b646be4ef8234fa7f9dd763c5bca57/trove_classifiers-2025.5.8.15.tar.gz", hash = "sha256:b2308b26b1d156aa590896acd8f155a7a4e088a7f093b1a9cc6c3f1277d8f2ad", size = 16870, upload-time = "2025-05-08T15:54:28.498Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/7f/2df97a25646ec6e5d02b676952ba5ad0a8c50d8f5a2b14b6e200e588ca1f/trove_classifiers-2025.5.7.19-py3-none-any.whl", hash = "sha256:758828b1a20e678b6a278e855d8359ad0d3a42048904a7879add8bdefca1a87e", size = 14043, upload-time = "2025-05-07T19:01:20.943Z" },
+    { url = "https://files.pythonhosted.org/packages/32/5c/63fed2197c44e1447e7d7ab60dcb3e8878cf8e45652d1cf6274961c0aa98/trove_classifiers-2025.5.8.15-py3-none-any.whl", hash = "sha256:03695f29273b3c6ded10a79c5433fa560287c90b3a8d4a8b52ecd2a5d31f771f", size = 14059, upload-time = "2025-05-08T15:54:26.779Z" },
 ]
 
 [[package]]

@@ -121,7 +121,7 @@ exclude = [
   "frontend",
   "test-results",
   "typings",
-  "vulture_whitelist.py",
+  "vulture_ignorelist.py",
 ]
 pythonVersion = "3.10"
 failOnWarnings = false
@@ -210,6 +210,7 @@ extend-exclude = [
   "frontend",
   "test-results",
   "typings",
+  "vulture_ignorelist.py",
 ]
 show-fixes = true
 target-version = "py310"

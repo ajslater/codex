@@ -5,7 +5,7 @@ import eslintPluginStylistic from "@stylistic/eslint-plugin";
 import eslintPluginConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginDepend from "eslint-plugin-depend";
-import eslintPluginImport from "eslint-plugin-import";
+import eslintPluginImport from "eslint-plugin-import-x";
 import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
