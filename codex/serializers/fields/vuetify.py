@@ -18,28 +18,28 @@ LOG = get_logger(__name__)
 class VuetifyNullCodeFieldMixin:
     """Convert Vuetify null codes to None."""
 
-    NULL_CODE = VUETIFY_NULL_CODE
+    NULL_CODE: int = VUETIFY_NULL_CODE
 
     def to_internal_value(self, data):
         """Convert numeric null code to None."""
         return None if data == self.NULL_CODE else data
 
 
-class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):  # type: ignore[reportIncompatibleMethodOverride]
+class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Float Field with null code conversion."""
 
 
-class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # type: ignore[reportIncompatibleMethodOverride]
+class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Integer Field with null code conversion."""
 
 
-class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # type: ignore[reportIncompatibleMethodOverride]
+class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Char Field with null code conversion."""
 
-    NULL_CODE = str(VUETIFY_NULL_CODE)
+    NULL_CODE: str = str(VUETIFY_NULL_CODE)  # pyright: ignore[reportIncompatibleVariableOverride]
 
 
-class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # type: ignore[reportIncompatibleMethodOverride]
+class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Boolean Field with null code conversion."""
 
 

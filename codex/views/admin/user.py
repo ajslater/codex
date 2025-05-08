@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
+from typing_extensions import override
 
 from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -30,7 +31,7 @@ class AdminUserViewSet(AdminModelViewSet):
         .select_related("useractive")
         .defer("first_name", "last_name", "email")
     )
-    serializer_class = UserSerializer
+    serializer_class = UserSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     INPUT_METHODS = ("POST", "PUT")
 
     @staticmethod
@@ -46,6 +47,7 @@ class AdminUserViewSet(AdminModelViewSet):
         for task in tasks:
             LIBRARIAN_QUEUE.put(task)
 
+    @override
     def get_serializer(self, *args, **kwargs):
         """Allow partial data for update methods."""
         if self.request.method in self.INPUT_METHODS:
@@ -56,6 +58,7 @@ class AdminUserViewSet(AdminModelViewSet):
         instance = self.get_object()
         return instance == self.request.user
 
+    @override
     def destroy(self, request, *args, **kwargs):
         """Destroy with guard for logged in user."""
         if self._is_change_to_current_user():
@@ -65,6 +68,7 @@ class AdminUserViewSet(AdminModelViewSet):
         self._on_change(0)
         return res
 
+    @override
     def perform_update(self, serializer):
         """Add hook after update."""
         data = serializer.validated_data
@@ -77,6 +81,7 @@ class AdminUserViewSet(AdminModelViewSet):
         super().perform_update(serializer)
         self._on_change(uid)
 
+    @override
     def perform_create(self, serializer):
         """Create user."""
         validated_data = serializer.validated_data
@@ -94,7 +99,7 @@ class AdminUserViewSet(AdminModelViewSet):
 class AdminUserChangePasswordView(AdminGenericAPIView):
     """Special View to hash user password."""
 
-    serializer_class = UserChangePasswordSerializer
+    serializer_class = UserChangePasswordSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     def put(self, request, *args, **kwargs):
         """Validate and set the user password."""

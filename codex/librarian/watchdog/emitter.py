@@ -1,12 +1,14 @@
 """A Codex database event emitter for use by the observer."""
 
 from logging import DEBUG, WARNING
+from multiprocessing.queues import Queue
 from pathlib import Path
 from threading import Condition
 
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
+from typing_extensions import override
 from watchdog.events import (
     DirDeletedEvent,
     DirModifiedEvent,
@@ -15,6 +17,7 @@ from watchdog.events import (
     FileDeletedEvent,
     FileModifiedEvent,
     FileMovedEvent,
+    FileSystemEvent,
 )
 from watchdog.observers.api import DEFAULT_EMITTER_TIMEOUT, EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot
@@ -26,7 +29,7 @@ from codex.models import Library
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
-_CODEX_EVENT_FILTER = [
+_CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
     FileMovedEvent,
     FileModifiedEvent,
     FileCreatedEvent,
@@ -50,12 +53,16 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         self,
         event_queue,
         watch,
+        *,
         timeout=DEFAULT_EMITTER_TIMEOUT,
-        log_queue=None,
-        librarian_queue=None,
-        covers_only=False,  # noqa: FBT002
+        log_queue: Queue | None = None,
+        librarian_queue: Queue | None = None,
+        covers_only=False,
     ):
         """Initialize snapshot methods."""
+        if log_queue is None or librarian_queue is None:
+            reason = f"{self.__class__.__name__} requires a non null log_queue and librarian_queue"
+            raise ValueError(reason)
         self.init_worker(log_queue, librarian_queue)
         self._poll_cond = Condition()
         self._force = False
@@ -82,7 +89,6 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         """Get a database snapshot with optional force argument."""
         db_snapshot = CodexDatabaseSnapshot(
             self.watch.path,
-            self.watch.is_recursive,
             force=self._force,
             log_queue=self.log_queue,
             covers_only=self._covers_only,
@@ -118,7 +124,8 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         return ok
 
     @property
-    def timeout(self) -> int | None:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def timeout(self) -> float | None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Get the timeout for this emitter from its library."""
         # The timeout from the constructor, self._timeout, is thrown away in favor
         # of a dynamic timeout from the database.
@@ -183,17 +190,19 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
     def _queue_events(self, diff):
         """Create and queue the events from the diff."""
-        self.log.debug(
+        reason = (
             f"Poller sending unfiltered files: {len(diff.files_deleted)} "
             f"deleted, {len(diff.files_modified)} modified, "
             f"{len(diff.files_created)} created, "
             f"{len(diff.files_moved)} moved."
         )
-        self.log.debug(
+        self.log.debug(reason)
+        reason = (
             f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
             f" {len(diff.dirs_modified)} modified,"
             f" {len(diff.dirs_moved)} moved."
         )
+        self.log.debug(reason)
         # Files.
         # Could remove non-comics here, but handled by the EventHandler
         for src_path in diff.files_deleted:
@@ -215,6 +224,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         for src_path, dest_path in diff.dirs_moved:
             self.queue_event(DirMovedEvent(src_path, dest_path))
 
+    @override
     def queue_events(self, timeout):
         """Queue events like PollingEmitter but always use a fresh db snapshot."""
         # We don't want to hit the disk continuously.
@@ -242,6 +252,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         finally:
             self.status_controller.finish(status)
 
+    @override
     def on_thread_stop(self):
         """Send the poller as well."""
         with self._poll_cond:

@@ -1,13 +1,15 @@
 """Href methods for OPDS v2.0 Feed."""
 
-from abc import ABC
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from django.urls import reverse
-from rest_framework.views import APIView
 
 from codex.views.opds.util import update_href_query_params
 from codex.views.util import pop_name
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 @dataclass
@@ -22,7 +24,7 @@ class HrefData:
     max_page: int | None = None
 
 
-class OPDS2HrefMixin(APIView, ABC):
+class OPDS2HrefMixin:
     """Create links method."""
 
     @property
@@ -43,6 +45,8 @@ class OPDS2HrefMixin(APIView, ABC):
             href = update_href_query_params(href, data.query_params)
         elif hasattr(self, "request"):
             # if request link and not init static links
+            if TYPE_CHECKING:
+                self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
             href = update_href_query_params(
                 href, self.request.GET, new_query_params=data.query_params
             )
@@ -51,6 +55,8 @@ class OPDS2HrefMixin(APIView, ABC):
     def href(self, data):
         """Create an href."""
         url_name = data.url_name if data.url_name else "opds:v2:feed"
+        if TYPE_CHECKING:
+            self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
         kwargs = data.kwargs if data.kwargs is not None else self.kwargs
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None

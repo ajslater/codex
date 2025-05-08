@@ -22,6 +22,7 @@ from django.db.models import (
     TextChoices,
     TextField,
 )
+from typing_extensions import override
 
 from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,
@@ -92,7 +93,7 @@ class Comic(WatchedPathBrowserGroup):
     updated_at = DateTimeField(auto_now=True, db_index=True)
 
     # From WatchedPath, but interferes with related_name from folders m2m field
-    parent_folder = ForeignKey(
+    parent_folder: ForeignKey | None = ForeignKey(
         "Folder", on_delete=CASCADE, null=True, related_name="comic_in"
     )
 
@@ -191,7 +192,7 @@ class Comic(WatchedPathBrowserGroup):
     )
 
     # Not useful
-    custom_cover = None
+    custom_cover: ForeignKey | None = None
 
     class Meta(WatchedPathBrowserGroup.Meta):
         """Constraints."""
@@ -218,6 +219,7 @@ class Comic(WatchedPathBrowserGroup):
         else:
             self.decade = self.year - (self.year % 10)
 
+    @override
     def presave(self):
         """Set computed values."""
         super().presave()
@@ -291,6 +293,7 @@ class Comic(WatchedPathBrowserGroup):
             title = obj.get_filename()
         return title
 
+    @override
     def __str__(self):
         """Most common text representation for logging."""
         return self.get_title(self, volume=True, name=True, filename_fallback=True)

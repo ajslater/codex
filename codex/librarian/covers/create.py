@@ -1,5 +1,6 @@
 """Create comic cover paths."""
 
+from abc import ABC
 from io import BytesIO
 from pathlib import Path
 from time import time
@@ -21,7 +22,7 @@ THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 
 
-class CoverCreateThread(QueuedThread, CoverPathMixin):
+class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
     """Create methods for covers."""
 
     @classmethod

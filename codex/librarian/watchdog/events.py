@@ -6,6 +6,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.box import Comicbox
+from typing_extensions import override
 from watchdog.events import (
     EVENT_TYPE_CLOSED,
     EVENT_TYPE_CLOSED_NO_WRITE,
@@ -182,6 +183,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
                 events.append(event)
         return events
 
+    @override
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
@@ -230,6 +232,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
             send_event = CoverDeletedEvent(event.src_path)
         return send_event
 
+    @override
     def dispatch(self, event):
         """Send only valid cover events to the EventBatcher."""
         send_event = None

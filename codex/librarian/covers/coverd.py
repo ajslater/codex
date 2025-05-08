@@ -1,5 +1,7 @@
 """Functions for dealing with comic cover thumbnails."""
 
+from typing_extensions import override
+
 from codex.librarian.covers.purge import CoverPurgeThread
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
@@ -13,6 +15,7 @@ from codex.librarian.covers.tasks import (
 class CoverThread(CoverPurgeThread):
     """Create comic covers in it's own thread."""
 
+    @override
     def process_item(self, item):
         """Run the task method."""
         task = item

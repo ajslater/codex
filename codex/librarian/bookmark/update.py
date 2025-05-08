@@ -22,7 +22,7 @@ _BOOKMARK_UPDATE_FIELDS = frozenset(
 )
 
 
-class BookmarkUpdate(GroupACLMixin):
+class BookmarkUpdateMixin(GroupACLMixin):
     """Update Bookmarks."""
 
     # Used by Bookmarkd and view.bookmark.

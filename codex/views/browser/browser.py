@@ -7,6 +7,8 @@ from django.db.models import Max
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.logger.logger import get_logger
 from codex.models import (
@@ -30,7 +32,7 @@ LOG = get_logger(__name__)
 class BrowserView(BrowserTitleView):
     """Browse comics with a variety of filters and sorts."""
 
-    serializer_class = BrowserPageSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
 
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
@@ -38,13 +40,14 @@ class BrowserView(BrowserTitleView):
             AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
         }
     )
-    TARGET = "browser"
+    TARGET: str = "browser"
 
     ########
     # Init #
     ########
 
     @property
+    @override
     def model_group(self):
         """Get the group of the models to browse."""
         # the model group shown must be:
@@ -179,6 +182,7 @@ class BrowserView(BrowserTitleView):
         mtime = self._get_page_mtime()
         return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
+    @override
     def get_object(self):
         """Validate settings and get the querysets."""
         group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
@@ -210,7 +214,7 @@ class BrowserView(BrowserTitleView):
             }
         )
 
-    @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
+    @extend_schema(parameters=[BrowserTitleView.input_serializer_class])  # pyright: ignore[reportArgumentType]
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
         data = self.get_object()

@@ -2,9 +2,12 @@
 
 from types import MappingProxyType
 
+from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
@@ -20,16 +23,17 @@ LOG = get_logger(__name__)
 class MetadataView(MetadataCopyIntersectionsView):
     """Aggregate Group and Comic Metadata View."""
 
-    serializer_class = MetadataSerializer
-    input_serializer_class = BrowserFilterChoicesInputSerilalizer
-    TARGET = "metadata"
+    serializer_class: type[BaseSerializer] | None = MetadataSerializer
+    input_serializer_class: type[BaseSerializer] = BrowserFilterChoicesInputSerilalizer
+    TARGET: str = "metadata"
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
             AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
         }
     )
 
-    def _get_valid_browse_nav_groups(self, valid_top_groups):  # noqa: ARG002
+    @override
+    def _get_valid_browse_nav_groups(self, valid_top_groups):
         """Limited allowed nav groups for metadata."""
         # Overrides method in browser.validate
         group = self.kwargs["group"]
@@ -42,6 +46,14 @@ class MetadataView(MetadataCopyIntersectionsView):
         detail = f"Filtered metadata for {group}/{pks} not found"
         raise NotFound(detail=detail) from exc
 
+    def _get_first_object(self, qs: QuerySet):
+        obj = qs[0]
+        if not obj:
+            reason = "Empty obj"
+            raise ValueError(reason)
+        return obj
+
+    @override
     def get_object(self):
         """Create a comic-like object from the current browser group."""
         # Comic model goes through the same code path as groups because
@@ -60,10 +72,7 @@ class MetadataView(MetadataCopyIntersectionsView):
 
         # Get Object
         try:
-            obj = qs[0]
-            if not obj:
-                reason = "Empty obj"
-                raise ValueError(reason)  # noqa: TRY301
+            obj = self._get_first_object(qs)
         except (IndexError, ValueError) as exc:
             return self._raise_not_found(exc)
 

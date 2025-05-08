@@ -11,6 +11,7 @@ from contextlib import suppress
 from copy import deepcopy
 from types import MappingProxyType
 
+from typing_extensions import override
 from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import ImportDBDiffTask
@@ -37,7 +38,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
             "covers_deleted": set(),
         }
     )
-    MAX_DELAY = 60
+    MAX_DELAY = 60.0
     MAX_ITEMS_PER_GB = 50000
 
     def __init__(self, *args, **kwargs):
@@ -69,6 +70,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
 
         return self.cache[library_id].get(field)
 
+    @override
     def aggregate_items(self, item):
         """Aggregate events into cache by library."""
         event = item.event
@@ -82,11 +84,12 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
             args_field.add(event.src_path)
         self._total_items += 1
         if self._total_items > self.max_items:
-            self.log.info(
+            reason = (
                 "Event batcher hit size limit."
                 f" Sending batch of {self._total_items} to importer."
             )
-            # Seall items
+            self.log.info(reason)
+            # Send all items
             self.timed_out()
 
     def _deduplicate_events(self, library_id):
@@ -123,6 +126,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         args = self.cache[library_id]
         return ImportDBDiffTask(**args)
 
+    @override
     def send_all_items(self):
         """Send all tasks to library queue and reset events cache."""
         library_ids = set()

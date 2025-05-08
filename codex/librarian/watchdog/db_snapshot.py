@@ -2,6 +2,7 @@
 
 import os
 from itertools import chain
+from multiprocessing.queues import Queue
 from pathlib import Path
 
 from watchdog.utils.dirsnapshot import DirectorySnapshot
@@ -58,19 +59,25 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         i = (st.st_ino, st.st_dev)
         self._inode_to_path[i] = path
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 # pyright: ignore[reportMissingSuperCall]
         self,
         path,
-        _recursive=True,  # noqa: FBT002 unused, always recursive
+        *,
+        recursive=True,  # noqa: ARG002
         stat=os.stat,
-        _listdir=os.listdir,  # unused for database
-        force=False,  # noqa: FBT002
-        log_queue=None,
-        covers_only=False,  # noqa: FBT002
+        listdir=os.scandir,  # noqa: ARG002 unused for database
+        force=False,
+        log_queue: Queue | None = None,
+        covers_only=False,
     ):
         """Initialize like DirectorySnapshot but use a database walk."""
-        self._covers_only = covers_only
+        # Do not call super().__init__(), because it walks.
+        self.stat = stat
+        if log_queue is None:
+            reason = f"{self.__class__.__name__} requires a non-null log_queue"
+            raise ValueError(reason)
         self.init_logger(log_queue)
+        self._covers_only = covers_only
         self._stat_info = {}
         self._inode_to_path = {}
         if not Path(path).is_dir():
@@ -78,7 +85,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
             return
 
         # Add the library root
-        root_stat = stat(path)
+        root_stat = self.stat(path)
         self._set_lookups(path, root_stat)
 
         for wp in chain.from_iterable(self._walk(path)):

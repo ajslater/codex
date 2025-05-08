@@ -38,10 +38,11 @@ class DeletedImporter(CacheUpdateImporter):
 
         count = len(delete_comic_pks)
         if count:
-            self.log.info(
+            reason = (
                 f"Deleted {count} folders and {len(delete_comic_pks)} comics"
                 f"from {self.library.path}"
             )
+            self.log.info(reason)
         self.status_controller.finish(status)
         return count
 

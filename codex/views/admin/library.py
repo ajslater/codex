@@ -8,6 +8,7 @@ from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
@@ -37,7 +38,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
     queryset = Library.objects.prefetch_related("groups").defer(
         "update_in_progress", "created_at", "updated_at"
     )
-    serializer_class = LibrarySerializer
+    serializer_class = LibrarySerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     @classmethod
     def _sync_watchdog(cls, validated_keys=None):
@@ -64,6 +65,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         task = WatchdogPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
 
+    @override
     def perform_create(self, serializer):
         """Perform create and run hooks."""
         super().perform_create(serializer)
@@ -76,6 +78,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         self._sync_watchdog()
         self._poll(library.pk, force=False)
 
+    @override
     def perform_update(self, serializer):
         """Perform update an run hooks."""
         validated_keys = frozenset(serializer.validated_data.keys())
@@ -89,6 +92,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         self._sync_watchdog(validated_keys)
         self._poll(pk, force=False)
 
+    @override
     def perform_destroy(self, instance):
         """Perform destroy and run hooks."""
         if instance.covers_only:
@@ -102,13 +106,13 @@ class AdminFailedImportViewSet(AdminModelViewSet):
     """Admin FailedImport Viewset."""
 
     queryset = FailedImport.objects.defer("updated_at")
-    serializer_class = FailedImportSerializer
+    serializer_class = FailedImportSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
 
 class AdminFolderListView(AdminGenericAPIView):
     """List server directories."""
 
-    serializer_class = AdminFolderListSerializer
+    serializer_class = AdminFolderListSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     input_serializer_class = AdminFolderSerializer
 
     @staticmethod

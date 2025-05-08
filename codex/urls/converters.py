@@ -32,7 +32,7 @@ class IntListConverter:
                 pks.add(pk)
             except ValueError:
                 reason = f"Bad pk list submitted to IntConverter {part=} in {value=}"
-                LOG.warn(reason)
+                LOG.warning(reason)
 
         return tuple(sorted(pks))
 

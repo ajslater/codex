@@ -31,6 +31,7 @@ class SeeOtherRedirectError(APIException):
 
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""
+        super().__init__(detail)
         # Copy to edit and not write over refs
         detail = dict(detail)
 
@@ -59,10 +60,9 @@ class SeeOtherRedirectError(APIException):
             filtered_settings[key] = value
         detail["settings"] = filtered_settings
 
-        self.detail = detail
+        self.detail = detail  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
         LOG.debug(f"redirect {pformat(self.detail)}")
-        # super().__init__ converts every type into strings! do not use it.
 
     def _add_query_params(self, url):
         """Change OPDS settings like the frontend does with error.detail."""

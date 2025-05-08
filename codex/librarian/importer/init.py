@@ -1,6 +1,7 @@
 """Initiale Importer."""
 
 import logging
+from multiprocessing.queues import Queue
 from pathlib import Path
 from time import sleep, time
 from typing import Any
@@ -19,9 +20,11 @@ _WRITE_WAIT_EXPIRY = 60
 
 
 class InitImporter(WorkerBaseMixin):
-    """Initiale Importer."""
+    """Initial Importer."""
 
-    def __init__(self, task: ImportDBDiffTask, log_queue, librarian_queue):
+    def __init__(
+        self, task: ImportDBDiffTask, log_queue: Queue, librarian_queue: Queue
+    ):
         """Initialize the import."""
         self.init_worker(log_queue, librarian_queue)
         self.task: ImportDBDiffTask = task
@@ -30,6 +33,7 @@ class InitImporter(WorkerBaseMixin):
         self.library = Library.objects.only("path", "update_in_progress").get(
             pk=self.task.library_id
         )
+        self.start_time = now()
 
     def _wait_for_filesystem_ops_to_finish(self) -> bool:
         """Watchdog sends events before filesystem events finish, so wait for them."""
@@ -53,10 +57,11 @@ class InitImporter(WorkerBaseMixin):
                 # second time around or more
                 sleep(wait_time)
                 wait_time = wait_time**2
-                self.log.debug(
+                reason = (
                     f"Waiting for files to copy before import: "
                     f"{old_total_size} != {total_size}"
                 )
+                self.log.debug(reason)
             if time() - started_checking > _WRITE_WAIT_EXPIRY:
                 return True
 
@@ -254,11 +259,12 @@ class InitImporter(WorkerBaseMixin):
         self.library.save()
         too_long = self._wait_for_filesystem_ops_to_finish()
         if too_long:
-            self.log.warning(
+            reason = (
                 "Import apply waited for the filesystem to stop changing too long. "
                 "Try polling again once files have finished copying"
                 f" in library: {self.library.path}"
             )
+            self.log.warning(reason)
             return
         self._log_task()
         self._init_librarian_status(self.library.path)

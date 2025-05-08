@@ -2,6 +2,8 @@
 
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES
 from codex.logger.logger import get_logger
@@ -21,11 +23,12 @@ _ADMIN_FLAG_KEYS = frozenset(
 class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     """Get admin flags relevant to auth."""
 
-    serializer_class = AuthAdminFlagsSerializer
+    serializer_class: type[BaseSerializer] | None = AuthAdminFlagsSerializer
     queryset = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only(
         "key", "on", "value"
     )
 
+    @override
     def get_object(self):
         """Get admin flags."""
         flags = {}

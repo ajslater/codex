@@ -10,15 +10,20 @@ from rest_framework.serializers import (
 from codex.serializers.models.base import BaseModelSerializer
 
 
-class UserChangePasswordSerializer(Serializer):
-    """Special User Change Password Serializer."""
+class PasswordSerializerMixin:
+    """Password Serializer Mixin."""
 
     password = CharField(write_only=True)
 
 
-class UserSerializer(BaseModelSerializer, UserChangePasswordSerializer):
+class UserChangePasswordSerializer(Serializer, PasswordSerializerMixin):
+    """Special User Change Password Serializer."""
+
+
+class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
     """User Serializer."""
 
+    password = CharField(write_only=True)
     last_active = DateTimeField(
         read_only=True, source="useractive.updated_at", allow_null=True
     )

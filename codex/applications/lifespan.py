@@ -2,6 +2,7 @@
 
 import asyncio
 from contextlib import suppress
+from multiprocessing.queues import Queue
 
 from codex.logger_base import LoggerBaseMixin
 from codex.signals.os_signals import bind_signals_to_loop
@@ -13,11 +14,12 @@ class LifespanApplication(LoggerBaseMixin):
 
     SCOPE_TYPE = "lifespan"
 
-    def __init__(self, log_queue, broadcast_queue):
+    def __init__(self, log_queue: Queue, broadcast_queue):
         """Create logger and librarian."""
         self.init_logger(log_queue)
         self.broadcast_queue = broadcast_queue
         self.broadcast_listener = BroadcastListener(broadcast_queue, log_queue)
+        self.broadcast_listener_task = None
 
     async def _event(self, event, send):
         """Process a lifespan event."""
@@ -44,7 +46,8 @@ class LifespanApplication(LoggerBaseMixin):
         with suppress(ValueError):
             # Depending on timing this can be closed already
             self.broadcast_queue.put(None)
-        await self.broadcast_listener_task
+        if self.broadcast_listener_task:
+            await self.broadcast_listener_task
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""

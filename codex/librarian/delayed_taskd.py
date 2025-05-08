@@ -3,6 +3,8 @@
 from queue import PriorityQueue
 from time import sleep, time
 
+from typing_extensions import override
+
 from codex.threads import QueuedThread
 
 
@@ -13,6 +15,7 @@ class DelayedTasksThread(QueuedThread):
         """Use a priority queue."""
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
+    @override
     def process_item(self, item):
         """Sleep and then put tasks on the queue."""
         delay = max(0.0, item.until - time())

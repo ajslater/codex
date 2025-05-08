@@ -11,7 +11,7 @@ from codex.views.admin.auth import AdminGenericAPIView
 class AdminAPIKey(AdminGenericAPIView):
     """Regenerate API Key."""
 
-    serializer_class = APIKeySerializer
+    serializer_class = APIKeySerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     input_serializer_class = None
 
     @extend_schema(request=input_serializer_class)

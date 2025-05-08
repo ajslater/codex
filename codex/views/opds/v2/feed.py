@@ -4,13 +4,15 @@ from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.views.const import MAX_OBJ_PER_PAGE
-from codex.views.mixins import UserActiveViewMixin
+from codex.views.mixins import UserActiveMixin
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
@@ -28,17 +30,17 @@ from codex.views.opds.v2.publications import OPDS2PublicationView
 LOG = get_logger(__name__)
 
 
-class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView, UserActiveViewMixin):
+class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
     """OPDS 2.0 Feed."""
 
     DEFAULT_ROUTE = MappingProxyType(
         {**OPDS2PublicationView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
-    TARGET = "opds2"
+    TARGET: str = "opds2"
     throttle_scope = "opds"
 
-    serializer_class = OPDS2FeedSerializer
-    input_serializer_class = OPDSSettingsSerializer
+    serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
+    input_serializer_class: type[BaseSerializer] = OPDSSettingsSerializer
 
     def _title(self, browser_title):
         """Create the feed title."""
@@ -176,6 +178,7 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView, UserActiveViewMixin):
     def _get_facets(self):
         return self._create_links_section(FACETS, FACETS_SECTION_DATA)
 
+    @override
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group_qs, book_qs, _, total_count, zero_pad, mtime = self.group_and_books
@@ -210,9 +213,8 @@ class OPDS2FeedView(OPDSAuthMixin, OPDS2PublicationView, UserActiveViewMixin):
             }
         )
 
-    @extend_schema(
-        parameters=[input_serializer_class],
-    )
+    @override
+    @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the feed."""
         obj = self.get_object()

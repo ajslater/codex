@@ -1,11 +1,15 @@
 """Library process worker for background tasks."""
 
+from copy import copy
 from multiprocessing import Manager, Process
-from threading import active_count
+from multiprocessing.queues import Queue
+from threading import Event, active_count
 from types import MappingProxyType
 from typing import NamedTuple
 
+from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
+from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread
 from codex.librarian.bookmark.tasks import BookmarkTask
@@ -69,13 +73,14 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     proc = None
 
-    def __init__(self, queue, log_queue, broadcast_queue):
+    def __init__(self, queue: Queue, log_queue: Queue, broadcast_queue: AioQueue):
         """Init process."""
         name = self.__class__.__name__
         super().__init__(name=name, daemon=False)
         self.queue = queue
-        self.log_queue = log_queue
+        self.init_logger(log_queue)
         self.broadcast_queue = broadcast_queue
+        self.janitor = Janitor(self.log_queue, self.queue)
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
@@ -85,6 +90,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         for task in startup_tasks:
             self.queue.put(task)
         self.search_indexer_abort_event = Manager().Event()
+        self.run_loop = True
+        self._reversed_threads = ()
 
     def _process_task(self, task):  # noqa: PLR0912,C901
         """Process an individual task popped off the queue."""
@@ -131,18 +138,21 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log.debug("Creating Librarian threads...")
         self.log.debug(f"Active threads before thread creation: {active_count()}")
         threads = {}
-        kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
+        kwargs: dict[str, Event | Queue | AioQueue] = {
+            "librarian_queue": self.queue,
+            "log_queue": self.log_queue,
+        }
         for name, thread_class in self._THREAD_CLASS_MAP.items():
+            thread_kwargs = copy(kwargs)
             if thread_class == NotifierThread:
-                thread = thread_class(self.broadcast_queue, **kwargs)
+                thread_kwargs["broadcast_queue"] = self.broadcast_queue
             elif thread_class == SearchIndexerThread:
-                thread = thread_class(self.search_indexer_abort_event, **kwargs)
-            else:
-                thread = thread_class(**kwargs)
+                thread_kwargs["abort_event"] = self.search_indexer_abort_event
+            thread = thread_class(**thread_kwargs)  # pyright: ignore[reportArgumentType]
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
-        self._threads = self.LibrarianThreads(**threads)
-        self._observers = (
+        self._threads = self.LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._observers = (  # pyright: ignore[reportUninitializedInstanceVariable]
             self._threads.library_event_observer,
             self._threads.library_polling_observer,
         )
@@ -159,10 +169,9 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         """Initialize threads."""
         self.init_logger(self.log_queue)
         self.log.debug(f"Started {self.name}.")
-        self.janitor = Janitor(self.log_queue, self.queue)
+        # Janitor created in init.
         self._create_threads()  # can't do this in init.
         self._start_threads()
-        self.run_loop = True
         self.log.info(f"{self.name} ready for tasks.")
 
     def _stop_threads(self):
@@ -181,7 +190,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def _shutdown(self):
         """Shutdown threads and queues."""
-        self._reversed_threads = reversed(self._threads)
+        self._reversed_threads = tuple(reversed(self._threads))
         self._stop_threads()
         self._join_threads()
         while not self.queue.empty():
@@ -192,6 +201,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log_queue.close()
         self.log_queue.join_thread()
 
+    @override
     def run(self):
         """
         Process tasks from the queue.

@@ -1,10 +1,13 @@
 """OPDS v1 feed."""
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.serializers import BaseSerializer
+from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
+from typing_extensions import override
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -15,8 +18,8 @@ from codex.serializers.opds.v1 import (
 )
 from codex.settings.settings import FALSY
 from codex.views.const import MAX_OBJ_PER_PAGE
-from codex.views.mixins import UserActiveViewMixin
-from codex.views.opds.auth import OPDSTemplateView
+from codex.views.mixins import UserActiveMixin
+from codex.views.opds.auth import OPDSTemplateMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -40,15 +43,15 @@ class OpdsNs:
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
 
-class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView, UserActiveViewMixin):
+class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
     """OPDS 1 Feed."""
 
     template_name = "opds_v1/index.xml"
-    serializer_class = OPDS1TemplateSerializer
-    input_serializer_class = OPDSSettingsSerializer
-    throttle_classes = (ScopedRateThrottle,)
+    serializer_class: type[BaseSerializer] | None = OPDS1TemplateSerializer
+    input_serializer_class: type[BaseSerializer] = OPDSSettingsSerializer
+    throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
-    TARGET = "opds1"
+    TARGET: str = "opds1"
 
     @property
     def opds_ns(self):
@@ -165,6 +168,7 @@ class OPDS1FeedView(OPDS1LinksView, OPDSTemplateView, UserActiveViewMixin):
             LOG.exception("Getting OPDS v1 entries")
         return entries
 
+    @override
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get the feed."""

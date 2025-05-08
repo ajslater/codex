@@ -3,6 +3,7 @@
 from enum import Enum
 
 from channels.generic.websocket import AsyncWebsocketConsumer
+from typing_extensions import override
 
 from codex.logger.logger import get_logger
 
@@ -31,15 +32,17 @@ class NotifierConsumer(AsyncWebsocketConsumer):
             groups += [ChannelGroups.ADMIN.name]
         return groups
 
+    @override
     async def websocket_connect(self, message):
         """Authorize with user and connect websocket to groups."""
         # Authorization
         # Set groups for user.
-        self.groups = self._get_groups()
+        self.groups: list[str] | None = self._get_groups()
 
         await super().websocket_connect(message)
         LOG.debug(f"Websocket connected to {self.groups}")
 
+    @override
     async def disconnect(self, code):
         """Close channels after WebSocket disconnect."""
         await self.close(code)

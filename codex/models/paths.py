@@ -4,9 +4,10 @@ from pathlib import Path
 from types import MappingProxyType
 
 from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoices
+from typing_extensions import override
 
-from codex.models.base import MAX_NAME_LEN, BaseModel, max_choices_len
-from codex.models.library import MAX_PATH_LEN, Library
+from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel, max_choices_len
+from codex.models.library import Library
 from codex.models.util import get_sort_name
 
 __all__ = ("CustomCover", "FailedImport")
@@ -16,7 +17,7 @@ class WatchedPath(BaseModel):
     """A filesystem path with data for Watchdog."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    parent_folder = ForeignKey(
+    parent_folder: ForeignKey | None = ForeignKey(
         "Folder",
         on_delete=CASCADE,
         null=True,
@@ -43,10 +44,12 @@ class WatchedPath(BaseModel):
         st[8] = st_record.st_mtime
         self.stat = st
 
+    @override
     def presave(self):
         """Save stat."""
         self.set_stat()
 
+    @override
     def __str__(self):
         """Return the full path."""
         return str(self.path)
@@ -99,7 +102,7 @@ class CustomCover(WatchedPath):
         }
     )
 
-    parent_folder = None
+    parent_folder: ForeignKey | None = None
     group = CharField(
         max_length=max_choices_len(GroupChoice),
         db_index=True,
@@ -120,6 +123,7 @@ class CustomCover(WatchedPath):
             self.group = choice.value
             self.sort_name = get_sort_name(stem)
 
+    @override
     def presave(self):
         """Presave group and sort_name."""
         super().presave()

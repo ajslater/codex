@@ -4,6 +4,7 @@ from django.http import HttpResponseBadRequest
 from django.http.response import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
+from typing_extensions import override
 from zipstream import ZipStream
 
 from codex.logger.logger import get_logger
@@ -17,8 +18,9 @@ class GroupDownloadView(BrowserFilterView):
 
     content_type = "application/zip"
     AS_ATTACHMENT = True
-    TARGET = "download"
+    TARGET: str = "download"
 
+    @override
     def get_object(self):
         """Get comic paths for a browse group."""
         group = self.kwargs.get("group")

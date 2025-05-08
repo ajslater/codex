@@ -5,6 +5,7 @@ from time import sleep
 from types import MappingProxyType
 
 from django.utils import timezone as django_timezone
+from typing_extensions import override
 
 from codex.librarian.janitor.scheduled_time import get_janitor_time
 from codex.librarian.janitor.tasks import JanitorNightlyTask
@@ -58,6 +59,7 @@ class CronThread(NamedThread):
                 # Times are always ordered so stop checking at the first future job.
                 break
 
+    @override
     def run(self):
         """Cron loop."""
         try:

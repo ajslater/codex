@@ -1,5 +1,7 @@
 """Admin Flag View."""
 
+from typing_extensions import override
+
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
 from codex.librarian.tasks import WakeCronTask
@@ -25,7 +27,7 @@ class AdminFlagViewSet(AdminModelViewSet):
     """Admin Flag Viewset."""
 
     queryset = AdminFlag.objects.all()
-    serializer_class = AdminFlagSerializer
+    serializer_class = AdminFlagSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     lookup_field = "key"
 
     def _on_change(self):
@@ -41,6 +43,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         if key in _REFRESH_LIBRARY_FLAGS:
             LIBRARIAN_QUEUE.put(ADMIN_FLAGS_CHANGED_TASK)
 
+    @override
     def perform_update(self, serializer):
         """Perform update and hook for change."""
         super().perform_update(serializer)

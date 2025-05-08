@@ -7,6 +7,7 @@ from django.db.models import (
     PositiveIntegerField,
     URLField,
 )
+from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.groups import BrowserGroupModel
@@ -46,6 +47,7 @@ class NamedModel(BaseModel):
         abstract = True
         unique_together = ("name",)
 
+    @override
     def __str__(self):
         """Return the name."""
         return self.name
@@ -182,6 +184,7 @@ class Identifier(BaseModel):
         prefix = f"{self.identifier_type.name}:" if self.identifier_type else ""
         return prefix + self.nss
 
+    @override
     def __str__(self):
         """Represent as a string."""
         return self.name + " " + self.url

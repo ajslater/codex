@@ -10,11 +10,9 @@ from codex.choices.admin import ADMIN_TASK_GROUPS
 
 _ADMIN_TASK_CHOICES = tuple(
     sorted(
-        [
-            item["value"]
-            for group in ADMIN_TASK_GROUPS["tasks"]
-            for item in group["tasks"]
-        ]
+        item["value"]  # pyright: ignore[reportArgumentType]
+        for group in ADMIN_TASK_GROUPS["tasks"]
+        for item in group["tasks"]
     )
 )
 

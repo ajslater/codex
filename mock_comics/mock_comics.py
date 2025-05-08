@@ -33,8 +33,20 @@ CONTRIBUTOR_TAGS = (
     "Penciller",
     "Writer",
 )
-FIELDS = {
+TEXT_FIELDS = {
     "TEXT": ("Summary", "Notes", "ScanInformation"),
+    "NAME_LISTS": (
+        "Genre",
+        "Characters",
+        "Tags",
+        "Teams",
+        "Locations",
+        "StoryArc",
+        "SeriesGroup",
+    ),
+    "ROLES": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
+}
+RANGED_FIELDS = {
     "INTS": {
         "Number": 1024,
         "AlternateNumber": 1024,
@@ -63,31 +75,34 @@ FIELDS = {
         "Web": 64,
     },
     "DECIMALS": {"CommunityRating": 100.0},
-    "NAME_LISTS": (
-        "Genre",
-        "Characters",
-        "Tags",
-        "Teams",
-        "Locations",
-        "StoryArc",
-        "SeriesGroup",
-    ),
-    "contributorS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
 }
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
 NUM_M2M_NAMES = 20
 NUM_CONTRIBUTORS = 15
 STATUS_DELAY = 5
-LANG_LIST = []
-for lang in languages:
-    try:
-        LANG_LIST.append(lang.alpha_2)  # type: ignore[reportAttributeAccessIssue]
-    except AttributeError:
-        LANG_LIST.append(lang.alpha_3)  # type: ignore[reportAttributeAccessIssue]
+LANG_KEYS = ("alpha_2", "alpha_3", "alpha_4", "name")
+
+
+def _get_all_language_codes():
+    langs = []
+    for lang in languages:
+        for key in LANG_KEYS:
+            if code := getattr(lang, key, None):
+                break
+        else:
+            continue
+        langs.append(code)
+    return tuple(langs)
+
+
+LANG_LIST = _get_all_language_codes()
 COVER_RATIO = 1.5372233400402415
 COVER_WIDTH = 250
 COVER_HEIGHT = int(COVER_RATIO * COVER_WIDTH)
+FIVE_BY_FIVE_NIDS = frozenset(
+    {enum.value for enum in (NIDs.METRON, NIDs.GCD, NIDs.LCG)}
+)
 
 
 def is_valid():
@@ -144,17 +159,17 @@ def create_web(md, key, _limit):
     if is_valid() is None:
         return
     nid = random.choice(tuple(IDENTIFIER_PARTS_MAP.keys()))
-    if nid == NIDs.COMICVINE:
+    if nid == NIDs.COMICVINE.value:
         nss = "4000-" + rand_digits(6)
-    elif nid in (NIDs.METRON, NIDs.GCD, NIDs.LCG):
+    elif nid in FIVE_BY_FIVE_NIDS:
         nss = rand_string(5) + "/" + rand_string(5)
-    elif nid == NIDs.ASIN:
+    elif nid == NIDs.ASIN.value:
         nss = rand_string(10)
-    elif nid == NIDs.COMIXOLOGY:
+    elif nid == NIDs.COMIXOLOGY.value:
         nss = "x/x/" + rand_string(10)
-    elif nid == NIDs.ISBN:
+    elif nid == NIDs.ISBN.value:
         nss = rand_digits(10)
-    elif nid == NIDs.UPC:
+    elif nid == NIDs.UPC.value:
         nss = rand_digits(12)
     else:
         return
@@ -216,13 +231,13 @@ def create_metadata():
     """Create ranomized metadata."""
     md = {}
 
-    for key, limit in FIELDS["INTS"].items():
+    for key, limit in RANGED_FIELDS["INTS"].items():
         create_int(md, key, limit)
 
-    for key in FIELDS["TEXT"]:
+    for key in TEXT_FIELDS["TEXT"]:
         create_str(md, key, 100)
 
-    for key, limit in FIELDS["VARCHARS"].items():
+    for key, limit in RANGED_FIELDS["VARCHARS"].items():
         if key == "LanguageISO":
             create_lang(md, key, limit)
         elif key == "Web":
@@ -230,10 +245,10 @@ def create_metadata():
         else:
             create_str(md, key, limit)
 
-    for key, limit in FIELDS["DECIMALS"].items():
+    for key, limit in RANGED_FIELDS["DECIMALS"].items():
         create_float(md, key, limit)
 
-    for key in FIELDS["NAME_LISTS"]:
+    for key in TEXT_FIELDS["NAME_LISTS"]:
         create_name_list(md, key)
 
     create_bool(md, "BlackAndWhite")

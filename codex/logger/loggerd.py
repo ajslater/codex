@@ -4,7 +4,10 @@ import logging
 import shutil
 from logging.handlers import QueueListener, RotatingFileHandler
 from lzma import LZMAFile
+from multiprocessing.queues import Queue
 from pathlib import Path
+
+from typing_extensions import override
 
 from codex.logger.formatter import ColorFormatter
 from codex.settings.settings import DEBUG, LOG_DIR, LOG_TO_CONSOLE, LOG_TO_FILE
@@ -21,11 +24,13 @@ _LOG_BACKUP_COUNT = 30
 class RotatingXZFileHandler(RotatingFileHandler):
     """Rotating File Handler rotates into XZ."""
 
+    @override
     @staticmethod
     def namer(name):
         """Name files with xz."""
         return name + ".xz"
 
+    @override
     @staticmethod
     def rotator(source, dest):
         """Compress File."""
@@ -83,12 +88,13 @@ class CodexLogQueueListener(QueueListener):
             handlers.append(cls._get_console_handler(fmt))
         return handlers
 
-    def __init__(self, log_queue):
+    def __init__(self, log_queue: Queue):
         """Start self with handlers."""
-        handlers = self._get_log_handlers()
         self.log_queue = log_queue
+        handlers = self._get_log_handlers()
         super().__init__(log_queue, *handlers)
 
+    @override
     def stop(self):
         """Stop listener and cleans up handlers."""
         super().stop()

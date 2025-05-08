@@ -12,10 +12,11 @@ def prepare_librarianstatus(apps, _schema_editor):
     ls_model = apps.get_model("codex", "librarianstatus")
     ls_model.objects.all().delete()
     with connection.cursor() as cursor:
-        cursor.execute(
+        sql = (
             "UPDATE sqlite_sequence SET seq = 0"
             ' WHERE sqlite_sequence.name = "codex_librarianstatus"'
         )
+        cursor.execute(sql)
 
 
 def prepare_bookmarks(apps, _schema_editor):

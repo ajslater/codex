@@ -47,7 +47,7 @@ class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerilalizer):
 class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
     """Browser Settings for the cover response."""
 
-    parent = SimpleRouteSerializer(required=False)
+    parent_route = SimpleRouteSerializer(required=False)
 
 
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):

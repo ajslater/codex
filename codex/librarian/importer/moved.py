@@ -161,6 +161,10 @@ class MovedImporter(AggregateMetadataImporter):
         self.changed += count
         self.status_controller.finish(status)
 
+    @staticmethod
+    def _folder_sort_key(element: Folder):
+        return len(Path(element.path).parts)
+
     def _bulk_move_folders(
         self,
         src_folder_paths_with_existing_dest_parents,
@@ -192,7 +196,7 @@ class MovedImporter(AggregateMetadataImporter):
             folder.updated_at = Now()
             update_folders.append(folder)
 
-        update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
+        update_folders = sorted(update_folders, key=self._folder_sort_key)
 
         Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
         count = len(update_folders)

@@ -71,6 +71,6 @@ class OPDS2PublicationSerializer(OPDS2FacetSerializer):
     https://drafts.opds.io/schema/publication.schema.json
     """
 
-    metadata = OPDS2PublicationMetadataSerializer(read_only=True)
+    metadata = OPDS2PublicationMetadataSerializer(read_only=True)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     links = OPDS2LinkListField(read_only=True)
     images = OPDS2LinkListField(read_only=True, required=False)

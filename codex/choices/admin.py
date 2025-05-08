@@ -37,12 +37,14 @@ ADMIN_STATUS_TITLES = frozenbidict(
 )
 
 # Easier to store in vuetify format
-ADMIN_TASK_GROUPS = MappingProxyType(
+ADMIN_TASK_GROUPS: MappingProxyType[
+    str, tuple[dict[str, str | tuple[dict[str, str], ...]], ...]
+] = MappingProxyType(
     {
         "tasks": (
             {
                 "title": "Libraries",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "poll",
                         "title": "Poll All Libraries",
@@ -65,11 +67,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Sync Watchdog with DB",
                         "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
                     },
-                ],
+                ),
             },
             {
                 "title": "Covers",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "purge_comic_covers",
                         "title": "Remove Comic Covers",
@@ -87,11 +89,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Update Group Timestamps",
                         "desc": "Force the update of group timestamps. Will bust the browser cache for browser views and covers.",
                     },
-                ],
+                ),
             },
             {
                 "title": "Search Index",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "search_index_update",
                         "title": "Update Search Index",
@@ -133,11 +135,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Repair Search Index",
                         "desc": "Probably faster than Rebuild if integrity check fails.",
                     },
-                ],
+                ),
             },
             {
                 "title": "Database",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "db_vacuum",
                         "title": "Optimize & Compact Database",
@@ -159,11 +161,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Check logs for results. Runs nightly.",
                         "confirm": "Can take a while on large databases, Are you sure?",
                     },
-                ],
+                ),
             },
             {
                 "title": "Codex Software",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "codex_latest_version",
                         "title": "Check for Codex Latest Version",
@@ -187,11 +189,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Immediately",
                         "confirm": "Are you sure?",
                     },
-                ],
+                ),
             },
             {
                 "title": "Cleanup",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "cleanup_fks",
                         "title": "Remove Orphan Tags",
@@ -233,11 +235,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Runs several tasks above that also run nightly.",
                         "confirm": "Launches several tasks that run nightly anyway.",
                     },
-                ],
+                ),
             },
             {
                 "title": "Notify",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "notify_admin_flags_changed",
                         "title": "Notify Admin Flags Changed",
@@ -278,7 +280,7 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Notify Users Changed",
                         "desc": "Notify one user that their users changed or all users if a user was deleted.",
                     },
-                ],
+                ),
             },
         ),
     }

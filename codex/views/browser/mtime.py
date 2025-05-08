@@ -2,6 +2,7 @@
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from codex.logger.logger import get_logger
 from codex.models.groups import Publisher
@@ -16,11 +17,11 @@ LOG = get_logger(__name__)
 class MtimeView(BrowserGroupMtimeView):
     """Get the mtimes for the submitted groups."""
 
-    input_serializer_class = GroupsMtimeSerializer
-    serializer_class = MtimeSerializer
+    input_serializer_class: type[BaseSerializer] = GroupsMtimeSerializer
+    serializer_class: type[BaseSerializer] | None = MtimeSerializer
 
     REPARSE_JSON_FIELDS = frozenset({"groups", "filters"})
-    TARGET = "mtime"
+    TARGET: str = "mtime"
 
     def _get_group_mtime(self, item):
         """Get one group's mtimes."""

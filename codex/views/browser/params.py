@@ -3,6 +3,8 @@
 from types import MappingProxyType
 from typing import Any
 
+from rest_framework.serializers import BaseSerializer
+
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 from codex.views.session import SessionView
@@ -12,8 +14,8 @@ from codex.views.util import reparse_json_query_params
 class BrowserParamsView(SessionView):
     """Browser Params Parsing."""
 
-    input_serializer_class = BrowserSettingsSerializer
-    REPARSE_JSON_FIELDS = frozenset({"breadcrumbs", "filters", "show"})
+    input_serializer_class: type[BaseSerializer] = BrowserSettingsSerializer
+    REPARSE_JSON_FIELDS: frozenset[str] = frozenset({"breadcrumbs", "filters", "show"})
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""

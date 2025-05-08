@@ -15,7 +15,7 @@ from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField
 
 
-class BrowserCardSerializer(BrowserAggregateSerializerMixin):
+class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     """Browse card displayed in the browser."""
 
     pk = IntegerField(read_only=True)

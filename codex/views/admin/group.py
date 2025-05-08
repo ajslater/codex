@@ -2,6 +2,7 @@
 
 from django.contrib.auth.models import Group
 from django.core.cache import cache
+from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import GROUPS_CHANGED_TASK
@@ -18,7 +19,7 @@ class AdminGroupViewSet(AdminModelViewSet):
     queryset = Group.objects.prefetch_related("user_set", "library_set").select_related(
         "groupauth"
     )
-    serializer_class = GroupSerializer
+    serializer_class = GroupSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "groupauth"})
 
@@ -30,23 +31,27 @@ class AdminGroupViewSet(AdminModelViewSet):
             cache.clear()
             LIBRARIAN_QUEUE.put(GROUPS_CHANGED_TASK)
 
+    @override
     def get_serializer(self, *args, **kwargs):
         """Allow creation with the model serializer without users & libraries."""
         kwargs["partial"] = True
         return super().get_serializer(*args, **kwargs)
 
+    @override
     def perform_update(self, serializer):
         """Perform update and run hooks."""
         validated_data = serializer.validated_data
         super().perform_update(serializer)
         self._on_change(validated_data)
 
+    @override
     def perform_create(self, serializer):
         """Perform create and run hooks."""
         validated_data = serializer.validated_data
         super().perform_create(serializer)
         self._on_change(validated_data)
 
+    @override
     def perform_destroy(self, instance):
         """Perform destroy and run hooks."""
         super().perform_destroy(instance)

@@ -1,17 +1,20 @@
 """Haystack Search index updater."""
 
+from typing_extensions import override
+
 from codex.librarian.search.tasks import (
     SearchIndexClearTask,
     SearchIndexOptimizeTask,
     SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.search.update import FTSUpdateMixin
+from codex.librarian.search.update import SearchFTSUpdateThread
 
 
-class SearchIndexerThread(FTSUpdateMixin):
+class SearchIndexerThread(SearchFTSUpdateThread):
     """A worker to handle search index update tasks."""
 
+    @override
     def process_item(self, item):
         """Run the updater."""
         task = item

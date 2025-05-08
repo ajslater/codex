@@ -3,11 +3,13 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from typing_extensions import override
+
 from codex.librarian.bookmark.tasks import (
     BookmarkUpdateTask,
     UserActiveTask,
 )
-from codex.librarian.bookmark.update import BookmarkUpdate
+from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.librarian.bookmark.user_active import UserActiveMixin
 from codex.threads import AggregateMessageQueuedThread
 
@@ -20,6 +22,7 @@ class BookmarkKey:
     comic_pks: tuple = ()
     user_pk: int = 0
 
+    @override
     def __hash__(self):
         """Hash the dict as a tuple."""
         auth_filters = (
@@ -27,21 +30,29 @@ class BookmarkKey:
         )
         return hash((auth_filters, self.comic_pks, self.user_pk))
 
+    @override
     def __eq__(self, other):
         """Equal uses hashes."""
         return self.__hash__() == other.__hash__()
 
 
 class BookmarkThread(
-    UserActiveMixin,
     AggregateMessageQueuedThread,
-    BookmarkUpdate,
+    BookmarkUpdateMixin,
+    UserActiveMixin,
 ):
     """Aggregates Bookmark updates preventing floods updates db in batches.."""
 
     FLOOD_DELAY = 3.0
     MAX_DELAY = 5.0
 
+    def __init__(self, *args, **kwargs):
+        """Init mixins."""
+        super().__init__(*args, **kwargs)
+        self.init_group_acl()
+        self.init_user_active()
+
+    @override
     def aggregate_items(self, item):
         """Aggregate bookmark updates."""
         if isinstance(item, UserActiveTask):
@@ -57,6 +68,7 @@ class BookmarkThread(
         else:
             self.log.warning(f"Unknown Bookmark task {item}")
 
+    @override
     def send_all_items(self):
         """Run the task method."""
         cleanup = set()

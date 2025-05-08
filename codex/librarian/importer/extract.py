@@ -111,7 +111,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
 
     @classmethod
     def _clean_decimal(cls, value, field_name: str):
-        field: DecimalField = Comic._meta.get_field(field_name)  # type: ignore[reportAssignmentType]
+        field: DecimalField = Comic._meta.get_field(field_name)  # pyright: ignore[reportAssignmentType]
         try:
             quantize_str = Decimal(f"1e-{field.decimal_places}")
             value = value.quantize(quantize_str, rounding=ROUND_DOWN)

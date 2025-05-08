@@ -2,6 +2,7 @@
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from codex.logger.logger import get_logger
 from codex.serializers.auth import TimezoneSerializer
@@ -15,7 +16,7 @@ class TimezoneView(AuthGenericAPIView):
     """User info."""
 
     input_serializer_class = TimezoneSerializer
-    serializer_class = OKSerializer
+    serializer_class: type[BaseSerializer] | None = OKSerializer
 
     def _save_timezone(self, django_timezone):
         """Save django timezone in session."""

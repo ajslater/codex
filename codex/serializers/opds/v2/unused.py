@@ -2,6 +2,7 @@
 
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
+from typing_extensions import override
 
 from codex.serializers.opds.v2.links import OPDS2LinkListField
 
@@ -14,6 +15,7 @@ class RecursiveField(Serializer):
     https://pypi.org/project/djangorestframework-recursive/
     """
 
+    @override
     def to_representation(self, instance):
         """Represent with own class."""
         parent = self.parent

@@ -16,9 +16,9 @@ _PK_REL_TARGETS = frozenset({"metadata", "mtime"})
 class GroupFilterView(BrowserParamsView):
     """Group Filters."""
 
-    SESSION_KEY = BrowserParamsView.BROWSER_SESSION_KEY
+    SESSION_KEY: str = BrowserParamsView.BROWSER_SESSION_KEY
 
-    TARGET = ""
+    TARGET: str = ""
 
     def _get_rel_for_pks(self, group, page_mtime: bool):
         """Get the relation from the model to the pks."""

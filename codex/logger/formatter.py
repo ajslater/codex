@@ -4,6 +4,7 @@ import logging
 from types import MappingProxyType
 
 from colors import color
+from typing_extensions import override
 
 
 class ColorFormatter(logging.Formatter):
@@ -30,6 +31,7 @@ class ColorFormatter(logging.Formatter):
             formatter = logging.Formatter(fmt=template, **kwargs)
             self.formatters[levelno] = formatter
 
+    @override
     def format(self, record):
         """Format each log message."""
         formatter = self.formatters[record.levelno]

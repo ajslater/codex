@@ -8,10 +8,8 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.browser.settings import (
-    BrowserSettingsFilterInputSerializer,
-    BrowserSettingsShowGroupFlagsSerializer,
-)
+from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
+from codex.serializers.browser.settings import BrowserSettingsShowGroupFlagsSerializer
 from codex.serializers.fields import (
     FitToField,
     ReadingDirectionField,

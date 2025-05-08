@@ -67,7 +67,7 @@ def _make_json_serializable(data):
         json_dict = {}
         for key, value in data.items():
             if key == "breadcrumbs":
-                json_value = tuple(RouteSerializer(dict(route)).data for route in value)
+                json_value = tuple(RouteSerializer(dict(route)).data for route in value)  #  pyright: ignore[reportGeneralTypeIssues]
             else:
                 json_value = _make_json_serializable(value)
             json_dict[_json_key(key)] = json_value

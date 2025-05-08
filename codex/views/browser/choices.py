@@ -7,6 +7,8 @@ from caseconverter import snakecase
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.logger.logger import get_logger
@@ -59,8 +61,8 @@ _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_
 class BrowserChoicesViewBase(BrowserFilterView):
     """Get choices for filter dialog."""
 
-    input_serializer_class = BrowserFilterChoicesInputSerilalizer
-    TARGET = "choices"
+    input_serializer_class: type[BaseSerializer] = BrowserFilterChoicesInputSerilalizer
+    TARGET: str = "choices"
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -96,6 +98,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
 
         return rel, model
 
+    @override
     def get_object(self) -> QuerySet:
         """Get the comic subquery use for the choices."""
         return self.get_filtered_queryset(Comic)
@@ -111,7 +114,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
-    serializer_class = BrowserFilterChoicesSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserFilterChoicesSerializer
 
     @classmethod
     def _get_field_choices_count(cls, comic_qs, field_name):
@@ -134,12 +137,13 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         return count
 
-    def get_object(self) -> dict[str, Any]:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Get choice counts."""
-        qs = super().get_object()
+        qs: QuerySet = super().get_object()
         filters = self.params.get("filters", {})
         data = {}
-        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # type: ignore[reportOptionalCall, reportAssignmentType]
+        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # pyright: ignore[reportOptionalCall, reportAssignmentType]
         for field_name in serializer.get_fields():
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
@@ -163,7 +167,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 class BrowserChoicesView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
-    serializer_class = BrowserChoicesFilterSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserChoicesFilterSerializer
 
     def _get_m2m_field_choices(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
@@ -184,7 +188,8 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
 
-    def get_object(self) -> dict[str, Any]:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]··
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()

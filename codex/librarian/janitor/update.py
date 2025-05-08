@@ -22,7 +22,7 @@ class UpdateMixin(WorkerBaseMixin):
     def _is_outdated(self):
         """Is codex outdated."""
         result = False
-        if VERSION is None:
+        if not VERSION:
             self.log.warning("Cannot determine installed Codex version.")
             return result
         ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
@@ -30,7 +30,7 @@ class UpdateMixin(WorkerBaseMixin):
         versio_latest_version = Version(latest_version)
 
         installed_versio_version = Version(VERSION)
-        if versio_latest_version.parts[1] and not installed_versio_version.parts[1]:  # type: ignore[reportIndexIssue]
+        if versio_latest_version.parts[1] and not installed_versio_version.parts[1]:  # pyright: ignore[reportIndexIssue]
             pre_blurb = "latest version is a prerelease. But installed version is not."
         else:
             result = versio_latest_version > installed_versio_version
@@ -80,10 +80,11 @@ class UpdateMixin(WorkerBaseMixin):
             self.log.info(f"Codex was updated from {VERSION} to {new_version}.")
             self.restart_codex()
         else:
-            self.log.warning(
+            reason = (
                 "Codex updated to the same version that was previously"
                 f" installed: {VERSION}."
             )
+            self.log.warning(reason)
 
     def _shutdown_codex(self, status, name, sig):
         """Send a system signal as handled in run.py."""

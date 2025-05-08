@@ -15,6 +15,7 @@ from django.db.models import (
     TextChoices,
 )
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import override
 
 from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
@@ -110,6 +111,7 @@ class Timestamp(BaseModel):
 
         unique_together = ("key",)
 
+    @override
     def __str__(self):
         """Print name for choice."""
         return self.TimestampChoices(self.key).name

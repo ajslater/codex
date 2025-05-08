@@ -2,6 +2,7 @@
 
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
+from typing_extensions import override
 
 from codex.serializers.fields.group import BrowseGroupField
 from codex.serializers.fields.sanitized import SanitizedCharField
@@ -14,6 +15,7 @@ class SimpleRouteSerializer(Serializer):
     group = BrowseGroupField()
     pks = CharField()
 
+    @override
     def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""
         if isinstance(instance, Route):
@@ -25,6 +27,7 @@ class SimpleRouteSerializer(Serializer):
             instance["pks"] = ",".join(str(pk) for pk in sorted(pks))
         return super().to_representation(instance)
 
+    @override
     def to_internal_value(self, data):
         """Convert pk strings to tuples."""
         instance = super().to_internal_value(data)

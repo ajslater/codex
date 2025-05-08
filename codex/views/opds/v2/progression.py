@@ -2,6 +2,7 @@
 # https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
 
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
@@ -9,14 +10,20 @@ from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Leas
 from django.db.models.query_utils import FilteredRelation
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.logger.logger import get_logger
+from codex.models.comic import Comic
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
 from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
-from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageView
+from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
+
+if TYPE_CHECKING:
+    from codex.models.groups import BrowserGroupModel
 
 _EMPTY_DEVICE = MappingProxyType(
     {
@@ -29,16 +36,22 @@ LOG = get_logger(__name__)
 
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
-    BookmarkFilterMixin, OPDS2HrefMixin, BookmarkPageView, AuthFilterGenericAPIView
+    BookmarkFilterMixin, OPDS2HrefMixin, BookmarkPageMixin, AuthFilterGenericAPIView
 ):
     """OPDS 2 Progression view."""
 
-    serializer_class = OPDS2ProgressionSerializer
+    serializer_class: type[BaseSerializer] | None = OPDS2ProgressionSerializer
+
+    def __init__(self, *args, **kwargs):
+        """Initialize Bookmark Filter."""
+        self.init_bookmark_filter()
+        super().__init__(*args, **kwargs)
+        self._obj: BrowserGroupModel = Comic()
 
     @property
     def modified(self):
         """Get modified from bookmark."""
-        return self._obj.bookmark_updated_at  # type: ignore[reportAttributeAccessIssue]
+        return self._obj.bookmark_updated_at  # pyright: ignore[reportAttributeAccessIssue]
 
     @property
     def device(self):
@@ -49,16 +62,16 @@ class OPDS2ProgressionView(
     @property
     def title(self):
         """The locator title is the page number."""
-        return f"Page {self._obj.page}"  # type: ignore[reportAttributeAccessIssue]
+        return f"Page {self._obj.page}"  # pyright: ignore[reportAttributeAccessIssue]
 
     @property
     def _progression_href(self):
         """Build a Progression HRef."""
         acq_kwargs = {
             "pk": self._obj.pk,
-            "page": self._obj.page,  # type: ignore[reportAttributeAccessIssue]
+            "page": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue]
         }
-        max_page = max_none(self._obj.page_count - 1, 0)  # type: ignore[reportAttributeAccessIssue]
+        max_page = max_none(self._obj.page_count - 1, 0)  # pyright: ignore[reportAttributeAccessIssue]
         data = HrefData(
             acq_kwargs,
             url_name="opds:bin:page",
@@ -71,9 +84,9 @@ class OPDS2ProgressionView(
     def _locations(self):
         """Build the Locations object."""
         return {
-            "position": self._obj.page,  # type: ignore[reportAttributeAccessIssue]
-            "progression": self._obj.progress,  # type: ignore[reportAttributeAccessIssue]
-            "total_progression": self._obj.progress,  # type: ignore[reportAttributeAccessIssue]
+            "position": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue]
+            "progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue]
+            "total_progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue]
         }
 
     @property
@@ -86,12 +99,13 @@ class OPDS2ProgressionView(
             "locations": self._locations,
         }
 
+    @override
     def get_object(self):
         """Build the progression data object."""
         group = self.kwargs.get("group")
         pk = self.kwargs.get("pk")
 
-        if not pk:
+        if not (group and pk):
             reason = f"Bad primary key for {group}:{pk}"
             return ValidationError(reason, code="422")
 
@@ -133,4 +147,7 @@ class OPDS2ProgressionView(
             LOG.exception("progression")
             raise
 
-    # PUT handled by BookmarkPageView parent
+    def put(self, *_args, **_kwargs):
+        """Update the bookmark."""
+        self.update_bookmark()
+        return Response()

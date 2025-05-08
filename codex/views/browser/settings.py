@@ -1,5 +1,8 @@
 """Browser session view."""
 
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
+
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.const import GROUP_ORDER
 from codex.views.settings import SettingsView
@@ -9,9 +12,9 @@ class BrowserSettingsView(SettingsView):
     """Get Browser Settings."""
 
     # Put Browser Settings is normally done through BrowserView.get()
-    serializer_class = BrowserSettingsSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserSettingsSerializer
 
-    SESSION_KEY = SettingsView.BROWSER_SESSION_KEY
+    SESSION_KEY: str = SettingsView.BROWSER_SESSION_KEY
 
     @staticmethod
     def _strip_breadcrumb_names(params):
@@ -54,6 +57,7 @@ class BrowserSettingsView(SettingsView):
         else:
             cls._validate_browse_top_group(params, group, top_group)
 
+    @override
     def validate_settings_get(self, validated_data, params):
         """Change bad settings."""
         top_group = params["top_group"]

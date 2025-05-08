@@ -12,6 +12,7 @@ from django.db.utils import OperationalError
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
 from codex.logger.logger import get_logger
+from codex.models.base import BaseModel
 from codex.settings.settings import (
     CONFIG_PATH,
     CUSTOM_COVERS_DIR,
@@ -23,7 +24,6 @@ from codex.worker_base import WorkerBaseMixin
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
 
-    from codex.models.base import BaseModel
     from codex.models.comic import Comic
 
 
@@ -86,7 +86,7 @@ def _compile_foreign_key_results(results, log):
     return bad_fk_rels, bad_m2m_rows
 
 
-def _get_model(table_name):
+def _get_model(table_name) -> type[BaseModel]:
     """Get a django model from the table name."""
     app_name, model_name = table_name.split("_", 1)
     app_config = apps.get_app_config(app_name)
@@ -103,17 +103,17 @@ def _get_model(table_name):
         # Not an m2m through model.
         model_name = model_name.replace("_", "")
         model = app_config.get_model(model_name)
-    return model
+    return model  # pyright: ignore[reportReturnType]
 
 
 def _null_bad_fk_rels_table(table_name, bad_rows, log):
     """Null bad foreign key relations by table."""
     fix_comic_pks = set()
-    model = _get_model(table_name)
+    model: type[BaseModel] = _get_model(table_name)
     fields = model._meta.fields
     field_names = {}
     update_objs = []
-    objs: BaseManager[BaseModel] = model.objects.filter(pk__in=bad_rows.keys())  # type: ignore[reportAssignmentType]
+    objs: BaseManager[BaseModel] = model.objects.filter(pk__in=bad_rows.keys())
     update_fields = {"updated_at"}
     now = Now()
     for obj in objs:
@@ -194,7 +194,7 @@ def _mark_comics_for_update(fix_comic_pks, log):
     """Mark comics with altered foreign keys for update."""
     if not fix_comic_pks:
         return
-    comic_model = apps.get_model(app_label="codex", model_name="comic")
+    comic_model: type[Comic] = apps.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType]
     outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
         pk__in=fix_comic_pks
     ).only(  # type: ignore[reportAssignmentType]
@@ -210,7 +210,7 @@ def _mark_comics_for_update(fix_comic_pks, log):
         if not stat_list:
             continue
         stat_list[8] = 0.0
-        comic.stat = stat_list  # type: ignore[reportAttributeAccessIssue]
+        comic.stat = stat_list  # pyright: ignore[reportAttributeAccessIssue]
         comic.updated_at = now
         update_comics.append(comic)
 

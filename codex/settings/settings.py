@@ -107,58 +107,70 @@ ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
+def _get_installed_apps():
+    installed_apps = [
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+    ]
 
-INSTALLED_APPS = [
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-]
+    if DEBUG:
+        # comes before static apps
+        installed_apps += ["nplusone.ext.django", "schema_graph"]
+
+    installed_apps += [
+        "whitenoise.runserver_nostatic",
+        "django.contrib.staticfiles",
+        "rest_framework",
+        "rest_registration",
+        "corsheaders",
+    ]
+    if not BUILD:
+        installed_apps += [
+            "django_vite",
+        ]
+    installed_apps += [
+        "codex",
+        "cachalot",
+        "drf_spectacular",
+    ]
+    return tuple(installed_apps)
+
+
+INSTALLED_APPS = _get_installed_apps()
+
+
+def _get_middleware():
+    middleware = [
+        "corsheaders.middleware.CorsMiddleware",
+        "django.middleware.security.SecurityMiddleware",
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.common.CommonMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+        "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        "codex.middleware.TimezoneMiddleware",
+    ]
+    if DEBUG:
+        middleware += [
+            "nplusone.ext.django.NPlusOneMiddleware",
+        ]
+
+    if LOG_RESPONSE_TIME:
+        middleware += [
+            "codex.middleware.LogResponseTimeMiddleware",
+        ]
+    return tuple(middleware)
+
+
+MIDDLEWARE = _get_middleware()
 
 if DEBUG:
-    # comes before static apps
-    INSTALLED_APPS += ["nplusone.ext.django", "schema_graph"]
-
-INSTALLED_APPS += [
-    "whitenoise.runserver_nostatic",
-    "django.contrib.staticfiles",
-    "rest_framework",
-    "rest_registration",
-    "corsheaders",
-]
-if not BUILD:
-    INSTALLED_APPS += [
-        "django_vite",
-    ]
-INSTALLED_APPS += [
-    "codex",
-    "cachalot",
-    "drf_spectacular",
-]
-
-MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "codex.middleware.TimezoneMiddleware",
-]
-if DEBUG:
-    MIDDLEWARE += [
-        "nplusone.ext.django.NPlusOneMiddleware",
-    ]
     NPLUSONE_LOGGER = getLogger("nplusone")
     NPLUSONE_LOG_LEVEL = WARNING
-
-if LOG_RESPONSE_TIME:
-    MIDDLEWARE += [
-        "codex.middleware.LogResponseTimeMiddleware",
-    ]
 
 ROOT_URLCONF = "codex.urls.root"
 
@@ -219,8 +231,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth."
-        "password_validation.UserAttributeSimilarityValidator"
+        "NAME": (
+            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+        )
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -251,25 +264,21 @@ WHITENOISE_STATIC_PREFIX = "static/"
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"
 ROOT_PATH = HYPERCORN_CONFIG.root_path
-if ROOT_PATH:
-    STATIC_URL = ROOT_PATH + "/" + WHITENOISE_STATIC_PREFIX
-else:
-    STATIC_URL = WHITENOISE_STATIC_PREFIX
+STATIC_URL = (
+    ROOT_PATH + "/" + WHITENOISE_STATIC_PREFIX
+    if ROOT_PATH
+    else WHITENOISE_STATIC_PREFIX
+)
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
     }
 }
-STATICFILES_DIRS = []
-if DEBUG or BUILD:
-    STATIC_SRC = CODEX_PATH / "static_src"
-    STATIC_SRC.mkdir(exist_ok=True, parents=True)
-    STATIC_BUILD = CODEX_PATH / "static_build"
-    STATIC_BUILD.mkdir(exist_ok=True, parents=True)
-    STATICFILES_DIRS += [
-        STATIC_SRC,
-        STATIC_BUILD,
-    ]
+STATICFILES_DIRS = (
+    [CODEX_PATH / "static_src", CODEX_PATH / "static_build"] if (DEBUG or BUILD) else []
+)
+for path in STATICFILES_DIRS:
+    path.mkdir(exist_ok=True, parents=True)
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 

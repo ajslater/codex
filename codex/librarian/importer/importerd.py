@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from django.utils import timezone
+from typing_extensions import override
 
 from codex.librarian.importer.importer import ComicImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -35,7 +36,7 @@ class ComicImporterThread(QueuedThread):
         import_comics = Comic.objects.filter(pk__in=task.pks).only("path", "library_id")
         library_path_map = {}
         for import_comic in import_comics:
-            library_id = import_comic.library_id  # type: ignore[reportAttributeAccessIssue]
+            library_id = import_comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
             if library_id not in library_path_map:
                 library_path_map[library_id] = set()
             library_path_map[library_id].add(import_comic.path)
@@ -107,6 +108,7 @@ class ComicImporterThread(QueuedThread):
                 next_task = JanitorAdoptOrphanFoldersFinishedTask()
                 self.librarian_queue.put(next_task)
 
+    @override
     def process_item(self, item):
         """Run the updater."""
         task = item

@@ -35,10 +35,10 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     volume_list = GroupSerializer(many=True, required=False)
     folder_list = GroupSerializer(many=True, required=False)
     story_arc_list = GroupSerializer(many=True, required=False)
-    publisher = None
-    imprint = None
-    series = None
-    volume = None
+    publisher = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    imprint = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    volume = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     identifiers = IdentifierSeralizer(
         source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
@@ -53,7 +53,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     class Meta(ComicSerializer.Meta):
         """Configure the model."""
 
-        exclude = (
+        exclude = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]
             *ComicSerializer.Meta.exclude,
             "publisher",
             "imprint",

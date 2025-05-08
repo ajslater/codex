@@ -216,7 +216,7 @@ export const useBrowserStore = defineStore("browser", {
       const settings = this._filterSettings(state, keys);
       const pks = params.pks;
       if (!dc && group !== "r" && pks) {
-        settings["parent"] = {
+        settings["parentRoute"] = {
           group,
           pks,
         };

@@ -48,13 +48,17 @@ class UserSerializer(BaseModelSerializer):
         read_only_fields = fields
 
 
-class TimezoneSerializer(Serializer):
+class TimezoneSerializerMixin:
     """Serialize Timezone submission from front end."""
 
     timezone = TimezoneField(write_only=True)
 
 
-class UserCreateSerializer(BaseModelSerializer, TimezoneSerializer):
+class TimezoneSerializer(Serializer, TimezoneSerializerMixin):
+    """Serialize Timezone submission from front end."""
+
+
+class UserCreateSerializer(BaseModelSerializer, TimezoneSerializerMixin):
     """Serialize registration input for creating users."""
 
     class Meta(BaseModelSerializer.Meta):

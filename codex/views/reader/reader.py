@@ -5,6 +5,8 @@ from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -19,10 +21,10 @@ LOG = get_logger(__name__)
 class ReaderView(ReaderArcsView):
     """Get info for displaying comic pages."""
 
-    serializer_class = ReaderComicsSerializer
+    serializer_class: type[BaseSerializer] | None = ReaderComicsSerializer
 
-    SESSION_KEY = "reader"
-    TARGET = "reader"
+    SESSION_KEY: str = "reader"
+    TARGET: str = "reader"
 
     def _raise_not_found(self):
         """Raise not found exception."""
@@ -58,6 +60,7 @@ class ReaderView(ReaderArcsView):
             task = LazyImportComicsTask(frozenset(import_pks))
             LIBRARIAN_QUEUE.put(task)
 
+    @override
     def get_object(self):
         """Get the previous and next comics in a group or story arc."""
         # Books

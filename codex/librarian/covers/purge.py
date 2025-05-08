@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from abc import ABC
 from pathlib import Path
 
 from codex.librarian.covers.create import CoverCreateThread
@@ -12,7 +13,7 @@ from codex.models.paths import CustomCover
 from codex.status import Status
 
 
-class CoverPurgeThread(CoverCreateThread):
+class CoverPurgeThread(CoverCreateThread, ABC):
     """Cover Purge methods."""
 
     _CLEANUP_STATUS_MAP = (

@@ -3,7 +3,6 @@
 from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from codex.choices.browser import BROWSER_DEFAULTS
 from codex.choices.reader import READER_DEFAULTS
@@ -11,9 +10,6 @@ from codex.logger.logger import get_logger
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 LOG = get_logger(__name__)
 
@@ -53,8 +49,8 @@ class SessionView(AuthFilterGenericAPIView, ABC):
     """Generic Session View."""
 
     # Must override this
-    SESSION_KEY = ""
-    FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
+    SESSION_KEY: str = ""
+    FILTER_ATTRIBUTES: frozenset[str] = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
     BROWSER_SESSION_KEY = "browser"
     READER_SESSION_KEY = "reader"
     SESSION_DEFAULTS = MappingProxyType(
@@ -85,14 +81,12 @@ class SessionView(AuthFilterGenericAPIView, ABC):
 
     def get_last_route(self, name: bool):
         """Get the last route from the breadcrumbs."""
+        breadcrumbs: tuple
         breadcrumbs = self.get_from_session(
             "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
         )
         if not breadcrumbs:
-            default_breadcrumbs: tuple[
-                Mapping[str, str | tuple[int, ...] | int], ...
-            ] = BROWSER_DEFAULTS["breadcrumbs"]  # type: ignore[reportAssignmentType]
-            breadcrumbs = default_breadcrumbs
+            breadcrumbs = BROWSER_DEFAULTS["breadcrumbs"]  # pyright: ignore[reportAssignmentType]
         last_route = breadcrumbs[-1]
         if not name:
             last_route = pop_name(last_route)

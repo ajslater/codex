@@ -1,14 +1,18 @@
 """Cross view annotation methods."""
 
+from typing import TYPE_CHECKING
+
 from django.db.models.expressions import F
-from rest_framework.views import APIView
 
 from codex.librarian.bookmark.tasks import UserActiveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logger import get_logger
-from codex.models.comic import Comic, Imprint, Volume
-from codex.views.browser.filters.filter import BrowserFilterView
+from codex.models.comic import Comic
+from codex.models.groups import Imprint, Volume
 from codex.views.const import GROUP_NAME_MAP
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 LOG = get_logger(__name__)
 _SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
@@ -16,7 +20,7 @@ _GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"
 
 
-class SharedAnnotationsMixin(BrowserFilterView):
+class SharedAnnotationsMixin:  # (BrowserFilterView):
     """Cross view annotation methods."""
 
     @staticmethod
@@ -58,7 +62,7 @@ class SharedAnnotationsMixin(BrowserFilterView):
     def annotate_group_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
-        target = cls.TARGET
+        target = cls.TARGET  #  pyright: ignore[reportAttributeAccessIssue]
         if target not in _GROUP_NAME_TARGETS:
             return qs
         group_names = {}
@@ -80,11 +84,13 @@ class SharedAnnotationsMixin(BrowserFilterView):
         return qs.annotate(**group_names)
 
 
-class UserActiveViewMixin(APIView):
+class UserActiveMixin:
     """View that records user activity."""
 
     def mark_user_active(self):
         """Get the app index page."""
+        if TYPE_CHECKING:
+            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
         if self.request.user and self.request.user.pk:
             task = UserActiveTask(pk=self.request.user.pk)
             LIBRARIAN_QUEUE.put(task)

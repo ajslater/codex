@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from queue import Empty, SimpleQueue
 from threading import Thread
 
+from typing_extensions import override
+
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -61,6 +63,7 @@ class QueuedThread(NamedThread, ABC):
         except Empty:
             self.timed_out()
 
+    @override
     def run(self):
         """Run thread loop."""
         self.run_start()
@@ -77,7 +80,8 @@ class QueuedThread(NamedThread, ABC):
         """Stop the thread."""
         self.queue.put(self.SHUTDOWN_MSG)
 
-    def join(self, timeout=None):  # noqa: ARG002
+    @override
+    def join(self, timeout=None):
         """End the thread."""
         self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
@@ -96,6 +100,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         self._last_timed_out = time.time()
         super().__init__(*args, **kwargs)
 
+    @override
     def get_timeout(self):
         """Aggregate queue has a conditional timeout."""
         return self.FLOOD_DELAY if self.cache else None
@@ -116,6 +121,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
             self.cache.pop(key, None)
         self._last_send = time.time()
 
+    @override
     def process_item(self, item):
         """Aggregate items and sleep in case there are more."""
         self.aggregate_items(item)
@@ -124,6 +130,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         if waited_too_long:
             self.timed_out()
 
+    @override
     def timed_out(self):
         """Send the items and set when we did this."""
         self.send_all_items()

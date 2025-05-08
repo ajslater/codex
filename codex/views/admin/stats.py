@@ -4,8 +4,10 @@ from types import MappingProxyType
 from typing import Any, ClassVar
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.serializers import empty
+from typing_extensions import override
 
 from codex.librarian.telemeter.stats import CodexStats
 from codex.logger.logger import get_logger
@@ -23,8 +25,8 @@ LOG = get_logger(__name__)
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]
-    serializer_class = StatsSerializer
+    permission_classes: ClassVar[list[type[BasePermission]]] = [HasAPIKeyOrIsAdminUser]  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = StatsSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     input_serializer_class = AdminStatsRequestSerializer
 
     def __init__(self, *args, **kwargs):
@@ -62,6 +64,7 @@ class AdminStatsView(AdminGenericAPIView):
             obj["config"] = {}
         obj["config"]["api_key"] = api_key
 
+    @override
     def get_object(self):
         """Get the stats object with an api key."""
         getter = CodexStats(self.params)

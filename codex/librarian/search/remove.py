@@ -1,16 +1,17 @@
 """Search Index cleanup."""
 
+from abc import ABC
 from time import time
 
 from humanize import naturaldelta
 
-from codex.librarian.search.optimize import OptimizeMixin
+from codex.librarian.search.optimize import SearchOptimizeThread
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.models.comic import ComicFTS
 from codex.status import Status
 
 
-class RemoveMixin(OptimizeMixin):
+class SearchRemoveThread(SearchOptimizeThread, ABC):
     """Search Index cleanup methods."""
 
     def clear_search_index(self):
@@ -34,10 +35,11 @@ class RemoveMixin(OptimizeMixin):
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             cps = int(count / elapsed_time)
-            self.log.info(
+            reason = (
                 f"Removed {count} stale records from the search index"
                 f" in {elapsed} at {cps} per second."
             )
+            self.log.info(reason)
         else:
             self.log.debug("Removed no stale records from the search index.")
 

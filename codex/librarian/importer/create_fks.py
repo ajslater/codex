@@ -167,10 +167,11 @@ class CreateForeignKeysImporter(CreateCoversImporter):
             parent = Folder.objects.get(path=parent_path)
         except Folder.DoesNotExist:
             if path.parent != Path(self.library.path):
-                self.log.warning(
+                reason = (
                     f"Can't find parent folder {parent_path}"
                     f" for {path} in library {self.library.path}"
                 )
+                self.log.warning(reason)
         folder = Folder(
             library=self.library,
             path=str(path),

@@ -7,10 +7,8 @@ from rest_framework.serializers import Serializer
 
 from codex.serializers.opds.v2.facet import OPDS2FacetSerializer
 from codex.serializers.opds.v2.links import OPDS2LinkListField
-from codex.serializers.opds.v2.publication import (
-    OPDS2MetadataSerializer,
-    OPDS2PublicationSerializer,
-)
+from codex.serializers.opds.v2.metadata import OPDS2MetadataSerializer
+from codex.serializers.opds.v2.publication import OPDS2PublicationSerializer
 
 
 class OPDS2GroupSerializer(Serializer):

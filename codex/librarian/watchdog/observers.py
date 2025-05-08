@@ -1,5 +1,8 @@
 """The Codex Library Watchdog Observer threads."""
 
+from multiprocessing.queues import Queue
+
+from typing_extensions import override
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.api import (
@@ -17,18 +20,11 @@ from codex.models import Library
 from codex.worker_base import WorkerBaseMixin
 
 
-class UatuMixin(BaseObserver, WorkerBaseMixin):
+class UatuObserver(WorkerBaseMixin, BaseObserver):
     """Watch over librarys from the blue area of the moon."""
 
-    ENABLE_FIELD = ""
-    ALWAYS_WATCH = False
-
-    def __init__(self, *args, **kwargs):
-        """Initialize queues."""
-        log_queue = kwargs.pop("log_queue")
-        librarian_queue = kwargs.pop("librarian_queue")
-        self.init_worker(log_queue, librarian_queue)
-        super().__init__(*args, **kwargs)
+    ENABLE_FIELD: str = ""
+    ALWAYS_WATCH: bool = False
 
     def _get_watch(self, path):
         """Find the watch by path."""
@@ -75,10 +71,11 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
                 orphan_watches.add(watch)
         for watch in orphan_watches:
             self.unschedule(watch)
-            self.log.info(
+            reason = (
                 f"Stopped watching orphaned library {watch.path} "
                 f"with {self.ENABLE_FIELD}"
             )
+            self.log.info(reason)
 
     def sync_library_watches(self):
         """Watch or unwatch all libraries according to the db."""
@@ -99,6 +96,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         except Exception:
             self.log.exception(f"{self.__class__.__name__} sync library watches")
 
+    @override
     def schedule(
         self,
         event_handler: FileSystemEventHandler,
@@ -140,25 +138,38 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 #     watchdog class structure doesn't work that way.
 
 
-class LibraryEventObserver(UatuMixin, Observer):  # type: ignore[reportGeneralTypeIssues]
+class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGeneralTypeIssues, reportUntypedBaseClass]
     """Regular observer."""
 
     # Observer is a dynamically generated class by platform at runtime.
+    # Which causes the above static typing warning
 
-    ENABLE_FIELD = "events"
+    ENABLE_FIELD: str = "events"
+
+    def __init__(self, *args, log_queue: Queue, librarian_queue: Queue, **kwargs):
+        """Initialize queues."""
+        self.init_worker(log_queue, librarian_queue)
+        super().__init__(*args, **kwargs)
 
 
-class LibraryPollingObserver(UatuMixin):
+class LibraryPollingObserver(UatuObserver):
     """An Observer that polls using the DatabasePollingEmitter."""
 
-    ENABLE_FIELD = "poll"
-    ALWAYS_WATCH = True  # In the emitter, timeout=None for forever
+    ENABLE_FIELD: str = "poll"
+    ALWAYS_WATCH: bool = True  # In the emitter, timeout=None for forever
     _SHUTDOWN_EVENT = (None, None)
 
-    def __init__(self, *args, timeout=DEFAULT_OBSERVER_TIMEOUT, **kwargs):
+    def __init__(
+        self,
+        log_queue: Queue,
+        librarian_queue: Queue,
+        timeout=DEFAULT_OBSERVER_TIMEOUT,
+        **kwargs,
+    ):
         """Use the DatabasePollingEmitter."""
+        self.init_worker(log_queue, librarian_queue)
         super().__init__(
-            *args, emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
+            emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )
 
     def poll(self, library_pks, force: bool):
@@ -170,7 +181,7 @@ class LibraryPollingObserver(UatuMixin):
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
-                polling_emitter: DatabasePollingEmitter = emitter  # type: ignore[reportAssignmentType]
+                polling_emitter: DatabasePollingEmitter = emitter  # pyright: ignore[reportAssignmentType]
                 if emitter.watch.path in paths:
                     polling_emitter.poll(force)
         except Exception:
@@ -178,6 +189,7 @@ class LibraryPollingObserver(UatuMixin):
                 f"{self.__class__.__name__}.poll({library_pks}, {force})"
             )
 
+    @override
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""
         # The global timeout is None because the emitters have their own

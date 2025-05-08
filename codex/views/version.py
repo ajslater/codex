@@ -1,6 +1,7 @@
 """Version View."""
 
 from rest_framework.response import Response
+from typing_extensions import override
 
 from codex.librarian.janitor.tasks import JanitorLatestVersionTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -13,8 +14,9 @@ from codex.views.auth import AuthGenericAPIView
 class VersionView(AuthGenericAPIView):
     """Return Codex Versions."""
 
-    serializer_class = VersionsSerializer
+    serializer_class = VersionsSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
+    @override
     def get_object(self) -> dict[str, str]:
         """Get the versions."""
         ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)

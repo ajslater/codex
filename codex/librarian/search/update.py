@@ -1,5 +1,6 @@
 """Search Index update."""
 
+from abc import ABC
 from datetime import datetime
 from time import time
 from zoneinfo import ZoneInfo
@@ -9,7 +10,7 @@ from django.db.models.expressions import F
 from django.db.models.functions.datetime import Now
 from humanize import intword, naturaldelta
 
-from codex.librarian.search.remove import RemoveMixin
+from codex.librarian.search.remove import SearchRemoveThread
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.models import Comic, Library
 from codex.models.comic import ComicFTS
@@ -54,7 +55,7 @@ _COMICFTS_UPDATE_FIELDS = (
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 
 
-class FTSUpdateMixin(RemoveMixin):
+class SearchFTSUpdateThread(SearchRemoveThread, ABC):
     """Search Index update methods."""
 
     _STATUS_FINISH_TYPES = (
@@ -186,11 +187,12 @@ class FTSUpdateMixin(RemoveMixin):
 
         if count > SEARCH_INDEX_BATCH_SIZE:
             human_size = intword(SEARCH_INDEX_BATCH_SIZE)
-            self.log.debug(
+            reason = (
                 f"Batching this search engine {verb} operation in to chunks of {human_size}."
                 f" Search engine {verb}s run much faster as one large batch but then there's no progress updates."
                 " You may adjust the batch size with the environment variable CODEX_SEARCH_INDEX_BATCH_SIZE."
             )
+            self.log.debug(reason)
             subtitle = f"Chunks of {human_size}"
         else:
             subtitle = ""

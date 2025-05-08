@@ -1,5 +1,7 @@
 """Search Index cleanup."""
 
+from abc import ABC
+from threading import Event
 from time import time
 
 from django.db import connection
@@ -14,10 +16,10 @@ _TABLE = "codex_comicfts"
 _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 
 
-class OptimizeMixin(QueuedThread):
+class SearchOptimizeThread(QueuedThread, ABC):
     """Search Index optimize methods."""
 
-    def __init__(self, abort_event, *args, **kwargs):
+    def __init__(self, *args, abort_event: Event, **kwargs):
         """Initialize search engine."""
         self.abort_event = abort_event
         super().__init__(*args, **kwargs)

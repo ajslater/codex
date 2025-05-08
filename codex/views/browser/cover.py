@@ -1,11 +1,15 @@
 """Comic cover thumbnail view."""
 
+from collections.abc import Sequence
+
 from django.db import OperationalError
 from django.db.models.query import Q
 from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
@@ -33,9 +37,10 @@ class WEBPRenderer(BaseRenderer):
 
     media_type = "image/webp"
     format = "webp"
-    charset = None
+    charset: str | None = None
     render_style = "binary"
 
+    @override
     def render(self, data, *_args, **_kwargs):
         """Return raw data."""
         return data
@@ -44,15 +49,16 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(BrowserAnnotateOrderView):
     """ComicCover View."""
 
-    input_serializer_class = BrowserCoverInputSerializer
-    renderer_classes = (WEBPRenderer,)
+    input_serializer_class: type[BaseSerializer] = BrowserCoverInputSerializer
+    renderer_classes: Sequence[type[BaseRenderer]] = (WEBPRenderer,)
     content_type = "image/webp"
-    TARGET = "cover"
+    TARGET: str = "cover"
     REPARSE_JSON_FIELDS = frozenset(
         BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
     )
 
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):  # noqa: FBT002
+    @override
+    def get_group_filter(self, group=None, pks=None, page_mtime=False):
         """Get group filter for First Cover View."""
         if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
@@ -68,9 +74,9 @@ class CoverView(BrowserAnnotateOrderView):
         model_rel = GROUP_RELATION[self.model_group]
         group_filter = {f"{model_rel}__sort_name__in": sort_names}
 
-        parent = self.params.get("parent", {})
-        if parent_pks := parent.get("pks"):
-            parent_rel = GROUP_RELATION[parent["group"]]
+        parent_route = self.params.get("parent_route", {})
+        if parent_pks := parent_route.get("pks"):
+            parent_rel = GROUP_RELATION[parent_route["group"]]
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
 
@@ -142,7 +148,7 @@ class CoverView(BrowserAnnotateOrderView):
         return cover_file, content_type
 
     @extend_schema(
-        parameters=[BrowserAnnotateOrderView.input_serializer_class],
+        parameters=[BrowserAnnotateOrderView.input_serializer_class],  # pyright: ignore[reportArgumentType]
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
     def get(self, *args, **kwargs):

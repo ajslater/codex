@@ -44,7 +44,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             field_name = MODEL_REL_MAP[model]
             qs = model.objects.filter(**group_filter)
             qs = qs.only("name").distinct()
-            qs = qs.group_by("name")  # type:ignore[reportAttributeAccessIssue]
+            qs = qs.group_by("name")  # pyright:ignore[reportAttributeAccessIssue]
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
             qs = qs.values("ids", "name")
             groups[field_name] = qs

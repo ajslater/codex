@@ -1,8 +1,11 @@
 """Logging classes."""
 
-import logging
 from contextlib import suppress
+from logging import Logger, getLogger
 from logging.handlers import QueueHandler
+from multiprocessing.queues import Queue
+
+from typing_extensions import override
 
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.settings import LOGLEVEL
@@ -11,6 +14,7 @@ from codex.settings.settings import LOGLEVEL
 class CodexQueueHandler(QueueHandler):
     """Special QueueHandler that removes unpickable elements."""
 
+    @override
     def enqueue(self, record):
         """Remove unserializable element before queueing."""
         with suppress(KeyError):
@@ -23,7 +27,7 @@ class CodexQueueHandler(QueueHandler):
 _LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)
 
 
-def _ensure_handler(logger, queue):
+def _ensure_handler(logger: Logger, queue: Queue):
     """Ensure we only have one correct handler."""
     has_correct = False
     for handler in tuple(logger.handlers):
@@ -37,9 +41,9 @@ def _ensure_handler(logger, queue):
         logger.addHandler(handler)
 
 
-def get_logger(name=None, queue=LOG_QUEUE):
+def get_logger(name=None, queue: Queue = LOG_QUEUE):
     """Get the logger with only one handler."""
-    logger = logging.getLogger(name)
+    logger = getLogger(name)
     logger.setLevel(LOGLEVEL)
     logger.propagate = False
     _ensure_handler(logger, queue)

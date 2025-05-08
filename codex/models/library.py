@@ -14,6 +14,7 @@ from django.db.models import (
     ManyToManyField,
 )
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import override
 
 from codex.models.base import MAX_PATH_LEN, BaseModel
 
@@ -52,6 +53,7 @@ class Library(BaseModel):
     update_in_progress = BooleanField(default=False)
     groups = ManyToManyField(Group, blank=True)
 
+    @override
     def __str__(self) -> str:
         """Return the path."""
         return str(self.path)

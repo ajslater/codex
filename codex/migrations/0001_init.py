@@ -13,7 +13,7 @@ import codex.models
 class Migration(migrations.Migration):
     """Initial schema."""
 
-    initial = True
+    initial = True  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     dependencies = [
         ("sessions", "0001_initial"),

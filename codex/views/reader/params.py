@@ -121,7 +121,7 @@ class ReaderParamsView(SessionView):
                 serializer = self.input_serializer_class(data=data)
                 serializer.is_valid(raise_exception=True)
 
-                params: dict[str, Any] = mapping_to_dict(_DEFAULT_PARAMS)  # type: ignore[reportAssignmentType]
+                params: dict[str, Any] = mapping_to_dict(_DEFAULT_PARAMS)  # pyright: ignore[reportAssignmentType]
                 if serializer.validated_data:
                     params.update(serializer.validated_data)
                 self._ensure_arc_contains_comic(params)

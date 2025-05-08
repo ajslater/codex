@@ -85,8 +85,11 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
             if not self._is_stats_equal(data, old_path, new_path):
                 data.modified.add(new_path)
 
-    def __init__(self, ref, snapshot, ignore_device: bool, inode_only_modified: bool):
+    def __init__(  # pyright: ignore[reportMissingSuperCall]
+        self, ref, snapshot, *, ignore_device: bool, inode_only_modified: bool
+    ):
         """Create diff object."""
+        # Do init differently than super()
         self._ignore_device = ignore_device
         self._inode_only_modified = inode_only_modified
         data = SnapshotDiffData(
