@@ -49,6 +49,13 @@ export const CONFIGS = {
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
+      "depend/ban-dependencies": [
+        "error",
+        {
+          // unicorn-x dev's initial reasoning seems to rely on trivia, microoptimizations, and his own DX.
+          allowed: ["eslint-plugin-unicorn"],
+        },
+      ],
       "no-console": "warn",
       "no-debugger": "warn",
       "no-secrets/no-secrets": "error",

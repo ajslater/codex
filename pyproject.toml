@@ -169,6 +169,7 @@ omit = [
   "node_modules/*",
   "test-results/*",
   "typings/*",
+  "vulture_ignorelist.py",
 ]
 
 [tool.djlint]
