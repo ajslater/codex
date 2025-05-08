@@ -1,14 +1,10 @@
 """Browser Group models."""
 
 from django.db.models import CASCADE, SET_DEFAULT, ForeignKey
-from django.db.models.fields import (
-    CharField,
-    PositiveSmallIntegerField,
-    SmallIntegerField,
-)
 from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
+from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
 from codex.models.paths import CustomCover, WatchedPath
 from codex.models.util import get_sort_name
 
@@ -21,8 +17,10 @@ class BrowserGroupModel(BaseModel):
     DEFAULT_NAME: str | None = ""
     PARENT: str = ""
 
-    name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
-    sort_name = CharField(
+    name = CleaningCharField(
+        db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME
+    )
+    sort_name = CleaningCharField(
         db_index=True,
         max_length=MAX_NAME_LEN,
         default=DEFAULT_NAME,
@@ -82,7 +80,7 @@ class Series(BrowserGroupModel):
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
-    volume_count = PositiveSmallIntegerField(null=True)
+    volume_count = CoercingPositiveSmallIntegerField(null=True)
 
     class Meta(BrowserGroupModel.Meta):
         """Constraints."""
@@ -101,8 +99,10 @@ class Volume(BrowserGroupModel):
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
-    issue_count = PositiveSmallIntegerField(null=True)
-    name = SmallIntegerField(db_index=True, null=True, default=DEFAULT_NAME)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    issue_count = CoercingPositiveSmallIntegerField(null=True)
+    name = CoercingPositiveSmallIntegerField(  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        db_index=True, null=True, default=DEFAULT_NAME
+    )
 
     # Harmful because name is numeric
     sort_name = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
@@ -115,6 +115,7 @@ class Volume(BrowserGroupModel):
     class Meta(BrowserGroupModel.Meta):
         """Constraints."""
 
+        exclude = ("sort_name", "custom_cover")
         unique_together = ("name", "series")
 
     @classmethod

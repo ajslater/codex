@@ -2,11 +2,13 @@
 
 from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import Func
-from django.db.models.fields import CharField, FloatField, TextField
+from django.db.models.fields import CharField, FloatField
 from django.db.models.fields.json import JSONField
 from django.db.models.fields.related import OneToOneField
 from django.db.models.lookups import Lookup
 from typing_extensions import override
+
+from codex.models.fields import CleaningCharField, CleaningTextField
 
 
 class JsonGroupArray(Aggregate):
@@ -52,8 +54,8 @@ class FTS5Match(Lookup):
         return sql, params
 
 
-@CharField.register_lookup
-@TextField.register_lookup
+@CleaningCharField.register_lookup
+@CleaningTextField.register_lookup
 class Like(Lookup):
     """SQL LIKE lookup."""
 

@@ -332,7 +332,6 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         )
         count = create_count + update_count
         if count:
-            vnp = group_cls._meta.verbose_name_plural.title()
             if create_count:
                 self.log.info(f"Prepared {create_count} {vnp} for creation.")
             if update_count:
@@ -527,7 +526,6 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             level = INFO
         else:
             level = DEBUG
-        vnp = fk_cls._meta.verbose_name_plural.title()
         self.log.log(level, f"Prepared {len(create_names)} new {vnp}.")
         return len(names)
 

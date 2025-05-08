@@ -2,6 +2,12 @@
 
 from collections.abc import Mapping
 from pathlib import Path
+from types import MappingProxyType
+from zipfile import BadZipFile
+
+from comicbox.box import Comicbox
+from comicbox.exceptions import UnsupportedArchiveTypeError
+from rarfile import BadRarFile
 
 from codex.librarian.importer.const import (
     COMIC_FK_FIELD_NAMES,
@@ -18,21 +24,28 @@ from codex.librarian.importer.const import (
     MDS,
     VOLUME_COUNT,
 )
-from codex.librarian.importer.extract import ExtractMetadataImporter
+from codex.librarian.importer.query_fks import QueryForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Imprint, Publisher, Series, Volume
 from codex.models.admin import AdminFlag
+from codex.settings.settings import LOGLEVEL
 from codex.status import Status
 from codex.util import max_none
 
-
-class AggregateMetadataImporter(ExtractMetadataImporter):
-    """Aggregate metadata from comics to prepare for importing."""
-
-    _BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
-    _AGGREGATE_M2M_FIELD_NAMES = (COMIC_M2M_FIELD_NAMES - {"story_arc_numbers"}) | {
-        "story_arcs"
+_COMICBOX_CONFIG = MappingProxyType(
+    {
+        "compute_pages": False,
+        "loglevel": LOGLEVEL,
     }
+)
+_BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
+_AGGREGATE_M2M_FIELD_NAMES = (COMIC_M2M_FIELD_NAMES - {"story_arc_numbers"}) | {
+    "story_arcs"
+}
+
+
+class AggregateMetadataImporter(QueryForeignKeysImporter):
+    """Aggregate metadata from comics to prepare for importing."""
 
     @staticmethod
     def _get_structured_group(md, group_cls, group_field, groups_md):
@@ -49,7 +62,7 @@ class AggregateMetadataImporter(ExtractMetadataImporter):
         # Create group tree
         group_tree = []
         groups_md = {}
-        for group_cls in cls._BROWSER_GROUPS:
+        for group_cls in _BROWSER_GROUPS:
             group_field = group_cls.__name__.lower()
             if group_cls in COUNT_FIELDS:
                 group_name = cls._get_structured_group(
@@ -72,11 +85,11 @@ class AggregateMetadataImporter(ExtractMetadataImporter):
                 fk_md[field] = value
         return fk_md
 
-    @classmethod
-    def _get_m2m_metadata(cls, md, path):
+    @staticmethod
+    def _get_m2m_metadata(md, path):
         """Many_to_many fields get moved into a separate dict."""
         m2m_md = {}
-        for field in cls._AGGREGATE_M2M_FIELD_NAMES:
+        for field in _AGGREGATE_M2M_FIELD_NAMES:
             if value := md.pop(field, None):
                 m2m_md[field] = value
         m2m_md[FOLDERS_FIELD] = Path(path).parents
@@ -202,6 +215,27 @@ class AggregateMetadataImporter(ExtractMetadataImporter):
             status.complete += 1
             self.status_controller.update(status)
 
+    def extract(self, path, import_metadata):
+        """Extract metadata from comic and clean it for codex."""
+        md = {}
+        failed_import = {}
+        try:
+            if import_metadata:
+                with Comicbox(path, config=_COMICBOX_CONFIG) as cb:
+                    md = cb.to_dict()
+                    md = md.get("comicbox", {})
+                    md["file_type"] = cb.get_file_type()
+            md["path"] = path
+        except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
+            self.log.warning(f"Failed to import {path}: {exc}")
+            failed_import = {path: exc}
+        except Exception as exc:
+            self.log.exception(f"Failed to import: {path}")
+            failed_import = {path: exc}
+        if failed_import:
+            self.metadata[FIS].update(failed_import)
+        return md
+
     def get_aggregate_metadata(
         self,
         status=None,
@@ -230,10 +264,10 @@ class AggregateMetadataImporter(ExtractMetadataImporter):
         # Init metadata, extract and aggregate
         self.metadata[MDS] = {}
         self.metadata[M2M_MDS] = {}
-        self.metadata[FKS] = {GROUP_TREES: {cls: {} for cls in self._BROWSER_GROUPS}}
+        self.metadata[FKS] = {GROUP_TREES: {cls: {} for cls in _BROWSER_GROUPS}}
         self.metadata[FIS] = {}
         for path in all_paths:
-            md = self.extract_and_clean(path, import_metadata)
+            md = self.extract(path, import_metadata)
             if md:
                 self._aggregate_path(md, path, status)
 

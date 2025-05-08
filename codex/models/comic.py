@@ -13,7 +13,6 @@ from django.db.models import (
     CharField,
     DateField,
     DateTimeField,
-    DecimalField,
     ForeignKey,
     ManyToManyField,
     OneToOneField,
@@ -29,6 +28,12 @@ from codex.models.base import (
     MAX_NAME_LEN,
     BaseModel,
     max_choices_len,
+)
+from codex.models.fields import (
+    CleaningCharField,
+    CleaningTextField,
+    CoercingDecimalField,
+    CoercingPositiveSmallIntegerField,
 )
 from codex.models.groups import (
     Folder,
@@ -98,10 +103,10 @@ class Comic(WatchedPathBrowserGroup):
     )
 
     # Unique comic fields
-    issue_number = DecimalField(
+    issue_number = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=10, null=True
     )
-    issue_suffix = CharField(
+    issue_suffix = CleaningCharField(
         db_index=True,
         max_length=MAX_ISSUE_SUFFIX_LEN,
         default="",
@@ -124,26 +129,26 @@ class Comic(WatchedPathBrowserGroup):
     language = ForeignKey(Language, db_index=True, null=True, on_delete=CASCADE)
 
     # Date
-    year = PositiveSmallIntegerField(db_index=True, null=True)
-    month = PositiveSmallIntegerField(db_index=True, null=True)
-    day = PositiveSmallIntegerField(db_index=True, null=True)
+    year = CoercingPositiveSmallIntegerField(db_index=True, null=True)
+    month = CoercingPositiveSmallIntegerField(db_index=True, null=True)
+    day = CoercingPositiveSmallIntegerField(db_index=True, null=True)
 
     # Text
-    summary = TextField(default="", db_collation="nocase")
-    review = TextField(default="", db_collation="nocase")
-    notes = TextField(default="", db_collation="nocase")
+    summary = CleaningCharField(default="", db_collation="nocase")
+    review = CleaningTextField(default="", db_collation="nocase")
+    notes = CleaningTextField(default="", db_collation="nocase")
 
     # Ratings
-    community_rating = DecimalField(
+    community_rating = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
-    critical_rating = DecimalField(
+    critical_rating = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
 
     # Reader
-    page_count = PositiveSmallIntegerField(db_index=True, default=0)
-    reading_direction = CharField(
+    page_count = CoercingPositiveSmallIntegerField(db_index=True, default=0)
+    reading_direction = CleaningCharField(
         db_index=True,
         choices=ReadingDirection.choices,
         default=ReadingDirectionEnum.LTR.value,
@@ -179,10 +184,10 @@ class Comic(WatchedPathBrowserGroup):
 
     # codex only
     date = DateField(db_index=True, null=True)
-    decade = PositiveSmallIntegerField(db_index=True, null=True)
+    decade = CoercingPositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)
     size = PositiveIntegerField(db_index=True)
-    file_type = CharField(
+    file_type = CleaningCharField(
         db_index=True,
         choices=FileType.choices,
         max_length=max_choices_len(FileType),
@@ -313,7 +318,7 @@ class ComicFTS(BaseModel):
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    volume = PositiveIntegerField()
+    volume = PositiveSmallIntegerField()
     issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

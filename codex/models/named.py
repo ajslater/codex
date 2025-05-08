@@ -2,14 +2,13 @@
 
 from django.db.models import (
     CASCADE,
-    CharField,
     ForeignKey,
-    PositiveIntegerField,
     URLField,
 )
 from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
+from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
 from codex.models.groups import BrowserGroupModel
 
 __all__ = (
@@ -39,7 +38,7 @@ __all__ = (
 class NamedModel(BaseModel):
     """A for simple named tables."""
 
-    name = CharField(db_index=True, max_length=MAX_NAME_LEN)
+    name = CleaningCharField(db_index=True, max_length=MAX_NAME_LEN)
 
     class Meta(BaseModel.Meta):
         """Defaults to uniquely named, must be overridden."""
@@ -134,7 +133,7 @@ class StoryArcNumber(BaseModel):
     """A story arc number the comic represents."""
 
     story_arc = ForeignKey(StoryArc, db_index=True, on_delete=CASCADE)
-    number = PositiveIntegerField(null=True, default=None)
+    number = CoercingPositiveSmallIntegerField(null=True, default=None)
 
     class Meta(BaseModel.Meta):
         """Declare constraints and indexes."""
@@ -170,7 +169,7 @@ class Identifier(BaseModel):
     identifier_type = ForeignKey(
         IdentifierType, db_index=True, on_delete=CASCADE, null=True
     )
-    nss = CharField(max_length=MAX_NAME_LEN)
+    nss = CleaningCharField(max_length=MAX_NAME_LEN)
     url = URLField(default="")
 
     class Meta(BaseModel.Meta):
