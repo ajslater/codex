@@ -12,14 +12,12 @@ from codex.librarian.importer.const import (
     BULK_UPDATE_FOLDER_FIELDS,
     CLASS_CUSTOM_COVER_GROUP_MAP,
     COUNT_FIELDS,
+    CREATE_DICT_FUNCTION_ARGS,
     CREATE_DICT_UPDATE_FIELDS,
     FK_CREATE,
-    FKC_CONTRIBUTORS,
     FKC_CREATE_FKS,
     FKC_CREATE_GROUPS,
     FKC_FOLDER_PATHS,
-    FKC_IDENTIFIERS,
-    FKC_STORY_ARC_NUMBERS,
     FKC_TOTAL_FKS,
     FKC_UPDATE_GROUPS,
     GROUP_BASE_FIELDS,
@@ -30,23 +28,19 @@ from codex.librarian.importer.const import (
     PUBLISHER,
     SERIES,
     VOLUME_COUNT,
+    DictModelType,
 )
 from codex.librarian.importer.create_covers import CreateCoversImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
     CustomCover,
     Folder,
     Imprint,
     Publisher,
     Series,
     StoryArc,
-    StoryArcNumber,
     Volume,
 )
-from codex.models.named import Identifier, IdentifierType
 from codex.status import Status
 
 
@@ -256,33 +250,12 @@ class CreateForeignKeysImporter(CreateCoversImporter):
         status.add_complete(count)
         self.status_controller.update(status)
 
-    @staticmethod
-    def _create_contributor_args(values):
-        return {
-            "role": ContributorRole.objects.get(name=values[0]) if values[0] else None,
-            "person": ContributorPerson.objects.get(name=values[1]),
-        }
-
-    @staticmethod
-    def _create_story_arc_number_args(values):
-        return {"story_arc": StoryArc.objects.get(name=values[0]), "number": values[1]}
-
-    @staticmethod
-    def _create_identifier_args(values):
-        return {
-            "identifier_type": IdentifierType.objects.get(name=values[0]),
-            "nss": values[1],
-            "url": values[2],
-        }
-
-    _CREATE_DICT_FUNCTION_MAP = (
-        (Contributor, FKC_CONTRIBUTORS, _create_contributor_args),
-        (StoryArcNumber, FKC_STORY_ARC_NUMBERS, _create_story_arc_number_args),
-        (Identifier, FKC_IDENTIFIERS, _create_identifier_args),
-    )
-
     def _bulk_create_dict_models(
-        self, create_tuples_key, create_args_func, model, status
+        self,
+        create_tuples_key: str,
+        create_args_dict: dict,
+        model: DictModelType,
+        status,
     ):
         """Bulk create a dict type m2m model."""
         create_tuples = self.metadata[FK_CREATE].pop(create_tuples_key, None)
@@ -291,7 +264,17 @@ class CreateForeignKeysImporter(CreateCoversImporter):
 
         create_objs = []
         for values_tuple in create_tuples:
-            args = create_args_func(values_tuple)
+            args = {}
+            for index, (key, field_model) in enumerate(create_args_dict.items()):
+                if field_model is None:
+                    args[key] = values_tuple[index]
+                else:
+                    args[key] = (
+                        field_model.objects.get(name=values_tuple[index])
+                        if values_tuple[index]
+                        else None
+                    )
+
             obj = model(**args)
             create_objs.append(obj)
 
@@ -303,8 +286,9 @@ class CreateForeignKeysImporter(CreateCoversImporter):
         )
         count = len(create_objs)
         if count:
-            vnp = model._meta.verbose_name_plural.title()
-            self.log.info(f"Created {count} {vnp}.")
+            vnp = model._meta.verbose_name_plural
+            title = vnp.title() if vnp else model._meta.verbose_name
+            self.log.info(f"Created {count} {title}.")
         status.add_complete(count)
         self.status_controller.update(status)
 
@@ -334,10 +318,10 @@ class CreateForeignKeysImporter(CreateCoversImporter):
                 self._bulk_create_named_models(names, named_class, status)
 
             # These all depend on bulk_create_named_models running first
-            for model, create_objs, func in self._CREATE_DICT_FUNCTION_MAP:
+            for model, create_objs, create_args_dict in CREATE_DICT_FUNCTION_ARGS:
                 self._bulk_create_dict_models(
                     create_objs,
-                    func,
+                    create_args_dict,
                     model,
                     status,
                 )

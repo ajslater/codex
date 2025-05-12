@@ -9,9 +9,7 @@ from django.db.models import Q
 
 from codex.librarian.importer.const import (
     COMIC_PATHS,
-    CONTRIBUTORS_FIELD_NAME,
     COUNT_FIELDS,
-    DICT_MODEL_FIELD_MODEL_MAP,
     DICT_MODEL_REL_MAP,
     FK_CREATE,
     FKC_CONTRIBUTORS,
@@ -23,12 +21,12 @@ from codex.librarian.importer.const import (
     FKC_TOTAL_FKS,
     FKC_UPDATE_GROUPS,
     GROUP_COMPARE_FIELDS,
-    IDENTIFIERS_FIELD_NAME,
+    IDENTIFIER_URL_FIELD_NAME,
     IMPRINT,
     PUBLISHER,
     QUERY_MODELS,
     SERIES,
-    STORY_ARCS_METADATA_KEY,
+    DictModelType,
 )
 from codex.librarian.importer.query_covers import QueryCustomCoversImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -65,11 +63,12 @@ _EXTRA_UPDATE_FIELDS_MAP = MappingProxyType(
 )
 _DICT_MODEL_KEY_MAP = MappingProxyType(
     {
-        CONTRIBUTORS_FIELD_NAME: FKC_CONTRIBUTORS,
-        STORY_ARCS_METADATA_KEY: FKC_STORY_ARC_NUMBERS,
-        IDENTIFIERS_FIELD_NAME: FKC_IDENTIFIERS,
+        Contributor: FKC_CONTRIBUTORS,
+        StoryArcNumber: FKC_STORY_ARC_NUMBERS,
+        Identifier: FKC_IDENTIFIERS,
     }
 )
+
 LOG = get_logger(__name__)
 
 
@@ -341,81 +340,35 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
     #########
     # DICTS #
     #########
-    @staticmethod
-    def _query_missing_identifiers_model_obj(
-        value_rel_map, key, values, possible_create_objs, url_restore_map
-    ):
-        """Update all_filters and possible_create_objs for identifiers."""
-        # identifiers is unique at this time for having more than one value as a dict.
-        value_filter = Q()
-        # value filter
-        for value in values:
-            values_dict = dict(value)
-            create_obj = (key, values_dict.get("nss", ""))
-            url_restore_map[create_obj] = values_dict.get("url", "")
-            possible_create_objs.add(create_obj)
-            value_sub_filter = Q()
-            for value_key, obj_rel in value_rel_map.items():
-                values_value = values_dict.get(value_key)
-                value_sub_filter &= Q(**{f"{obj_rel}": values_value})
-            if value_sub_filter:
-                value_filter |= value_sub_filter
-
-        return value_filter
-
-    @staticmethod
-    def _query_missing_dict_model_obj(value_rel, key, values, possible_create_objs, _):
-        """Update all_filters and possible_create_objs for this obj."""
-        for value in values:
-            possible_create_objs.add((key, value))
-
-        filter_isnull = None in values
-        filter_values = values - {None}
-
-        if not filter_values and not filter_isnull:
-            return Q()
-
-        value_filter = (
-            Q(**{f"{value_rel}__in": filter_values}) if filter_values else Q()
-        )
-        if filter_isnull:
-            value_filter = value_filter | Q(**{f"{value_rel}__isnull": True})
-
-        return value_filter
-
-    def _query_missing_dict_model_add_to_query_filter_map(  # noqa: PLR0913
+    def _query_missing_dict_model_add_to_query_filter_map(
         self,
-        key,
-        values,
-        field_name,
-        possible_create_objs,
-        query_filter_map,
-        url_restore_map,
+        query_model: DictModelType,
+        dict_values: tuple,
+        possible_create_objs: set[tuple],
+        url_restore_map: dict,
     ):
         """Add value filter to query filter map."""
-        # Get the value filter
-        if field_name == "identifiers":
-            query_missing_method = self._query_missing_identifiers_model_obj
-        else:
-            query_missing_method = self._query_missing_dict_model_obj
-        key_rel, value_rel = DICT_MODEL_REL_MAP[field_name]
+        query_rels = DICT_MODEL_REL_MAP[query_model]
+        filter_dict = {}
+        for rel, value in zip(query_rels, dict_values, strict=True):
+            if rel == IDENTIFIER_URL_FIELD_NAME:
+                url_restore_map[dict_values[0:1]] = value
+            elif value is None:
+                filter_dict[f"{rel}__isnull"] = True
+            else:
+                filter_dict[rel] = value
 
-        value_filter = query_missing_method(
-            value_rel, key, values, possible_create_objs, url_restore_map
-        )
-
-        # Add value_filter to the query_filter_map
-        filter_and_prefix = Q(**{key_rel: key})
-        if filter_and_prefix not in query_filter_map:
-            query_filter_map[filter_and_prefix] = Q()
-        query_filter_map[filter_and_prefix] |= value_filter
+        possible_create_objs.add(dict_values)
+        return Q(**filter_dict)
 
     @staticmethod
     def _query_missing_dict_model_identifiers_restore_urls(
-        field_name, possible_create_objs, url_restore_map
+        query_model: DictModelType,
+        possible_create_objs: set[tuple],
+        url_restore_map: dict,
     ):
         """Restore urls to only the identifier create objs."""
-        if field_name != "identifiers":
+        if query_model != Identifier:
             return possible_create_objs
         restored_create_objs = []
         for create_obj in possible_create_objs:
@@ -423,62 +376,45 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             restored_create_objs.append((*create_obj, url))
         return restored_create_objs
 
-    def _query_missing_dict_model(self, field_name, create_objs_key, status):
+    def _query_missing_dict_model(
+        self, query_model: DictModelType, create_objs_key: str, status
+    ):
         """Find missing dict type m2m models."""
-        possible_objs = self.metadata[QUERY_MODELS].pop(field_name, None)
+        possible_objs = self.metadata[QUERY_MODELS].pop(query_model, None)
         if not possible_objs:
             return 0
 
         # Create possible_create_objs & a query filter map and cache the urls for
         # identifiers to be created, but not queried against
         possible_create_objs = set()
-        query_filter_map = {}
+        query_filter = Q()
         url_restore_map = {}
-        for key, values in possible_objs.items():
-            self._query_missing_dict_model_add_to_query_filter_map(
-                key,
+        for values in possible_objs:
+            query_filter |= self._query_missing_dict_model_add_to_query_filter_map(
+                query_model,
                 values,
-                field_name,
                 possible_create_objs,
-                query_filter_map,
                 url_restore_map,
             )
 
-        # Build combined query object from the value_filter
-        model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
-        if model in (Identifier, Contributor):
-            for filter_and_prefix, value_filter in query_filter_map.items():
-                self._query_create_metadata(
-                    model,
-                    possible_create_objs,
-                    None,
-                    value_filter,
-                    status,
-                    and_q_obj=filter_and_prefix,
-                )
-        else:
-            combined_q_obj = Q()
-            for filter_and_prefix, value_filter in query_filter_map.items():
-                combined_q_obj |= filter_and_prefix & value_filter
-            self._query_create_metadata(
-                model,
-                possible_create_objs,
-                None,
-                combined_q_obj,
-                status,
-            )
-
         # Finally run the query and get only the correct create_objs
+        self._query_create_metadata(
+            query_model,
+            possible_create_objs,
+            None,
+            query_filter,
+            status,
+        )
+
         possible_create_objs = self._query_missing_dict_model_identifiers_restore_urls(
-            field_name, possible_create_objs, url_restore_map
+            query_model, possible_create_objs, url_restore_map
         )
 
         # Final Cleanup
         self.metadata[FK_CREATE][create_objs_key].update(possible_create_objs)
         count = len(self.metadata[FK_CREATE][create_objs_key])
         if count:
-            model = DICT_MODEL_FIELD_MODEL_MAP[field_name]
-            vnp = model._meta.verbose_name_plural
+            vnp = query_model._meta.verbose_name_plural
             vnp = vnp.title() if vnp else "Nothings"
             self.log.info(f"Prepared {count} new {vnp}.")
         status.add_complete(count)
@@ -618,9 +554,9 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         status = Status(ImportStatusTypes.QUERY_MISSING_FKS)
         try:
             self.status_controller.start(status)
-            for field_name, create_objs_key in _DICT_MODEL_KEY_MAP.items():
+            for query_model, create_objs_key in _DICT_MODEL_KEY_MAP.items():
                 self._query_missing_dict_model(
-                    field_name,
+                    query_model,
                     create_objs_key,
                     status,
                 )
@@ -636,7 +572,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
                 self.metadata[QUERY_MODELS].pop(COMIC_PATHS, ()), status
             )
 
-            for fk_class in sorted(self.metadata[QUERY_MODELS].keys()):
+            for fk_class in tuple(self.metadata[QUERY_MODELS].keys()):
                 self._query_one_simple_model(fk_class, status)
             self.metadata.pop(QUERY_MODELS)
         finally:

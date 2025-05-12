@@ -50,7 +50,7 @@ _NUMBER_FIELD_NAME = "number"
 IDENTIFIERS_FIELD_NAME = "identifiers"
 _IDENTIFIER_TYPE_FIELD_NAME = "identifier_type"
 _IDENTIFIER_CODE_FIELD_NAME = "nss"
-_IDENTIFIER_URL_FIELD_NAME = "url"
+IDENTIFIER_URL_FIELD_NAME = "url"
 
 # AGGREGATE
 FIELD_NAME_TO_MD_KEY_MAP = MappingProxyType(
@@ -82,32 +82,34 @@ DICT_MODEL_FOR_VALUE = MappingProxyType(
 )
 
 ## QUERY
-DICT_MODEL_FIELD_MODEL_MAP = MappingProxyType(
-    {
-        CONTRIBUTORS_FIELD_NAME: Contributor,
-        STORY_ARCS_METADATA_KEY: StoryArcNumber,
-        IDENTIFIERS_FIELD_NAME: Identifier,
-    }
-)
+DictModelType = type[Contributor] | type[StoryArcNumber] | type[Identifier]
+
 DICT_MODEL_REL_MAP = MappingProxyType(
     {
-        CONTRIBUTORS_FIELD_NAME: (
+        Contributor: (
             f"{_CONTRIBUTOR_ROLE_FIELD_NAME}__name",
             f"{_CONTRIBUTOR_PERSON_FIELD_NAME}__name",
         ),
-        STORY_ARCS_METADATA_KEY: (
+        StoryArcNumber: (
             f"{STORY_ARC_FIELD_NAME}__name",
             _NUMBER_FIELD_NAME,
         ),
-        IDENTIFIERS_FIELD_NAME: (
+        Identifier: (
             f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
-            {
-                "nss": _IDENTIFIER_CODE_FIELD_NAME,
-            },
+            _IDENTIFIER_CODE_FIELD_NAME,
+            IDENTIFIER_URL_FIELD_NAME,
         ),
     }
 )
 # CREATE
+FKC_CONTRIBUTORS = "create_contributors"
+FKC_STORY_ARC_NUMBERS = "create_story_arc_numbers"
+FKC_IDENTIFIERS = "create_identifiers"
+FKC_CREATE_GROUPS = "create_groups"
+FKC_UPDATE_GROUPS = "update_groups"
+FKC_CREATE_FKS = "create_fks"
+FKC_FOLDER_PATHS = "create_folder_paths"
+FKC_TOTAL_FKS = "total_fks"
 CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
     {
         Contributor: (_CONTRIBUTOR_ROLE_FIELD_NAME, _CONTRIBUTOR_PERSON_FIELD_NAME),
@@ -115,6 +117,20 @@ CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
         Identifier: (_IDENTIFIER_TYPE_FIELD_NAME, _IDENTIFIER_CODE_FIELD_NAME),
     }
 )
+CREATE_DICT_FUNCTION_ARGS = (
+    (
+        Contributor,
+        FKC_CONTRIBUTORS,
+        {"person": ContributorPerson, "role": ContributorRole},
+    ),
+    (StoryArcNumber, FKC_STORY_ARC_NUMBERS, {"story_arc": StoryArc}),
+    (
+        Identifier,
+        FKC_IDENTIFIERS,
+        {"identifier_type": IdentifierType, "nss": None, "url": None},
+    ),
+)
+
 # LINK
 DICT_MODEL_FIELD_NAME_CLASS_MAP = (
     (CONTRIBUTORS_FIELD_NAME, Contributor),
@@ -282,12 +298,3 @@ COMIC_GROUP_FIELD_NAMES = (
     "story_arc_numbers",
     "folders",
 )
-
-FKC_CONTRIBUTORS = "create_contributors"
-FKC_STORY_ARC_NUMBERS = "create_story_arc_numbers"
-FKC_IDENTIFIERS = "create_identifiers"
-FKC_CREATE_GROUPS = "create_groups"
-FKC_UPDATE_GROUPS = "update_groups"
-FKC_CREATE_FKS = "create_fks"
-FKC_FOLDER_PATHS = "create_folder_paths"
-FKC_TOTAL_FKS = "total_fks"
