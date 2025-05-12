@@ -8,7 +8,7 @@ dependencies = [
   "bidict<1.0.0,>=0.23.1",
   "case-converter<2.0.0,>=1.1.0",
   "channels<5.0.0,>=4.0.0",
-  "comicbox[pdf]<3.0.0,>=2.0.0-a2",
+  "comicbox[pdf]<3.0.0,>=2.0.0a3",
   "dateparser<2.0.0,>=1.2.0",
   "django<6.0.0,>=5.2.0",
   "djangorestframework<4.0.0,>=3.15.1",
@@ -332,6 +332,7 @@ ignore-overlong-task-comments = true
   "TRY003",
   "UP031",
 ]
+"tests/*" = ["D101", "D102", "T203"]
 
 [tool.vulture]
 exclude = [
