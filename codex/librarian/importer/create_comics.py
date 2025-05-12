@@ -7,7 +7,7 @@ from codex.librarian.importer.const import (
     BULK_CREATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS_WITH_VALUES,
-    MDS,
+    COMIC_VALUES,
 )
 from codex.librarian.importer.link_comics import LinkComicsImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -23,7 +23,7 @@ class CreateComicsImporter(LinkComicsImporter):
     def _bulk_update_comics_add_comic(self, comic, results):
         """Add one comic and stats to the bulk update list."""
         try:
-            md = self.metadata[MDS].pop(comic.path)
+            md = self.metadata[COMIC_VALUES].pop(comic.path)
             self.get_comic_fk_links(md, comic.path)
             for field_name in BULK_UPDATE_COMIC_FIELDS_WITH_VALUES:
                 value = md.get(field_name)
@@ -105,7 +105,7 @@ class CreateComicsImporter(LinkComicsImporter):
         create_comics = []
         for path in sorted(self.task.files_created):
             try:
-                md = self.metadata[MDS].pop(path, {})
+                md = self.metadata[COMIC_VALUES].pop(path, {})
                 self.get_comic_fk_links(md, path)
                 comic = Comic(**md, library=self.library)
                 comic.presave()
@@ -115,7 +115,7 @@ class CreateComicsImporter(LinkComicsImporter):
             except Exception:
                 self.log.exception(f"Error preparing {path} for create.")
         self.task.files_created = frozenset()
-        self.metadata.pop(MDS)
+        self.metadata.pop(COMIC_VALUES)
 
         num_comics = len(create_comics)
         count = 0

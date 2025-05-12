@@ -108,11 +108,12 @@ class CreateForeignKeysImporter(CreateCoversImporter):
 
         obj = group_class.objects.get(**search_kwargs)
         count_field = COUNT_FIELDS[group_class]
-        obj_count = getattr(obj, count_field)
-        if obj_count is None or group_count > obj_count:
-            setattr(obj, count_field, group_count)
-        else:
-            obj = None
+        if count_field is not None:
+            obj_count = getattr(obj, count_field)
+            if obj_count is None or group_count > obj_count:
+                setattr(obj, count_field, group_count)
+            else:
+                obj = None
         return obj
 
     def _bulk_group_create(self, group_tree_counts, group_class, status):

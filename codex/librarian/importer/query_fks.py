@@ -11,7 +11,6 @@ from codex.librarian.importer.const import (
     COMIC_PATHS,
     CONTRIBUTORS_FIELD_NAME,
     COUNT_FIELDS,
-    DICT_MODEL_CLASS_FIELDS_MAP,
     DICT_MODEL_FIELD_MODEL_MAP,
     DICT_MODEL_REL_MAP,
     FK_CREATE,
@@ -23,13 +22,11 @@ from codex.librarian.importer.const import (
     FKC_STORY_ARC_NUMBERS,
     FKC_TOTAL_FKS,
     FKC_UPDATE_GROUPS,
-    FKS,
     GROUP_COMPARE_FIELDS,
-    GROUP_TREES,
     IDENTIFIERS_FIELD_NAME,
     IMPRINT,
-    PARENT_FOLDER,
     PUBLISHER,
+    QUERY_MODELS,
     SERIES,
     STORY_ARCS_METADATA_KEY,
 )
@@ -37,7 +34,6 @@ from codex.librarian.importer.query_covers import QueryCustomCoversImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.logger.logger import get_logger
 from codex.models import (
-    Comic,
     Contributor,
     Folder,
     Imprint,
@@ -46,7 +42,9 @@ from codex.models import (
     StoryArcNumber,
     Volume,
 )
-from codex.models.named import Identifier
+from codex.models.base import BaseModel
+from codex.models.groups import BrowserGroupModel
+from codex.models.named import Identifier, NamedModel
 from codex.settings.settings import FILTER_BATCH_SIZE
 from codex.status import Status
 
@@ -81,12 +79,8 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
     def _get_query_fks_totals(self):
         """Get the query foreign keys totals."""
         fks_total = 0
-        for key, objs in self.metadata[FKS].items():
-            if key == GROUP_TREES:
-                for groups in objs.values():
-                    fks_total += len(groups)
-            else:
-                fks_total += len(objs)
+        for objs in self.metadata[QUERY_MODELS].values():
+            fks_total += len(objs)
         return fks_total
 
     @staticmethod
@@ -222,15 +216,21 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
         status.add_complete(1)
 
     @staticmethod
-    def _prune_group_updates_get_filter(group_cls, update_group_trees):
+    def _prune_group_updates_get_filter(
+        group_cls: type[BrowserGroupModel],
+        update_group_trees: dict[tuple[str, ...], int | None],
+    ):
         """Construct the big filter for groups."""
-        count_field_name = COUNT_FIELDS[group_cls]
         compare_fields = GROUP_COMPARE_FIELDS[group_cls]
+        count_field_name = COUNT_FIELDS[group_cls]
 
         group_filter = Q()
         for group_tree, count_value in update_group_trees.items():
-            compare_filter = dict(zip(compare_fields, group_tree, strict=False))
-            compare_filter[count_field_name] = count_value
+            compare_filter: dict[str, str | int | None] = dict(
+                zip(compare_fields, group_tree, strict=False)
+            )
+            if count_field_name:
+                compare_filter[count_field_name] = count_value
             group_filter |= Q(**compare_filter)
         return group_filter
 
@@ -425,7 +425,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
     def _query_missing_dict_model(self, field_name, create_objs_key, status):
         """Find missing dict type m2m models."""
-        possible_objs = self.metadata[FKS].pop(field_name, None)
+        possible_objs = self.metadata[QUERY_MODELS].pop(field_name, None)
         if not possible_objs:
             return 0
 
@@ -489,26 +489,26 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
     # SIMPLE #
     ##########
 
-    def _query_missing_simple_models(self, names, fk_data, status):
+    def _query_missing_simple_models(
+        self, names, create_fks, fk_cls: type[BaseModel], fk_field_name, status
+    ):
         """Find missing named models and folders."""
         if not names:
             return 0
-        create_fks, base_cls, field, fk_field = fk_data
-
-        fk_cls = base_cls._meta.get_field(field).related_model
 
         start = 0
         proposed_names = list(names)
         create_names = set(names)
         num_proposed_names = len(proposed_names)
 
-        vnp = fk_cls._meta.verbose_name_plural.title()
-        status.subtitle = vnp
+        vnp = fk_cls._meta.verbose_name_plural
+        title = vnp.title() if vnp else ""
+        status.subtitle = title
         while start < num_proposed_names:
             # Do this in batches so as not to exceed the 1k line sqlite limit
             end = start + FILTER_BATCH_SIZE
             batch_proposed_names = proposed_names[start:end]
-            filter_args = {f"{fk_field}__in": batch_proposed_names}
+            filter_args = {f"{fk_field_name}__in": batch_proposed_names}
             fk_filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, fk_filter)
             num_in_batch = len(batch_proposed_names)
@@ -526,22 +526,17 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
             level = INFO
         else:
             level = DEBUG
-        self.log.log(level, f"Prepared {len(create_names)} new {vnp}.")
+        self.log.log(level, f"Prepared {len(create_names)} new {title}.")
         return len(names)
 
-    def _query_one_simple_model(self, fk_field, status):
+    def _query_one_simple_model(self, fk_model: type[NamedModel], status):
         """Batch query one simple model name."""
-        for cls, names in DICT_MODEL_CLASS_FIELDS_MAP.items():
-            if fk_field in names:
-                base_cls = cls
-                break
-        else:
-            base_cls = Comic
-        fk_data = self.metadata[FK_CREATE][FKC_CREATE_FKS], base_cls, fk_field, "name"
-        names = self.metadata[FKS].pop(fk_field)
+        names = self.metadata[QUERY_MODELS].pop(fk_model)
         count = self._query_missing_simple_models(
             names,
-            fk_data,
+            self.metadata[FK_CREATE][FKC_CREATE_FKS],
+            fk_model,
+            "name",
             status,
         )
         status.add_complete(count)
@@ -566,10 +561,11 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
         # get the create metadata
         create_folder_paths_dict = {}
-        fk_data = (create_folder_paths_dict, Comic, PARENT_FOLDER, "path")
         self._query_missing_simple_models(
             proposed_folder_paths,
-            fk_data,
+            create_folder_paths_dict,
+            Folder,
+            "path",
             status,
         )
         create_folder_paths = create_folder_paths_dict.get(Folder, set())
@@ -605,7 +601,7 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
 
     def query_all_missing_fks(self):
         """Get objects to create by querying existing objects for the proposed fks."""
-        if FKS not in self.metadata:
+        if QUERY_MODELS not in self.metadata:
             return
         self.metadata[FK_CREATE] = {
             FKC_CONTRIBUTORS: set(),
@@ -628,20 +624,21 @@ class QueryForeignKeysImporter(QueryCustomCoversImporter):
                     create_objs_key,
                     status,
                 )
-            for group_class, groups in self.metadata[FKS].pop(GROUP_TREES, {}).items():
-                self._query_missing_group(
-                    groups,
-                    group_class,
-                    status,
-                )
+            for group_class in COUNT_FIELDS:
+                if groups := self.metadata[QUERY_MODELS].pop(group_class, None):
+                    self._query_missing_group(
+                        groups,
+                        group_class,
+                        status,
+                    )
 
             self._add_missing_folder_paths(
-                self.metadata[FKS].pop(COMIC_PATHS, ()), status
+                self.metadata[QUERY_MODELS].pop(COMIC_PATHS, ()), status
             )
 
-            for fk_field in sorted(self.metadata[FKS].keys()):
-                self._query_one_simple_model(fk_field, status)
-            self.metadata.pop(FKS)
+            for fk_class in sorted(self.metadata[QUERY_MODELS].keys()):
+                self._query_one_simple_model(fk_class, status)
+            self.metadata.pop(QUERY_MODELS)
         finally:
             self.status_controller.finish(status)
 

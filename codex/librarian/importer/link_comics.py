@@ -6,12 +6,13 @@ from pathlib import Path
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
-    COMIC_FK_FIELD_NAMES,
+    COMIC_FK_FIELD_NAME_AND_MODEL,
     DICT_MODEL_FIELD_NAME_CLASS_MAP,
     DICT_MODEL_REL_LINK_MAP,
+    FK_LINK,
     FOLDERS_FIELD,
     IMPRINT,
-    M2M_MDS,
+    M2M_LINK,
     PARENT_FOLDER,
     PUBLISHER,
     SERIES,
@@ -36,19 +37,17 @@ from codex.status import Status
 class LinkComicsImporter(LinkCoversImporter):
     """Link comics methods."""
 
-    @staticmethod
-    def _get_group_name(group_class, md):
+    def _get_group_name(self, path, group_class):
         """Get the name of the browse group."""
         field_name = group_class.__name__.lower()
-        return md.get(field_name, group_class.DEFAULT_NAME)
+        return self.metadata[FK_LINK][path].pop(field_name, group_class.DEFAULT_NAME)
 
-    @classmethod
-    def get_comic_fk_links(cls, md, path):
+    def get_comic_fk_links(self, md, path):
         """Get links for all foreign keys for creating and updating."""
-        publisher_name = cls._get_group_name(Publisher, md)
-        imprint_name = cls._get_group_name(Imprint, md)
-        series_name = cls._get_group_name(Series, md)
-        volume_name = cls._get_group_name(Volume, md)
+        publisher_name = self._get_group_name(path, Publisher)
+        imprint_name = self._get_group_name(path, Imprint)
+        series_name = self._get_group_name(path, Series)
+        volume_name = self._get_group_name(path, Volume)
         md[PUBLISHER] = Publisher.objects.get(name=publisher_name)
         md[IMPRINT] = Imprint.objects.get(
             publisher__name=publisher_name, name=imprint_name
@@ -64,10 +63,10 @@ class LinkComicsImporter(LinkCoversImporter):
         )
         parent_path = Path(path).parent
         md[PARENT_FOLDER] = Folder.objects.get(path=parent_path)
-        for field_name in COMIC_FK_FIELD_NAMES:
-            name = md.pop(field_name, None)
-            if name and (fk_class := Comic._meta.get_field(field_name).related_model):
-                md[field_name] = fk_class.objects.get(name=name)
+        for field_name, fk_model in COMIC_FK_FIELD_NAME_AND_MODEL.items():
+            if name := self.metadata[FK_LINK][path].pop(field_name, None):
+                md[field_name] = fk_model.objects.get(name=name)
+        self.metadata[FK_LINK].pop(path)
 
     @staticmethod
     def _get_link_folders_filter(_field_name, folder_paths):
@@ -131,12 +130,12 @@ class LinkComicsImporter(LinkCoversImporter):
         """Get the complete m2m field data to create."""
         total = 0
         all_m2m_links = {}
-        comic_paths = frozenset(self.metadata.get(M2M_MDS, {}).keys())
+        comic_paths = frozenset(self.metadata.get(M2M_LINK, {}).keys())
         if not comic_paths:
             return all_m2m_links, total
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
-            md = self.metadata[M2M_MDS][comic_path]
+            md = self.metadata[M2M_LINK][comic_path]
             link_data = (all_m2m_links, md, comic_pk)
             self._link_prepare_special_m2ms(
                 link_data, FOLDERS_FIELD, Folder, self._get_link_folders_filter
@@ -149,7 +148,7 @@ class LinkComicsImporter(LinkCoversImporter):
                 self._link_prepare_special_m2ms(link_data, field_name, model, method)
 
             total += self._link_named_m2ms(all_m2m_links, comic_pk, md)
-        self.metadata.pop(M2M_MDS)
+        self.metadata.pop(M2M_LINK)
         return all_m2m_links, total
 
     def _query_relation_adjustments(
