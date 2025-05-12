@@ -12,7 +12,7 @@ from codex.librarian.importer.const import (
     SERIES,
     VOLUME_COUNT,
 )
-from codex.librarian.importer.create_covers import CreateCoversImporter
+from codex.librarian.importer.create_fks.covers import CreateCoversImporter
 from codex.models import (
     CustomCover,
     Imprint,

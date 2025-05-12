@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 from django.db.models import Q
 
-from codex.librarian.importer.query_covers import QueryCustomCoversImporter
+from codex.librarian.importer.query_fks.covers import QueryCustomCoversImporter
 from codex.models import (
     Contributor,
     Folder,
