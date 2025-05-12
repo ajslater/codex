@@ -53,7 +53,6 @@ METADATA = MappingProxyType(
         QUERY_MODELS: {
             AgeRating: {"Everyone"},
             # alternate_images ignored
-            # "arcs" future
             Character: {"Captain Science", "Boy Empirical"},
             "comic_paths": frozenset({PATH}),
             Contributor: {
@@ -64,7 +63,7 @@ METADATA = MappingProxyType(
             ContributorRole: {"Penciller", "Writer"},
             Country: {"US"},
             # credit_primaries ignored
-            # "designation": "4242", future
+            # Designation: "4242", future
             Genre: {"Science Fiction"},
             Language: {"en"},
             Location: {"The Moon"},
@@ -97,8 +96,8 @@ METADATA = MappingProxyType(
             # prices future
             # "stories": ["The Beginning"] future
             StoryArc: {"d", "e", "f"},
-            StoryArcNumber: {("d", 1), ("e", 3), ("f", 5)},  # BUG WRONG NOT TUPLE
-            # "universes": {"Young Adult Silly Universe": "4242"}, future
+            StoryArcNumber: {("d", 1), ("e", 3), ("f", 5)},
+            # "universes": {("Young Adult Silly Universe", "4242")}, future
         },
         COMIC_VALUES: {
             PATH: {
@@ -133,6 +132,7 @@ METADATA = MappingProxyType(
                 "language": "en",
                 "original_format": "Trade Paperback",
                 "publisher": {("Youthful Adventure Stories",): None},
+                # protagonist
                 "series": {
                     (
                         "Youthful Adventure Stories",
@@ -168,10 +168,12 @@ METADATA = MappingProxyType(
                     )
                 },
                 "locations": {"The Moon"},
+                # reprints add
                 "series_groups": {"science comics"},
                 "story_arc_numbers": {("d", 1), ("e", 3), ("f", 5)},
                 "tags": {"a", "b", "c"},
                 "teams": {"Team Scientific Method"},
+                # "universes": { "Silly Universe": { "designation": "4242"}}
             }
         },
     }
