@@ -1,0 +1,69 @@
+"""Query the missing foreign keys for folders."""
+
+from pathlib import Path
+from types import MappingProxyType
+
+from codex.librarian.importer.const import (
+    FK_CREATE,
+    FKC_CONTRIBUTORS,
+    FKC_FOLDER_PATHS,
+    FKC_IDENTIFIERS,
+    FKC_STORY_ARC_NUMBERS,
+)
+from codex.librarian.importer.query_fks.simple import QueryForeignKeysSimpleImporter
+from codex.models import (
+    Contributor,
+    Folder,
+    StoryArcNumber,
+)
+from codex.models.named import Identifier
+
+_DICT_MODEL_KEY_MAP = MappingProxyType(
+    {
+        Contributor: FKC_CONTRIBUTORS,
+        StoryArcNumber: FKC_STORY_ARC_NUMBERS,
+        Identifier: FKC_IDENTIFIERS,
+    }
+)
+
+
+class QueryForeignKeysFoldersImporter(QueryForeignKeysSimpleImporter):
+    """Methods for querying missing folders."""
+
+    def query_missing_folder_paths(
+        self,
+        comic_paths,
+        status,
+    ):
+        """Find missing folder paths."""
+        # Get the proposed folder_paths
+        library_path = Path(self.library.path)
+        proposed_folder_paths = set()
+        for comic_path in comic_paths:
+            for path in Path(comic_path).parents:
+                if path.is_relative_to(library_path):
+                    proposed_folder_paths.add(str(path))
+
+        # get the create metadata
+        create_folder_paths_dict = {}
+        self._query_missing_simple_models(
+            proposed_folder_paths,
+            create_folder_paths_dict,
+            Folder,
+            "path",
+            status,
+        )
+        create_folder_paths = create_folder_paths_dict.get(Folder, set())
+        return frozenset(create_folder_paths)
+
+    def add_missing_folder_paths(self, comic_paths, status):
+        """Add missing folder paths to create set."""
+        create_folder_paths = self.query_missing_folder_paths(comic_paths, status)
+        """Add missing folder_paths to create fks."""
+        if FK_CREATE not in self.metadata:
+            self.metadata[FK_CREATE] = {}
+        if FKC_FOLDER_PATHS not in self.metadata[FK_CREATE]:
+            self.metadata[FK_CREATE][FKC_FOLDER_PATHS] = set()
+        self.metadata[FK_CREATE][FKC_FOLDER_PATHS] |= create_folder_paths
+        if count := len(create_folder_paths):
+            self.log.info(f"Prepared {count} new Folders.")
