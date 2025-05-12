@@ -5,12 +5,13 @@ from rest_framework.serializers import (
     CharField,
     DateTimeField,
     Serializer,
+    SerializerMetaclass,
 )
 
 from codex.serializers.models.base import BaseModelSerializer
 
 
-class PasswordSerializerMixin:
+class PasswordSerializerMixin(metaclass=SerializerMetaclass):
     """Password Serializer Mixin."""
 
     password = CharField(write_only=True)

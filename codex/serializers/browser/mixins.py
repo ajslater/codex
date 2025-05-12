@@ -8,6 +8,7 @@ from rest_framework.serializers import (
     DecimalField,
     IntegerField,
     ListField,
+    SerializerMetaclass,
     SerializerMethodField,
 )
 
@@ -19,7 +20,7 @@ from codex.views.const import EPOCH_START
 LOG = get_logger(__name__)
 
 
-class BrowserAggregateSerializerMixin:
+class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser, opds & metadata serializers."""
 
     group = TopGroupField(read_only=True)

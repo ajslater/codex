@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from rest_framework.fields import BooleanField, CharField
 from rest_framework.serializers import (
     Serializer,
+    SerializerMetaclass,
     SerializerMethodField,
 )
 
@@ -48,13 +49,13 @@ class UserSerializer(BaseModelSerializer):
         read_only_fields = fields
 
 
-class TimezoneSerializerMixin:
+class TimezoneSerializerMixin(metaclass=SerializerMetaclass):
     """Serialize Timezone submission from front end."""
 
     timezone = TimezoneField(write_only=True)
 
 
-class TimezoneSerializer(Serializer, TimezoneSerializerMixin):
+class TimezoneSerializer(TimezoneSerializerMixin, Serializer):
     """Serialize Timezone submission from front end."""
 
 
