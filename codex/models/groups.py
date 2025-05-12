@@ -115,7 +115,6 @@ class Volume(BrowserGroupModel):
     class Meta(BrowserGroupModel.Meta):
         """Constraints."""
 
-        exclude = ("sort_name", "custom_cover")
         unique_together = ("name", "series")
 
     @classmethod
