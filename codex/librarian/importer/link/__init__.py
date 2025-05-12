@@ -1,72 +1,29 @@
 """Bulk update m2m fields."""
 
 from collections.abc import Mapping
-from pathlib import Path
 
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
-    COMIC_FK_FIELD_NAME_AND_MODEL,
     DICT_MODEL_FIELD_NAME_CLASS_MAP,
     DICT_MODEL_REL_LINK_MAP,
-    FK_LINK,
     FOLDERS_FIELD,
-    IMPRINT,
     M2M_LINK,
-    PARENT_FOLDER,
-    PUBLISHER,
-    SERIES,
     STORY_ARC_NUMBERS_FK_NAME,
     STORY_ARCS_METADATA_KEY,
-    VOLUME,
 )
-from codex.librarian.importer.link_covers import LinkCoversImporter
+from codex.librarian.importer.link.foreign_keys import LinkComicForiegnKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Comic,
     Folder,
-    Imprint,
-    Publisher,
-    Series,
-    Volume,
 )
 from codex.models.named import Identifier
 from codex.status import Status
 
 
-class LinkComicsImporter(LinkCoversImporter):
+class LinkComicsImporter(LinkComicForiegnKeysImporter):
     """Link comics methods."""
-
-    def _get_group_name(self, path, group_class):
-        """Get the name of the browse group."""
-        field_name = group_class.__name__.lower()
-        return self.metadata[FK_LINK][path].pop(field_name, group_class.DEFAULT_NAME)
-
-    def get_comic_fk_links(self, md, path):
-        """Get links for all foreign keys for creating and updating."""
-        publisher_name = self._get_group_name(path, Publisher)
-        imprint_name = self._get_group_name(path, Imprint)
-        series_name = self._get_group_name(path, Series)
-        volume_name = self._get_group_name(path, Volume)
-        md[PUBLISHER] = Publisher.objects.get(name=publisher_name)
-        md[IMPRINT] = Imprint.objects.get(
-            publisher__name=publisher_name, name=imprint_name
-        )
-        md[SERIES] = Series.objects.get(
-            publisher__name=publisher_name, imprint__name=imprint_name, name=series_name
-        )
-        md[VOLUME] = Volume.objects.get(
-            publisher__name=publisher_name,
-            imprint__name=imprint_name,
-            series__name=series_name,
-            name=volume_name,
-        )
-        parent_path = Path(path).parent
-        md[PARENT_FOLDER] = Folder.objects.get(path=parent_path)
-        for field_name, fk_model in COMIC_FK_FIELD_NAME_AND_MODEL.items():
-            if name := self.metadata[FK_LINK][path].pop(field_name, None):
-                md[field_name] = fk_model.objects.get(name=name)
-        self.metadata[FK_LINK].pop(path)
 
     @staticmethod
     def _get_link_folders_filter(_field_name, folder_paths):
@@ -93,6 +50,22 @@ class LinkComicsImporter(LinkCoversImporter):
             dict_filter |= Q(**rel_dict)
         return dict_filter
 
+    def _link_prepare_special_m2ms(self, link_data, key, model, get_link_filter_method):
+        """Prepare special m2m for linking."""
+        (all_m2m_links, md, comic_pk) = link_data
+        values = md.pop(key, [])
+        if not values:
+            return
+        if key == STORY_ARCS_METADATA_KEY:
+            key = STORY_ARC_NUMBERS_FK_NAME
+        if key not in all_m2m_links:
+            all_m2m_links[key] = {}
+
+        m2m_filter = get_link_filter_method(key, values)
+        pks = model.objects.filter(m2m_filter).values_list("pk", flat=True).distinct()
+        result = frozenset(pks)
+        all_m2m_links[key][comic_pk] = result
+
     def _link_named_m2ms(self, all_m2m_links, comic_pk, md):
         """Set the ids of all named m2m fields into the comic dict."""
         total = 0
@@ -110,22 +83,6 @@ class LinkComicsImporter(LinkCoversImporter):
             total += len(pks)
         return total
 
-    def _link_prepare_special_m2ms(self, link_data, key, model, get_link_filter_method):
-        """Prepare special m2m for linking."""
-        (all_m2m_links, md, comic_pk) = link_data
-        values = md.pop(key, [])
-        if not values:
-            return
-        if key == STORY_ARCS_METADATA_KEY:
-            key = STORY_ARC_NUMBERS_FK_NAME
-        if key not in all_m2m_links:
-            all_m2m_links[key] = {}
-
-        m2m_filter = get_link_filter_method(key, values)
-        pks = model.objects.filter(m2m_filter).values_list("pk", flat=True).distinct()
-        result = frozenset(pks)
-        all_m2m_links[key][comic_pk] = result
-
     def _link_comic_m2m_fields(self) -> tuple[Mapping, int]:
         """Get the complete m2m field data to create."""
         total = 0
@@ -141,10 +98,11 @@ class LinkComicsImporter(LinkCoversImporter):
                 link_data, FOLDERS_FIELD, Folder, self._get_link_folders_filter
             )
             for field_name, model in DICT_MODEL_FIELD_NAME_CLASS_MAP:
-                if model == Identifier:
-                    method = self._get_link_identifier_filter
-                else:
-                    method = self._get_link_dict_filter
+                method = (
+                    self._get_link_identifier_filter
+                    if model == Identifier
+                    else self._get_link_dict_filter
+                )
                 self._link_prepare_special_m2ms(link_data, field_name, model, method)
 
             total += self._link_named_m2ms(all_m2m_links, comic_pk, md)

@@ -9,7 +9,7 @@ from codex.librarian.importer.const import (
     BULK_UPDATE_COMIC_FIELDS_WITH_VALUES,
     COMIC_VALUES,
 )
-from codex.librarian.importer.link_comics import LinkComicsImporter
+from codex.librarian.importer.link import LinkComicsImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Comic,
