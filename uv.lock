@@ -256,7 +256,7 @@ wheels = [
 
 [[package]]
 name = "cairosvg"
-version = "2.7.1"
+version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cairocffi" },
@@ -265,9 +265,9 @@ dependencies = [
     { name = "pillow" },
     { name = "tinycss2" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d5/e6/ec5900b724e3c44af7f6f51f719919137284e5da4aabe96508baec8a1b40/CairoSVG-2.7.1.tar.gz", hash = "sha256:432531d72347291b9a9ebfb6777026b607563fd8719c46ee742db0aef7271ba0", size = 8399085, upload-time = "2023-08-05T09:08:05.75Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/2b/2bad43cd8047663f8fb768a0a6aef48fc8346e276a274bec3710f84bab63/cairosvg-2.8.0.tar.gz", hash = "sha256:d60fe75c238ffba3f8e21e06dad8727ecd2bcef8d3d55fc11f9286c08c5cc710", size = 8398397, upload-time = "2025-05-12T11:36:41.354Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/a5/1866b42151f50453f1a0d28fc4c39f5be5f412a2e914f33449c42daafdf1/CairoSVG-2.7.1-py3-none-any.whl", hash = "sha256:8a5222d4e6c3f86f1f7046b63246877a63b49923a1cd202184c3a634ef546b3b", size = 43235, upload-time = "2023-08-05T09:08:01.583Z" },
+    { url = "https://files.pythonhosted.org/packages/18/ed/e04ffd1043a47b4510fd8a1e0c4e1c6b5b27922ef53a578739ed3cfd1f32/cairosvg-2.8.0-py3-none-any.whl", hash = "sha256:f15836feea67a680f79938edf2efdd162793526b0b1cc2fd9ec257ebeafe2946", size = 45746, upload-time = "2025-05-12T11:36:37.364Z" },
 ]
 
 [[package]]
