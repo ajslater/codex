@@ -5,10 +5,12 @@ from collections.abc import Mapping
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
-    DICT_MODEL_FIELD_NAME_CLASS_MAP,
-    DICT_MODEL_REL_LINK_MAP,
     FOLDERS_FIELD,
     M2M_LINK,
+)
+from codex.librarian.importer.link.const import (
+    DICT_MODEL_FIELD_NAME_CLASS_MAP,
+    DICT_MODEL_REL_LINK_MAP,
 )
 from codex.librarian.importer.link.foreign_keys import LinkComicForiegnKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes

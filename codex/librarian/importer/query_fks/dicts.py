@@ -3,12 +3,12 @@
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
-    DICT_MODEL_REL_MAP,
     FK_CREATE,
     IDENTIFIER_URL_FIELD_NAME,
     QUERY_MODELS,
     DictModelType,
 )
+from codex.librarian.importer.query_fks.const import DICT_MODEL_REL_MAP
 from codex.librarian.importer.query_fks.groups import QueryForeignKeysGroupsImporter
 from codex.models.named import Identifier
 

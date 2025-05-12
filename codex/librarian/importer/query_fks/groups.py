@@ -3,15 +3,15 @@
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
-    COUNT_FIELDS,
     FK_CREATE,
     FKC_CREATE_GROUPS,
     FKC_UPDATE_GROUPS,
-    GROUP_COMPARE_FIELDS,
+    GROUP_MODEL_COUNT_FIELDS,
     IMPRINT,
     PUBLISHER,
     SERIES,
 )
+from codex.librarian.importer.query_fks.const import GROUP_COMPARE_FIELDS
 from codex.librarian.importer.query_fks.query import QueryForeignKeysQueryImporter
 from codex.models import (
     Imprint,
@@ -109,7 +109,7 @@ class QueryForeignKeysGroupsImporter(QueryForeignKeysQueryImporter):
     ):
         """Construct the big filter for groups."""
         compare_fields = GROUP_COMPARE_FIELDS[group_cls]
-        count_field_name = COUNT_FIELDS[group_cls]
+        count_field_name = GROUP_MODEL_COUNT_FIELDS[group_cls]
 
         group_filter = Q()
         for group_tree, count_value in update_group_trees.items():
@@ -124,7 +124,7 @@ class QueryForeignKeysGroupsImporter(QueryForeignKeysQueryImporter):
     @staticmethod
     def _prune_group_updates_get_exists(group_cls, group_filter):
         """Query the db to create an exists_dict for comparison."""
-        count_field_name = COUNT_FIELDS[group_cls]
+        count_field_name = GROUP_MODEL_COUNT_FIELDS[group_cls]
         compare_fields = GROUP_COMPARE_FIELDS[group_cls]
 
         exist_dict = {}

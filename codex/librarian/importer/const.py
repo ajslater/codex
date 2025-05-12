@@ -3,49 +3,38 @@
 from types import MappingProxyType
 
 from bidict import bidict
-from comicbox.identifiers.const import NSS_KEY, URL_KEY
-from comicbox.schemas.comicbox import (
-    ARCS_KEY,
-    CREDITS_KEY,
-    IDENTIFIERS_KEY,
-    NUMBER_KEY,
-    ROLES_KEY,
-)
-from django.db.models import ForeignObjectRel
+from django.db.models import ForeignObjectRel, ManyToManyField
 from django.db.models.fields import Field
-from django.db.models.fields.related import ManyToManyField
-from django.db.models.query_utils import DeferredAttribute
 
 from codex.models import (
     Comic,
-    Contributor,
     Folder,
     Imprint,
     Publisher,
     Series,
     StoryArc,
-    StoryArcNumber,
     Volume,
 )
 from codex.models.groups import BrowserGroupModel
-from codex.models.named import (
-    ContributorPerson,
-    ContributorRole,
-    Identifier,
-    IdentifierType,
-)
+from codex.models.named import Contributor, Identifier, StoryArcNumber
 from codex.models.paths import CustomCover
 
-#########
-# KEYS #
-#########
+###############
+# FIELD NAMES #
+###############
 FOLDERS_FIELD = "folders"
-COMIC_PATHS = "comic_paths"
 PUBLISHER = "publisher"
 IMPRINT = "imprint"
 VOLUME = "volume"
 SERIES = "series"
 PARENT_FOLDER = "parent_folder"
+VOLUME_COUNT = "volume_count"
+ISSUE_COUNT = "issue_count"
+
+##########################
+# IMPORTER METADATA KEYS #
+##########################
+COMIC_PATHS = "comic_paths"
 COMIC_VALUES = "comic_values"
 M2M_LINK = "m2m_link"
 FK_LINK = "fk_link"
@@ -55,117 +44,6 @@ FK_CREATE = "fk_create"
 COVERS_UPDATE = "covers_update"
 COVERS_CREATE = "covers_create"
 LINK_COVER_PKS = "link_cover_pks"
-CLASS_CUSTOM_COVER_GROUP_MAP = bidict(
-    {
-        Publisher: CustomCover.GroupChoice.P.value,
-        Imprint: CustomCover.GroupChoice.I.value,
-        Series: CustomCover.GroupChoice.S.value,
-        StoryArc: CustomCover.GroupChoice.A.value,
-        Folder: CustomCover.GroupChoice.F.value,
-    }
-)
-_COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
-    field
-    for field in Comic._meta.get_fields()
-    if field
-    and field.many_to_one
-    and field.name != "library"
-    and field.related_model
-    and not issubclass(field.related_model, BrowserGroupModel)
-)
-
-#################
-# DICT METADATA #
-#################
-_CONTRIBUTORS_FIELD_NAME = "contributors"
-_CONTRIBUTOR_PERSON_FIELD_NAME = "person"
-_CONTRIBUTOR_ROLE_FIELD_NAME = "role"
-_STORY_ARC_NUMBERS_FIELD_NAME = "story_arc_numbers"
-_STORY_ARC_NUMBER_FK_NAME = "story_arc_number"
-_STORY_ARC_FIELD_NAME = "story_arc"
-_NUMBER_FIELD_NAME = "number"
-_IDENTIFIERS_FIELD_NAME = "identifiers"
-_IDENTIFIER_TYPE_FIELD_NAME = "identifier_type"
-_IDENTIFIER_CODE_FIELD_NAME = "nss"
-IDENTIFIER_URL_FIELD_NAME = "url"
-
-#############
-# AGGREGATE #
-#############
-FIELD_NAME_TO_MD_KEY_MAP = MappingProxyType(
-    {_STORY_ARC_NUMBERS_FIELD_NAME: ARCS_KEY, _CONTRIBUTORS_FIELD_NAME: CREDITS_KEY}
-)
-DICT_MODEL_AGG_MAP: MappingProxyType[str, dict[str, DeferredAttribute]] = (  # pyright: ignore[reportAssignmentType]
-    MappingProxyType(
-        {
-            _CONTRIBUTORS_FIELD_NAME: {ROLES_KEY: ContributorRole.name},
-            _IDENTIFIERS_FIELD_NAME: {NSS_KEY: Identifier.nss, URL_KEY: Identifier.url},
-            _STORY_ARC_NUMBERS_FIELD_NAME: {NUMBER_KEY: StoryArcNumber.number},
-        }
-    )
-)
-DICT_MODEL_SUB_FIELDS = MappingProxyType(
-    {
-        CREDITS_KEY: ContributorPerson,
-        ROLES_KEY: ContributorRole,
-        IDENTIFIERS_KEY: IdentifierType,
-        ARCS_KEY: StoryArc,
-    }
-)
-DICT_MODEL_FOR_VALUE = MappingProxyType(
-    {
-        ARCS_KEY: StoryArcNumber,
-        CREDITS_KEY: Contributor,
-        IDENTIFIERS_KEY: IdentifierType,
-    }
-)
-COMIC_FK_FIELD_NAMES: MappingProxyType[str, Field] = MappingProxyType(
-    {
-        field.name: field.related_model._meta.get_field("name")
-        for field in _COMIC_FK_FIELDS
-        if field.related_model
-    }
-)
-
-
-#########
-# QUERY #
-#########
-DictModelType = type[Contributor] | type[StoryArcNumber] | type[Identifier]
-DICT_MODEL_REL_MAP = MappingProxyType(
-    {
-        Contributor: (
-            f"{_CONTRIBUTOR_ROLE_FIELD_NAME}__name",
-            f"{_CONTRIBUTOR_PERSON_FIELD_NAME}__name",
-        ),
-        StoryArcNumber: (
-            f"{_STORY_ARC_FIELD_NAME}__name",
-            _NUMBER_FIELD_NAME,
-        ),
-        Identifier: (
-            f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
-            _IDENTIFIER_CODE_FIELD_NAME,
-            IDENTIFIER_URL_FIELD_NAME,
-        ),
-    }
-)
-VOLUME_COUNT = "volume_count"
-ISSUE_COUNT = "issue_count"
-COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] = MappingProxyType(
-    {Publisher: None, Imprint: None, Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
-)
-GROUP_COMPARE_FIELDS: MappingProxyType[type[BrowserGroupModel], tuple[str, ...]] = (
-    MappingProxyType(
-        {
-            Series: ("publisher__name", "imprint__name", "name"),
-            Volume: ("publisher__name", "imprint__name", "series__name", "name"),
-        }
-    )
-)
-
-##########
-# CREATE #
-##########
 FKC_CONTRIBUTORS = "create_contributors"
 FKC_STORY_ARC_NUMBERS = "create_story_arc_numbers"
 FKC_IDENTIFIERS = "create_identifiers"
@@ -174,74 +52,15 @@ FKC_UPDATE_GROUPS = "update_groups"
 FKC_CREATE_FKS = "create_fks"
 FKC_FOLDER_PATHS = "create_folder_paths"
 FKC_TOTAL_FKS = "total_fks"
-CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
-    {
-        Contributor: (_CONTRIBUTOR_ROLE_FIELD_NAME, _CONTRIBUTOR_PERSON_FIELD_NAME),
-        StoryArcNumber: (_STORY_ARC_FIELD_NAME, _NUMBER_FIELD_NAME),
-        Identifier: (_IDENTIFIER_TYPE_FIELD_NAME, _IDENTIFIER_CODE_FIELD_NAME),
-    }
-)
-CREATE_DICT_FUNCTION_ARGS = (
-    (
-        Contributor,
-        FKC_CONTRIBUTORS,
-        {"person": ContributorPerson, "role": ContributorRole},
-    ),
-    (StoryArcNumber, FKC_STORY_ARC_NUMBERS, {"story_arc": StoryArc}),
-    (
-        Identifier,
-        FKC_IDENTIFIERS,
-        {"identifier_type": IdentifierType, "nss": None, "url": None},
-    ),
-)
-GROUP_BASE_FIELDS = ("name", "sort_name")
 
 
-def _create_group_update_fields():
-    guf = {}
-    fields = GROUP_BASE_FIELDS
-    for cls in COUNT_FIELDS:
-        if cls == Volume:
-            guf[cls] = tuple({*fields} - {"sort_name"})
-        else:
-            guf[cls] = fields
-        fields = (*fields, cls.__name__.lower())
-    return MappingProxyType(guf)
-
-
-GROUP_UPDATE_FIELDS = _create_group_update_fields()
-NAMED_MODEL_UPDATE_FIELDS = ("name",)
-
-########
-# LINK #
-########
-DICT_MODEL_FIELD_NAME_CLASS_MAP = (
-    (_CONTRIBUTORS_FIELD_NAME, Contributor),
-    (_STORY_ARC_NUMBERS_FIELD_NAME, StoryArcNumber),
-    (_IDENTIFIERS_FIELD_NAME, Identifier),
-)
-DICT_MODEL_REL_LINK_MAP = MappingProxyType(
-    {
-        _CONTRIBUTORS_FIELD_NAME: (
-            f"{_CONTRIBUTOR_ROLE_FIELD_NAME}__name",
-            f"{_CONTRIBUTOR_PERSON_FIELD_NAME}__name__in",
-        ),
-        _STORY_ARC_NUMBERS_FIELD_NAME: (
-            f"{_STORY_ARC_FIELD_NAME}__name",
-            _NUMBER_FIELD_NAME,
-        ),
-        _IDENTIFIERS_FIELD_NAME: (
-            f"{_IDENTIFIER_TYPE_FIELD_NAME}__name",
-            _IDENTIFIER_CODE_FIELD_NAME,
-        ),
-    }
-)
-COMIC_FK_FIELD_NAME_AND_MODEL = MappingProxyType(
-    {
-        field.name: field.related_model
-        for field in _COMIC_FK_FIELDS
-        if field.related_model
-    }
+#######
+# M2M #
+#######
+GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] = (
+    MappingProxyType(
+        {Publisher: None, Imprint: None, Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
+    )
 )
 COMIC_M2M_FIELD_NAMES: tuple[ManyToManyField, ...] = (  # pyright: ignore[reportAssignmentType]
     # Leaves out folders.
@@ -250,6 +69,35 @@ COMIC_M2M_FIELD_NAMES: tuple[ManyToManyField, ...] = (  # pyright: ignore[report
     if field.many_to_many and field.name != "folders"
 )
 
+
+#################
+# DICT METADATA #
+#################
+DictModelType = type[Contributor] | type[StoryArcNumber] | type[Identifier]
+CONTRIBUTORS_FIELD_NAME = "contributors"
+CONTRIBUTOR_PERSON_FIELD_NAME = "person"
+CONTRIBUTOR_ROLE_FIELD_NAME = "role"
+STORY_ARC_NUMBERS_FIELD_NAME = "story_arc_numbers"
+_STORY_ARC_NUMBER_FK_NAME = "story_arc_number"
+STORY_ARC_FIELD_NAME = "story_arc"
+NUMBER_FIELD_NAME = "number"
+IDENTIFIERS_FIELD_NAME = "identifiers"
+IDENTIFIER_TYPE_FIELD_NAME = "identifier_type"
+IDENTIFIER_CODE_FIELD_NAME = "nss"
+IDENTIFIER_URL_FIELD_NAME = "url"
+
+########################
+# QUERY AND CREATE FKS #
+########################
+COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
+    field
+    for field in Comic._meta.get_fields()
+    if field
+    and field.many_to_one
+    and field.name != "library"
+    and field.related_model
+    and not issubclass(field.related_model, BrowserGroupModel)
+)
 
 #################
 # CREATE COMICS #
@@ -271,11 +119,12 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
 )
 BULK_CREATE_COMIC_FIELDS = (*BULK_UPDATE_COMIC_FIELDS, "library")
 BULK_UPDATE_FOLDER_FIELDS = (
-    *GROUP_BASE_FIELDS,
+    "name",
+    "parent_folder",
+    "path",
+    "sort_name",
     "stat",
     "updated_at",
-    "path",
-    "parent_folder",
 )
 BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
@@ -285,17 +134,23 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
     )
 )
 
+##########
+# COVERS #
+##########
+CLASS_CUSTOM_COVER_GROUP_MAP = bidict(
+    {
+        Publisher: CustomCover.GroupChoice.P.value,
+        Imprint: CustomCover.GroupChoice.I.value,
+        Series: CustomCover.GroupChoice.S.value,
+        StoryArc: CustomCover.GroupChoice.A.value,
+        Folder: CustomCover.GroupChoice.F.value,
+    }
+)
+
 #########
 # MOVED #
 #########
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "stat", "updated_at")
-MOVED_BULK_FOLDER_UPDATE_FIELDS = (
-    "path",
-    "parent_folder",
-    *GROUP_BASE_FIELDS,
-    "stat",
-    "updated_at",
-)
 CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group")
 
 ###########

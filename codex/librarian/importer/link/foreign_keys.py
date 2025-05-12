@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from codex.librarian.importer.const import (
-    COMIC_FK_FIELD_NAME_AND_MODEL,
     FK_LINK,
     IMPRINT,
     PARENT_FOLDER,
@@ -11,6 +10,7 @@ from codex.librarian.importer.const import (
     SERIES,
     VOLUME,
 )
+from codex.librarian.importer.link.const import COMIC_FK_FIELD_NAME_AND_MODEL
 from codex.librarian.importer.link.covers import LinkCoversImporter
 from codex.models import (
     Folder,

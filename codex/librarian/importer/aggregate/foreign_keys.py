@@ -2,11 +2,11 @@
 
 from types import MappingProxyType
 
+from codex.librarian.importer.aggregate.const import COMIC_FK_FIELD_NAMES
 from codex.librarian.importer.aggregate.extract import ExtractMetadataImporter
 from codex.librarian.importer.const import (
-    COMIC_FK_FIELD_NAMES,
-    COUNT_FIELDS,
     FK_LINK,
+    GROUP_MODEL_COUNT_FIELDS,
     QUERY_MODELS,
 )
 from codex.models.groups import BrowserGroupModel
@@ -15,7 +15,7 @@ from codex.util import max_none
 _BROWSER_GROUPS_MAP = MappingProxyType(
     {
         cls: (cls.__name__.lower(), cls.name.field)  # pyright: ignore[reportAttributeAccessIssue]
-        for cls in COUNT_FIELDS
+        for cls in GROUP_MODEL_COUNT_FIELDS
     }
 )
 
@@ -35,7 +35,7 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
         group = md.pop(group_field_name, {})
         group_name = group.get("name", group_cls.DEFAULT_NAME)
         group_name = field.get_prep_value(group_name)
-        if (count_key := COUNT_FIELDS.get(group_cls)) and (
+        if (count_key := GROUP_MODEL_COUNT_FIELDS.get(group_cls)) and (
             count := group.get(count_key)
         ):
             groups_md[count_key] = count
@@ -90,7 +90,7 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
         # Aggregate into fks
         # query and create from group_trees
         for index, (group_class, count_field_name) in enumerate(
-            COUNT_FIELDS.items(), start=1
+            GROUP_MODEL_COUNT_FIELDS.items(), start=1
         ):
             self._set_group_tree_max_group_count(
                 path, group_tree, groups_md, group_class, index, count_field_name

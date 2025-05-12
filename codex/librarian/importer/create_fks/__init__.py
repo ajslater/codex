@@ -5,17 +5,19 @@ So we may safely create the comics next.
 """
 
 from codex.librarian.importer.const import (
-    CREATE_DICT_FUNCTION_ARGS,
-    CREATE_DICT_UPDATE_FIELDS,
     FK_CREATE,
     FKC_CREATE_FKS,
     FKC_CREATE_GROUPS,
     FKC_FOLDER_PATHS,
     FKC_TOTAL_FKS,
     FKC_UPDATE_GROUPS,
+    DictModelType,
+)
+from codex.librarian.importer.create_fks.const import (
+    CREATE_DICT_FUNCTION_ARGS,
+    CREATE_DICT_UPDATE_FIELDS,
     GROUP_BASE_FIELDS,
     NAMED_MODEL_UPDATE_FIELDS,
-    DictModelType,
 )
 from codex.librarian.importer.create_fks.folders import (
     CreateForeignKeysFolderImporter,

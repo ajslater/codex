@@ -6,15 +6,17 @@ from comicbox.schemas.comicbox import ARCS_KEY, IDENTIFIERS_KEY
 from django.db.models.fields.related import ManyToManyField
 from django.db.models.query_utils import DeferredAttribute
 
+from codex.librarian.importer.aggregate.const import (
+    DICT_MODEL_AGG_MAP,
+    DICT_MODEL_FOR_VALUE,
+    DICT_MODEL_SUB_FIELDS,
+    FIELD_NAME_TO_MD_KEY_MAP,
+)
 from codex.librarian.importer.aggregate.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
 )
 from codex.librarian.importer.const import (
     COMIC_M2M_FIELD_NAMES,
-    DICT_MODEL_AGG_MAP,
-    DICT_MODEL_FOR_VALUE,
-    DICT_MODEL_SUB_FIELDS,
-    FIELD_NAME_TO_MD_KEY_MAP,
     FOLDERS_FIELD,
     M2M_LINK,
     QUERY_MODELS,

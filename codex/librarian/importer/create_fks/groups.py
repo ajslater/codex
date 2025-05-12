@@ -4,14 +4,14 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from codex.librarian.importer.const import (
     CLASS_CUSTOM_COVER_GROUP_MAP,
-    COUNT_FIELDS,
-    GROUP_UPDATE_FIELDS,
+    GROUP_MODEL_COUNT_FIELDS,
     IMPRINT,
     ISSUE_COUNT,
     PUBLISHER,
     SERIES,
     VOLUME_COUNT,
 )
+from codex.librarian.importer.create_fks.const import GROUP_UPDATE_FIELDS
 from codex.librarian.importer.create_fks.covers import CreateCoversImporter
 from codex.models import (
     CustomCover,
@@ -79,7 +79,7 @@ class CreateForeignKeysBrowserGroupsImporter(CreateCoversImporter):
             search_kwargs[f"{SERIES}__name"] = group_param_tuple[2]
 
         obj = group_class.objects.get(**search_kwargs)
-        count_field = COUNT_FIELDS[group_class]
+        count_field = GROUP_MODEL_COUNT_FIELDS[group_class]
         if count_field is not None:
             obj_count = getattr(obj, count_field)
             if obj_count is None or group_count > obj_count:
@@ -123,7 +123,7 @@ class CreateForeignKeysBrowserGroupsImporter(CreateCoversImporter):
             obj = self._update_group_obj(group_class, group_param_tuple, group_count)
             if obj:
                 update_groups.append(obj)
-        count_field = COUNT_FIELDS[group_class]
+        count_field = GROUP_MODEL_COUNT_FIELDS[group_class]
         group_class.objects.bulk_update(update_groups, fields=[count_field])
         count = len(update_groups)
         if count:

@@ -6,8 +6,8 @@ from bidict import bidict
 from django.db.models.functions import Now
 
 from codex.librarian.importer.const import (
+    BULK_UPDATE_FOLDER_FIELDS,
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
-    MOVED_BULK_FOLDER_UPDATE_FIELDS,
 )
 from codex.librarian.importer.moved.covers import MovedCoversImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -36,7 +36,7 @@ class MovedImporter(MovedCoversImporter):
                 library=self.library,
                 path__in=src_folder_paths_with_existing_dest_parents,
             )
-            .only(*MOVED_BULK_FOLDER_UPDATE_FIELDS)
+            .only(*BULK_UPDATE_FOLDER_FIELDS)
             .order_by("path")
         )
 
@@ -55,7 +55,7 @@ class MovedImporter(MovedCoversImporter):
 
         update_folders = sorted(update_folders, key=self._folder_sort_key)
 
-        Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
+        Folder.objects.bulk_update(update_folders, BULK_UPDATE_FOLDER_FIELDS)
         count = len(update_folders)
         if count:
             self.log.info(f"Moved {count} folders.")

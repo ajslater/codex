@@ -5,7 +5,6 @@ from types import MappingProxyType
 
 from codex.librarian.importer.const import (
     COMIC_PATHS,
-    COUNT_FIELDS,
     FK_CREATE,
     FKC_CONTRIBUTORS,
     FKC_CREATE_FKS,
@@ -15,6 +14,7 @@ from codex.librarian.importer.const import (
     FKC_STORY_ARC_NUMBERS,
     FKC_TOTAL_FKS,
     FKC_UPDATE_GROUPS,
+    GROUP_MODEL_COUNT_FIELDS,
     QUERY_MODELS,
 )
 from codex.librarian.importer.query_fks.folders import QueryForeignKeysFoldersImporter
@@ -80,7 +80,7 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
                     create_objs_key,
                     status,
                 )
-            for group_class in COUNT_FIELDS:
+            for group_class in GROUP_MODEL_COUNT_FIELDS:
                 if groups := self.metadata[QUERY_MODELS].pop(group_class, None):
                     self.query_missing_group(
                         groups,
