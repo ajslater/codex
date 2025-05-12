@@ -9,8 +9,6 @@ from codex.librarian.importer.const import (
     DICT_MODEL_REL_LINK_MAP,
     FOLDERS_FIELD,
     M2M_LINK,
-    STORY_ARC_NUMBERS_FK_NAME,
-    STORY_ARCS_METADATA_KEY,
 )
 from codex.librarian.importer.link.foreign_keys import LinkComicForiegnKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -56,8 +54,6 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         values = md.pop(key, [])
         if not values:
             return
-        if key == STORY_ARCS_METADATA_KEY:
-            key = STORY_ARC_NUMBERS_FK_NAME
         if key not in all_m2m_links:
             all_m2m_links[key] = {}
 
