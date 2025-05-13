@@ -15,16 +15,17 @@ from codex.views.opds.v2.links import LinkData
 from codex.views.opds.v2.top_links import OPDS2TopLinksView
 
 _MD_CREDIT_MAP = MappingProxyType(
+    # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
     {
         "author": AUTHOR_ROLES,
-        # "translator": {}, unused
+        "translator": {"Translator"},
         "editor": {"Editor"},
-        "artist": {"CoverArtist"},
-        # "illustrator": {}, unused, could use penciller
+        "artist": {"CoverArtist", "Cover", "Artist"},
+        "illustrator": {"Illustrator"},
         "letterer": {"Letterer"},
         "penciller": {"Penciller"},
-        "colorist": {"Colorist"},
-        "inker": {"Inker"},
+        "colorist": {"Colorist", "Colors"},
+        "inker": {"Inker", "Inks"},
     }
 )
 _CREDIT_ROLES = frozenset({x for s in _MD_CREDIT_MAP.values() for x in s})
