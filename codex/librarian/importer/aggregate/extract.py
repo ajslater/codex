@@ -9,7 +9,6 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from comicbox.schemas.comicbox import (
     COVER_DATE_KEY,
     DATE_KEY,
-    NAME_KEY,
     NUMBER_KEY,
     STORE_DATE_KEY,
     STORIES_KEY,
@@ -60,13 +59,10 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             md.update(date)
 
         if issue := md.pop("issue", None):
-            if name := issue.pop(NAME_KEY, None):
-                issue["issue"] = name
             if number := issue.pop(NUMBER_KEY, None):
-                issue["issue_number"] = number
+                md["issue_number"] = number
             if suffix := issue.pop(SUFFIX_KEY, None):
-                issue["issue_suffix"] = suffix
-            md.update(issue)
+                md["issue_suffix"] = suffix
 
         if stories := md.pop(STORIES_KEY, None):
             md["name"] = "; ".join(stories)
