@@ -11,6 +11,8 @@ from codex.views.browser.metadata.query_intersections import (
     MetadataQueryIntersectionsView,
 )
 
+_DICT_FIELDS = frozenset({"identifiers", "contributors", "story_arc_numbers"})
+
 
 class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     """Copy Intersections Into Comic Fields."""
@@ -41,18 +43,11 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         """Copy the m2m intersections into the object."""
         # It might even be faster to copy everything to a dict and not use the obj.
         for key, qs in m2m_intersections.items():
-            serializer_key = (
-                f"{PREFETCH_PREFIX}{key}"
-                if key in ("identifiers", "contributors", "story_arc_numbers")
-                else key
-            )
+            serializer_key = f"{PREFETCH_PREFIX}{key}" if key in _DICT_FIELDS else key
             if hasattr(obj, serializer_key):
                 # real db fields need to use their special set method.
                 field = getattr(obj, serializer_key)
-                field.set(
-                    qs,
-                    clear=True,
-                )
+                field.set(qs, clear=True)
             else:
                 # fake db field is just a queryset attached.
                 setattr(obj, serializer_key, qs)
