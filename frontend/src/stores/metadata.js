@@ -139,7 +139,7 @@ export const useMetadataStore = defineStore("metadata", {
         } else {
           filter = key;
         }
-        const tagName = capitalCase(key);
+        const tagName = capitalCase(filter);
         tags = tags.sort((a, b) => a.name.localeCompare(b.name));
         tagMap[tagName] = { filter, tags };
       }
