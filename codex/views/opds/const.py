@@ -13,7 +13,7 @@ from codex.models import (
 )
 
 BLANK_TITLE = "Unknown"
-AUTHOR_ROLES = {"Writer"}
+AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
 
 
 class Rel:
