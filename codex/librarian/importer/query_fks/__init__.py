@@ -6,9 +6,9 @@ from types import MappingProxyType
 from codex.librarian.importer.const import (
     COMIC_PATHS,
     FK_CREATE,
-    FKC_CONTRIBUTORS,
     FKC_CREATE_FKS,
     FKC_CREATE_GROUPS,
+    FKC_CREDITS,
     FKC_FOLDER_PATHS,
     FKC_IDENTIFIERS,
     FKC_STORY_ARC_NUMBERS,
@@ -20,7 +20,7 @@ from codex.librarian.importer.const import (
 from codex.librarian.importer.query_fks.folders import QueryForeignKeysFoldersImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
-    Contributor,
+    Credit,
     StoryArcNumber,
 )
 from codex.models.named import Identifier
@@ -28,7 +28,7 @@ from codex.status import Status
 
 _DICT_MODEL_KEY_MAP = MappingProxyType(
     {
-        Contributor: FKC_CONTRIBUTORS,
+        Credit: FKC_CREDITS,
         StoryArcNumber: FKC_STORY_ARC_NUMBERS,
         Identifier: FKC_IDENTIFIERS,
     }
@@ -49,7 +49,7 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
             total_fks += len(data_group)
         total_fks += (
             len(fkc[FKC_FOLDER_PATHS])
-            + len(fkc[FKC_CONTRIBUTORS])
+            + len(fkc[FKC_CREDITS])
             + len(fkc[FKC_STORY_ARC_NUMBERS])
             + len(fkc[FKC_IDENTIFIERS])
         )
@@ -60,7 +60,7 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
         if QUERY_MODELS not in self.metadata:
             return
         self.metadata[FK_CREATE] = {
-            FKC_CONTRIBUTORS: set(),
+            FKC_CREDITS: set(),
             FKC_STORY_ARC_NUMBERS: set(),
             FKC_IDENTIFIERS: set(),
             FKC_CREATE_GROUPS: {},

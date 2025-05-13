@@ -29,7 +29,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     characters = BooleanField(read_only=True)
     country = BooleanField(read_only=True)
     critical_rating = BooleanField(read_only=True)
-    contributors = BooleanField(read_only=True)
+    credits = BooleanField(read_only=True)
     decade = BooleanField(read_only=True)
     genres = BooleanField(read_only=True)
     file_type = BooleanField(read_only=True)
@@ -59,9 +59,7 @@ class BrowserSettingsFilterSerializer(Serializer):
         child=VuetifyFloatField(), required=False, read_only=True
     )
     country = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    contributors = ListField(
-        child=VuetifyIntegerField(), required=False, read_only=True
-    )
+    credits = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     critical_rating = ListField(
         child=VuetifyFloatField(), required=False, read_only=True
     )

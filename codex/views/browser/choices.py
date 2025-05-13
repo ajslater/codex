@@ -14,7 +14,7 @@ from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
-    ContributorPerson,
+    CreditPerson,
     StoryArc,
 )
 from codex.models.named import IdentifierType
@@ -25,7 +25,7 @@ from codex.serializers.browser.choices import (
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.session import (
-    CONTRIBUTOR_PERSON_UI_FIELD,
+    CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,
 )
@@ -34,9 +34,9 @@ LOG = get_logger(__name__)
 
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
-        CONTRIBUTOR_PERSON_UI_FIELD: (
-            "contributors__person",
-            ContributorPerson,
+        CREDIT_PERSON_UI_FIELD: (
+            "credits__person",
+            CreditPerson,
         ),
         STORY_ARC_UI_FIELD: (
             "story_arc_numbers__story_arc",
@@ -50,7 +50,7 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
 )
 _BACK_REL_MAP = MappingProxyType(
     {
-        ContributorPerson: "contributor__",
+        CreditPerson: "credit__",
         StoryArc: "storyarcnumber__",
         IdentifierType: "identifier__",
     }

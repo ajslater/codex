@@ -9,12 +9,12 @@ from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
 from codex.settings.settings import FALSY
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
-from codex.views.opds.util import get_contributors, get_m2m_objects
+from codex.views.opds.util import get_credits, get_m2m_objects
 from codex.views.opds.v2.href import HrefData
 from codex.views.opds.v2.links import LinkData
 from codex.views.opds.v2.top_links import OPDS2TopLinksView
 
-_MD_CONTRIBUTOR_MAP = MappingProxyType(
+_MD_CREDIT_MAP = MappingProxyType(
     {
         "author": AUTHOR_ROLES,
         # "translator": {}, unused
@@ -27,7 +27,7 @@ _MD_CONTRIBUTOR_MAP = MappingProxyType(
         "inker": {"Inker"},
     }
 )
-_CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
+_CREDIT_ROLES = frozenset({x for s in _MD_CREDIT_MAP.values() for x in s})
 
 
 class OPDS2PublicationView(OPDS2TopLinksView):
@@ -65,10 +65,10 @@ class OPDS2PublicationView(OPDS2TopLinksView):
         ]
 
     @staticmethod
-    def _add_contributors(md, pks, key, roles):
-        """Add contributors to metadata."""
-        if contributors := get_contributors(pks, roles, exclude=False):
-            md[key] = contributors
+    def _add_credits(md, pks, key, roles):
+        """Add credits to metadata."""
+        if credit_objs := get_credits(pks, roles, exclude=False):
+            md[key] = credit_objs
 
     def _publication_optional_metadata(self, md, obj):
         """Add optional Publication Metadtata."""
@@ -87,10 +87,10 @@ class OPDS2PublicationView(OPDS2TopLinksView):
 
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
-        for key, roles in _MD_CONTRIBUTOR_MAP.items():
-            self._add_contributors(md, obj.ids, key, roles)
-        if contributors := get_contributors(obj.ids, _CONTRIBUTOR_ROLES, exclude=True):
-            md["contributor"] = contributors
+        for key, roles in _MD_CREDIT_MAP.items():
+            self._add_credits(md, obj.ids, key, roles)
+        if credit_objs := get_credits(obj.ids, _CREDIT_ROLES, exclude=True):
+            md["credit"] = credit_objs
 
         if m2m_objs := get_m2m_objects(obj.ids):
             # Subjects can also have links

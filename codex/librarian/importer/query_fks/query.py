@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from codex.librarian.importer.query_fks.covers import QueryCustomCoversImporter
 from codex.models import (
-    Contributor,
+    Credit,
     Folder,
     Imprint,
     Publisher,
@@ -19,7 +19,7 @@ from codex.settings.settings import FILTER_BATCH_SIZE
 
 _CLASS_QUERY_FIELDS_MAP = MappingProxyType(
     {
-        Contributor: ("role__name", "person__name"),
+        Credit: ("role__name", "person__name"),
         StoryArcNumber: ("story_arc__name", "number"),
         Folder: ("path",),
         Imprint: ("publisher__name", "name"),

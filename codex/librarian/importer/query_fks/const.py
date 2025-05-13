@@ -3,8 +3,8 @@
 from types import MappingProxyType
 
 from codex.librarian.importer.const import (
-    CONTRIBUTOR_PERSON_FIELD_NAME,
-    CONTRIBUTOR_ROLE_FIELD_NAME,
+    CREDIT_PERSON_FIELD_NAME,
+    CREDIT_ROLE_FIELD_NAME,
     IDENTIFIER_CODE_FIELD_NAME,
     IDENTIFIER_TYPE_FIELD_NAME,
     IDENTIFIER_URL_FIELD_NAME,
@@ -12,7 +12,7 @@ from codex.librarian.importer.const import (
     STORY_ARC_FIELD_NAME,
 )
 from codex.models import (
-    Contributor,
+    Credit,
     Series,
     StoryArcNumber,
     Volume,
@@ -24,9 +24,9 @@ from codex.models.named import (
 
 DICT_MODEL_REL_MAP = MappingProxyType(
     {
-        Contributor: (
-            f"{CONTRIBUTOR_PERSON_FIELD_NAME}__name",
-            f"{CONTRIBUTOR_ROLE_FIELD_NAME}__name",
+        Credit: (
+            f"{CREDIT_PERSON_FIELD_NAME}__name",
+            f"{CREDIT_ROLE_FIELD_NAME}__name",
         ),
         StoryArcNumber: (
             f"{STORY_ARC_FIELD_NAME}__name",

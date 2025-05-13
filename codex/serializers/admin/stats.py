@@ -73,9 +73,9 @@ class StatsComicMetadataSerializer(Serializer):
 
     age_rating_count = IntegerField(required=False, read_only=True)
     character_count = IntegerField(required=False, read_only=True)
-    contributor_count = IntegerField(required=False, read_only=True)
-    contributor_person_count = IntegerField(required=False, read_only=True)
-    contributor_role_count = IntegerField(required=False, read_only=True)
+    credit_count = IntegerField(required=False, read_only=True)
+    credit_person_count = IntegerField(required=False, read_only=True)
+    credit_role_count = IntegerField(required=False, read_only=True)
     country_count = IntegerField(required=False, read_only=True)
     genre_count = IntegerField(required=False, read_only=True)
     identifier_count = IntegerField(required=False, read_only=True)

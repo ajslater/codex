@@ -16,11 +16,11 @@ class OPDS2FeedMetadataSerializer(OPDS2MetadataSerializer):
     number_of_items = IntegerField(read_only=True, required=False)
 
 
-class OPDS2ContributorObjectSerializer(Serializer):
+class OPDS2CreditObjectSerializer(Serializer):
     """
-    Contributor Object.
+    Credit Object.
 
-    https://readium.org/webpub-manifest/schema/contributor-object.schema.json
+    https://readium.org/webpub-manifest/schema/credit-object.schema.json
     """
 
     name = CharField(read_only=True)
@@ -52,16 +52,16 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     # Extended metadata #
     #####################
     subject = ListField(child=CharField(read_only=True), read_only=True, required=False)
-    author = OPDS2ContributorObjectSerializer(many=True, required=False)
-    # translator = OPDS2ContributorObjectSerializer(many=True, required=False) unused
-    editor = OPDS2ContributorObjectSerializer(many=True, required=False)
-    artist = OPDS2ContributorObjectSerializer(many=True, required=False)
-    # illustrator = OPDS2ContributorObjectSerializer(many=True, required=False) unused
-    letterer = OPDS2ContributorObjectSerializer(many=True, required=False)
-    peniciller = OPDS2ContributorObjectSerializer(many=True, required=False)
-    colorist = OPDS2ContributorObjectSerializer(many=True, required=False)
-    inker = OPDS2ContributorObjectSerializer(many=True, required=False)
-    contributor = OPDS2ContributorObjectSerializer(many=True, required=False)
+    author = OPDS2CreditObjectSerializer(many=True, required=False)
+    # translator = OPDS2CreditObjectSerializer(many=True, required=False) unused
+    editor = OPDS2CreditObjectSerializer(many=True, required=False)
+    artist = OPDS2CreditObjectSerializer(many=True, required=False)
+    # illustrator = OPDS2CreditObjectSerializer(many=True, required=False) unused
+    letterer = OPDS2CreditObjectSerializer(many=True, required=False)
+    peniciller = OPDS2CreditObjectSerializer(many=True, required=False)
+    colorist = OPDS2CreditObjectSerializer(many=True, required=False)
+    inker = OPDS2CreditObjectSerializer(many=True, required=False)
+    credit = OPDS2CreditObjectSerializer(many=True, required=False)
 
 
 class OPDS2PublicationSerializer(OPDS2FacetSerializer):

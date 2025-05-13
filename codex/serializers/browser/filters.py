@@ -20,7 +20,7 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     characters = ListField(child=VuetifyIntegerField(), required=False)
     community_rating = ListField(child=VuetifyFloatField(), required=False)
     country = ListField(child=VuetifyIntegerField(), required=False)
-    contributors = ListField(child=VuetifyIntegerField(), required=False)
+    credits = ListField(child=VuetifyIntegerField(), required=False)
     critical_rating = ListField(child=VuetifyFloatField(), required=False)
     decade = ListField(child=VuetifyDecadeField(), required=False)
     file_type = ListField(child=VuetifyIntegerField(), required=False)

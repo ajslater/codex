@@ -16,7 +16,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.groups import BrowserGroupModel
-from codex.models.named import Contributor, Identifier, StoryArcNumber
+from codex.models.named import Credit, Identifier, StoryArcNumber
 from codex.models.paths import CustomCover
 
 ###############
@@ -44,7 +44,7 @@ FK_CREATE = "fk_create"
 COVERS_UPDATE = "covers_update"
 COVERS_CREATE = "covers_create"
 LINK_COVER_PKS = "link_cover_pks"
-FKC_CONTRIBUTORS = "create_contributors"
+FKC_CREDITS = "create_credits"
 FKC_STORY_ARC_NUMBERS = "create_story_arc_numbers"
 FKC_IDENTIFIERS = "create_identifiers"
 FKC_CREATE_GROUPS = "create_groups"
@@ -73,10 +73,10 @@ COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[report
 #################
 # DICT METADATA #
 #################
-DictModelType = type[Contributor] | type[StoryArcNumber] | type[Identifier]
-CONTRIBUTORS_FIELD_NAME = "contributors"
-CONTRIBUTOR_PERSON_FIELD_NAME = "person"
-CONTRIBUTOR_ROLE_FIELD_NAME = "role"
+DictModelType = type[Credit] | type[StoryArcNumber] | type[Identifier]
+CREDITS_FIELD_NAME = "credits"
+CREDIT_PERSON_FIELD_NAME = "person"
+CREDIT_ROLE_FIELD_NAME = "role"
 STORY_ARC_NUMBERS_FIELD_NAME = "story_arc_numbers"
 _STORY_ARC_NUMBER_FK_NAME = "story_arc_number"
 STORY_ARC_FIELD_NAME = "story_arc"

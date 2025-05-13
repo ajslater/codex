@@ -46,8 +46,8 @@ from codex.models.groups import (
 from codex.models.named import (
     AgeRating,
     Character,
-    Contributor,
     Country,
+    Credit,
     Genre,
     Identifier,
     Language,
@@ -161,7 +161,7 @@ class Comic(WatchedPathBrowserGroup):
 
     # ManyToMany
     characters = ManyToManyField(Character)
-    contributors = ManyToManyField(Contributor)
+    credits = ManyToManyField(Credit)
     genres = ManyToManyField(Genre)
     identifiers = ManyToManyField(Identifier)
     locations = ManyToManyField(Location)
@@ -331,7 +331,7 @@ class ComicFTS(BaseModel):
     summary = TextField(db_collation="nocase")
     tagger = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    contributors = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     genres = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     locations = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series_groups = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

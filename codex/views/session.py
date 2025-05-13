@@ -13,7 +13,7 @@ from codex.views.util import pop_name
 
 LOG = get_logger(__name__)
 
-CONTRIBUTOR_PERSON_UI_FIELD = "contributors"
+CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
 IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
 
@@ -22,7 +22,7 @@ _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
         "age_rating": [],
         "characters": [],
         "country": [],
-        CONTRIBUTOR_PERSON_UI_FIELD: [],
+        CREDIT_PERSON_UI_FIELD: [],
         "community_rating": [],
         "critical_rating": [],
         "decade": [],

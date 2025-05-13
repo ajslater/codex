@@ -15,7 +15,7 @@ from codex.serializers.models.groups import (
 from codex.serializers.models.named import (
     AgeRatingSerializer,
     CharacterSerializer,
-    ContributorSerializer,
+    CreditSerializer,
     GenreSerializer,
     IdentifierSeralizer,
     LocationSerializer,
@@ -70,7 +70,7 @@ class ComicSerializer(BaseModelSerializer):
     )
     tags = TagSerializer(many=True, allow_null=True)
     teams = TeamSerializer(many=True, allow_null=True)
-    contributors = ContributorSerializer(many=True, allow_null=True)
+    credits = CreditSerializer(many=True, allow_null=True)
 
     class Meta(BaseModelSerializer.Meta):
         """Configure the model."""

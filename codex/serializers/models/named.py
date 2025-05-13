@@ -5,9 +5,9 @@ from rest_framework.fields import CharField
 from codex.models import (
     AgeRating,
     Character,
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
+    Credit,
+    CreditPerson,
+    CreditRole,
     Genre,
     Location,
     OriginalFormat,
@@ -34,34 +34,34 @@ class NamedModelSerializer(BaseModelSerializer):
         abstract = True
 
 
-class ContributorPersonSerializer(NamedModelSerializer):
-    """ContributorPerson model."""
+class CreditPersonSerializer(NamedModelSerializer):
+    """CreditPerson model."""
 
     class Meta(NamedModelSerializer.Meta):
         """Configure model."""
 
-        model = ContributorPerson
+        model = CreditPerson
 
 
-class ContributorRoleSerializer(NamedModelSerializer):
-    """ContributorRole model."""
+class CreditRoleSerializer(NamedModelSerializer):
+    """CreditRole model."""
 
     class Meta(NamedModelSerializer.Meta):
         """Configure model."""
 
-        model = ContributorRole
+        model = CreditRole
 
 
-class ContributorSerializer(BaseModelSerializer):
-    """Contributor model serializer."""
+class CreditSerializer(BaseModelSerializer):
+    """Credit model serializer."""
 
-    role = ContributorRoleSerializer()
-    person = ContributorPersonSerializer()
+    role = CreditRoleSerializer()
+    person = CreditPersonSerializer()
 
     class Meta(BaseModelSerializer.Meta):
         """Model spec."""
 
-        model = Contributor
+        model = Credit
         fields = ("pk", "person", "role")
         depth = 1
 

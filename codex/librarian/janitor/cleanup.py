@@ -12,10 +12,10 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import (
     AgeRating,
     Character,
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
     Country,
+    Credit,
+    CreditPerson,
+    CreditRole,
     Folder,
     Genre,
     Identifier,
@@ -43,7 +43,7 @@ from codex.worker_base import WorkerBaseMixin
 _COMIC_FK_CLASSES = (
     AgeRating,
     Country,
-    Contributor,
+    Credit,
     Character,
     Genre,
     Folder,
@@ -62,12 +62,12 @@ _COMIC_FK_CLASSES = (
     Team,
     Volume,
 )
-_CONTRIBUTOR_FK_CLASSES = (ContributorRole, ContributorPerson)
+_CREDIT_FK_CLASSES = (CreditRole, CreditPerson)
 _STORY_ARC_NUMBER_FK_CLASSES = (StoryArc,)
 _IDENTIFIER_FK_CLASSES = (IdentifierType,)
 TOTAL_NUM_FK_CLASSES = (
     len(_COMIC_FK_CLASSES)
-    + len(_CONTRIBUTOR_FK_CLASSES)
+    + len(_CREDIT_FK_CLASSES)
     + len(_STORY_ARC_NUMBER_FK_CLASSES)
     + len(_IDENTIFIER_FK_CLASSES)
 )
@@ -75,7 +75,7 @@ TOTAL_NUM_FK_CLASSES = (
 CLEANUP_MAP = MappingProxyType(
     {
         "comic": _COMIC_FK_CLASSES,
-        "contributor": _CONTRIBUTOR_FK_CLASSES,
+        "credit": _CREDIT_FK_CLASSES,
         "storyarcnumber": _STORY_ARC_NUMBER_FK_CLASSES,
         "identifier": _IDENTIFIER_FK_CLASSES,
     }

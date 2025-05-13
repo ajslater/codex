@@ -4,17 +4,55 @@ import { defineStore } from "pinia";
 import API from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
 
-const ROLES = [
-  "creators",
-  "writers",
-  "pencillers",
-  "inkers",
-  "cover_artists",
-  "colorists",
-  "letterers",
-  "editors",
+const HEAD_ROLES = [
+  // writer
+  "writer",
+  "author",
+  "plotter",
+  "plot",
+  "script",
+  "scripter",
+  "story",
+  "interviewer",
+  "translator",
+  // art
+  "artist",
+  // pencil
+  "penciller",
+  "breakdowns",
+  "pencils",
+  "illustrator",
+  "layouts",
+  // ink
+  "inker",
+  "finishes",
+  "inks",
+  "embellisher",
+  "inkAssists",
+  // color
+  "colorist",
+  "colorer",
+  "colourer",
+  "colors",
+  "colours",
+  "colorDesigner",
+  "colorFlats",
+  "colorSeparations",
+  "designer",
+  "digitalArtTechnician",
+  "grayTone",
+  // letters
+  "letterer",
+  // cover
+  "cover",
+  "covers",
+  "coverArtist",
+  // producers
+  "editor",
+  "edits",
+  "editing",
 ];
-Object.freeze(ROLES);
+Object.freeze(HEAD_ROLES);
 const TAGS = [
   "genres",
   "characters",
@@ -27,32 +65,52 @@ const TAGS = [
 ];
 Object.freeze(TAGS);
 
+function compareByLastName(a, b) {
+  const aLast = a.name.split(" ").pop();
+  const bLast = b.name.split(" ").pop();
+  return aLast.localeCompare(bLast);
+}
+
+function renameKey(obj, oldKey, newKey) {
+  const desc = Object.getOwnPropertyDescriptor(obj, oldKey);
+  if (!desc) {
+    return;
+  }
+  Object.defineProperty(obj, newKey, desc);
+  delete obj[oldKey];
+}
+
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
     md: undefined,
   }),
   getters: {
-    _mappedContributors(state) {
-      const contributors = {};
-      if (!state?.md?.contributors) {
-        return contributors;
+    _mappedCredits(state) {
+      const credits = {};
+      if (!state?.md?.credits) {
+        return credits;
       }
 
-      // Convert contributors into a role based map
-      for (const { role, person } of state.md.contributors) {
-        const roleName = role.name + "s";
-        if (!(roleName in contributors)) {
-          contributors[roleName] = [];
+      // Convert credits into a role based map
+      for (const { role, person } of state.md.credits) {
+        if (!(role.name in credits)) {
+          credits[role.name] = [];
         }
-        contributors[roleName].push(person);
+        credits[role.name].push(person);
       }
-      return contributors;
+
+      // Sort persons by last name
+      for (const [roleName, persons] of Object.entries(credits)) {
+        credits[roleName] = persons.sort(compareByLastName);
+      }
+
+      return credits;
     },
     _sortedRoles(state) {
-      // Sort the roles by known order and then alphabetically.
-      let sortedRoles = [];
-      const roles = new Set(Object.keys(state._mappedContributors));
-      for (const role of ROLES) {
+      // Sort the roles by special known order and then alphabetically.
+      const roles = new Set(Object.keys(state._mappedCredits));
+      const sortedRoles = [];
+      for (const role of HEAD_ROLES) {
         if (roles.has(role)) {
           sortedRoles.push(role);
           roles.delete(role);
@@ -61,12 +119,8 @@ export const useMetadataStore = defineStore("metadata", {
       const tailRoles = [...roles].sort();
       return [...sortedRoles, ...tailRoles];
     },
-    contributors(state) {
-      return this.mapTag(
-        state._mappedContributors,
-        state._sortedRoles,
-        "contributors",
-      );
+    credits(state) {
+      return this.mapTag(state._mappedCredits, state._sortedRoles);
     },
     identifiers(state) {
       const identifiers = [];
@@ -95,11 +149,17 @@ export const useMetadataStore = defineStore("metadata", {
     },
     tags(state) {
       const tags = state.mapTag(state.md, TAGS);
-      if (state.identifiers.length) {
+
+      renameKey(tags, "Story Arc Numbers", "Story Arcs");
+      if (state.identifiers?.length) {
         tags["Identifiers"] = {
           filter: "identifiers",
           tags: this.identifiers,
         };
+      }
+
+      for (const [tagName, tagObj] of Object.entries(tags)) {
+        tagObj.tags = tagObj.tags.sort((a, b) => a.name.localeCompare(b.name));
       }
       return tags;
     },
@@ -121,27 +181,16 @@ export const useMetadataStore = defineStore("metadata", {
     clearMetadata() {
       this.md = undefined;
     },
-    mapTag(tagSource, keys, fixedFilter) {
+    mapTag(tagSource, keys) {
       const tagMap = {};
 
       for (const key of keys) {
-        let tags = tagSource[key];
+        const tags = tagSource[key];
         if (!tags?.length) {
           continue;
         }
-
-        // Special sub
-        let filter;
-        if (fixedFilter) {
-          filter = fixedFilter;
-        } else if (key === "storyArcNumbers") {
-          filter = "storyArcs";
-        } else {
-          filter = key;
-        }
-        const tagName = capitalCase(filter);
-        tags = tags.sort((a, b) => a.name.localeCompare(b.name));
-        tagMap[tagName] = { filter, tags };
+        const tagName = capitalCase(key);
+        tagMap[tagName] = { filter: key, tags };
       }
       return tagMap;
     },

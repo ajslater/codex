@@ -15,29 +15,29 @@ from django.db.models.query_utils import DeferredAttribute
 
 from codex.librarian.importer.const import (
     COMIC_FK_FIELDS,
-    CONTRIBUTORS_FIELD_NAME,
+    CREDITS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.models import (
-    Contributor,
+    Credit,
     StoryArc,
     StoryArcNumber,
 )
 from codex.models.named import (
-    ContributorPerson,
-    ContributorRole,
+    CreditPerson,
+    CreditRole,
     Identifier,
     IdentifierType,
 )
 
 FIELD_NAME_TO_MD_KEY_MAP = MappingProxyType(
-    {STORY_ARC_NUMBERS_FIELD_NAME: ARCS_KEY, CONTRIBUTORS_FIELD_NAME: CREDITS_KEY}
+    {STORY_ARC_NUMBERS_FIELD_NAME: ARCS_KEY, CREDITS_FIELD_NAME: CREDITS_KEY}
 )
 DICT_MODEL_AGG_MAP: MappingProxyType[str, dict[str, DeferredAttribute]] = (  # pyright: ignore[reportAssignmentType]
     MappingProxyType(
         {
-            CONTRIBUTORS_FIELD_NAME: {ROLES_KEY: ContributorRole.name},
+            CREDITS_FIELD_NAME: {ROLES_KEY: CreditRole.name},
             IDENTIFIERS_FIELD_NAME: {NSS_KEY: Identifier.nss, URL_KEY: Identifier.url},
             STORY_ARC_NUMBERS_FIELD_NAME: {NUMBER_KEY: StoryArcNumber.number},
         }
@@ -45,8 +45,8 @@ DICT_MODEL_AGG_MAP: MappingProxyType[str, dict[str, DeferredAttribute]] = (  # p
 )
 DICT_MODEL_SUB_FIELDS = MappingProxyType(
     {
-        CREDITS_KEY: ContributorPerson,
-        ROLES_KEY: ContributorRole,
+        CREDITS_KEY: CreditPerson,
+        ROLES_KEY: CreditRole,
         IDENTIFIERS_KEY: IdentifierType,
         ARCS_KEY: StoryArc,
     }
@@ -54,7 +54,7 @@ DICT_MODEL_SUB_FIELDS = MappingProxyType(
 DICT_MODEL_FOR_VALUE = MappingProxyType(
     {
         ARCS_KEY: StoryArcNumber,
-        CREDITS_KEY: Contributor,
+        CREDITS_KEY: Credit,
         IDENTIFIERS_KEY: IdentifierType,
     }
 )

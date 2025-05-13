@@ -11,7 +11,7 @@ from codex.views.browser.metadata.query_intersections import (
     MetadataQueryIntersectionsView,
 )
 
-_DICT_FIELDS = frozenset({"identifiers", "contributors", "story_arc_numbers"})
+_DICT_FIELDS = frozenset({"identifiers", "credits", "story_arc_numbers"})
 
 
 class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):

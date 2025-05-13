@@ -40,7 +40,7 @@ export default {
   },
   computed: {
     items() {
-      return toVuetifyItems(this.values);
+      return toVuetifyItems({ items: this.values, sort: false });
     },
   },
 };

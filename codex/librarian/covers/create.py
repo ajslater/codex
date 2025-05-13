@@ -116,7 +116,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
                 if cover_path.exists():
                     status.decrement_total()
                 else:
-                    # bulk contributor creates covers inline
+                    # bulk credit creates covers inline
                     data = self.create_cover_from_path(
                         pk, cover_path, self.log, self.librarian_queue, custom=False
                     )

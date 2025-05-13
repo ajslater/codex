@@ -11,7 +11,7 @@ from codex.models.groups import Imprint, Publisher, Series, Volume
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
 from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
 
-_CONTRIBUTOR_RELATIONS = ("role", "person")
+_CREDIT_RELATIONS = ("role", "person")
 _GROUP_MODELS = MappingProxyType(
     {
         "i": (Publisher,),
@@ -52,9 +52,9 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
 
     @staticmethod
     def _get_optimized_m2m_query(key, qs):
-        if key == "contributors":
-            qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS)
-            qs = qs.only(*_CONTRIBUTOR_RELATIONS)
+        if key == "credits":
+            qs = qs.prefetch_related(*_CREDIT_RELATIONS)
+            qs = qs.only(*_CREDIT_RELATIONS)
         elif key == "story_arc_numbers":
             qs = qs.select_related("story_arc")
             qs = qs.only("story_arc", "number")

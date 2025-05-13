@@ -6,7 +6,7 @@ from rest_framework.serializers import IntegerField, ListField, Serializer
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
 from codex.serializers.models.named import (
-    ContributorSerializer,
+    CreditSerializer,
     IdentifierSeralizer,
     StoryArcNumberSerializer,
 )
@@ -43,8 +43,8 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     identifiers = IdentifierSeralizer(
         source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
     )
-    contributors = ContributorSerializer(
-        source=f"{PREFETCH_PREFIX}contributors", many=True, allow_null=True
+    credits = CreditSerializer(
+        source=f"{PREFETCH_PREFIX}credits", many=True, allow_null=True
     )
     story_arc_numbers = StoryArcNumberSerializer(
         source=f"{PREFETCH_PREFIX}story_arc_numbers", many=True, allow_null=True

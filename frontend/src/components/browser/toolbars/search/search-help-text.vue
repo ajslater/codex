@@ -199,7 +199,7 @@
 const FIELD_ROWS = [
   ["characters", "String", "category"],
   ["community_rating", "Decimal", "communityrating"],
-  ["contributor", "String", "author, creator, credit, person, people"],
+  ["credit", "String", "author, creator, credit, person, people"],
   ["country", "String"],
   ["created_at", "DateTime", "created"],
   ["critical_rating", "Decimal", "criticalrating"],

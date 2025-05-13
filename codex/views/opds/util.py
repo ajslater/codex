@@ -7,8 +7,8 @@ from django.utils.http import urlencode
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
-    Contributor,
-    ContributorPerson,
+    Credit,
+    CreditPerson,
 )
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS
@@ -31,26 +31,26 @@ def update_href_query_params(href, old_query_params, new_query_params=None):
     return href
 
 
-def get_contributor_people(comic_pks, roles, exclude):
-    """Get contributors that are not authors."""
-    people = ContributorPerson.objects.filter(
-        contributor__comic__in=comic_pks,
+def get_credit_people(comic_pks, roles, exclude):
+    """Get credits that are not authors."""
+    people = CreditPerson.objects.filter(
+        credit__comic__in=comic_pks,
     )
     if exclude:
-        people = people.exclude(contributor__role__name__in=roles)
+        people = people.exclude(credit__role__name__in=roles)
     else:
-        people = people.filter(contributor__role__name__in=roles)
+        people = people.filter(credit__role__name__in=roles)
     return people.distinct().only("name")
 
 
-def get_contributors(comic_pks, roles, exclude):
+def get_credits(comic_pks, roles, exclude):
     """Get credits that are not part of other roles."""
-    contributors = Contributor.objects.filter(comic__in=comic_pks)
+    credit_qs = Credit.objects.filter(comic__in=comic_pks)
     if exclude:
-        contributors = contributors.exclude(role__name__in=roles)
+        credit_qs = credit_qs.exclude(role__name__in=roles)
     else:
-        contributors = contributors.filter(role__name__in=roles)
-    return contributors.annotate(name=F("person__name"), role_name=F("role__name"))
+        credit_qs = credit_qs.filter(role__name__in=roles)
+    return credit_qs.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
 def get_m2m_objects(pks) -> dict:

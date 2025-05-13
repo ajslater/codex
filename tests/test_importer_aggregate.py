@@ -25,10 +25,10 @@ from codex.models.groups import Imprint, Publisher, Series, Volume
 from codex.models.named import (
     AgeRating,
     Character,
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
     Country,
+    Credit,
+    CreditPerson,
+    CreditRole,
     Genre,
     IdentifierType,
     Language,
@@ -55,13 +55,13 @@ METADATA = MappingProxyType(
             # alternate_images ignored
             Character: {"Captain Science", "Boy Empirical"},
             "comic_paths": frozenset({PATH}),
-            Contributor: {
+            Country: {"US"},
+            Credit: {
                 ("Joe Orlando", "Writer"),
                 ("Wally Wood", "Penciller"),
             },
-            ContributorPerson: {"Joe Orlando", "Wally Wood"},
-            ContributorRole: {"Penciller", "Writer"},
-            Country: {"US"},
+            CreditPerson: {"Joe Orlando", "Wally Wood"},
+            CreditRole: {"Penciller", "Writer"},
             # credit_primaries ignored
             # Designation: "4242", future
             Genre: {"Science Fiction"},

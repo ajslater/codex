@@ -4,9 +4,9 @@ from types import MappingProxyType
 
 from codex.librarian.importer.const import (
     COMIC_FK_FIELDS,
-    CONTRIBUTOR_PERSON_FIELD_NAME,
-    CONTRIBUTOR_ROLE_FIELD_NAME,
-    CONTRIBUTORS_FIELD_NAME,
+    CREDIT_PERSON_FIELD_NAME,
+    CREDIT_ROLE_FIELD_NAME,
+    CREDITS_FIELD_NAME,
     IDENTIFIER_CODE_FIELD_NAME,
     IDENTIFIER_TYPE_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
@@ -15,21 +15,21 @@ from codex.librarian.importer.const import (
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.models import (
-    Contributor,
+    Credit,
     StoryArcNumber,
 )
 from codex.models.named import Identifier
 
 DICT_MODEL_FIELD_NAME_CLASS_MAP = (
-    (CONTRIBUTORS_FIELD_NAME, Contributor),
+    (CREDITS_FIELD_NAME, Credit),
     (STORY_ARC_NUMBERS_FIELD_NAME, StoryArcNumber),
     (IDENTIFIERS_FIELD_NAME, Identifier),
 )
 DICT_MODEL_REL_LINK_MAP = MappingProxyType(
     {
-        CONTRIBUTORS_FIELD_NAME: (
-            f"{CONTRIBUTOR_ROLE_FIELD_NAME}__name",
-            f"{CONTRIBUTOR_PERSON_FIELD_NAME}__name__in",
+        CREDITS_FIELD_NAME: (
+            f"{CREDIT_ROLE_FIELD_NAME}__name",
+            f"{CREDIT_PERSON_FIELD_NAME}__name__in",
         ),
         STORY_ARC_NUMBERS_FIELD_NAME: (
             f"{STORY_ARC_FIELD_NAME}__name",

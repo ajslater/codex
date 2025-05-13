@@ -14,10 +14,10 @@ from codex.models.groups import BrowserGroupModel
 __all__ = (
     "AgeRating",
     "Character",
-    "Contributor",
-    "ContributorPerson",
-    "ContributorRole",
     "Country",
+    "Credit",
+    "CreditPerson",
+    "CreditRole",
     "Genre",
     "Identifier",
     "IdentifierType",
@@ -60,19 +60,19 @@ class Character(NamedModel):
     """A character that appears in the comic."""
 
 
-class ContributorPerson(NamedModel):
+class CreditPerson(NamedModel):
     """Credited persons."""
 
 
-class ContributorRole(NamedModel):
+class CreditRole(NamedModel):
     """A role for the credited person. Writer, Inker, etc."""
 
 
-class Contributor(BaseModel):
-    """A contributor credit."""
+class Credit(BaseModel):
+    """A credit."""
 
-    person = ForeignKey(ContributorPerson, on_delete=CASCADE)
-    role = ForeignKey(ContributorRole, on_delete=CASCADE, null=True)
+    person = ForeignKey(CreditPerson, on_delete=CASCADE)
+    role = ForeignKey(CreditRole, on_delete=CASCADE, null=True)
 
     class Meta(BaseModel.Meta):
         """Constraints."""

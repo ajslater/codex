@@ -24,7 +24,7 @@ PATH_STEP = 2
 CHANCE_OF_NULL = 0.1
 CHANCE_OF_BAD_TYPE = 0.2
 CHOICES_STR = string.ascii_uppercase + string.digits
-CONTRIBUTOR_TAGS = (
+CREDIT_TAGS = (
     "Colorist",
     "CoverArtist",
     "Editor",
@@ -79,7 +79,7 @@ RANGED_FIELDS = {
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
 NUM_M2M_NAMES = 20
-NUM_CONTRIBUTORS = 15
+NUM_CREDITS = 15
 STATUS_DELAY = 5
 LANG_KEYS = ("alpha_2", "alpha_3", "alpha_4", "name")
 
@@ -216,13 +216,13 @@ def create_manga(md):
     md["Manga"] = value
 
 
-def create_contributors(md):
-    """Add contributors to the metadata."""
+def create_credits(md):
+    """Add credits to the metadata."""
     v = is_valid()
     if v is None:
         return
-    for _ in range(random.randint(0, NUM_CONTRIBUTORS)):
-        role = random.choices(CONTRIBUTOR_TAGS, k=1)[0]
+    for _ in range(random.randint(0, NUM_CREDITS)):
+        role = random.choices(CREDIT_TAGS, k=1)[0]
         person = rand_string(round(64 * 1.1))
         md[role] = person
 
@@ -253,7 +253,7 @@ def create_metadata():
 
     create_bool(md, "BlackAndWhite")
     create_manga(md)
-    create_contributors(md)
+    create_credits(md)
 
     root = Element(ComicInfoSchema.ROOT_TAG)
     root.attrib["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"

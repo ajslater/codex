@@ -5,14 +5,14 @@ from types import MappingProxyType
 
 from codex.librarian.importer.const import (
     FK_CREATE,
-    FKC_CONTRIBUTORS,
+    FKC_CREDITS,
     FKC_FOLDER_PATHS,
     FKC_IDENTIFIERS,
     FKC_STORY_ARC_NUMBERS,
 )
 from codex.librarian.importer.query_fks.simple import QueryForeignKeysSimpleImporter
 from codex.models import (
-    Contributor,
+    Credit,
     Folder,
     StoryArcNumber,
 )
@@ -20,7 +20,7 @@ from codex.models.named import Identifier
 
 _DICT_MODEL_KEY_MAP = MappingProxyType(
     {
-        Contributor: FKC_CONTRIBUTORS,
+        Credit: FKC_CREDITS,
         StoryArcNumber: FKC_STORY_ARC_NUMBERS,
         Identifier: FKC_IDENTIFIERS,
     }

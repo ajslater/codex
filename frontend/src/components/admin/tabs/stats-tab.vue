@@ -67,10 +67,10 @@ const CONFIG_LABELS = {
 Object.freeze(CONFIG_LABELS);
 Object.freeze(LOOKUPS);
 const INDENT_KEYS = new Set([
-  "storyArcNumbersCount",
+  "creditPersonsCount",
+  "creditRolesCount",
   "identifierTypesCount",
-  "contributorPersonsCount",
-  "contributorRolesCount",
+  "storyArcNumbersCount",
 ]);
 Object.freeze(INDENT_KEYS);
 

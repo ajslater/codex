@@ -29,11 +29,12 @@ FIELDMAP = MappingProxyType(
     {
         "characters": ("category", "character"),
         "community_rating": gen_multipart_field_aliases("community_rating"),
-        "contributors": (
+        "credits": (
             *gen_multipart_field_aliases("authors"),
-            "contributor",
+            "credit",
             *gen_multipart_field_aliases("creators"),
             *gen_multipart_field_aliases("credits"),
+            *gen_multipart_field_aliases("contributors"),
             *gen_multipart_field_aliases("people"),
             *gen_multipart_field_aliases("persons"),
         ),

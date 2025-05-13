@@ -90,6 +90,8 @@ import { mapActions, mapState, mapWritableState } from "pinia";
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
+const NUMERIC_FILTERS = new Set(["decade", "year"]);
+
 export default {
   name: "BrowserFilterSubMenu",
   props: {
@@ -129,8 +131,15 @@ export default {
       }
       return false;
     },
+    isNumeric() {
+      return NUMERIC_FILTERS.has(this.name);
+    },
     vuetifyItems() {
-      return toVuetifyItems(this.choices, this.query);
+      return toVuetifyItems({
+        items: this.choices,
+        filter: this.query,
+        numeric: this.isNumeric,
+      });
     },
     title() {
       return capitalCase(this.name);

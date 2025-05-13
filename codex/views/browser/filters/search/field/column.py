@@ -12,8 +12,8 @@ from codex.views.browser.filters.search.aliases import FIELD_TYPE_MAP
 
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
-        "role": "contributors__role__name",
-        "contributors": "contributors__person__name",
+        "role": "credits__role__name",
+        "credits": "credits__person__name",
         "identifier": "identifier__nss",
         "identirier_type": "identifier__identifier_type__name",
         "story_arcs": "story_arc_number__story_arc__name",

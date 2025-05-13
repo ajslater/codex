@@ -34,8 +34,8 @@ class OPDS1TemplateLinkSerializer(Serializer):
     pse_last_read_date = DateTimeField(read_only=True, required=False)
 
 
-class OPDS1ContributorSerializer(Serializer):
-    """OPDS 1 Contributor."""
+class OPDS1CreditSerializer(Serializer):
+    """OPDS 1 Credit."""
 
     name = CharField(read_only=True)
     url = CharField(read_only=True, required=False)
@@ -53,8 +53,8 @@ class OPDS1TemplateEntrySerializer(Serializer):
     publisher = CharField(read_only=True, required=False)
     language = LanguageSerializer(read_only=True, required=False)
     summary = CharField(read_only=True, required=False)
-    authors = OPDS1ContributorSerializer(many=True, required=False, read_only=True)
-    contributors = OPDS1ContributorSerializer(many=True, required=False, read_only=True)
+    authors = OPDS1CreditSerializer(many=True, required=False, read_only=True)
+    credits = OPDS1CreditSerializer(many=True, required=False, read_only=True)
     category_groups = DictField(required=False, read_only=True)
 
 

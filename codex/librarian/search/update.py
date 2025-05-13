@@ -41,7 +41,7 @@ _COMICFTS_UPDATE_FIELDS = (
     "tagger",
     # ManyToMany
     "characters",
-    "contributors",
+    "credits",
     "genres",
     "locations",
     "series_groups",
@@ -97,7 +97,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             fts_scan_info=F("scan_info__name"),
             fts_tagger=F("tagger__name"),
             fts_characters=GroupConcat("characters__name", distinct=True),
-            fts_contributors=GroupConcat("contributors__person__name", distinct=True),
+            fts_credits=GroupConcat("credits__person__name", distinct=True),
             fts_genres=GroupConcat("genres__name", distinct=True),
             fts_locations=GroupConcat("locations__name", distinct=True),
             fts_series_groups=GroupConcat("series_groups__name", distinct=True),
@@ -146,7 +146,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
                 tagger=comic.fts_tagger,
                 # ManyToMany
                 characters=comic.fts_characters,
-                contributors=comic.fts_contributors,
+                credits=comic.fts_credits,
                 genres=comic.fts_genres,
                 locations=comic.fts_locations,
                 series_groups=comic.fts_series_groups,

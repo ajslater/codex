@@ -15,7 +15,7 @@ from codex.views.opds.const import (
     BLANK_TITLE,
 )
 from codex.views.opds.util import (
-    get_contributor_people,
+    get_credit_people,
     get_m2m_objects,
 )
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
@@ -135,16 +135,16 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=False)
-        return self._add_url_to_obj(people, "contributors")
+        people = get_credit_people(self.obj.ids, AUTHOR_ROLES, exclude=False)
+        return self._add_url_to_obj(people, "credits")
 
     @property
     def contributors(self):
-        """Get Contributor names."""
+        """Get Credit names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
-        return self._add_url_to_obj(people, "contributors")
+        people = get_credit_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
+        return self._add_url_to_obj(people, "credits")
 
     @property
     def category_groups(self):

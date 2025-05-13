@@ -3,9 +3,9 @@
 from types import MappingProxyType
 
 from codex.librarian.importer.const import (
-    CONTRIBUTOR_PERSON_FIELD_NAME,
-    CONTRIBUTOR_ROLE_FIELD_NAME,
-    FKC_CONTRIBUTORS,
+    CREDIT_PERSON_FIELD_NAME,
+    CREDIT_ROLE_FIELD_NAME,
+    FKC_CREDITS,
     FKC_IDENTIFIERS,
     FKC_STORY_ARC_NUMBERS,
     GROUP_MODEL_COUNT_FIELDS,
@@ -15,14 +15,14 @@ from codex.librarian.importer.const import (
     STORY_ARC_FIELD_NAME,
 )
 from codex.models import (
-    Contributor,
+    Credit,
     StoryArc,
     StoryArcNumber,
     Volume,
 )
 from codex.models.named import (
-    ContributorPerson,
-    ContributorRole,
+    CreditPerson,
+    CreditRole,
     Identifier,
     IdentifierType,
 )
@@ -30,16 +30,16 @@ from codex.models.named import (
 GROUP_BASE_FIELDS = ("name", "sort_name")
 CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
     {
-        Contributor: (CONTRIBUTOR_ROLE_FIELD_NAME, CONTRIBUTOR_PERSON_FIELD_NAME),
+        Credit: (CREDIT_ROLE_FIELD_NAME, CREDIT_PERSON_FIELD_NAME),
         StoryArcNumber: (STORY_ARC_FIELD_NAME, NUMBER_FIELD_NAME),
         Identifier: (IDENTIFIER_TYPE_FIELD_NAME, IDENTIFIER_CODE_FIELD_NAME),
     }
 )
 CREATE_DICT_FUNCTION_ARGS = (
     (
-        Contributor,
-        FKC_CONTRIBUTORS,
-        {"person": ContributorPerson, "role": ContributorRole},
+        Credit,
+        FKC_CREDITS,
+        {"person": CreditPerson, "role": CreditRole},
     ),
     (StoryArcNumber, FKC_STORY_ARC_NUMBERS, {"story_arc": StoryArc}),
     (
