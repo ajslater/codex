@@ -111,7 +111,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                     observer.sync_library_watches()
             case WatchdogPollLibrariesTask():
                 self._threads.library_polling_observer.poll(
-                    task.library_ids, task.force
+                    task.library_ids, force=task.force
                 )
             case SearchIndexAbortTask():
                 # Must come before the generic SearchIndexerTask below
