@@ -79,7 +79,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
                 if field.endswith("count"):
                     output_field = IntegerField()
                 else:
-                    output_field = Comic._meta.get_field(field).__class__()
+                    output_field = Comic._meta.get_field(field)
                 val = Value(val, output_field)
             qs = qs.annotate(**{ann_field: val})
 
