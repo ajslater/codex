@@ -13,11 +13,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in FIELD_ROWS" :key="row[0]">
-              <td>{{ row[0] }}</td>
-              <td>{{ row[1] }}</td>
+            <tr
+              v-for="[field, data] of Object.entries(FIELD_ROWS)"
+              :key="field"
+            >
+              <td>{{ field }}</td>
+              <td>{{ data["type"] }}</td>
               <td class="aliasCol">
-                {{ row[2] || "" }}
+                {{ data["aliases"].join(", ") || "" }}
               </td>
             </tr>
           </tbody>
@@ -196,53 +199,7 @@
   </div>
 </template>
 <script>
-const FIELD_ROWS = [
-  ["characters", "String", "category"],
-  ["community_rating", "Decimal", "communityrating"],
-  ["credits", "String", "author, contributor, creator, credit, people, person"],
-  ["country", "String"],
-  ["created_at", "DateTime", "created"],
-  ["critical_rating", "Decimal", "criticalrating"],
-  ["day", "Integer"],
-  ["date", "Date"],
-  ["decade", "Integer"],
-  ["file_type", "String", "filetype, type"],
-  ["genres", "String", "genre"],
-  ["identifiers", "String", "id, nss"],
-  ["identifier_types", "String", "id_type, idtype, nid"],
-  ["imprint", "String"],
-  ["issue", "String", "(Combined issue_number and issue_suffix)"],
-  ["issue_number", "Decimal", "number"],
-  ["issue_suffix", "String"],
-  ["language", "String"],
-  ["location", "String", "location"],
-  ["maturity_rating", "String"],
-  ["monochrome", "Boolean", "blackandwhite"],
-  ["month", "Integer"],
-  ["reading_direction", "String", "direction"],
-  ["name", "String", "title"],
-  ["notes", "String"],
-  ["original_format", "String", "format, orginalformat"],
-  ["path", "String", "filename, folder, folders"],
-  ["page_count", "Integer", "pages, pagecount"],
-  ["publisher", "String"],
-  ["reading_direction", "String", "direction"],
-  ["review", "String"],
-  ["scan_info", "String", "scan, scaninfo"],
-  ["series", "String"],
-  ["series_groups", "String", "seriesgroups"],
-  ["size", "Integer"],
-  ["stories", "String", "story"],
-  ["story_arcs", "String", "storyarcs"],
-  ["summary", "String", "comments, description"],
-  ["tags", "String", "tag"],
-  ["tagger", "String"],
-  ["teams", "String", "team"],
-  ["updated_at", "DateTime", "updated"],
-  ["volume", "String"],
-  ["web", "String"],
-  ["year", "Integer"],
-];
+import FIELD_ROWS from "@/choices/search-map.json";
 
 export default {
   name: "SearchHelpText",
