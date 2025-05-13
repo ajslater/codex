@@ -54,6 +54,7 @@ class FTS5Match(Lookup):
         return sql, params
 
 
+@CharField.register_lookup
 @CleaningCharField.register_lookup
 @CleaningTextField.register_lookup
 class Like(Lookup):
