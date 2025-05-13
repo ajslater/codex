@@ -62,7 +62,7 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
         {Publisher: None, Imprint: None, Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
     )
 )
-COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = (  # pyright: ignore[reportAssignmentType]
+COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType]
     # Leaves out folders.
     field
     for field in Comic._meta.get_fields()
