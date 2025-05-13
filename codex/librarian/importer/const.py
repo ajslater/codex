@@ -3,8 +3,8 @@
 from types import MappingProxyType
 
 from bidict import bidict
-from django.db.models import ForeignObjectRel, ManyToManyField
 from django.db.models.fields import Field
+from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
 from codex.models import (
     Comic,
@@ -62,7 +62,7 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
         {Publisher: None, Imprint: None, Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
     )
 )
-COMIC_M2M_FIELD_NAMES: tuple[ManyToManyField, ...] = (  # pyright: ignore[reportAssignmentType]
+COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = (  # pyright: ignore[reportAssignmentType]
     # Leaves out folders.
     field
     for field in Comic._meta.get_fields()

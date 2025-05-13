@@ -16,7 +16,7 @@ from codex.librarian.importer.aggregate.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
 )
 from codex.librarian.importer.const import (
-    COMIC_M2M_FIELD_NAMES,
+    COMIC_M2M_FIELDS,
     FOLDERS_FIELD,
     M2M_LINK,
     QUERY_MODELS,
@@ -107,7 +107,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
     def get_m2m_metadata(self, md, path):
         """Many_to_many fields get moved into a separate dict."""
         m2m_md = {}
-        for field in COMIC_M2M_FIELD_NAMES:
+        for field in COMIC_M2M_FIELDS:
             md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field.name, field.name)
             value = md.pop(md_key, None)
             if value is None:

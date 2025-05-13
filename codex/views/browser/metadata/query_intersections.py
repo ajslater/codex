@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 from django.db.models import Count
 
-from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
+from codex.librarian.importer.const import COMIC_M2M_FIELDS
 from codex.models import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import Imprint, Publisher, Series, Volume
@@ -89,9 +89,9 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         comic_pks = set(comic_pks)
         comic_pks_count = len(comic_pks)
 
-        for field_name in COMIC_M2M_FIELD_NAMES:
-            m2m_intersections[field_name] = self._get_m2m_intersection_query(
-                field_name, comic_pks, comic_pks_count
+        for field in COMIC_M2M_FIELDS:
+            m2m_intersections[field.name] = self._get_m2m_intersection_query(
+                field.name, comic_pks, comic_pks_count
             )
         return m2m_intersections
 
