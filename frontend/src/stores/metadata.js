@@ -73,7 +73,7 @@ export const useMetadataStore = defineStore("metadata", {
       if (!state.md?.identifiers) {
         return identifiers;
       }
-      for (const identifier of this.md.identifiers) {
+      for (const identifier of state.md.identifiers) {
         const parts = identifier.name.split(":");
         const idType = parts[0];
         const code = parts[1];
@@ -95,7 +95,7 @@ export const useMetadataStore = defineStore("metadata", {
     },
     tags(state) {
       const tags = state.mapTag(state.md, TAGS);
-      if (this.identifiers) {
+      if (state.identifiers.length) {
         tags["Identifiers"] = {
           filter: "identifiers",
           tags: this.identifiers,
