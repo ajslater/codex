@@ -51,11 +51,11 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
         count_key: str | None = None,
     ):
         """Assign the maximum group count number."""
-        group_name = group_tree[0:index]
+        group_list = group_tree[0:index]
         if count_key:
             try:
                 count = max_none(
-                    self.metadata[QUERY_MODELS].get(group_class, {}).get(group_name),
+                    self.metadata[QUERY_MODELS].get(group_class, {}).get(group_list),
                     group_md.get(count_key),
                 )
             except Exception:
@@ -63,13 +63,13 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
         else:
             count = None
 
-        group = {group_name: count}
+        group = {group_list: count}
         # Update is fine because count max merge happens above
         if group_class not in self.metadata[QUERY_MODELS]:
             self.metadata[QUERY_MODELS][group_class] = {}
         self.metadata[QUERY_MODELS][group_class].update(group)
         field_name = group_class.__name__.lower()
-        self.metadata[FK_LINK][path][field_name] = group
+        self.metadata[FK_LINK][path][field_name] = group_list[-1]
 
     def get_group_tree(self, md, path):
         """Create the group tree to counts map for a single comic."""
