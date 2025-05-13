@@ -6,6 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.0
+
+- Features
+  - Support MetronInfo.xml v1.0 Schema for comic metadata. Only metadata
+    features that already exist in Codex.
+  - Support CB7 (7zip) comic archives.
+  - Uses Comicbox 2.0 see
+    [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
+
 ## v1.7.12
 
 - Fixes
