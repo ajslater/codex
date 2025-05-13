@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from codex.librarian.importer.const import (
     FOLDERS_FIELD,
+    IDENTIFIER_URL_FIELD_NAME,
     M2M_LINK,
 )
 from codex.librarian.importer.link.const import (
@@ -18,7 +19,6 @@ from codex.models import (
     Comic,
     Folder,
 )
-from codex.models.named import Identifier
 from codex.status import Status
 
 
@@ -31,26 +31,20 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         return Q(path__in=folder_paths)
 
     @staticmethod
-    def _get_link_identifier_filter(field_name, dict_md):
+    def _get_link_dict_filter(field_name, values_set):
         """Get the ids of all dict style objects to link."""
         dict_filter = Q()
-        key_rel, value_rel = DICT_MODEL_REL_LINK_MAP[field_name]
-        for key, values_dict in dict_md.items():
-            nss = values_dict.get("nss")
-            dict_filter |= Q(**{key_rel: key, value_rel: nss})
-        return dict_filter
-
-    @staticmethod
-    def _get_link_dict_filter(field_name, dict_md):
-        """Get the ids of all dict style objects to link."""
-        dict_filter = Q()
-        key_rel, value_rel = DICT_MODEL_REL_LINK_MAP[field_name]
-        for key, value in dict_md.items():
-            rel_dict = {key_rel: key, value_rel: value}
+        rels = DICT_MODEL_REL_LINK_MAP[field_name]
+        for values in values_set:
+            rel_dict = {
+                key: value
+                for key, value in zip(rels, values, strict=True)
+                if key != IDENTIFIER_URL_FIELD_NAME
+            }
             dict_filter |= Q(**rel_dict)
         return dict_filter
 
-    def _link_prepare_special_m2ms(self, link_data, key, model, get_link_filter_method):
+    def _link_prepare_special_m2ms(self, link_data, key, model, link_filter_method):
         """Prepare special m2m for linking."""
         (all_m2m_links, md, comic_pk) = link_data
         values = md.pop(key, [])
@@ -59,7 +53,7 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         if key not in all_m2m_links:
             all_m2m_links[key] = {}
 
-        m2m_filter = get_link_filter_method(key, values)
+        m2m_filter = link_filter_method(key, values)
         pks = model.objects.filter(m2m_filter).values_list("pk", flat=True).distinct()
         result = frozenset(pks)
         all_m2m_links[key][comic_pk] = result
@@ -96,12 +90,9 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
                 link_data, FOLDERS_FIELD, Folder, self._get_link_folders_filter
             )
             for field_name, model in DICT_MODEL_FIELD_NAME_CLASS_MAP:
-                method = (
-                    self._get_link_identifier_filter
-                    if model == Identifier
-                    else self._get_link_dict_filter
+                self._link_prepare_special_m2ms(
+                    link_data, field_name, model, self._get_link_folders_filter
                 )
-                self._link_prepare_special_m2ms(link_data, field_name, model, method)
 
             total += self._link_named_m2ms(all_m2m_links, comic_pk, md)
         self.metadata.pop(M2M_LINK)
