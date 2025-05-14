@@ -38,15 +38,16 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         for values in values_set:
             rel_dict = {
                 key: value
-                for key, value in zip(rels, values, strict=True)
+                for key, value in zip(rels, values, strict=False)
                 if key != IDENTIFIER_URL_FIELD_NAME
             }
             dict_filter |= Q(**rel_dict)
         return dict_filter
 
-    def _link_prepare_special_m2ms(self, link_data, key, model, link_filter_method):
+    def _link_prepare_special_m2ms(  # noqa: PLR0913
+        self, all_m2m_links, md, comic_pk, key, model, link_filter_method
+    ):
         """Prepare special m2m for linking."""
-        (all_m2m_links, md, comic_pk) = link_data
         values = md.pop(key, [])
         if not values:
             return
@@ -85,13 +86,22 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = self.metadata[M2M_LINK][comic_path]
-            link_data = (all_m2m_links, md, comic_pk)
             self._link_prepare_special_m2ms(
-                link_data, FOLDERS_FIELD, Folder, self._get_link_folders_filter
+                all_m2m_links,
+                md,
+                comic_pk,
+                FOLDERS_FIELD,
+                Folder,
+                self._get_link_folders_filter,
             )
             for field_name, model in DICT_MODEL_FIELD_NAME_CLASS_MAP:
                 self._link_prepare_special_m2ms(
-                    link_data, field_name, model, self._get_link_folders_filter
+                    all_m2m_links,
+                    md,
+                    comic_pk,
+                    field_name,
+                    model,
+                    self._get_link_dict_filter,
                 )
 
             total += self._link_named_m2ms(all_m2m_links, comic_pk, md)
