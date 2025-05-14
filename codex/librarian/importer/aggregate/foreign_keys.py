@@ -104,7 +104,8 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
                 continue
             value = related_field.get_prep_value(value)
 
-            if field_name not in self.metadata[QUERY_MODELS]:
-                self.metadata[QUERY_MODELS][related_field.model] = set()
-            self.metadata[QUERY_MODELS][related_field.model].add(value)
+            model = related_field.model
+            if model not in self.metadata[QUERY_MODELS]:
+                self.metadata[QUERY_MODELS][model] = set()
+            self.metadata[QUERY_MODELS][model].add(value)
             self.metadata[FK_LINK][path][field_name] = value
