@@ -24,13 +24,14 @@ from codex.librarian.importer.create_fks.folders import (
 )
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import StoryArc
+from codex.models.named import NamedModel
 from codex.status import Status
 
 
 class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
     """Methods for creating foreign keys."""
 
-    def _bulk_create_named_models(self, names, named_class, status):
+    def _bulk_create_named_models(self, named_class: type[NamedModel], names, status):
         """Bulk create named models."""
         count = len(names)
         if not count:
@@ -55,8 +56,9 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
             unique_fields=named_class._meta.unique_together[0],
         )
         if count:
-            vnp = named_class._meta.verbose_name_plural.title()
-            self.log.info(f"Created {count} {vnp}.")
+            vnp = named_class._meta.verbose_name_plural
+            title = vnp.title() if vnp else named_class._meta.verbose_name
+            self.log.info(f"Created {count} {title}.")
         status.add_complete(count)
         self.status_controller.update(status)
 
@@ -125,7 +127,7 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
             self.bulk_folders_create(fkc.pop(FKC_FOLDER_PATHS, frozenset()), status)
 
             for named_class, names in fkc.pop(FKC_CREATE_FKS, {}).items():
-                self._bulk_create_named_models(names, named_class, status)
+                self._bulk_create_named_models(named_class, names, status)
 
             # These all depend on bulk_create_named_models running first
             for model, create_objs, create_args_dict in CREATE_DICT_FUNCTION_ARGS:
