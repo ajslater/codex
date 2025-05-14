@@ -75,7 +75,7 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
         try:
             self.status_controller.start(status)
             for query_model, create_objs_key in _DICT_MODEL_KEY_MAP.items():
-                self._query_missing_dict_model(
+                self.query_missing_dict_model(
                     query_model,
                     create_objs_key,
                     status,
@@ -93,7 +93,7 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
             )
 
             for fk_class in tuple(self.metadata[QUERY_MODELS].keys()):
-                self._query_one_simple_model(fk_class, status)
+                self.query_one_simple_model(fk_class, status)
             self.metadata.pop(QUERY_MODELS)
         finally:
             self.status_controller.finish(status)

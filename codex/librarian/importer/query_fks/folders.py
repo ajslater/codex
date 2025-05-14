@@ -46,7 +46,7 @@ class QueryForeignKeysFoldersImporter(QueryForeignKeysSimpleImporter):
 
         # get the create metadata
         create_folder_paths_dict = {}
-        self._query_missing_simple_models(
+        self.query_missing_simple_models(
             proposed_folder_paths,
             create_folder_paths_dict,
             Folder,

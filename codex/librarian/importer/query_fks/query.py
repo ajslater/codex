@@ -38,18 +38,22 @@ class QueryForeignKeysQueryImporter(QueryCustomCoversImporter):
     """Query the missing foreign keys methods."""
 
     @staticmethod
-    def query_existing_mds(fk_cls, fk_filter, extra_fields=None):
+    def query_existing_mds(fk_model, fk_filter, extra_fields=None):
         """Query existing metatata tables."""
-        fields = _CLASS_QUERY_FIELDS_MAP.get(fk_cls, _DEFAULT_QUERY_FIELDS)
+        fields = _CLASS_QUERY_FIELDS_MAP.get(fk_model, _DEFAULT_QUERY_FIELDS)
         if extra_fields:
             fields += extra_fields
-        flat = len(fields) == 1 and fk_cls != Publisher
-        qs = fk_cls.objects.filter(fk_filter).distinct().values_list(*fields, flat=flat)
+        flat = len(fields) == 1 and fk_model != Publisher
+        qs = (
+            fk_model.objects.filter(fk_filter)
+            .distinct()
+            .values_list(*fields, flat=flat)
+        )
         return frozenset(qs)
 
     def query_create_metadata(  # noqa: PLR0913
         self,
-        fk_cls,
+        fk_model,
         create_mds,
         update_mds,
         q_obj: Q,
@@ -57,7 +61,7 @@ class QueryForeignKeysQueryImporter(QueryCustomCoversImporter):
         and_q_obj: Q | None = None,
     ):
         """Get create metadata by comparing proposed meatada to existing rows."""
-        vnp = fk_cls._meta.verbose_name_plural.title()
+        vnp = fk_model._meta.verbose_name_plural.title()
         status.subtitle = vnp
         offset = 0
         num_qs = len(q_obj.children)
@@ -69,13 +73,13 @@ class QueryForeignKeysQueryImporter(QueryCustomCoversImporter):
             if and_q_obj:
                 filter_chunk = and_q_obj & filter_chunk
 
-            existing_mds = self.query_existing_mds(fk_cls, filter_chunk)
+            existing_mds = self.query_existing_mds(fk_model, filter_chunk)
             create_mds.difference_update(existing_mds)
-            if extra_update_fields := _EXTRA_UPDATE_FIELDS_MAP.get(fk_cls):
+            if extra_update_fields := _EXTRA_UPDATE_FIELDS_MAP.get(fk_model):
                 # The mds that are in the existing_mds, but don't match the proposed mds with the extra update fields
                 update_mds.update(existing_mds)
                 match_with_extra_fields_mds = self.query_existing_mds(
-                    fk_cls, filter_chunk, extra_update_fields
+                    fk_model, filter_chunk, extra_update_fields
                 )
                 update_mds.difference_update(match_with_extra_fields_mds)
 

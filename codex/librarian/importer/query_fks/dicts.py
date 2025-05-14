@@ -52,7 +52,7 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
             restored_create_objs.append((*create_obj, url))
         return restored_create_objs
 
-    def _query_missing_dict_model(
+    def query_missing_dict_model(
         self, query_model: DictModelType, create_objs_key: str, status
     ):
         """Find missing dict type m2m models."""
