@@ -256,7 +256,7 @@ wheels = [
 
 [[package]]
 name = "cairosvg"
-version = "2.8.0"
+version = "2.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cairocffi" },
@@ -265,9 +265,9 @@ dependencies = [
     { name = "pillow" },
     { name = "tinycss2" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/2b/2bad43cd8047663f8fb768a0a6aef48fc8346e276a274bec3710f84bab63/cairosvg-2.8.0.tar.gz", hash = "sha256:d60fe75c238ffba3f8e21e06dad8727ecd2bcef8d3d55fc11f9286c08c5cc710", size = 8398397, upload-time = "2025-05-12T11:36:41.354Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/83/509a2c3c2e94897e5daa12250c97a49b04dec0183f4dde2e3b2d57646413/cairosvg-2.8.1.tar.gz", hash = "sha256:4429086d4b6aa47192ccbc4a93ada8b705098e01ee3b8f6094e51137d1ffa7d1", size = 8398517, upload-time = "2025-05-14T12:23:27.579Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/ed/e04ffd1043a47b4510fd8a1e0c4e1c6b5b27922ef53a578739ed3cfd1f32/cairosvg-2.8.0-py3-none-any.whl", hash = "sha256:f15836feea67a680f79938edf2efdd162793526b0b1cc2fd9ec257ebeafe2946", size = 45746, upload-time = "2025-05-12T11:36:37.364Z" },
+    { url = "https://files.pythonhosted.org/packages/79/6d/1aab635b9e7e2e40084f5bf51217b5d355d0fe87da2a87c0a1a1e57de16a/cairosvg-2.8.1-py3-none-any.whl", hash = "sha256:5ebb6095bbb3eb7edf68b94f28f1a867535f09225ced62a662bba2e928e570a4", size = 45774, upload-time = "2025-05-14T12:23:23.234Z" },
 ]
 
 [[package]]
@@ -527,7 +527,7 @@ requires-dist = [
     { name = "bidict", specifier = ">=0.23.1,<1.0.0" },
     { name = "case-converter", specifier = ">=1.1.0,<2.0.0" },
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a4,<3.0.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a7,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
     { name = "django", specifier = ">=5.2.0,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
@@ -594,7 +594,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a4"
+version = "2.0.0a7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -619,9 +619,9 @@ dependencies = [
     { name = "urnparse" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/01/d5e6f489060485ce223f2a00501936fa635d8bd21305051c7a64fe9e312e/comicbox-2.0.0a4.tar.gz", hash = "sha256:b1c019acc30e27157c3524378936fcb17752d5d052baf262931dcaf882c7754f", size = 70899018, upload-time = "2025-05-12T22:25:28.723Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/96/7bc788e4bda8bdd32a1ab6e196f1b6e214a6ab9d7096f254d619d56084fe/comicbox-2.0.0a7.tar.gz", hash = "sha256:4fc4b4ab9553b54028f58ef6d0cabf66bceaefe746ec3e2d15aeb822ad9daeb8", size = 70899071, upload-time = "2025-05-14T21:20:02.014Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/30/ed8a628f6483eb36ef34e638081c55728bfa9bd321fa60db6ce68e5e915a/comicbox-2.0.0a4-py3-none-any.whl", hash = "sha256:94fedc4a94de36b38da055a1524fdf41725056eea8a76b2b368a492db203dea5", size = 146641, upload-time = "2025-05-12T22:25:24.714Z" },
+    { url = "https://files.pythonhosted.org/packages/92/c2/197823cbbeb84949c4b203e9fb662437a0e0d9ab4225c0d454d51fd0817a/comicbox-2.0.0a7-py3-none-any.whl", hash = "sha256:1b62c57798759307cb242fd7767d749018f3b28e747ab9c4f4436092fb039ae2", size = 146715, upload-time = "2025-05-14T21:19:58.441Z" },
 ]
 
 [package.optional-dependencies]
@@ -631,16 +631,17 @@ pdf = [
 
 [[package]]
 name = "comicbox-pdffile"
-version = "0.2.3"
+version = "0.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filetype" },
     { name = "pymupdf" },
     { name = "python-dateutil" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/f1/2132e4f6a2d98899446e6a90413dc1a0c3f3247327d88a34b6f955d2f154/comicbox_pdffile-0.2.3.tar.gz", hash = "sha256:8b93d69d1e5b5386d9caa752762557de484d3537e84a3b78cd59066a3ed8ce4d", size = 17426, upload-time = "2025-03-03T22:35:23.24Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/cb/bb4a65f6492e8a0edddc9ac4a06dbc89395e402019a8a1f58ddea2664562/comicbox_pdffile-0.2.4.tar.gz", hash = "sha256:61a001534ac59955a8ed0a37a098dfa74ef765179b0e5ba88a5b0881e7bad90a", size = 17963, upload-time = "2025-05-14T04:48:54.533Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/97/4b7c187b1c8f62fb3a8dec7b1ae2ffc5fedc0e297dbfd393e7633c46f2e6/comicbox_pdffile-0.2.3-py3-none-any.whl", hash = "sha256:67871a55b6d3d288fda4f711022b77f5d44f645634a9d0da2ab9b673c1675d29", size = 5072, upload-time = "2025-03-03T22:35:21.82Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/03/421bca2da5142ad7a15418db3fa12bcdae49581bdd51dd51638d52393a94/comicbox_pdffile-0.2.4-py3-none-any.whl", hash = "sha256:2c8142c17bc625edebf9262f6a93f0ff7b3a33c9576376b26c4e72e2344e98cf", size = 5489, upload-time = "2025-05-14T04:48:53.152Z" },
 ]
 
 [[package]]
