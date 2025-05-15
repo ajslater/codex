@@ -1,5 +1,6 @@
 """Extract metadata from comic archive."""
 
+from datetime import datetime
 from tarfile import TarError
 from zipfile import BadZipFile, LargeZipFile
 
@@ -19,6 +20,7 @@ from rarfile import Error as RarError
 
 from codex.librarian.importer.const import FIS
 from codex.librarian.importer.query_fks import QueryForeignKeysImporter
+from codex.models.comic import Comic
 from codex.settings.settings import LOGLEVEL
 
 _COMICBOX_CONFIG = get_config(
@@ -67,16 +69,34 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         if stories := md.pop(STORIES_KEY, None):
             md["name"] = "; ".join(stories)
 
-    def extract(self, path, *, import_metadata: bool):
+    @staticmethod
+    def _metadata_mtime(path: str) -> datetime | None:
+        try:
+            comic = Comic.objects.get(path=path)
+        except Comic.DoesNotExist:
+            return None
+        return comic.metadata_mtime
+
+    def extract(self, path: str, *, import_metadata: bool):
         """Extract metadata from comic and clean it for codex."""
         md = {}
         failed_import = {}
         try:
             if import_metadata:
                 with Comicbox(path, config=_COMICBOX_CONFIG) as cb:
+                    new_md_mtime = cb.get_metadata_mtime()
+                    if not self.task.force_import_metadata:
+                        old_md_mtime = self._metadata_mtime(path)
+                        if (
+                            old_md_mtime
+                            and new_md_mtime
+                            and new_md_mtime <= old_md_mtime
+                        ):
+                            return md
                     md = cb.to_dict()
                     md = md.get("comicbox", {})
                     md["file_type"] = cb.get_file_type()
+                    md["metadata_mtime"] = new_md_mtime
             md["path"] = path
             self._extract_clean_md(md)
             self._extract_transform(md)

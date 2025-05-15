@@ -86,3 +86,7 @@ class SeeOtherRedirectError(APIException):
         url = self._add_query_params(url)
 
         return redirect(url, permanent=False)
+
+
+class MetadataUnchangedError(Exception):
+    """Metadata unchanged from last import."""

@@ -68,14 +68,24 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         self.metadata[QUERY_MODELS] = {COMIC_PATHS: set()}
         self.metadata[FK_LINK] = {}
         self.metadata[FIS] = {}
+        skip_paths = set()
         for path in all_paths:
             if md := self.extract(path, import_metadata=import_metadata):
                 self._aggregate_path(md, path, status)
+            else:
+                skip_paths.add(path)
+        num_skip_paths = len(skip_paths)
 
         # Aggregate further
-        fis = self.metadata[FIS]
-        self.task.files_modified -= fis.keys()
-        self.task.files_created -= fis.keys()
+        fis = self.metadata[FIS].keys()
+        skip_paths = frozenset(fis | skip_paths)
+        self.task.files_modified -= skip_paths
+        self.task.files_created -= skip_paths
+
+        if num_skip_paths:
+            self.log.info(
+                f"Skipped {num_skip_paths} comics because metadata appears unchanged."
+            )
 
         # Set statii
         fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(fis))

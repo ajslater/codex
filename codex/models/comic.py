@@ -195,6 +195,7 @@ class Comic(WatchedPathBrowserGroup):
         default="",
         db_collation="nocase",
     )
+    metadata_mtime = DateTimeField(null=True)
 
     # Not useful
     custom_cover: ForeignKey | None = None

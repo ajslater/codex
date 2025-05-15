@@ -3,12 +3,12 @@
 from types import MappingProxyType
 
 from codex.librarian.importer.aggregate.const import COMIC_FK_FIELD_NAMES
-from codex.librarian.importer.aggregate.extract import ExtractMetadataImporter
 from codex.librarian.importer.const import (
     FK_LINK,
     GROUP_MODEL_COUNT_FIELDS,
     QUERY_MODELS,
 )
+from codex.librarian.importer.extract import ExtractMetadataImporter
 from codex.models.groups import BrowserGroupModel
 from codex.util import max_none
 
