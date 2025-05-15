@@ -1,5 +1,6 @@
 """Aggregate Browser Group Trees."""
 
+from contextlib import suppress
 from types import MappingProxyType
 
 from codex.librarian.importer.aggregate.const import COMIC_FK_FIELD_NAMES
@@ -52,16 +53,13 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
     ):
         """Assign the maximum group count number."""
         group_list = group_tree[0:index]
+        count = None
         if count_key:
-            try:
+            with suppress(Exception):
                 count = max_none(
                     self.metadata[QUERY_MODELS].get(group_class, {}).get(group_list),
                     group_md.get(count_key),
                 )
-            except Exception:
-                count = None
-        else:
-            count = None
 
         group = {group_list: count}
         # Update is fine because count max merge happens above

@@ -28,12 +28,12 @@ from codex.models.named import NamedModel
 class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
     """Aggregate ManyToMany Metadata."""
 
-    def _get_m2m_metadata_dict_model_sub_fields(
+    def _get_m2m_metadata_dict_model_aggregate_sub_sub_value(
         self,
+        md_key: str,
         sub_value,
         sub_sub_key: str,
         sub_sub_field: DeferredAttribute,
-        md_key: str,
     ):
         sub_sub_value = sub_value.get(sub_sub_key)
         if sub_sub_value is None:
@@ -53,31 +53,39 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 self.metadata[QUERY_MODELS][model] |= clean_sub_sub_value
         return clean_sub_sub_value
 
+    def _get_m2m_metadata_dict_model_aggregate_sub_values(
+        self, md_key: str, dict_model_key_fields: dict, sub_key, sub_value
+    ):
+        clean_sub_key = NamedModel._meta.get_field("name").get_prep_value(sub_key)
+        clean_sub_value = [clean_sub_key] if md_key == IDENTIFIERS_KEY else set()
+        for sub_sub_key, sub_sub_field in dict_model_key_fields.items():
+            clean_sub_sub_value = (
+                self._get_m2m_metadata_dict_model_aggregate_sub_sub_value(
+                    md_key,
+                    sub_value,
+                    sub_sub_key,
+                    sub_sub_field,
+                )
+            )
+            if isinstance(clean_sub_value, list):
+                clean_sub_value.append(next(iter(clean_sub_sub_value)))
+            else:
+                clean_sub_value = {(clean_sub_key, val) for val in clean_sub_sub_value}
+        if clean_sub_key is not None:
+            key_model = DICT_MODEL_SUB_FIELDS.get(md_key)
+            if key_model not in self.metadata[QUERY_MODELS]:
+                self.metadata[QUERY_MODELS][key_model] = set()
+            self.metadata[QUERY_MODELS][key_model].add(clean_sub_key)
+        return clean_sub_value
+
     def _get_m2m_metadata_dict_model(
         self, value, dict_model_key_fields: dict, md_key: str
     ):
         clean_value = set()
         for sub_key, sub_value in value.items():
-            clean_sub_key = NamedModel._meta.get_field("name").get_prep_value(sub_key)
-            clean_sub_value = [clean_sub_key] if md_key == IDENTIFIERS_KEY else set()
-            for sub_sub_key, sub_sub_field in dict_model_key_fields.items():
-                clean_sub_sub_value = self._get_m2m_metadata_dict_model_sub_fields(
-                    sub_value,
-                    sub_sub_key,
-                    sub_sub_field,
-                    md_key,
-                )
-                if isinstance(clean_sub_value, list):
-                    clean_sub_value.append(next(iter(clean_sub_sub_value)))
-                else:
-                    clean_sub_value = {
-                        (clean_sub_key, val) for val in clean_sub_sub_value
-                    }
-            if clean_sub_key is not None:
-                key_model = DICT_MODEL_SUB_FIELDS.get(md_key)
-                if key_model not in self.metadata[QUERY_MODELS]:
-                    self.metadata[QUERY_MODELS][key_model] = set()
-                self.metadata[QUERY_MODELS][key_model].add(clean_sub_key)
+            clean_sub_value = self._get_m2m_metadata_dict_model_aggregate_sub_values(
+                md_key, dict_model_key_fields, sub_key, sub_value
+            )
             if isinstance(clean_sub_value, list):
                 clean_sub_value = tuple(clean_sub_value)
                 clean_value.add(clean_sub_value)
