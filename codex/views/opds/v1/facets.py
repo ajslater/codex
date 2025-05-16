@@ -9,7 +9,7 @@ from django.urls import reverse
 from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
-from codex.views.opds.util import get_user_agent_name, update_href_query_params
+from codex.views.opds.util import get_user_agent_name, update_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -140,13 +140,15 @@ class OPDS1FacetsView(BrowserView):
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
         kwargs = pop_name(kwargs)
-        href = reverse("opds:v1:feed", kwargs=kwargs)
         facet_active = False
         for key, val in new_query_params.items():
             if self.request.GET.get(key) == val:
                 facet_active = True
                 break
-        href = update_href_query_params(href, self.request.GET, new_query_params)
+        query = {}
+        query.update(self.request.GET)
+        query.update(new_query_params)
+        href = reverse("opds:v1:feed", kwargs=kwargs, query=query)
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(

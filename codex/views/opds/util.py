@@ -3,7 +3,6 @@
 from django.db.models import F
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.http import urlencode
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
@@ -12,23 +11,6 @@ from codex.models import (
 )
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS
-
-
-def update_href_query_params(href, old_query_params, new_query_params=None):
-    """Update an href by masking query params on top of the ones it has."""
-    query_params = {}
-    for key, value in old_query_params.items():
-        # qps are sometimes encapsulated in a list for when there's multiples.
-        if isinstance(value, list):
-            if len(value):
-                query_params[key] = value[0]
-        else:
-            query_params[key] = value
-    if new_query_params:
-        query_params.update(new_query_params)
-    if query_params:
-        href += "?" + urlencode(query_params, doseq=True)
-    return href
 
 
 def get_credit_people(comic_pks, roles, exclude):
@@ -72,16 +54,7 @@ def full_redirect_view(url_name):
     def func(request):
         """Redirect to view, forwarding query strings and auth."""
         kwargs = dict(DEFAULT_BROWSER_ROUTE)
-        url = reverse(url_name, kwargs=kwargs)
-
-        # Forward the query string.
-        path = request.get_full_path()
-        if path:
-            parts = path.split("?")
-            if len(parts) >= 2:  # noqa: PLR2004
-                parts[0] = url
-                url = "?".join(parts)
-
+        url = reverse(url_name, kwargs=kwargs, query=request.GET)
         response = HttpResponseRedirect(url)
 
         # Forward authorization.

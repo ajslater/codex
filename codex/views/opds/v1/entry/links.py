@@ -9,7 +9,6 @@ from django.urls import reverse
 
 from codex.logger.logger import get_logger
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 
@@ -43,8 +42,7 @@ class OPDS1EntryLinksMixin:
                 "dynamicCovers": False,
                 "ts": ts,
             }
-            href = reverse("opds:bin:cover", kwargs=kwargs)
-            href = update_href_query_params(href, query_params)
+            href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)
             return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
             LOG.exception("create thumb")
@@ -53,8 +51,8 @@ class OPDS1EntryLinksMixin:
         try:
             pks = sorted(self.obj.ids)
             kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
-            href = reverse("opds:v1:feed", kwargs=kwargs)
             qps = {}
+            qps.update(self.query_params)
             if (
                 self.obj.group == "a"
                 and self.obj.ids
@@ -65,7 +63,7 @@ class OPDS1EntryLinksMixin:
                 qps.update({"orderBy": "story_arc_number"})
             if metadata:
                 qps.update({"opdsMetadata": 1})
-            return update_href_query_params(href, self.query_params, qps)
+            return reverse("opds:v1:feed", kwargs=kwargs, query=qps)
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
             LOG.exception(msg)
@@ -113,8 +111,7 @@ class OPDS1EntryLinksMixin:
             return None
         kwargs = {"pk": pk, "page": 0}
         qps = {"bookmark": 1}
-        href = reverse("opds:bin:page", kwargs=kwargs)
-        href = update_href_query_params(href, {}, qps)
+        href = reverse("opds:bin:page", kwargs=kwargs, query=qps)
         href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
         # extra stupid pse chunky fix for no metadata

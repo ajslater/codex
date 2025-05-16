@@ -7,7 +7,6 @@ from pprint import pformat
 from django.core.validators import EMPTY_VALUES
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.http import urlencode
 from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
@@ -64,26 +63,23 @@ class SeeOtherRedirectError(APIException):
 
         LOG.debug(f"redirect {pformat(self.detail)}")
 
-    def _add_query_params(self, url):
+    def _get_query_params(self):
         """Change OPDS settings like the frontend does with error.detail."""
         query_params = {}
-        if isinstance(self.detail, Mapping):
-            settings = self.detail.get("settings", {})
-        else:
-            settings = {}
+        settings = (
+            self.detail.get("settings", {}) if isinstance(self.detail, Mapping) else {}
+        )
         for key in _OPDS_REDIRECT_SETTINGS_KEYS:
             value = settings.get(key)
             if value not in EMPTY_VALUES:
                 query_params[key] = value
-        if query_params:
-            url += "?" + urlencode(query_params)
-        return url
+        return query_params
 
     def get_response(self, url_name):
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
-        url = reverse(url_name, kwargs=self.route_kwargs)
-        url = self._add_query_params(url)
+        query = self._get_query_params()
+        url = reverse(url_name, kwargs=self.route_kwargs, query=query)
 
         return redirect(url, permanent=False)
 

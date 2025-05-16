@@ -3,7 +3,6 @@
 import json
 from contextlib import suppress
 from datetime import datetime, timezone
-from urllib.parse import urlencode
 
 from dateutil import parser
 from django.urls import reverse
@@ -21,6 +20,7 @@ from codex.views.opds.util import (
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
 
 LOG = get_logger(__name__)
+_SERIES_ROUTE_KWARGS = {"group": "s", "pks": {}, "page": 1}
 
 
 class OPDS1Entry(OPDS1EntryLinksMixin):
@@ -120,13 +120,11 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @staticmethod
     def _add_url_to_obj(objs, filter_key):
         """Add filter urls to objects."""
-        kwargs = {"group": "s", "pks": {}, "page": 1}
-        url_base = reverse("opds:v1:feed", kwargs=kwargs)
         result = []
         for obj in objs:
-            qp = {"filters": json.dumps({filter_key: [obj.pk]})}
-            qp = urlencode(qp)
-            obj.url = url_base + "?" + qp
+            filters = json.dumps({filter_key: [obj.pk]})
+            query = {"filters": filters}
+            obj.url = reverse("opds:v1:feed", kwargs=_SERIES_ROUTE_KWARGS, query=query)
             result.append(obj)
         return result
 
