@@ -6,28 +6,22 @@ import sys
 from loguru import logger
 from typing_extensions import Any
 
-from codex.settings import (
-    LOG_PATH,
-    LOG_RETENTION,
-    LOG_ROTATION,
-    LOGLEVEL,
-)
-
-_LOG_FMT = "{asctime} {levelname:7} {message}"
-_DEBUG_LOG_FMT = "{asctime} {levelname:7} {name:25} {message}"
-_LOGURU_WARNING_NO = logger.level("ERROR").no
+from codex.settings import DEBUG, LOG_PATH, LOG_RETENTION, LOG_ROTATION, LOGLEVEL
 
 
-def _log_formatter(record):
+def _log_format():
     fmt = "<lvl>{time:YYYY-MM-DD HH:mm:ss} | {level: <8}"
-    if record["level"].no >= _LOGURU_WARNING_NO:
+    if DEBUG:
         fmt += " | </lvl>"
         fmt += "<dim><cyan>{thread.name}</cyan></dim>:"
         fmt += "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>"
         fmt += "<lvl>"
     fmt += " | {message}</lvl>"
-    fmt += "\n{exception}"
+    # fmt += "\n{exception}"  only for format as a callable
     return fmt
+
+
+_LOG_FORMAT = _log_format()
 
 
 def init_logging():
@@ -41,7 +35,7 @@ def init_logging():
         "backtrace": True,
         "enqueue": True,
         "catch": True,
-        "format": _log_formatter,
+        "format": _LOG_FORMAT,
     }
     logger.remove()  # Default "sys.stderr" sink is not picklable
     logger.add(sys.stdout, **kwargs)
