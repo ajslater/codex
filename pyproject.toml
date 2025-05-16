@@ -193,7 +193,7 @@ addopts = """
 """
 junit_family = "xunit2"
 testpaths = "tests"
-DJANGO_SETTINGS_MODULE = "codex.settings.settings"
+DJANGO_SETTINGS_MODULE = "codex.settings"
 pythonpath = ["."]
 
 [tool.radon]
