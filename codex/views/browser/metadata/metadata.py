@@ -9,8 +9,8 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
+from codex.choices.admin import AdminFlagChoices
 from codex.logger.logger import get_logger
-from codex.models import AdminFlag
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.views.browser.metadata.copy_intersections import (
@@ -28,7 +28,7 @@ class MetadataView(MetadataCopyIntersectionsView):
     TARGET: str = "metadata"
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
-            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+            AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
         }
     )
 

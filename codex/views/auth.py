@@ -9,6 +9,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.views import APIView
 from typing_extensions import override
 
+from codex.choices.admin import AdminFlagChoices
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc
 
@@ -24,7 +25,7 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
     def has_permission(self, request, view):
         """Return True if ENABLE_NON_USERS is true or user authenticated."""
         enu_flag = AdminFlag.objects.only("on").get(
-            key=AdminFlag.FlagChoices.NON_USERS.value
+            key=AdminFlagChoices.NON_USERS.value
         )
         if enu_flag.on:
             return True

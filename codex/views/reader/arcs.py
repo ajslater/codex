@@ -1,5 +1,6 @@
 """Reader get Arcs methods."""
 
+from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
 from codex.util import max_none
 from codex.views.const import (
@@ -40,9 +41,7 @@ class ReaderArcsView(ReaderBooksView):
     def _get_folder_arc(self, book, browser_arc_group, arcs, max_mtime):
         """Append the folder arc."""
         efv_flag = (
-            AdminFlag.objects.only("on")
-            .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
-            .on
+            AdminFlag.objects.only("on").get(key=AdminFlagChoices.FOLDER_VIEW.value).on
         )
         if not efv_flag or browser_arc_group == FOLDER_GROUP:
             return max_mtime

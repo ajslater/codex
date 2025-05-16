@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
+from codex.choices.admin import AdminFlagChoices
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
@@ -73,7 +74,7 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
             # Folder perms
             efv_flag = (
                 AdminFlag.objects.only("on")
-                .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
+                .get(key=AdminFlagChoices.FOLDER_VIEW.value)
                 .on
             )
             if not efv_flag:

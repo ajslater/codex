@@ -5,7 +5,7 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
-from codex.choices.admin import ADMIN_FLAG_CHOICES
+from codex.choices.admin import ADMIN_FLAG_CHOICES, AdminFlagChoices
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer
@@ -13,9 +13,9 @@ from codex.serializers.auth import AuthAdminFlagsSerializer
 LOG = get_logger(__name__)
 _ADMIN_FLAG_KEYS = frozenset(
     {
-        AdminFlag.FlagChoices.NON_USERS.value,
-        AdminFlag.FlagChoices.REGISTRATION.value,
-        AdminFlag.FlagChoices.BANNER_TEXT.value,
+        AdminFlagChoices.NON_USERS.value,
+        AdminFlagChoices.REGISTRATION.value,
+        AdminFlagChoices.BANNER_TEXT.value,
     }
 )
 
@@ -34,10 +34,7 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
         flags = {}
         for obj in self.get_queryset():
             name = ADMIN_FLAG_CHOICES[obj.key].lower().replace(" ", "_")
-            if obj.key == AdminFlag.FlagChoices.BANNER_TEXT.value:
-                val = obj.value
-            else:
-                val = obj.on
+            val = obj.value if obj.key == AdminFlagChoices.BANNER_TEXT.value else obj.on
             flags[name] = val
         return flags
 

@@ -7,6 +7,7 @@ import sys
 
 from versio.version import Version
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.tasks import LibrarianShutdownTask
 from codex.models import AdminFlag
@@ -47,7 +48,7 @@ class UpdateMixin(WorkerBaseMixin):
                 self.log.info("Forcing update of Codex.")
             else:
                 eau = AdminFlag.objects.only("on").get(
-                    key=AdminFlag.FlagChoices.AUTO_UPDATE.value
+                    key=AdminFlagChoices.AUTO_UPDATE.value
                 )
                 if not eau.on or not self._is_outdated():
                     self.log.info("Codex is up to date.")

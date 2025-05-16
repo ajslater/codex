@@ -2,6 +2,7 @@
 
 from typing_extensions import override
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
 from codex.librarian.tasks import WakeCronTask
@@ -16,9 +17,9 @@ LOG = get_logger(__name__)
 _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value
     for flag in (
-        AdminFlag.FlagChoices.FOLDER_VIEW,
-        AdminFlag.FlagChoices.NON_USERS,
-        AdminFlag.FlagChoices.BANNER_TEXT,
+        AdminFlagChoices.FOLDER_VIEW,
+        AdminFlagChoices.NON_USERS,
+        AdminFlagChoices.BANNER_TEXT,
     )
 )
 
@@ -33,9 +34,9 @@ class AdminFlagViewSet(AdminModelViewSet):
     def _on_change(self):
         """Signal UI that its out of date."""
         key = self.kwargs.get("key")
-        if key == AdminFlag.FlagChoices.REGISTRATION.value:
+        if key == AdminFlagChoices.REGISTRATION.value:
             patch_registration_setting()
-        elif key == AdminFlag.FlagChoices.SEND_TELEMETRY.value:
+        elif key == AdminFlagChoices.SEND_TELEMETRY.value:
             LIBRARIAN_QUEUE.put(WakeCronTask())
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide

@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
 
+from codex.choices.admin import AdminFlagChoices
 from codex.db import ensure_db_schema
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
@@ -49,9 +50,9 @@ def _delete_orphans(model, field, names):
 
 def init_admin_flags():
     """Init admin flag rows."""
-    _delete_orphans(AdminFlag, "key", AdminFlag.FlagChoices.values)
+    _delete_orphans(AdminFlag, "key", AdminFlagChoices.values)
 
-    for key, title in AdminFlag.FlagChoices.choices:
+    for key, title in AdminFlagChoices.choices:
         defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:

@@ -5,6 +5,7 @@ from types import MappingProxyType
 
 from django.db.models.query import Q
 
+from codex.choices.admin import AdminFlagChoices
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
@@ -62,7 +63,7 @@ class SearchFilterView(BrowserFTSFilter):
 
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
-            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+            AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
         }
     )
 

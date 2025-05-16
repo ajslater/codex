@@ -17,7 +17,7 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 from typing_extensions import override
 
-from codex.choices.admin import ADMIN_STATUS_TITLES
+from codex.choices.admin import ADMIN_STATUS_TITLES, AdminFlagChoices
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
@@ -26,23 +26,12 @@ __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
 class AdminFlag(BaseModel):
     """Flags set by administrators."""
 
-    class FlagChoices(TextChoices):
-        """Choices for Admin Flags."""
-
-        FOLDER_VIEW = "FV"
-        REGISTRATION = "RG"
-        NON_USERS = "NU"
-        AUTO_UPDATE = "AU"
-        IMPORT_METADATA = "IM"
-        SEND_TELEMETRY = "ST"
-        BANNER_TEXT = "BT"
-
-    FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
+    FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
 
     key = CharField(
         db_index=True,
-        max_length=max_choices_len(FlagChoices),
-        choices=FlagChoices.choices,
+        max_length=max_choices_len(AdminFlagChoices),
+        choices=AdminFlagChoices.choices,
     )
     on = BooleanField(default=True)
     value = CharField(max_length=MAX_NAME_LEN, default="", blank=True)

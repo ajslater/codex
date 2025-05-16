@@ -1,5 +1,6 @@
 """Aggregate metadata from comcs to prepare for importing."""
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.importer.aggregate.many_to_many import (
     AggregateManyToManyMetadataImporter,
 )
@@ -37,7 +38,7 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         if self.task.force_import_metadata:
             import_metadata = True
         else:
-            key = AdminFlag.FlagChoices.IMPORT_METADATA.value
+            key = AdminFlagChoices.IMPORT_METADATA.value
             import_metadata = AdminFlag.objects.get(key=key).on
         if not import_metadata:
             self.log.warning("Admin flag set to NOT import metadata.")

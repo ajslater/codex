@@ -10,9 +10,9 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
+from codex.choices.admin import AdminFlagChoices
 from codex.logger.logger import get_logger
 from codex.models import (
-    AdminFlag,
     Comic,
     Folder,
     Library,
@@ -36,8 +36,8 @@ class BrowserView(BrowserTitleView):
 
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {
-            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
-            AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
+            AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
+            AdminFlagChoices.IMPORT_METADATA.value: "import_metadata",
         }
     )
     TARGET: str = "browser"

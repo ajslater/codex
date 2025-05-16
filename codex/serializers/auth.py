@@ -8,7 +8,8 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.models import AdminFlag
+from codex.choices.admin import AdminFlagChoices
+from codex.models.admin import AdminFlag
 from codex.serializers.fields.auth import TimezoneField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.models.base import BaseModelSerializer
@@ -18,8 +19,8 @@ class UserSerializer(BaseModelSerializer):
     """Serialize User model for UI."""
 
     _ADMIN_FLAG_KEYS = (
-        AdminFlag.FlagChoices.NON_USERS.value,
-        AdminFlag.FlagChoices.REGISTRATION.value,
+        AdminFlagChoices.NON_USERS.value,
+        AdminFlagChoices.REGISTRATION.value,
     )
 
     admin_flags = SerializerMethodField()

@@ -6,6 +6,7 @@ from typing import Any
 
 from django.urls import reverse
 
+from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
@@ -224,7 +225,7 @@ class OPDS1FacetsView(BrowserView):
             if facet.value == "f":
                 efv_flag = (
                     AdminFlag.objects.only("on")
-                    .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
+                    .get(key=AdminFlagChoices.FOLDER_VIEW.value)
                     .on
                 )
                 if not efv_flag:

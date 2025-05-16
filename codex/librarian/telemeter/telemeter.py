@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from requests import Session
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import AdminFlag, Timestamp
 
@@ -56,7 +57,7 @@ def _post_stats(data):
 
 def _send_telemetry(uuid):
     """Send telemetry to server."""
-    if not AdminFlag.objects.get(key=AdminFlag.FlagChoices.SEND_TELEMETRY.value).on:
+    if not AdminFlag.objects.get(key=AdminFlagChoices.SEND_TELEMETRY.value).on:
         reason = "Send Telemetry flag is off."
         raise ValueError(reason)
     stats = CodexStats().get()

@@ -23,6 +23,7 @@
     "dequal": "^2.0.3",
     "pinia": "^3.0.1",
     "pretty-bytes": "^7.0.0",
+    "temporal-polyfill": "^0.3.0",
     "vue": "^3.5.12",
     "vue-drag-scroller": "^1.8.6",
     "vue-native-websocket-vue3": "^3.1.7",
