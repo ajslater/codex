@@ -45,11 +45,12 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         """Extract metadata from comic and clean it for codex."""
         md = {}
         failed_import = {}
+        force_poll = True # TODO put this in the task
         try:
             if import_metadata:
                 with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
                     new_md_mtime = cb.get_metadata_mtime()
-                    if not self.task.force_poll:
+                    if not force_poll:
                         old_md_mtime = self._metadata_mtime(path)
                         if (
                             old_md_mtime
