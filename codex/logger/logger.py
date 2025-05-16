@@ -8,7 +8,7 @@ from multiprocessing.queues import Queue
 from typing_extensions import override
 
 from codex.logger.mp_queue import LOG_QUEUE
-from codex.settings.settings import LOGLEVEL
+from codex.settings import LOGLEVEL
 
 
 class CodexQueueHandler(QueueHandler):

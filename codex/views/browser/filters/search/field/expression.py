@@ -17,7 +17,7 @@ from django.db.models.fields import DecimalField, PositiveSmallIntegerField
 from humanfriendly import parse_size
 
 from codex.logger.logger import get_logger
-from codex.settings.settings import FALSY
+from codex.settings import FALSY
 
 _QUOTES_RE = re.compile(r"[\"']")
 _OP_MAP = MappingProxyType({">": "gt", ">=": "gte", "<": "lt", "<=": "lte"})

@@ -4,7 +4,7 @@ from django.db import connection
 from humanize import naturalsize
 
 from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.settings.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
+from codex.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 

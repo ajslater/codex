@@ -10,7 +10,7 @@ from codex.db import ensure_db_schema
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
-from codex.settings.settings import (
+from codex.settings import (
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
     HYPERCORN_CONFIG,

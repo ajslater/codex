@@ -12,7 +12,7 @@ from codex.librarian.importer.const import (
 from codex.librarian.importer.query_fks.dicts import QueryForeignKeysDictModelsImporter
 from codex.models.base import BaseModel
 from codex.models.named import NamedModel
-from codex.settings.settings import FILTER_BATCH_SIZE
+from codex.settings import FILTER_BATCH_SIZE
 
 
 class QueryForeignKeysSimpleImporter(QueryForeignKeysDictModelsImporter):

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing_extensions import override
 
 from codex.logger.formatter import ColorFormatter
-from codex.settings.settings import DEBUG, LOG_DIR, LOG_TO_CONSOLE, LOG_TO_FILE
+from codex.settings import DEBUG, LOG_DIR, LOG_TO_CONSOLE, LOG_TO_FILE
 
 _LOG_FMT = "{asctime} {levelname:7} {message}"
 _DEBUG_LOG_FMT = "{asctime} {levelname:7} {name:25} {message}"

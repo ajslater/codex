@@ -6,7 +6,7 @@ from codex.librarian.importer.const import COMIC_GROUP_FIELD_NAMES
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, Folder, StoryArc
 from codex.models.paths import CustomCover
-from codex.settings.settings import MAX_CHUNK_SIZE
+from codex.settings import MAX_CHUNK_SIZE
 from codex.status import Status
 
 

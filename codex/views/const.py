@@ -37,7 +37,7 @@ from codex.models import (
     Team,
     Volume,
 )
-from codex.settings.settings import CODEX_PATH
+from codex.settings import CODEX_PATH
 
 ROOT_GROUP = "r"
 FOLDER_GROUP = "f"

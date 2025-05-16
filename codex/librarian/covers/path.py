@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fnvhash import fnv1a_32
 
-from codex.settings.settings import ROOT_CACHE_PATH
+from codex.settings import ROOT_CACHE_PATH
 
 
 class CoverPathMixin:

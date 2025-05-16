@@ -21,7 +21,7 @@ from rarfile import Error as RarError
 from codex.librarian.importer.const import FIS
 from codex.librarian.importer.query_fks import QueryForeignKeysImporter
 from codex.models.comic import Comic
-from codex.settings.settings import LOGLEVEL
+from codex.settings import LOGLEVEL
 
 _COMICBOX_CONFIG = get_config(
     {

@@ -14,7 +14,7 @@ from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logger import get_logger
 from codex.models.comic import Comic, FileType
-from codex.settings.settings import FALSY
+from codex.settings import FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.util import chunker

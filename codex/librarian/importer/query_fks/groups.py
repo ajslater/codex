@@ -19,7 +19,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.groups import BrowserGroupModel
-from codex.settings.settings import FILTER_BATCH_SIZE
+from codex.settings import FILTER_BATCH_SIZE
 
 _HAS_IMPRINT_LINKS = frozenset({Series, Volume})
 _HAS_PUBLISHER_LINKS = frozenset({Imprint} | _HAS_IMPRINT_LINKS)

@@ -8,7 +8,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, register_converter
 from django.views.generic.base import RedirectView
 
-from codex.settings.settings import DEBUG
+from codex.settings import DEBUG
 from codex.urls.converters import GroupConverter, IntListConverter
 
 register_converter(GroupConverter, "group")

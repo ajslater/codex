@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, urlparse
 from django.db.models import QuerySet
 from typing_extensions import override
 
-from codex.settings.settings import FALSY
+from codex.settings import FALSY
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin

@@ -14,7 +14,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logger import get_logger
 from codex.logger.loggerd import CodexLogQueueListener
 from codex.logger.mp_queue import LOG_QUEUE
-from codex.settings.settings import HYPERCORN_CONFIG
+from codex.settings import HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.version import VERSION

@@ -15,7 +15,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.named import Identifier
-from codex.settings.settings import FILTER_BATCH_SIZE
+from codex.settings import FILTER_BATCH_SIZE
 
 _CLASS_QUERY_FIELDS_MAP = MappingProxyType(
     {

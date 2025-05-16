@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
-from codex.settings.settings import FALSY
+from codex.settings import FALSY
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
 from codex.views.opds.v2.href import HrefData

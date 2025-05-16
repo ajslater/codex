@@ -26,7 +26,7 @@ from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger.logger import get_logger
 from codex.logger_base import LoggerBaseMixin
 from codex.models import CustomCover
-from codex.settings.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
+from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
 
 LOG = get_logger(__name__)
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})

@@ -18,7 +18,7 @@ from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logger import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
-from codex.settings.settings import (
+from codex.settings import (
     BACKUP_DB_PATH,
     CONFIG_PATH,
     DB_PATH,

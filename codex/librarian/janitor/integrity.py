@@ -13,7 +13,7 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
 from codex.logger.logger import get_logger
 from codex.models.base import BaseModel
-from codex.settings.settings import (
+from codex.settings import (
     CONFIG_PATH,
     CUSTOM_COVERS_DIR,
     DB_PATH,
