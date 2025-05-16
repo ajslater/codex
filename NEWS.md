@@ -16,6 +16,7 @@ border-radius: 128px;
     not.
   - Uses Comicbox 2.0 see
     [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
+  - Logging format changed.
 
 ## v1.7.12
 
