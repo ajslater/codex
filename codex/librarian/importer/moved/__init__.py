@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from bidict import bidict
+from bidict import bidict, frozenbidict
 from django.db.models.functions import Now
 
 from codex.librarian.importer.const import (
@@ -26,7 +26,7 @@ class MovedImporter(MovedCoversImporter):
         self,
         src_folder_paths_with_existing_dest_parents,
         dest_parent_folders_map,
-        dirs_moved: bidict[str, str],
+        dirs_moved: frozenbidict[str, str],
         status,
     ):
         """Bulk move folders."""
@@ -64,7 +64,7 @@ class MovedImporter(MovedCoversImporter):
         self.status_controller.update(status, notify=False)
 
     def _bulk_move_folders_under_existing_parents(
-        self, dest_parent_folder_paths_map, dirs_moved: bidict, status
+        self, dest_parent_folder_paths_map, dirs_moved: frozenbidict[str, str], status
     ):
         """Move folders under existing folders."""
         while True:
@@ -162,7 +162,7 @@ class MovedImporter(MovedCoversImporter):
         layer = 1
         while True:
             self._bulk_move_folders_under_existing_parents(
-                dest_parent_folder_paths_map, dirs_moved, status
+                dest_parent_folder_paths_map, frozenbidict(dirs_moved), status
             )
 
             # All folders movable without creation have moved.
