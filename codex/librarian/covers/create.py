@@ -92,8 +92,9 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         librarian_queue.put(task)
         return thumb_buffer
 
-    def save_cover_to_cache(self, cover_path, data):
+    def save_cover_to_cache(self, cover_path_str: str, data):
         """Save cover thumb image to the disk cache."""
+        cover_path = Path(cover_path_str)
         cover_path.parent.mkdir(exist_ok=True, parents=True)
         if data:
             with cover_path.open("wb") as cover_file:
