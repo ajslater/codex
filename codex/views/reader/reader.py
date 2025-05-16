@@ -3,6 +3,7 @@
 from comicbox.box import Comicbox
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -12,6 +13,7 @@ from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
+from codex.settings import COMICBOX_CONFIG
 from codex.views.reader.arcs import ReaderArcsView
 
 
@@ -49,7 +51,7 @@ class ReaderView(ReaderArcsView):
             import_pks.add(prev_book.pk)
 
         if next_book and not next_book.page_count:
-            with Comicbox(next_book.path) as cb:
+            with Comicbox(next_book.path, config=COMICBOX_CONFIG, logger=logger) as cb:
                 next_book.page_count = cb.get_page_count()
             import_pks.add(next_book.pk)
 

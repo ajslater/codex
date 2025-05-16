@@ -528,7 +528,7 @@ requires-dist = [
     { name = "bidict", specifier = ">=0.23.1,<1.0.0" },
     { name = "case-converter", specifier = ">=1.1.0,<2.0.0" },
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a11,<3.0.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a12,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
     { name = "django", specifier = ">=5.2.1,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
@@ -596,7 +596,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a11"
+version = "2.0.0a12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -605,6 +605,7 @@ dependencies = [
     { name = "confuse" },
     { name = "deepdiff" },
     { name = "glom" },
+    { name = "loguru" },
     { name = "marshmallow" },
     { name = "marshmallow-union" },
     { name = "mergedeep" },
@@ -621,9 +622,9 @@ dependencies = [
     { name = "urnparse" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/40/36/9ffb58377ee82a7e4f940deba19abc849698133c4a13776a55712614d250/comicbox-2.0.0a11.tar.gz", hash = "sha256:dd5a056f195932bbb1e284dc496733dad1cccd74ce805c3cde845b97242fb0e6", size = 70901600, upload-time = "2025-05-15T23:03:37.019Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/0b/59718d7b3b9b88e4cd92cf0b5185c6285c4f265e310f7147f8d65b50e55f/comicbox-2.0.0a12.tar.gz", hash = "sha256:94b771e3d15cace417d3f78cb98185fbf659b178148d1f93e6a4c51f18bd7501", size = 70901688, upload-time = "2025-05-16T21:21:51.693Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/29/58fb7024a661c0576341e6d41ab1d9851544a1c63241d280041928659f17/comicbox-2.0.0a11-py3-none-any.whl", hash = "sha256:1c98b4f4914e2c8ad3226ce50ebaede299ccab0f602594440ed24270385903bd", size = 152096, upload-time = "2025-05-15T23:03:33.627Z" },
+    { url = "https://files.pythonhosted.org/packages/21/72/b819fcfd26d9e5f619189fae8c14aa6c9d6e382261568b4a084bc089c90a/comicbox-2.0.0a12-py3-none-any.whl", hash = "sha256:39cb84a705e336e932026d9a3dcc2bfe7ab8ea0da0201ae0c065e7a0a28f9df1", size = 151721, upload-time = "2025-05-16T21:21:48.695Z" },
 ]
 
 [package.optional-dependencies]

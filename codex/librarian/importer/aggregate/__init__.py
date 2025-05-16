@@ -96,7 +96,7 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         self.metadata[FIS] = {}
         # Aggregate further
 
-        for path in self.metadata[EXTRACTED]:
+        for path in tuple(self.metadata[EXTRACTED]):
             md = self.metadata[EXTRACTED].pop(path)
             self._transform_metadata(md)
             self._aggregate_path(md, path, status)

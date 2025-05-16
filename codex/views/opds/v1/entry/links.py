@@ -8,6 +8,7 @@ from comicbox.box import Comicbox
 from django.urls import reverse
 from loguru import logger
 
+from codex.settings import COMICBOX_CONFIG
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
@@ -97,7 +98,7 @@ class OPDS1EntryLinksMixin:
         """Get barebones metadata lazily to make pse work for chunky-like readers."""
         if self.obj.page_count and self.obj.file_type:
             return False
-        with Comicbox(self.obj.path) as cb:
+        with Comicbox(self.obj.path, config=COMICBOX_CONFIG, logger=logger) as cb:
             self.obj.page_count = cb.get_page_count()
             self.obj.file_type = cb.get_file_type()
         logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")

@@ -14,7 +14,7 @@ from typing_extensions import override
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models.comic import Comic, FileType
-from codex.settings import FALSY
+from codex.settings import COMICBOX_CONFIG, FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.util import chunker
@@ -82,7 +82,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         # page_image
         page = self.kwargs.get("page")
         to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
-        with Comicbox(comic.path) as cb:
+        with Comicbox(comic.path, config=COMICBOX_CONFIG, logger=logger) as cb:
             page_image = cb.get_page_by_index(page, to_pixmap=to_pixmap)
         if not page_image:
             page_image = b""

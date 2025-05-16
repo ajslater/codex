@@ -5,7 +5,6 @@ from tarfile import TarError
 from zipfile import BadZipFile, LargeZipFile
 
 from comicbox.box import Comicbox
-from comicbox.config import get_config
 from comicbox.exceptions import UnsupportedArchiveTypeError
 from py7zr.exceptions import ArchiveError as Py7zError
 from rarfile import Error as RarError
@@ -16,15 +15,8 @@ from codex.librarian.importer.query_fks import QueryForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
-from codex.settings import LOGLEVEL
+from codex.settings import COMICBOX_CONFIG
 from codex.status import Status
-
-_COMICBOX_CONFIG = get_config(
-    {
-        "compute_pages": False,
-        "loglevel": LOGLEVEL,
-    }
-)
 
 
 class ExtractMetadataImporter(QueryForeignKeysImporter):
@@ -55,7 +47,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         failed_import = {}
         try:
             if import_metadata:
-                with Comicbox(path, config=_COMICBOX_CONFIG) as cb:
+                with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
                     new_md_mtime = cb.get_metadata_mtime()
                     if not self.task.force_import_metadata:
                         old_md_mtime = self._metadata_mtime(path)

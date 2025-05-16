@@ -21,21 +21,19 @@ def _log_format():
     return fmt
 
 
-_LOG_FORMAT = _log_format()
-
-
 def init_logging():
     """Initialize loguru sinks."""
     logger.level("DEBUG", color="<light-black>")
     logger.level("INFO", color="<white>")
     logger.level("SUCCESS", color="<green>")
 
+    log_format = _log_format()
     kwargs: dict[str, Any] = {
         "level": LOGLEVEL,
         "backtrace": True,
         "enqueue": True,
         "catch": True,
-        "format": _LOG_FORMAT,
+        "format": log_format,
     }
     logger.remove()  # Default "sys.stderr" sink is not picklable
     logger.add(sys.stdout, **kwargs)

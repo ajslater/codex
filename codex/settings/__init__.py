@@ -15,6 +15,8 @@ from os import environ
 from pathlib import Path
 from types import MappingProxyType
 
+from comicbox.config import get_config
+
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.secret_key import get_secret_key
 from codex.settings.timezone import get_time_zone
@@ -406,4 +408,11 @@ if DEBUG and not BUILD:
 
 CACHALOT_UNCACHABLE_TABLES = frozenset(
     {"django_migrations", "django_session", "codex_useractive"}
+)
+
+COMICBOX_CONFIG = get_config(
+    {
+        "compute_pages": False,
+        "loglevel": LOGLEVEL,
+    }
 )

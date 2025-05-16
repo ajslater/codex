@@ -14,6 +14,7 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic, CustomCover
+from codex.settings import COMICBOX_CONFIG
 from codex.status import Status
 from codex.threads import QueuedThread
 
@@ -42,13 +43,13 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         return cover_thumb_buffer
 
     @classmethod
-    def _get_comic_cover_image(cls, comic_path):
+    def _get_comic_cover_image(cls, comic_path, log):
         """
         Create comic cover if none exists.
 
         Return image thumb data or path to missing file thumb.
         """
-        with Comicbox(comic_path) as car:
+        with Comicbox(comic_path, config=COMICBOX_CONFIG, logger=log) as car:
             image_data = car.get_cover_page(to_pixmap=True)
         if not image_data:
             reason = "Read empty cover"
@@ -77,7 +78,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             if custom:
                 cover_image = cls._get_custom_cover_image(db_path)
             else:
-                cover_image = cls._get_comic_cover_image(db_path)
+                cover_image = cls._get_comic_cover_image(db_path, log)
             thumb_buffer = cls._create_cover_thumbnail(cover_image)
             thumb_bytes = thumb_buffer.getvalue()
             thumb_buffer.seek(0)
