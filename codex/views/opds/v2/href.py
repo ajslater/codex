@@ -62,4 +62,4 @@ class OPDS2HrefMixin:
 
         kwargs = pop_name(kwargs)
         query = self._href_update_query_params(data)
-        return reverse(url_name, kwargs=kwargs, query=query)
+        return reverse(url_name, kwargs=kwargs, query=query)  # pyright: ignore[reportCallIssue] django-types ood

@@ -148,7 +148,7 @@ class OPDS1FacetsView(BrowserView):
         query = {}
         query.update(self.request.GET)
         query.update(new_query_params)
-        href = reverse("opds:v1:feed", kwargs=kwargs, query=query)
+        href = reverse("opds:v1:feed", kwargs=kwargs, query=query)  # pyright: ignore[reportCallIssue] django-types ood
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(

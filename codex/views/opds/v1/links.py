@@ -129,7 +129,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         if query_params is None:
             query_params = self.request.GET
         kwargs = pop_name(kwargs)
-        href = reverse("opds:v1:feed", kwargs=kwargs, query=query_params)
+        href = reverse("opds:v1:feed", kwargs=kwargs, query=query_params)  # pyright: ignore[reportCallIssue] django-types ood
         return OPDS1Link(rel, href, mime_type)
 
     def _top_link(self, top_link):
