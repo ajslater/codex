@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from bidict import bidict
+from bidict import frozenbidict
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
@@ -137,7 +137,7 @@ BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
 ##########
 # COVERS #
 ##########
-CLASS_CUSTOM_COVER_GROUP_MAP = bidict(
+CLASS_CUSTOM_COVER_GROUP_MAP = frozenbidict(
     {
         Publisher: CustomCover.GroupChoice.P.value,
         Imprint: CustomCover.GroupChoice.I.value,

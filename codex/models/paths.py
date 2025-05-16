@@ -96,10 +96,10 @@ class CustomCover(WatchedPath):
     FOLDER_COVER_STEM = ".codex-cover"
     DIR_GROUP_CHOICE_MAP = MappingProxyType(
         {
-            "publishers": GroupChoice.P,
-            "imprints": GroupChoice.I,
-            "series": GroupChoice.S,
-            "story-arcs": GroupChoice.A,
+            "publishers": GroupChoice.P.value,
+            "imprints": GroupChoice.I.value,
+            "series": GroupChoice.S.value,
+            "story-arcs": GroupChoice.A.value,
         }
     )
 
@@ -120,8 +120,7 @@ class CustomCover(WatchedPath):
         if stem == self.FOLDER_COVER_STEM:
             self.group = self.GroupChoice.F.value
         else:
-            choice = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
-            self.group = choice.value
+            self.group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
 
     @override
