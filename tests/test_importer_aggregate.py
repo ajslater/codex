@@ -9,6 +9,7 @@ from deepdiff import DeepDiff
 from django.test import TestCase
 from glom import Path as GlomPath
 from glom import delete
+from loguru import logger
 
 from codex.librarian.importer.const import (
     COMIC_VALUES,
@@ -20,7 +21,6 @@ from codex.librarian.importer.const import (
 from codex.librarian.importer.importer import ComicImporter
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.mp_queue import LOG_QUEUE
 from codex.models.groups import Imprint, Publisher, Series, Volume
 from codex.models.named import (
     AgeRating,
@@ -182,8 +182,9 @@ METADATA = MappingProxyType(
 
 class TestImporterAggregate(TestCase):
     def test_importer_aggregate(self):
-        importer = ComicImporter(TASK, LOG_QUEUE, LIBRARIAN_QUEUE)
-        importer.get_aggregate_metadata()
+        importer = ComicImporter(TASK, logger, LIBRARIAN_QUEUE)
+        importer.extract_metadata()
+        importer.aggregate_metadata()
         md = delete(importer.metadata, FOLDERS_KEYPATH)
         md = MappingProxyType(md)
         diff = DeepDiff(METADATA, md)

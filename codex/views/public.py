@@ -6,11 +6,9 @@ from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES, AdminFlagChoices
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer
 
-LOG = get_logger(__name__)
 _ADMIN_FLAG_KEYS = frozenset(
     {
         AdminFlagChoices.NON_USERS.value,

@@ -101,7 +101,7 @@ class DeletedImporter(CacheUpdateImporter):
 
         count = len(delete_comic_pks)
         if count:
-            self.log.info(f"Deleted {count} comics from {self.library.path}")
+            self.log.success(f"Deleted {count} comics from {self.library.path}")
         self.status_controller.finish(status)
         return count
 
@@ -124,7 +124,7 @@ class DeletedImporter(CacheUpdateImporter):
 
         count = len(delete_cover_pks)
         if count:
-            self.log.info(f"Deleted {count} custom covers from {self.library.path}")
+            self.log.success(f"Deleted {count} custom covers from {self.library.path}")
 
         self.status_controller.finish(status)
         return count

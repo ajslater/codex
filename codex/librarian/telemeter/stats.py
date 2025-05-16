@@ -9,7 +9,6 @@ from caseconverter import snakecase
 from django.contrib.sessions.models import Session
 from django.db.models import Count
 
-from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     Library,
@@ -18,7 +17,6 @@ from codex.version import VERSION
 from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
 from codex.views.session import SessionView
 
-LOG = get_logger(__name__)
 _KEY_MODELS_MAP = MappingProxyType(
     {
         "config": CONFIG_MODELS,

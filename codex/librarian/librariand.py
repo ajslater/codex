@@ -9,6 +9,7 @@ from typing import NamedTuple
 
 from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
+from loguru import logger
 from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread
@@ -45,10 +46,9 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.logger_base import LoggerBaseMixin
 
 
-class LibrarianDaemon(Process, LoggerBaseMixin):
+class LibrarianDaemon(Process):
     """Librarian Process."""
 
     _THREAD_CLASSES = (
@@ -73,14 +73,14 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     proc = None
 
-    def __init__(self, queue: Queue, log_queue: Queue, broadcast_queue: AioQueue):
+    def __init__(self, logger_, queue: Queue, broadcast_queue: AioQueue):
         """Init process."""
+        self.log = logger_
         name = self.__class__.__name__
         super().__init__(name=name, daemon=False)
         self.queue = queue
-        self.init_logger(log_queue)
         self.broadcast_queue = broadcast_queue
-        self.janitor = Janitor(self.log_queue, self.queue)
+        self.janitor = Janitor(logger_, queue)
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
@@ -122,7 +122,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case TelemeterTask():
-                send_telemetry(self.log)
+                send_telemetry(logger)
             case JanitorTask():
                 self.janitor.run(task)
             case DelayedTasks():
@@ -139,8 +139,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log.debug(f"Active threads before thread creation: {active_count()}")
         threads = {}
         kwargs: dict[str, Event | Queue | AioQueue] = {
+            "logger_": self.log,
             "librarian_queue": self.queue,
-            "log_queue": self.log_queue,
         }
         for name, thread_class in self._THREAD_CLASS_MAP.items():
             thread_kwargs = copy(kwargs)
@@ -167,12 +167,11 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def _startup(self):
         """Initialize threads."""
-        self.init_logger(self.log_queue)
         self.log.debug(f"Started {self.name}.")
         # Janitor created in init.
         self._create_threads()  # can't do this in init.
         self._start_threads()
-        self.log.info(f"{self.name} ready for tasks.")
+        self.log.success(f"{self.name} ready for tasks.")
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
@@ -197,9 +196,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             self.queue.get_nowait()
         self.queue.close()
         self.queue.join_thread()
-        self.log.info(f"{self.name} finished.")
-        self.log_queue.close()
-        self.log_queue.join_thread()
+        self.log.success(f"{self.name} finished.")
 
     @override
     def run(self):

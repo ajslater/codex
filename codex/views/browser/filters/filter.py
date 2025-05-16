@@ -3,11 +3,8 @@
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
-
-LOG = get_logger(__name__)
 
 
 class BrowserFilterView(BrowserFilterBookmarkView):

@@ -74,9 +74,9 @@ class Janitor(
 ):
     """Janitor inline task runner."""
 
-    def __init__(self, log_queue, librarian_queue):
-        """Init logger."""
-        self.init_worker(log_queue, librarian_queue)
+    def __init__(self, logger_, librarian_queue):
+        """Init self.log."""
+        self.init_worker(logger_, librarian_queue)
 
     def queue_tasks(self):
         """Queue all the janitor tasks."""

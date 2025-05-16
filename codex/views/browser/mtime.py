@@ -4,14 +4,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.logger.logger import get_logger
 from codex.models.groups import Publisher
 from codex.serializers.browser.mtime import GroupsMtimeSerializer, MtimeSerializer
 from codex.util import max_none
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
 from codex.views.const import GROUP_MODEL_MAP
-
-LOG = get_logger(__name__)
 
 
 class MtimeView(BrowserGroupMtimeView):

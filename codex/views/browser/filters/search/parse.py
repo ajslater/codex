@@ -4,16 +4,15 @@ import re
 from types import MappingProxyType
 
 from django.db.models.query import Q
+from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
 from codex.views.const import MAX_OBJ_PER_PAGE
 
-LOG = get_logger(__name__)
 _FTS_COLUMNS = frozenset(
     {field.name for field in ComicFTS._meta.get_fields()}
     - {"comic", "updated_at", "created_at"}
@@ -161,7 +160,7 @@ class SearchFilterView(BrowserFTSFilter):
                 self._preparse_search_query_token(match, field_tokens, fts_tokens)
             except Exception as exc:
                 tok = match.group(0) if match else "<unmatched>"
-                LOG.debug(f"Error preparsing search query token {tok}: {exc}")
+                logger.debug(f"Error preparsing search query token {tok}: {exc}")
                 self.search_error = "Syntax error"
         text = " ".join(fts_tokens)
 
@@ -222,7 +221,7 @@ class SearchFilterView(BrowserFTSFilter):
 
         except Exception as exc:
             msg = "Creating search filters"
-            LOG.exception(msg)
+            logger.exception(msg)
             msg = f"{msg} - {exc}"
             self.search_error = msg
 

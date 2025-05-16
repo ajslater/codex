@@ -8,7 +8,6 @@ from django.db.models import (
 )
 from django.db.models.fields import CharField
 
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
@@ -17,7 +16,6 @@ from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 _GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {Publisher: "sort_name", Imprint: "sort_name", Series: "sort_name", Volume: "name"}
 )
-LOG = get_logger(__name__)
 
 
 class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):

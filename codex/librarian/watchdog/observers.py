@@ -17,10 +17,10 @@ from codex.librarian.watchdog.events import (
     CodexLibraryEventHandler,
 )
 from codex.models import Library
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerBaseBaseMixin
 
 
-class UatuObserver(WorkerBaseMixin, BaseObserver):
+class UatuObserver(WorkerBaseBaseMixin, BaseObserver):
     """Watch over librarys from the blue area of the moon."""
 
     ENABLE_FIELD: str = ""
@@ -57,8 +57,8 @@ class UatuObserver(WorkerBaseMixin, BaseObserver):
         )
         handler = handler_class(
             library,
+            logger_=self.log,
             librarian_queue=self.librarian_queue,
-            log_queue=self.log_queue,
         )
         self.schedule(handler, library.path, recursive=True)
         self.log.info(f"Started {watching_log}")
@@ -123,7 +123,7 @@ class UatuObserver(WorkerBaseMixin, BaseObserver):
                     event_queue=self.event_queue,
                     watch=watch,
                     timeout=self.timeout,
-                    log_queue=self.log_queue,
+                    logger_=self.log,
                     librarian_queue=self.librarian_queue,
                     covers_only=covers_only,
                 )
@@ -146,9 +146,9 @@ class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGen
 
     ENABLE_FIELD: str = "events"
 
-    def __init__(self, *args, log_queue: Queue, librarian_queue: Queue, **kwargs):
+    def __init__(self, *args, logger_, librarian_queue: Queue, **kwargs):
         """Initialize queues."""
-        self.init_worker(log_queue, librarian_queue)
+        self.init_worker(logger_, librarian_queue)
         super().__init__(*args, **kwargs)
 
 
@@ -161,13 +161,13 @@ class LibraryPollingObserver(UatuObserver):
 
     def __init__(
         self,
-        log_queue: Queue,
+        logger_,
         librarian_queue: Queue,
         timeout=DEFAULT_OBSERVER_TIMEOUT,
         **kwargs,
     ):
         """Use the DatabasePollingEmitter."""
-        self.init_worker(log_queue, librarian_queue)
+        self.init_worker(logger_, librarian_queue)
         super().__init__(
             emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )

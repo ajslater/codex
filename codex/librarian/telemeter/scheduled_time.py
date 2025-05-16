@@ -3,6 +3,8 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from loguru._logger import Logger
+
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.telemeter.telemeter import get_telemeter_timestamp
 from codex.models.admin import AdminFlag
@@ -46,17 +48,17 @@ def _get_scheduled_time(ts):
     return telemeter_time
 
 
-def get_telemeter_time(log):
+def get_telemeter_time(log: Logger):
     """Get the time to send telemetry."""
     # Should we schedule telemeter at all?
     if not AdminFlag.objects.get(key=AdminFlagChoices.SEND_TELEMETRY.value).on:
-        log.debug("Telemeter disabled. Not scheduled.")
+        log.trace("Telemeter disabled. Not scheduled.")
         return 0
 
     ts = get_telemeter_timestamp()
 
     if _is_created_recently(ts):
-        log.debug("Telemeter created recently. Not scheduled.")
+        log.trace("Telemeter created recently. Not scheduled.")
         return 0
 
     return _get_scheduled_time(ts)

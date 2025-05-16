@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from itertools import chain
 
+from loguru import logger
 from rest_framework.serializers import (
     BooleanField,
     DecimalField,
@@ -12,12 +13,9 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.logger.logger import get_logger
 from codex.serializers.fields.browser import TopGroupField
 from codex.util import max_none
 from codex.views.const import EPOCH_START
-
-LOG = get_logger(__name__)
 
 
 class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
@@ -48,7 +46,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
                     tzinfo=timezone.utc
                 )
             except ValueError:
-                LOG.warning(
+                logger.warning(
                     f"computing group mtime: {dt_str} is not a valid datetime string."
                 )
                 continue

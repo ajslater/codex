@@ -10,8 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-import logging
-from logging import WARNING, getLogger
+import sys
 from os import environ
 from pathlib import Path
 from types import MappingProxyType
@@ -52,11 +51,12 @@ MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", "1000"))
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
 VITE_HOST = environ.get("VITE_HOST")
 SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", "10000"))
+LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
 
 ####################################
 # Documented Environment Variables #
 ####################################
-LOGLEVEL = environ.get("LOGLEVEL", logging.DEBUG if DEBUG else logging.INFO)
+LOGLEVEL = environ.get("LOGLEVEL", "TRACE" if DEBUG else "INFO")
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
@@ -87,11 +87,15 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 
 def _get_logging():
-    loggers = {
-        "asyncio": {
-            "level": "INFO",
-        },
-    }
+    loggers = {}
+    if LOGLEVEL != "TRACE":
+        loggers.update(
+            {
+                "asyncio": {
+                    "level": "INFO",
+                },
+            }
+        )
     if not DEBUG:
         loggers.update(
             {
@@ -107,6 +111,8 @@ def _get_logging():
     return {"version": 1, "loggers": loggers}
 
 
+LOG_PATH = LOG_DIR / "codex.log"
+LOG_ROTATION = "10 MB"
 LOGGING = _get_logging()
 
 ALLOWED_HOSTS = ["*"]
@@ -175,8 +181,8 @@ def _get_middleware():
 MIDDLEWARE = _get_middleware()
 
 if DEBUG:
-    NPLUSONE_LOGGER = getLogger("nplusone")
-    NPLUSONE_LOG_LEVEL = WARNING
+    NPLUSONE_LOGGER = sys.stdout
+    NPLUSONE_LOG_LEVEL = "WARNING"
 
 ROOT_URLCONF = "codex.urls.root"
 

@@ -68,6 +68,7 @@ class LinkCoversImporter(FailedImportsImporter):
             total_count = 0
             for model, objs in model_map.items():
                 total_count += self._link_custom_cover_group(model, objs, status)
+            self.log.success(f"Linked {total_count} custom covers.")
         finally:
             self.status_controller.finish(status)
         return total_count

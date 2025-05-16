@@ -7,21 +7,17 @@ from zipfile import BadZipFile, LargeZipFile
 from comicbox.box import Comicbox
 from comicbox.config import get_config
 from comicbox.exceptions import UnsupportedArchiveTypeError
-from comicbox.schemas.comicbox import (
-    COVER_DATE_KEY,
-    DATE_KEY,
-    NUMBER_KEY,
-    STORE_DATE_KEY,
-    STORIES_KEY,
-    SUFFIX_KEY,
-)
 from py7zr.exceptions import ArchiveError as Py7zError
 from rarfile import Error as RarError
 
-from codex.librarian.importer.const import FIS
+from codex.choices.admin import AdminFlagChoices
+from codex.librarian.importer.const import EXTRACTED, FIS, SKIPPED
 from codex.librarian.importer.query_fks import QueryForeignKeysImporter
+from codex.librarian.importer.status import ImportStatusTypes
+from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
 from codex.settings import LOGLEVEL
+from codex.status import Status
 
 _COMICBOX_CONFIG = get_config(
     {
@@ -29,45 +25,10 @@ _COMICBOX_CONFIG = get_config(
         "loglevel": LOGLEVEL,
     }
 )
-_UNUSED_COMICBOX_FIELDS = (
-    "alternate_images",
-    "bookmark",
-    "credit_primaries",
-    "ext",
-    "manga",
-    "pages",
-    "prices",  # add
-    "protagonist",  # add
-    "remainders",
-    "reprints",  # add
-    "universes",  # add
-    "updated_at",
-)
 
 
 class ExtractMetadataImporter(QueryForeignKeysImporter):
     """Aggregate metadata from comics to prepare for importing."""
-
-    @staticmethod
-    def _extract_clean_md(md):
-        for key in _UNUSED_COMICBOX_FIELDS:
-            md.pop(key, None)
-
-    @staticmethod
-    def _extract_transform(md):
-        if date := md.pop(DATE_KEY, None):
-            date.pop(COVER_DATE_KEY, None)
-            date.pop(STORE_DATE_KEY, None)
-            md.update(date)
-
-        if issue := md.pop("issue", None):
-            if number := issue.pop(NUMBER_KEY, None):
-                md["issue_number"] = number
-            if suffix := issue.pop(SUFFIX_KEY, None):
-                md["issue_suffix"] = suffix
-
-        if stories := md.pop(STORIES_KEY, None):
-            md["name"] = "; ".join(stories)
 
     @staticmethod
     def _metadata_mtime(path: str) -> datetime | None:
@@ -77,7 +38,18 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             return None
         return comic.metadata_mtime
 
-    def extract(self, path: str, *, import_metadata: bool):
+    def _set_import_metadata_flag(self):
+        """Set import_metadata flag."""
+        if self.task.force_import_metadata:
+            import_metadata = True
+        else:
+            key = AdminFlagChoices.IMPORT_METADATA.value
+            import_metadata = AdminFlag.objects.get(key=key).on
+        if not import_metadata:
+            self.log.warning("Admin flag set to NOT import metadata.")
+        return import_metadata
+
+    def _extract_path(self, path: str, *, import_metadata: bool):
         """Extract metadata from comic and clean it for codex."""
         md = {}
         failed_import = {}
@@ -98,8 +70,6 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
                     md["file_type"] = cb.get_file_type()
                     md["metadata_mtime"] = new_md_mtime
             md["path"] = path
-            self._extract_clean_md(md)
-            self._extract_transform(md)
         except (
             UnsupportedArchiveTypeError,
             BadZipFile,
@@ -117,3 +87,38 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         if failed_import:
             self.metadata[FIS].update(failed_import)
         return md
+
+    def extract_metadata(self, status=None) -> int:
+        """Extract comic metadata into memory."""
+        count = 0
+        all_paths = self.task.files_modified | self.task.files_created
+        total_paths = len(all_paths)
+        if not total_paths:
+            return count
+
+        self.log.info(
+            f"Reading tags from {total_paths} comics in {self.library.path}..."
+        )
+        status = Status(ImportStatusTypes.READ_TAGS, 0, total_paths)
+        self.status_controller.start(status, notify=False)
+
+        # Set import_metadata flag
+        import_metadata = self._set_import_metadata_flag()
+
+        self.metadata[SKIPPED] = set()
+        self.metadata[EXTRACTED] = {}
+        for path in all_paths:
+            if md := self._extract_path(path, import_metadata=import_metadata):
+                self.metadata[EXTRACTED][path] = md
+            else:
+                self.metadata[SKIPPED].add(path)
+
+        num_skip_paths = len(self.metadata[SKIPPED])
+        count = total_paths - num_skip_paths
+        self.log.success(f"Read metadata from {count} comics.")
+        if num_skip_paths:
+            self.log.info(
+                f"Skipped {num_skip_paths} comics because metadata appears unchanged."
+            )
+        self.status_controller.finish(status)
+        return count

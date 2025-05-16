@@ -10,12 +10,9 @@ from typing_extensions import override
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.reader.arcs import ReaderArcsView
-
-LOG = get_logger(__name__)
 
 
 class ReaderView(ReaderArcsView):

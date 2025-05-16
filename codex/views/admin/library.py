@@ -6,6 +6,7 @@ from time import time
 from django.core.cache import cache
 from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from typing_extensions import override
@@ -17,7 +18,6 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.logger.logger import get_logger
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,
@@ -26,8 +26,6 @@ from codex.serializers.admin.libraries import (
     LibrarySerializer,
 )
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
-
-LOG = get_logger(__name__)
 
 
 class AdminLibraryViewSet(AdminModelViewSet):
@@ -146,7 +144,7 @@ class AdminFolderListView(AdminGenericAPIView):
         except ValidationError:
             raise
         except Exception as exc:
-            LOG.exception("get admin folder list view")
+            logger.exception("get admin folder list view")
             reason = "Server Error"
             raise ValidationError(reason) from exc
         else:

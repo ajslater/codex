@@ -78,7 +78,7 @@ class UpdateMixin(WorkerBaseMixin):
         restart = new_version != VERSION
 
         if restart:
-            self.log.info(f"Codex was updated from {VERSION} to {new_version}.")
+            self.log.success(f"Codex was updated from {VERSION} to {new_version}.")
             self.restart_codex()
         else:
             reason = (

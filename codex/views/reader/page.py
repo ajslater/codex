@@ -6,20 +6,19 @@ from comicbox.box import Comicbox
 from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from loguru import logger
 from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
 from typing_extensions import override
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic, FileType
 from codex.settings import FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.util import chunker
 
-LOG = get_logger(__name__)
 _PDF_MIME_TYPE = "application/pdf"
 # Most pages seem to be 2.5 Mb
 # largest pages I've seen were 9 Mb
@@ -120,7 +119,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
         except Exception as exc:
-            LOG.warning(exc)
+            logger.warning(exc)
             raise NotFound(detail="comic page not found") from exc
         else:
             page_chunker = chunker(BytesIO(page_image), _PAGE_CHUNK_SIZE)

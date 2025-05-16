@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
@@ -11,7 +12,6 @@ from typing_extensions import override
 
 from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
@@ -31,9 +31,6 @@ from codex.views.opds.v1.links import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-
-
-LOG = get_logger(__name__)
 
 
 class OpdsNs:
@@ -59,7 +56,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         try:
             return OpdsNs.ACQUISITION if self.is_opds_acquisition else OpdsNs.CATALOG
         except Exception:
-            LOG.exception("Getting OPDS v1 namespace")
+            logger.exception("Getting OPDS v1 namespace")
 
     @property
     def is_acquisition(self):
@@ -72,7 +69,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         try:
             return self.request.build_absolute_uri()
         except Exception:
-            LOG.exception("Getting OPDS v1 ID Tag")
+            logger.exception("Getting OPDS v1 ID Tag")
 
     @property
     def title(self):
@@ -91,7 +88,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
             if not result:
                 result = BLANK_TITLE
         except Exception:
-            LOG.exception("Getting OPDS v1 feed title")
+            logger.exception("Getting OPDS v1 feed title")
         return result
 
     @property
@@ -103,7 +100,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
             if mtime:
                 datestr = mtime.isoformat()
         except Exception:
-            LOG.exception("Getting OPDS v1 updated")
+            logger.exception("Getting OPDS v1 updated")
         return datestr
 
     @property
@@ -113,7 +110,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
             if self.params.get("q"):
                 return MAX_OBJ_PER_PAGE
         except Exception:
-            LOG.exception("Getting OPDS v1 items per page")
+            logger.exception("Getting OPDS v1 items per page")
 
     @property
     def total_results(self):
@@ -122,7 +119,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
             if self.params.get("q"):
                 return self.obj.get("total_count", 0)
         except Exception:
-            LOG.exception("Getting OPDS v1 total results")
+            logger.exception("Getting OPDS v1 total results")
 
     def _get_entries_section(self, key, metadata):
         """Get entries by key section."""
@@ -165,7 +162,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
             metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
             entries += self._get_entries_section("books", metadata)
         except Exception:
-            LOG.exception("Getting OPDS v1 entries")
+            logger.exception("Getting OPDS v1 entries")
         return entries
 
     @override

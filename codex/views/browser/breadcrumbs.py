@@ -4,7 +4,8 @@ from contextlib import suppress
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from codex.logger.logger import get_logger
+from loguru import logger
+
 from codex.models import (
     BrowserGroupModel,
     Comic,
@@ -25,7 +26,6 @@ from codex.views.util import Route
 if TYPE_CHECKING:
     from codex.models.groups import Folder
 
-LOG = get_logger(__name__)
 _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
     type[BrowserGroupModel], tuple[str | None, ...]
 ] = MappingProxyType(
@@ -263,7 +263,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 if done:
                     break
             except Exception:
-                LOG.exception("group loop")
+                logger.exception("group loop")
 
         return tuple(new_breadcrumbs), changed
 

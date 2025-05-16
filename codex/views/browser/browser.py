@@ -6,12 +6,12 @@ from types import MappingProxyType
 from django.db.models import Max
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
-from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     Folder,
@@ -25,8 +25,6 @@ from codex.views.const import (
     MAX_OBJ_PER_PAGE,
     STORY_ARC_GROUP,
 )
-
-LOG = get_logger(__name__)
 
 
 class BrowserView(BrowserTitleView):
@@ -147,11 +145,11 @@ class BrowserView(BrowserTitleView):
     def _debug_queries(self, group_count, book_count, group_qs, book_qs):
         """Log query details."""
         if group_count:
-            LOG.debug(group_qs.explain())
-            LOG.debug(group_qs.query)
+            logger.debug(group_qs.explain())
+            logger.debug(group_qs.query)
         if book_count:
-            LOG.debug(book_qs.explain())
-            LOG.debug(book_qs.query)
+            logger.debug(book_qs.explain())
+            logger.debug(book_qs.query)
 
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""

@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from loguru import logger
 from typing_extensions import override
 
 from codex.librarian.bookmark.tasks import (
@@ -75,7 +76,7 @@ class BookmarkThread(
         for key, value in self.cache.items():
             try:
                 if key.user_pk:
-                    self.update_user_active(key.user_pk, self.log)
+                    self.update_user_active(key.user_pk, logger)
                 elif key.comic_pks:
                     self.update_bookmarks(key.auth_filter, key.comic_pks, value)
                 cleanup.add(key)

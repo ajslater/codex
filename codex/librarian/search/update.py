@@ -293,7 +293,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
 
         elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)
-        self.log.info(f"Search index updated in {elapsed}.")
+        self.log.success(f"Search index updated in {elapsed}.")
 
     def update_search_index(self, *, rebuild: bool):
         """Update or Rebuild the search index."""

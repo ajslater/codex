@@ -4,13 +4,11 @@ from django.http import HttpResponseBadRequest
 from django.http.response import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from typing_extensions import override
 from zipstream import ZipStream
 
-from codex.logger.logger import get_logger
 from codex.views.browser.filters.filter import BrowserFilterView
-
-LOG = get_logger()
 
 
 class GroupDownloadView(BrowserFilterView):
@@ -34,7 +32,7 @@ class GroupDownloadView(BrowserFilterView):
             path_rel = self.rel_prefix + "path"
             paths = qs.values_list(path_rel, flat=True)
         except Exception as exc:
-            LOG.warning(f"Error with download query for {group}:{pks} {exc}")
+            logger.warning(f"Error with download query for {group}:{pks} {exc}")
             raise
 
         if not paths:

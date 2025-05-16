@@ -6,11 +6,8 @@ from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import GROUPS_CHANGED_TASK
-from codex.logger.logger import get_logger
 from codex.serializers.admin.groups import GroupSerializer
 from codex.views.admin.auth import AdminModelViewSet
-
-LOG = get_logger(__name__)
 
 
 class AdminGroupViewSet(AdminModelViewSet):

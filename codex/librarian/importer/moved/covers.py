@@ -80,7 +80,7 @@ class MovedCoversImporter(MovedComicsImporter):
 
         count = len(moved_covers)
         if count:
-            self.log.info(f"Moved {count} custom covers.")
+            self.log.success(f"Moved {count} custom covers.")
 
         self.changed += count
         self.status_controller.finish(status)

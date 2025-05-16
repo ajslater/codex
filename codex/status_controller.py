@@ -1,17 +1,16 @@
 """Librarian Status."""
 
 from enum import Enum
-from logging import DEBUG
 from multiprocessing import Queue
 from time import time
 
 from django.db.models.functions.datetime import Now
 from django.utils.timezone import datetime, now, timedelta
+from loguru._logger import Logger
 
 from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
-from codex.logger_base import LoggerBaseMixin
 from codex.models import LibrarianStatus
 from codex.status import Status
 
@@ -25,14 +24,14 @@ DEFAULT_FIELDS = ("preactive", "complete", "total", "active", "subtitle")
 STATUS_DEFAULTS = {field: get_default(field) for field in DEFAULT_FIELDS}
 
 
-class StatusController(LoggerBaseMixin):
+class StatusController:
     """Run operations on the LibrarianStatus table."""
 
     _UPDATE_DELTA = 5
 
-    def __init__(self, log_queue: Queue, librarian_queue: Queue):
+    def __init__(self, logger_: Logger, librarian_queue: Queue):
         """Iinitialize logger and librarian queue."""
-        self.init_logger(log_queue)
+        self.log = logger_
         self.librarian_queue = librarian_queue
 
     def _enqueue_notifier_task(self, until=0.0, *, notify: bool = True):
@@ -96,7 +95,7 @@ class StatusController(LoggerBaseMixin):
                 **updates
             )
             self._enqueue_notifier_task(notify=notify)
-            self._loggit(DEBUG, status)
+            self._loggit("DEBUG", status)
             status.since = time()
         except Exception:
             title = ADMIN_STATUS_TITLES[status.status_type]

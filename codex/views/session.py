@@ -4,14 +4,13 @@ from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
 
+from loguru import logger
+
 from codex.choices.browser import BROWSER_DEFAULTS
 from codex.choices.reader import READER_DEFAULTS
-from codex.logger.logger import get_logger
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
-
-LOG = get_logger(__name__)
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -135,4 +134,4 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             self.request.session[self.SESSION_KEY] = data
             self.request.session.save()
         except Exception as exc:
-            LOG.warning(f"Saving params to session: {exc}")
+            logger.warning(f"Saving params to session: {exc}")

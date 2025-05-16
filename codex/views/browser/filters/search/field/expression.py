@@ -16,7 +16,6 @@ from django.db.models import (
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
 from humanfriendly import parse_size
 
-from codex.logger.logger import get_logger
 from codex.settings import FALSY
 
 _QUOTES_RE = re.compile(r"[\"']")
@@ -24,7 +23,6 @@ _OP_MAP = MappingProxyType({">": "gt", ">=": "gte", "<": "lt", "<=": "lte"})
 _RANGE_RE = re.compile(r"\.{2,}")
 _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
 _LIKE_RE = re.compile(f"([{re.escape('%_')}])")
-LOG = get_logger(__name__)
 
 
 def _parse_issue_value(value):

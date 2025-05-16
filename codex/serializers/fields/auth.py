@@ -10,10 +10,6 @@ from rest_framework.serializers import (
 )
 from typing_extensions import override
 
-from codex.logger.logger import get_logger
-
-LOG = get_logger(__name__)
-
 
 class TimestampField(IntegerField):
     """IntegerTimestampField."""

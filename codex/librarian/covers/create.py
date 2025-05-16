@@ -2,6 +2,7 @@
 
 from abc import ABC
 from io import BytesIO
+from multiprocessing.queues import Queue
 from pathlib import Path
 from time import time
 
@@ -61,7 +62,9 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             return f.read()
 
     @classmethod
-    def create_cover_from_path(cls, pk, cover_path, log, librarian_queue, custom):
+    def create_cover_from_path(
+        cls, pk: int, cover_path: str, log, librarian_queue: Queue, *, custom: bool
+    ):
         """
         Create cover for path.
 
@@ -118,7 +121,11 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
                 else:
                     # bulk credit creates covers inline
                     data = self.create_cover_from_path(
-                        pk, cover_path, self.log, self.librarian_queue, custom=False
+                        pk,
+                        str(cover_path),
+                        self.log,
+                        self.librarian_queue,
+                        custom=False,
                     )
                     if data:
                         data.close()
@@ -127,7 +134,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
 
             total_elapsed = naturaldelta(time() - start_time)
             desc = "custom" if custom else "comic"
-            self.log.info(
+            self.log.success(
                 f"Created {status.complete} {desc} covers in {total_elapsed}."
             )
         finally:

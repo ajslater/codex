@@ -23,12 +23,10 @@ from watchdog.events import (
 )
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
-from codex.logger.logger import get_logger
-from codex.logger_base import LoggerBaseMixin
 from codex.models import CustomCover
 from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
+from codex.worker_base import WorkerBaseBaseMixin
 
-LOG = get_logger(__name__)
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
 _GROUP_COVERS_DIRS = frozenset(CUSTOM_COVERS_GROUP_DIRS)
 
@@ -70,19 +68,17 @@ COVERS_EVENT_TYPE_MAP = MappingProxyType(
 )
 
 
-class CodexEventHandlerBase(FileSystemEventHandler, LoggerBaseMixin):
+class CodexEventHandlerBase(WorkerBaseBaseMixin, FileSystemEventHandler):
     """Base class for Codex Event Handlers."""
 
     IGNORED_EVENTS = frozenset(
         {EVENT_TYPE_CLOSED, EVENT_TYPE_CLOSED_NO_WRITE, EVENT_TYPE_OPENED}
     )
 
-    def __init__(self, library, *args, **kwargs):
+    def __init__(self, library, *args, logger_=None, librarian_queue=None, **kwargs):
         """Let us send along he library id."""
         self.library_pk = library.pk
-        self.librarian_queue = kwargs.pop("librarian_queue")
-        log_queue = kwargs.pop("log_queue")
-        self.init_logger(log_queue)
+        self.init_worker(logger_, librarian_queue)
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -110,7 +106,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         self._comic_matcher = re.compile(comic_regex, re.IGNORECASE)
         if unsupported:
             un_str = ", ".join(unsupported)
-            LOG.warning(f"Cannot detect or read from {un_str} archives")
+            self.log.warning(f"Cannot detect or read from {un_str} archives")
 
     def __init__(self, *args, **kwargs):
         """Let us send along he library id."""

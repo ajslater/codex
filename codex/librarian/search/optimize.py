@@ -35,7 +35,7 @@ class SearchOptimizeThread(QueuedThread, ABC):
                 cursor.execute(_OPTIMIZE_SQL)
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Optimized search index in {elapsed}.")
+            self.log.success(f"Optimized search index in {elapsed}.")
         except Exception:
             self.log.exception("Removing stale records:")
         finally:

@@ -24,7 +24,7 @@ class ComicImporterThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
     def _create_importer(self, task):
-        return ComicImporter(task, self.log_queue, self.librarian_queue)
+        return ComicImporter(task, self.log, self.librarian_queue)
 
     def _import(self, task):
         """Run an import task."""

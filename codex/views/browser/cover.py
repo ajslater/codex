@@ -7,6 +7,7 @@ from django.db.models.query import Q
 from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.renderers import BaseRenderer
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
@@ -14,7 +15,6 @@ from typing_extensions import override
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover
@@ -28,8 +28,6 @@ from codex.views.const import (
     STATIC_IMG_PATH,
 )
 from codex.views.util import chunker
-
-LOG = get_logger(__name__)
 
 
 class WEBPRenderer(BaseRenderer):
@@ -130,14 +128,14 @@ class CoverView(BrowserAnnotateOrderView):
         cover_path = STATIC_IMG_PATH / cover_fn
         return cover_path, content_type
 
-    def _get_cover_data(self, pk, custom):
+    def _get_cover_data(self, pk, *, custom: bool):
         thumb_buffer = None
         content_type = "image/webp"
 
-        cover_path = CoverPathMixin.get_cover_path(pk, custom)
+        cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
         if not cover_path.exists():
             thumb_buffer = CoverCreateThread.create_cover_from_path(
-                pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
+                pk, str(cover_path), logger, LIBRARIAN_QUEUE, custom=custom
             )
             if not thumb_buffer:
                 cover_path, content_type = self._get_missing_cover_path()
@@ -160,7 +158,7 @@ class CoverView(BrowserAnnotateOrderView):
                 self._handle_operational_error(exc)
                 pk = 0
                 custom = False
-            cover_file, content_type = self._get_cover_data(pk, custom)
+            cover_file, content_type = self._get_cover_data(pk, custom=custom)
             return StreamingHttpResponse(chunker(cover_file), content_type=content_type)
         except Exception:
-            LOG.exception("Get cover")
+            logger.exception("Get cover")

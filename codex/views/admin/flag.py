@@ -6,13 +6,10 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
 from codex.librarian.tasks import WakeCronTask
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.registration import patch_registration_setting
 from codex.serializers.admin.flags import AdminFlagSerializer
 from codex.views.admin.auth import AdminModelViewSet
-
-LOG = get_logger(__name__)
 
 _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value

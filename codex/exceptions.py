@@ -7,16 +7,15 @@ from pprint import pformat
 from django.core.validators import EMPTY_VALUES
 from django.shortcuts import redirect
 from django.urls import reverse
+from loguru import logger
 from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
-from codex.logger.logger import get_logger
 from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.route import RouteSerializer
 from codex.views.util import pop_name
 
-LOG = get_logger(__name__)
 _OPDS_REDIRECT_SETTINGS_KEYS = ("order_by", "top_group")
 _REDIRECT_SETTINGS_KEYS = ("breadcrumbs", *_OPDS_REDIRECT_SETTINGS_KEYS)
 
@@ -61,7 +60,7 @@ class SeeOtherRedirectError(APIException):
 
         self.detail = detail  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
-        LOG.debug(f"redirect {pformat(self.detail)}")
+        logger.debug(f"redirect {pformat(self.detail)}")
 
     def _get_query_params(self):
         """Change OPDS settings like the frontend does with error.detail."""

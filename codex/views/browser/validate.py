@@ -5,11 +5,11 @@ from copy import deepcopy
 from types import MappingProxyType
 from typing import Any
 
+from loguru import logger
 from rest_framework.exceptions import NotFound
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.exceptions import SeeOtherRedirectError
-from codex.logger.logger import get_logger
 from codex.models.groups import BrowserGroupModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
@@ -20,8 +20,6 @@ from codex.views.const import (
     ROOT_GROUP,
     STORY_ARC_GROUP,
 )
-
-LOG = get_logger(__name__)
 
 
 class BrowserValidateView(SearchFilterView):
@@ -58,7 +56,7 @@ class BrowserValidateView(SearchFilterView):
             if model is None:
                 group = self.kwargs["group"]
                 detail = f"Cannot browse {group=}"
-                LOG.debug(detail)
+                logger.debug(detail)
                 raise NotFound(detail=detail)
             self._model = model
         return self._model

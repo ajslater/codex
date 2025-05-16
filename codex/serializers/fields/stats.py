@@ -4,10 +4,6 @@ from rest_framework.fields import DictField, IntegerField
 from rest_framework.serializers import MultipleChoiceField
 from typing_extensions import override
 
-from codex.logger.logger import get_logger
-
-LOG = get_logger(__name__)
-
 
 class StringListMultipleChoiceField(MultipleChoiceField):
     """A Multiple Choice Field expressed as as a comma delimited string."""

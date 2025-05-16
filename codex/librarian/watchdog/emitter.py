@@ -1,6 +1,5 @@
 """A Codex database event emitter for use by the observer."""
 
-from logging import DEBUG, WARNING
 from multiprocessing.queues import Queue
 from pathlib import Path
 from threading import Condition
@@ -55,15 +54,12 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         watch,
         *,
         timeout=DEFAULT_EMITTER_TIMEOUT,
-        log_queue: Queue | None = None,
+        logger_=None,
         librarian_queue: Queue | None = None,
         covers_only=False,
     ):
         """Initialize snapshot methods."""
-        if log_queue is None or librarian_queue is None:
-            reason = f"{self.__class__.__name__} requires a non null log_queue and librarian_queue"
-            raise ValueError(reason)
-        self.init_worker(log_queue, librarian_queue)
+        self.init_worker(logger_, librarian_queue)
         self._poll_cond = Condition()
         self._force = False
         self._watch_path = Path(watch.path)
@@ -89,8 +85,8 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         """Get a database snapshot with optional force argument."""
         db_snapshot = CodexDatabaseSnapshot(
             self.watch.path,
+            logger_=self.log,
             force=self._force,
-            log_queue=self.log_queue,
             covers_only=self._covers_only,
         )
         self._force = False
@@ -100,7 +96,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         """Return a special timeout value if there's a problem with the watch dir."""
         ok = False
         msg = ""
-        log_level = WARNING
+        log_level = "WARNING"
         if not library.poll:
             # Wait forever. Manual poll only
             ok = None
@@ -114,7 +110,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             msg = f"{self._watch_path} is empty. Suspect it may be unmounted. Not polling."
         elif library.update_in_progress:
             msg = f"Library {library.path} update in progress. Not polling."
-            log_level = DEBUG
+            log_level = "DEBUG"
         else:
             ok = True
 
@@ -245,7 +241,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             library.last_poll = Now()
             library.save()
 
-            self.log.info(f"Polled {self.watch.path}")
+            self.log.success(f"Polled {self.watch.path}")
         except Exception:
             self.log.exception("poll for watchdog events and queue them")
             raise

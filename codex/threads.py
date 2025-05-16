@@ -2,9 +2,11 @@
 
 import time
 from abc import ABC, abstractmethod
+from multiprocessing.queues import Queue
 from queue import Empty, SimpleQueue
 from threading import Thread
 
+from loguru._logger import Logger
 from typing_extensions import override
 
 from codex.worker_base import WorkerBaseMixin
@@ -17,11 +19,15 @@ class BreakLoopError(Exception):
 class NamedThread(Thread, WorkerBaseMixin, ABC):
     """A thread that sets its name for ps."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        logger_: Logger | None = None,
+        librarian_queue: Queue | None = None,
+        **kwargs,
+    ):
         """Initialize queues."""
-        librarian_queue = kwargs.pop("librarian_queue")
-        log_queue = kwargs.pop("log_queue")
-        self.init_worker(log_queue, librarian_queue)
+        self.init_worker(logger_, librarian_queue)
         super().__init__(*args, name=self.__class__.__name__, **kwargs)
 
     def run_start(self):

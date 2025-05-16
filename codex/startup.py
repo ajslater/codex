@@ -5,10 +5,10 @@ from pathlib import Path
 from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
+from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
 from codex.db import ensure_db_schema
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
 from codex.settings import (
@@ -19,8 +19,6 @@ from codex.settings import (
     RESET_ADMIN,
 )
 from codex.status_controller import STATUS_DEFAULTS
-
-LOG = get_logger(__name__)
 
 
 def ensure_superuser():
@@ -35,7 +33,7 @@ def ensure_superuser():
         admin_user.set_password("admin")
         admin_user.save()
         prefix = "Cre" if created else "Upd"
-        LOG.info(f"{prefix}ated admin user.")
+        logger.success(f"{prefix}ated admin user.")
 
 
 def _delete_orphans(model, field, names):
@@ -45,7 +43,7 @@ def _delete_orphans(model, field, names):
     count = query.count()
     if count:
         query.delete()
-        LOG.info(f"Deleted {count} orphan {model._meta.verbose_name_plural}.")
+        logger.info(f"Deleted {count} orphan {model._meta.verbose_name_plural}.")
 
 
 def init_admin_flags():
@@ -56,7 +54,7 @@ def init_admin_flags():
         defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
-            LOG.info(f"Created AdminFlag: {title} = {flag.on}")
+            logger.info(f"Created AdminFlag: {title} = {flag.on}")
 
 
 def init_timestamps():
@@ -69,7 +67,7 @@ def init_timestamps():
             ts.save_uuid_version()
         if created:
             label = Timestamp.Choices(ts.key).label
-            LOG.debug(f"Created {label} timestamp.")
+            logger.debug(f"Created {label} timestamp.")
 
 
 def init_librarian_statuses():
@@ -81,7 +79,7 @@ def init_librarian_statuses():
             defaults=STATUS_DEFAULTS, status_type=status_type
         )
         if created:
-            LOG.debug(f"Created {title} LibrarianStatus.")
+            logger.debug(f"Created {title} LibrarianStatus.")
 
 
 def clear_library_status():
@@ -90,7 +88,7 @@ def clear_library_status():
         update_in_progress=False, updated_at=Now()
     )
     if count:
-        LOG.debug(f"Reset {count} Libraries' update_in_progress flag")
+        logger.debug(f"Reset {count} Libraries' update_in_progress flag")
 
 
 def init_custom_cover_dir():
@@ -100,12 +98,12 @@ def init_custom_cover_dir():
         defaults=defaults, covers_only=True
     )
     if created:
-        LOG.info("Created Custom Covers Dir settings in the db.")
+        logger.info("Created Custom Covers Dir settings in the db.")
 
     old_path = covers_library.path
     if Path(old_path) != CUSTOM_COVERS_DIR:
         Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVERS_DIR))
-        LOG.info(
+        logger.info(
             f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVERS_DIR}."
         )
 
@@ -125,7 +123,7 @@ def update_custom_covers_for_config_dir():
         .exclude(path__startswith=F("library__path"))
         .only(*update_fields)
     )
-    LOG.debug(f"Checking that group custom covers are under {CUSTOM_COVERS_DIR}")
+    logger.debug(f"Checking that group custom covers are under {CUSTOM_COVERS_DIR}")
     for cover in group_covers.iterator():
         old_path = cover.path
         parts = old_path.rsplit(f"/{CUSTOM_COVERS_SUBDIR}/")
@@ -139,14 +137,14 @@ def update_custom_covers_for_config_dir():
         else:
             delete_cover_pks.append(cover.pk)
     update_count = len(update_covers)
-    LOG.debug(
+    logger.debug(
         f"Found {update_count} custom covers to update, {len(delete_cover_pks)} to delete."
     )
 
     # Update covers
     if update_count:
         CustomCover.objects.bulk_update(update_covers, update_fields)
-        LOG.info(
+        logger.info(
             f"Updated {update_count} CustomCovers sources to point to new config dir"
         )
 
@@ -155,7 +153,7 @@ def update_custom_covers_for_config_dir():
         delete_qs = CustomCover.objects.filter(pk__in=delete_cover_pks)
         delete_count = delete_qs.count()
         delete_qs.delete()
-        LOG.warning(
+        logger.warning(
             f"Delete {delete_count} CustomCovers that could not be re-sourced after config dir change."
         )
 
@@ -178,7 +176,7 @@ def codex_init():
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
-    LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
+    logger.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
-        LOG.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
+        logger.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
     return True

@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 
 from dateutil import parser
 from django.urls import reverse
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.models import Comic
 from codex.views.opds.const import (
     AUTHOR_ROLES,
@@ -19,7 +19,6 @@ from codex.views.opds.util import (
 )
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
 
-LOG = get_logger(__name__)
 _SERIES_ROUTE_KWARGS = {"group": "s", "pks": {}, "page": 1}
 
 
@@ -59,7 +58,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
 
             result = " ".join(filter(None, parts))
         except Exception:
-            LOG.exception("Getting OPDS1 title")
+            logger.exception("Getting OPDS1 title")
 
         if not result:
             result = BLANK_TITLE

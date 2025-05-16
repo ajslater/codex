@@ -26,7 +26,7 @@ class VacuumMixin(WorkerBaseMixin):
                 cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             new_size = DB_PATH.stat().st_size
             saved = naturalsize(old_size - new_size)
-            self.log.info(f"Vacuumed database. Saved {saved}.")
+            self.log.success(f"Vacuumed database. Saved {saved}.")
         finally:
             self.status_controller.finish(status)
 
@@ -43,7 +43,7 @@ class VacuumMixin(WorkerBaseMixin):
             with connection.cursor() as cursor:
                 cursor.execute(f"VACUUM INTO {path!r}")
             _OLD_BACKUP_PATH.unlink(missing_ok=True)
-            self.log.info(f"Backed up database to {path}")
+            self.log.success(f"Backed up database to {path}")
         except Exception:
             self.log.exception("Backing up database.")
         finally:

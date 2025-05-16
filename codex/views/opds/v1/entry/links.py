@@ -6,13 +6,11 @@ from urllib.parse import quote_plus
 
 from comicbox.box import Comicbox
 from django.urls import reverse
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
-
-LOG = get_logger(__name__)
 
 
 class OPDS1EntryLinksMixin:
@@ -45,7 +43,7 @@ class OPDS1EntryLinksMixin:
             href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)  # pyright: ignore[reportCallIssue] django-types ood
             return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
-            LOG.exception("create thumb")
+            logger.exception("create thumb")
 
     def _nav_href(self, *, metadata: bool):
         try:
@@ -66,7 +64,7 @@ class OPDS1EntryLinksMixin:
             return reverse("opds:v1:feed", kwargs=kwargs, query=qps)  # pyright: ignore[reportCallIssue] django-types ood
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
-            LOG.exception(msg)
+            logger.exception(msg)
             raise
 
     def _nav_link(self, *, metadata: bool):
@@ -102,7 +100,7 @@ class OPDS1EntryLinksMixin:
         with Comicbox(self.obj.path) as cb:
             self.obj.page_count = cb.get_page_count()
             self.obj.file_type = cb.get_file_type()
-        LOG.debug(f"Got lazy opds pse metadata for {self.obj.path}")
+        logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")
         return True
 
     def _stream_link(self):
@@ -155,5 +153,5 @@ class OPDS1EntryLinksMixin:
 
         except Exception:
             msg = f"Getting entry links for {self.obj}"
-            LOG.exception(msg)
+            logger.exception(msg)
         return result

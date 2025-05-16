@@ -4,20 +4,18 @@ from types import MappingProxyType
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
-from codex.logger.logger import get_logger
 from codex.serializers.browser.metadata import MetadataSerializer
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
 from codex.views.browser.metadata.copy_intersections import (
     MetadataCopyIntersectionsView,
 )
-
-LOG = get_logger(__name__)
 
 
 class MetadataView(MetadataCopyIntersectionsView):
@@ -89,4 +87,4 @@ class MetadataView(MetadataCopyIntersectionsView):
             serializer = self.get_serializer(obj)
             return Response(serializer.data)
         except Exception:
-            LOG.exception(f"Getting metadata {self.kwargs}")
+            logger.exception(f"Getting metadata {self.kwargs}")

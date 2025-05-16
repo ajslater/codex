@@ -34,6 +34,8 @@ ISSUE_COUNT = "issue_count"
 ##########################
 # IMPORTER METADATA KEYS #
 ##########################
+EXTRACTED = "extracted"
+SKIPPED = "skipped"
 COMIC_PATHS = "comic_paths"
 COMIC_VALUES = "comic_values"
 M2M_LINK = "m2m_link"

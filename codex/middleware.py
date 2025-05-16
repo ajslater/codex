@@ -4,11 +4,9 @@ from time import time
 
 from django.db import connection
 from django.utils import timezone
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.settings import LOG_RESPONSE_TIME, SLOW_QUERY_LIMIT
-
-LOG = get_logger(__name__)
 
 
 class TimezoneMiddleware:
@@ -46,9 +44,9 @@ class LogResponseTimeMiddleware:
         if is_slow or LOG_RESPONSE_TIME:
             msg = f"{response_time}s {request.build_absolute_uri()}"
             if is_slow:
-                LOG.warning(msg)
+                logger.warning(msg)
             else:
-                LOG.debug(msg)
+                logger.trace(msg)
         return response
 
     def _log_query_times(self):
@@ -58,9 +56,9 @@ class LogResponseTimeMiddleware:
             if LOG_RESPONSE_TIME or is_slow:
                 msg = f"{query['time']}s {query['sql']}"
                 if is_slow:
-                    LOG.warning(msg)
+                    logger.warning(msg)
                 else:
-                    LOG.debug(msg)
+                    logger.trace(msg)
 
     def __call__(self, request):
         """Call request."""

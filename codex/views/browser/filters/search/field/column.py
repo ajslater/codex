@@ -7,7 +7,6 @@ from django.db.models import (
 )
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
-from codex.logger.logger import get_logger
 from codex.views.browser.filters.search.aliases import FIELD_TYPE_MAP
 
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
@@ -19,8 +18,6 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
         "story_arcs": "story_arc_number__story_arc__name",
     }
 )
-
-LOG = get_logger(__name__)
 
 
 def _parse_field_rel(field_name, rel_class):

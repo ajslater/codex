@@ -3,6 +3,7 @@
 from abc import ABC
 
 import pycountry
+from loguru import logger
 from pycountry.db import Database
 from rest_framework.serializers import (
     ChoiceField,
@@ -15,11 +16,8 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_CHOICES,
     DUMMY_NULL_NAME,
 )
-from codex.logger.logger import get_logger
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.route import RouteSerializer
-
-LOG = get_logger(__name__)
 
 
 class TopGroupField(ChoiceField):
@@ -64,7 +62,7 @@ class PyCountryField(SanitizedCharField, ABC):
             )
             # If lookup fails, return the key as the name
         except Exception:
-            LOG.warning(f"Could not serialize name with pycountry {value}")
+            logger.warning(f"Could not serialize name with pycountry {value}")
             return value
         else:
             return lookup_obj.name if lookup_obj else value

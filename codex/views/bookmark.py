@@ -4,19 +4,17 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 from django.db.models import Q
+from loguru import logger
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.views.auth import AuthAPIView, GroupACLMixin
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
     from codex.models import BrowserGroupModel
-
-LOG = get_logger(__name__)
 
 
 class BookmarkFilterMixin(GroupACLMixin, ABC):
@@ -60,7 +58,7 @@ class BookmarkAuthMixin:
             value = self.request.user.pk
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.debug("no session, make one")
+                logger.debug("no session, make one")
                 self.request.session.save()
             key = "session_id"
             value = self.request.session.session_key

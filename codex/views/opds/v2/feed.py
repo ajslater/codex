@@ -8,7 +8,6 @@ from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
@@ -27,8 +26,6 @@ from codex.views.opds.v2.const import (
 from codex.views.opds.v2.href import HrefData
 from codex.views.opds.v2.links import LinkData
 from codex.views.opds.v2.publications import OPDS2PublicationView
-
-LOG = get_logger(__name__)
 
 
 class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):

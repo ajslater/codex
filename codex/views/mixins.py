@@ -6,7 +6,6 @@ from django.db.models.expressions import F
 
 from codex.librarian.bookmark.tasks import UserActiveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.models.groups import Imprint, Volume
 from codex.views.const import GROUP_NAME_MAP
@@ -14,7 +13,6 @@ from codex.views.const import GROUP_NAME_MAP
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
-LOG = get_logger(__name__)
 _SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
 _GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"

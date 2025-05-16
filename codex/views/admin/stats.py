@@ -10,7 +10,6 @@ from rest_framework.serializers import empty
 from typing_extensions import override
 
 from codex.librarian.telemeter.stats import CodexStats
-from codex.logger.logger import get_logger
 from codex.models.admin import Timestamp
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin.stats import (
@@ -18,8 +17,6 @@ from codex.serializers.admin.stats import (
     StatsSerializer,
 )
 from codex.views.admin.auth import AdminGenericAPIView
-
-LOG = get_logger(__name__)
 
 
 class AdminStatsView(AdminGenericAPIView):

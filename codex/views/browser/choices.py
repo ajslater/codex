@@ -11,7 +11,6 @@ from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
-from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     CreditPerson,
@@ -29,8 +28,6 @@ from codex.views.session import (
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,
 )
-
-LOG = get_logger(__name__)
 
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {

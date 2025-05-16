@@ -8,6 +8,7 @@ class ImportStatusTypes(TextChoices):
 
     DIRS_MOVED = "IDM"
     FILES_MOVED = "IFM"
+    READ_TAGS = "IRT"
     AGGREGATE_TAGS = "ITR"
     QUERY_MISSING_FKS = "ITQ"
     CREATE_FKS = "ITC"

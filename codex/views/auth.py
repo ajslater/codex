@@ -10,10 +10,7 @@ from rest_framework.views import APIView
 from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag, Comic, Folder, StoryArc
-
-LOG = get_logger(__name__)
 
 
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):

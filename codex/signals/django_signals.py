@@ -8,17 +8,15 @@ from django.db.models.signals import m2m_changed
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
-from codex.logger.logger import get_logger
 
-GROUP_CHANGE_MODEL_NAMES = frozenset(("User", "Library"))
-GROUP_CHANGE_ACTIONS = frozenset(
+_GROUP_CHANGE_MODEL_NAMES = frozenset(("User", "Library"))
+_GROUP_CHANGE_ACTIONS = frozenset(
     {
         "post_add",
         "post_remove",
         "post_clear",
     }
 )
-LOG = get_logger(__name__)
 
 
 def _user_group_change(**kwargs):
@@ -26,8 +24,8 @@ def _user_group_change(**kwargs):
     model = kwargs["model"]
     action = kwargs["action"]
     if (
-        model.__name__ not in GROUP_CHANGE_MODEL_NAMES
-        or action not in GROUP_CHANGE_ACTIONS
+        model.__name__ not in _GROUP_CHANGE_MODEL_NAMES
+        or action not in _GROUP_CHANGE_ACTIONS
     ):
         return
     cache.clear()

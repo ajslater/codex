@@ -20,7 +20,7 @@ class SearchRemoveThread(SearchOptimizeThread, ABC):
         self.status_controller.start(clear_status)
         ComicFTS.objects.all().delete()
         self.status_controller.finish(clear_status)
-        self.log.info("Old search index cleared.")
+        self.log.success("Old search index cleared.")
 
     def _remove_stale_records(self, status):
         """Remove records not in the database from the index."""

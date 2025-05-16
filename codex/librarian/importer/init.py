@@ -1,6 +1,5 @@
 """Initiale Importer."""
 
-import logging
 from multiprocessing.queues import Queue
 from pathlib import Path
 from time import sleep, time
@@ -13,6 +12,7 @@ from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexAbortTask
 from codex.models import Library
+from codex.settings import LOGLEVEL
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
@@ -22,11 +22,9 @@ _WRITE_WAIT_EXPIRY = 60
 class InitImporter(WorkerBaseMixin):
     """Initial Importer."""
 
-    def __init__(
-        self, task: ImportDBDiffTask, log_queue: Queue, librarian_queue: Queue
-    ):
+    def __init__(self, task: ImportDBDiffTask, logger_, librarian_queue: Queue):
         """Initialize the import."""
-        self.init_worker(log_queue, librarian_queue)
+        self.init_worker(logger_, librarian_queue)
         self.task: ImportDBDiffTask = task
         self.metadata: dict[str, Any] = {}
         self.changed: int = 0
@@ -34,6 +32,9 @@ class InitImporter(WorkerBaseMixin):
             pk=self.task.library_id
         )
         self.start_time = now()
+        self._is_log_debug_task = (
+            self.log.level(LOGLEVEL).no <= self.log.level("DEBUG").no
+        )
 
     def _wait_for_filesystem_ops_to_finish(self) -> bool:
         """Watchdog sends events before filesystem events finish, so wait for them."""
@@ -102,7 +103,7 @@ class InitImporter(WorkerBaseMixin):
 
     def _log_task(self):
         """Log the watchdog event self.task."""
-        if self.log.getEffectiveLevel() < logging.DEBUG:
+        if not self._is_log_debug_task:
             return
 
         self.log.debug(f"Updating library {self.library.path}...")

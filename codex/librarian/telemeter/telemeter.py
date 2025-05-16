@@ -2,7 +2,6 @@
 
 import json
 from base64 import a85decode
-from logging import getLogger
 from lzma import compress
 from uuid import uuid4
 
@@ -28,8 +27,6 @@ _BASE = "".join(
 _HEADERS = {"Content-Type": "application/xz"}
 _POST = _BASE + f"/stats/{_APP_NAME}/{_VERSION}"
 _TIMEOUT = 5
-
-LOG = getLogger(__name__)
 
 
 def get_telemeter_timestamp():

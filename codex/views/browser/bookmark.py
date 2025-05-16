@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.serializers.models.bookmark import (
     BookmarkFinishedSerializer,
@@ -13,8 +12,6 @@ from codex.serializers.models.bookmark import (
 )
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.filter import BrowserFilterView
-
-LOG = get_logger(__name__)
 
 
 class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):

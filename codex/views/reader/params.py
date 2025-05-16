@@ -3,7 +3,8 @@
 from types import MappingProxyType
 from typing import Any
 
-from codex.logger.logger import get_logger
+from loguru import logger
+
 from codex.models import Comic
 from codex.serializers.reader import (
     ReaderViewInputSerializer,
@@ -13,7 +14,6 @@ from codex.views.const import FOLDER_GROUP, GROUP_RELATION, STORY_ARC_GROUP
 from codex.views.session import SessionView
 from codex.views.util import reparse_json_query_params
 
-LOG = get_logger(__name__)
 VALID_ARC_GROUPS = "pisvfa"
 _JSON_KEYS = frozenset({"arc", "breadcrumbs", "browserArc", "show"})
 _BROWSER_SESSION_DEFAULTS = SessionView.SESSION_DEFAULTS[
@@ -84,7 +84,7 @@ class ReaderParamsView(SessionView):
             arc_filter = {rel: arc_pks}
             valid = Comic.objects.filter(pk=pk, **arc_filter).exists()
         if not valid:
-            LOG.warning(f"Comic {pk} not in arc {arc} submitted to reader.")
+            logger.warning(f"Comic {pk} not in arc {arc} submitted to reader.")
             params.pop("arc", None)
 
     def _ensure_arc(self, params):
@@ -129,6 +129,6 @@ class ReaderParamsView(SessionView):
 
                 self._params = MappingProxyType(params)
             except Exception:
-                LOG.exception("validate")
+                logger.exception("validate")
                 raise
         return self._params

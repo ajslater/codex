@@ -138,7 +138,9 @@ class FailedImportsImporter(DeletedImporter):
         qs.delete()
         count = len(delete_failed_imports_paths)
         if count:
-            self.log.info(f"Cleaned up {count} failed imports from {self.library.path}")
+            self.log.success(
+                f"Cleaned up {count} failed imports from {self.library.path}"
+            )
         return count
 
     def fail_imports(self):

@@ -49,7 +49,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
                 self.status_controller.update(status, notify=False)
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir, cover_root)
-            self.log.info(f"Removed {status.complete} cover thumbnails.")
+            self.log.success(f"Removed {status.complete} cover thumbnails.")
         finally:
             self.status_controller.finish(status)
         return status.complete
@@ -65,9 +65,9 @@ class CoverPurgeThread(CoverCreateThread, ABC):
         self.log.debug("Removing entire comic cover cache.")
         try:
             shutil.rmtree(self.COVERS_ROOT)
-            self.log.info("Removed entire comic cover cache.")
+            self.log.success("Removed entire comic cover cache.")
             shutil.rmtree(self.CUSTOM_COVERS_ROOT)
-            self.log.info("Removed entire custom cover cache.")
+            self.log.success("Removed entire custom cover cache.")
         except OSError as exc:
             self.log.warning(exc)
         librarian_queue.put(COVERS_CHANGED_TASK)

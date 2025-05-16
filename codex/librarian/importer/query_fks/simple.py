@@ -1,7 +1,5 @@
 """Query the missing simple foreign keys."""
 
-from logging import DEBUG, INFO
-
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
@@ -58,9 +56,9 @@ class QueryForeignKeysSimpleImporter(QueryForeignKeysDictModelsImporter):
             if fk_model not in create_fks:
                 create_fks[fk_model] = set()
             create_fks[fk_model] |= create_names
-            level = INFO
+            level = "INFO"
         else:
-            level = DEBUG
+            level = "DEBUG"
 
         self.log.log(level, f"Prepared {len(create_names)} new {title}.")
         return num_names

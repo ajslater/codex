@@ -2,16 +2,14 @@
 
 import os
 from itertools import chain
-from multiprocessing.queues import Queue
 from pathlib import Path
 
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
-from codex.logger_base import LoggerBaseMixin
 from codex.models import Comic, CustomCover, FailedImport, Folder
 
 
-class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
+class CodexDatabaseSnapshot(DirectorySnapshot):
     """Take snapshots from the Codex database."""
 
     MODELS = (Folder, Comic, FailedImport, CustomCover)
@@ -66,17 +64,18 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         recursive=True,  # noqa: ARG002
         stat=os.stat,
         listdir=os.scandir,  # noqa: ARG002 unused for database
+        logger_=None,
         force=False,
-        log_queue: Queue | None = None,
         covers_only=False,
     ):
         """Initialize like DirectorySnapshot but use a database walk."""
         # Do not call super().__init__(), because it walks.
-        self.stat = stat
-        if log_queue is None:
-            reason = f"{self.__class__.__name__} requires a non-null log_queue"
+        if not logger_:
+            reason = "logger_ must be set"
             raise ValueError(reason)
-        self.init_logger(log_queue)
+
+        self.log = logger_
+        self.stat = stat
         self._covers_only = covers_only
         self._stat_info = {}
         self._inode_to_path = {}

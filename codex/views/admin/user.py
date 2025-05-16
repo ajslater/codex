@@ -14,11 +14,8 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
-from codex.logger.logger import get_logger
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
-
-LOG = get_logger(__name__)
 
 _BAD_CURRENT_USER_FALSE_KEYS = ("is_active", "is_staff", "is_superuser")
 

@@ -83,7 +83,7 @@ class MovedComicsImporter(AggregateMetadataImporter):
 
         count = len(updated_comics)
         if count:
-            self.log.info(f"Moved {count} comics.")
+            self.log.success(f"Moved {count} comics.")
 
         self.changed += count
         self.status_controller.finish(status)

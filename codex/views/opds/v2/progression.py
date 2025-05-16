@@ -8,12 +8,12 @@ from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least
 from django.db.models.query_utils import FilteredRelation
+from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
 from codex.util import max_none
@@ -31,7 +31,6 @@ _EMPTY_DEVICE = MappingProxyType(
         "name": "",
     }
 )
-LOG = get_logger(__name__)
 
 
 # This is an independent api requiring a separate get.
@@ -144,7 +143,7 @@ class OPDS2ProgressionView(
             serializer = self.get_serializer(obj)
             return Response(serializer.data)
         except Exception:
-            LOG.exception("progression")
+            logger.exception("progression")
             raise
 
     def put(self, *_args, **_kwargs):

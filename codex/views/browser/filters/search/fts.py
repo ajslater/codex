@@ -1,9 +1,8 @@
 """Search Filters Methods."""
 
-from codex.logger.logger import get_logger
-from codex.views.browser.filters.search.field.filter import BrowserFieldQueryFilter
+from loguru import logger
 
-LOG = get_logger(__name__)
+from codex.views.browser.filters.search.field.filter import BrowserFieldQueryFilter
 
 
 class BrowserFTSFilter(BrowserFieldQueryFilter):
@@ -19,6 +18,6 @@ class BrowserFTSFilter(BrowserFieldQueryFilter):
                 rel += "comicfts__match"
                 fts_filter[rel] = text
         except Exception:
-            LOG.exception("Getting Full Text Search Filter.")
+            logger.exception("Getting Full Text Search Filter.")
             self.search_error = "Error creating full text search filter"
         return fts_filter

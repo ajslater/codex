@@ -11,7 +11,6 @@ from django.db.utils import OperationalError
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
-from codex.logger.logger import get_logger
 from codex.models.base import BaseModel
 from codex.settings import (
     CONFIG_PATH,
@@ -32,7 +31,6 @@ REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
 BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".bak")
 DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
 
-LOG = get_logger(__name__)
 
 _FTS_INSERT_TMPL = "INSERT INTO codex_comicfts (codex_comicfts) VALUES('%s');"
 _PRAGMA_TMPL = "PRAGMA %s;"
@@ -55,7 +53,7 @@ def _foreign_key_check(log):
         log.warning(f"Found {len(results)} database rows with illegal foreign keys.")
         log.debug(results)
     else:
-        log.info("Database passed foreign key check.")
+        log.success("Database passed foreign key check.")
     return results
 
 
@@ -221,10 +219,8 @@ def _mark_comics_for_update(fix_comic_pks, log):
         log.info(f"Marked {count} comics with bad relations for update by poller.")
 
 
-def fix_foreign_keys(log=None):
+def fix_foreign_keys(log):
     """Foreign Key Check."""
-    if not log:
-        log = LOG
     try:
         results = _foreign_key_check(log)
         bad_fk_rels, bad_m2m_rows = _compile_foreign_key_results(results, log)
@@ -236,7 +232,7 @@ def fix_foreign_keys(log=None):
     try:
         _mark_comics_for_update(fix_comic_pks, log)
     except Exception:
-        LOG.exception("Could not mark comics with bad relations for update")
+        log.exception("Could not mark comics with bad relations for update")
 
 
 def _repair_extra_custom_cover_libraries(library_model, log):
@@ -252,10 +248,8 @@ def _repair_extra_custom_cover_libraries(library_model, log):
         )
 
 
-def cleanup_custom_cover_libraries(log=None):
+def cleanup_custom_cover_libraries(log):
     """Cleanup extra custom cover libraries."""
-    if not log:
-        log = LOG
     try:
         try:
             library_model = apps.get_model("codex", "library")
@@ -285,10 +279,8 @@ def _is_integrity_ok(results):
     )
 
 
-def integrity_check(long, log=None):
+def integrity_check(log, *, long: bool):
     """Run sqlite3 integrity check."""
-    if not log:
-        log = LOG
     pragma = "integrity_check" if long else "quick_check"
     sql = _PRAGMA_TMPL % pragma
     log.debug(f"Running database '{sql}'...")
@@ -296,7 +288,7 @@ def integrity_check(long, log=None):
 
     if _is_integrity_ok(results):
         length = "" if long else "quick "
-        log.info(f"Database passed {length}integrity check.")
+        log.success(f"Database passed {length}integrity check.")
     else:
         log.warning(f"Database '{sql}' returned results:")
         log.warning(results)
@@ -305,19 +297,15 @@ def integrity_check(long, log=None):
         )
 
 
-def fts_rebuild(log=None):
+def fts_rebuild(log):
     """FTS Rebuild."""
     sql = _FTS_INSERT_TMPL % "rebuild"
-    if not log:
-        log = LOG
     _exec_sql(sql)
-    log.info("Rebuilt FTS Virtual Table.")
+    log.success("Rebuilt FTS Virtual Table.")
 
 
-def fts_integrity_check(log=None):
+def fts_integrity_check(log):
     """Run sqlite3 fts integrity check."""
-    if not log:
-        log = LOG
     results = []
     sql = _FTS_INSERT_TMPL % "integrity-check"
     success = False
@@ -329,7 +317,7 @@ def fts_integrity_check(log=None):
     except Exception:
         log.exception("Full Text Search Index failed integrity check.")
     else:
-        log.info("Full Text Search Index passed integrity check.")
+        log.success("Full Text Search Index passed integrity check.")
         success = True
     return success
 
@@ -353,7 +341,7 @@ class IntegrityMixin(WorkerBaseMixin):
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
         try:
             self.status_controller.start(status)
-            integrity_check(long, self.log)
+            integrity_check(self.log, long=long)
         finally:
             self.status_controller.finish(status)
 

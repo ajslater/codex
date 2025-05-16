@@ -41,7 +41,7 @@ class ComicImporter(MovedImporter):
                 )
             else:
                 log_txt += " No comics to import."
-            self.log.info(log_txt)
+            self.log.success(log_txt)
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
 
             # Wait to start the search index update in case more updates are incoming.
@@ -51,7 +51,7 @@ class ComicImporter(MovedImporter):
             )
             self.librarian_queue.put(delayed_search_task)
         else:
-            self.log.info("No updates neccissary.")
+            self.log.success("No updates neccissary.")
         if new_failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_CHANGED_TASK)
 
@@ -64,7 +64,8 @@ class ComicImporter(MovedImporter):
             #############
             # AGGREGATE #
             #############
-            self.get_aggregate_metadata()
+            self.extract_metadata()
+            self.aggregate_metadata()
 
             #########
             # QUERY #

@@ -1,6 +1,5 @@
 """Clean up the database after moves or imports."""
 
-import logging
 from pathlib import Path
 from time import time
 from types import MappingProxyType
@@ -105,7 +104,7 @@ class CleanupMixin(WorkerBaseMixin):
             self.log.debug("Cleaning up unused foreign keys...")
             for field_name, models in CLEANUP_MAP.items():
                 self._bulk_cleanup_fks(models, field_name, status)
-            level = logging.INFO if status.complete else logging.DEBUG
+            level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
         finally:
             self.status_controller.finish(status)
@@ -125,7 +124,7 @@ class CleanupMixin(WorkerBaseMixin):
             delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
             count = delete_qs.count()
             delete_qs.delete()
-            level = logging.INFO if status.complete else logging.DEBUG
+            level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Deleted {count} CustomCovers without source images.")
         finally:
             until = time() + 1

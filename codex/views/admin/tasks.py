@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models.query_utils import Q
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.response import Response
 
 from codex.choices.notifications import Notifications
@@ -58,7 +59,6 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.logger.logger import get_logger
 from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
@@ -69,7 +69,6 @@ from codex.views.const import EPOCH_START
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-LOG = get_logger(__name__)
 
 _TASK_MAP = MappingProxyType(
     {
@@ -159,7 +158,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             LIBRARIAN_QUEUE.put(task)
         else:
             reason = f"Unknown admin library task_name: {task_name}"
-            LOG.warning(reason)
+            logger.warning(reason)
             raise ValueError(reason)
 
         serializer = self.serializer_class()
