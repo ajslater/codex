@@ -9,7 +9,7 @@ from django.urls import reverse
 from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
-from codex.views.opds.util import get_user_agent_name, update_query_params
+from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
