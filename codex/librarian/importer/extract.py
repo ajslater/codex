@@ -49,7 +49,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             if import_metadata:
                 with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
                     new_md_mtime = cb.get_metadata_mtime()
-                    if not self.task.force_import_metadata:
+                    if not self.task.force_poll:
                         old_md_mtime = self._metadata_mtime(path)
                         if (
                             old_md_mtime
