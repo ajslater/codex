@@ -61,14 +61,14 @@ def init_admin_flags():
 
 def init_timestamps():
     """Init timestamps."""
-    _delete_orphans(Timestamp, "key", Timestamp.TimestampChoices.values)
+    _delete_orphans(Timestamp, "key", Timestamp.Choices.values)
 
-    for key in Timestamp.TimestampChoices.values:
+    for key in Timestamp.Choices.values:
         ts, created = Timestamp.objects.get_or_create(key=key)
-        if key == Timestamp.TimestampChoices.API_KEY.value and not ts.version:
+        if key == Timestamp.Choices.API_KEY.value and not ts.version:
             ts.save_uuid_version()
         if created:
-            label = Timestamp.TimestampChoices(ts.key).label
+            label = Timestamp.Choices(ts.key).label
             LOG.debug(f"Created {label} timestamp.")
 
 

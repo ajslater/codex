@@ -19,7 +19,7 @@ class VersionView(AuthGenericAPIView):
     @override
     def get_object(self) -> dict[str, str]:
         """Get the versions."""
-        ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
+        ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
         if ts.version:
             latest_version = ts.version
         else:

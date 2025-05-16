@@ -17,5 +17,5 @@ class HasAPIKeyOrIsAdminUser(BasePermission):
         if not api_key:
             return IsAdminUser().has_permission(request, view)
         return Timestamp.objects.filter(
-            key=Timestamp.TimestampChoices.API_KEY.value, version=api_key
+            key=Timestamp.Choices.API_KEY.value, version=api_key
         ).exists()

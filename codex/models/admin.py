@@ -68,7 +68,7 @@ class LibrarianStatus(BaseModel):
 class Timestamp(BaseModel):
     """Timestamped Named Strings."""
 
-    class TimestampChoices(TextChoices):
+    class Choices(TextChoices):
         """Choices for Timestamps."""
 
         API_KEY = "AP", _("API Key")
@@ -78,8 +78,8 @@ class Timestamp(BaseModel):
 
     key = CharField(
         db_index=True,
-        max_length=max_choices_len(TimestampChoices),
-        choices=TimestampChoices.choices,
+        max_length=max_choices_len(Choices),
+        choices=Choices.choices,
     )
     version = CharField(max_length=MAX_FIELD_LEN, default="")
 
@@ -103,7 +103,7 @@ class Timestamp(BaseModel):
     @override
     def __str__(self):
         """Print name for choice."""
-        return self.TimestampChoices(self.key).name
+        return self.Choices(self.key).name
 
 
 class UserActive(BaseModel):

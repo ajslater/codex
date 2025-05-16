@@ -98,7 +98,7 @@ class Janitor(
             )
             for task in tasks:
                 self.librarian_queue.put(task)
-            Timestamp.touch(Timestamp.TimestampChoices.JANITOR)
+            Timestamp.touch(Timestamp.Choices.JANITOR)
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
 

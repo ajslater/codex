@@ -34,7 +34,7 @@ LOG = getLogger(__name__)
 
 def get_telemeter_timestamp():
     """Get or create timestamp."""
-    key = Timestamp.TimestampChoices.TELEMETER_SENT.value
+    key = Timestamp.Choices.TELEMETER_SENT.value
     defaults = {"key": key}
     ts, _ = Timestamp.objects.get_or_create(defaults=defaults, key=key)
     if not ts.version:

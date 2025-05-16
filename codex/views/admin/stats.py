@@ -57,9 +57,7 @@ class AdminStatsView(AdminGenericAPIView):
         request_counts = self.params.get("config", {})
         if request_counts and ("apikey" not in request_counts):
             return
-        api_key = Timestamp.objects.get(
-            key=Timestamp.TimestampChoices.API_KEY.value
-        ).version
+        api_key = Timestamp.objects.get(key=Timestamp.Choices.API_KEY.value).version
         if "config" not in obj:
             obj["config"] = {}
         obj["config"]["api_key"] = api_key

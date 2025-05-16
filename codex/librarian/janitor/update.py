@@ -26,7 +26,7 @@ class UpdateMixin(WorkerBaseMixin):
         if not VERSION:
             self.log.warning("Cannot determine installed Codex version.")
             return result
-        ts = Timestamp.objects.get(key=Timestamp.TimestampChoices.CODEX_VERSION.value)
+        ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
         latest_version = ts.version
         versio_latest_version = Version(latest_version)
 

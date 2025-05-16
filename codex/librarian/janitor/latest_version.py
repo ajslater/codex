@@ -33,9 +33,7 @@ class LatestVersionMixin(WorkerBaseMixin):
         status = Status(JanitorStatusTypes.CODEX_LATEST_VERSION)
         try:
             self.status_controller.start(status)
-            ts = Timestamp.objects.get(
-                key=Timestamp.TimestampChoices.CODEX_VERSION.value
-            )
+            ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
             do_fetch = (
                 force
                 or not ts.version
