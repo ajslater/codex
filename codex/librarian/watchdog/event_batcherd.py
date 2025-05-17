@@ -15,7 +15,7 @@ from typing_extensions import override
 from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import ImportDBDiffTask
-from codex.memory import get_mem_limit
+from codex.librarian.watchdog.memory import get_mem_limit
 from codex.threads import AggregateMessageQueuedThread
 
 

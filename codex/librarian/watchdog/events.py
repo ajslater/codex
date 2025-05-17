@@ -99,9 +99,11 @@ class CodexEventHandlerBase(WorkerBaseBaseMixin, FileSystemEventHandler):
         {EVENT_TYPE_CLOSED, EVENT_TYPE_CLOSED_NO_WRITE, EVENT_TYPE_OPENED}
     )
 
-    def __init__(self, library, *args, logger_=None, librarian_queue=None, **kwargs):
+    def __init__(
+        self, library_pk: int, *args, logger_=None, librarian_queue=None, **kwargs
+    ):
         """Let us send along he library id."""
-        self.library_pk = library.pk
+        self.library_pk = library_pk
         self.init_worker(logger_, librarian_queue)
         super().__init__(*args, **kwargs)
 

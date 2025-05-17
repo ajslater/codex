@@ -56,7 +56,7 @@ class UatuObserver(WorkerBaseBaseMixin, BaseObserver):
             else CodexLibraryEventHandler
         )
         handler = handler_class(
-            library,
+            library.pk,
             logger_=self.log,
             librarian_queue=self.librarian_queue,
         )
@@ -163,7 +163,7 @@ class LibraryPollingObserver(UatuObserver):
         self,
         logger_,
         librarian_queue: Queue,
-        timeout=DEFAULT_OBSERVER_TIMEOUT,
+        timeout: float = DEFAULT_OBSERVER_TIMEOUT,
         **kwargs,
     ):
         """Use the DatabasePollingEmitter."""

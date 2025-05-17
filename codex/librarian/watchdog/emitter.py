@@ -18,7 +18,12 @@ from watchdog.events import (
     FileMovedEvent,
     FileSystemEvent,
 )
-from watchdog.observers.api import DEFAULT_EMITTER_TIMEOUT, EventEmitter
+from watchdog.observers.api import (
+    DEFAULT_EMITTER_TIMEOUT,
+    EventEmitter,
+    EventQueue,
+    ObservedWatch,
+)
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
@@ -50,10 +55,10 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
     def __init__(  # noqa: PLR0913
         self,
-        event_queue,
-        watch,
+        event_queue: EventQueue,
+        watch: ObservedWatch,
         *,
-        timeout=DEFAULT_EMITTER_TIMEOUT,
+        timeout: float = DEFAULT_EMITTER_TIMEOUT,
         logger_=None,
         librarian_queue: Queue | None = None,
         covers_only=False,
