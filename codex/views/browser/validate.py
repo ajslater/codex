@@ -72,10 +72,10 @@ class BrowserValidateView(SearchFilterView):
         self, reason, route_mask=None, settings_mask: Mapping | None = None
     ):
         """Redirect the client to a valid group url."""
-        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)  # pyright:ignore[reportAssignmentType]
+        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)
         if route_mask:
             route["params"].update(route_mask)
-        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))  # pyright: ignore[reportAssignmentType]
+        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}

@@ -7,9 +7,9 @@ from types import MappingProxyType
 from django.contrib.sessions.models import Session
 from django.db.models.functions.datetime import Now
 
+from codex.librarian.janitor.latest_version import JanitorLatestVersion
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status import Status
-from codex.librarian.worker import WorkerStatusMixin
 from codex.models import (
     AgeRating,
     Character,
@@ -71,7 +71,7 @@ TOTAL_NUM_FK_CLASSES = (
     + len(_IDENTIFIER_FK_CLASSES)
 )
 
-CLEANUP_MAP = MappingProxyType(
+_CLEANUP_MAP = MappingProxyType(
     {
         "comic": _COMIC_FK_CLASSES,
         "credit": _CREDIT_FK_CLASSES,
@@ -81,7 +81,7 @@ CLEANUP_MAP = MappingProxyType(
 )
 
 
-class CleanupMixin(WorkerStatusMixin):
+class JanitorCleanup(JanitorLatestVersion):
     """Cleanup methods for Janitor."""
 
     def _bulk_cleanup_fks(self, models, field_name, status):
@@ -102,7 +102,7 @@ class CleanupMixin(WorkerStatusMixin):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up unused foreign keys...")
-            for field_name, models in CLEANUP_MAP.items():
+            for field_name, models in _CLEANUP_MAP.items():
                 self._bulk_cleanup_fks(models, field_name, status)
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")

@@ -6,7 +6,7 @@ from contextlib import suppress
 from loguru import logger
 
 from codex.signals.os_signals import bind_signals_to_loop
-from codex.startup.logger import init_logging
+from codex.startup.logger_init import init_logging
 from codex.websockets.listener import BroadcastListener
 
 

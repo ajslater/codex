@@ -3,15 +3,15 @@
 from django.db import connection
 from humanize import naturalsize
 
+from codex.librarian.janitor.integrity import JanitorIntegrity
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status import Status
-from codex.librarian.worker import WorkerStatusMixin
 from codex.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 
 _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
 
 
-class VacuumMixin(WorkerStatusMixin):
+class JanitorVacuum(JanitorIntegrity):
     """Vacuum methods for janitor."""
 
     def vacuum_db(self):

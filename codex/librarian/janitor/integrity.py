@@ -2,6 +2,7 @@
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
 
 import re
+from multiprocessing.queues import Queue
 from typing import TYPE_CHECKING
 
 from django.apps import apps
@@ -322,8 +323,12 @@ def fts_integrity_check(log):
     return success
 
 
-class IntegrityMixin(WorkerStatusMixin):
+class JanitorIntegrity(WorkerStatusMixin):
     """Integrity Check Mixin."""
+
+    def __init__(self, logger_, librarian_queue: Queue):
+        """Init self.log."""
+        self.init_worker(logger_, librarian_queue)
 
     def foreign_key_check(self):
         """Foreign Key Check task."""

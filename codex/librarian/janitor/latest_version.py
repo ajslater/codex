@@ -7,9 +7,9 @@ from time import time
 import requests
 from django.utils import timezone
 
+from codex.librarian.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status import Status
-from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Timestamp
 from codex.version import PACKAGE_NAME
 
@@ -19,7 +19,7 @@ _CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=1)
 _REPO_TIMEOUT = 5
 
 
-class LatestVersionMixin(WorkerStatusMixin):
+class JanitorLatestVersion(JanitorUpdateFailedImports):
     """Methods for fetching the latest version."""
 
     @staticmethod

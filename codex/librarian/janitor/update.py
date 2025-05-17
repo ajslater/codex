@@ -9,15 +9,15 @@ from versio.version import Version
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.janitor.vacuum import JanitorVacuum
 from codex.librarian.status import Status
 from codex.librarian.tasks import LibrarianShutdownTask
-from codex.librarian.worker import WorkerStatusMixin
 from codex.models import AdminFlag
 from codex.models.admin import Timestamp
 from codex.version import VERSION, get_version
 
 
-class UpdateMixin(WorkerStatusMixin):
+class JanitorUpdate(JanitorVacuum):
     """Update codex methods for janitor."""
 
     def _is_outdated(self):

@@ -6,10 +6,7 @@ from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
 )
-from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
-from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
-from codex.librarian.janitor.integrity import IntegrityMixin
-from codex.librarian.janitor.latest_version import LatestVersionMixin
+from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, JanitorCleanup
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -32,8 +29,6 @@ from codex.librarian.janitor.tasks import (
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.janitor.update import UpdateMixin
-from codex.librarian.janitor.vacuum import VacuumMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
@@ -64,19 +59,8 @@ _JANITOR_STATII = (
 )
 
 
-class Janitor(
-    CleanupMixin,
-    LatestVersionMixin,
-    UpdateMixin,
-    UpdateFailedImportsMixin,
-    VacuumMixin,
-    IntegrityMixin,
-):
+class Janitor(JanitorCleanup):
     """Janitor inline task runner."""
-
-    def __init__(self, logger_, librarian_queue):
-        """Init self.log."""
-        self.init_worker(logger_, librarian_queue)
 
     def queue_tasks(self):
         """Queue all the janitor tasks."""
