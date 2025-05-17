@@ -14,28 +14,7 @@
           v-for="status of librarianStatuses"
           :key="status.statusType"
         >
-          <div nav class="statusItem">
-            <div class="statusItemTitle">
-              {{ title(status) }}
-              <div v-if="status.subtitle" class="statusItemSubtitle">
-                {{ status.subtitle }}
-              </div>
-              <div
-                v-if="showComplete(status) || Number.isInteger(status.total)"
-                class="statusItemSubtitle"
-              >
-                <span v-if="showComplete(status)">
-                  {{ nf(status.complete) }} /
-                </span>
-                {{ nf(status.total) }}
-              </div>
-            </div>
-            <v-progress-linear
-              :indeterminate="indeterminate(status)"
-              :model-value="progress(status)"
-              bottom
-            />
-          </div>
+          <StatusListItem status="status" />
         </v-expand-transition>
       </div>
       <v-list-item-title v-else id="noTasksRunning">
@@ -46,21 +25,17 @@
 </template>
 
 <script>
-import { mdiCloseCircleOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import STATUS_TITLES from "@/choices/admin-status-titles.json";
 import CloseButton from "@/components/close-button.vue";
-import { NUMBER_FORMAT } from "@/datetime";
+import StatusListItem from "@/components/admin/drawer/status-list-item.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminStatusList",
   components: {
     CloseButton,
-  },
-  data() {
-    return { mdiCloseCircleOutline };
+    StatusListItem,
   },
   computed: {
     ...mapState(useAdminStore, {
@@ -73,26 +48,11 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
-    showComplete: (status) => Number.isInteger(status.complete),
-    indeterminate: (status) =>
-      status.active && (!status.total || !Number.isInteger(status.complete)),
-    progress(status) {
-      if (!status.total || globalThis.indeterminate) {
-        return 0;
-      }
-      return (100 * +status.complete) / +status.total;
-    },
     load() {
       this.loadTable("LibrarianStatus");
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");
-    },
-    title(status) {
-      return STATUS_TITLES[status.statusType];
-    },
-    nf(val) {
-      return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
     },
   },
 };
@@ -104,18 +64,6 @@ h4 {
   padding-left: 16px;
   padding-right: 10px;
   padding-bottom: 10px;
-}
-
-.statusItem {
-  padding-left: 16px;
-  padding-right: 5px;
-  padding-bottom: 10px;
-  color: rgb(var(--v-theme-textDisabled));
-}
-
-.statusItemSubtitle {
-  padding-left: 1rem;
-  opacity: 0.75;
 }
 
 #noTasksRunning {
