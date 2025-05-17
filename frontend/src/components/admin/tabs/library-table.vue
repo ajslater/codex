@@ -40,7 +40,7 @@
         />
         <ConfirmDialog
           :icon="mdiDatabaseSyncOutline"
-          :title-text="`Force update every ${itemName}`"
+          :title-text="`Force update ${itemName}`"
           :text="item.path"
           confirm-text="Force Update"
           :size="iconSize"
