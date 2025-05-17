@@ -13,5 +13,5 @@ def mapping_to_dict(data):
     if isinstance(data, Mapping):
         return {key: mapping_to_dict(value) for key, value in data.items()}
     if isinstance(data, list | tuple | frozenset | set):
-        return [mapping_to_dict(item) for item in data]
+        return type(data)(mapping_to_dict(item) for item in data)
     return data
