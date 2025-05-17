@@ -32,6 +32,7 @@ class ImportDBDiffTask(ImportTask):
     covers_deleted: frozenset[str] = frozenset()
 
     force_import_metadata: bool = False
+    check_metadata_mtime: bool = True
 
 
 @dataclass
