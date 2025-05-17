@@ -26,7 +26,7 @@ from watchdog.events import (
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.models import CustomCover
 from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
-from codex.worker_base import WorkerBaseBaseMixin
+from codex.worker_base import WorkerMixin
 
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
 _GROUP_COVERS_DIRS = frozenset(CUSTOM_COVERS_GROUP_DIRS)
@@ -92,7 +92,7 @@ COVERS_EVENT_TYPE_MAP = MappingProxyType(
 )
 
 
-class CodexEventHandlerBase(WorkerBaseBaseMixin, FileSystemEventHandler):
+class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler):
     """Base class for Codex Event Handlers."""
 
     IGNORED_EVENTS = frozenset(

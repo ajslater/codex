@@ -31,7 +31,7 @@ from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDif
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.models import Library
 from codex.status import Status
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 _CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
     FileMovedEvent,
@@ -48,7 +48,7 @@ _CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
-class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
+class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
     """Use DatabaseSnapshots to compare against the DirectorySnapshots."""
 
     _DIR_NOT_FOUND_TIMEOUT = 15 * 60

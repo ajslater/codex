@@ -37,7 +37,7 @@ from codex.models import (
 from codex.models.bookmark import Bookmark
 from codex.models.paths import CustomCover
 from codex.status import Status
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 _COMIC_FK_CLASSES = (
     AgeRating,
@@ -81,7 +81,7 @@ CLEANUP_MAP = MappingProxyType(
 )
 
 
-class CleanupMixin(WorkerBaseMixin):
+class CleanupMixin(WorkerStatusMixin):
     """Cleanup methods for Janitor."""
 
     def _bulk_cleanup_fks(self, models, field_name, status):

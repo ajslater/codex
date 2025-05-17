@@ -18,7 +18,7 @@ from codex.settings import (
     DB_PATH,
 )
 from codex.status import Status
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
@@ -322,7 +322,7 @@ def fts_integrity_check(log):
     return success
 
 
-class IntegrityMixin(WorkerBaseMixin):
+class IntegrityMixin(WorkerStatusMixin):
     """Integrity Check Mixin."""
 
     def foreign_key_check(self):

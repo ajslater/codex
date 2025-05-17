@@ -11,7 +11,7 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import Timestamp
 from codex.status import Status
 from codex.version import PACKAGE_NAME
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 _PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
 _REPO_URL = _PYPI_URL_TEMPLATE % PACKAGE_NAME
@@ -19,7 +19,7 @@ _CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=1)
 _REPO_TIMEOUT = 5
 
 
-class LatestVersionMixin(WorkerBaseMixin):
+class LatestVersionMixin(WorkerStatusMixin):
     """Methods for fetching the latest version."""
 
     @staticmethod

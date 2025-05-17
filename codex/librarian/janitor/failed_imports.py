@@ -4,10 +4,10 @@ from watchdog.events import FileModifiedEvent
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.models import FailedImport, Library
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 
-class UpdateFailedImportsMixin(WorkerBaseMixin):
+class UpdateFailedImportsMixin(WorkerStatusMixin):
     """Methods for updating failed imports."""
 
     def _force_update_failed_imports(self, library_id):

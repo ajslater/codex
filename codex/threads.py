@@ -9,14 +9,14 @@ from threading import Thread
 from loguru._logger import Logger
 from typing_extensions import override
 
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 
 class BreakLoopError(Exception):
     """Simple way to break out of function nested loop."""
 
 
-class NamedThread(Thread, WorkerBaseMixin, ABC):
+class NamedThread(Thread, WorkerStatusMixin, ABC):
     """A thread that sets its name for ps."""
 
     def __init__(

@@ -17,10 +17,10 @@ from codex.librarian.watchdog.events import (
     CodexLibraryEventHandler,
 )
 from codex.models import Library
-from codex.worker_base import WorkerBaseBaseMixin
+from codex.worker_base import WorkerMixin
 
 
-class UatuObserver(WorkerBaseBaseMixin, BaseObserver):
+class UatuObserver(WorkerMixin, BaseObserver):
     """Watch over librarys from the blue area of the moon."""
 
     ENABLE_FIELD: str = ""

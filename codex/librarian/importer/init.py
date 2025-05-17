@@ -14,12 +14,12 @@ from codex.librarian.search.tasks import SearchIndexAbortTask
 from codex.models import Library
 from codex.settings import LOGLEVEL
 from codex.status import Status
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 _WRITE_WAIT_EXPIRY = 60
 
 
-class InitImporter(WorkerBaseMixin):
+class InitImporter(WorkerStatusMixin):
     """Initial Importer."""
 
     def __init__(self, task: ImportDBDiffTask, logger_, librarian_queue: Queue):

@@ -8,7 +8,7 @@ from typing_extensions import override
 from codex.status_controller import StatusController
 
 
-class WorkerBaseBaseMixin:
+class WorkerMixin:
     """Mixin for inheriting queues."""
 
     def init_worker(self, logger_: Logger | None, librarian_queue: Queue | None):
@@ -20,7 +20,7 @@ class WorkerBaseBaseMixin:
         self.librarian_queue = librarian_queue  # pyright: ignore[reportUninitializedInstanceVariable]
 
 
-class WorkerBaseMixin(WorkerBaseBaseMixin):
+class WorkerStatusMixin(WorkerMixin):
     """Worker mixin also sets up status controller."""
 
     @override

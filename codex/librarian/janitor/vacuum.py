@@ -6,12 +6,12 @@ from humanize import naturalsize
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 from codex.status import Status
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
 
 
-class VacuumMixin(WorkerBaseMixin):
+class VacuumMixin(WorkerStatusMixin):
     """Vacuum methods for janitor."""
 
     def vacuum_db(self):

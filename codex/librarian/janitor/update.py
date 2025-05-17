@@ -14,10 +14,10 @@ from codex.models import AdminFlag
 from codex.models.admin import Timestamp
 from codex.status import Status
 from codex.version import VERSION, get_version
-from codex.worker_base import WorkerBaseMixin
+from codex.worker_base import WorkerStatusMixin
 
 
-class UpdateMixin(WorkerBaseMixin):
+class UpdateMixin(WorkerStatusMixin):
     """Update codex methods for janitor."""
 
     def _is_outdated(self):
