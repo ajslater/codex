@@ -224,7 +224,7 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
     @classmethod
     def _transform_file_event(cls, event):
         send_event = None
-        if event.is_directory or event.event_type in cls.IGNORED_EVENTS:
+        if event.is_directory:
             return send_event
         src_cover_match = cls._match_group_cover_image(str(event.src_path))
         if event.event_type == EVENT_TYPE_MOVED:
