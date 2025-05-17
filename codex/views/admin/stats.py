@@ -11,12 +11,12 @@ from typing_extensions import override
 
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import Timestamp
-from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin.stats import (
     AdminStatsRequestSerializer,
     StatsSerializer,
 )
 from codex.views.admin.auth import AdminGenericAPIView
+from codex.views.admin.permissions import HasAPIKeyOrIsAdminUser
 
 
 class AdminStatsView(AdminGenericAPIView):
