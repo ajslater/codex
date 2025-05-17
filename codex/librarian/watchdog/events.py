@@ -9,13 +9,10 @@ from comicbox.box import Comicbox
 from loguru import logger
 from typing_extensions import override
 from watchdog.events import (
-    EVENT_TYPE_CLOSED,
-    EVENT_TYPE_CLOSED_NO_WRITE,
     EVENT_TYPE_CREATED,
     EVENT_TYPE_DELETED,
     EVENT_TYPE_MODIFIED,
     EVENT_TYPE_MOVED,
-    EVENT_TYPE_OPENED,
     FileCreatedEvent,
     FileDeletedEvent,
     FileModifiedEvent,
@@ -95,10 +92,6 @@ COVERS_EVENT_TYPE_MAP = MappingProxyType(
 class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler):
     """Base class for Codex Event Handlers."""
 
-    IGNORED_EVENTS = frozenset(
-        {EVENT_TYPE_CLOSED, EVENT_TYPE_CLOSED_NO_WRITE, EVENT_TYPE_OPENED}
-    )
-
     def __init__(
         self, library_pk: int, *args, logger_=None, librarian_queue=None, **kwargs
     ):
@@ -169,12 +162,6 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
     def _transform_file_event(cls, event):
         """Transform file events into other events."""
         events = []
-        if event.event_type in cls.IGNORED_EVENTS or (
-            event.is_directory and event.event_type == EVENT_TYPE_CREATED
-        ):
-            # Directories are only created by comics
-            return events
-
         source_match_comic = cls._match_comic_suffix(event.src_path)
         if event.event_type == EVENT_TYPE_MOVED:
             cls._transform_file_move_event(event, events, source_match_comic)

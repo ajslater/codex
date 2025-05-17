@@ -3,7 +3,13 @@
 from multiprocessing.queues import Queue
 
 from typing_extensions import override
-from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from watchdog.events import (
+    FileClosedEvent,
+    FileClosedNoWriteEvent,
+    FileOpenedEvent,
+    FileSystemEvent,
+    FileSystemEventHandler,
+)
 from watchdog.observers import Observer
 from watchdog.observers.api import (
     DEFAULT_OBSERVER_TIMEOUT,
@@ -18,6 +24,12 @@ from codex.librarian.watchdog.events import (
 )
 from codex.librarian.worker import WorkerMixin
 from codex.models import Library
+
+_IGNORED_EVENTS: list[type[FileSystemEvent]] = [
+    FileClosedEvent,
+    FileClosedNoWriteEvent,
+    FileOpenedEvent,
+]
 
 
 class UatuObserver(WorkerMixin, BaseObserver):
@@ -130,7 +142,9 @@ class UatuObserver(WorkerMixin, BaseObserver):
         if self._emitter_class != DatabasePollingEmitter:
             return super().schedule(event_handler, path, recursive=recursive)
         with self._lock:
-            watch = ObservedWatch(path, recursive=recursive)
+            watch = ObservedWatch(
+                path, recursive=recursive, event_filter=_IGNORED_EVENTS
+            )
             self._add_handler_for_watch(event_handler, watch)
             if self._emitter_for_watch.get(watch) is None:
                 self._add_emitter_for_watch(event_handler, watch)
