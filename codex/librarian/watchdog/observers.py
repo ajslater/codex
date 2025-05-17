@@ -4,6 +4,7 @@ from multiprocessing.queues import Queue
 
 from typing_extensions import override
 from watchdog.events import (
+    DirCreatedEvent,
     FileClosedEvent,
     FileClosedNoWriteEvent,
     FileOpenedEvent,
@@ -25,11 +26,12 @@ from codex.librarian.watchdog.events import (
 from codex.librarian.worker import WorkerMixin
 from codex.models import Library
 
-_IGNORED_EVENTS: list[type[FileSystemEvent]] = [
+_IGNORED_EVENTS: tuple[type[FileSystemEvent], ...] = (
+    DirCreatedEvent,
     FileClosedEvent,
     FileClosedNoWriteEvent,
     FileOpenedEvent,
-]
+)
 
 
 class UatuObserver(WorkerMixin, BaseObserver):
@@ -143,7 +145,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
             return super().schedule(event_handler, path, recursive=recursive)
         with self._lock:
             watch = ObservedWatch(
-                path, recursive=recursive, event_filter=_IGNORED_EVENTS
+                path, recursive=recursive, event_filter=list(_IGNORED_EVENTS)
             )
             self._add_handler_for_watch(event_handler, watch)
             if self._emitter_for_watch.get(watch) is None:
