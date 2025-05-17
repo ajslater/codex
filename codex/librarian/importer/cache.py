@@ -6,8 +6,8 @@ from django.db.models.query import Q
 
 from codex.librarian.importer.init import InitImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import StoryArc, Volume
-from codex.status import Status
 from codex.views.const import GROUP_MODELS
 
 _UPDATE_FIELDS = ("updated_at",)

@@ -7,8 +7,8 @@ from humanize import naturaldelta
 
 from codex.librarian.search.optimize import SearchOptimizeThread
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.status import Status
 from codex.models.comic import ComicFTS
-from codex.status import Status
 
 
 class SearchRemoveThread(SearchOptimizeThread, ABC):

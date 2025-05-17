@@ -8,9 +8,9 @@ import requests
 from django.utils import timezone
 
 from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Timestamp
-from codex.status import Status
 from codex.version import PACKAGE_NAME
 
 _PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"

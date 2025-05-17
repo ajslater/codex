@@ -40,8 +40,8 @@ from codex.librarian.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexUpdateTask,
 )
+from codex.librarian.status import Status
 from codex.models import Timestamp
-from codex.status import Status
 
 _JANITOR_STATII = (
     Status(JanitorStatusTypes.CODEX_LATEST_VERSION),

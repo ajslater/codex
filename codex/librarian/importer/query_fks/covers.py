@@ -6,8 +6,8 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.create_fks import CreateForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models.paths import CustomCover
-from codex.status import Status
 
 
 class QueryCustomCoversImporter(CreateForeignKeysImporter):

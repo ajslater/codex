@@ -15,11 +15,11 @@ from codex.librarian.importer.link.const import (
 )
 from codex.librarian.importer.link.foreign_keys import LinkComicForiegnKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import (
     Comic,
     Folder,
 )
-from codex.status import Status
 
 
 class LinkComicsImporter(LinkComicForiegnKeysImporter):

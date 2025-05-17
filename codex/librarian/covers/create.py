@@ -13,10 +13,10 @@ from PIL import Image
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
+from codex.librarian.status import Status
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
 from codex.settings import COMICBOX_CONFIG
-from codex.status import Status
 
 _COVER_RATIO = 1.5372233400402415  # modal cover ratio
 THUMBNAIL_WIDTH = 165

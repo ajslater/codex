@@ -7,8 +7,8 @@ from django.db.models.functions import Now
 from codex.librarian.importer.const import FIS
 from codex.librarian.importer.deleted import DeletedImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import Comic, FailedImport
-from codex.status import Status
 
 _UPDATE_FIS = "update_fis"
 _CREATE_FIS = "create_fis"

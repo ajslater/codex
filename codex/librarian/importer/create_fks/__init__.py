@@ -23,9 +23,9 @@ from codex.librarian.importer.create_fks.folders import (
     CreateForeignKeysFolderImporter,
 )
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import StoryArc
 from codex.models.named import NamedModel
-from codex.status import Status
 
 
 class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):

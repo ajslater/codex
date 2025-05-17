@@ -5,7 +5,7 @@ from multiprocessing.queues import Queue
 from loguru._logger import Logger
 from typing_extensions import override
 
-from codex.status_controller import StatusController
+from codex.librarian.status_controller import StatusController
 
 
 class WorkerMixin:

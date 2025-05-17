@@ -9,6 +9,7 @@ from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
 from codex.db import ensure_db_schema
+from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
 from codex.settings import (
@@ -18,7 +19,6 @@ from codex.settings import (
     HYPERCORN_CONFIG_TOML,
     RESET_ADMIN,
 )
-from codex.status_controller import STATUS_DEFAULTS
 
 
 def ensure_superuser():

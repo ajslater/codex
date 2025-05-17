@@ -10,9 +10,9 @@ from loguru._logger import Logger
 
 from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
+from codex.librarian.status import Status
 from codex.librarian.tasks import DelayedTasks
 from codex.models import LibrarianStatus
-from codex.status import Status
 
 
 def get_default(field):

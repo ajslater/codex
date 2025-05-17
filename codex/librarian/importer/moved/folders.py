@@ -10,8 +10,8 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.moved.covers import MovedCoversImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import Folder
-from codex.status import Status
 
 
 class MovedFoldersImporter(MovedCoversImporter):

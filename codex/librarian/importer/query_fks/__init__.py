@@ -19,12 +19,12 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.query_fks.folders import QueryForeignKeysFoldersImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import (
     Credit,
     StoryArcNumber,
 )
 from codex.models.named import Identifier
-from codex.status import Status
 
 _DICT_MODEL_KEY_MAP = MappingProxyType(
     {

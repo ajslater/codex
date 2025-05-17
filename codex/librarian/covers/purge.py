@@ -8,9 +8,9 @@ from pathlib import Path
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
+from codex.librarian.status import Status
 from codex.models import Comic
 from codex.models.paths import CustomCover
-from codex.status import Status
 
 
 class CoverPurgeThread(CoverCreateThread, ABC):

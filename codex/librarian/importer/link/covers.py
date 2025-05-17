@@ -5,8 +5,8 @@ from pathlib import Path
 from codex.librarian.importer.const import CLASS_CUSTOM_COVER_GROUP_MAP, LINK_COVER_PKS
 from codex.librarian.importer.failed_imports import FailedImportsImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import CustomCover, Folder
-from codex.status import Status
 
 
 class LinkCoversImporter(FailedImportsImporter):

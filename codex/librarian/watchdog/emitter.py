@@ -26,12 +26,12 @@ from watchdog.observers.api import (
 )
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
+from codex.librarian.status import Status
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
-from codex.status import Status
 
 _CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
     FileMovedEvent,

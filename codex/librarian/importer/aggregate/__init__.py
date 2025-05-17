@@ -23,7 +23,7 @@ from codex.librarian.importer.const import (
     SKIPPED,
 )
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.status import Status
+from codex.librarian.status import Status
 
 _UNUSED_COMICBOX_FIELDS = (
     "alternate_images",

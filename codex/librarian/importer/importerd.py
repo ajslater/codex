@@ -15,9 +15,9 @@ from codex.librarian.importer.tasks import (
 )
 from codex.librarian.janitor.tasks import JanitorAdoptOrphanFoldersFinishedTask
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.status import Status
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, Folder, Library
-from codex.status import Status
 
 
 class ComicImporterThread(QueuedThread):

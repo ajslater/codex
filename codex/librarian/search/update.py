@@ -12,12 +12,12 @@ from humanize import intword, naturaldelta
 
 from codex.librarian.search.remove import SearchRemoveThread
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.status import Status
 from codex.models import Comic, Library
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
 from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
 from codex.settings import SEARCH_INDEX_BATCH_SIZE
-from codex.status import Status
 
 _COMICFTS_UPDATE_FIELDS = (
     # ForeignKeys

@@ -13,10 +13,10 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.importer.const import EXTRACTED, FIS, SKIPPED
 from codex.librarian.importer.query_fks import QueryForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG
-from codex.status import Status
 
 
 class ExtractMetadataImporter(QueryForeignKeysImporter):

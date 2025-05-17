@@ -11,8 +11,8 @@ from codex.librarian.importer.const import (
     PARENT_FOLDER,
 )
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import Comic, Folder
-from codex.status import Status
 
 
 class MovedComicsImporter(AggregateMetadataImporter):

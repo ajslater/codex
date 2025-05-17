@@ -11,10 +11,10 @@ from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexAbortTask
+from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 from codex.settings import LOGLEVEL
-from codex.status import Status
 
 _WRITE_WAIT_EXPIRY = 60
 

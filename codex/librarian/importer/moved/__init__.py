@@ -7,8 +7,8 @@ from django.db.models.functions import Now
 from codex.librarian.importer.const import BULK_UPDATE_FOLDER_MODIFIED_FIELDS
 from codex.librarian.importer.moved.folders import MovedFoldersImporter
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
 from codex.models import Folder
-from codex.status import Status
 
 
 class MovedImporter(MovedFoldersImporter):
