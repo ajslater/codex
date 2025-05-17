@@ -9,7 +9,6 @@ from loguru import logger
 from rest_framework.exceptions import NotFound
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
-from codex.exceptions import SeeOtherRedirectError
 from codex.models.groups import BrowserGroupModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
@@ -20,6 +19,7 @@ from codex.views.const import (
     ROOT_GROUP,
     STORY_ARC_GROUP,
 )
+from codex.views.exceptions import SeeOtherRedirectError
 
 
 class BrowserValidateView(SearchFilterView):

@@ -81,7 +81,3 @@ class SeeOtherRedirectError(APIException):
         url = reverse(url_name, kwargs=self.route_kwargs, query=query)  # pyright: ignore[reportCallIssue] django-types ood
 
         return redirect(url, permanent=False)
-
-
-class MetadataUnchangedError(Exception):
-    """Metadata unchanged from last import."""
