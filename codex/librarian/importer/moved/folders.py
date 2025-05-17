@@ -60,7 +60,7 @@ class MovedFoldersImporter(MovedCoversImporter):
             self.log.success(f"Moved {count} folders.")
         self.changed += count
         status.add_complete(count)
-        self.status_controller.update(status, notify=False)
+        self.status_controller.update(status)
 
     def _bulk_move_folders_under_existing_parents(
         self, dest_parent_folder_paths_map, dirs_moved: frozenbidict[str, str], status
@@ -157,7 +157,7 @@ class MovedFoldersImporter(MovedCoversImporter):
                 dest_parent_folder_paths_map[parent] = set()
             dest_parent_folder_paths_map[parent].add(dest_path)
 
-        create_status = Status(ImportStatusTypes.CREATE_FKS)
+        create_status = Status(ImportStatusTypes.CREATE_TAGS)
         layer = 1
         while True:
             self._bulk_move_folders_under_existing_parents(
@@ -183,7 +183,7 @@ class MovedFoldersImporter(MovedCoversImporter):
         num_dirs_moved = len(self.task.dirs_moved)
         if not num_dirs_moved:
             return
-        status = Status(ImportStatusTypes.DIRS_MOVED, None, num_dirs_moved)
+        status = Status(ImportStatusTypes.MOVE_FOLDERS, None, num_dirs_moved)
         self.status_controller.start(status)
 
         self._bulk_move_folders_and_create_parents(status)

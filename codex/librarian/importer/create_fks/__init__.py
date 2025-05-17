@@ -110,7 +110,7 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
         if not fkc:
             return
 
-        status = Status(ImportStatusTypes.CREATE_FKS, 0, fkc.pop(FKC_TOTAL_FKS, None))
+        status = Status(ImportStatusTypes.CREATE_TAGS, 0, fkc.pop(FKC_TOTAL_FKS, None))
         try:
             self.status_controller.start(status)
 

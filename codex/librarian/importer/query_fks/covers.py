@@ -30,14 +30,14 @@ class QueryCustomCoversImporter(CreateForeignKeysImporter):
         self.metadata[COVERS_UPDATE] = update_covers_qs
         update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
         update_count = len(update_cover_paths)
-        update_status = Status(ImportStatusTypes.COVERS_MODIFIED, 0, update_count)
-        self.status_controller.update(update_status, notify=False)
+        update_status = Status(ImportStatusTypes.UPDATE_CUSTOM_COVERS, 0, update_count)
+        self.status_controller.update(update_status)
 
         create_cover_paths = cover_paths - update_cover_paths
         self.metadata[COVERS_CREATE] = create_cover_paths
         create_count = len(create_cover_paths)
-        create_status = Status(ImportStatusTypes.COVERS_CREATED, 0, create_count)
-        self.status_controller.update(create_status, notify=False)
+        create_status = Status(ImportStatusTypes.CREATE_CUSTOM_COVERS, 0, create_count)
+        self.status_controller.update(create_status)
 
         self.task.covers_created = self.task.covers_modified = frozenset()
 

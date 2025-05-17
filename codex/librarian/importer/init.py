@@ -127,23 +127,25 @@ class InitImporter(WorkerBaseMixin):
         search_index_updates = 0
         if self.task.dirs_moved:
             status_list += [
-                Status(ImportStatusTypes.DIRS_MOVED, None, len(self.task.dirs_moved))
+                Status(ImportStatusTypes.MOVE_FOLDERS, None, len(self.task.dirs_moved))
             ]
         if self.task.files_moved:
             status_list += [
-                Status(ImportStatusTypes.FILES_MOVED, None, len(self.task.files_moved))
+                Status(ImportStatusTypes.MOVE_COMICS, None, len(self.task.files_moved))
             ]
             search_index_updates += len(self.task.files_moved)
         if self.task.covers_moved:
             status_list += [
                 Status(
-                    ImportStatusTypes.COVERS_MOVED, None, len(self.task.covers_moved)
+                    ImportStatusTypes.MOVE_CUSTOM_COVERS,
+                    None,
+                    len(self.task.covers_moved),
                 )
             ]
         if self.task.dirs_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.DIRS_MODIFIED, None, len(self.task.dirs_modified)
+                    ImportStatusTypes.UPDATE_FOLDERS, None, len(self.task.dirs_modified)
                 )
             ]
         return search_index_updates
@@ -152,45 +154,54 @@ class InitImporter(WorkerBaseMixin):
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(self.task.files_modified) + len(self.task.files_created)
         status_list += [
+            Status(ImportStatusTypes.READ_TAGS, 0, total_paths, subtitle=path),
             Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
-            Status(ImportStatusTypes.QUERY_MISSING_FKS),
-            Status(ImportStatusTypes.QUERY_MISSING_COVERS),
-            Status(ImportStatusTypes.CREATE_FKS),
+            Status(ImportStatusTypes.QUERY_MISSING_TAGS, subtitle=path),
+            Status(ImportStatusTypes.QUERY_MISSING_COVERS, subtitle=path),
+            Status(ImportStatusTypes.CREATE_TAGS, subtitle=path),
         ]
         if self.task.files_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_MODIFIED,
+                    ImportStatusTypes.UPDATE_COMICS,
                     None,
                     len(self.task.files_modified),
+                    subtitle=path,
                 )
             ]
         if self.task.covers_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.COVERS_MODIFIED,
+                    ImportStatusTypes.UPDATE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_modified),
+                    subtitle=path,
                 )
             ]
 
         if self.task.files_created or self.task.covers_created:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_CREATED, None, len(self.task.files_created)
+                    ImportStatusTypes.CREATE_COMICS,
+                    None,
+                    len(self.task.files_created),
+                    subtitle=path,
                 )
             ]
         if self.task.covers_created:
             status_list += [
                 Status(
-                    ImportStatusTypes.COVERS_CREATED,
+                    ImportStatusTypes.CREATE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_created),
+                    subtitle=path,
                 )
             ]
 
         if self.task.files_modified or self.task.files_created:
-            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS)]
+            status_list += [
+                Status(ImportStatusTypes.LINK_COMICS_TO_TAGS, subtitle=path)
+            ]
 
         num_covers_linked = (
             len(self.task.covers_moved)
@@ -199,7 +210,12 @@ class InitImporter(WorkerBaseMixin):
         )
         if num_covers_linked:
             status_list += [
-                Status(ImportStatusTypes.COVERS_LINK, None, num_covers_linked)
+                Status(
+                    ImportStatusTypes.LINK_CUSTOM_COVERS,
+                    None,
+                    num_covers_linked,
+                    subtitle=path,
+                )
             ]
 
         return total_paths
@@ -210,14 +226,14 @@ class InitImporter(WorkerBaseMixin):
         if self.task.files_deleted:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_DELETED, None, len(self.task.files_deleted)
+                    ImportStatusTypes.REMOVE_COMICS, None, len(self.task.files_deleted)
                 )
             ]
             search_index_updates += len(self.task.files_deleted)
         if self.task.covers_deleted:
             status_list += [
                 Status(
-                    ImportStatusTypes.COVERS_DELETED,
+                    ImportStatusTypes.REMOVE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_deleted),
                 )
@@ -248,7 +264,7 @@ class InitImporter(WorkerBaseMixin):
         ):
             search_index_updates += self._init_if_modified_or_created(path, status_list)
         search_index_updates += self._init_librarian_status_deleted(status_list)
-        status_list += [Status(ImportStatusTypes.GROUP_UPDATE)]
+        status_list += [Status(ImportStatusTypes.UPDATE_GROUP_TIMESTAMPS)]
         self._init_librarian_status_search_index(search_index_updates, status_list)
         self.status_controller.start_many(status_list)
 

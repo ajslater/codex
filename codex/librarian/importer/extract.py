@@ -45,7 +45,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         """Extract metadata from comic and clean it for codex."""
         md = {}
         failed_import = {}
-        force_poll = True # TODO put this in the task
+        force_poll = True  # TODO put this in the task
         try:
             if import_metadata:
                 with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
@@ -93,7 +93,7 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             f"Reading tags from {total_paths} comics in {self.library.path}..."
         )
         status = Status(ImportStatusTypes.READ_TAGS, 0, total_paths)
-        self.status_controller.start(status, notify=False)
+        self.status_controller.start(status, notify=True)
 
         # Set import_metadata flag
         import_metadata = self._set_import_metadata_flag()
@@ -105,6 +105,9 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
                 self.metadata[EXTRACTED][path] = md
             else:
                 self.metadata[SKIPPED].add(path)
+
+            status.increment_complete()
+            self.status_controller.update(status)
 
         num_skip_paths = len(self.metadata[SKIPPED])
         count = total_paths - num_skip_paths

@@ -74,4 +74,4 @@ class QueryForeignKeysSimpleImporter(QueryForeignKeysDictModelsImporter):
             status,
         )
         status.add_complete(count)
-        self.status_controller.update(status, notify=False)
+        self.status_controller.update(status)

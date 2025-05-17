@@ -21,7 +21,9 @@ class DeletedImporter(CacheUpdateImporter):
         """Bulk delete folders."""
         if not self.task.dirs_deleted:
             return 0
-        status = Status(ImportStatusTypes.DIRS_DELETED, 0, len(self.task.dirs_deleted))
+        status = Status(
+            ImportStatusTypes.REMOVE_FOLDERS, 0, len(self.task.dirs_deleted)
+        )
         self.status_controller.start(status)
         folders = Folder.objects.filter(
             library=self.library, path__in=self.task.dirs_deleted
@@ -84,7 +86,7 @@ class DeletedImporter(CacheUpdateImporter):
         if not self.task.files_deleted:
             return 0
         status = Status(
-            ImportStatusTypes.FILES_DELETED, 0, len(self.task.files_deleted)
+            ImportStatusTypes.REMOVE_COMICS, 0, len(self.task.files_deleted)
         )
         self.status_controller.start(status)
         delete_qs = Comic.objects.filter(
@@ -110,7 +112,7 @@ class DeletedImporter(CacheUpdateImporter):
         if not self.task.covers_deleted:
             return 0
         status = Status(
-            ImportStatusTypes.COVERS_DELETED, 0, len(self.task.covers_deleted)
+            ImportStatusTypes.REMOVE_CUSTOM_COVERS, 0, len(self.task.covers_deleted)
         )
         self.status_controller.start(status)
         covers = CustomCover.objects.filter(

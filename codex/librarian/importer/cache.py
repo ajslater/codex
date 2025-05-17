@@ -68,7 +68,7 @@ class CacheUpdateImporter(InitImporter):
     def update_all_groups(self, force_update_group_map, start_time):
         """Update timestamps for each group for cover cache busting."""
         total_count = 0
-        status = Status(ImportStatusTypes.GROUP_UPDATE)
+        status = Status(ImportStatusTypes.UPDATE_GROUP_TIMESTAMPS)
         self.status_controller.start(status)
         try:
             log_list = []
@@ -79,7 +79,7 @@ class CacheUpdateImporter(InitImporter):
                 if count:
                     self.log.debug(f"Updated {count} {model.__name__}s timestamps.")
                 status.add_complete(count)
-                self.status_controller.update(status, notify=False)
+                self.status_controller.update(status)
                 total_count += count
 
             if total_count:

@@ -63,8 +63,13 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         if stories := md.pop(STORIES_KEY, None):
             md["name"] = "; ".join(stories)
 
-    def _aggregate_path(self, md, path, status):
+    def _aggregate_path(self, path, status):
         """Aggregate metadata for one path."""
+        # Prepare
+        md = self.metadata[EXTRACTED].pop(path)
+        self._transform_metadata(md)
+
+        # Aggregate
         self.metadata[FK_LINK][path] = {}
         self.get_group_tree(md, path)
         self.get_fk_metadata(md, path)
@@ -72,9 +77,10 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         if md:
             self.metadata[COMIC_VALUES][str(path)] = md
         self.metadata[QUERY_MODELS][COMIC_PATHS].add(path)
-        if status:
-            status.complete += 1
-            self.status_controller.update(status)
+
+        # Status
+        status.increment_complete()
+        self.status_controller.update(status)
 
     def aggregate_metadata(
         self,
@@ -86,7 +92,7 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
             f"Aggregating tags from {num_extracted_paths} comics in {self.library.path}..."
         )
         status = Status(ImportStatusTypes.AGGREGATE_TAGS, 0, num_extracted_paths)
-        self.status_controller.start(status, notify=False)
+        self.status_controller.start(status)
 
         # Init metadata, extract and aggregate
         self.metadata[COMIC_VALUES] = {}
@@ -97,9 +103,7 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         # Aggregate further
 
         for path in tuple(self.metadata[EXTRACTED]):
-            md = self.metadata[EXTRACTED].pop(path)
-            self._transform_metadata(md)
-            self._aggregate_path(md, path, status)
+            self._aggregate_path(path, status)
         del self.metadata[EXTRACTED]
 
         fis = self.metadata[FIS].keys()
@@ -109,11 +113,8 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         del self.metadata[SKIPPED]
 
         # Set statii
-        fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(fis))
-        self.status_controller.update(
-            fi_status,
-            notify=False,
-        )
+        fi_status = Status(ImportStatusTypes.MARK_FAILED_IMPORTS, 0, len(fis))
+        self.status_controller.update(fi_status, notify=False)
         count = status.complete if status else 0
         self.log.success(f"Aggregated tags from {count} comics.")
 

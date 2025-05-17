@@ -71,7 +71,7 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
         self.log.debug(
             f"Querying existing foreign keys for comics in {self.library.path}"
         )
-        status = Status(ImportStatusTypes.QUERY_MISSING_FKS)
+        status = Status(ImportStatusTypes.QUERY_MISSING_TAGS)
         try:
             self.status_controller.start(status)
             for query_model, create_objs_key in _DICT_MODEL_KEY_MAP.items():
@@ -96,9 +96,8 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
                 self.query_one_simple_model(fk_class, status)
             self.metadata.pop(QUERY_MODELS)
         finally:
+            total_fks = self._get_create_fks_totals()
+            create_status = Status(ImportStatusTypes.CREATE_TAGS, 0, total_fks)
+            self.status_controller.update(create_status, notify=False)
+            self.metadata[FK_CREATE][FKC_TOTAL_FKS] = total_fks
             self.status_controller.finish(status)
-
-        total_fks = self._get_create_fks_totals()
-        status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
-        self.status_controller.update(status, notify=False)
-        self.metadata[FK_CREATE][FKC_TOTAL_FKS] = total_fks

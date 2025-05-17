@@ -48,7 +48,7 @@ class CreateComicsImporter(LinkComicsImporter):
         self.log.debug(
             f"Preparing {num_comics} comics for update in library {self.library.path}."
         )
-        status = Status(ImportStatusTypes.FILES_MODIFIED, None, num_comics)
+        status = Status(ImportStatusTypes.UPDATE_COMICS, None, num_comics)
         self.status_controller.start(status)
         # Get existing comics to update
         comics = Comic.objects.filter(
@@ -97,7 +97,7 @@ class CreateComicsImporter(LinkComicsImporter):
         self.log.debug(
             f"Preparing {num_comics} comics for creation in library {self.library.path}."
         )
-        status = Status(ImportStatusTypes.FILES_CREATED, None, num_comics)
+        status = Status(ImportStatusTypes.CREATE_COMICS, None, num_comics)
         self.status_controller.start(status)
 
         create_comics = []

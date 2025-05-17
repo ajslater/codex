@@ -66,7 +66,7 @@ class MovedCoversImporter(MovedComicsImporter):
         num_covers_moved = len(self.task.covers_moved)
         if not num_covers_moved:
             return
-        status = Status(ImportStatusTypes.COVERS_MOVED, None, num_covers_moved)
+        status = Status(ImportStatusTypes.MOVE_CUSTOM_COVERS, None, num_covers_moved)
         self.status_controller.start(status)
 
         moved_covers, unlink_pks = self._bulk_covers_moved_prepare(status)

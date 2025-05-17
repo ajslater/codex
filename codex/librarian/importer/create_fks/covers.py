@@ -27,7 +27,7 @@ class CreateCoversImporter(CreateComicsImporter):
         update_covers_count = update_covers_qs.count()
         if not update_covers_count:
             return
-        status = Status(ImportStatusTypes.COVERS_MODIFIED, 0, update_covers_count)
+        status = Status(ImportStatusTypes.UPDATE_CUSTOM_COVERS, 0, update_covers_count)
         self.status_controller.start(status)
 
         update_covers = []
@@ -49,7 +49,9 @@ class CreateCoversImporter(CreateComicsImporter):
                 status.add_complete(count)
 
             link_covers_status = Status(
-                ImportStatusTypes.COVERS_LINK, 0, len(self.metadata[LINK_COVER_PKS])
+                ImportStatusTypes.LINK_CUSTOM_COVERS,
+                0,
+                len(self.metadata[LINK_COVER_PKS]),
             )
             self.status_controller.update(link_covers_status, notify=False)
 
@@ -62,7 +64,9 @@ class CreateCoversImporter(CreateComicsImporter):
         num_create_cover_paths = len(create_cover_paths)
         if not num_create_cover_paths:
             return
-        status = Status(ImportStatusTypes.COVERS_MODIFIED, 0, num_create_cover_paths)
+        status = Status(
+            ImportStatusTypes.CREATE_CUSTOM_COVERS, 0, num_create_cover_paths
+        )
         self.status_controller.start(status)
 
         create_covers = []
@@ -88,7 +92,9 @@ class CreateCoversImporter(CreateComicsImporter):
                 status.add_complete(count)
 
             link_covers_status = Status(
-                ImportStatusTypes.COVERS_LINK, 0, len(self.metadata[LINK_COVER_PKS])
+                ImportStatusTypes.LINK_CUSTOM_COVERS,
+                0,
+                len(self.metadata[LINK_COVER_PKS]),
             )
             self.status_controller.update(link_covers_status, notify=False)
 

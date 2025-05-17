@@ -24,11 +24,11 @@ class MovedComicsImporter(AggregateMetadataImporter):
         if not dest_comic_paths:
             return
         # Not sending statues to the controller for now.
-        status = Status(ImportStatusTypes.QUERY_MISSING_FKS)
+        status = Status(ImportStatusTypes.QUERY_MISSING_TAGS)
         create_folder_paths = self.query_missing_folder_paths(dest_comic_paths, status)
         if not create_folder_paths:
             return
-        status = Status(ImportStatusTypes.CREATE_FKS, 0, len(create_folder_paths))
+        status = Status(ImportStatusTypes.CREATE_TAGS, 0, len(create_folder_paths))
         self.log.debug(
             "Creating {len(create_folder_paths)} folders for {len(dest_comic_paths)} moved comics."
         )
@@ -69,7 +69,7 @@ class MovedComicsImporter(AggregateMetadataImporter):
         num_files_moved = len(self.task.files_moved)
         if not num_files_moved:
             return
-        status = Status(ImportStatusTypes.FILES_MOVED, 0, num_files_moved)
+        status = Status(ImportStatusTypes.MOVE_COMICS, 0, num_files_moved)
         self.status_controller.start(status)
 
         # Prepare

@@ -158,7 +158,6 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             if create:
                 comicfts.created_at = now
             obj_list.append(comicfts)
-            self.log.debug(f"{len(obj_list)}/{comics.count()} entries prepped.")
 
     def _get_comicfts_list(self, comics, *, create: bool):
         """Create a ComicFTS object for bulk_create or bulk_update."""

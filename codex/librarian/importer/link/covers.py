@@ -44,14 +44,14 @@ class LinkCoversImporter(FailedImportsImporter):
         count += len(objs)
         self.log.info(f"Linked {count} custom covers to {model.__name__}s")
         status.complete += count
-        self.status_controller.update(status, notify=False)
+        self.status_controller.update(status)
         return count
 
     def link_custom_covers(self):
         """Link Custom Covers to Groups."""
         link_cover_pks = self.metadata.get(LINK_COVER_PKS, {})
         num_link_cover_pks = len(link_cover_pks)
-        status = Status(ImportStatusTypes.COVERS_LINK, 0, num_link_cover_pks)
+        status = Status(ImportStatusTypes.LINK_CUSTOM_COVERS, 0, num_link_cover_pks)
         try:
             if not num_link_cover_pks:
                 return 0

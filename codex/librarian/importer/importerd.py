@@ -93,7 +93,7 @@ class ComicImporterThread(QueuedThread):
     def _adopt_orphan_folders(self, *, janitor: bool):
         """Find orphan folders and move them into their correct place."""
         status = Status(ImportStatusTypes.ADOPT_FOLDERS)
-        moved_status = Status(ImportStatusTypes.DIRS_MOVED)
+        moved_status = Status(ImportStatusTypes.MOVE_FOLDERS)
         try:
             self.status_controller.start_many((status, moved_status))
             libraries = Library.objects.filter(covers_only=False).only("path")

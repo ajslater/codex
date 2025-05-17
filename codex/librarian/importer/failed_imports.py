@@ -148,7 +148,7 @@ class FailedImportsImporter(DeletedImporter):
         fis = self.metadata.get(FIS)
         if not fis:
             return False
-        status = Status(ImportStatusTypes.FAILED_IMPORTS)
+        status = Status(ImportStatusTypes.MARK_FAILED_IMPORTS)
         self.status_controller.start(status)
         created_count = 0
 

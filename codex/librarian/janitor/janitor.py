@@ -57,7 +57,7 @@ _JANITOR_STATII = (
     Status(CoverStatusTypes.FIND_ORPHAN),
     Status(CoverStatusTypes.PURGE_COVERS),
     Status(ImportStatusTypes.ADOPT_FOLDERS),
-    Status(ImportStatusTypes.DIRS_MOVED),
+    Status(ImportStatusTypes.MOVE_FOLDERS),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE),

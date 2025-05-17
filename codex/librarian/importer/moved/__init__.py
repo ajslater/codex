@@ -19,7 +19,7 @@ class MovedImporter(MovedFoldersImporter):
         num_dirs_modified = len(self.task.dirs_modified)
         if not num_dirs_modified:
             return
-        status = Status(ImportStatusTypes.DIRS_MODIFIED, None, num_dirs_modified)
+        status = Status(ImportStatusTypes.UPDATE_FOLDERS, None, num_dirs_modified)
         self.status_controller.start(status)
 
         folders = Folder.objects.filter(

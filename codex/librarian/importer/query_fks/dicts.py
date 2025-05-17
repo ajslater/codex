@@ -94,5 +94,5 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
             vnp = vnp.title() if vnp else "Nothings"
             self.log.info(f"Prepared {count} new {vnp}.")
         status.add_complete(count)
-        self.status_controller.update(status, notify=False)
+        self.status_controller.update(status)
         return count
