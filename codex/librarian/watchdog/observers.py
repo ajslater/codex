@@ -96,6 +96,23 @@ class UatuObserver(WorkerMixin, BaseObserver):
         except Exception:
             self.log.exception(f"{self.__class__.__name__} sync library watches")
 
+    def _add_emitter_for_watch(
+        self, event_handler: FileSystemEventHandler, watch: ObservedWatch
+    ):
+        """If we don't have an emitter for this watch already, create it."""
+        covers_only = isinstance(event_handler, CodexCustomCoverEventHandler)
+        emitter = DatabasePollingEmitter(
+            event_queue=self.event_queue,
+            watch=watch,
+            timeout=self.timeout,
+            logger_=self.log,
+            librarian_queue=self.librarian_queue,
+            covers_only=covers_only,
+        )
+        self._add_emitter(emitter)
+        if self.is_alive():
+            emitter.start()
+
     @override
     def schedule(
         self,
@@ -115,21 +132,8 @@ class UatuObserver(WorkerMixin, BaseObserver):
         with self._lock:
             watch = ObservedWatch(path, recursive=recursive)
             self._add_handler_for_watch(event_handler, watch)
-
-            # If we don't have an emitter for this watch already, create it.
             if self._emitter_for_watch.get(watch) is None:
-                covers_only = isinstance(event_handler, CodexCustomCoverEventHandler)
-                emitter = DatabasePollingEmitter(
-                    event_queue=self.event_queue,
-                    watch=watch,
-                    timeout=self.timeout,
-                    logger_=self.log,
-                    librarian_queue=self.librarian_queue,
-                    covers_only=covers_only,
-                )
-                self._add_emitter(emitter)
-                if self.is_alive():
-                    emitter.start()
+                self._add_emitter_for_watch(event_handler, watch)
             self._watches.add(watch)
         return watch
 
