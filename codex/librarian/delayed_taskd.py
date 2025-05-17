@@ -5,7 +5,7 @@ from time import sleep, time
 
 from typing_extensions import override
 
-from codex.threads import QueuedThread
+from codex.librarian.threads import QueuedThread
 
 
 class DelayedTasksThread(QueuedThread):

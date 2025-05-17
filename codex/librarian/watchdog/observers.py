@@ -16,8 +16,8 @@ from codex.librarian.watchdog.events import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
 )
+from codex.librarian.worker import WorkerMixin
 from codex.models import Library
-from codex.worker_base import WorkerMixin
 
 
 class UatuObserver(WorkerMixin, BaseObserver):

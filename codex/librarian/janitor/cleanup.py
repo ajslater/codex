@@ -8,6 +8,7 @@ from django.contrib.sessions.models import Session
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.worker import WorkerStatusMixin
 from codex.models import (
     AgeRating,
     Character,
@@ -37,7 +38,6 @@ from codex.models import (
 from codex.models.bookmark import Bookmark
 from codex.models.paths import CustomCover
 from codex.status import Status
-from codex.worker_base import WorkerStatusMixin
 
 _COMIC_FK_CLASSES = (
     AgeRating,

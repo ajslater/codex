@@ -11,6 +11,7 @@ from django.db.utils import OperationalError
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
+from codex.librarian.worker import WorkerStatusMixin
 from codex.models.base import BaseModel
 from codex.settings import (
     CONFIG_PATH,
@@ -18,7 +19,6 @@ from codex.settings import (
     DB_PATH,
 )
 from codex.status import Status
-from codex.worker_base import WorkerStatusMixin
 
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager

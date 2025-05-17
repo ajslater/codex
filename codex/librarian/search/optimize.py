@@ -9,8 +9,8 @@ from humanize import naturaldelta
 
 from codex.librarian.janitor.tasks import JanitorSearchOptimizeFinishedTask
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.threads import QueuedThread
 from codex.status import Status
-from codex.threads import QueuedThread
 
 _TABLE = "codex_comicfts"
 _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"

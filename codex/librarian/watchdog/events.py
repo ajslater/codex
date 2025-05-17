@@ -24,9 +24,9 @@ from watchdog.events import (
 )
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
+from codex.librarian.worker import WorkerMixin
 from codex.models import CustomCover
 from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
-from codex.worker_base import WorkerMixin
 
 _IMAGE_EXTS = frozenset({"jpg", "jpeg", "webp", "png", "gif", "bmp"})
 _GROUP_COVERS_DIRS = frozenset(CUSTOM_COVERS_GROUP_DIRS)

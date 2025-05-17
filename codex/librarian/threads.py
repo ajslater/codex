@@ -9,7 +9,7 @@ from threading import Thread
 from loguru._logger import Logger
 from typing_extensions import override
 
-from codex.worker_base import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusMixin
 
 
 class BreakLoopError(Exception):

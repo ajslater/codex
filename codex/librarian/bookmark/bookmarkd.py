@@ -12,7 +12,7 @@ from codex.librarian.bookmark.tasks import (
 )
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.librarian.bookmark.user_active import UserActiveMixin
-from codex.threads import AggregateMessageQueuedThread
+from codex.librarian.threads import AggregateMessageQueuedThread
 
 
 @dataclass

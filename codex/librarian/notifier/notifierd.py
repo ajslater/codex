@@ -2,7 +2,7 @@
 
 from typing_extensions import override
 
-from codex.threads import AggregateMessageQueuedThread
+from codex.librarian.threads import AggregateMessageQueuedThread
 
 
 class NotifierThread(AggregateMessageQueuedThread):

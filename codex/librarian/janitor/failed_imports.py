@@ -3,8 +3,8 @@
 from watchdog.events import FileModifiedEvent
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
+from codex.librarian.worker import WorkerStatusMixin
 from codex.models import FailedImport, Library
-from codex.worker_base import WorkerStatusMixin
 
 
 class UpdateFailedImportsMixin(WorkerStatusMixin):
