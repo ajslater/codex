@@ -8,10 +8,8 @@ from django.db.models.functions import Now
 from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
-from codex.db import ensure_db_schema
 from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
-from codex.registration import patch_registration_setting
 from codex.settings import (
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
@@ -19,6 +17,8 @@ from codex.settings import (
     HYPERCORN_CONFIG_TOML,
     RESET_ADMIN,
 )
+from codex.startup.db import ensure_db_schema
+from codex.startup.registration import patch_registration_setting
 
 
 def ensure_superuser():

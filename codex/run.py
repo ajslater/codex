@@ -11,10 +11,10 @@ from loguru import logger
 from codex.asgi import application
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger import init_logging
 from codex.settings import HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
+from codex.startup.logger import init_logging
 from codex.version import VERSION
 from codex.websockets.aio_queue import BROADCAST_QUEUE
 
