@@ -20,7 +20,7 @@ from watchdog.observers.api import (
 )
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
-from codex.librarian.watchdog.events import (
+from codex.librarian.watchdog.handlers import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
 )

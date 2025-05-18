@@ -31,17 +31,17 @@ from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.status import Status
-from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
-from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
-from codex.librarian.watchdog.event_aggregator import (
+from codex.librarian.watchdog.const import (
     EVENT_CLASS_DIFF_ALL_MAP,
     EVENT_CLASS_DIFF_ATTR_MAP,
     EVENT_COVERS_DIFF_ATTR_MAP,
     EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP,
     EVENT_MOVED_CLASS_DIFF_ATTR_MAP,
-    EventAggregatorMixin,
 )
-from codex.librarian.watchdog.events import (
+from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
+from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
+from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
+from codex.librarian.watchdog.handlers import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
 )

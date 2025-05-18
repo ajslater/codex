@@ -4,57 +4,10 @@ from contextlib import suppress
 from copy import deepcopy
 from types import MappingProxyType
 
-from watchdog.events import (
-    DirDeletedEvent,
-    DirModifiedEvent,
-    DirMovedEvent,
-    FileCreatedEvent,
-    FileDeletedEvent,
-    FileModifiedEvent,
-    FileMovedEvent,
-    FileSystemEvent,
-)
+from watchdog.events import FileSystemEvent
 
-from codex.librarian.watchdog.events import (
-    CoverCreatedEvent,
-    CoverDeletedEvent,
-    CoverModifiedEvent,
-    CoverMovedEvent,
-)
+from codex.librarian.watchdog.const import EVENT_CLASS_DIFF_ALL_MAP
 
-EVENT_CLASS_DIFF_ATTR_MAP = MappingProxyType(
-    {
-        FileDeletedEvent: "files_deleted",
-        FileModifiedEvent: "files_modified",
-        FileCreatedEvent: "files_created",
-        DirDeletedEvent: "dirs_deleted",
-        DirModifiedEvent: "dirs_modified",
-    }
-)
-EVENT_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
-    {FileMovedEvent: "files_moved", DirMovedEvent: "dirs_moved"}
-)
-EVENT_COVERS_DIFF_ATTR_MAP = MappingProxyType(
-    {
-        CoverCreatedEvent: "covers_created",
-        CoverDeletedEvent: "covers_deleted",
-        CoverModifiedEvent: "covers_modified",
-    }
-)
-EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
-    {CoverMovedEvent: "covers_moved"}
-)
-
-EVENT_CLASS_DIFF_ALL_MAP: MappingProxyType[type[FileSystemEvent], str] = (
-    MappingProxyType(
-        {
-            **EVENT_CLASS_DIFF_ATTR_MAP,
-            **EVENT_MOVED_CLASS_DIFF_ATTR_MAP,
-            **EVENT_COVERS_DIFF_ATTR_MAP,
-            **EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP,
-        }
-    )
-)
 _IMPORT_TASK_PARAMS = MappingProxyType(
     {
         "dirs_moved": {},

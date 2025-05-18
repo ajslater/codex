@@ -12,10 +12,8 @@ from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.threads import AggregateMessageQueuedThread
-from codex.librarian.watchdog.event_aggregator import (
-    EVENT_CLASS_DIFF_ALL_MAP,
-    EventAggregatorMixin,
-)
+from codex.librarian.watchdog.const import EVENT_CLASS_DIFF_ALL_MAP
+from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
 from codex.librarian.watchdog.memory import get_mem_limit
 
 
