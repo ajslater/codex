@@ -207,8 +207,9 @@ export default {
   padding-bottom: 10px;
 }
 
-@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .closeBook {
+    font-size: small;
     padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
   }
 }
