@@ -4,46 +4,88 @@ from contextlib import suppress
 from copy import deepcopy
 from types import MappingProxyType
 
-from watchdog.events import FileSystemEvent
+from watchdog.events import (
+    DirDeletedEvent,
+    DirModifiedEvent,
+    DirMovedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileMovedEvent,
+    FileSystemEvent,
+)
+
+from codex.librarian.watchdog.events import (
+    CoverCreatedEvent,
+    CoverDeletedEvent,
+    CoverModifiedEvent,
+    CoverMovedEvent,
+)
+
+EVENT_CLASS_DIFF_ATTR_MAP = MappingProxyType(
+    {
+        FileDeletedEvent: "files_deleted",
+        FileModifiedEvent: "files_modified",
+        FileCreatedEvent: "files_created",
+        DirDeletedEvent: "dirs_deleted",
+        DirModifiedEvent: "dirs_modified",
+    }
+)
+EVENT_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
+    {FileMovedEvent: "files_moved", DirMovedEvent: "dirs_moved"}
+)
+EVENT_COVERS_DIFF_ATTR_MAP = MappingProxyType(
+    {
+        CoverCreatedEvent: "covers_created",
+        CoverDeletedEvent: "covers_deleted",
+        CoverModifiedEvent: "covers_modified",
+    }
+)
+EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
+    {CoverMovedEvent: "covers_moved"}
+)
+
+EVENT_CLASS_DIFF_ALL_MAP: MappingProxyType[type[FileSystemEvent], str] = (
+    MappingProxyType(
+        {
+            **EVENT_CLASS_DIFF_ATTR_MAP,
+            **EVENT_MOVED_CLASS_DIFF_ATTR_MAP,
+            **EVENT_COVERS_DIFF_ATTR_MAP,
+            **EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP,
+        }
+    )
+)
+_IMPORT_TASK_PARAMS = MappingProxyType(
+    {
+        "dirs_moved": {},
+        "dirs_modified": set(),
+        "dirs_deleted": set(),
+        "files_moved": {},
+        "files_modified": set(),
+        "files_created": set(),
+        "files_deleted": set(),
+        "covers_moved": {},
+        "covers_modified": set(),
+        "covers_created": set(),
+        "covers_deleted": set(),
+    }
+)
 
 
 class EventAggregatorMixin:
     """Mixin to aggregate Watchdog Events."""
 
-    IMPORT_TASK_PARAMS = MappingProxyType(
-        {
-            "dirs_moved": {},
-            "dirs_modified": set(),
-            "dirs_deleted": set(),
-            "files_moved": {},
-            "files_modified": set(),
-            "files_created": set(),
-            "files_deleted": set(),
-            "covers_moved": {},
-            "covers_modified": set(),
-            "covers_created": set(),
-            "covers_deleted": set(),
-        }
-    )
-
     @classmethod
     def create_import_task_args(cls, library_id: int) -> dict:
         """Create import task args."""
-        args = deepcopy(dict(cls.IMPORT_TASK_PARAMS))
+        args = deepcopy(dict(_IMPORT_TASK_PARAMS))
         args["library_id"] = library_id  # pyright: ignore[reportArgumentType]
         return args
 
     @staticmethod
     def key_for_event(event: FileSystemEvent) -> str:
         """Return the args field name for the event."""
-        prefix = (
-            "dir"
-            if event.is_directory
-            else "cover"
-            if getattr(event, "is_cover", False)
-            else "file"
-        )
-        return f"{prefix}s_{event.event_type}"
+        return EVENT_CLASS_DIFF_ALL_MAP[type(event)]
 
     @staticmethod
     def _remove_paths(args, deleted_key: str, moved_key: str):

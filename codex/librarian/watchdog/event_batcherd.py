@@ -12,7 +12,10 @@ from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.threads import AggregateMessageQueuedThread
-from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
+from codex.librarian.watchdog.event_aggregator import (
+    EVENT_CLASS_DIFF_ALL_MAP,
+    EventAggregatorMixin,
+)
 from codex.librarian.watchdog.memory import get_mem_limit
 
 
@@ -29,15 +32,11 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread, EventAggregatorMi
         mem_limit_gb = get_mem_limit("g")
         self.max_items = int(self.MAX_ITEMS_PER_GB * mem_limit_gb)
 
-    def _ensure_library_args(self, library_id):
-        if library_id in self.cache:
-            return
-        self.cache[library_id] = self.create_import_task_args(library_id)
-
     def _args_field_by_event(self, library_id, event):
         """Translate event class names into field names."""
-        self._ensure_library_args(library_id)
-        key = self.key_for_event(event)
+        if library_id not in self.cache:
+            self.cache[library_id] = self.create_import_task_args(library_id)
+        key = EVENT_CLASS_DIFF_ALL_MAP[type(event)]
         return self.cache[library_id].get(key)
 
     @override

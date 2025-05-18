@@ -33,14 +33,17 @@ from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.status import Status
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
-from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
+from codex.librarian.watchdog.event_aggregator import (
+    EVENT_CLASS_DIFF_ALL_MAP,
+    EVENT_CLASS_DIFF_ATTR_MAP,
+    EVENT_COVERS_DIFF_ATTR_MAP,
+    EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP,
+    EVENT_MOVED_CLASS_DIFF_ATTR_MAP,
+    EventAggregatorMixin,
+)
 from codex.librarian.watchdog.events import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
-    CoverCreatedEvent,
-    CoverDeletedEvent,
-    CoverModifiedEvent,
-    CoverMovedEvent,
 )
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.librarian.worker import WorkerStatusMixin
@@ -205,6 +208,10 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
             db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
         )
 
+    ######################################
+    # Simulate Sending to event_batcherd #
+    #####################################
+
     def _transform_events(
         self, event_class: type[FileSystemEvent], paths: list[str | bytes]
     ) -> Generator[tuple[FileSystemEvent, ...]]:
@@ -223,88 +230,54 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
             for src_path, dest_path in paths
         )
 
-    _EVENT_CLASS_DIFF_ATTR_MAP = MappingProxyType(
-        {
-            FileDeletedEvent: "files_deleted",
-            FileModifiedEvent: "files_modified",
-            FileCreatedEvent: "files_created",
-            DirDeletedEvent: "dirs_deleted",
-            DirModifiedEvent: "dirs_modified",
-        }
-    )
-    _EVENT_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
-        {FileMovedEvent: "files_moved", DirMovedEvent: "dirs_moved"}
-    )
-    _EVENT_COVERS_DIFF_ATTR_MAP = MappingProxyType(
-        {
-            CoverCreatedEvent: "covers_created",
-            CoverDeletedEvent: "covers_deleted",
-            CoverModifiedEvent: "covers_modified",
-        }
-    )
-    _EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
-        {CoverMovedEvent: "covers_moved"}
-    )
-
-    # Move this into event aggregator
-    _EVENT_CLASS_DIFF_ALL_MAP: MappingProxyType[type[FileSystemEvent], str] = (
-        MappingProxyType(
-            {
-                **_EVENT_CLASS_DIFF_ATTR_MAP,
-                **_EVENT_MOVED_CLASS_DIFF_ATTR_MAP,
-                **_EVENT_COVERS_DIFF_ATTR_MAP,
-                **_EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP,
-            }
-        )
-    )
-
     def _transform_events_group(
-        self, diff, class_attr_map: MappingProxyType, *, moved: bool
+        self, diff, class_attr_map: MappingProxyType, args: dict, *, moved: bool
     ):
         transform_func = (
             self._transform_events_moved if moved else self._transform_events
         )
-        return chain.from_iterable(
+        events = chain.from_iterable(
             chain.from_iterable(
                 transform_func(event_class, getattr(diff, attr))
                 for event_class, attr in class_attr_map.items()
             )
         )
+        if moved:
+            for event in events:
+                key = EVENT_CLASS_DIFF_ALL_MAP[type(event)]
+                args[key][event.src_path] = event.dest_path
+        else:
+            for event in events:
+                key = EVENT_CLASS_DIFF_ALL_MAP[type(event)]
+                args[key].add(event.src_path)
 
-    def _send_import_task(self, diff: DirectorySnapshotDiff):
-        """Create an import task from the diff."""
+    def _build_import_task_args(self, diff: DirectorySnapshotDiff):
         args = self.create_import_task_args(self._library_id)
         if self._covers_only:
-            events = self._transform_events_group(
-                diff, self._EVENT_COVERS_DIFF_ATTR_MAP, moved=False
+            self._transform_events_group(
+                diff, EVENT_COVERS_DIFF_ATTR_MAP, args, moved=False
             )
-            moved_events = self._transform_events_group(
-                diff, self._EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP, moved=True
+            self._transform_events_group(
+                diff, EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP, args, moved=True
             )
         else:
-            events = self._transform_events_group(
-                diff, self._EVENT_CLASS_DIFF_ATTR_MAP, moved=False
+            self._transform_events_group(
+                diff, EVENT_CLASS_DIFF_ATTR_MAP, args, moved=False
             )
-            moved_events = self._transform_events_group(
-                diff, self._EVENT_MOVED_CLASS_DIFF_ATTR_MAP, moved=True
+            self._transform_events_group(
+                diff, EVENT_MOVED_CLASS_DIFF_ATTR_MAP, args, moved=True
             )
 
-        for event in events:
-            key = self._EVENT_CLASS_DIFF_ALL_MAP[type(event)]
-            args[key].add(event.src_path)
-
-        for event in moved_events:
-            key = self._EVENT_CLASS_DIFF_ALL_MAP[type(event)]
-            args[key][event.src_path] = event.dest_path
         self.deduplicate_events(args)
 
         args["check_metadata_mtime"] = not self._force
         # Reset on poll()
         self._force = False
+        return args
 
-        from icecream import ic
-
-        ic(args)
+    def _send_import_task(self, diff: DirectorySnapshotDiff):
+        """Create an import task from the diff."""
+        args = self._build_import_task_args(diff)
         task = ImportDBDiffTask(**args)
         if self._covers_only:
             reason = (
