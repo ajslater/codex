@@ -210,7 +210,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
 
     ######################################
     # Simulate Sending to event_batcherd #
-    #####################################
+    ######################################
 
     def _transform_events(
         self, event_class: type[FileSystemEvent], paths: list[str | bytes]
@@ -271,8 +271,6 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
         self.deduplicate_events(args)
 
         args["check_metadata_mtime"] = not self._force
-        # Reset on poll()
-        self._force = False
         return args
 
     def _send_import_task(self, diff: DirectorySnapshotDiff):
@@ -326,6 +324,8 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
             raise
         finally:
             self.status_controller.finish(status)
+            # Reset on poll()
+            self._force = False
 
     @override
     def on_thread_stop(self):
