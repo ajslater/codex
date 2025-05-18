@@ -146,9 +146,10 @@ class UatuObserver(WorkerMixin, BaseObserver):
         return watch
 
 
-# It would be best for Codex to have one observer with multiple emitters, but the
+# It would be better if could have one observer with multiple emitters per path, but the
 # watchdog Observers key ObservedWatches on paths with one emitter each.
-# I can't override the FileSystem Emitters because they're generated per platform and environment.
+# Additionally Observers have one emitter_class.
+# And I can't override the FileSystem Emitters because they're generated per platform and environment.
 # So the only overridable Emitter is my own DatabasePollingEmitter.
 
 
