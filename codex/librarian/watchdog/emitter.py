@@ -101,21 +101,6 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
             # default stat and listdir params
         )
 
-    def poll(self, *, force: bool):
-        """Poll now, sooner than timeout."""
-        self._force = force
-        with self._poll_cond:
-            self._poll_cond.notify()
-
-    def _take_db_snapshot(self):
-        """Get a database snapshot with optional force argument."""
-        return CodexDatabaseSnapshot(
-            self.watch.path,
-            logger_=self.log,
-            force=self._force,
-            covers_only=self._covers_only,
-        )
-
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
         ok = False
@@ -189,6 +174,15 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
             self.log.warning("Not Polling.")
             return None
         return library
+
+    def _take_db_snapshot(self):
+        """Get a database snapshot with optional force argument."""
+        return CodexDatabaseSnapshot(
+            self.watch.path,
+            logger_=self.log,
+            force=self._force,
+            covers_only=self._covers_only,
+        )
 
     def _get_diff(self):
         """Take snapshots and compute the diff."""
@@ -299,7 +293,12 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
 
     @override
     def queue_events(self, timeout):
-        """Like PollingEmitter but use a fresh db snapshot and send an entire import task."""
+        """
+        Like PollingEmitter but use a fresh db snapshot and send an entire import task.
+
+        Importantly do not put ti on the actual event_queue because it will adding the
+        check_metadata_mtime flag on the import task.
+        """
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
         library = self._is_take_snapshot(timeout)
@@ -330,5 +329,11 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
     @override
     def on_thread_stop(self):
         """Send the poller as well."""
+        with self._poll_cond:
+            self._poll_cond.notify()
+
+    def poll(self, *, force: bool):
+        """Poll now, sooner than timeout."""
+        self._force = force
         with self._poll_cond:
             self._poll_cond.notify()
