@@ -58,12 +58,6 @@ _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 class SearchFTSUpdateThread(SearchRemoveThread, ABC):
     """Search Index update methods."""
 
-    _STATUS_FINISH_TYPES = (
-        SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
-        SearchIndexStatusTypes.SEARCH_INDEX_CREATE,
-        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-    )
-
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
         statii = []
@@ -303,4 +297,4 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         except Exception:
             self.log.exception("Update search index")
         finally:
-            self.status_controller.finish_many(self._STATUS_FINISH_TYPES)
+            self.status_controller.finish_many(tuple(SearchIndexStatusTypes))
