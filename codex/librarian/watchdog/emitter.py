@@ -1,5 +1,7 @@
 """A Codex database event emitter for use by the observer."""
 
+from contextlib import suppress
+from itertools import chain
 from multiprocessing.queues import Queue
 from pathlib import Path
 from threading import Condition
@@ -24,11 +26,17 @@ from watchdog.observers.api import (
     EventQueue,
     ObservedWatch,
 )
-from watchdog.utils.dirsnapshot import DirectorySnapshot
+from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.status import Status
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
+from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
+from codex.librarian.watchdog.events import (
+    CodexCustomCoverEventHandler,
+    CodexLibraryEventHandler,
+)
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
@@ -48,7 +56,7 @@ _CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
-class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
+class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMixin):
     """Use DatabaseSnapshots to compare against the DirectorySnapshots."""
 
     _DIR_NOT_FOUND_TIMEOUT = 15 * 60
@@ -62,6 +70,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         logger_=None,
         librarian_queue: Queue | None = None,
         covers_only=False,
+        library_id: int,
     ):
         """Initialize snapshot methods."""
         self.init_worker(logger_, librarian_queue)
@@ -70,6 +79,10 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
         self._covers_only = covers_only
+        self._handler = (
+            CodexCustomCoverEventHandler if covers_only else CodexLibraryEventHandler
+        )
+        self._library_id = library_id
         super().__init__(
             event_queue, watch, timeout=timeout, event_filter=_CODEX_EVENT_FILTER
         )
@@ -88,14 +101,12 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
 
     def _take_db_snapshot(self):
         """Get a database snapshot with optional force argument."""
-        db_snapshot = CodexDatabaseSnapshot(
+        return CodexDatabaseSnapshot(
             self.watch.path,
             logger_=self.log,
             force=self._force,
             covers_only=self._covers_only,
         )
-        self._force = False
-        return db_snapshot
 
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
@@ -189,45 +200,98 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
         )
 
-    def _queue_events(self, diff):
-        """Create and queue the events from the diff."""
-        reason = (
-            f"Poller sending unfiltered files: {len(diff.files_deleted)} "
-            f"deleted, {len(diff.files_modified)} modified, "
-            f"{len(diff.files_created)} created, "
-            f"{len(diff.files_moved)} moved."
-        )
-        self.log.debug(reason)
-        reason = (
-            f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
-            f" {len(diff.dirs_modified)} modified,"
-            f" {len(diff.dirs_moved)} moved."
-        )
-        self.log.debug(reason)
-        # Files.
-        # Could remove non-comics here, but handled by the EventHandler
-        for src_path in diff.files_deleted:
-            self.queue_event(FileDeletedEvent(src_path))
-        for src_path in diff.files_modified:
-            self.queue_event(FileModifiedEvent(src_path))
-        for src_path in diff.files_created:
-            self.queue_event(FileCreatedEvent(src_path))
-        for src_path, dest_path in diff.files_moved:
-            self.queue_event(FileMovedEvent(src_path, dest_path))
+    def _transform_events(
+        self, event_class: type[FileSystemEvent], paths: list[str]
+    ) -> frozenset[str]:
+        transformed_events = set()
+        for src_path in paths:
+            events = self._handler.transform_file_event(event_class(src_path))
+            for event in events:
+                transformed_events.add(event.src_path)
+        return frozenset(transformed_events)
 
-        # Directories.
-        for src_path in diff.dirs_deleted:
-            self.queue_event(DirDeletedEvent(src_path))
-        for src_path in diff.dirs_modified:
-            self.queue_event(DirModifiedEvent(src_path))
-        # Folders are only created by comics themselves
-        # The event handler excludes DirCreatedEvent as well.
-        for src_path, dest_path in diff.dirs_moved:
-            self.queue_event(DirMovedEvent(src_path, dest_path))
+    def _transform_events_moved(
+        self, event_class: type[FileSystemEvent], paths: list[tuple[str, str]]
+    ) -> dict[str, str]:
+        transformed_events = {}
+        for src_path, dest_path in paths:
+            events = self._handler.transform_file_event(
+                event_class(src_path, dest_path)
+            )
+            for event in events:
+                transformed_events[event.src_path] = event.dest_path
+
+        return transformed_events
+
+    @staticmethod
+    def _transform_events_remove_deleted(args: dict, deleted_key: str, moved_key: str):
+        for src_path in args[deleted_key]:
+            with suppress(KeyError):
+                del args[moved_key][src_path]
+
+    def _send_import_task(self, diff: DirectorySnapshotDiff):
+        """Create an import task from the diff."""
+        args = self.create_import_task_args(self._library_id)
+        events = chain(
+            # Files.
+            # Could remove non-comics here, but handled by the EventHandler
+            (FileDeletedEvent(src_path) for src_path in diff.files_deleted),
+            (FileModifiedEvent(src_path) for src_path in diff.files_modified),
+            (FileCreatedEvent(src_path) for src_path in diff.files_created),
+            # Directories.
+            (DirDeletedEvent(src_path) for src_path in diff.dirs_deleted),
+            (DirModifiedEvent(src_path) for src_path in diff.dirs_modified),
+        )
+        for event in events:
+            key = self.key_for_event(event)
+            args[key].add(event)
+
+        moved_events = chain(
+            (
+                FileMovedEvent(src_path, dest_path)
+                for src_path, dest_path in diff.files_moved
+            ),
+            # Folders are only created by comics themselves
+            # The event handler excludes DirCreatedEvent as well.
+            (
+                DirMovedEvent(src_path, dest_path)
+                for src_path, dest_path in diff.dirs_moved
+            ),
+        )
+        for event in moved_events:
+            key = self.key_for_event(event)
+            args[key][event.src_path] = event.dest_path
+
+        self.deduplicate_events(args)
+
+        args["check_metadata_mtime"] = not self._force
+        # Reset on poll()
+        self._force = False
+
+        task = ImportDBDiffTask(**args)
+        if self._covers_only:
+            reason = (
+                f"Poller sending custom comic covers: {len(task.covers_deleted)} "
+                f"deleted, {len(task.covers_modified)} modified, "
+                f"{len(task.covers_created)} created, "
+                f"{len(task.covers_moved)} moved."
+            )
+        else:
+            reason = (
+                f"Poller sending comics: {len(task.files_deleted)} "
+                f"deleted, {len(task.files_modified)} modified, "
+                f"{len(task.files_created)} created, "
+                f"{len(task.files_moved)} moved; "
+                f"folders: {len(task.dirs_deleted)} deleted,"
+                f" {len(task.dirs_modified)} modified,"
+                f" {len(task.dirs_moved)} moved."
+            )
+        self.log.debug(reason)
+        self.librarian_queue.put(task)
 
     @override
     def queue_events(self, timeout):
-        """Queue events like PollingEmitter but always use a fresh db snapshot."""
+        """Like PollingEmitter but use a fresh db snapshot and send an entire import task."""
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
         library = self._is_take_snapshot(timeout)
@@ -241,7 +305,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             if not diff:
                 return
 
-            self._queue_events(diff)
+            self._send_import_task(diff)
 
             library.last_poll = Now()
             library.save()

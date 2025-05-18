@@ -15,6 +15,7 @@ from watchdog.observers import Observer
 from watchdog.observers.api import (
     DEFAULT_OBSERVER_TIMEOUT,
     BaseObserver,
+    EventDispatcher,
     ObservedWatch,
 )
 
@@ -115,6 +116,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
     ):
         """If we don't have an emitter for this watch already, create it."""
         covers_only = isinstance(event_handler, CodexCustomCoverEventHandler)
+        library_id = Library.objects.get(path=watch.path).pk
         emitter = DatabasePollingEmitter(
             event_queue=self.event_queue,
             watch=watch,
@@ -122,6 +124,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
             logger_=self.log,
             librarian_queue=self.librarian_queue,
             covers_only=covers_only,
+            library_id=library_id,
         )
         self._add_emitter(emitter)
         if self.is_alive():
@@ -129,24 +132,13 @@ class UatuObserver(WorkerMixin, BaseObserver):
 
     @override
     def schedule(
-        self,
-        event_handler: FileSystemEventHandler,
-        path: str,
-        *,
-        recursive: bool = False,
-        event_filter: list[type[FileSystemEvent]] | None = None,  # noqa: ARG002, F841, RUF100
+        self, event_handler: FileSystemEventHandler, path: str, **kwargs
     ) -> ObservedWatch:
-        """
-        Override BaseObserver for Codex emitter class.
-
-        https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver
-        """
+        """Override BaseObserver for Codex emitter class."""
         if self._emitter_class != DatabasePollingEmitter:
-            return super().schedule(event_handler, path, recursive=recursive)
+            return super().schedule(event_handler, path, **kwargs)
         with self._lock:
-            watch = ObservedWatch(
-                path, recursive=recursive, event_filter=list(_IGNORED_EVENTS)
-            )
+            watch = ObservedWatch(path, **kwargs)
             self._add_handler_for_watch(event_handler, watch)
             if self._emitter_for_watch.get(watch) is None:
                 self._add_emitter_for_watch(event_handler, watch)
@@ -155,7 +147,9 @@ class UatuObserver(WorkerMixin, BaseObserver):
 
 
 # It would be best for Codex to have one observer with multiple emitters, but the
-#     watchdog class structure doesn't work that way.
+# watchdog Observers key ObservedWatches on paths with one emitter each.
+# I can't override the FileSystem Emitters because they're generated per platform and environment.
+# So the only overridable Emitter is my own DatabasePollingEmitter.
 
 
 class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGeneralTypeIssues, reportUntypedBaseClass]
@@ -177,7 +171,6 @@ class LibraryPollingObserver(UatuObserver):
 
     ENABLE_FIELD: str = "poll"
     ALWAYS_WATCH: bool = True  # In the emitter, timeout=None for forever
-    _SHUTDOWN_EVENT = (None, None)
 
     def __init__(
         self,
@@ -216,5 +209,5 @@ class LibraryPollingObserver(UatuObserver):
         # per watch timeout. This makes self.dispatch_events() block
         # forever on the queue. Sending it an event makes it check the
         # shutdown event next.
-        self.event_queue.put(self._SHUTDOWN_EVENT)
+        self.event_queue.put(EventDispatcher.stop_event)  # self._SHUTDOWN_EVENT)
         super().on_thread_stop()

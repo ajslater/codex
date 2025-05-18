@@ -1,6 +1,7 @@
 """Watchdog Event Handlers."""
 
 import re
+from abc import ABC, abstractmethod
 from os import fsdecode
 from pathlib import Path
 from types import MappingProxyType
@@ -17,6 +18,7 @@ from watchdog.events import (
     FileDeletedEvent,
     FileModifiedEvent,
     FileMovedEvent,
+    FileSystemEvent,
     FileSystemEventHandler,
 )
 
@@ -89,7 +91,7 @@ COVERS_EVENT_TYPE_MAP = MappingProxyType(
 )
 
 
-class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler):
+class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler, ABC):
     """Base class for Codex Event Handlers."""
 
     def __init__(
@@ -103,6 +105,29 @@ class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler):
     @staticmethod
     def _match_image_suffix(path: Path) -> bool:
         return path and len(path.suffix) > 1 and path.suffix[1:] in _IMAGE_EXTS
+
+    @classmethod
+    @abstractmethod
+    def transform_file_event(
+        cls, event: FileSystemEvent
+    ) -> tuple[FileSystemEvent, ...]:
+        """Transform events into valid cover events."""
+        raise NotImplementedError
+
+    @override
+    def dispatch(self, event):
+        """Send only valid codex events to the EventBatcher."""
+        try:
+            events = self.transform_file_event(event)
+
+            # Send it to the EventBatcher
+            for sub_event in events:
+                task = WatchdogEventTask(self.library_pk, sub_event)
+                self.librarian_queue.put(task)
+
+            # Do not call super dispatch to call stub event dispatchers
+        except Exception:
+            self.log.exception(f"{self.__class__.__name__} dispatch")
 
 
 class CodexLibraryEventHandler(CodexEventHandlerBase):
@@ -119,9 +144,11 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         return _COMIC_MATCHER.match(suffix) is not None
 
     @classmethod
-    def _match_folder_cover(cls, path_str: str) -> bool:
+    def _match_folder_cover(cls, path_str: str | bytes) -> bool:
         if not path_str:
             return False
+        if isinstance(path_str, bytes):
+            path_str = path_str.decode()
         path = Path(path_str)
         return path.stem == CustomCover.FOLDER_COVER_STEM and cls._match_image_suffix(
             path
@@ -158,8 +185,9 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         elif source_match_cover and dest_match_cover:
             events.append(CoverMovedEvent(event.src_path, event.dest_path))
 
+    @override
     @classmethod
-    def _transform_file_event(cls, event):
+    def transform_file_event(cls, event: FileSystemEvent) -> tuple[FileSystemEvent]:
         """Transform file events into other events."""
         events = []
         source_match_comic = cls._match_comic_suffix(event.src_path)
@@ -176,22 +204,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
                 # Convert to cover type
                 event = event_class(event.src_path)
                 events.append(event)
-        return events
-
-    @override
-    def dispatch(self, event):
-        """Send only valid codex events to the EventBatcher."""
-        try:
-            events = self._transform_file_event(event)
-
-            # Send it to the EventBatcher
-            for sub_event in events:
-                task = WatchdogEventTask(self.library_pk, sub_event)
-                self.librarian_queue.put(task)
-
-            # Do not call super dispatch to call stub event dispatchers
-        except Exception:
-            self.log.exception(f"{self.__class__.__name__} dispatch")
+        return tuple(events)
 
 
 class CodexCustomCoverEventHandler(CodexEventHandlerBase):
@@ -221,29 +234,22 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
             send_event = CoverDeletedEvent(event.src_path)
         return send_event
 
+    @override
     @classmethod
-    def _transform_file_event(cls, event):
-        send_event = None
+    def transform_file_event(
+        cls, event: FileSystemEvent
+    ) -> tuple[FileSystemEvent, ...]:
+        """Transform events into valid cover events."""
+        send_events = []
         if event.is_directory:
-            return send_event
+            return tuple(send_events)
         src_cover_match = cls._match_group_cover_image(str(event.src_path))
         if event.event_type == EVENT_TYPE_MOVED:
-            send_event = cls._transform_event_moved(event, src_cover_match)
-        elif src_cover_match:
-            event_class = COVERS_EVENT_TYPE_MAP.get(event.event_type)
-            if not event_class:
-                return send_event
+            if send_event := cls._transform_event_moved(event, src_cover_match):
+                send_events.append(send_event)
+        elif src_cover_match and (
+            event_class := COVERS_EVENT_TYPE_MAP.get(event.event_type)
+        ):
             send_event = event_class(event.src_path)
-        return send_event
-
-    @override
-    def dispatch(self, event):
-        """Send only valid cover events to the EventBatcher."""
-        send_event = None
-        try:
-            send_event = self._transform_file_event(event)
-            if send_event:
-                task = WatchdogEventTask(self.library_pk, send_event)
-                self.librarian_queue.put(task)
-        except Exception:
-            self.log.exception(f"{self.__class__.__name__} dispatch")
+            send_events.append(send_event)
+        return tuple(send_events)

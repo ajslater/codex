@@ -83,6 +83,8 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
     def extract_metadata(self, status=None) -> int:
         """Extract comic metadata into memory."""
         count = 0
+        self.metadata[SKIPPED] = set()
+        self.metadata[EXTRACTED] = {}
         all_paths = self.task.files_modified | self.task.files_created
         total_paths = len(all_paths)
         if not total_paths:
@@ -97,8 +99,6 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         # Set import_metadata flag
         import_metadata = self._set_import_metadata_flag()
 
-        self.metadata[SKIPPED] = set()
-        self.metadata[EXTRACTED] = {}
         for path in all_paths:
             if md := self._extract_path(path, import_metadata=import_metadata):
                 self.metadata[EXTRACTED][path] = md

@@ -7,37 +7,18 @@ consistent thing is for the DBEmitter to serialize them in the same way
 and then re-serialize everything in this batcher and the event Handler
 """
 
-from contextlib import suppress
-from copy import deepcopy
-from types import MappingProxyType
-
 from typing_extensions import override
 from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.threads import AggregateMessageQueuedThread
+from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
 from codex.librarian.watchdog.memory import get_mem_limit
 
 
-class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
+class WatchdogEventBatcherThread(AggregateMessageQueuedThread, EventAggregatorMixin):
     """Batch watchdog events into bulk database tasks."""
 
-    DBDIFF_TASK_PARAMS = MappingProxyType(
-        {
-            "library_id": None,
-            "dirs_moved": {},
-            "dirs_modified": set(),
-            "dirs_deleted": set(),
-            "files_moved": {},
-            "files_modified": set(),
-            "files_created": set(),
-            "files_deleted": set(),
-            "covers_moved": {},
-            "covers_modified": set(),
-            "covers_created": set(),
-            "covers_deleted": set(),
-        }
-    )
     MAX_DELAY = 60.0
     MAX_ITEMS_PER_GB = 50000
 
@@ -51,24 +32,13 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
             return
-        args = deepcopy(dict(self.DBDIFF_TASK_PARAMS))
-        args["library_id"] = library_id
-        self.cache[library_id] = args
+        self.cache[library_id] = self.create_import_task_args(library_id)
 
     def _args_field_by_event(self, library_id, event):
         """Translate event class names into field names."""
         self._ensure_library_args(library_id)
-
-        prefix = (
-            "dir"
-            if event.is_directory
-            else "cover"
-            if getattr(event, "is_cover", False)
-            else "file"
-        )
-        field = f"{prefix}s_{event.event_type}"
-
-        return self.cache[library_id].get(field)
+        key = self.key_for_event(event)
+        return self.cache[library_id].get(key)
 
     @override
     def aggregate_items(self, item):
@@ -92,38 +62,10 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
             # Send all items
             self.timed_out()
 
-    def _deduplicate_events(self, library_id):
-        """Prune different event types on the same paths."""
-        args = self.cache[library_id]
-
-        # deleted
-        for src_path in args["dirs_deleted"]:
-            with suppress(KeyError):
-                del args["dirs_moved"][src_path]
-        for src_path in args["files_deleted"]:
-            with suppress(KeyError):
-                del args["files_moved"][src_path]
-
-        # created
-        args["files_created"] -= args["files_deleted"]
-        files_dest_paths = set(args["files_moved"].values())
-        args["files_created"] -= files_dest_paths
-
-        # modified
-        args["dirs_modified"] -= args["dirs_deleted"]
-        args["dirs_modified"] -= set(args["dirs_moved"].values())
-
-        args["files_modified"] -= args["files_created"]
-        args["files_modified"] -= args["files_deleted"]
-        args["files_modified"] -= files_dest_paths
-
-        args["covers_modified"] -= args["covers_deleted"]
-        args["covers_modified"] -= args["covers_created"]
-
     def _create_task(self, library_id):
         """Create a task from cached aggregated message data."""
-        self._deduplicate_events(library_id)
         args = self.cache[library_id]
+        self.deduplicate_events(args)
         return ImportDBDiffTask(**args)
 
     @override
