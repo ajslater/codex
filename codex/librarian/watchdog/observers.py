@@ -146,11 +146,14 @@ class UatuObserver(WorkerMixin, BaseObserver):
         return watch
 
 
-# It would be better if could have one observer with multiple emitters per path, but the
+#########################
+# Observer Architecture #
+#########################
+# It would be better if could have one observer per path with multiple emitters, but the
 # watchdog Observers key ObservedWatches on paths with one emitter each.
-# Additionally Observers have one emitter_class.
-# And I can't override the FileSystem Emitters because they're generated per platform and environment.
-# So the only overridable Emitter is my own DatabasePollingEmitter.
+# But Observers have only one emitter_class and I can't override the FileSystem Emitters
+# because they're generated per platform and environment. So the only overridable
+# Emitter is my own DatabasePollingEmitter.
 
 
 class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGeneralTypeIssues, reportUntypedBaseClass]
