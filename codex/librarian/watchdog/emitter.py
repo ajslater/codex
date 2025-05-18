@@ -1,10 +1,11 @@
 """A Codex database event emitter for use by the observer."""
 
-from contextlib import suppress
+from collections.abc import Generator
 from itertools import chain
 from multiprocessing.queues import Queue
 from pathlib import Path
 from threading import Condition
+from types import MappingProxyType
 
 from django.db.models.functions import Now
 from django.utils import timezone
@@ -36,6 +37,10 @@ from codex.librarian.watchdog.event_aggregator import EventAggregatorMixin
 from codex.librarian.watchdog.events import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
+    CoverCreatedEvent,
+    CoverDeletedEvent,
+    CoverModifiedEvent,
+    CoverMovedEvent,
 )
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.librarian.worker import WorkerStatusMixin
@@ -201,73 +206,105 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin, EventAggregatorMix
         )
 
     def _transform_events(
-        self, event_class: type[FileSystemEvent], paths: list[str]
-    ) -> frozenset[str]:
-        transformed_events = set()
-        for src_path in paths:
-            events = self._handler.transform_file_event(event_class(src_path))
-            for event in events:
-                transformed_events.add(event.src_path)
-        return frozenset(transformed_events)
+        self, event_class: type[FileSystemEvent], paths: list[str | bytes]
+    ) -> Generator[tuple[FileSystemEvent, ...]]:
+        yield from (
+            self._handler.transform_file_event(event_class(src_path))
+            for src_path in paths
+        )
 
     def _transform_events_moved(
-        self, event_class: type[FileSystemEvent], paths: list[tuple[str, str]]
-    ) -> dict[str, str]:
-        transformed_events = {}
-        for src_path, dest_path in paths:
-            events = self._handler.transform_file_event(
-                event_class(src_path, dest_path)
+        self,
+        event_class: type[FileSystemEvent],
+        paths: list[tuple[str | bytes, str | bytes]],
+    ) -> Generator[tuple[FileSystemEvent, ...]]:
+        yield from (
+            self._handler.transform_file_event(event_class(src_path, dest_path))
+            for src_path, dest_path in paths
+        )
+
+    _EVENT_CLASS_DIFF_ATTR_MAP = MappingProxyType(
+        {
+            FileDeletedEvent: "files_deleted",
+            FileModifiedEvent: "files_modified",
+            FileCreatedEvent: "files_created",
+            DirDeletedEvent: "dirs_deleted",
+            DirModifiedEvent: "dirs_modified",
+        }
+    )
+    _EVENT_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
+        {FileMovedEvent: "files_moved", DirMovedEvent: "dirs_moved"}
+    )
+    _EVENT_COVERS_DIFF_ATTR_MAP = MappingProxyType(
+        {
+            CoverCreatedEvent: "covers_created",
+            CoverDeletedEvent: "covers_deleted",
+            CoverModifiedEvent: "covers_modified",
+        }
+    )
+    _EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP = MappingProxyType(
+        {CoverMovedEvent: "covers_moved"}
+    )
+
+    # Move this into event aggregator
+    _EVENT_CLASS_DIFF_ALL_MAP: MappingProxyType[type[FileSystemEvent], str] = (
+        MappingProxyType(
+            {
+                **_EVENT_CLASS_DIFF_ATTR_MAP,
+                **_EVENT_MOVED_CLASS_DIFF_ATTR_MAP,
+                **_EVENT_COVERS_DIFF_ATTR_MAP,
+                **_EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP,
+            }
+        )
+    )
+
+    def _transform_events_group(
+        self, diff, class_attr_map: MappingProxyType, *, moved: bool
+    ):
+        transform_func = (
+            self._transform_events_moved if moved else self._transform_events
+        )
+        return chain.from_iterable(
+            chain.from_iterable(
+                transform_func(event_class, getattr(diff, attr))
+                for event_class, attr in class_attr_map.items()
             )
-            for event in events:
-                transformed_events[event.src_path] = event.dest_path
-
-        return transformed_events
-
-    @staticmethod
-    def _transform_events_remove_deleted(args: dict, deleted_key: str, moved_key: str):
-        for src_path in args[deleted_key]:
-            with suppress(KeyError):
-                del args[moved_key][src_path]
+        )
 
     def _send_import_task(self, diff: DirectorySnapshotDiff):
         """Create an import task from the diff."""
         args = self.create_import_task_args(self._library_id)
-        events = chain(
-            # Files.
-            # Could remove non-comics here, but handled by the EventHandler
-            (FileDeletedEvent(src_path) for src_path in diff.files_deleted),
-            (FileModifiedEvent(src_path) for src_path in diff.files_modified),
-            (FileCreatedEvent(src_path) for src_path in diff.files_created),
-            # Directories.
-            (DirDeletedEvent(src_path) for src_path in diff.dirs_deleted),
-            (DirModifiedEvent(src_path) for src_path in diff.dirs_modified),
-        )
+        if self._covers_only:
+            events = self._transform_events_group(
+                diff, self._EVENT_COVERS_DIFF_ATTR_MAP, moved=False
+            )
+            moved_events = self._transform_events_group(
+                diff, self._EVENT_COVERS_MOVED_CLASS_DIFF_ATTR_MAP, moved=True
+            )
+        else:
+            events = self._transform_events_group(
+                diff, self._EVENT_CLASS_DIFF_ATTR_MAP, moved=False
+            )
+            moved_events = self._transform_events_group(
+                diff, self._EVENT_MOVED_CLASS_DIFF_ATTR_MAP, moved=True
+            )
+
         for event in events:
-            key = self.key_for_event(event)
-            args[key].add(event)
+            key = self._EVENT_CLASS_DIFF_ALL_MAP[type(event)]
+            args[key].add(event.src_path)
 
-        moved_events = chain(
-            (
-                FileMovedEvent(src_path, dest_path)
-                for src_path, dest_path in diff.files_moved
-            ),
-            # Folders are only created by comics themselves
-            # The event handler excludes DirCreatedEvent as well.
-            (
-                DirMovedEvent(src_path, dest_path)
-                for src_path, dest_path in diff.dirs_moved
-            ),
-        )
         for event in moved_events:
-            key = self.key_for_event(event)
+            key = self._EVENT_CLASS_DIFF_ALL_MAP[type(event)]
             args[key][event.src_path] = event.dest_path
-
         self.deduplicate_events(args)
 
         args["check_metadata_mtime"] = not self._force
         # Reset on poll()
         self._force = False
 
+        from icecream import ic
+
+        ic(args)
         task = ImportDBDiffTask(**args)
         if self._covers_only:
             reason = (
