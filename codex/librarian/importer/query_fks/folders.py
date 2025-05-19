@@ -1,30 +1,13 @@
 """Query the missing foreign keys for folders."""
 
 from pathlib import Path
-from types import MappingProxyType
 
 from codex.librarian.importer.const import (
     FK_CREATE,
-    FKC_CREDITS,
     FKC_FOLDER_PATHS,
-    FKC_IDENTIFIERS,
-    FKC_STORY_ARC_NUMBERS,
 )
 from codex.librarian.importer.query_fks.simple import QueryForeignKeysSimpleImporter
-from codex.models import (
-    Credit,
-    Folder,
-    StoryArcNumber,
-)
-from codex.models.named import Identifier
-
-_DICT_MODEL_KEY_MAP = MappingProxyType(
-    {
-        Credit: FKC_CREDITS,
-        StoryArcNumber: FKC_STORY_ARC_NUMBERS,
-        Identifier: FKC_IDENTIFIERS,
-    }
-)
+from codex.models import Folder
 
 
 class QueryForeignKeysFoldersImporter(QueryForeignKeysSimpleImporter):
