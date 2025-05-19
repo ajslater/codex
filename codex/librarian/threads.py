@@ -103,8 +103,12 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def __init__(self, *args, **kwargs):
         """Initialize the cache."""
         self.cache = {}
-        self._last_timed_out = time.time()
+        self._last_send = time.time()
         super().__init__(*args, **kwargs)
+
+    def set_last_send(self):
+        """Set the last send time to now."""
+        self._last_send = time.time()
 
     @override
     def get_timeout(self):
@@ -125,13 +129,13 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         """Remove sent messages from the cache and record send times."""
         for key in keys:
             self.cache.pop(key, None)
-        self._last_send = time.time()
+        self.set_last_send()
 
     @override
     def process_item(self, item):
         """Aggregate items and sleep in case there are more."""
         self.aggregate_items(item)
-        since_last_timed_out = time.time() - self._last_timed_out
+        since_last_timed_out = time.time() - self._last_send
         waited_too_long = since_last_timed_out > self.MAX_DELAY
         if waited_too_long:
             self.timed_out()
@@ -140,4 +144,4 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def timed_out(self):
         """Send the items and set when we did this."""
         self.send_all_items()
-        self._last_timed_out = time.time()
+        self.set_last_send()
