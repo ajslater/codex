@@ -26,6 +26,22 @@ from codex.librarian.watchdog.events import (
     CoverMovedEvent,
 )
 
+###########
+# Emitter #
+###########
+ATTR_EVENT_MAP = MappingProxyType(
+    {
+        "files_deleted": FileDeletedEvent,
+        "files_modified": FileModifiedEvent,
+        "files_created": FileCreatedEvent,
+        "files_moved": FileMovedEvent,
+        "dirs_deleted": DirDeletedEvent,
+        "dirs_modified": DirModifiedEvent,
+        "dirs_moved": DirMovedEvent,
+    }
+)
+
+
 ############
 # Handlers #
 ############

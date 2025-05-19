@@ -15,6 +15,7 @@ from watchdog.events import (
 
 from codex.librarian.watchdog.const import COMIC_MATCHER, COVERS_EVENT_TYPE_MAP
 from codex.librarian.watchdog.events import (
+    CodexPollEvent,
     CoverCreatedEvent,
     CoverDeletedEvent,
     CoverMovedEvent,
@@ -55,7 +56,10 @@ class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler, ABC):
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
-            events = self.transform_file_event(event)
+            if isinstance(event, CodexPollEvent):
+                events = [event]
+            else:
+                events = self.transform_file_event(event)
 
             # Send it to the EventBatcher
             for sub_event in events:

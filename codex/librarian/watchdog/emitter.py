@@ -1,22 +1,99 @@
 """A Codex database event emitter for use by the observer."""
 
+from multiprocessing.queues import Queue
+from pathlib import Path
+from threading import Condition
+
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
 from typing_extensions import override
+from watchdog.events import (
+    DirDeletedEvent,
+    DirModifiedEvent,
+    DirMovedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileMovedEvent,
+    FileSystemEvent,
+)
+from watchdog.observers.api import (
+    DEFAULT_EMITTER_TIMEOUT,
+    EventEmitter,
+    EventQueue,
+    ObservedWatch,
+)
+from watchdog.utils.dirsnapshot import DirectorySnapshot
 
 from codex.librarian.status import Status
+from codex.librarian.watchdog.const import ATTR_EVENT_MAP
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
-from codex.librarian.watchdog.emitter_dispatcher import DatabasePollingEmitterDispatcher
+from codex.librarian.watchdog.events import (
+    CodexPollEvent,
+    FinishPollEvent,
+    StartPollEvent,
+)
+from codex.librarian.watchdog.handlers import (
+    CodexCustomCoverEventHandler,
+    CodexLibraryEventHandler,
+)
 from codex.librarian.watchdog.status import WatchdogStatusTypes
+from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 
 _DIR_NOT_FOUND_TIMEOUT = 15 * 60
+_CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
+    FileMovedEvent,
+    FileModifiedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    # FileClosedEvent,
+    # FileOpenedEvent,
+    DirMovedEvent,
+    DirModifiedEvent,
+    DirDeletedEvent,
+    # DirCreatedEvent,
+    CodexPollEvent,
+]
+_DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
-class DatabasePollingEmitter(DatabasePollingEmitterDispatcher):
-    """Use DatabaseSnapshots to compare against the DirectorySnapshots."""
+class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
+    """Dispatch an Importer Task from an diff without serializing back into the queue."""
+
+    def __init__(  # noqa: PLR0913
+        self,
+        event_queue: EventQueue,
+        watch: ObservedWatch,
+        *,
+        timeout: float = DEFAULT_EMITTER_TIMEOUT,
+        logger_=None,
+        librarian_queue: Queue | None = None,
+        covers_only=False,
+        library_id: int,
+    ):
+        """Initialize snapshot methods."""
+        self.init_worker(logger_, librarian_queue)
+        self._poll_cond = Condition()
+        self._force = False
+        self._watch_path = Path(watch.path)
+        self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
+        self._covers_only = covers_only
+        self._handler = (
+            CodexCustomCoverEventHandler if covers_only else CodexLibraryEventHandler
+        )
+        self._library_id = library_id
+        super().__init__(
+            event_queue, watch, timeout=timeout, event_filter=_CODEX_EVENT_FILTER
+        )
+
+        self._take_dir_snapshot = lambda: DirectorySnapshot(
+            self._watch.path,
+            recursive=self.watch.is_recursive,
+            # default stat and listdir params
+        )
 
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
@@ -119,6 +196,30 @@ class DatabasePollingEmitter(DatabasePollingEmitterDispatcher):
             db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
         )
 
+    def _queue_events(self, diff):
+        """Create and queue the events from the diff."""
+        reason = (
+            f"Poller sending unfiltered files: {len(diff.files_deleted)} "
+            f"deleted, {len(diff.files_modified)} modified, "
+            f"{len(diff.files_created)} created, "
+            f"{len(diff.files_moved)} moved. "
+            f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
+            f" {len(diff.dirs_modified)} modified,"
+            f" {len(diff.dirs_moved)} moved."
+        )
+        self.log.debug(reason)
+        self.queue_event(StartPollEvent("", force=self._force))
+
+        for attr, event_class in ATTR_EVENT_MAP.items():
+            if attr.endswith("moved"):
+                for src_path, dest_path in getattr(diff, attr):
+                    self.queue_event(event_class(src_path, dest_path))
+            else:
+                for src_path in getattr(diff, attr):
+                    self.queue_event(event_class(src_path))
+
+        self.queue_event(FinishPollEvent("", force=self._force))
+
     @override
     def queue_events(self, timeout):
         """
@@ -131,6 +232,7 @@ class DatabasePollingEmitter(DatabasePollingEmitterDispatcher):
         # timeout behaves like an interval for polling emitters.
         library = self._is_take_snapshot(timeout)
         if not library:
+            self._force = False
             return
         status = Status(WatchdogStatusTypes.POLL, subtitle=self.watch.path)
         try:
@@ -140,7 +242,7 @@ class DatabasePollingEmitter(DatabasePollingEmitterDispatcher):
             if not diff:
                 return
 
-            self.dispatch_import_task(diff)
+            self._queue_events(diff)
 
             library.last_poll = Now()
             library.save()
