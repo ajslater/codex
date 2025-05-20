@@ -184,7 +184,7 @@ test-backend:
 .PHONY: test
 ## Run Tests.
 ## @category Test
-test: test-frontend test-backand
+test: test-frontend test-backend
 
 .PHONY: benchmark-opds
 ## Time opds requests
