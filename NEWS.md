@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.8.0
 
 - Features
+
   - Support MetronInfo.xml v1.0 Schema for comic metadata but only metadata
     features that already exist in Codex for now.
   - Support CB7 (7zip) comic archives.
@@ -19,6 +20,9 @@ border-radius: 128px;
   - Logging format changed.
   - Metadata:
     - Add Universes, Main Characters, and Main Team
+
+- Fix
+  - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
 
 ## v1.7.12
 
