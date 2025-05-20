@@ -103,6 +103,7 @@ METADATA = MappingProxyType(
             PATH: {
                 # bookmark ignore
                 # cover_date ignore?
+                "collection_title": "Omnibus",
                 "day": 1,
                 # ext ignore
                 "file_type": "CBZ",
@@ -130,9 +131,10 @@ METADATA = MappingProxyType(
                     ("Youthful Adventure Stories", "TestImprint"): None,
                 },
                 "language": "en",
+                "main_character": "",
+                "main_team": "",
                 "original_format": "Trade Paperback",
                 "publisher": {("Youthful Adventure Stories",): None},
-                # protagonist
                 "series": {
                     (
                         "Youthful Adventure Stories",
@@ -173,7 +175,7 @@ METADATA = MappingProxyType(
                 "story_arc_numbers": {("d", 1), ("e", 3), ("f", 5)},
                 "tags": {"a", "b", "c"},
                 "teams": {"Team Scientific Method"},
-                # "universes": { "Silly Universe": { "designation": "4242"}}
+                "universes": {"Young Silly Universe": {"designation": "4242"}},
             }
         },
     }

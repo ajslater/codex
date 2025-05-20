@@ -27,7 +27,6 @@ _NON_FTS_COLUMNS = frozenset(
         "year",
         "month",
         "day",
-        "community_rating",
         "criticial_rating",
         "page_count",
         "monochrome",

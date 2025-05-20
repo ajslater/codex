@@ -18,7 +18,6 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     # Dynamic filters
     age_rating = ListField(child=VuetifyIntegerField(), required=False)
     characters = ListField(child=VuetifyIntegerField(), required=False)
-    community_rating = ListField(child=VuetifyFloatField(), required=False)
     country = ListField(child=VuetifyIntegerField(), required=False)
     credits = ListField(child=VuetifyIntegerField(), required=False)
     critical_rating = ListField(child=VuetifyFloatField(), required=False)
@@ -37,4 +36,5 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     tagger = ListField(child=VuetifyIntegerField(), required=False)
     tags = ListField(child=VuetifyIntegerField(), required=False)
     teams = ListField(child=VuetifyIntegerField(), required=False)
+    universes = ListField(child=VuetifyIntegerField(), required=False)
     year = ListField(child=VuetifyIntegerField(), required=False)

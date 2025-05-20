@@ -1,15 +1,16 @@
 """Aggregate ManyToMany Metadata."""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from comicbox.schemas.comicbox import ARCS_KEY, IDENTIFIERS_KEY
+from django.db.models import Field
 from django.db.models.fields.related import ManyToManyField
 from django.db.models.query_utils import DeferredAttribute
 
 from codex.librarian.importer.aggregate.const import (
     DICT_MODEL_AGG_MAP,
-    DICT_MODEL_FOR_VALUE,
-    DICT_MODEL_SUB_FIELDS,
+    DICT_MODEL_SUB_MODEL,
+    DICT_MODEL_SUB_SUB_KEY,
     FIELD_NAME_TO_MD_KEY_MAP,
 )
 from codex.librarian.importer.aggregate.foreign_keys import (
@@ -18,11 +19,16 @@ from codex.librarian.importer.aggregate.foreign_keys import (
 from codex.librarian.importer.const import (
     COMIC_M2M_FIELDS,
     FOLDERS_FIELD,
+    IDENTIFIERS_FIELD_NAME,
     M2M_LINK,
     QUERY_MODELS,
+    STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.models.groups import Folder
-from codex.models.named import NamedModel
+from codex.models.named import NamedModel, Universe
+
+if TYPE_CHECKING:
+    from codex.models.base import BaseModel
 
 
 class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
@@ -30,13 +36,14 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
     def _get_m2m_metadata_dict_model_aggregate_sub_sub_value(
         self,
-        md_key: str,
+        field_name: str,
         sub_value,
         sub_sub_key: str,
         sub_sub_field: DeferredAttribute,
     ):
         sub_sub_value = sub_value.get(sub_sub_key)
-        if sub_sub_value is None:
+        # Story Arc Numbers can be None.
+        if sub_sub_value is None and field_name != STORY_ARC_NUMBERS_FIELD_NAME:
             return set()
         if isinstance(sub_sub_value, dict):
             clean_sub_sub_value = {
@@ -45,23 +52,25 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             }
         else:
             clean_sub_sub_value = {sub_sub_field.field.get_prep_value(sub_sub_value)}
-        if clean_sub_sub_value or md_key == ARCS_KEY:
-            model = DICT_MODEL_SUB_FIELDS.get(sub_sub_key)
-            if model:
-                if model not in self.metadata[QUERY_MODELS]:
-                    self.metadata[QUERY_MODELS][model] = set()
-                self.metadata[QUERY_MODELS][model] |= clean_sub_sub_value
+
+        if (model := DICT_MODEL_SUB_SUB_KEY.get(sub_sub_key)) and clean_sub_sub_value:
+            if model not in self.metadata[QUERY_MODELS]:
+                self.metadata[QUERY_MODELS][model] = set()
+            self.metadata[QUERY_MODELS][model] |= clean_sub_sub_value
         return clean_sub_sub_value
 
     def _get_m2m_metadata_dict_model_aggregate_sub_values(
-        self, md_key: str, dict_model_key_fields: dict, sub_key, sub_value
+        self, field: Field, sub_key, sub_value
     ):
         clean_sub_key = NamedModel._meta.get_field("name").get_prep_value(sub_key)
-        clean_sub_value = [clean_sub_key] if md_key == IDENTIFIERS_KEY else set()
+        clean_sub_value = (
+            [clean_sub_key] if field.name == IDENTIFIERS_FIELD_NAME else set()
+        )
+        dict_model_key_fields = DICT_MODEL_AGG_MAP[field.name]
         for sub_sub_key, sub_sub_field in dict_model_key_fields.items():
             clean_sub_sub_value = (
                 self._get_m2m_metadata_dict_model_aggregate_sub_sub_value(
-                    md_key,
+                    field.name,
                     sub_value,
                     sub_sub_key,
                     sub_sub_field,
@@ -71,45 +80,45 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 clean_sub_value.append(next(iter(clean_sub_sub_value)))
             else:
                 clean_sub_value = {(clean_sub_key, val) for val in clean_sub_sub_value}
-        if clean_sub_key is not None:
-            key_model = DICT_MODEL_SUB_FIELDS.get(md_key)
+        if isinstance(clean_sub_value, list):
+            clean_sub_value = {
+                tuple(clean_sub_value),
+            }
+        related_model: type[BaseModel] = field.related_model  # pyright: ignore[reportAssignmentType]
+        # TODO Universe is processed as a dict model sometimes and a simpe model later.
+        # Move it to simple model always
+        if clean_sub_key is not None and related_model != Universe:
+            key_model = DICT_MODEL_SUB_MODEL[related_model]
             if key_model not in self.metadata[QUERY_MODELS]:
                 self.metadata[QUERY_MODELS][key_model] = set()
             self.metadata[QUERY_MODELS][key_model].add(clean_sub_key)
         return clean_sub_value
 
-    def _get_m2m_metadata_dict_model(
-        self, value, dict_model_key_fields: dict, md_key: str
-    ):
-        clean_value = set()
+    def _get_m2m_metadata_dict_model(self, field: Field, value):
+        clean_values = set()
         for sub_key, sub_value in value.items():
             clean_sub_value = self._get_m2m_metadata_dict_model_aggregate_sub_values(
-                md_key, dict_model_key_fields, sub_key, sub_value
+                field, sub_key, sub_value
             )
-            if isinstance(clean_sub_value, list):
-                clean_sub_value = tuple(clean_sub_value)
-                clean_value.add(clean_sub_value)
-            else:
-                clean_value |= clean_sub_value
+            clean_values |= clean_sub_value
 
-        value_model = DICT_MODEL_FOR_VALUE.get(md_key)
-        if value_model not in self.metadata[QUERY_MODELS]:
-            self.metadata[QUERY_MODELS][value_model] = set()
-        query_model_values = (
-            {next(iter(clean_value))[0]} if md_key == IDENTIFIERS_KEY else clean_value
-        )
-        self.metadata[QUERY_MODELS][value_model] |= query_model_values
-        return clean_value
+        model = field.related_model
+        if model not in self.metadata[QUERY_MODELS]:
+            self.metadata[QUERY_MODELS][model] = set()
+        self.metadata[QUERY_MODELS][model] |= clean_values
+        return clean_values
 
     def _get_m2m_metadata_clean(self, field: ManyToManyField, value):
+        """Clean a simple named value."""
+        model = field.related_model
         clean_value = {
-            field.related_model._meta.get_field("name").get_prep_value(sub_key)
+            model._meta.get_field("name").get_prep_value(sub_key)
             for sub_key in value
         }
-        if clean_value and field.model != Folder:
-            if field.model not in self.metadata[QUERY_MODELS]:
-                self.metadata[QUERY_MODELS][field.related_model] = set()
-            self.metadata[QUERY_MODELS][field.related_model] |= frozenset(clean_value)
+        if clean_value and model != Folder:
+            if model not in self.metadata[QUERY_MODELS]:
+                self.metadata[QUERY_MODELS][model] = set()
+            self.metadata[QUERY_MODELS][model] |= frozenset(clean_value)
         return clean_value
 
     def get_m2m_metadata(self, md, path):
@@ -120,13 +129,12 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             value = md.pop(md_key, None)
             if value is None:
                 continue
-            if dict_model_key_fields := DICT_MODEL_AGG_MAP.get(field.name):
-                clean_value = self._get_m2m_metadata_dict_model(
-                    value, dict_model_key_fields, md_key
-                )
-            else:
-                clean_value = self._get_m2m_metadata_clean(field, value)
-            if clean_value:
+            clean_method = (
+                self._get_m2m_metadata_dict_model
+                if field.name in DICT_MODEL_AGG_MAP
+                else self._get_m2m_metadata_clean
+            )
+            if clean_value := clean_method(field, value):
                 if field.name not in m2m_md:
                     m2m_md[field.name] = set()
                 m2m_md[field.name] |= clean_value

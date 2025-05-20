@@ -40,11 +40,11 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     volume = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
-    identifiers = IdentifierSeralizer(
-        source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
-    )
     credits = CreditSerializer(
         source=f"{PREFETCH_PREFIX}credits", many=True, allow_null=True
+    )
+    identifiers = IdentifierSeralizer(
+        source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
     )
     story_arc_numbers = StoryArcNumberSerializer(
         source=f"{PREFETCH_PREFIX}story_arc_numbers", many=True, allow_null=True

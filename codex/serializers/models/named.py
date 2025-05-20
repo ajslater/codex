@@ -20,7 +20,7 @@ from codex.models import (
     Tagger,
     Team,
 )
-from codex.models.named import Identifier, IdentifierType
+from codex.models.named import Identifier, IdentifierType, Universe
 from codex.serializers.models.base import BaseModelSerializer
 
 
@@ -30,7 +30,7 @@ class NamedModelSerializer(BaseModelSerializer):
     class Meta(BaseModelSerializer.Meta):
         """Not Abstract."""
 
-        fields = ("pk", "name")
+        fields: tuple[str, ...] = ("pk", "name")
         abstract = True
 
 
@@ -207,3 +207,13 @@ class TeamSerializer(NamedModelSerializer):
         """Configure model."""
 
         model = Team
+
+
+class UniverseSerializer(NamedModelSerializer):
+    """Team model."""
+
+    class Meta(NamedModelSerializer.Meta):
+        """Configure model."""
+
+        model = Universe
+        fields: tuple[str, ...] = ("pk", "name", "designation")

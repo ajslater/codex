@@ -5,12 +5,12 @@ from types import MappingProxyType
 from codex.librarian.importer.const import (
     CREDIT_PERSON_FIELD_NAME,
     CREDIT_ROLE_FIELD_NAME,
-    FKC_CREDITS,
-    FKC_IDENTIFIERS,
-    FKC_STORY_ARC_NUMBERS,
+    DESIGNATION_FIELD_NAME,
     GROUP_MODEL_COUNT_FIELDS,
     IDENTIFIER_CODE_FIELD_NAME,
     IDENTIFIER_TYPE_FIELD_NAME,
+    IDENTIFIER_URL_FIELD_NAME,
+    NAME_FIELD_NAME,
     NUMBER_FIELD_NAME,
     STORY_ARC_FIELD_NAME,
 )
@@ -25,28 +25,32 @@ from codex.models.named import (
     CreditRole,
     Identifier,
     IdentifierType,
+    Universe,
 )
 
 GROUP_BASE_FIELDS = ("name", "sort_name")
 CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
     {
         Credit: (CREDIT_ROLE_FIELD_NAME, CREDIT_PERSON_FIELD_NAME),
-        StoryArcNumber: (STORY_ARC_FIELD_NAME, NUMBER_FIELD_NAME),
         Identifier: (IDENTIFIER_TYPE_FIELD_NAME, IDENTIFIER_CODE_FIELD_NAME),
+        StoryArcNumber: (STORY_ARC_FIELD_NAME, NUMBER_FIELD_NAME),
+        Universe: (DESIGNATION_FIELD_NAME,),
     }
 )
-CREATE_DICT_FUNCTION_ARGS = (
-    (
-        Credit,
-        FKC_CREDITS,
-        {"person": CreditPerson, "role": CreditRole},
-    ),
-    (StoryArcNumber, FKC_STORY_ARC_NUMBERS, {"story_arc": StoryArc}),
-    (
-        Identifier,
-        FKC_IDENTIFIERS,
-        {"identifier_type": IdentifierType, "nss": None, "url": None},
-    ),
+CREATE_DICT_FUNCTION_ARGS = MappingProxyType(
+    {
+        Credit: {
+            CREDIT_PERSON_FIELD_NAME: CreditPerson,
+            CREDIT_ROLE_FIELD_NAME: CreditRole,
+        },
+        Identifier: {
+            IDENTIFIER_TYPE_FIELD_NAME: IdentifierType,
+            IDENTIFIER_CODE_FIELD_NAME: None,
+            IDENTIFIER_URL_FIELD_NAME: None,
+        },
+        StoryArcNumber: {STORY_ARC_FIELD_NAME: StoryArc, NUMBER_FIELD_NAME: None},
+        Universe: {NAME_FIELD_NAME: None, DESIGNATION_FIELD_NAME: None},
+    }
 )
 
 

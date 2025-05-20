@@ -25,7 +25,6 @@ class BrowserFilterChoicesSerializer(Serializer):
     """All dynamic filters."""
 
     age_rating = BooleanField(read_only=True)
-    community_rating = BooleanField(read_only=True)
     characters = BooleanField(read_only=True)
     country = BooleanField(read_only=True)
     critical_rating = BooleanField(read_only=True)
@@ -45,6 +44,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     tagger = BooleanField(read_only=True)
     tags = BooleanField(read_only=True)
     teams = BooleanField(read_only=True)
+    universes = BooleanField(read_only=True)
     year = BooleanField(read_only=True)
 
 
@@ -55,9 +55,6 @@ class BrowserSettingsFilterSerializer(Serializer):
     # Dynamic filters
     age_rating = ListField(child=VuetifyCharField(), required=False, read_only=True)
     characters = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    community_rating = ListField(
-        child=VuetifyFloatField(), required=False, read_only=True
-    )
     country = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     credits = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     critical_rating = ListField(
@@ -86,6 +83,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     tagger = ListField(child=VuetifyCharField(), required=False, read_only=True)
     tags = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     teams = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
+    universes = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     year = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
 
 

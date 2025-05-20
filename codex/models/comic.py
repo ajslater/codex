@@ -60,6 +60,7 @@ from codex.models.named import (
     Tag,
     Tagger,
     Team,
+    Universe,
 )
 
 __all__ = ("Comic",)
@@ -117,6 +118,7 @@ class Comic(WatchedPathBrowserGroup):
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
     publisher = ForeignKey(Publisher, db_index=True, on_delete=CASCADE)
+
     # Other FKs
     age_rating = ForeignKey(AgeRating, db_index=True, null=True, on_delete=CASCADE)
     original_format = ForeignKey(
@@ -124,6 +126,21 @@ class Comic(WatchedPathBrowserGroup):
     )
     scan_info = ForeignKey(ScanInfo, db_index=True, null=True, on_delete=CASCADE)
     tagger = ForeignKey(Tagger, db_index=True, null=True, on_delete=CASCADE)
+    main_character = ForeignKey(
+        Character,
+        db_index=True,
+        null=True,
+        on_delete=CASCADE,
+        related_name="main_character_in_comics",
+    )
+    main_team = ForeignKey(
+        Character,
+        db_index=True,
+        null=True,
+        on_delete=CASCADE,
+        related_name="main_team_in_comics",
+    )
+
     # Alpha2 codes
     country = ForeignKey(Country, db_index=True, null=True, on_delete=CASCADE)
     language = ForeignKey(Language, db_index=True, null=True, on_delete=CASCADE)
@@ -139,9 +156,6 @@ class Comic(WatchedPathBrowserGroup):
     notes = CleaningTextField(default="", db_collation="nocase")
 
     # Ratings
-    community_rating = CoercingDecimalField(
-        db_index=True, decimal_places=2, max_digits=5, default=None, null=True
-    )
     critical_rating = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
@@ -170,6 +184,7 @@ class Comic(WatchedPathBrowserGroup):
     story_arc_numbers = ManyToManyField(StoryArcNumber)
     tags = ManyToManyField(Tag)
     teams = ManyToManyField(Team)
+    universes = ManyToManyField(Universe)
 
     #####################
     # Comicbox Ignored:
@@ -340,6 +355,7 @@ class ComicFTS(BaseModel):
     story_arcs = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     tags = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     teams = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    universes = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
 
     reading_direction = CharField(
         db_collation="nocase", max_length=max_choices_len(ReadingDirection)

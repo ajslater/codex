@@ -4,29 +4,15 @@ from django.db.models import Count, IntegerField, Sum, Value
 
 from codex.models import Comic
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
-
-COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
-    {
-        "created_at",
-        "name",
-        "path",
-        "updated_at",
-    }
+from codex.views.browser.metadata.const import (
+    ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS,
+    COMIC_RELATED_VALUE_FIELDS,
+    COMIC_VALUE_FIELD_NAMES,
+    COMIC_VALUE_FIELDS_CONFLICTING,
+    COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+    PATH_GROUPS,
+    SUM_FIELDS,
 )
-COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-PATH_GROUPS = frozenset({"c", "f"})
-_ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
-_DISABLED_VALUE_FIELD_NAMES = frozenset(
-    {"id", "pk", "sort_name", "stat"} | COMIC_VALUE_FIELDS_CONFLICTING
-)
-_COMIC_VALUE_FIELD_NAMES = frozenset(
-    # contains path
-    field.name
-    for field in Comic._meta.get_fields()
-    if not field.is_relation and field.name not in _DISABLED_VALUE_FIELD_NAMES
-)
-_COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_count"})
-_SUM_FIELDS = frozenset({"page_count", "size"})
 
 
 class MetadataAnnotateView(BrowserAnnotateCardView):
@@ -34,13 +20,13 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
-        fields = set(_COMIC_VALUE_FIELD_NAMES)
+        fields = set(COMIC_VALUE_FIELD_NAMES)
         group = self.kwargs["group"]
         if (
             not (self.is_admin and self.admin_flags["folder_view"])
             or group not in PATH_GROUPS
         ):
-            fields -= _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
+            fields -= ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return tuple(fields)
 
     def _intersection_annotate(
@@ -60,7 +46,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
 
             full_field = self.rel_prefix + field
 
-            if field in _SUM_FIELDS:
+            if field in SUM_FIELDS:
                 val = Sum(full_field)
             else:
                 # group_by makes the filter work, but prevents its
@@ -103,6 +89,6 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
         # Foreign Keys with special count values
         _, qs = self._intersection_annotate(
             querysets,
-            _COMIC_RELATED_VALUE_FIELDS,
+            COMIC_RELATED_VALUE_FIELDS,
         )
         return qs

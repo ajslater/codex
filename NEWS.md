@@ -17,6 +17,8 @@ border-radius: 128px;
   - Uses Comicbox 2.0 see
     [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
   - Logging format changed.
+  - Metadata:
+    - Add Universes, Main Characters, and Main Team
 
 ## v1.7.12
 

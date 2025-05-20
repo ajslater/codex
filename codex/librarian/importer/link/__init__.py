@@ -6,7 +6,6 @@ from django.db.models import Q
 
 from codex.librarian.importer.const import (
     FOLDERS_FIELD,
-    IDENTIFIER_URL_FIELD_NAME,
     M2M_LINK,
 )
 from codex.librarian.importer.link.const import (
@@ -33,14 +32,10 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
     @staticmethod
     def _get_link_dict_filter(field_name, values_set):
         """Get the ids of all dict style objects to link."""
-        dict_filter = Q()
         rels = DICT_MODEL_REL_LINK_MAP[field_name]
+        dict_filter = Q()
         for values in values_set:
-            rel_dict = {
-                key: value
-                for key, value in zip(rels, values, strict=False)
-                if key != IDENTIFIER_URL_FIELD_NAME
-            }
+            rel_dict = dict(zip(rels, values, strict=False))
             dict_filter |= Q(**rel_dict)
         return dict_filter
 

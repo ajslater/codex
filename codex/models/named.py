@@ -32,6 +32,7 @@ __all__ = (
     "Tag",
     "Tagger",
     "Team",
+    "Universe",
 )
 
 
@@ -187,3 +188,9 @@ class Identifier(BaseModel):
     def __str__(self):
         """Represent as a string."""
         return self.name + " " + self.url
+
+
+class Universe(NamedModel):
+    """Universe the comic appears in."""
+
+    designation = CleaningCharField(max_length=MAX_NAME_LEN)

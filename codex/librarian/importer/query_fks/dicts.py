@@ -3,6 +3,7 @@
 from django.db.models import Q
 
 from codex.librarian.importer.const import (
+    DESIGNATION_FIELD_NAME,
     FK_CREATE,
     IDENTIFIER_URL_FIELD_NAME,
     QUERY_MODELS,
@@ -10,7 +11,10 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.query_fks.const import DICT_MODEL_REL_MAP
 from codex.librarian.importer.query_fks.groups import QueryForeignKeysGroupsImporter
-from codex.models.named import Identifier
+from codex.models.named import Identifier, Universe
+
+_UNQUERIED_FIELD_MODELS = frozenset({Identifier, Universe})
+_UNQUERIED_FIELDS = frozenset({IDENTIFIER_URL_FIELD_NAME, DESIGNATION_FIELD_NAME})
 
 
 class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
@@ -21,40 +25,43 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
         query_model: DictModelType,
         dict_values: tuple,
         possible_create_objs: set[tuple],
-        url_restore_map: dict,
+        unqueried_field_restore_map: dict,
     ):
         """Add value filter to query filter map."""
         query_rels = DICT_MODEL_REL_MAP[query_model]
         filter_dict = {}
-        for rel, value in zip(query_rels, dict_values, strict=True):
-            if rel == IDENTIFIER_URL_FIELD_NAME:
-                url_restore_map[dict_values[0:1]] = value
+        for rel, value in zip(query_rels, dict_values, strict=False):
+            if rel in _UNQUERIED_FIELDS:
+                if query_model not in unqueried_field_restore_map:
+                    unqueried_field_restore_map[query_model] = {}
+                if rel == IDENTIFIER_URL_FIELD_NAME:
+                    key = dict_values[0:1]
+                else:  # DESIGNATION_FIELD_NAME
+                    key = dict_values[0]
+                unqueried_field_restore_map[query_model][key] = value
             elif value is None:
                 filter_dict[f"{rel}__isnull"] = True
             else:
                 filter_dict[rel] = value
-
         possible_create_objs.add(dict_values)
         return Q(**filter_dict)
 
     @staticmethod
-    def _query_missing_dict_model_identifiers_restore_urls(
+    def _query_missing_dict_model_identifiers_restore_unqueried_field(
         query_model: DictModelType,
         possible_create_objs: set[tuple],
-        url_restore_map: dict,
+        unqueried_field_restore_map: dict,
     ):
         """Restore urls to only the identifier create objs."""
-        if query_model != Identifier:
+        if query_model not in _UNQUERIED_FIELD_MODELS:
             return possible_create_objs
-        restored_create_objs = []
+        restored_create_objs = set()
         for create_obj in possible_create_objs:
-            url = url_restore_map.get(create_obj)
-            restored_create_objs.append((*create_obj, url))
-        return restored_create_objs
+            value = unqueried_field_restore_map.get(query_model, {}).get(create_obj)
+            restored_create_objs.add((*create_obj, value))
+        return frozenset(restored_create_objs)
 
-    def query_missing_dict_model(
-        self, query_model: DictModelType, create_objs_key: str, status
-    ):
+    def query_missing_dict_model(self, query_model: DictModelType, status):
         """Find missing dict type m2m models."""
         possible_objs = self.metadata[QUERY_MODELS].pop(query_model, None)
         if not possible_objs:
@@ -64,13 +71,13 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
         # identifiers to be created, but not queried against
         possible_create_objs = set()
         query_filter = Q()
-        url_restore_map = {}
+        unqeueried_field_restore_map = {}
         for values in possible_objs:
             query_filter |= self._query_missing_dict_model_add_to_query_filter_map(
                 query_model,
                 values,
                 possible_create_objs,
-                url_restore_map,
+                unqeueried_field_restore_map,
             )
 
         # Finally run the query and get only the correct create_objs
@@ -82,16 +89,20 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
             status,
         )
 
-        possible_create_objs = self._query_missing_dict_model_identifiers_restore_urls(
-            query_model, possible_create_objs, url_restore_map
+        possible_create_objs = (
+            self._query_missing_dict_model_identifiers_restore_unqueried_field(
+                query_model, possible_create_objs, unqeueried_field_restore_map
+            )
         )
 
         # Final Cleanup
-        self.metadata[FK_CREATE][create_objs_key].update(possible_create_objs)
-        count = len(self.metadata[FK_CREATE][create_objs_key])
+        if query_model not in self.metadata[FK_CREATE]:
+            self.metadata[FK_CREATE][query_model] = set()
+        self.metadata[FK_CREATE][query_model] |= possible_create_objs
+        count = len(self.metadata[FK_CREATE][query_model])
         if count:
             vnp = query_model._meta.verbose_name_plural
-            vnp = vnp.title() if vnp else "Nothings"
+            vnp = vnp.title() if vnp else query_model._meta.verbose_name
             self.log.info(f"Prepared {count} new {vnp}.")
         status.add_complete(count)
         self.status_controller.update(status)

@@ -1,27 +1,18 @@
 """Metadata query fk & m2m intersections."""
 
-from types import MappingProxyType
-
 from django.db.models import Count
+from icecream import ic
 
-from codex.librarian.importer.const import COMIC_M2M_FIELDS
+from codex.librarian.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIELDS
 from codex.models import Comic
 from codex.models.functions import JsonGroupArray
-from codex.models.groups import Imprint, Publisher, Series, Volume
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
-from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
-
-_CREDIT_RELATIONS = ("role", "person")
-_GROUP_MODELS = MappingProxyType(
-    {
-        "i": (Publisher,),
-        "s": (Publisher, Imprint),
-        "v": (Publisher, Imprint, Series),
-        "c": (Publisher, Imprint, Series, Volume),
-        "f": (Publisher, Imprint, Series, Volume),
-        "a": (Publisher, Imprint, Series, Volume),
-    }
+from codex.views.browser.metadata.const import (
+    COMIC_FK_MAIN_FIELDS,
+    GROUP_MODELS,
+    M2M_QUERY_OPTIMIZERS,
 )
+from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
 
 
 class MetadataQueryIntersectionsView(MetadataAnnotateView):
@@ -40,7 +31,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         pks = self.kwargs["pks"]
         group_filter = {rel: pks}
 
-        for model in _GROUP_MODELS.get(group, ()):
+        for model in GROUP_MODELS.get(group, ()):
             field_name = MODEL_REL_MAP[model]
             qs = model.objects.filter(**group_filter)
             qs = qs.only("name").distinct()
@@ -51,19 +42,14 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         return groups
 
     @staticmethod
-    def _get_optimized_m2m_query(key, qs):
-        if key == "credits":
-            qs = qs.prefetch_related(*_CREDIT_RELATIONS)
-            qs = qs.only(*_CREDIT_RELATIONS)
-        elif key == "story_arc_numbers":
-            qs = qs.select_related("story_arc")
-            qs = qs.only("story_arc", "number")
-        elif key == "identifiers":
-            qs = qs.select_related("identifier_type")
-            qs = qs.only("identifier_type", "nss", "url")
-        else:
-            qs = qs.only("name")
-        return qs
+    def _get_optimized_m2m_query(qs):
+        optimizers = M2M_QUERY_OPTIMIZERS.get(qs.model, {})
+        if prefetch := optimizers.get("prefetch"):
+            qs = qs.prefetch_related(*prefetch)
+        if select := optimizers.get("select"):
+            qs = qs.select_related(*select)
+        only = optimizers.get("only", ("name",))
+        return qs.only(*only)
 
     def _get_m2m_intersection_query(self, field_name, comic_pks, comic_pks_count):
         """Get intersection query for one field."""
@@ -76,7 +62,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
             count=comic_pks_count
         )
-        return self._get_optimized_m2m_query(field_name, intersection_qs)
+        return self._get_optimized_m2m_query(intersection_qs)
 
     def _query_m2m_intersections(self, filtered_qs):
         """Query the through models to figure out m2m intersections."""
@@ -93,10 +79,62 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             m2m_intersections[field.name] = self._get_m2m_intersection_query(
                 field.name, comic_pks, comic_pks_count
             )
+            ic(field.name, m2m_intersections[field.name].values())
         return m2m_intersections
+
+    def _get_fk_intersection_query(
+        self, field_name, comic_pks, comic_pks_count, back_rel=None
+    ):
+        """Get intersection query for one field."""
+        model = Comic._meta.get_field(field_name).related_model
+        if not model:
+            reason = f"No model found for comic field: {field_name}"
+            raise ValueError(reason)
+
+        rel = back_rel + "__in" if back_rel else "comic__pk__in"
+        intersection_qs = model.objects.filter(**{rel: comic_pks})
+        intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
+            count=comic_pks_count
+        )
+        return intersection_qs.only("name")
+
+    def _query_fk_intersections(self, filtered_qs):
+        fk_intersections = {}
+        pk_field = self.rel_prefix + "pk"
+        comic_pks = filtered_qs.distinct().values_list(pk_field, flat=True)
+        # In fts mode the join doesn't work for the query.
+        # Evaluating it now is probably faster than running the filter for every m2m anyway.
+        comic_pks = set(comic_pks)
+        comic_pks_count = len(comic_pks)
+
+        for field in COMIC_FK_FIELDS:
+            if field.name in ("main_character", "main_team"):
+                continue
+            fk_intersections[field.name] = self._get_fk_intersection_query(
+                field.name, comic_pks, comic_pks_count
+            )
+        return fk_intersections
+
+    def _query_fk_main_intersections(self, filtered_qs):
+        fk_intersections = {}
+        pk_field = self.rel_prefix + "pk"
+        comic_pks = filtered_qs.distinct().values_list(pk_field, flat=True)
+        # In fts mode the join doesn't work for the query.
+        # Evaluating it now is probably faster than running the filter for every m2m anyway.
+        comic_pks = set(comic_pks)
+        comic_pks_count = len(comic_pks)
+
+        for field, back_rel in COMIC_FK_MAIN_FIELDS.items():
+            fk_intersections[field.name] = self._get_fk_intersection_query(
+                field.name, comic_pks, comic_pks_count, back_rel
+            )
+        return fk_intersections
 
     def query_intersections(self, filtered_qs):
         """Query complex intersections."""
         groups = self._query_groups()
+        fk_intersections = self._query_fk_intersections(filtered_qs)
+        fk_main_intersections = self._query_fk_main_intersections(filtered_qs)
+        fk_intersections.update(fk_main_intersections)
         m2m_intersections = self._query_m2m_intersections(filtered_qs)
-        return groups, m2m_intersections
+        return groups, fk_intersections, m2m_intersections

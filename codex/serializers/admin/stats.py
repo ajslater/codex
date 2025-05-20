@@ -90,6 +90,7 @@ class StatsComicMetadataSerializer(Serializer):
     tag_count = IntegerField(required=False, read_only=True)
     tagger_count = IntegerField(required=False, read_only=True)
     team_count = IntegerField(required=False, read_only=True)
+    universe_count = IntegerField(required=False, read_only=True)
 
 
 class StatsSerializer(Serializer):

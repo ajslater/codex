@@ -33,7 +33,6 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     {
         "age_rating": Avg,
         "child_count": Min,
-        "community_rating": Avg,
         "created_at": Min,
         "critical_rating": Avg,
         "date": Min,

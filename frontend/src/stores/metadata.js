@@ -56,28 +56,23 @@ Object.freeze(HEAD_ROLES);
 const TAGS = [
   "genres",
   "characters",
+  // identifiers
   "teams",
   "locations",
   "seriesGroups",
   "stories",
   "storyArcNumbers",
   "tags",
+  "universes",
 ];
 Object.freeze(TAGS);
+const MAIN_TAGS = new Set(["Characters", "Teams"]);
+Object.freeze(MAIN_TAGS);
 
 function compareByLastName(a, b) {
   const aLast = a.name.split(" ").pop();
   const bLast = b.name.split(" ").pop();
   return aLast.localeCompare(bLast);
-}
-
-function renameKey(obj, oldKey, newKey) {
-  const desc = Object.getOwnPropertyDescriptor(obj, oldKey);
-  if (!desc) {
-    return;
-  }
-  Object.defineProperty(obj, newKey, desc);
-  delete obj[oldKey];
 }
 
 export const useMetadataStore = defineStore("metadata", {
@@ -150,14 +145,12 @@ export const useMetadataStore = defineStore("metadata", {
     tags(state) {
       const tags = state.mapTag(state.md, TAGS);
 
-      renameKey(tags, "Story Arc Numbers", "Story Arcs");
       if (state.identifiers?.length) {
         tags["Identifiers"] = {
           filter: "identifiers",
           tags: this.identifiers,
         };
       }
-
       for (const [tagName, tagObj] of Object.entries(tags)) {
         tagObj.tags = tagObj.tags.sort((a, b) => a.name.localeCompare(b.name));
       }
@@ -181,6 +174,34 @@ export const useMetadataStore = defineStore("metadata", {
     clearMetadata() {
       this.md = undefined;
     },
+    getTagName(key) {
+      var tagName;
+      if (key === "storyArcNumbers") {
+        tagName = "Story Arcs";
+      } else {
+        tagName = capitalCase(key);
+      }
+      return tagName;
+    },
+    labelUniverses(tags) {
+      for (const tag of tags) {
+        tag.name += ` (${tag.designation})`;
+      }
+    },
+    markTagMain(tagName, tags) {
+      const attr = "main" + tagName.slice(0, -1);
+      const mainPk = this.md[attr]?.pk;
+      const regularTags = [];
+      var mainTags = [];
+      for (const tag of tags) {
+        if (mainPk === tag.pk) {
+          mainTags.push(tag);
+        } else {
+          regularTags.push(tag);
+        }
+      }
+      return { mainTags, regularTags };
+    },
     mapTag(tagSource, keys) {
       const tagMap = {};
 
@@ -189,8 +210,20 @@ export const useMetadataStore = defineStore("metadata", {
         if (!tags?.length) {
           continue;
         }
-        const tagName = capitalCase(key);
-        tagMap[tagName] = { filter: key, tags };
+        const tagName = this.getTagName(key);
+
+        var mainTags = [];
+        var regularTags = [];
+        if (tagName === "Universes") {
+          this.labelUniverses(tags);
+          regularTags = tags;
+        } else if (MAIN_TAGS.has(tagName)) {
+          ({ mainTags, regularTags } = this.markTagMain(tagName, tags));
+        } else {
+          regularTags = tags;
+        }
+
+        tagMap[tagName] = { filter: key, tags: regularTags, mainTags };
       }
       return tagMap;
     },

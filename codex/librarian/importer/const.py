@@ -7,16 +7,18 @@ from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
 from codex.models import (
+    Character,
     Comic,
     Folder,
     Imprint,
     Publisher,
     Series,
     StoryArc,
+    Team,
     Volume,
 )
 from codex.models.groups import BrowserGroupModel
-from codex.models.named import Credit, Identifier, StoryArcNumber
+from codex.models.named import Credit, Identifier, StoryArcNumber, Universe
 from codex.models.paths import CustomCover
 
 ###############
@@ -46,9 +48,6 @@ FK_CREATE = "fk_create"
 COVERS_UPDATE = "covers_update"
 COVERS_CREATE = "covers_create"
 LINK_COVER_PKS = "link_cover_pks"
-FKC_CREDITS = "create_credits"
-FKC_STORY_ARC_NUMBERS = "create_story_arc_numbers"
-FKC_IDENTIFIERS = "create_identifiers"
 FKC_CREATE_GROUPS = "create_groups"
 FKC_UPDATE_GROUPS = "update_groups"
 FKC_CREATE_FKS = "create_fks"
@@ -68,25 +67,27 @@ COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[report
     # Leaves out folders.
     field
     for field in Comic._meta.get_fields()
-    if field.many_to_many and field.name != "folders"
+    if field.many_to_many and field.name != FOLDERS_FIELD
 )
 
 
 #################
 # DICT METADATA #
 #################
-DictModelType = type[Credit] | type[StoryArcNumber] | type[Identifier]
+DictModelType = type[Credit | Identifier | StoryArcNumber | Universe]
 CREDITS_FIELD_NAME = "credits"
 CREDIT_PERSON_FIELD_NAME = "person"
 CREDIT_ROLE_FIELD_NAME = "role"
 STORY_ARC_NUMBERS_FIELD_NAME = "story_arc_numbers"
-_STORY_ARC_NUMBER_FK_NAME = "story_arc_number"
 STORY_ARC_FIELD_NAME = "story_arc"
 NUMBER_FIELD_NAME = "number"
 IDENTIFIERS_FIELD_NAME = "identifiers"
 IDENTIFIER_TYPE_FIELD_NAME = "identifier_type"
 IDENTIFIER_CODE_FIELD_NAME = "nss"
 IDENTIFIER_URL_FIELD_NAME = "url"
+UNIVERSES_FIELD_NAME = "universes"
+NAME_FIELD_NAME = "name"
+DESIGNATION_FIELD_NAME = "designation"
 
 ########################
 # QUERY AND CREATE FKS #
@@ -99,6 +100,9 @@ COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
     and field.name != "library"
     and field.related_model
     and not issubclass(field.related_model, BrowserGroupModel)
+)
+PROTAGONIST_FIELD_MODEL_MAP = MappingProxyType(
+    {"main_character": Character, "main_team": Team}
 )
 
 #################

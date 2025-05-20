@@ -1,10 +1,17 @@
 <template>
   <v-table v-if="show">
     <tbody>
-      <tr v-for="[key, { filter, tags }] of Object.entries(tagMap)" :key="key">
+      <tr
+        v-for="[key, { filter, tags, mainTags }] of Object.entries(tagMap)"
+        :key="key"
+      >
         <td class="key">{{ key }}</td>
         <td class="tags">
-          <MetadataTags :filter="filter" :values="tags" />
+          <MetadataTags
+            :filter="filter"
+            :values="tags"
+            :mainValues="mainTags"
+          />
         </td>
       </tr>
     </tbody>

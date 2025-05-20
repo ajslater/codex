@@ -32,11 +32,9 @@ _UNUSED_COMICBOX_FIELDS = (
     "ext",
     "manga",
     "pages",
-    "prices",  # add
-    "protagonist",  # add
+    "prices",
     "remainders",
-    "reprints",  # add
-    "universes",  # add
+    "reprints",
     "updated_at",
 )
 

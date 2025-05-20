@@ -18,7 +18,6 @@ import { useBrowserStore } from "@/stores/browser";
 const REVERSE_BY_DEFAULT = new Set([
   "bookmark_updated_at",
   "child_count",
-  "community_rating",
   "created_at",
   "critical_rating",
   "page_count",

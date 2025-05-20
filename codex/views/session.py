@@ -22,7 +22,6 @@ _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
         "characters": [],
         "country": [],
         CREDIT_PERSON_UI_FIELD: [],
-        "community_rating": [],
         "critical_rating": [],
         "decade": [],
         "file_type": [],

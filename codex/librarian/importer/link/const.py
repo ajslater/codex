@@ -13,23 +13,21 @@ from codex.librarian.importer.const import (
     NUMBER_FIELD_NAME,
     STORY_ARC_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
+    UNIVERSES_FIELD_NAME,
 )
-from codex.models import (
-    Credit,
-    StoryArcNumber,
-)
-from codex.models.named import Identifier
+from codex.models.named import Credit, Identifier, StoryArcNumber, Universe
 
 DICT_MODEL_FIELD_NAME_CLASS_MAP = (
     (CREDITS_FIELD_NAME, Credit),
     (STORY_ARC_NUMBERS_FIELD_NAME, StoryArcNumber),
     (IDENTIFIERS_FIELD_NAME, Identifier),
+    (UNIVERSES_FIELD_NAME, Universe),
 )
 DICT_MODEL_REL_LINK_MAP = MappingProxyType(
     {
         CREDITS_FIELD_NAME: (
+            f"{CREDIT_PERSON_FIELD_NAME}__name",
             f"{CREDIT_ROLE_FIELD_NAME}__name",
-            f"{CREDIT_PERSON_FIELD_NAME}__name__in",
         ),
         STORY_ARC_NUMBERS_FIELD_NAME: (
             f"{STORY_ARC_FIELD_NAME}__name",
@@ -39,6 +37,8 @@ DICT_MODEL_REL_LINK_MAP = MappingProxyType(
             f"{IDENTIFIER_TYPE_FIELD_NAME}__name",
             IDENTIFIER_CODE_FIELD_NAME,
         ),
+        # TODO remove and use link_named_m2ms
+        UNIVERSES_FIELD_NAME: (),
     }
 )
 COMIC_FK_FIELD_NAME_AND_MODEL = MappingProxyType(

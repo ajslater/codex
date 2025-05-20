@@ -1,11 +1,15 @@
 """Bulk update m2m fields foreign keys."""
 
+from contextlib import suppress
 from pathlib import Path
+
+from comicbox.schemas.comicbox import PROTAGONIST_KEY
 
 from codex.librarian.importer.const import (
     FK_LINK,
     IMPRINT,
     PARENT_FOLDER,
+    PROTAGONIST_FIELD_MODEL_MAP,
     PUBLISHER,
     SERIES,
     VOLUME,
@@ -29,8 +33,7 @@ class LinkComicForiegnKeysImporter(LinkCoversImporter):
         field_name = group_class.__name__.lower()
         return self.metadata[FK_LINK][path].pop(field_name, group_class.DEFAULT_NAME)
 
-    def get_comic_fk_links(self, md, path):
-        """Get links for all foreign keys for creating and updating."""
+    def _get_comic_group_fk_links(self, md, path):
         publisher_name = self._get_group_name(path, Publisher)
         imprint_name = self._get_group_name(path, Imprint)
         series_name = self._get_group_name(path, Series)
@@ -48,9 +51,33 @@ class LinkComicForiegnKeysImporter(LinkCoversImporter):
             series__name=series_name,
             name=volume_name,
         )
+
+    def _get_comic_folder_fk_link(self, md, path):
         parent_path = Path(path).parent
         md[PARENT_FOLDER] = Folder.objects.get(path=parent_path)
+
+    def _get_comic_protagonist_fk_link(self, md, path):
+        """Protagonist does not create. Only links."""
+        name = self.metadata[FK_LINK][path].pop(PROTAGONIST_KEY, None)
+        if not name:
+            return
+        for (
+            protagonist_field_name,
+            protagonist_model,
+        ) in PROTAGONIST_FIELD_MODEL_MAP.items():
+            with suppress(protagonist_model.DoesNotExist):
+                md[protagonist_field_name] = protagonist_model.objects.get(name=name)
+                break
+
+    def _get_comic_simple_fk_links(self, md, path):
         for field_name, fk_model in COMIC_FK_FIELD_NAME_AND_MODEL.items():
             if name := self.metadata[FK_LINK][path].pop(field_name, None):
                 md[field_name] = fk_model.objects.get(name=name)
         self.metadata[FK_LINK].pop(path)
+
+    def get_comic_fk_links(self, md, path):
+        """Get links for all foreign keys for creating and updating."""
+        self._get_comic_group_fk_links(md, path)
+        self._get_comic_folder_fk_link(md, path)
+        self._get_comic_protagonist_fk_link(md, path)
+        self._get_comic_simple_fk_links(md, path)

@@ -24,7 +24,10 @@
       </div>
       <div class="thirdRow">
         <MetadataText label="Reading Direction" :value="readingDirectionText" />
-        <MetadataText :value="md.original_format" label="Original Format" />
+        <MetadataText
+          :value="md.originalFormat?.name"
+          label="Original Format"
+        />
         <MetadataText
           :value="Boolean(md.monochrome).toString()"
           label="Monochrome"
@@ -39,8 +42,8 @@
       </div>
     </section>
     <section v-if="md?.country || md?.language" class="halfRow mdSection">
-      <MetadataText :value="md.country" label="Country" />
-      <MetadataText :value="md.language" label="Language" />
+      <MetadataText :value="md.country?.name" label="Country" />
+      <MetadataText :value="md.language?.name" label="Language" />
     </section>
     <MetadataRatings class="mdSection" />
     <MetadataTagsTable :tag-map="tags" class="mdSection" />

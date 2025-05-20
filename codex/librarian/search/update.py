@@ -6,7 +6,8 @@ from time import time
 from zoneinfo import ZoneInfo
 
 from django.db.models.aggregates import Max
-from django.db.models.expressions import F
+from django.db.models.expressions import F, Value
+from django.db.models.functions import Concat
 from django.db.models.functions.datetime import Now
 from humanize import intword, naturaldelta
 
@@ -49,6 +50,7 @@ _COMICFTS_UPDATE_FIELDS = (
     "story_arcs",
     "tags",
     "teams",
+    "universes",
     # Base
     "updated_at",
 )
@@ -101,6 +103,11 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             ),
             fts_tags=GroupConcat("tags__name", distinct=True),
             fts_teams=GroupConcat("teams__name", distinct=True),
+            fts_universes=Concat(
+                GroupConcat("universes__name", distinct=True),
+                Value(" "),
+                GroupConcat("universes__designation", distinct=True),
+            ),
         )
 
     @staticmethod
@@ -148,6 +155,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
                 story_arcs=comic.fts_story_arcs,
                 tags=comic.fts_tags,
                 teams=comic.fts_teams,
+                universes=comic.fts_universes,
             )
             if create:
                 comicfts.created_at = now

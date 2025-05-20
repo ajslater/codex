@@ -5,6 +5,13 @@
     </div>
     <div>
       <MetadataChip
+        v-for="item in mainItems"
+        :key="`${filter}/${item.value}`"
+        :filter="filter"
+        :item="item"
+        :main="true"
+      />
+      <MetadataChip
         v-for="item in items"
         :key="`${filter}/${item.value}`"
         :filter="filter"
@@ -32,6 +39,12 @@ export default {
         return [];
       },
     },
+    mainValues: {
+      type: Array,
+      default() {
+        return [];
+      },
+    },
     filter: {
       type: String,
       required: false,
@@ -39,6 +52,9 @@ export default {
     },
   },
   computed: {
+    mainItems() {
+      return toVuetifyItems({ items: this.mainValues, sort: false });
+    },
     items() {
       return toVuetifyItems({ items: this.values, sort: false });
     },

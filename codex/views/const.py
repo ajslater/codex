@@ -35,6 +35,7 @@ from codex.models import (
     Tag,
     Tagger,
     Team,
+    Universe,
     Volume,
 )
 from codex.settings import CODEX_PATH
@@ -124,6 +125,9 @@ METADATA_MODELS = (
     AgeRating,
     Character,
     Country,
+    Credit,
+    CreditPerson,
+    CreditRole,
     Genre,
     Identifier,
     IdentifierType,
@@ -137,9 +141,7 @@ METADATA_MODELS = (
     Team,
     Tag,
     Tagger,
-    Credit,
-    CreditPerson,
-    CreditRole,
+    Universe,
 )
 CONFIG_MODELS = (
     Library,

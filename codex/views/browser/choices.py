@@ -35,13 +35,13 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
             "credits__person",
             CreditPerson,
         ),
-        STORY_ARC_UI_FIELD: (
-            "story_arc_numbers__story_arc",
-            StoryArc,
-        ),
         IDENTIFIER_TYPE_UI_FIELD: (
             "identifiers__identifier_type",
             IdentifierType,
+        ),
+        STORY_ARC_UI_FIELD: (
+            "story_arc_numbers__story_arc",
+            StoryArc,
         ),
     }
 )

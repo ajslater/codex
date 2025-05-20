@@ -38,7 +38,6 @@ FIELDMAP = MappingProxyType(
         "characters": _get_fieldmap_values(
             "category", "categories", multipart=["characters"]
         ),
-        "community_rating": _get_fieldmap_values(multipart=["community_rating"]),
         "credits": _get_fieldmap_values(
             multipart=(
                 "authors",
