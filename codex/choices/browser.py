@@ -15,7 +15,6 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "created_at": "Added Time",
         "age_rating": "Age Rating",
         "child_count": "Child Count",
-        "community_rating": "Community Rating",
         "critical_rating": "Critical Rating",
         "filename": "Filename",
         "size": "File Size",

@@ -9,7 +9,7 @@ _REVERSE_TYPE_MAP = MappingProxyType(
         "Boolean": ["monochrome"],
         "Date": ["date"],
         "DateTime": ["create_at", "updated_at"],
-        "Decimal": ["community_rating", "critical_rating", "issue_number"],
+        "Decimal": ["critical_rating", "issue_number"],
         "Integer": ["day", "month", "year", "page_count", "size", "decade"],
     }
 )
