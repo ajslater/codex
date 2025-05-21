@@ -38,6 +38,7 @@ _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
         "tagger": [],
         "tags": [],
         "teams": [],
+        "universes": [],
         "year": [],
     }
 )
