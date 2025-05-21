@@ -9,16 +9,13 @@ from codex.librarian.importer.const import (
     M2M_LINK,
 )
 from codex.librarian.importer.link.const import (
-    DICT_MODEL_FIELD_NAME_CLASS_MAP,
-    DICT_MODEL_REL_LINK_MAP,
+    COMPLEX_MODEL_FIELD_NAME_CLASS_MAP,
+    COMPLEX_MODEL_REL_LINK_MAP,
 )
 from codex.librarian.importer.link.foreign_keys import LinkComicForiegnKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
-from codex.models import (
-    Comic,
-    Folder,
-)
+from codex.models import Comic, Folder
 
 
 class LinkComicsImporter(LinkComicForiegnKeysImporter):
@@ -30,16 +27,16 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         return Q(path__in=folder_paths)
 
     @staticmethod
-    def _get_link_dict_filter(field_name, values_set):
+    def _get_link_complex_model_filter(field_name, values_set):
         """Get the ids of all dict style objects to link."""
-        rels = DICT_MODEL_REL_LINK_MAP[field_name]
+        rels = COMPLEX_MODEL_REL_LINK_MAP[field_name]
         dict_filter = Q()
         for values in values_set:
-            rel_dict = dict(zip(rels, values, strict=False))
-            dict_filter |= Q(**rel_dict)
+            rel_complex = dict(zip(rels, values, strict=False))
+            dict_filter |= Q(**rel_complex)
         return dict_filter
 
-    def _link_prepare_special_m2ms(  # noqa: PLR0913
+    def _link_prepare_compex_models(  # noqa: PLR0913
         self, all_m2m_links, md, comic_pk, key, model, link_filter_method
     ):
         """Prepare special m2m for linking."""
@@ -84,7 +81,7 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = self.metadata[M2M_LINK][comic_path]
-            self._link_prepare_special_m2ms(
+            self._link_prepare_compex_models(
                 all_m2m_links,
                 md,
                 comic_pk,
@@ -92,14 +89,14 @@ class LinkComicsImporter(LinkComicForiegnKeysImporter):
                 Folder,
                 self._get_link_folders_filter,
             )
-            for field_name, model in DICT_MODEL_FIELD_NAME_CLASS_MAP:
-                self._link_prepare_special_m2ms(
+            for field_name, model in COMPLEX_MODEL_FIELD_NAME_CLASS_MAP:
+                self._link_prepare_compex_models(
                     all_m2m_links,
                     md,
                     comic_pk,
                     field_name,
                     model,
-                    self._get_link_dict_filter,
+                    self._get_link_complex_model_filter,
                 )
 
             total += self._link_named_m2ms(all_m2m_links, comic_pk, md)

@@ -13,7 +13,7 @@ from codex.librarian.importer.const import (
     GROUP_MODEL_COUNT_FIELDS,
     QUERY_MODELS,
 )
-from codex.librarian.importer.query_fks.const import DICT_MODEL_REL_MAP
+from codex.librarian.importer.query_fks.const import COMPLEX_M2M_MODEL_REL_MAP
 from codex.librarian.importer.query_fks.folders import QueryForeignKeysFoldersImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
@@ -50,8 +50,8 @@ class QueryForeignKeysImporter(QueryForeignKeysFoldersImporter):
         status = Status(ImportStatusTypes.QUERY_MISSING_TAGS)
         try:
             self.status_controller.start(status)
-            for query_model in DICT_MODEL_REL_MAP:
-                self.query_missing_dict_model(
+            for query_model in COMPLEX_M2M_MODEL_REL_MAP:
+                self.query_missing_complex_model(
                     query_model,
                     status,
                 )

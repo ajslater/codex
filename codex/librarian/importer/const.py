@@ -71,9 +71,9 @@ COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[report
 )
 
 
-#################
-# DICT METADATA #
-#################
+########################
+# COMPLEX M2M METADATA #
+########################
 DictModelType = type[Credit | Identifier | StoryArcNumber | Universe]
 CREDITS_FIELD_NAME = "credits"
 CREDIT_PERSON_FIELD_NAME = "person"

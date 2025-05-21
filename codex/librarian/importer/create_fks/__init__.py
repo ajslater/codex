@@ -14,8 +14,8 @@ from codex.librarian.importer.const import (
     DictModelType,
 )
 from codex.librarian.importer.create_fks.const import (
-    CREATE_DICT_FUNCTION_ARGS,
-    CREATE_DICT_UPDATE_FIELDS,
+    CREATE_COMPLEX_FUNCTION_ARGS,
+    CREATE_COMPLEX_UPDATE_FIELDS,
     GROUP_BASE_FIELDS,
     NAMED_MODEL_UPDATE_FIELDS,
 )
@@ -62,7 +62,7 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
         status.add_complete(count)
         self.status_controller.update(status)
 
-    def _bulk_create_dict_models(
+    def _bulk_create_complex_models(
         self,
         create_args_dict: dict,
         model: DictModelType,
@@ -91,7 +91,7 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
         model.objects.bulk_create(
             create_objs,
             update_conflicts=True,
-            update_fields=CREATE_DICT_UPDATE_FIELDS[model],
+            update_fields=CREATE_COMPLEX_UPDATE_FIELDS[model],
             unique_fields=model._meta.unique_together[0],
         )
         count = len(create_objs)
@@ -128,8 +128,8 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
                 self._bulk_create_named_models(named_class, names, status)
 
             # These all depend on bulk_create_named_models running first
-            for model, create_args_dict in CREATE_DICT_FUNCTION_ARGS.items():
-                self._bulk_create_dict_models(
+            for model, create_args_dict in CREATE_COMPLEX_FUNCTION_ARGS.items():
+                self._bulk_create_complex_models(
                     create_args_dict,
                     model,
                     status,

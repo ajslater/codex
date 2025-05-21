@@ -40,7 +40,7 @@ FIELD_NAME_TO_MD_KEY_MAP = MappingProxyType(
         STORY_ARC_NUMBERS_FIELD_NAME: ARCS_KEY,
     }
 )
-DICT_MODEL_AGG_MAP: MappingProxyType[str, dict[str, DeferredAttribute]] = (  # pyright: ignore[reportAssignmentType]
+DICT_FIELD_AGG_MAP: MappingProxyType[str, dict[str, DeferredAttribute]] = (  # pyright: ignore[reportAssignmentType]
     MappingProxyType(
         {
             CREDITS_FIELD_NAME: {ROLES_KEY: CreditRole.name},

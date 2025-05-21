@@ -26,26 +26,28 @@ from codex.models.named import (
     Universe,
 )
 
-DICT_MODEL_REL_MAP: MappingProxyType[DictModelType, tuple[str, ...]] = MappingProxyType(
-    {
-        Credit: (
-            f"{CREDIT_PERSON_FIELD_NAME}__name",
-            f"{CREDIT_ROLE_FIELD_NAME}__name",
-        ),
-        Identifier: (
-            f"{IDENTIFIER_TYPE_FIELD_NAME}__name",
-            IDENTIFIER_CODE_FIELD_NAME,
-            IDENTIFIER_URL_FIELD_NAME,
-        ),
-        StoryArcNumber: (
-            f"{STORY_ARC_FIELD_NAME}__name",
-            NUMBER_FIELD_NAME,
-        ),
-        Universe: (
-            NAME_FIELD_NAME,
-            DESIGNATION_FIELD_NAME,
-        ),
-    }
+COMPLEX_M2M_MODEL_REL_MAP: MappingProxyType[DictModelType, tuple[str, ...]] = (
+    MappingProxyType(
+        {
+            Credit: (
+                f"{CREDIT_PERSON_FIELD_NAME}__name",
+                f"{CREDIT_ROLE_FIELD_NAME}__name",
+            ),
+            Identifier: (
+                f"{IDENTIFIER_TYPE_FIELD_NAME}__name",
+                IDENTIFIER_CODE_FIELD_NAME,
+                IDENTIFIER_URL_FIELD_NAME,
+            ),
+            StoryArcNumber: (
+                f"{STORY_ARC_FIELD_NAME}__name",
+                NUMBER_FIELD_NAME,
+            ),
+            Universe: (
+                NAME_FIELD_NAME,
+                DESIGNATION_FIELD_NAME,
+            ),
+        }
+    )
 )
 GROUP_COMPARE_FIELDS: MappingProxyType[type[BrowserGroupModel], tuple[str, ...]] = (
     MappingProxyType(

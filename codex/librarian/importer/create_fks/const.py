@@ -29,7 +29,7 @@ from codex.models.named import (
 )
 
 GROUP_BASE_FIELDS = ("name", "sort_name")
-CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
+CREATE_COMPLEX_UPDATE_FIELDS = MappingProxyType(
     {
         Credit: (CREDIT_ROLE_FIELD_NAME, CREDIT_PERSON_FIELD_NAME),
         Identifier: (IDENTIFIER_TYPE_FIELD_NAME, IDENTIFIER_CODE_FIELD_NAME),
@@ -37,7 +37,7 @@ CREATE_DICT_UPDATE_FIELDS = MappingProxyType(
         Universe: (DESIGNATION_FIELD_NAME,),
     }
 )
-CREATE_DICT_FUNCTION_ARGS = MappingProxyType(
+CREATE_COMPLEX_FUNCTION_ARGS = MappingProxyType(
     {
         Credit: {
             CREDIT_PERSON_FIELD_NAME: CreditPerson,

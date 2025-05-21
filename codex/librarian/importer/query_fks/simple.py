@@ -7,13 +7,15 @@ from codex.librarian.importer.const import (
     FKC_CREATE_FKS,
     QUERY_MODELS,
 )
-from codex.librarian.importer.query_fks.dicts import QueryForeignKeysDictModelsImporter
+from codex.librarian.importer.query_fks.complex import (
+    QueryForeignKeysComplexModelsImporter,
+)
 from codex.models.base import BaseModel
 from codex.models.named import NamedModel
 from codex.settings import FILTER_BATCH_SIZE
 
 
-class QueryForeignKeysSimpleImporter(QueryForeignKeysDictModelsImporter):
+class QueryForeignKeysSimpleImporter(QueryForeignKeysComplexModelsImporter):
     """Methods for querying missing simple models.."""
 
     def query_missing_simple_models(

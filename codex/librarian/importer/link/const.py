@@ -16,12 +16,12 @@ from codex.librarian.importer.const import (
 )
 from codex.models.named import Credit, Identifier, StoryArcNumber
 
-DICT_MODEL_FIELD_NAME_CLASS_MAP = (
+COMPLEX_MODEL_FIELD_NAME_CLASS_MAP = (
     (CREDITS_FIELD_NAME, Credit),
     (STORY_ARC_NUMBERS_FIELD_NAME, StoryArcNumber),
     (IDENTIFIERS_FIELD_NAME, Identifier),
 )
-DICT_MODEL_REL_LINK_MAP = MappingProxyType(
+COMPLEX_MODEL_REL_LINK_MAP = MappingProxyType(
     {
         CREDITS_FIELD_NAME: (
             f"{CREDIT_PERSON_FIELD_NAME}__name",

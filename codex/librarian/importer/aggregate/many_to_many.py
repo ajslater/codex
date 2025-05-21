@@ -8,7 +8,7 @@ from django.db.models.fields.related import ManyToManyField
 from django.db.models.query_utils import DeferredAttribute
 
 from codex.librarian.importer.aggregate.const import (
-    DICT_MODEL_AGG_MAP,
+    DICT_FIELD_AGG_MAP,
     DICT_MODEL_SUB_MODEL,
     DICT_MODEL_SUB_SUB_KEY,
     FIELD_NAME_TO_MD_KEY_MAP,
@@ -66,8 +66,8 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         clean_sub_value = (
             [clean_sub_key] if field.name == IDENTIFIERS_FIELD_NAME else set()
         )
-        dict_model_key_fields = DICT_MODEL_AGG_MAP[field.name]
-        for sub_sub_key, sub_sub_field in dict_model_key_fields.items():
+        dict_field_keys = DICT_FIELD_AGG_MAP[field.name]
+        for sub_sub_key, sub_sub_field in dict_field_keys.items():
             clean_sub_sub_value = (
                 self._get_m2m_metadata_dict_model_aggregate_sub_sub_value(
                     field.name,
@@ -129,7 +129,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 continue
             clean_method = (
                 self._get_m2m_metadata_dict_model
-                if field.name in DICT_MODEL_AGG_MAP
+                if field.name in DICT_FIELD_AGG_MAP
                 else self._get_m2m_metadata_clean
             )
             if clean_value := clean_method(field, value):

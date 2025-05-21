@@ -9,7 +9,7 @@ from codex.librarian.importer.const import (
     QUERY_MODELS,
     DictModelType,
 )
-from codex.librarian.importer.query_fks.const import DICT_MODEL_REL_MAP
+from codex.librarian.importer.query_fks.const import COMPLEX_M2M_MODEL_REL_MAP
 from codex.librarian.importer.query_fks.groups import QueryForeignKeysGroupsImporter
 from codex.models.named import Identifier, Universe
 
@@ -17,10 +17,10 @@ _UNQUERIED_FIELD_MODELS = frozenset({Identifier, Universe})
 _UNQUERIED_FIELDS = frozenset({IDENTIFIER_URL_FIELD_NAME, DESIGNATION_FIELD_NAME})
 
 
-class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
+class QueryForeignKeysComplexModelsImporter(QueryForeignKeysGroupsImporter):
     """Methods for querying missing dict models."""
 
-    def _query_missing_dict_model_add_to_query_filter_map(
+    def _query_missing_complex_model_add_to_query_filter_map(
         self,
         query_model: DictModelType,
         dict_values: tuple,
@@ -28,7 +28,7 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
         unqueried_field_restore_map: dict,
     ):
         """Add value filter to query filter map."""
-        query_rels = DICT_MODEL_REL_MAP[query_model]
+        query_rels = COMPLEX_M2M_MODEL_REL_MAP[query_model]
         filter_dict = {}
         for rel, value in zip(query_rels, dict_values, strict=False):
             if rel in _UNQUERIED_FIELDS:
@@ -47,7 +47,7 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
         return Q(**filter_dict)
 
     @staticmethod
-    def _query_missing_dict_model_identifiers_restore_unqueried_field(
+    def _query_missing_complex_model_identifiers_restore_unqueried_field(
         query_model: DictModelType,
         possible_create_objs: set[tuple],
         unqueried_field_restore_map: dict,
@@ -61,7 +61,7 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
             restored_create_objs.add((*create_obj, value))
         return frozenset(restored_create_objs)
 
-    def query_missing_dict_model(self, query_model: DictModelType, status):
+    def query_missing_complex_model(self, query_model: DictModelType, status):
         """Find missing dict type m2m models."""
         possible_objs = self.metadata[QUERY_MODELS].pop(query_model, None)
         if not possible_objs:
@@ -73,7 +73,7 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
         query_filter = Q()
         unqeueried_field_restore_map = {}
         for values in possible_objs:
-            query_filter |= self._query_missing_dict_model_add_to_query_filter_map(
+            query_filter |= self._query_missing_complex_model_add_to_query_filter_map(
                 query_model,
                 values,
                 possible_create_objs,
@@ -90,7 +90,7 @@ class QueryForeignKeysDictModelsImporter(QueryForeignKeysGroupsImporter):
         )
 
         possible_create_objs = (
-            self._query_missing_dict_model_identifiers_restore_unqueried_field(
+            self._query_missing_complex_model_identifiers_restore_unqueried_field(
                 query_model, possible_create_objs, unqeueried_field_restore_map
             )
         )
