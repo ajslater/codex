@@ -9,11 +9,14 @@
     <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
     <a v-if="item.url" :href="item.url" target="_blank"
       ><v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon
-      >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
-    ><span v-else
-      ><v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon
-      >{{ item.title }}</span
-    >
+      >{{ item.title }}
+      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
+      <v-icon>{{ mdiOpenInNew }}</v-icon></a
+    ><span v-else>
+      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
+      {{ item.title }}
+      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
+    </span>
   </v-chip>
 </template>
 
