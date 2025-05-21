@@ -92,6 +92,8 @@ class BrowserChoicesIntegerPkSerializer(Serializer):
 
     pk = VuetifyIntegerField(read_only=True)
     name = CharField(read_only=True)
+    # Universes Only
+    designation = CharField(read_only=True)
 
 
 class BrowserChoicesCharPkSerializer(BrowserChoicesIntegerPkSerializer):

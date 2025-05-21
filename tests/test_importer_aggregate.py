@@ -175,7 +175,7 @@ METADATA = MappingProxyType(
                 "story_arc_numbers": {("d", 1), ("e", 3), ("f", 5)},
                 "tags": {"a", "b", "c"},
                 "teams": {"Team Scientific Method"},
-                "universes": {"Young Silly Universe": {"designation": "4242"}},
+                "universes": {"Young Adult Silly Universe": {"designation": "4242"}},
             }
         },
     }

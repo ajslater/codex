@@ -16,7 +16,7 @@ from codex.models import (
     CreditPerson,
     StoryArc,
 )
-from codex.models.named import IdentifierType
+from codex.models.named import IdentifierType, Universe
 from codex.serializers.browser.choices import (
     BrowserChoicesFilterSerializer,
     BrowserFilterChoicesSerializer,
@@ -74,7 +74,10 @@ class BrowserChoicesViewBase(BrowserFilterView):
         """Get distinct m2m value objects for the relation."""
         back_rel = _BACK_REL_MAP.get(model, "")
         m2m_filter = {f"{back_rel}comic__in": comic_qs}
-        return model.objects.filter(**m2m_filter).values("pk", "name").distinct()
+        values = ["pk", "name"]
+        if model == Universe:
+            values.append("designation")
+        return model.objects.filter(**m2m_filter).values(*values).distinct()
 
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):

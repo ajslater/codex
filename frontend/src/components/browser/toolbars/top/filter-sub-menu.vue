@@ -135,8 +135,22 @@ export default {
       return NUMERIC_FILTERS.has(this.name);
     },
     vuetifyItems() {
+      var items;
+      if (this.name === "universes") {
+        items = [];
+        for (const item of this.choices) {
+          const universeItem = { ...item };
+          if (universeItem.designation) {
+            universeItem.name += ` (${item.designation})`;
+          }
+          items.push(universeItem);
+        }
+      } else {
+        items = this.choices;
+      }
+
       return toVuetifyItems({
-        items: this.choices,
+        items,
         filter: this.query,
         numeric: this.isNumeric,
       });
