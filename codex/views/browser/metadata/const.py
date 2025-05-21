@@ -60,15 +60,9 @@ M2M_QUERY_OPTIMIZERS = MappingProxyType(
         Universe: {"only": ("name", "designation")},
     }
 )
-_COMIC_MAIN_FIELD_NAME_BACK_REL_MAP = MappingProxyType(
+COMIC_MAIN_FIELD_NAME_BACK_REL_MAP = MappingProxyType(
     {
         "main_character": "main_character_in_comics",
         "main_team": "main_team_in_comics",
-    }
-)
-COMIC_FK_MAIN_FIELDS = MappingProxyType(
-    {
-        Comic._meta.get_field(fn): back_rel
-        for fn, back_rel in _COMIC_MAIN_FIELD_NAME_BACK_REL_MAP.items()
     }
 )
