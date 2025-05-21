@@ -85,10 +85,9 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 tuple(clean_sub_value),
             }
         related_model: type[BaseModel] = field.related_model  # pyright: ignore[reportAssignmentType]
-        # TODO Universe is processed as a dict model sometimes and a simpe model later.
-        # Move it to simple model always
-        if clean_sub_key is not None and related_model != Universe:
-            key_model = DICT_MODEL_SUB_MODEL[related_model]
+        if clean_sub_key is not None and (
+            key_model := DICT_MODEL_SUB_MODEL.get(related_model)
+        ):
             if key_model not in self.metadata[QUERY_MODELS]:
                 self.metadata[QUERY_MODELS][key_model] = set()
             self.metadata[QUERY_MODELS][key_model].add(clean_sub_key)
@@ -112,8 +111,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         """Clean a simple named value."""
         model = field.related_model
         clean_value = {
-            model._meta.get_field("name").get_prep_value(sub_key)
-            for sub_key in value
+            model._meta.get_field("name").get_prep_value(sub_key) for sub_key in value
         }
         if clean_value and model != Folder:
             if model not in self.metadata[QUERY_MODELS]:
@@ -137,6 +135,11 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             if clean_value := clean_method(field, value):
                 if field.name not in m2m_md:
                     m2m_md[field.name] = set()
+
+                if field.related_model == Universe:
+                    # Specially turn universe into a regular named model for linking
+                    clean_value = {value[0] for value in clean_value}
+
                 m2m_md[field.name] |= clean_value
 
         parents = tuple(str(parent) for parent in Path(path).parents)

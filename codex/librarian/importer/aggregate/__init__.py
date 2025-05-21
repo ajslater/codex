@@ -28,6 +28,7 @@ from codex.librarian.status import Status
 _UNUSED_COMICBOX_FIELDS = (
     "alternate_images",
     "bookmark",
+    "collection_title",
     "credit_primaries",
     "ext",
     "manga",

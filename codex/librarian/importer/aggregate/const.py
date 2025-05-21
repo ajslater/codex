@@ -58,11 +58,13 @@ DICT_MODEL_SUB_MODEL: MappingProxyType[type[BaseModel], type[BaseModel]] = (
             Credit: CreditPerson,
             Identifier: IdentifierType,
             StoryArcNumber: StoryArc,
+            # Universe does not have sub models.
         }
     )
 )
 DICT_MODEL_SUB_SUB_KEY = MappingProxyType(
     {
+        # Most models don't have sub sub models
         ROLES_KEY: CreditRole,
     }
 )
