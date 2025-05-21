@@ -4,8 +4,6 @@ Create all missing comic foreign keys for an import.
 So we may safely create the comics next.
 """
 
-from icecream import ic
-
 from codex.librarian.importer.const import (
     FK_CREATE,
     FKC_CREATE_FKS,
@@ -51,7 +49,6 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
         if is_story_arc:
             update_fields += GROUP_BASE_FIELDS
 
-        ic("CREATE", named_class, names)
         named_class.objects.bulk_create(
             create_named_objs,
             update_conflicts=True,
@@ -75,7 +72,6 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
         create_tuples = self.metadata[FK_CREATE].pop(model, None)
         if not create_tuples:
             return
-        ic("CREATE", model, create_args_dict, create_tuples)
         create_objs = []
         for values_tuple in create_tuples:
             args = {}
@@ -91,7 +87,6 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
 
             obj = model(**args)
             create_objs.append(obj)
-        ic(model, create_objs)
 
         model.objects.bulk_create(
             create_objs,
@@ -129,7 +124,6 @@ class CreateForeignKeysImporter(CreateForeignKeysFolderImporter):
 
             self.bulk_folders_create(fkc.pop(FKC_FOLDER_PATHS, frozenset()), status)
 
-            ic(fkc[FKC_CREATE_FKS])
             for named_class, names in fkc.pop(FKC_CREATE_FKS, {}).items():
                 self._bulk_create_named_models(named_class, names, status)
 
