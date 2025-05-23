@@ -72,4 +72,4 @@ class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
 class OPDS2LinkListField(ListField):
     """Link List."""
 
-    child = OPDS2LinkSerializer()  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    child = OPDS2LinkSerializer()

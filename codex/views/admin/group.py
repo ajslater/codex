@@ -16,7 +16,7 @@ class AdminGroupViewSet(AdminModelViewSet):
     queryset = Group.objects.prefetch_related("user_set", "library_set").select_related(
         "groupauth"
     )
-    serializer_class = GroupSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = GroupSerializer
 
     _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "groupauth"})
 

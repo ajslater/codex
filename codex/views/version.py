@@ -14,7 +14,7 @@ from codex.views.auth import AuthGenericAPIView
 class VersionView(AuthGenericAPIView):
     """Return Codex Versions."""
 
-    serializer_class = VersionsSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = VersionsSerializer
 
     @override
     def get_object(self) -> dict[str, str]:

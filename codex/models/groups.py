@@ -106,7 +106,7 @@ class Volume(BrowserGroupModel):
 
     # Harmful because name is numeric
     sort_name = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
-    custom_cover = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    custom_cover = None
 
     @override
     def set_sort_name(self):

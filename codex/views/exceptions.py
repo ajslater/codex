@@ -58,7 +58,7 @@ class SeeOtherRedirectError(APIException):
             filtered_settings[key] = value
         detail["settings"] = filtered_settings
 
-        self.detail = detail  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        self.detail = detail
 
         logger.debug(f"redirect {pformat(self.detail)}")
 

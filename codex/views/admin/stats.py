@@ -22,8 +22,8 @@ from codex.views.admin.permissions import HasAPIKeyOrIsAdminUser
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list[type[BasePermission]]] = [HasAPIKeyOrIsAdminUser]  # pyright: ignore[reportIncompatibleUnannotatedOverride]
-    serializer_class = StatsSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    permission_classes: ClassVar[list[type[BasePermission]]] = [HasAPIKeyOrIsAdminUser]
+    serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
     def __init__(self, *args, **kwargs):

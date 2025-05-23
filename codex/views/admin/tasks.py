@@ -120,7 +120,7 @@ class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
     queryset = LibrarianStatus.objects.filter(
         Q(preactive__isnull=False) | Q(active__isnull=False)
     ).order_by("preactive", "active", "pk")
-    serializer_class = LibrarianStatusSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = LibrarianStatusSerializer
 
 
 class AdminLibrarianTaskView(AdminAPIView):

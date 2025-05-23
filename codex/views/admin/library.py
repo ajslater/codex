@@ -36,7 +36,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
     queryset = Library.objects.prefetch_related("groups").defer(
         "update_in_progress", "created_at", "updated_at"
     )
-    serializer_class = LibrarySerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = LibrarySerializer
 
     @classmethod
     def _sync_watchdog(cls, validated_keys=None):
@@ -104,13 +104,13 @@ class AdminFailedImportViewSet(AdminModelViewSet):
     """Admin FailedImport Viewset."""
 
     queryset = FailedImport.objects.defer("updated_at")
-    serializer_class = FailedImportSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = FailedImportSerializer
 
 
 class AdminFolderListView(AdminGenericAPIView):
     """List server directories."""
 
-    serializer_class = AdminFolderListSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 
     @staticmethod

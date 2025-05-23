@@ -83,4 +83,4 @@ class LanguageField(PyCountryField):
 class BreadcrumbsField(ListField):
     """An Array of Routes."""
 
-    child = RouteSerializer()  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    child = RouteSerializer()

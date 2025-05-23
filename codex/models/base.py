@@ -25,7 +25,7 @@ class BaseModel(Model):
 
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
-    objects = GroupByManager()  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    objects = GroupByManager()
 
     class Meta(ModelBase):
         """Without this a real table is created and joined to."""

@@ -25,7 +25,7 @@ class AdminFlagViewSet(AdminModelViewSet):
     """Admin Flag Viewset."""
 
     queryset = AdminFlag.objects.all()
-    serializer_class = AdminFlagSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = AdminFlagSerializer
     lookup_field = "key"
 
     def _on_change(self):

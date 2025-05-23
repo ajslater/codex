@@ -28,7 +28,7 @@ class AdminUserViewSet(AdminModelViewSet):
         .select_related("useractive")
         .defer("first_name", "last_name", "email")
     )
-    serializer_class = UserSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")
 
     @staticmethod
@@ -96,7 +96,7 @@ class AdminUserViewSet(AdminModelViewSet):
 class AdminUserChangePasswordView(AdminGenericAPIView):
     """Special View to hash user password."""
 
-    serializer_class = UserChangePasswordSerializer  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    serializer_class = UserChangePasswordSerializer
 
     def put(self, request, *args, **kwargs):
         """Validate and set the user password."""
