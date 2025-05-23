@@ -28,8 +28,9 @@ _COMICFTS_UPDATE_FIELDS = (
     "volume",
     # Attributes
     "age_rating",
-    "file_type",
     "country",
+    "collection_title",
+    "file_type",
     "issue",
     "language",
     "name",
@@ -127,21 +128,25 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             now = Now()
             comicfts = ComicFTS(
                 comic_id=comic.pk,
+                # Attributes
+                collection_title=comic.collection_title,
+                issue=comic.issue,
+                name=comic.name,
+                notes=comic.notes,
+                review=comic.review,
                 updated_at=now,
+                # Group FKs
                 publisher=comic.fts_publisher,
                 imprint=comic.fts_imprint,
                 series=comic.fts_series,
                 volume=comic.fts_volume,
-                issue=comic.issue,
-                name=comic.name,
+                # FKS
                 age_rating=comic.age_rating,
                 country=country,
                 file_type=comic.file_type,
                 language=language,
-                notes=comic.notes,
                 original_format=comic.original_format,
                 reading_direction=comic.reading_direction,
-                review=comic.review,
                 scan_info=comic.fts_scan_info,
                 summary=comic.summary,
                 tagger=comic.fts_tagger,
@@ -159,6 +164,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             )
             if create:
                 comicfts.created_at = now
+
             obj_list.append(comicfts)
 
     def _get_comicfts_list(self, comics, *, create: bool):

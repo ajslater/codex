@@ -7,9 +7,9 @@ from django.db.models.query import Q
 from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.search import FIELDMAP
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
-from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
 from codex.views.const import MAX_OBJ_PER_PAGE
 
@@ -54,6 +54,9 @@ _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
 _TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?"  # noqa: S105
 _TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
+_ALIAS_FIELD_MAP = MappingProxyType(
+    {value: key for key, values in FIELDMAP.items() for value in values}
+)
 
 
 class SearchFilterView(BrowserFTSFilter):
@@ -103,7 +106,7 @@ class SearchFilterView(BrowserFTSFilter):
         return False
 
     def _parse_column_match(self, preop, col, exp, field_tokens):  # , fts_tokens):
-        col = ALIAS_FIELD_MAP.get(col, col)
+        col = _ALIAS_FIELD_MAP.get(col, col)
         if col not in _VALID_COLUMNS:
             return True
         if col == "path" and not self._is_path_column_allowed():

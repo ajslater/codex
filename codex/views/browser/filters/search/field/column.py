@@ -7,7 +7,7 @@ from django.db.models import (
 )
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
-from codex.views.browser.filters.search.aliases import FIELD_TYPE_MAP
+from codex.models.comic import Comic
 
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
@@ -16,6 +16,13 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
         "identifier": "identifier__nss",
         "identirier_type": "identifier__identifier_type__name",
         "story_arcs": "story_arc_number__story_arc__name",
+    }
+)
+_FIELD_TYPE_MAP = MappingProxyType(
+    {
+        **{field.name: field.__class__ for field in Comic._meta.get_fields()},
+        "role": ManyToManyField,
+        "issue": CharField,
     }
 )
 
@@ -39,7 +46,7 @@ def _parse_field_rel(field_name, rel_class):
 
 def parse_field(field_name: str):
     """Parse the field size of the query in to database relations."""
-    rel_class = FIELD_TYPE_MAP.get(field_name)
+    rel_class = _FIELD_TYPE_MAP.get(field_name)
     if not rel_class:
         reason = f"Unknown field specified in search query {field_name}"
         raise ValueError(reason)

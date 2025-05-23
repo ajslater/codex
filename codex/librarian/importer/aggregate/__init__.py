@@ -5,8 +5,8 @@ from comicbox.schemas.comicbox import (
     DATE_KEY,
     NUMBER_KEY,
     STORE_DATE_KEY,
-    STORIES_KEY,
     SUFFIX_KEY,
+    TITLE_KEY,
 )
 
 from codex.librarian.importer.aggregate.many_to_many import (
@@ -28,7 +28,6 @@ from codex.librarian.status import Status
 _UNUSED_COMICBOX_FIELDS = (
     "alternate_images",
     "bookmark",
-    "collection_title",
     "credit_primaries",
     "ext",
     "manga",
@@ -59,8 +58,8 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
             if suffix := issue.pop(SUFFIX_KEY, None):
                 md["issue_suffix"] = suffix
 
-        if stories := md.pop(STORIES_KEY, None):
-            md["name"] = "; ".join(stories)
+        if title := md.pop(TITLE_KEY, None):
+            md["name"] = title
 
     def _aggregate_path(self, path, status):
         """Aggregate metadata for one path."""

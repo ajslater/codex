@@ -104,6 +104,12 @@ class Comic(WatchedPathBrowserGroup):
     )
 
     # Unique comic fields
+    collection_title = CleaningCharField(
+        db_index=True,
+        max_length=MAX_ISSUE_SUFFIX_LEN,
+        default="",
+        db_collation="nocase",
+    )
     issue_number = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=10, null=True
     )
@@ -331,36 +337,40 @@ class Comic(WatchedPathBrowserGroup):
 
 class ComicFTS(BaseModel):
     comic = OneToOneField(primary_key=True, to=Comic, on_delete=CASCADE)
+    # Attributes
+    issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    collection_title = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    notes = TextField(db_collation="nocase")
+    review = TextField(db_collation="nocase")
+    summary = TextField(db_collation="nocase")
+    # FK groups
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     volume = PositiveSmallIntegerField()
-    issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    # FK
     age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     country = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    file_type = CharField(db_collation="nocase", max_length=max_choices_len(FileType))
     language = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    notes = TextField(db_collation="nocase")
     original_format = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    review = TextField(db_collation="nocase")
     scan_info = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    summary = TextField(db_collation="nocase")
     tagger = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    # M2M
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     genres = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     locations = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    reading_direction = CharField(
+        db_collation="nocase", max_length=max_choices_len(ReadingDirection)
+    )
     series_groups = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     stories = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     story_arcs = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     tags = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     teams = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     universes = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-
-    reading_direction = CharField(
-        db_collation="nocase", max_length=max_choices_len(ReadingDirection)
-    )
-    file_type = CharField(db_collation="nocase", max_length=max_choices_len(FileType))
 
     class Meta(BaseModel.Meta):
         managed = False

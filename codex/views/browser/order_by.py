@@ -39,6 +39,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 *comic_sort_names,
                 "issue_number",
                 "issue_suffix",
+                "collection_title",
                 "sort_name",
             ]
         else:

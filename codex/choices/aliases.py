@@ -2,11 +2,6 @@
 
 from types import MappingProxyType
 
-from django.db.models.fields import CharField
-from django.db.models.fields.related import ManyToManyField
-
-from codex.models.comic import Comic
-
 
 def gen_multipart_field_aliases(field):
     """Generate aliases for fields made of snake_case words."""
@@ -38,6 +33,7 @@ FIELDMAP = MappingProxyType(
         "characters": _get_fieldmap_values(
             "category", "categories", multipart=["characters"]
         ),
+        "collection_title": ("collection",),
         "credits": _get_fieldmap_values(
             multipart=(
                 "authors",
@@ -78,17 +74,5 @@ FIELDMAP = MappingProxyType(
         "tags": ("tag",),
         "teams": ("team",),
         "updated_at": ("updated",),
-    }
-)
-
-
-ALIAS_FIELD_MAP = MappingProxyType(
-    {value: key for key, values in FIELDMAP.items() for value in values}
-)
-FIELD_TYPE_MAP = MappingProxyType(
-    {
-        **{field.name: field.__class__ for field in Comic._meta.get_fields()},
-        "role": ManyToManyField,
-        "issue": CharField,
     }
 )

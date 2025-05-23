@@ -12,6 +12,9 @@
     <div v-if="headerName" class="headerName">
       {{ headerName }}
     </div>
+    <div v-if="item.collectionTitle">
+      {{ item.collectionTitle }}
+    </div>
     <div class="displayName">
       {{ displayName }}
     </div>

@@ -376,7 +376,7 @@ class Migration(migrations.Migration):
                     sql="DROP TABLE IF EXISTS codex_comicfts;",
                 ),
                 migrations.RunSQL(
-                    sql="CREATE VIRTUAL TABLE codex_comicfts USING fts5(comic_id UNINDEXED, created_at UNINDEXED, updated_at UNINDEXED, publisher, imprint, series, volume, issue, name, age_rating, country, language, notes, original_format, review, scan_info, summary, tagger, characters, credits, genres,locations, roles, series_groups, stories, story_arcs, tags, teams, reading_direction, file_type, universes)",
+                    sql="CREATE VIRTUAL TABLE codex_comicfts USING fts5(comic_id UNINDEXED, created_at UNINDEXED, updated_at UNINDEXED, publisher, imprint, series, volume, issue, name, collection_title, age_rating, country, language, notes, original_format, review, scan_info, summary, tagger, characters, credits, genres,locations, roles, series_groups, stories, story_arcs, tags, teams, reading_direction, file_type, universes)",
                     reverse_sql="DROP TABLE IF EXISTS codex_comicfts",
                 ),
             ],
