@@ -82,7 +82,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.0",
     "eslint-plugin-sonarjs": "^3.0.1",
     "eslint-plugin-toml": "^0.12.0",
-    "eslint-plugin-unicorn": "^59.0.0",
+    "eslint-plugin-unicorn": "^59.0.1",
     "eslint-plugin-yml": "^1.12.2",
     "prettier": "^3.5.3",
     "prettier-plugin-nginx": "^1.0.3",

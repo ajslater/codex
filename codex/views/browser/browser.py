@@ -18,11 +18,11 @@ from codex.models import (
     Library,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
+from codex.settings.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
     FOLDER_GROUP,
-    MAX_OBJ_PER_PAGE,
     STORY_ARC_GROUP,
 )
 

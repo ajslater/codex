@@ -10,8 +10,8 @@ from codex.choices.admin import AdminFlagChoices
 from codex.choices.search import FIELDMAP
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
-from codex.views.const import MAX_OBJ_PER_PAGE
 
 _FTS_COLUMNS = frozenset(
     {field.name for field in ComicFTS._meta.get_fields()}

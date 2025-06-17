@@ -82,7 +82,7 @@ class Migration(migrations.Migration):
             model_name="comic",
             name="issue",
             field=models.DecimalField(
-                db_index=True, decimal_places=2, default=Decimal("0"), max_digits=10
+                db_index=True, decimal_places=2, default=Decimal(0), max_digits=10
             ),
         ),
         migrations.AlterField(

@@ -1,6 +1,7 @@
 """Browser breadcrumbs calculations."""
 
 from contextlib import suppress
+from dataclasses import asdict
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -24,6 +25,8 @@ from codex.views.const import (
 from codex.views.util import Route
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from codex.models.groups import Folder
 
 _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
@@ -94,7 +97,9 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def _init_breadcrumbs(self, valid_groups):
         """Load breadcrumbs and determine if they should be searched for a graft."""
-        breadcrumbs: list[Route] = list(self.params.get("breadcrumbs", []))
+        breadcrumbs: tuple[Mapping[str, str | tuple[int, ...] | int], ...] = tuple(
+            self.params.get("breadcrumbs", ())
+        )
         old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]
         invalid = not old_breadcrumbs or old_breadcrumbs[-1].group not in valid_groups
         if invalid:
@@ -104,7 +109,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
     def _breadcrumbs_save(self, breadcrumbs):
         """Save the breadcrumbs to params."""
         params = dict(self.params)
-        params["breadcrumbs"] = tuple(crumb.dict() for crumb in breadcrumbs)
+        params["breadcrumbs"] = tuple(asdict(crumb) for crumb in breadcrumbs)
         # The only place I rewrite params
         self._params: MappingProxyType[str, Any] | None = MappingProxyType(params)
 

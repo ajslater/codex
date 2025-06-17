@@ -1,5 +1,7 @@
 """Vue Route Serializer."""
 
+from dataclasses import asdict
+
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 from typing_extensions import override
@@ -19,7 +21,7 @@ class SimpleRouteSerializer(Serializer):
     def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""
         if isinstance(instance, Route):
-            instance = instance.dict()
+            instance = asdict(instance)
         pks = instance["pks"]
         if not pks:
             instance["pks"] = "0"

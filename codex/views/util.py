@@ -3,7 +3,7 @@
 import json
 from collections.abc import Mapping
 from contextlib import suppress
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from json.decoder import JSONDecodeError
 from typing import Any
 from urllib.parse import unquote_plus
@@ -16,8 +16,8 @@ from typing_extensions import override
 DEFAULT_CHUNK_SIZE = 64 * 1024  # 64 Kb
 
 
-@dataclass()
-class Route(dict):
+@dataclass
+class Route:
     """Breadcrumb, like a route."""
 
     group: str
@@ -26,14 +26,15 @@ class Route(dict):
     name: str = ""
 
     @override
+    def __hash__(self):
+        """Breadcrumb hash."""
+        pk_parts = tuple(sorted(set(self.pks)))
+        parts = (self.group, pk_parts, self.page)
+        return hash(parts)
+
     def __eq__(self, cmp):
         """Breadcrumb equality."""
-        return (
-            bool(cmp is not None)
-            and (self.group == cmp.group)
-            and (set(self.pks) == set(cmp.pks))
-            and (self.page == cmp.page)
-        )
+        return cmp and hash(self) == hash(cmp)
 
     def __and__(self, cmp):
         """Breadcrumb intersection."""
@@ -43,10 +44,8 @@ class Route(dict):
             and (self.pks == cmp.pks or (set(self.pks) & set(cmp.pks)))
         )
 
-    dict = asdict
 
-
-def reparse_json_query_params(query_params, keys) -> dict:
+def reparse_json_query_params(query_params, keys) -> dict[str, Any]:
     """Reparse JSON encoded query_params."""
     # It is an unbelievable amount of trouble to try to parse axios native bracket
     # encoded complex objects in python

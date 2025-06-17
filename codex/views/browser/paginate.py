@@ -5,8 +5,8 @@ from math import ceil
 from django.core.paginator import EmptyPage, Paginator
 from loguru import logger
 
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
-from codex.views.const import MAX_OBJ_PER_PAGE
 
 
 class BrowserPaginateView(BrowserPageInBoundsView):

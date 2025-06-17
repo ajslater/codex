@@ -24,6 +24,21 @@ border-radius: 128px;
 - Fix
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
 
+## v1.7.13
+
+- Fixes
+
+  - Fix Reader Reading Order dropdown unable to change reading order.
+  - Fix loading root browser pages greater than 1 as a new route.
+  - Missing books error screen had no toolbars, could not close it.
+  - Fix docker configuration for Synology by creating a comicbox config
+    directory.
+  - Wait to load browser and reader pages until login tried with a cookie.
+
+- Features
+
+  - Experimental `CODEX_BROWSER_MAX_OBJ_PER_PAGE` env variable. Default is 100.
+
 ## v1.7.12
 
 - Fixes

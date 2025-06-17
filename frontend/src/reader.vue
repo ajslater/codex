@@ -54,14 +54,17 @@ export default {
     user() {
       this.loadReaderSettings();
     },
-    isAuthorized() {
-      this.loadReaderSettings();
-    },
   },
-  beforeMount() {
+  created() {
     // useReaderStore().$reset; // Not working
     this.reset(); // HACK
-    this.loadReaderSettings();
+    const wait = this.user ? 0 : 300;
+    const createdUser = this.user;
+    setTimeout(() => {
+      if (this.user?.id === createdUser?.id) {
+        this.loadReaderSettings();
+      }
+    }, wait);
   },
   methods: {
     ...mapActions(useReaderStore, ["loadReaderSettings", "reset"]),

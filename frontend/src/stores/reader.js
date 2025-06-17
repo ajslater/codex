@@ -391,6 +391,9 @@ export const useReaderStore = defineStore("reader", {
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;
     },
+    setShowToolbars() {
+      this.showToolbars = true;
+    },
     reset() {
       // HACK because $reset doesn't seem to.
       this.$patch((state) => {
