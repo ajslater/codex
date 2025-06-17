@@ -319,14 +319,20 @@ export const useBrowserStore = defineStore("browser", {
        * If the top group changed supergroups or we're at the root group and the new
        * top group is above the proper nav group
        */
+      const currentParams = router?.currentRoute?.value?.params;
+      const currentGroup = currentParams?.group;
+      if (currentGroup === "r") {
+        // r group can have any top groups?
+        return redirect;
+      }
+
       const oldTopGroup = this.settings.topGroup;
       const newTopGroup = data.topGroup;
-      const currentParams = router?.currentRoute?.value?.params;
       if (
-        (!oldTopGroup && newTopGroup) ||
-        !newTopGroup ||
         oldTopGroup === newTopGroup ||
-        newTopGroup === currentParams?.group
+        !newTopGroup ||
+        (!oldTopGroup && newTopGroup) ||
+        newTopGroup === currentGroup
       ) {
         /*
          * First url, initializing settings.
@@ -394,10 +400,9 @@ export const useBrowserStore = defineStore("browser", {
     _addSettings(data) {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
-          let newValue;
-          newValue =
+          const newValue =
             typeof state.settings[key] === "object" &&
-            !Array.isArray(state.settings[key])
+              !Array.isArray(state.settings[key])
               ? { ...state.settings[key], ...value }
               : value;
           if (!dequal(state.settings[key], newValue)) {
@@ -554,7 +559,7 @@ export const useBrowserStore = defineStore("browser", {
           if (redirect) {
             return redirectRoute(redirect);
           }
-          return this.loadBrowserPage(undefined, true);
+          return this.loadBrowserPage(undefined);
         })
         .catch((error) => {
           this.browserPageLoaded = true;
