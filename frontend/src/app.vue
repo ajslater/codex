@@ -21,7 +21,7 @@ export default {
     }),
   },
   watch: {
-    user: function () {
+    user() {
       this.setTimezone();
     },
   },
