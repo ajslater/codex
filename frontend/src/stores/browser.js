@@ -402,7 +402,7 @@ export const useBrowserStore = defineStore("browser", {
         for (let [key, value] of Object.entries(data)) {
           const newValue =
             typeof state.settings[key] === "object" &&
-              !Array.isArray(state.settings[key])
+            !Array.isArray(state.settings[key])
               ? { ...state.settings[key], ...value }
               : value;
           if (!dequal(state.settings[key], newValue)) {
