@@ -13,6 +13,7 @@ border-radius: 128px;
   - Fix docker configuration for synology by creating a comicbox config
     directory.
   - Wait to load browser and reader pages until login tried with a cookie.
+  - Fix loading root browser pages greater than 1 as a new route.
 
 - Features
 
