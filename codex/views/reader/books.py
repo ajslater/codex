@@ -34,7 +34,7 @@ _COMIC_FIELDS = (
 )
 
 
-class ReaderBooksView(SharedAnnotationsMixin, BookmarkAuthMixin, ReaderParamsView):
+class ReaderBooksView(ReaderParamsView, SharedAnnotationsMixin, BookmarkAuthMixin):
     """Get Books methods."""
 
     def _get_reader_arc_pks(
