@@ -19,7 +19,7 @@ border-radius: 128px;
 
 - Features
 
-  - Experimental CODEX_BROWSER_MAX_OBJ_PER_PAGE env variable. Default is 100.
+  - Experimental `CODEX_BROWSER_MAX_OBJ_PER_PAGE` env variable. Default is 100.
 
 ## v1.7.12
 
