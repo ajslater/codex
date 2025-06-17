@@ -8,6 +8,11 @@ border-radius: 128px;
 
 ## v1.7.13
 
+- Fixes
+
+  - Fix docker configuration for synology by creating a comicbox config
+    directory.
+
 - Features
 
   - Experimental CODEX_BROWSER_MAX_OBJ_PER_PAGE env variable. Default is 100.

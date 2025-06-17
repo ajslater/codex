@@ -17,7 +17,13 @@ LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$PKG_VERSION
 
 # Create the comics directory
-RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
+RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME 
+# Fix Synology
+RUN mkdir -p /home/abc/.config/ && \
+  touch /home/abc/.config/comicbox && \
+  chown -R abc /home/abc/.config && \
+  chmod 777 /home/abc /home/abc/.config && \
+  chmod 666 /home/abc/.config/comicbox
 
 # The final image is the mininimal base with /usr/local copied.
 # Possibly could optimize this further to only get python and bin
