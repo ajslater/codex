@@ -54,7 +54,7 @@ def full_redirect_view(url_name):
     def func(request):
         """Redirect to view, forwarding query strings and auth."""
         kwargs = dict(DEFAULT_BROWSER_ROUTE)
-        url = reverse(url_name, kwargs=kwargs, query=request.GET)  # pyright: ignore[reportCallIssue] django-types ood
+        url = reverse(url_name, kwargs=kwargs, query=request.GET)
         response = HttpResponseRedirect(url)
 
         # Forward authorization.

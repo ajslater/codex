@@ -32,6 +32,7 @@ class Route:
         parts = (self.group, pk_parts, self.page)
         return hash(parts)
 
+    @override
     def __eq__(self, cmp):
         """Breadcrumb equality."""
         return cmp and hash(self) == hash(cmp)

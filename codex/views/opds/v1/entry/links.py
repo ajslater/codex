@@ -41,7 +41,7 @@ class OPDS1EntryLinksMixin:
                 "dynamicCovers": False,
                 "ts": ts,
             }
-            href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)  # pyright: ignore[reportCallIssue] django-types ood
+            href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)
             return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
             logger.exception("create thumb")
@@ -62,7 +62,7 @@ class OPDS1EntryLinksMixin:
                 qps.update({"orderBy": "story_arc_number"})
             if metadata:
                 qps.update({"opdsMetadata": 1})
-            return reverse("opds:v1:feed", kwargs=kwargs, query=qps)  # pyright: ignore[reportCallIssue] django-types ood
+            return reverse("opds:v1:feed", kwargs=kwargs, query=qps)
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
             logger.exception(msg)
@@ -110,7 +110,7 @@ class OPDS1EntryLinksMixin:
             return None
         kwargs = {"pk": pk, "page": 0}
         qps = {"bookmark": 1}
-        href = reverse("opds:bin:page", kwargs=kwargs, query=qps)  # pyright: ignore[reportCallIssue] django-types ood
+        href = reverse("opds:bin:page", kwargs=kwargs, query=qps)
         href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
         # extra stupid pse chunky fix for no metadata

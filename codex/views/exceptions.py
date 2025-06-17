@@ -78,6 +78,6 @@ class SeeOtherRedirectError(APIException):
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
         query = self._get_query_params()
-        url = reverse(url_name, kwargs=self.route_kwargs, query=query)  # pyright: ignore[reportCallIssue] django-types ood
+        url = reverse(url_name, kwargs=self.route_kwargs, query=query)
 
         return redirect(url, permanent=False)

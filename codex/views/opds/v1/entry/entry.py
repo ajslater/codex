@@ -123,7 +123,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         for obj in objs:
             filters = json.dumps({filter_key: [obj.pk]})
             query = {"filters": filters}
-            obj.url = reverse("opds:v1:feed", kwargs=_SERIES_ROUTE_KWARGS, query=query)  # pyright: ignore[reportCallIssue] django-types ood
+            obj.url = reverse("opds:v1:feed", kwargs=_SERIES_ROUTE_KWARGS, query=query)
             result.append(obj)
         return result
 

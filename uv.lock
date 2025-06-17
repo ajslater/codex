@@ -528,7 +528,7 @@ requires-dist = [
     { name = "bidict", specifier = ">=0.23.1,<1.0.0" },
     { name = "case-converter", specifier = ">=1.1.0,<2.0.0" },
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a13,<3.0.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a21,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
     { name = "django", specifier = ">=5.2.1,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
