@@ -52,6 +52,7 @@ MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", "1000"))
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
 VITE_HOST = environ.get("VITE_HOST")
 SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", "10000"))
+MAX_OBJ_PER_PAGE = int(environ.get("CODEX_BROWSER_MAX_OBJ_PER_PAGE", "100"))
 
 ####################################
 # Documented Environment Variables #
