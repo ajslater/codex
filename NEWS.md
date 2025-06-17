@@ -15,6 +15,7 @@ border-radius: 128px;
   - Wait to load browser and reader pages until login tried with a cookie.
   - Fix loading root browser pages greater than 1 as a new route.
   - Fix Reader Reading Order dropdown unable to change reading order.
+  - Missing books error screen had no toolbars.
 
 - Features
 
