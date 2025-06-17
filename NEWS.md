@@ -10,12 +10,12 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix docker configuration for synology by creating a comicbox config
+  - Fix Reader Reading Order dropdown unable to change reading order.
+  - Fix loading root browser pages greater than 1 as a new route.
+  - Missing books error screen had no toolbars, could not close it.
+  - Fix docker configuration for Synology by creating a comicbox config
     directory.
   - Wait to load browser and reader pages until login tried with a cookie.
-  - Fix loading root browser pages greater than 1 as a new route.
-  - Fix Reader Reading Order dropdown unable to change reading order.
-  - Missing books error screen had no toolbars.
 
 - Features
 
