@@ -8,9 +8,9 @@ from django.db.models.query import Q
 from codex.logger.logger import get_logger
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
+from codex.settings.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
-from codex.views.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
 _FTS_COLUMNS = frozenset(

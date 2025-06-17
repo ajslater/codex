@@ -29,10 +29,13 @@ export default {
     };
   },
   methods: {
-    ...mapActions(useReaderStore, ["loadBooks"]),
+    ...mapActions(useReaderStore, ["loadBooks", "setShowToolbars"]),
     onAction() {
       this.loadBooks({ mtime: Date.now() });
     },
+  },
+  created() {
+    this.setShowToolbars();
   },
 };
 </script>

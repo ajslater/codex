@@ -43,12 +43,16 @@ export default {
     user() {
       this.loadSettings();
     },
-    isAuthorized() {
-      this.loadSettings();
-    },
   },
   created() {
-    this.loadSettings();
+    const wait = this.user ? 0 : 300;
+    const createdUser = this.user;
+    setTimeout(() => {
+      if (this.user?.id === createdUser?.id) {
+        // Only loadSettings if app.vue didn't login and change the user.
+        this.loadSettings();
+      }
+    }, wait);
   },
   methods: {
     ...mapActions(useBrowserStore, [

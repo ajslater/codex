@@ -38,7 +38,7 @@ def _database_checkpoint():
 
 def restart():
     """Restart this process."""
-    from sys import argv
+    from sys import argv  # noqa: PLC0415
 
     print("Restarting Codex. Hold on to your butts...", flush=True)  # noqa: T201
     execv(__file__, argv)  # noqa: S606

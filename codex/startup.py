@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
@@ -24,8 +25,6 @@ LOG = get_logger(__name__)
 
 def ensure_superuser():
     """Ensure there is a valid superuser."""
-    from django.contrib.auth.models import User
-
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
         admin_user, created = User.objects.update_or_create(
             username="admin",
