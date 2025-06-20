@@ -525,7 +525,7 @@ requires-dist = [
     { name = "ansicolors", specifier = ">=1.1,<2.0" },
     { name = "bidict", specifier = ">=0.23.1,<1.0.0" },
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a22,<3.0.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a23,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
     { name = "django", specifier = ">=5.2.1,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
@@ -592,7 +592,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a22"
+version = "2.0.0a23"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -618,9 +618,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/a0/06bc85a646734c628f52ab83494e1f070bc5679b96ba4656b937ac01aab5/comicbox-2.0.0a22.tar.gz", hash = "sha256:752b18f180f78c39195610f33cea028d02e71edd43154f603a9b263552892353", size = 70904946, upload-time = "2025-06-18T21:22:52.326Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/a3/18728dad07c54618ff7cdd42c8e022e58d49b242cb4756b20ae950bea704/comicbox-2.0.0a23.tar.gz", hash = "sha256:c76deeb77abcbab3e217f0a5ae42532b82b142f498f1704165ba0b5a3e32dcaf", size = 70905064, upload-time = "2025-06-20T22:28:55.958Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/b9/f66e83864e8f3fd41907b49b00ec4ae9c101186fac9c0b6a5a7f056760cc/comicbox-2.0.0a22-py3-none-any.whl", hash = "sha256:1463bec0f31225658c54749e9ff470c0d2b97d94e7574b4719dfb1f1eba5a5a2", size = 152314, upload-time = "2025-06-18T21:22:49.097Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/d5/2d900225d1fac68df61fb6aff60ab1421b8d005fdf6f5c9a5d01fb9cbb16/comicbox-2.0.0a23-py3-none-any.whl", hash = "sha256:800f0ab284f8931b213edda79cdc28f142bdb7cd2ba9d4a2d5962e38cc73a202", size = 152450, upload-time = "2025-06-20T22:28:52.585Z" },
 ]
 
 [package.optional-dependencies]
@@ -1924,6 +1924,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/bd/62/d29612ca33b7844e7
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/5a/3399a2caf51c91db650de57464465b830c2d4ea15b23d24a98182202b704/pymupdf-1.26.1-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:32296f12a7c7f36febd59cee77823a54490313bcaba9879b17def6518186f94e", size = 23054640, upload-time = "2025-06-11T22:14:07.439Z" },
     { url = "https://files.pythonhosted.org/packages/64/e0/cc3ec6a4d5ada8992b8610f134565ceb517243f12736b50d795cb3459315/pymupdf-1.26.1-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:aad7949eca62aca40854510cdb125cf873b181726dc9497a90834200f31faa63", size = 22402766, upload-time = "2025-06-11T22:14:25.557Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/cf/d5b1cd775a17a7b83e25cbf4c46f64cf1352c962ca97646e3e01953cf0df/pymupdf-1.26.1-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:3b62c4d443121ed9a2eb967c3a0e45f8dbabcc838db8604ece02c4e868808edc", size = 23448474, upload-time = "2025-06-20T17:51:56.446Z" },
     { url = "https://files.pythonhosted.org/packages/82/9f/e7101bd24a0f5cbfa0310c8e5c3a8ec0dd9a86986812ff86ac2fbd273c92/pymupdf-1.26.1-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:a65c411eb1cbb79e40c307e10fbad23658f19e9d7334ac4de21d24b58009a7b9", size = 24056183, upload-time = "2025-06-11T22:14:53.777Z" },
     { url = "https://files.pythonhosted.org/packages/99/39/23ac15cf0edc2877ef366dc7ae041ac199d212433c2c3113661d1a1d5ad0/pymupdf-1.26.1-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:26cebdcc1b2b7a7445423599ce2e0000f2be0333cce0fa0e6846e5a7da46f965", size = 24258802, upload-time = "2025-06-11T22:15:20.499Z" },
     { url = "https://files.pythonhosted.org/packages/e1/8c/56bd5951128d5c5c0b64d2942090c2cd7bc44302bac991b941ac736e3d63/pymupdf-1.26.1-cp39-abi3-win32.whl", hash = "sha256:82ed9e106cf564fc959c0691c374ba68443086ba1a1c9f26128eebbc3e6df9e5", size = 16927933, upload-time = "2025-06-11T22:15:59.72Z" },
@@ -3074,11 +3075,11 @@ wheels = [
 
 [[package]]
 name = "zipremove"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/06/20/a6361893273bf78334b80515e2ba04a03a0f925adea8499c910030cef7d2/zipremove-0.4.0.tar.gz", hash = "sha256:4363140090761b5d41aefea10d6be7269cc9c4387a9b94e0e8c987d93c28f654", size = 20193, upload-time = "2025-06-18T15:03:48.369Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/f8/b748c5cbe818909ac120591821b502af0a00f98b415f9e9e2f8858b8a22c/zipremove-0.4.1.tar.gz", hash = "sha256:4440f0f95ab12c253ca1cf247b0ba41a7bd0aab745dfa60959d3ed734b21f8df", size = 20250, upload-time = "2025-06-20T07:28:01.825Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/b8/05689908562edd859fcde7fdf2d6a893fd217eebe4c8e381dd43de952ac2/zipremove-0.4.0-py3-none-any.whl", hash = "sha256:44dbc0fb2e33f2b719f872b7c954f13d18784d8b053367a5de29b533ebeabe85", size = 9543, upload-time = "2025-06-18T15:03:47.424Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/84/ba2125f327ee77d6a33f1739c33b0924dcfac84f995d31253615af106464/zipremove-0.4.1-py3-none-any.whl", hash = "sha256:99dfc9c589ff4c1135ef7561a648c7a4acdacdf2e83362afb13367ff60eec6e5", size = 9548, upload-time = "2025-06-20T07:28:00.676Z" },
 ]
 
 [[package]]
