@@ -22,7 +22,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         remote_field: ManyToManyRel = field.remote_field  # pyright: ignore[reportAssignmentType]
         return remote_field.through  #  pyright: ignore[reportReturnType]
 
-    def _delete_m2m_field(self, field_name: str, rows: tuple, status):
+    def delete_m2m_field(self, field_name: str, rows: tuple, status):
         """Delete one comic field's m2m relations."""
         if not rows:
             return 0
@@ -54,7 +54,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
 
         del_total = 0
         for field_name, rows in delete_m2ms.items():
-            del_total += self._delete_m2m_field(field_name, rows, status)
+            del_total += self.delete_m2m_field(field_name, rows, status)
         if del_total:
             self.log.info(f"Deleted {del_total} stale relations for altered comics.")
         return del_total

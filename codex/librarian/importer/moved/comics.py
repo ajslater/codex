@@ -109,7 +109,7 @@ class MovedComicsImporter(AggregateMetadataImporter):
         # Potentially could just add these to the right structures and do it later during create and link.
         Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
         if del_folder_rows:
-            self.delete_m2m(FOLDERS_FIELD_NAME, del_folder_rows, status)
+            self.delete_m2m_field(FOLDERS_FIELD_NAME, del_folder_rows, status)
         if folder_m2m_links:
             self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
 
