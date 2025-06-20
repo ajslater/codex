@@ -15,3 +15,15 @@ def mapping_to_dict(data):
     if isinstance(data, list | tuple | frozenset | set):
         return type(data)(mapping_to_dict(item) for item in data)
     return data
+
+
+def flatten(seq: tuple | list | frozenset | set):
+    """Flatten sequence."""
+    flattened = []
+    for item in seq:
+        if isinstance(item, tuple | list | set | frozenset):
+            # To make recursive, instead of list could call flatten again
+            flattened.extend(list(item))
+        else:
+            flattened.append(item)
+    return seq.__class__(flattened)

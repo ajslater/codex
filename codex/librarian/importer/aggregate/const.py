@@ -2,81 +2,143 @@
 
 from types import MappingProxyType
 
-from comicbox.identifiers.const import NSS_KEY, URL_KEY
 from comicbox.schemas.comicbox import (
     ARCS_KEY,
+    CHARACTERS_KEY,
     DESIGNATION_KEY,
+    GENRES_KEY,
+    ID_KEY_KEY,
+    ID_URL_KEY,
+    IDENTIFIERS_KEY,
+    LOCATIONS_KEY,
     NUMBER_KEY,
     PROTAGONIST_KEY,
     ROLES_KEY,
+    SERIES_GROUPS_KEY,
+    STORIES_KEY,
+    TAGS_KEY,
+    TEAMS_KEY,
 )
-from django.db.models.fields import Field
+from django.db.models.fields import CharField, Field
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django.db.models.query_utils import DeferredAttribute
 
 from codex.librarian.importer.const import (
-    COMIC_FK_FIELDS,
+    ALL_COMIC_FK_FIELDS,
     CREDITS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
+    NAME_FIELD_NAME,
     PROTAGONIST_FIELD_MODEL_MAP,
     STORY_ARC_NUMBERS_FIELD_NAME,
     UNIVERSES_FIELD_NAME,
 )
 from codex.models import (
-    Credit,
     StoryArc,
     StoryArcNumber,
     Universe,
 )
-from codex.models.base import BaseModel
+from codex.models.identifier import (
+    Identifier,
+    IdentifierSource,
+)
 from codex.models.named import (
+    Character,
     CreditPerson,
     CreditRole,
-    Identifier,
-    IdentifierType,
+    Genre,
+    Location,
+    SeriesGroup,
+    Story,
+    Tag,
+    Team,
 )
 
+######
+# FK #
+######
+_EXCLUDE_FIELD_NAMES = frozenset(PROTAGONIST_FIELD_MODEL_MAP.keys() | {"parent_folder"})
+COMIC_FK_FIELD_NAMES_FIELD_MAP: MappingProxyType[str, Field] = MappingProxyType(
+    {
+        **{
+            field.name: field.related_model._meta.get_field(NAME_FIELD_NAME)
+            for field in ALL_COMIC_FK_FIELDS
+            if field.related_model and field.name not in _EXCLUDE_FIELD_NAMES
+        },
+        PROTAGONIST_KEY: PROTAGONIST_FIELD_MODEL_MAP["main_character"]._meta.get_field(
+            NAME_FIELD_NAME
+        ),
+    }
+)
+
+#######
+# M2M #
+#######
 FIELD_NAME_TO_MD_KEY_MAP = MappingProxyType(
     {
         STORY_ARC_NUMBERS_FIELD_NAME: ARCS_KEY,
     }
 )
-DICT_FIELD_AGG_MAP: MappingProxyType[str, dict[str, DeferredAttribute]] = (  # pyright: ignore[reportAssignmentType]
-    MappingProxyType(
-        {
-            CREDITS_FIELD_NAME: {ROLES_KEY: CreditRole.name},
-            IDENTIFIERS_FIELD_NAME: {NSS_KEY: Identifier.nss, URL_KEY: Identifier.url},
-            STORY_ARC_NUMBERS_FIELD_NAME: {NUMBER_KEY: StoryArcNumber.number},
-            UNIVERSES_FIELD_NAME: {
-                DESIGNATION_KEY: Universe.designation,
-            },
-        }
-    )
-)
-DICT_MODEL_SUB_MODEL: MappingProxyType[type[BaseModel], type[BaseModel]] = (
-    MappingProxyType(
-        {
-            Credit: CreditPerson,
-            Identifier: IdentifierType,
-            StoryArcNumber: StoryArc,
-            # Universe does not have sub models.
-        }
-    )
-)
-DICT_MODEL_SUB_SUB_KEY = MappingProxyType(
+SIMPLE_KEY_CLASS_MAP = MappingProxyType(
     {
-        # Most models don't have sub sub models
-        ROLES_KEY: CreditRole,
+        SERIES_GROUPS_KEY: SeriesGroup,
     }
 )
-COMIC_FK_FIELD_NAMES: MappingProxyType[str, Field] = MappingProxyType(
+IDENTIFIED_KEY_CLASS_MAP = MappingProxyType(
     {
+        CHARACTERS_KEY: Character,
+        GENRES_KEY: Genre,
+        LOCATIONS_KEY: Location,
+        STORIES_KEY: Story,
+        TAGS_KEY: Tag,
+        TEAMS_KEY: Team,
+    }
+)
+ID_TYPE_KEY = "id_type"
+# This map tells aggregator how to parse metadata into tuples for query & create.
+COMPLEX_FIELD_AGG_MAP: MappingProxyType[
+    str,
+    tuple[
+        DeferredAttribute | CharField,
+        ForwardManyToOneDescriptor | None,
+        dict[str, DeferredAttribute],
+    ],
+] = MappingProxyType(
+    {
+        **{key: (cls.name, None, {}) for key, cls in SIMPLE_KEY_CLASS_MAP.items()},
         **{
-            field.name: field.related_model._meta.get_field("name")
-            for field in COMIC_FK_FIELDS
-            if field.related_model and field.name not in PROTAGONIST_FIELD_MODEL_MAP
+            key: (cls.name, cls.identifier, {})
+            for key, cls in IDENTIFIED_KEY_CLASS_MAP.items()
         },
-        PROTAGONIST_KEY: PROTAGONIST_FIELD_MODEL_MAP["main_character"]._meta.get_field(
-            "name"
+        CREDITS_FIELD_NAME: (
+            CreditPerson.name,
+            CreditPerson.identifier,
+            {
+                ROLES_KEY: CreditRole.name,
+            },
+        ),
+        IDENTIFIERS_FIELD_NAME: (
+            IdentifierSource.name,
+            None,
+            {
+                ID_TYPE_KEY: "comic",
+                ID_KEY_KEY: Identifier.key,
+                ID_URL_KEY: Identifier.url,
+            },
+        ),
+        STORY_ARC_NUMBERS_FIELD_NAME: (
+            StoryArc.name,
+            StoryArc.identifier,
+            {
+                NUMBER_KEY: StoryArcNumber.number,
+            },
+        ),
+        UNIVERSES_FIELD_NAME: (
+            Universe.name,
+            None,
+            {
+                IDENTIFIERS_KEY: Universe.identifier,
+                DESIGNATION_KEY: Universe.designation,
+            },
         ),
     }
 )

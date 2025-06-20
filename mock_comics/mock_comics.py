@@ -10,7 +10,7 @@ from io import BytesIO
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
-from comicbox.identifiers.const import NIDs
+from comicbox.identifiers import IdSources
 from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32
@@ -101,7 +101,7 @@ COVER_RATIO = 1.5372233400402415
 COVER_WIDTH = 250
 COVER_HEIGHT = int(COVER_RATIO * COVER_WIDTH)
 FIVE_BY_FIVE_NIDS = frozenset(
-    {enum.value for enum in (NIDs.METRON, NIDs.GCD, NIDs.LCG)}
+    {enum.value for enum in (IdSources.METRON, IdSources.GCD, IdSources.LCG)}
 )
 
 
@@ -159,23 +159,23 @@ def create_web(md, key, _limit):
     if is_valid() is None:
         return
     nid = random.choice(tuple(IDENTIFIER_PARTS_MAP.keys()))
-    if nid == NIDs.COMICVINE.value:
-        nss = "4000-" + rand_digits(6)
+    if nid == IdSources.COMICVINE.value:
+        id_key = "4000-" + rand_digits(6)
     elif nid in FIVE_BY_FIVE_NIDS:
-        nss = rand_string(5) + "/" + rand_string(5)
-    elif nid == NIDs.ASIN.value:
-        nss = rand_string(10)
-    elif nid == NIDs.COMIXOLOGY.value:
-        nss = "x/x/" + rand_string(10)
-    elif nid == NIDs.ISBN.value:
-        nss = rand_digits(10)
-    elif nid == NIDs.UPC.value:
-        nss = rand_digits(12)
+        id_key = rand_string(5) + "/" + rand_string(5)
+    elif nid == IdSources.ASIN.value:
+        id_key = rand_string(10)
+    elif nid == IdSources.COMIXOLOGY.value:
+        id_key = "x/x/" + rand_string(10)
+    elif nid == IdSources.ISBN.value:
+        id_key = rand_digits(10)
+    elif nid == IdSources.UPC.value:
+        id_key = rand_digits(12)
     else:
         return
 
     id_parts = IDENTIFIER_PARTS_MAP[nid]
-    url = id_parts.unparse_url("issue", nss)
+    url = id_parts.unparse_url("issue", id_key)
 
     md[key] = url
 

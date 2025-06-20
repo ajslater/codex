@@ -39,9 +39,8 @@ def _delete_orphans(model, field, names):
     """Delete orphans for declared models."""
     params = {f"{field}__in": names}
     query = model.objects.filter(~Q(**params))
-    count = query.count()
+    count, _ = query.delete()
     if count:
-        query.delete()
         logger.info(f"Deleted {count} orphan {model._meta.verbose_name_plural}.")
 
 
@@ -60,9 +59,10 @@ def init_timestamps():
     """Init timestamps."""
     _delete_orphans(Timestamp, "key", Timestamp.Choices.values)
 
-    for key in Timestamp.Choices.values:
+    for enum in Timestamp.Choices:
+        key = enum.value
         ts, created = Timestamp.objects.get_or_create(key=key)
-        if key == Timestamp.Choices.API_KEY.value and not ts.version:
+        if enum == Timestamp.Choices.API_KEY and not ts.version:
             ts.save_uuid_version()
         if created:
             label = Timestamp.Choices(ts.key).label
@@ -150,8 +150,7 @@ def update_custom_covers_for_config_dir():
     # Delete covers we can't reliably update.
     if delete_cover_pks:
         delete_qs = CustomCover.objects.filter(pk__in=delete_cover_pks)
-        delete_count = delete_qs.count()
-        delete_qs.delete()
+        delete_count, _ = delete_qs.delete()
         logger.warning(
             f"Delete {delete_count} CustomCovers that could not be re-sourced after config dir change."
         )

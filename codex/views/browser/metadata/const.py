@@ -3,8 +3,9 @@
 from types import MappingProxyType
 
 from codex.models import Comic
-from codex.models.groups import Imprint, Publisher, Series, Volume
-from codex.models.named import Credit, Identifier, StoryArcNumber, Universe
+from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
+from codex.models.identifier import Identifier
+from codex.models.named import Credit, SeriesGroup, StoryArcNumber, Universe
 
 ############
 # Annotate #
@@ -35,7 +36,8 @@ SUM_FIELDS = frozenset({"page_count", "size"})
 #########
 # Query #
 #########
-_CREDIT_RELATIONS = ("role", "person")
+_CREDIT_ONLY = ("role", "person")
+_CREDIT_PREFETCH = (*_CREDIT_ONLY, "role__identifier", "person__identifier")
 GROUP_MODELS = MappingProxyType(
     {
         "i": (Publisher,),
@@ -49,15 +51,28 @@ GROUP_MODELS = MappingProxyType(
 M2M_QUERY_OPTIMIZERS = MappingProxyType(
     {
         Credit: {
-            "prefetch": _CREDIT_RELATIONS,
-            "only": _CREDIT_RELATIONS,
+            "prefetch": _CREDIT_PREFETCH,
+            "select": (),
+            "only": _CREDIT_ONLY,
         },
-        StoryArcNumber: {"select": ("story_arc",), "only": ("story_arc", "number")},
+        StoryArcNumber: {
+            "prefetch": ("story_arc", "story_arc__identifier"),
+            "select": (),
+            "only": ("story_arc", "number"),
+        },
         Identifier: {
-            "select": ("identifier_type",),
-            "only": ("identifier_type", "nss", "url"),
+            "select": ("source",),
+            "only": ("source", "key", "url"),
         },
-        Universe: {"only": ("name", "designation")},
+        Universe: {"only": ("name", "designation", "identifier")},
+        SeriesGroup: {
+            "select": (),
+            "only": ("name",),
+        },
+        Folder: {
+            "select": (),
+            "only": ("path",),
+        },
     }
 )
 COMIC_MAIN_FIELD_NAME_BACK_REL_MAP = MappingProxyType(

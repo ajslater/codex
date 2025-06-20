@@ -51,7 +51,7 @@ class WatchedPath(BaseModel):
         self.set_stat()
 
     @override
-    def __str__(self):
+    def __repr__(self):
         """Return the full path."""
         return str(self.path)
 

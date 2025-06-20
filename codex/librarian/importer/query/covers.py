@@ -1,8 +1,8 @@
 """Query Missing Custom Covers."""
 
 from codex.librarian.importer.const import (
-    COVERS_CREATE,
-    COVERS_UPDATE,
+    CREATE_COVERS,
+    UPDATE_COVERS,
 )
 from codex.librarian.importer.create_fks import CreateForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -27,14 +27,14 @@ class QueryCustomCoversImporter(CreateForeignKeysImporter):
         update_covers_qs = CustomCover.objects.filter(
             library=self.library, path__in=cover_paths
         )
-        self.metadata[COVERS_UPDATE] = update_covers_qs
+        self.metadata[UPDATE_COVERS] = update_covers_qs
         update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
         update_count = len(update_cover_paths)
         update_status = Status(ImportStatusTypes.UPDATE_CUSTOM_COVERS, 0, update_count)
         self.status_controller.update(update_status)
 
         create_cover_paths = cover_paths - update_cover_paths
-        self.metadata[COVERS_CREATE] = create_cover_paths
+        self.metadata[CREATE_COVERS] = create_cover_paths
         create_count = len(create_cover_paths)
         create_status = Status(ImportStatusTypes.CREATE_CUSTOM_COVERS, 0, create_count)
         self.status_controller.update(create_status)

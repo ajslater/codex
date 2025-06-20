@@ -101,7 +101,7 @@ class Timestamp(BaseModel):
         unique_together = ("key",)
 
     @override
-    def __str__(self):
+    def __repr__(self):
         """Print name for choice."""
         return self.Choices(self.key).name
 

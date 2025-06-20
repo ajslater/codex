@@ -16,7 +16,8 @@ from codex.models import (
     CreditPerson,
     StoryArc,
 )
-from codex.models.named import IdentifierType, Universe
+from codex.models.identifier import IdentifierSource
+from codex.models.named import Universe
 from codex.serializers.browser.choices import (
     BrowserChoicesFilterSerializer,
     BrowserFilterChoicesSerializer,
@@ -36,8 +37,8 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
             CreditPerson,
         ),
         IDENTIFIER_TYPE_UI_FIELD: (
-            "identifiers__identifier_type",
-            IdentifierType,
+            "identifiers__source",
+            IdentifierSource,
         ),
         STORY_ARC_UI_FIELD: (
             "story_arc_numbers__story_arc",
@@ -49,7 +50,7 @@ _BACK_REL_MAP = MappingProxyType(
     {
         CreditPerson: "credit__",
         StoryArc: "storyarcnumber__",
-        IdentifierType: "identifier__",
+        IdentifierSource: "identifier__",
     }
 )
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})

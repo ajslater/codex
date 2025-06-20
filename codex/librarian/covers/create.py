@@ -103,11 +103,11 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             # zero length file is code for missing.
             cover_path.touch()
 
-    def _bulk_create_comic_covers(self, pks, custom):
+    def _bulk_create_comic_covers(self, pks, custom) -> int:
         """Create bulk comic covers."""
         num_comics = len(pks)
         if not num_comics:
-            return None
+            return 0
         status = Status(CoverStatusTypes.CREATE_COVERS, 0, num_comics)
         try:
             start_time = time()
@@ -134,18 +134,21 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
                     status.increment_complete()
                 self.status_controller.update(status)
 
-            total_elapsed = naturaldelta(time() - start_time)
             desc = "custom" if custom else "comic"
-            self.log.success(
-                f"Created {status.complete} {desc} covers in {total_elapsed}."
-            )
+            count = status.complete
+            level = "INFO" if count else "DEBUG"
+            elapsed = naturaldelta(time() - start_time)
+            self.log.log(level, f"Created {count} {desc} covers in {elapsed}.")
         finally:
             self.status_controller.finish(status)
-        return status.complete
+        return status.complete or 0
 
     def create_all_covers(self):
         """Create all covers for all libraries."""
+        start_time = time()
         pks = CustomCover.objects.values_list("pk", flat=True)
-        self._bulk_create_comic_covers(pks, custom=True)
+        count = self._bulk_create_comic_covers(pks, custom=True)
         pks = Comic.objects.values_list("pk", flat=True)
-        self._bulk_create_comic_covers(pks, custom=False)
+        count += self._bulk_create_comic_covers(pks, custom=False)
+        elapsed = naturaldelta(time() - start_time)
+        self.log.success(f"Created {count} covers in {elapsed}")

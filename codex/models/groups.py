@@ -5,10 +5,19 @@ from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
+from codex.models.identifier import Identifier
 from codex.models.paths import CustomCover, WatchedPath
 from codex.models.util import get_sort_name
 
-__all__ = ("BrowserGroupModel", "Folder", "Imprint", "Publisher", "Series", "Volume")
+__all__ = (
+    "BrowserGroupModel",
+    "Folder",
+    "IdentifiedBrowserGroupModel",
+    "Imprint",
+    "Publisher",
+    "Series",
+    "Volume",
+)
 
 
 class BrowserGroupModel(BaseModel):
@@ -50,30 +59,61 @@ class BrowserGroupModel(BaseModel):
 
         abstract = True
 
+    def _repr_parts(self) -> tuple[str, ...]:
+        return (self.name,)
 
-class Publisher(BrowserGroupModel):
-    """The publisher of the comic."""
+    @override
+    def __repr__(self):
+        """Represent as string."""
+        return "/".join(self._repr_parts())
+
+
+class IdentifiedBrowserGroupModel(BrowserGroupModel):
+    """
+    Identified Browser Group Model.
+
+    Comicbox objects can have multiple identifiers, but if I let BrowserGroups have them
+    then it would impossible to unlink a second level m2m relationship when comics are
+    deleted. So I choose the highest priority one in import.
+    Additionally, Browser groups will update to the highest priority identifier by
+    source instead of creating duplicate groups to keep the hierarchy consolitated.
+    """
+
+    identifier = ForeignKey(Identifier, on_delete=CASCADE, null=True)
 
     class Meta(BrowserGroupModel.Meta):
+        """Without this a real table is created and joined to."""
+
+        abstract = True
+
+
+class Publisher(IdentifiedBrowserGroupModel):
+    """The publisher of the comic."""
+
+    class Meta(IdentifiedBrowserGroupModel.Meta):
         """Constraints."""
 
         unique_together = ("name",)
 
 
-class Imprint(BrowserGroupModel):
+class Imprint(IdentifiedBrowserGroupModel):
     """A Publishing imprint."""
 
     PARENT: str = "publisher"
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
-    class Meta(BrowserGroupModel.Meta):
+    class Meta(IdentifiedBrowserGroupModel.Meta):
         """Constraints."""
 
         unique_together = ("name", "publisher")
 
+    @override
+    def _repr_parts(self):
+        return (self.publisher.name, self.name)
 
-class Series(BrowserGroupModel):
+
+class Series(IdentifiedBrowserGroupModel):
     """The series the comic belongs to."""
 
     PARENT: str = "imprint"
@@ -82,11 +122,19 @@ class Series(BrowserGroupModel):
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = CoercingPositiveSmallIntegerField(null=True)
 
-    class Meta(BrowserGroupModel.Meta):
+    class Meta(IdentifiedBrowserGroupModel.Meta):
         """Constraints."""
 
         unique_together = ("name", "imprint")
         verbose_name_plural = "Series"
+
+    @override
+    def _repr_parts(self):
+        return (
+            self.publisher.name,
+            self.imprint.name,
+            self.name,
+        )
 
 
 class Volume(BrowserGroupModel):
@@ -118,19 +166,24 @@ class Volume(BrowserGroupModel):
         unique_together = ("name", "series")
 
     @classmethod
-    def to_str(cls, name):
+    def to_str(cls, name: int | None):
         """Represent volume as a string."""
         if name is None:
             rep = ""
         else:
-            name = str(name)
-            rep = f"({name})" if len(name) == cls.YEAR_LEN else "v" + name
+            name_str = str(name)
+            rep = f"({name_str})" if len(name_str) == cls.YEAR_LEN else "v" + name_str
         return rep
 
     @override
-    def __str__(self):
+    def _repr_parts(self):
         """Represent volume as a string."""
-        return self.to_str(self.name)
+        return (
+            self.publisher.name,
+            self.imprint.name,
+            self.series.name,
+            self.to_str(self.name),
+        )
 
 
 class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):

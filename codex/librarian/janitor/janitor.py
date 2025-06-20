@@ -6,7 +6,7 @@ from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import (
     AdoptOrphanFoldersTask,
 )
-from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, JanitorCleanup
+from codex.librarian.janitor.cleanup import JanitorCleanup
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -42,14 +42,14 @@ _JANITOR_STATII = (
     Status(JanitorStatusTypes.CODEX_LATEST_VERSION),
     Status(JanitorStatusTypes.INTEGRITY_FK),
     Status(JanitorStatusTypes.INTEGRITY_CHECK),
-    Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES),
+    Status(JanitorStatusTypes.CLEANUP_FK),
     Status(JanitorStatusTypes.CLEANUP_COVERS),
     Status(JanitorStatusTypes.CLEANUP_SESSIONS),
     Status(JanitorStatusTypes.CLEANUP_BOOKMARKS),
     Status(JanitorStatusTypes.DB_OPTIMIZE),
     Status(JanitorStatusTypes.DB_BACKUP),
     Status(JanitorStatusTypes.CODEX_UPDATE),
-    Status(CoverStatusTypes.FIND_ORPHAN),
+    Status(CoverStatusTypes.FIND_ORPHAN_COVERS),
     Status(CoverStatusTypes.PURGE_COVERS),
     Status(ImportStatusTypes.ADOPT_FOLDERS),
     Status(ImportStatusTypes.MOVE_FOLDERS),

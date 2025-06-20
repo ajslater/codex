@@ -3,44 +3,22 @@
 from types import MappingProxyType
 
 from codex.librarian.importer.const import (
-    COMIC_FK_FIELDS,
-    CREDIT_PERSON_FIELD_NAME,
-    CREDIT_ROLE_FIELD_NAME,
     CREDITS_FIELD_NAME,
-    IDENTIFIER_CODE_FIELD_NAME,
-    IDENTIFIER_TYPE_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
-    NUMBER_FIELD_NAME,
-    STORY_ARC_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
-from codex.models.named import Credit, Identifier, StoryArcNumber
+from codex.models.base import BaseModel
+from codex.models.groups import Imprint, Series, Volume
 
-COMPLEX_MODEL_FIELD_NAME_CLASS_MAP = (
-    (CREDITS_FIELD_NAME, Credit),
-    (STORY_ARC_NUMBERS_FIELD_NAME, StoryArcNumber),
-    (IDENTIFIERS_FIELD_NAME, Identifier),
+COMPLEX_MODEL_FIELD_NAMES = (
+    CREDITS_FIELD_NAME,
+    STORY_ARC_NUMBERS_FIELD_NAME,
+    IDENTIFIERS_FIELD_NAME,
 )
-COMPLEX_MODEL_REL_LINK_MAP = MappingProxyType(
+GROUP_KEY_RELS: MappingProxyType[type[BaseModel], tuple[str, ...]] = MappingProxyType(
     {
-        CREDITS_FIELD_NAME: (
-            f"{CREDIT_PERSON_FIELD_NAME}__name",
-            f"{CREDIT_ROLE_FIELD_NAME}__name",
-        ),
-        STORY_ARC_NUMBERS_FIELD_NAME: (
-            f"{STORY_ARC_FIELD_NAME}__name",
-            NUMBER_FIELD_NAME,
-        ),
-        IDENTIFIERS_FIELD_NAME: (
-            f"{IDENTIFIER_TYPE_FIELD_NAME}__name",
-            IDENTIFIER_CODE_FIELD_NAME,
-        ),
-    }
-)
-COMIC_FK_FIELD_NAME_AND_MODEL = MappingProxyType(
-    {
-        field.name: field.related_model
-        for field in COMIC_FK_FIELDS
-        if field.related_model
+        Imprint: ("publisher__name",),
+        Series: ("publisher__name", "imprint__name"),
+        Volume: ("publisher__name", "imprint__name", "series__name"),
     }
 )

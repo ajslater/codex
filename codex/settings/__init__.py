@@ -48,9 +48,13 @@ CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", "250"))
 MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", "1000"))
 # sqlite parser breaks with more than 1000 variables in a query and
 # django only fixes this in the bulk_create & bulk_update functions.
-# So for complicated queries I gotta batch them myself. Filter arg
-# count is a proxy, but it works. 990 errors sometimes.
+# So for complicated queries I gotta batch them myself. These batch sizes
+# are only a proxy for query terms, but it works.
+# FILTER_BATCH_SIZE of 990 errors sometimes.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
+LINK_FK_BATCH_SIZE = int(environ.get("CODEX_LINK_FK_BATCH_SIZE", "20000"))
+# LINK_M2M_BATCH_SIZE of 210 breaks consistently with a well populated db on update.
+LINK_M2M_BATCH_SIZE = int(environ.get("CODEX_LINK_M2M_BATCH_SIZE", "190"))
 VITE_HOST = environ.get("VITE_HOST")
 SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", "10000"))
 LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")

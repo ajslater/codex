@@ -43,13 +43,13 @@ from codex.models.groups import (
     Volume,
     WatchedPathBrowserGroup,
 )
+from codex.models.identifier import Identifier
 from codex.models.named import (
     AgeRating,
     Character,
     Country,
     Credit,
     Genre,
-    Identifier,
     Language,
     Location,
     OriginalFormat,
@@ -321,7 +321,7 @@ class Comic(WatchedPathBrowserGroup):
         return title
 
     @override
-    def __str__(self):
+    def __repr__(self):
         """Most common text representation for logging."""
         return self.get_title(self, volume=True, name=True, filename_fallback=True)
 
@@ -361,6 +361,8 @@ class ComicFTS(BaseModel):
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     genres = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    identifiers = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    sources = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     locations = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     reading_direction = CharField(
         db_collation="nocase", max_length=max_choices_len(ReadingDirection)

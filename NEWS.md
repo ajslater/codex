@@ -13,8 +13,7 @@ border-radius: 128px;
   - Support MetronInfo.xml v1.0 Schema for comic metadata but only metadata
     features that already exist in Codex for now.
   - Support CB7 (7zip) comic archives.
-  - Skip updating comics if the file updated but it looks like the metadata did
-    not.
+  - Fewer database updates when comics change, should be faster.
   - Uses Comicbox 2.0 see
     [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
   - Logging format changed.
@@ -23,6 +22,8 @@ border-radius: 128px;
 
 - Fix
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
+  - Janitor tasks that might disrupt an ongoing import are not run if an import
+    is in progress.
 
 ## v1.7.13
 

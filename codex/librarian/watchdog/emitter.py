@@ -78,6 +78,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         self.init_worker(logger_, librarian_queue)
         self._poll_cond = Condition()
         self._force = False
+        self._manual_poll = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
         self._covers_only = covers_only
@@ -95,60 +96,68 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             # default stat and listdir params
         )
 
-    def _is_watch_path_ok(self, library):
+    @staticmethod
+    def _get_poll_timeout(library):
+        since_last_poll = timezone.now() - library.last_poll
+        return max(
+            0,
+            library.poll_every.total_seconds() - since_last_poll.total_seconds(),
+        )
+
+    def _get_timeout(self) -> int | None:
         """Return a special timeout value if there's a problem with the watch dir."""
-        ok = False
         msg = ""
         log_level = "WARNING"
+        library = Library.objects.get(path=self.watch.path)
         if not library.poll:
             # Wait forever. Manual poll only
-            ok = None
+            log_level = "INFO"
+            msg = f"Library {self._watch_path} waiting for manual poll."
+            timeout = None
         elif not self._watch_path.is_dir():
             msg = f"Library {self._watch_path} not found. Not Polling."
+            timeout = _DIR_NOT_FOUND_TIMEOUT
         elif self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
             msg = f"Library {self._watch_path} looks like an unmounted docker volume. Not polling."
+            timeout = _DIR_NOT_FOUND_TIMEOUT
         elif not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
             msg = f"{self._watch_path} is empty. Suspect it may be unmounted. Not polling."
+            timeout = _DIR_NOT_FOUND_TIMEOUT
         elif library.update_in_progress:
-            msg = f"Library {library.path} update in progress. Not polling."
             log_level = "DEBUG"
+            msg = f"Library {library.path} update in progress. Not polling."
+            timeout = self._get_poll_timeout(library)
+        elif self._manual_poll:
+            log_level = "DEBUG"
+            msg = f"Manual poll requested for {library.path}"
+            self._manual_poll = False
+            timeout = 0
+        elif library.last_poll:
+            timeout = self._get_poll_timeout(library)
         else:
-            ok = True
+            msg = f"First ever poll for {library.path}"
+            log_level = "DEBUG"
+            timeout = 0
 
         if msg:
             self.log.log(log_level, msg)
 
-        return ok
+        return timeout
 
     @property
     @override
-    def timeout(self) -> float | None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def timeout(self) -> int | None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Get the timeout for this emitter from its library."""
         # The timeout from the constructor, self._timeout, is thrown away in favor
         # of a dynamic timeout from the database.
-        timeout = self._timeout  # default is 1 second
         try:
-            library = Library.objects.get(path=self.watch.path)
-            ok = self._is_watch_path_ok(library)
-            if ok is None:
-                self.log.info(f"Library {self._watch_path} waiting for manual poll.")
-                return None  # None waits forever.
-            if ok is False:
-                return _DIR_NOT_FOUND_TIMEOUT
-
-            if library.last_poll:
-                since_last_poll = timezone.now() - library.last_poll
-                timeout = max(
-                    0,
-                    library.poll_every.total_seconds()
-                    - since_last_poll.total_seconds(),
-                )
+            return self._get_timeout()
         except Exception:
             timeout = 0
             self.log.exception(f"Getting timeout for {self.watch.path}")
-        return int(timeout)
+        return timeout
 
     def _is_take_snapshot(self, timeout):
         """Determine if we should take a snapshot."""
@@ -159,15 +168,8 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
                 )
             self._poll_cond.wait(timeout)
 
-        if not self.should_keep_running():
-            return None
-
-        library = Library.objects.get(path=self.watch.path)
-        ok = self._is_watch_path_ok(library)
-        if ok is False:
-            self.log.warning("Not Polling.")
-            return None
-        return library
+        # Zero or None are acceptable timeouts to run now.
+        return self.should_keep_running() and not self._get_timeout()
 
     def _take_db_snapshot(self):
         """Get a database snapshot with optional force argument."""
@@ -230,24 +232,19 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         """
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
-        library = self._is_take_snapshot(timeout)
-        if not library:
+        if not self._is_take_snapshot(timeout):
             self._force = False
             return
         status = Status(WatchdogStatusTypes.POLL, subtitle=self.watch.path)
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {self.watch.path}...")
-            diff = self._get_diff()
-            if not diff:
-                return
-
-            self._queue_events(diff)
-
+            if diff := self._get_diff():
+                self._queue_events(diff)
+            library = Library.objects.get(path=self.watch.path)
             library.last_poll = Now()
             library.save()
-
-            self.log.success(f"Polled {self.watch.path}")
+            self.log.info(f"Polled {self.watch.path}")
         except Exception:
             self.log.exception("poll for watchdog events and queue them")
             raise
@@ -265,5 +262,6 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
     def poll(self, *, force: bool):
         """Poll now, sooner than timeout."""
         self._force = force
+        self._manual_poll = True
         with self._poll_cond:
             self._poll_cond.notify()

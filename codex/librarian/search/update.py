@@ -9,6 +9,7 @@ from django.db.models.aggregates import Max
 from django.db.models.expressions import F, Value
 from django.db.models.functions import Concat
 from django.db.models.functions.datetime import Now
+from django.db.models.query import QuerySet
 from humanize import intword, naturaldelta
 
 from codex.librarian.search.remove import SearchRemoveThread
@@ -56,6 +57,7 @@ _COMICFTS_UPDATE_FIELDS = (
     "updated_at",
 )
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+_CHUNK_HUMAN_SIZE = intword(SEARCH_INDEX_BATCH_SIZE)
 
 
 class SearchFTSUpdateThread(SearchRemoveThread, ABC):
@@ -95,6 +97,8 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             fts_tagger=F("tagger__name"),
             fts_characters=GroupConcat("characters__name", distinct=True),
             fts_credits=GroupConcat("credits__person__name", distinct=True),
+            fts_identifiers=GroupConcat("identifiers__key", distinct=True),
+            fts_sources=GroupConcat("identifiers__source__name", distinct=True),
             fts_genres=GroupConcat("genres__name", distinct=True),
             fts_locations=GroupConcat("locations__name", distinct=True),
             fts_series_groups=GroupConcat("series_groups__name", distinct=True),
@@ -154,6 +158,8 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
                 characters=comic.fts_characters,
                 credits=comic.fts_credits,
                 genres=comic.fts_genres,
+                identifiers=comic.fts_identifiers,
+                sources=comic.fts_sources,
                 locations=comic.fts_locations,
                 series_groups=comic.fts_series_groups,
                 stories=comic.fts_stories,
@@ -178,13 +184,60 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         )
         return obj_list
 
-    def _update_search_index_finish(self, count, verb, status):
-        verb = verb.capitalize() + "d"
-        if count:
-            self.log.info(f"{verb} {count} search entries.")
+    def _update_search_index_finish(self, count, verbed, status, start_time):
+        total_time = time() - start_time
+        human_time = naturaldelta(total_time)
+        if total_time:
+            eps = round(count / total_time)
+            eps_suffix = f", {eps} per second."
         else:
-            self.log.debug(f"{verb} no search entries.")
+            eps_suffix = "."
+        suffix = f"search entries in {human_time}{eps_suffix}."
+        if count:
+            self.log.info(f"{verbed} {count} {suffix}")
+        else:
+            self.log.debug(f"{verbed} no {suffix}.")
         self.status_controller.finish(status)
+
+    def _update_search_index_operate_batch(  # noqa: PLR0913
+        self,
+        comics_qs: QuerySet,
+        batch_from: int,
+        count: int,
+        verbing: str,
+        verbed: str,
+        status,
+        *,
+        create: bool,
+    ):
+        if self.abort_event.is_set():
+            return
+        batch_start = time()
+        batch_to = batch_from + SEARCH_INDEX_BATCH_SIZE
+        comics_batch = comics_qs[batch_from:batch_to]
+        self.log.debug(
+            f"Checking {comics_batch.count()}/{count} comics for search index operations..."
+        )
+        operate_comicfts = self._get_comicfts_list(comics_batch, create=create)
+        operate_comicfts_count = len(operate_comicfts)
+        if self.abort_event.is_set():
+            return
+        self.log.debug(f"{verbing} {operate_comicfts_count} search entries...")
+        if status.complete is None:
+            status.add_complete(0)
+            self.status_controller.update(status, notify=True)
+        if create:
+            ComicFTS.objects.bulk_create(operate_comicfts)
+        else:
+            ComicFTS.objects.bulk_update(operate_comicfts, _COMICFTS_UPDATE_FIELDS)
+        status.add_complete(operate_comicfts_count)
+        self.status_controller.update(status)
+        batch_time = time() - batch_start
+        human_time = naturaldelta(batch_time)
+        eps = round(count / batch_time)
+        self.log.debug(
+            f"{verbed} {operate_comicfts_count}/{count} search entries in {human_time}, {eps} per second."
+        )
 
     def _update_search_index_operate(self, comics_qs, *, create: bool):
         count = comics_qs.count()
@@ -193,14 +246,13 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             self.log.info(f"No search entries to {verb}.")
 
         if count > SEARCH_INDEX_BATCH_SIZE:
-            human_size = intword(SEARCH_INDEX_BATCH_SIZE)
             reason = (
-                f"Batching this search engine {verb} operation in to chunks of {human_size}."
+                f"Batching this search engine {verb} operation in to chunks of {_CHUNK_HUMAN_SIZE}."
                 f" Search engine {verb}s run much faster as one large batch but then there's no progress updates."
                 " You may adjust the batch size with the environment variable CODEX_SEARCH_INDEX_BATCH_SIZE."
             )
             self.log.debug(reason)
-            subtitle = f"Chunks of {human_size}"
+            subtitle = f"Chunks of {_CHUNK_HUMAN_SIZE}"
         else:
             subtitle = ""
 
@@ -212,43 +264,27 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         operate_status = Status(status_type, total=count, subtitle=subtitle)
         self.status_controller.start(operate_status)
 
+        verbing = (verb[:-1] + "ing").capitalize()
+        verbed = verb.capitalize() + "d"
         batch_from = 0
+        start_time = time()
         try:
             while batch_from < count:
-                batch_start = time()
-                batch_to = batch_from + SEARCH_INDEX_BATCH_SIZE
-                comics_batch = comics_qs[batch_from:batch_to]
-                self.log.debug(
-                    f"Checking {comics_batch.count()}/{count} comics for search index operations..."
+                self._update_search_index_operate_batch(
+                    comics_qs,
+                    batch_from,
+                    count,
+                    verbing,
+                    verbed,
+                    operate_status,
+                    create=create,
                 )
                 if self.abort_event.is_set():
+                    self.log.debug("Search index update aborted.")
                     break
-                operate_comicfts = self._get_comicfts_list(comics_batch, create=create)
-                operate_comicfts_count = len(operate_comicfts)
-                verbing = (verb[:-1] + "ing").capitalize()
-                self.log.debug(f"{verbing} {operate_comicfts_count} search entries...")
-                if self.abort_event.is_set():
-                    break
-                if operate_status.complete is None:
-                    operate_status.add_complete(0)
-                    self.status_controller.update(operate_status, notify=True)
-                if create:
-                    ComicFTS.objects.bulk_create(operate_comicfts)
-                else:
-                    ComicFTS.objects.bulk_update(
-                        operate_comicfts, _COMICFTS_UPDATE_FIELDS
-                    )
-                operate_status.add_complete(operate_comicfts_count)
-                self.status_controller.update(operate_status)
-                batch_time = time() - batch_start
-                eps = round(count / batch_time)
-                verbed = (verb + "d").capitalize()
-                self.log.debug(
-                    f"{verbed} {operate_comicfts_count}/{count} search entries in {batch_time}, {eps} per second."
-                )
-                batch_from = batch_to
+                batch_from += SEARCH_INDEX_BATCH_SIZE
         finally:
-            self._update_search_index_finish(count, verb, operate_status)
+            self._update_search_index_finish(count, verbed, operate_status, start_time)
 
     def _update_search_index_update(self, all_indexed_comic_ids):
         """Update out of date search entries."""
@@ -311,4 +347,4 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         except Exception:
             self.log.exception("Update search index")
         finally:
-            self.status_controller.finish_many(tuple(SearchIndexStatusTypes))
+            self.status_controller.finish_many(SearchIndexStatusTypes.values)

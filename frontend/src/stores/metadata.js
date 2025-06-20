@@ -126,7 +126,7 @@ export const useMetadataStore = defineStore("metadata", {
         const parts = identifier.name.split(":");
         const idType = parts[0];
         const code = parts[1];
-        const finalTitle = useBrowserStore().identifierTypeTitle(idType);
+        const finalTitle = useBrowserStore().identifierSourceTitle(idType);
         let name = "";
         if (finalTitle && finalTitle !== "None") {
           name += finalTitle + ":";
@@ -183,11 +183,13 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return tagName;
     },
-    labelUniverses(tags) {
-      for (const tag of tags) {
-        tag.name += ` (${tag.designation})`;
-      }
-    },
+    /*
+     *labelUniverses(tags) {
+     *  for (const tag of tags) {
+     *    tag.name += ` (${tag.designation})`;
+     *  }
+     *},
+     */
     markTagMain(tagName, tags) {
       const attr = "main" + tagName.slice(0, -1);
       const mainPk = this.md[attr]?.pk;
@@ -214,10 +216,13 @@ export const useMetadataStore = defineStore("metadata", {
 
         var mainTags = [];
         var regularTags = [];
-        if (tagName === "Universes") {
-          this.labelUniverses(tags);
-          regularTags = tags;
-        } else if (MAIN_TAGS.has(tagName)) {
+        /*
+         *if (tagName === "Universes") {
+         *  this.labelUniverses(tags);
+         *  regularTags = tags;
+         *} else
+         */
+        if (MAIN_TAGS.has(tagName)) {
           ({ mainTags, regularTags } = this.markTagMain(tagName, tags));
         } else {
           regularTags = tags;

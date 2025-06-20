@@ -1,109 +1,137 @@
 """Aggregate Browser Group Trees."""
 
+from collections.abc import Mapping
 from contextlib import suppress
-from types import MappingProxyType
 
-from codex.librarian.importer.aggregate.const import COMIC_FK_FIELD_NAMES
+from comicbox.identifiers import IdSources
+from comicbox.schemas.comicbox import (
+    ID_KEY_KEY,
+    ID_URL_KEY,
+    IDENTIFIERS_KEY,
+    NAME_KEY,
+    NUMBER_KEY,
+    PROTAGONIST_KEY,
+)
+from django.db.models import Field
+from django.db.models.base import Model
+
+from codex.librarian.importer.aggregate.const import COMIC_FK_FIELD_NAMES_FIELD_MAP
 from codex.librarian.importer.const import (
-    FK_LINK,
     GROUP_MODEL_COUNT_FIELDS,
+    LINK_FKS,
     QUERY_MODELS,
+    get_key_index,
 )
 from codex.librarian.importer.extract import ExtractMetadataImporter
-from codex.models.groups import BrowserGroupModel
+from codex.models.base import BaseModel
+from codex.models.groups import BrowserGroupModel, Volume
+from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
-
-_BROWSER_GROUPS_MAP = MappingProxyType(
-    {
-        cls: (cls.__name__.lower(), cls.name.field)  # pyright: ignore[reportAttributeAccessIssue]
-        for cls in GROUP_MODEL_COUNT_FIELDS
-    }
-)
 
 
 class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
     """Aggregate Browser Group Trees."""
 
-    @staticmethod
+    def add_query_model(self, model: type[Model], clean_values):
+        """Add to the queury models set for the model."""
+        if model not in self.metadata[QUERY_MODELS]:
+            self.metadata[QUERY_MODELS][model] = set()
+        if not isinstance(clean_values, set | frozenset):
+            clean_values = {
+                clean_values,
+            }
+        if "metron" in clean_values:
+            raise ValueError
+        self.metadata[QUERY_MODELS][model] |= clean_values
+
+    def get_identifier_tuple(self, model: type[BaseModel], obj: Mapping):
+        """Parse first highest priority identifier from metadata."""
+        # Used by Objects with identifiers, not comic itself.
+        identifiers = obj.get(IDENTIFIERS_KEY)
+        if not identifiers:
+            return None
+
+        for id_source_enum in IdSources:
+            id_source = id_source_enum.value
+            if id_obj := identifiers.get(id_source):
+                break
+        else:
+            id_source, id_obj = next(identifiers.items())
+
+        if not id_obj:
+            return None
+
+        id_type = model._meta.db_table.removeprefix("codex_")
+
+        id_key = id_obj.get(ID_KEY_KEY)
+        if not id_key:
+            return None
+        id_url = id_obj.get(ID_URL_KEY)
+
+        identifier_tuple = (id_source, id_type, id_key, id_url)
+        self.add_query_model(IdentifierSource, (id_source,))
+        self.add_query_model(Identifier, identifier_tuple)
+
+        return identifier_tuple[:-1]
+
+    def _set_simple_fk(self, related_field: Field, value) -> tuple:
+        value = related_field.get_prep_value(value)
+        if value is None:
+            return ()
+        return (value,)
+
     def _set_group_tree_group(
-        attrs: tuple,
-        md: dict,
-        group_cls: type[BrowserGroupModel],
-        groups_md: dict,
-        group_tree: list,
-    ):
-        group_field_name, field = attrs
-        group = md.pop(group_field_name, {})
-        group_name = group.get("name", group_cls.DEFAULT_NAME)
-        group_name = field.get_prep_value(group_name)
-        if (count_key := GROUP_MODEL_COUNT_FIELDS.get(group_cls)) and (
-            count := group.get(count_key)
-        ):
-            groups_md[count_key] = count
-        group_tree.append(group_name)
-
-    def _set_group_tree_max_group_count(  # noqa: PLR0913
         self,
-        path,
-        group_tree,
-        group_md,
-        group_class,
-        index: int,
-        count_key: str | None = None,
-    ):
-        """Assign the maximum group count number."""
-        group_list = group_tree[0:index]
-        count = None
+        model: type[BrowserGroupModel],
+        name_field: Field,
+        group: dict | None,
+        group_list: list,
+    ) -> tuple:
+        name_key = NUMBER_KEY if model == Volume else NAME_KEY
+        if group is None:
+            group = {}
+
+        group_name = group.get(name_key, model.DEFAULT_NAME)
+        clean_group_name = name_field.get_prep_value(group_name)
+        group_list.append(clean_group_name)
+        extra_vals = []
+        if model != Volume:
+            identifier_tuple = self.get_identifier_tuple(model, group)
+            extra_vals.append(identifier_tuple)
+        count_key = GROUP_MODEL_COUNT_FIELDS[model]
         if count_key:
+            count = group.get(count_key)
             with suppress(Exception):
-                count = max_none(
-                    self.metadata[QUERY_MODELS].get(group_class, {}).get(group_list),
-                    group_md.get(count_key),
+                old_count_val = (
+                    self.metadata[QUERY_MODELS].get(model, {}).get(group_list)
                 )
-
-        group = {group_list: count}
-        # Update is fine because count max merge happens above
-        if group_class not in self.metadata[QUERY_MODELS]:
-            self.metadata[QUERY_MODELS][group_class] = {}
-        self.metadata[QUERY_MODELS][group_class].update(group)
-        field_name = group_class.__name__.lower()
-        self.metadata[FK_LINK][path][field_name] = group_list[-1]
-
-    def get_group_tree(self, md, path):
-        """Create the group tree to counts map for a single comic."""
-        # Create group tree
-        group_tree = []
-        groups_md = {}
-        for group_class, attrs in _BROWSER_GROUPS_MAP.items():
-            self._set_group_tree_group(
-                attrs,
-                md,
-                group_class,
-                groups_md,
-                group_tree,
-            )
-
-        group_tree = tuple(group_tree)
-
-        # Aggregate into fks
-        # query and create from group_trees
-        for index, (group_class, count_field_name) in enumerate(
-            GROUP_MODEL_COUNT_FIELDS.items(), start=1
-        ):
-            self._set_group_tree_max_group_count(
-                path, group_tree, groups_md, group_class, index, count_field_name
-            )
+                count = max_none(old_count_val, count)
+            extra_vals.append(count)
+        return tuple(group_list + extra_vals)
 
     def get_fk_metadata(self, md, path):
         """Aggregate Simple Foreign Keys."""
-        for field_name, related_field in COMIC_FK_FIELD_NAMES.items():
-            value = md.pop(field_name, None)
-            if value is None:
-                continue
-            value = related_field.get_prep_value(value)
-
+        group_list = []
+        for field_name, related_field in COMIC_FK_FIELD_NAMES_FIELD_MAP.items():
+            # No identifiers on many2one fks yet
+            # md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field_name, field_name) if they ever diverge
             model = related_field.model
-            if model not in self.metadata[QUERY_MODELS]:
-                self.metadata[QUERY_MODELS][model] = set()
-            self.metadata[QUERY_MODELS][model].add(value)
-            self.metadata[FK_LINK][path][field_name] = value
+            md_key = field_name
+            value = md.pop(md_key, None)
+            if value is None and not issubclass(model, BrowserGroupModel):
+                continue
+
+            if issubclass(model, BrowserGroupModel):
+                values = self._set_group_tree_group(
+                    model, related_field, value, group_list
+                )
+            else:
+                values = self._set_simple_fk(related_field, value)
+            if not values and not issubclass(model, BrowserGroupModel):
+                continue
+
+            if md_key != PROTAGONIST_KEY:
+                self.add_query_model(model, values)
+            key_index = get_key_index(model)
+            key_values = values[:key_index]
+            self.metadata[LINK_FKS][path][field_name] = key_values

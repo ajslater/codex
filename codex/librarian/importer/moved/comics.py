@@ -6,9 +6,11 @@ from django.db.models.functions import Now
 
 from codex.librarian.importer.aggregate import AggregateMetadataImporter
 from codex.librarian.importer.const import (
-    FOLDERS_FIELD,
+    CREATE_FKS,
+    FOLDERS_FIELD_NAME,
     MOVED_BULK_COMIC_UPDATE_FIELDS,
-    PARENT_FOLDER,
+    PARENT_FOLDER_FIELD_NAME,
+    PATH_FIELD_NAME,
 )
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
@@ -21,48 +23,73 @@ class MovedComicsImporter(AggregateMetadataImporter):
     def _bulk_comics_moved_ensure_folders(self):
         """Ensure folders we're moving to exist."""
         dest_comic_paths = self.task.files_moved.values()
-        if not dest_comic_paths:
+        dest_comic_paths = self.get_all_library_relative_paths(dest_comic_paths)
+        num_dest_comic_paths = len(dest_comic_paths)
+        if not num_dest_comic_paths:
             return
         # Not sending statues to the controller for now.
         status = Status(ImportStatusTypes.QUERY_MISSING_TAGS)
-        create_folder_paths = self.query_missing_folder_paths(dest_comic_paths, status)
-        if not create_folder_paths:
+        if CREATE_FKS not in self.metadata:
+            self.metadata[CREATE_FKS] = {}
+        self.query_missing_models(
+            Folder,
+            dest_comic_paths,
+            status,
+        )
+        create_folder_paths = self.metadata[CREATE_FKS].pop(Folder, {})
+        count = len(create_folder_paths)
+        if not count:
             return
-        status = Status(ImportStatusTypes.CREATE_TAGS, 0, len(create_folder_paths))
+        status = Status(ImportStatusTypes.CREATE_TAGS, 0, count)
         self.log.debug(
-            "Creating {len(create_folder_paths)} folders for {len(dest_comic_paths)} moved comics."
+            "Creating {count} folders for {num_dest_comic_paths} moved comics."
         )
         self.bulk_folders_create(create_folder_paths, status)
+        self.status_controller.finish(status)
 
-    def _prepare_moved_comic(self, comic, folder_m2m_links, updated_comics):
+    def _prepare_moved_comic(
+        self, comic, folder_m2m_links, updated_comics, del_folder_rows
+    ):
         """Prepare one comic for bulk update."""
         try:
             new_path = self.task.files_moved[comic.path]
+            old_folder_pks = frozenset(folder.pk for folder in comic.folders.all())
             comic.path = new_path
             new_path = Path(new_path)
             comic.parent_folder = Folder.objects.get(path=new_path.parent)
             comic.updated_at = Now()
             comic.presave()
-            folder_m2m_links[comic.pk] = Folder.objects.filter(
-                path__in=new_path.parents
-            ).values_list("pk", flat=True)
+            new_folder_pks = frozenset(
+                Folder.objects.filter(path__in=new_path.parents).values_list(
+                    "pk", flat=True
+                )
+            )
+            folder_m2m_links[comic.pk] = new_folder_pks
             updated_comics.append(comic)
+            if del_folder_pks := old_folder_pks - new_folder_pks:
+                for pk in del_folder_pks:
+                    del_folder_rows.append((comic.pk, pk))
         except Exception:
             self.log.exception(f"moving {comic.path}")
 
     def _bulk_comics_move_prepare(self):
         """Prepare Update Comics."""
-        comics = Comic.objects.filter(
-            library=self.library, path__in=self.task.files_moved.keys()
-        ).only("pk", "path", PARENT_FOLDER, FOLDERS_FIELD)
+        comics = (
+            Comic.objects.prefetch_related(FOLDERS_FIELD_NAME)
+            .filter(library=self.library, path__in=self.task.files_moved.keys())
+            .only(PATH_FIELD_NAME, PARENT_FOLDER_FIELD_NAME, FOLDERS_FIELD_NAME)
+        )
 
         folder_m2m_links = {}
         updated_comics = []
-        for comic in comics.iterator():
-            self._prepare_moved_comic(comic, folder_m2m_links, updated_comics)
+        del_folder_rows = []
+        for comic in comics:
+            self._prepare_moved_comic(
+                comic, folder_m2m_links, updated_comics, del_folder_rows
+            )
         self.task.files_moved = {}
         self.log.debug(f"Prepared {len(updated_comics)} for move...")
-        return updated_comics, folder_m2m_links
+        return updated_comics, folder_m2m_links, tuple(del_folder_rows)
 
     def bulk_comics_moved(self):
         """Move comcis."""
@@ -74,16 +101,20 @@ class MovedComicsImporter(AggregateMetadataImporter):
 
         # Prepare
         self._bulk_comics_moved_ensure_folders()
-        updated_comics, folder_m2m_links = self._bulk_comics_move_prepare()
+        updated_comics, folder_m2m_links, del_folder_rows = (
+            self._bulk_comics_move_prepare()
+        )
 
         # Update comics
+        # Potentially could just add these to the right structures and do it later during create and link.
         Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
+        if del_folder_rows:
+            self.delete_m2m(FOLDERS_FIELD_NAME, del_folder_rows, status)
         if folder_m2m_links:
-            self.bulk_fix_comic_m2m_field(FOLDERS_FIELD, folder_m2m_links, status)
+            self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
 
         count = len(updated_comics)
-        if count:
-            self.log.success(f"Moved {count} comics.")
-
         self.changed += count
+        level = "INFO" if count else "DEBUG"
+        self.log.log(level, f"Moved {count} comics.")
         self.status_controller.finish(status)

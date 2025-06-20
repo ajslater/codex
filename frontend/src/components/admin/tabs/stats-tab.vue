@@ -69,7 +69,7 @@ Object.freeze(LOOKUPS);
 const INDENT_KEYS = new Set([
   "creditPersonsCount",
   "creditRolesCount",
-  "identifierTypesCount",
+  "identifierSourcesCount",
   "storyArcNumbersCount",
 ]);
 Object.freeze(INDENT_KEYS);

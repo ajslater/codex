@@ -14,7 +14,7 @@ from codex.views.util import pop_name
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
-IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
+IDENTIFIER_TYPE_UI_FIELD = "identifier_source"
 
 _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
     {

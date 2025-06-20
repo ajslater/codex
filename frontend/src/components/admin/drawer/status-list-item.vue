@@ -1,21 +1,18 @@
 <template>
-  <div nav class="statusItem">
+  <div class="statusItem">
     <div class="statusItemTitle">
-      {{ title(status) }}
+      {{ title }}
       <div v-if="status.subtitle" class="statusItemSubtitle">
         {{ status.subtitle }}
       </div>
-      <div
-        v-if="showComplete(status) || Number.isInteger(status.total)"
-        class="statusItemSubtitle"
-      >
-        <span v-if="showComplete(status)"> {{ nf(status.complete) }} / </span>
+      <div v-if="showNumbers" class="statusItemSubtitle">
+        <span v-if="showComplete"> {{ nf(status.complete) }} / </span>
         {{ nf(status.total) }}
       </div>
     </div>
     <v-progress-linear
-      :indeterminate="indeterminate(status)"
-      :model-value="progress(status)"
+      :indeterminate="indeterminate"
+      :model-value="progress"
       bottom
     />
   </div>
@@ -33,19 +30,30 @@ export default {
       required: true,
     },
   },
-  methods: {
-    showComplete: (status) => Number.isInteger(status.complete),
-    indeterminate: (status) =>
-      status.active && (!status.total || !Number.isInteger(status.complete)),
-    progress(status) {
-      if (!status.total || globalThis.indeterminate) {
+  computed: {
+    showComplete() {
+      return Number.isInteger(this.status.complete);
+    },
+    showNumbers() {
+      return this.showComplete || Number.isInteger(this.status.total);
+    },
+    indeterminate() {
+      return (
+        this.status.active &&
+        (!this.status.total || !Number.isInteger(this.status.complete))
+      );
+    },
+    progress() {
+      if (!this.status.total || globalThis.indeterminate) {
         return 0;
       }
-      return (100 * +status.complete) / +status.total;
+      return (100 * +this.status.complete) / +this.status.total;
     },
-    title(status) {
-      return STATUS_TITLES[status.statusType];
+    title() {
+      return STATUS_TITLES[this.status.statusType];
     },
+  },
+  methods: {
     nf(val) {
       return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
     },

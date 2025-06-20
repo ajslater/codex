@@ -35,7 +35,7 @@ _NON_FTS_COLUMNS = frozenset(
         "size",
         "path",
         "identifier",
-        "identifier_type",
+        "identifier_source",
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)

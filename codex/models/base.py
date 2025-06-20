@@ -2,10 +2,12 @@
 
 from django.db.models import DateTimeField, Model
 from django.db.models.base import ModelBase
+from typing_extensions import override
 
+from codex.models.fields import CleaningCharField
 from codex.models.query import GroupByManager
 
-__all__ = ("BaseModel",)
+__all__ = ("BaseModel", "NamedModel")
 
 MAX_PATH_LEN = 4095
 MAX_NAME_LEN = 128
@@ -37,3 +39,20 @@ class BaseModel(Model):
 
     def presave(self):
         """Create values before save."""
+
+
+class NamedModel(BaseModel):
+    """A for simple named tables."""
+
+    name = CleaningCharField(db_index=True, max_length=MAX_NAME_LEN)
+
+    class Meta(BaseModel.Meta):
+        """Defaults to uniquely named, must be overridden."""
+
+        abstract = True
+        unique_together: tuple[str, ...] = ("name",)
+
+    @override
+    def __repr__(self):
+        """Return the name."""
+        return self.name

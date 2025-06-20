@@ -8,4 +8,4 @@ class CoverStatusTypes(TextChoices):
 
     CREATE_COVERS = "CCC"
     PURGE_COVERS = "CCD"
-    FIND_ORPHAN = "CFO"
+    FIND_ORPHAN_COVERS = "CFO"

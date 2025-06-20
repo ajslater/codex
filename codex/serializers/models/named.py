@@ -1,6 +1,7 @@
 """Named model Serializers."""
 
 from rest_framework.fields import CharField
+from rest_framework.serializers import URLField
 
 from codex.models import (
     AgeRating,
@@ -20,7 +21,8 @@ from codex.models import (
     Tagger,
     Team,
 )
-from codex.models.named import Identifier, IdentifierType, Universe
+from codex.models.identifier import Identifier, IdentifierSource
+from codex.models.named import Universe
 from codex.serializers.models.base import BaseModelSerializer
 
 
@@ -28,25 +30,37 @@ class NamedModelSerializer(BaseModelSerializer):
     """A common class for NamedModels."""
 
     class Meta(BaseModelSerializer.Meta):
-        """Not Abstract."""
+        """Abstract."""
 
         fields: tuple[str, ...] = ("pk", "name")
         abstract = True
 
 
-class CreditPersonSerializer(NamedModelSerializer):
-    """CreditPerson model."""
+class URLNamedModelSerializer(NamedModelSerializer):
+    """A common class for NamedModels with URLs."""
+
+    url = URLField(read_only=True, source="identifier.url")
 
     class Meta(NamedModelSerializer.Meta):
+        """Abstract."""
+
+        fields: tuple[str, ...] = ("pk", "name", "url")
+        abstract = True
+
+
+class CreditPersonSerializer(URLNamedModelSerializer):
+    """CreditPerson model."""
+
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = CreditPerson
 
 
-class CreditRoleSerializer(NamedModelSerializer):
+class CreditRoleSerializer(URLNamedModelSerializer):
     """CreditRole model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = CreditRole
@@ -66,31 +80,31 @@ class CreditSerializer(BaseModelSerializer):
         depth = 1
 
 
-class CharacterSerializer(NamedModelSerializer):
+class CharacterSerializer(URLNamedModelSerializer):
     """Character model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Character
 
 
-class GenreSerializer(NamedModelSerializer):
+class GenreSerializer(URLNamedModelSerializer):
     """Genre model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Genre
 
 
-class IdentifierTypeSerializer(NamedModelSerializer):
-    """IdentifierType model."""
+class IdentifierSourceSerializer(NamedModelSerializer):
+    """IdentifierSource model."""
 
     class Meta(NamedModelSerializer.Meta):
         """Configure model."""
 
-        model = IdentifierType
+        model = IdentifierSource
 
 
 class IdentifierSeralizer(BaseModelSerializer):
@@ -102,14 +116,14 @@ class IdentifierSeralizer(BaseModelSerializer):
         """Configure model."""
 
         model = Identifier
-        fields = ("pk", "name", "nss", "url")
+        fields = ("pk", "name", "key", "url")
         depth = 1
 
 
-class LocationSerializer(NamedModelSerializer):
+class LocationSerializer(URLNamedModelSerializer):
     """Location model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Location
@@ -124,19 +138,19 @@ class SeriesGroupSerializer(NamedModelSerializer):
         model = SeriesGroup
 
 
-class StorySerializer(NamedModelSerializer):
+class StorySerializer(URLNamedModelSerializer):
     """StoryArc model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Story
 
 
-class StoryArcSerializer(NamedModelSerializer):
+class StoryArcSerializer(URLNamedModelSerializer):
     """StoryArc model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = StoryArc
@@ -146,12 +160,13 @@ class StoryArcNumberSerializer(BaseModelSerializer):
     """StoryArc model."""
 
     name = CharField(read_only=True)
+    url = URLField(read_only=True, source="story_arc.identifier.url")
 
     class Meta(BaseModelSerializer.Meta):
         """Configure model."""
 
         model = StoryArcNumber
-        fields = ("pk", "name", "number")
+        fields = ("pk", "name", "number", "url")
         depth = 1
 
 
@@ -173,10 +188,10 @@ class AgeRatingSerializer(NamedModelSerializer):
         model = AgeRating
 
 
-class TagSerializer(NamedModelSerializer):
+class TagSerializer(URLNamedModelSerializer):
     """Tag model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Tag
@@ -200,20 +215,20 @@ class ScanInfoSerializer(NamedModelSerializer):
         model = ScanInfo
 
 
-class TeamSerializer(NamedModelSerializer):
+class TeamSerializer(URLNamedModelSerializer):
     """Team model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Team
 
 
-class UniverseSerializer(NamedModelSerializer):
+class UniverseSerializer(URLNamedModelSerializer):
     """Team model."""
 
-    class Meta(NamedModelSerializer.Meta):
+    class Meta(URLNamedModelSerializer.Meta):
         """Configure model."""
 
         model = Universe
-        fields: tuple[str, ...] = ("pk", "name", "designation")
+        fields: tuple[str, ...] = ("pk", "name", "designation", "url")

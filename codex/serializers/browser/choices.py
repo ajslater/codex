@@ -32,7 +32,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     decade = BooleanField(read_only=True)
     genres = BooleanField(read_only=True)
     file_type = BooleanField(read_only=True)
-    identifier_type = BooleanField(read_only=True)
+    identifier_source = BooleanField(read_only=True)
     monochrome = BooleanField(read_only=True)
     language = BooleanField(read_only=True)
     locations = BooleanField(read_only=True)
@@ -63,7 +63,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     decade = ListField(child=VuetifyDecadeField(), required=False, read_only=True)
     file_type = ListField(child=VuetifyCharField(), required=False, read_only=True)
     genres = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    identifier_type = ListField(
+    identifier_source = ListField(
         child=VuetifyCharField(), required=False, read_only=True
     )
     language = ListField(child=VuetifyIntegerField(), required=False, read_only=True)

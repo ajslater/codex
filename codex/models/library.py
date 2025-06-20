@@ -54,7 +54,7 @@ class Library(BaseModel):
     groups = ManyToManyField(Group, blank=True)
 
     @override
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         """Return the path."""
         return str(self.path)
 

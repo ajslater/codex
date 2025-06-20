@@ -19,7 +19,8 @@ class MovedImporter(MovedFoldersImporter):
         num_dirs_modified = len(self.task.dirs_modified)
         if not num_dirs_modified:
             return
-        status = Status(ImportStatusTypes.UPDATE_FOLDERS, None, num_dirs_modified)
+        status = Status(ImportStatusTypes.UPDATE_TAGS, None, num_dirs_modified)
+        status.subtitle = "Folders"
         self.status_controller.start(status)
 
         folders = Folder.objects.filter(
@@ -36,10 +37,11 @@ class MovedImporter(MovedFoldersImporter):
             update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
         )
         count = len(update_folders)
-        if count:
-            self.log.success(f"Modified {count} folders")
+        level = "INFO" if count else "DEBUG"
+        self.log.log(level, f"Modified {count} folders")
         self.changed += count
-        self.status_controller.finish(status)
+        status.complete = status.total = None
+        self.status_controller.update(status)
 
     def move_and_modify_dirs(self):
         """Move files and dirs and modify dirs."""

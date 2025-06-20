@@ -12,9 +12,9 @@
         <h4>Librarian Tasks</h4>
         <v-expand-transition
           v-for="status of librarianStatuses"
-          :key="status.statusType"
+          :key="status.id"
         >
-          <StatusListItem status="status" />
+          <StatusListItem :status="status" />
         </v-expand-transition>
       </div>
       <v-list-item-title v-else id="noTasksRunning">

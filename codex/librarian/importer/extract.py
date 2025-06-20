@@ -11,7 +11,7 @@ from rarfile import Error as RarError
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.importer.const import EXTRACTED, FIS, SKIPPED
-from codex.librarian.importer.query_fks import QueryForeignKeysImporter
+from codex.librarian.importer.query import QueryForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
 from codex.models.admin import AdminFlag
@@ -85,7 +85,10 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         count = 0
         self.metadata[SKIPPED] = set()
         self.metadata[EXTRACTED] = {}
+        self.metadata[FIS] = {}
         all_paths = self.task.files_modified | self.task.files_created
+        self.task.files_modified = frozenset()
+        self.task.files_created = frozenset()
         total_paths = len(all_paths)
         if not total_paths:
             return count
@@ -108,12 +111,14 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
             status.increment_complete()
             self.status_controller.update(status)
 
-        num_skip_paths = len(self.metadata[SKIPPED])
-        count = total_paths - num_skip_paths
-        self.log.success(f"Read metadata from {count} comics.")
-        if num_skip_paths:
-            self.log.info(
-                f"Skipped {num_skip_paths} comics because metadata appears unchanged."
-            )
+        skipped_count = len(self.metadata[SKIPPED])
+        count = total_paths - skipped_count
+        level = "INFO" if count else "DEBUG"
+        self.log.log(level, f"Read metadata from {count} comics.")
+        level = "INFO" if skipped_count else "DEBUG"
+        self.log.log(
+            level, f"Skipped {skipped_count} comics because metadata appears unchanged."
+        )
+        self.metadata.pop(SKIPPED)
         self.status_controller.finish(status)
         return count

@@ -41,6 +41,9 @@ class JanitorUpdate(JanitorVacuum):
 
     def update_codex(self, *, force: bool):
         """Update the package and restart everything if the version changed."""
+        if self.is_library_importing():
+            self.log.warning("Not updating codex during import.")
+            return
         status = Status(JanitorStatusTypes.CODEX_UPDATE)
         try:
             self.status_controller.start(status)

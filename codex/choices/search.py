@@ -37,57 +37,50 @@ def gen_multipart_field_aliases(field):
     return frozenset(aliases)
 
 
-def _get_fieldmap_values(*args, multipart=None):
-    values = set(args)
-    if multipart:
-        for val in multipart:
-            values |= gen_multipart_field_aliases(val)
+def _get_fieldmap_values(*args):
+    values = set()
+    for val in args:
+        values |= gen_multipart_field_aliases(val)
     return tuple(sorted(values))
 
 
 FIELDMAP = MappingProxyType(
     {
-        "characters": _get_fieldmap_values(
-            "category", "categories", multipart=["characters"]
-        ),
+        "characters": _get_fieldmap_values("category", "categories", "characters"),
         "collection_title": ("collection",),
         "credits": _get_fieldmap_values(
-            multipart=(
-                "authors",
-                "contributors",
-                "creators",
-                "credits",
-                "people",
-                "persons",
-            )
+            "authors",
+            "contributors",
+            "creators",
+            "credits",
+            "people",
+            "persons",
         ),
         "created_at": ("created",),
-        "critical_rating": _get_fieldmap_values(multipart=["critical_rating"]),
+        "critical_rating": _get_fieldmap_values("critical_rating"),
         "genres": ("genre",),
         "file_type": (
             "filetype",
             "type",
         ),
-        "identifiers": ("id", "nss", "identifier"),
-        "identifier_types": _get_fieldmap_values(
-            "nid", multipart=("id_type", "identifier_types")
-        ),
+        "identifiers": _get_fieldmap_values("id", "id_key", "identifier"),
+        "sources": _get_fieldmap_values("sources", "id_sources"),
         "issue_number": ("number",),
         "locations": ("location", "loc"),
-        "monochrome": _get_fieldmap_values(multipart=["black_and_white"]),
+        "monochrome": _get_fieldmap_values("black_and_white"),
         "name": ("title",),
         "original_format": ("format",),
         "page_count": ("pages",),
         "reading_direction": ("direction", "rd"),
         "path": _get_fieldmap_values(
             "filename",
-            multipart=["folders"],
+            "folders",
         ),
-        "series_groups": _get_fieldmap_values(multipart=["series_groups"]),
+        "series_groups": _get_fieldmap_values("series_groups"),
         "scan_info": ("scan",),
         "stories": ("story",),
-        "story_arcs": _get_fieldmap_values(multipart=["story_arcs"]),
-        "summary": _get_fieldmap_values("desc", "description", multipart=["comments"]),
+        "story_arcs": _get_fieldmap_values("story_arcs"),
+        "summary": _get_fieldmap_values("desc", "description", "comments"),
         "tags": ("tag",),
         "teams": ("team",),
         "updated_at": ("updated",),

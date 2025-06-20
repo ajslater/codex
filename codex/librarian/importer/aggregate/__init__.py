@@ -1,4 +1,4 @@
-"""Aggregate metadata from comcs to prepare for importing."""
+"""Aggregate metadata from comics to prepare for importing."""
 
 from comicbox.schemas.comicbox import (
     COVER_DATE_KEY,
@@ -9,18 +9,14 @@ from comicbox.schemas.comicbox import (
     TITLE_KEY,
 )
 
-from codex.librarian.importer.aggregate.many_to_many import (
-    AggregateManyToManyMetadataImporter,
-)
+from codex.librarian.importer.aggregate.folders import AggregatePathMetadataImporter
 from codex.librarian.importer.const import (
-    COMIC_PATHS,
-    COMIC_VALUES,
+    CREATE_COMICS,
     EXTRACTED,
     FIS,
-    FK_LINK,
-    M2M_LINK,
+    LINK_FKS,
+    LINK_M2MS,
     QUERY_MODELS,
-    SKIPPED,
 )
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
@@ -39,7 +35,7 @@ _UNUSED_COMICBOX_FIELDS = (
 )
 
 
-class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
+class AggregateMetadataImporter(AggregatePathMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
 
     @staticmethod
@@ -68,13 +64,12 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         self._transform_metadata(md)
 
         # Aggregate
-        self.metadata[FK_LINK][path] = {}
-        self.get_group_tree(md, path)
+        self.metadata[LINK_FKS][path] = {}
         self.get_fk_metadata(md, path)
         self.get_m2m_metadata(md, path)
         if md:
-            self.metadata[COMIC_VALUES][str(path)] = md
-        self.metadata[QUERY_MODELS][COMIC_PATHS].add(path)
+            self.get_path_metadata(md, path)
+        self.metadata[CREATE_COMICS][str(path)] = md
 
         # Status
         status.increment_complete()
@@ -93,11 +88,10 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         self.status_controller.start(status)
 
         # Init metadata, extract and aggregate
-        self.metadata[COMIC_VALUES] = {}
-        self.metadata[M2M_LINK] = {}
-        self.metadata[QUERY_MODELS] = {COMIC_PATHS: set()}
-        self.metadata[FK_LINK] = {}
-        self.metadata[FIS] = {}
+        self.metadata[QUERY_MODELS] = {}
+        self.metadata[CREATE_COMICS] = {}
+        self.metadata[LINK_FKS] = {}
+        self.metadata[LINK_M2MS] = {}
         # Aggregate further
 
         for path in tuple(self.metadata[EXTRACTED]):
@@ -105,16 +99,12 @@ class AggregateMetadataImporter(AggregateManyToManyMetadataImporter):
         del self.metadata[EXTRACTED]
 
         fis = self.metadata[FIS].keys()
-        skip_paths = frozenset(fis | self.metadata[SKIPPED])
-        self.task.files_modified -= skip_paths
-        self.task.files_created -= skip_paths
-        del self.metadata[SKIPPED]
 
         # Set statii
         fi_status = Status(ImportStatusTypes.MARK_FAILED_IMPORTS, 0, len(fis))
         self.status_controller.update(fi_status, notify=False)
         count = status.complete if status else 0
-        self.log.success(f"Aggregated tags from {count} comics.")
+        self.log.info(f"Aggregated tags from {count} comics.")
 
         self.status_controller.finish(status)
         return count

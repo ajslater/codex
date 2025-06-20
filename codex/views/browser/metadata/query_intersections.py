@@ -46,9 +46,9 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         optimizers = M2M_QUERY_OPTIMIZERS.get(qs.model, {})
         if prefetch := optimizers.get("prefetch"):
             qs = qs.prefetch_related(*prefetch)
-        if select := optimizers.get("select"):
+        if select := optimizers.get("select", ("identifier",)):
             qs = qs.select_related(*select)
-        only = optimizers.get("only", ("name",))
+        only = optimizers.get("only", ("name", "identifier"))
         return qs.only(*only)
 
     def _get_m2m_intersection_query(self, field_name: str, comic_pks: frozenset[int]):

@@ -56,8 +56,8 @@ class MovedFoldersImporter(MovedCoversImporter):
 
         Folder.objects.bulk_update(update_folders, BULK_UPDATE_FOLDER_FIELDS)
         count = len(update_folders)
-        if count:
-            self.log.success(f"Moved {count} folders.")
+        level = "INFO" if count else "DEBUG"
+        self.log.log(level, f"Moved {count} folders.")
         self.changed += count
         status.add_complete(count)
         self.status_controller.update(status)

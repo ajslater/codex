@@ -1,0 +1,144 @@
+appID: comicbox dev
+comicbox:
+  age_rating: Everyone
+  alternate_images:
+    - alt0.jxl
+    - alt1.jxl
+  arcs:
+    c: {}
+    d:
+      number: 1
+      identifiers:
+        metron:
+          key: "123"
+    e:
+      number: 3
+    f:
+      number: 5
+  bookmark: 5
+  characters:
+    Captain Science: {}
+    Boy Empirical:
+      identifiers:
+        metron:
+          key: 345
+  collection_title: The Big Omnibus
+  country: US
+  credits:
+    Joe Orlando:
+      roles:
+        Writer: {}
+    Wally Wood:
+      roles:
+        Penciller: {}
+  credit_primaries:
+    Joe Orlando: Writer
+    Wally Wood: Penciller
+  critical_rating: 10.0
+  date:
+    cover_date: 1950-11-01
+    store_date: 1950-11-28
+    day: 1
+    month: 11
+    year: 1950
+  ext: cbz
+  original_format: Trade Paperback
+  genres:
+    Science Fiction: {}
+  identifiers:
+    comicvine:
+      key: "145269"
+      url: https://comicvine.gamespot.com/c/4000-145269/
+  imprint:
+    name: TestImprint
+  issue:
+    name: 1.2S
+    number: 1.2
+    suffix: S
+  language: en
+  locations:
+    The Moon: {}
+  manga: No
+  monochrome: false
+  notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145269
+  page_count: 36
+  pages:
+    0: { page_type: FrontCover, size: 429985 }
+    1: { size: 332936 }
+    2: { size: 458657 }
+    3: { size: 450456 }
+    4: { size: 436648 }
+    5: { size: 443725 }
+    6: { size: 469526 }
+    7: { size: 429811 }
+    8: { size: 445513 }
+    9: { size: 446292 }
+    10: { size: 458589 }
+    11: { size: 417623 }
+    12: { size: 445302 }
+    13: { size: 413271 }
+    14: { size: 434201 }
+    15: { size: 439049 }
+    16: { size: 485957 }
+    17: { size: 388379 }
+    18: { size: 368138 }
+    19: { size: 427874 }
+    20: { size: 422522 }
+    21: { size: 442529 }
+    22: { size: 423785 }
+    23: { size: 427980 }
+    24: { size: 445631 }
+    25: { size: 413615 }
+    26: { size: 417605 }
+    27: { size: 439120 }
+    28: { size: 451598 }
+    29: { size: 451550 }
+    30: { size: 438346 }
+    31: { size: 454914 }
+    32: { size: 428461 }
+    33: { size: 438091 }
+    34: { size: 353013 }
+    35: { size: 340840 }
+  publisher:
+    name: "Youthful Adventure Stories"
+  prices:
+    GB: 0.05
+    US: 0.10
+  protagonist: Captain Science
+  reading_direction: ltr
+  remainders:
+    - crud
+  reprints:
+    - language: es
+      series:
+        sort_name: Capitan Sciencia
+      volume:
+        number: 1
+    - language: de
+      series:
+        name: Kapitän Wissenschaft
+  review: It wasn't all bad.
+  scan_info: Photocopied
+  series:
+    name: "Captain Science"
+  series_groups:
+    - science comics
+  stories:
+    The Beginning: {}
+  summary: Captain Science's many scientific adventures
+  tagger: comicbox dev
+  tags:
+    a: {}
+    b: {}
+    c: {}
+  teams:
+    Team Scientific Method: {}
+  title: The Beginning
+  universes:
+    Young Adult Silly Universe:
+      designation: 4242
+  updated_at: 1970-01-01T00:00:00Z
+  volume:
+    issue_count: 7
+    number: 1950
+schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v2.0/comicbox-v2.0.schema.json"

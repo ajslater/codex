@@ -2,7 +2,7 @@
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.importer.cache import CacheUpdateImporter
-from codex.librarian.importer.const import COMIC_GROUP_FIELD_NAMES
+from codex.librarian.importer.const import ALL_COMIC_GROUP_FIELD_NAMES
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic, Folder, StoryArc
@@ -19,40 +19,38 @@ class DeletedImporter(CacheUpdateImporter):
 
     def _bulk_folders_deleted(self, **kwargs):
         """Bulk delete folders."""
-        if not self.task.dirs_deleted:
-            return 0
         status = Status(
             ImportStatusTypes.REMOVE_FOLDERS, 0, len(self.task.dirs_deleted)
         )
-        self.status_controller.start(status)
-        folders = Folder.objects.filter(
-            library=self.library, path__in=self.task.dirs_deleted
-        )
-        self.task.dirs_deleted = frozenset()
-        delete_comic_pks = frozenset(
-            Comic.objects.filter(library=self.library, folders__in=folders)
-            .distinct()
-            .values_list("pk", flat=True)
-        )
-        folders.delete()
-
-        self._remove_covers(delete_comic_pks, custom=False)
-
-        count = len(delete_comic_pks)
-        if count:
-            reason = (
-                f"Deleted {count} folders and {len(delete_comic_pks)} comics"
-                f"from {self.library.path}"
+        try:
+            if not self.task.dirs_deleted:
+                return 0
+            self.status_controller.start(status)
+            folders = Folder.objects.filter(
+                library=self.library, path__in=self.task.dirs_deleted
             )
-            self.log.info(reason)
-        self.status_controller.finish(status)
+            self.task.dirs_deleted = frozenset()
+            delete_comic_pks = frozenset(
+                Comic.objects.filter(library=self.library, folders__in=folders)
+                .distinct()
+                .values_list("pk", flat=True)
+            )
+            count, _ = folders.delete()
+
+            self._remove_covers(delete_comic_pks, custom=False)
+
+            level = "INFO" if count else "DEBUG"
+            reason = f"Deleted {count} folders from {self.library.path}"
+            self.log.log(level, reason)
+        finally:
+            self.status_controller.finish(status)
         return count
 
     @staticmethod
     def _init_deleted_comic_groups():
         """Init deleted_comic_groups, used later even if no deletes."""
         deleted_comic_groups = {}
-        for field_name in COMIC_GROUP_FIELD_NAMES:
+        for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
             if field_name == "story_arc_numbers":
                 related_model = StoryArc
             else:
@@ -63,11 +61,11 @@ class DeletedImporter(CacheUpdateImporter):
     @staticmethod
     def _populate_deleted_comic_groups(delete_qs, deleted_comic_groups):
         """Populate changed groups for cover timestamp updater."""
-        comics_deleted_qs = delete_qs.only(*COMIC_GROUP_FIELD_NAMES).prefetch_related(
-            "story_arc_numbers__story_arc"
-        )
+        comics_deleted_qs = delete_qs.only(
+            *ALL_COMIC_GROUP_FIELD_NAMES
+        ).prefetch_related("story_arc_numbers__story_arc")
         for comic in comics_deleted_qs.iterator(chunk_size=MAX_CHUNK_SIZE):
-            for field_name in COMIC_GROUP_FIELD_NAMES:
+            for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
                 if field_name == "story_arc_numbers":
                     for san in comic.story_arc_numbers.select_related("story_arc").only(
                         "story_arc"
@@ -83,52 +81,56 @@ class DeletedImporter(CacheUpdateImporter):
 
     def _bulk_comics_deleted(self, deleted_comic_groups, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
-        if not self.task.files_deleted:
-            return 0
         status = Status(
             ImportStatusTypes.REMOVE_COMICS, 0, len(self.task.files_deleted)
         )
-        self.status_controller.start(status)
-        delete_qs = Comic.objects.filter(
-            library=self.library, path__in=self.task.files_deleted
-        )
-        self.task.files_deleted = frozenset()
+        try:
+            if not self.task.files_deleted:
+                return 0
+            self.status_controller.start(status)
+            delete_qs = Comic.objects.filter(
+                library=self.library, path__in=self.task.files_deleted
+            )
+            self.task.files_deleted = frozenset()
 
-        self._populate_deleted_comic_groups(delete_qs, deleted_comic_groups)
+            self._populate_deleted_comic_groups(delete_qs, deleted_comic_groups)
 
-        delete_comic_pks = frozenset(delete_qs.values_list("pk", flat=True))
-        delete_qs.delete()
+            delete_comic_pks = frozenset(delete_qs.values_list("pk", flat=True))
+            count, _ = delete_qs.delete()
 
-        self._remove_covers(delete_comic_pks, custom=False)
+            self._remove_covers(delete_comic_pks, custom=False)
 
-        count = len(delete_comic_pks)
-        if count:
-            self.log.success(f"Deleted {count} comics from {self.library.path}")
-        self.status_controller.finish(status)
+            level = "INFO" if count else "DEBUG"
+            self.log.log(level, f"Deleted {count} comics from {self.library.path}")
+        finally:
+            self.status_controller.finish(status)
         return count
 
     def _bulk_covers_deleted(self, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
-        if not self.task.covers_deleted:
-            return 0
         status = Status(
             ImportStatusTypes.REMOVE_CUSTOM_COVERS, 0, len(self.task.covers_deleted)
         )
-        self.status_controller.start(status)
-        covers = CustomCover.objects.filter(
-            library=self.library, path__in=self.task.covers_deleted
-        )
-        self.task.covers_deleted = frozenset()
-        delete_cover_pks = frozenset(covers.values_list("pk", flat=True))
-        covers.delete()
+        try:
+            if not self.task.covers_deleted:
+                return 0
+            self.status_controller.start(status)
+            covers = CustomCover.objects.filter(
+                library=self.library, path__in=self.task.covers_deleted
+            )
+            self.task.covers_deleted = frozenset()
+            delete_cover_pks = frozenset(covers.values_list("pk", flat=True))
+            count, _ = covers.delete()
 
-        self._remove_covers(delete_cover_pks, custom=True)
+            self._remove_covers(delete_cover_pks, custom=True)
 
-        count = len(delete_cover_pks)
-        if count:
-            self.log.success(f"Deleted {count} custom covers from {self.library.path}")
+            level = "INFO" if count else "DEBUG"
+            self.log.log(
+                level, f"Deleted {count} custom covers from {self.library.path}"
+            )
+        finally:
+            self.status_controller.finish(status)
 
-        self.status_controller.finish(status)
         return count
 
     def delete(self):
@@ -138,4 +140,4 @@ class DeletedImporter(CacheUpdateImporter):
         count += self._bulk_comics_deleted(deleted_comic_groups)
         count += self._bulk_covers_deleted()
         self.changed += count
-        return deleted_comic_groups
+        return count, deleted_comic_groups

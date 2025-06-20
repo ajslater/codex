@@ -24,7 +24,7 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     decade = ListField(child=VuetifyDecadeField(), required=False)
     file_type = ListField(child=VuetifyIntegerField(), required=False)
     genres = ListField(child=VuetifyIntegerField(), required=False)
-    identifier_type = ListField(child=VuetifyIntegerField(), required=False)
+    identifier_source = ListField(child=VuetifyIntegerField(), required=False)
     language = ListField(child=VuetifyIntegerField(), required=False)
     locations = ListField(child=VuetifyIntegerField(), required=False)
     monochrome = ListField(child=VuetifyBooleanField(), required=False)

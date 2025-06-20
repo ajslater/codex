@@ -20,7 +20,7 @@ from codex.models import (
     Folder,
     Genre,
     Identifier,
-    IdentifierType,
+    IdentifierSource,
     Imprint,
     Language,
     Location,
@@ -29,26 +29,32 @@ from codex.models import (
     ScanInfo,
     Series,
     SeriesGroup,
+    Story,
     StoryArc,
     StoryArcNumber,
     Tag,
     Tagger,
     Team,
+    Universe,
     Volume,
 )
 from codex.models.bookmark import Bookmark
 from codex.models.paths import CustomCover
 
-_COMIC_FK_CLASSES = (
+_FK_MODELS = (
+    Identifier,
     AgeRating,
     Country,
+    CreditRole,
+    CreditPerson,
+    StoryArc,
+    IdentifierSource,
     Credit,
     Character,
     Genre,
     Folder,
     Language,
     Location,
-    Identifier,
     Imprint,
     OriginalFormat,
     Publisher,
@@ -56,56 +62,97 @@ _COMIC_FK_CLASSES = (
     SeriesGroup,
     ScanInfo,
     StoryArcNumber,
+    Story,
     Tagger,
     Tag,
     Team,
     Volume,
+    Universe,
 )
-_CREDIT_FK_CLASSES = (CreditRole, CreditPerson)
-_STORY_ARC_NUMBER_FK_CLASSES = (StoryArc,)
-_IDENTIFIER_FK_CLASSES = (IdentifierType,)
-TOTAL_NUM_FK_CLASSES = (
-    len(_COMIC_FK_CLASSES)
-    + len(_CREDIT_FK_CLASSES)
-    + len(_STORY_ARC_NUMBER_FK_CLASSES)
-    + len(_IDENTIFIER_FK_CLASSES)
-)
+_TOTAL_NUM_FK_CLASSES = len(_FK_MODELS)
 
-_CLEANUP_MAP = MappingProxyType(
-    {
-        "comic": _COMIC_FK_CLASSES,
-        "credit": _CREDIT_FK_CLASSES,
-        "storyarcnumber": _STORY_ARC_NUMBER_FK_CLASSES,
-        "identifier": _IDENTIFIER_FK_CLASSES,
-    }
+
+def _create_reverse_rel_map():
+    rel_map = {}
+    for model in _FK_MODELS:
+        rev_rels = []
+        filter_dict = {}
+        for field in model._meta.get_fields():
+            if not field.auto_created:
+                continue
+            if hasattr(field, "get_accessor_name") and (
+                an := field.get_accessor_name()  # pyright: ignore[reportAttributeAccessIssue]
+            ):
+                rel = an
+            elif field.name:
+                rel = field.name
+            else:
+                continue
+            if rel == "id":
+                continue
+            rel = rel.removesuffix("_set")
+            rev_rels.append(rel)
+            filter_dict[f"{rel}__isnull"] = True
+        if filter_dict:
+            rel_map[model] = filter_dict
+    return MappingProxyType(rel_map)
+
+
+_MODEL_REVERSE_EMPTY_FILTER_MAP = _create_reverse_rel_map()
+_BOOKMARK_FILTER = dict.fromkeys(
+    (f"{rel}__isnull" for rel in ("session", "user", "comic")), True
 )
 
 
 class JanitorCleanup(JanitorLatestVersion):
     """Cleanup methods for Janitor."""
 
-    def _bulk_cleanup_fks(self, models, field_name, status):
-        """Remove foreign keys that aren't used anymore."""
-        for model in models:
-            filter_dict = {f"{field_name}__isnull": True}
-            qs = model.objects.filter(**filter_dict)
-            count = qs.count()
-            qs.delete()
-            if count:
-                self.log.info(f"Deleted {count} orphan {model.__name__}s")
-            status.complete += count
-            self.status_controller.update(status)
+    def _is_abort_cleanup(self) -> bool:
+        if self.is_library_importing():
+            self.log.warning("Not safe to cleanup unused tags.")
+            return True
+        return False
+
+    def _bulk_del_model(self, model, filter_dict):
+        qs = model.objects.filter(**filter_dict).distinct()
+        count, _ = qs.delete()
+        if count:
+            self.log.info(f"Deleted {count} orphan {model.__name__}s")
+        return count
+
+    def _cleanup_fks_model(self, model, filter_dict, status):
+        status.subtitle = model._meta.verbose_name_plural
+        self.status_controller.update(status)
+        count = self._bulk_del_model(model, filter_dict)
+        status.complete += count
+        self.status_controller.update(status)
+        return count
+
+    def _cleanup_fks_one_level(self, status):
+        count = 0
+        for model, filter_dict in _MODEL_REVERSE_EMPTY_FILTER_MAP.items():
+            if self._is_abort_cleanup():
+                return count
+            count += self._cleanup_fks_model(model, filter_dict, status)
+        return count
 
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
-        status = Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES)
+        if self._is_abort_cleanup():
+            return
+        status = Status(JanitorStatusTypes.CLEANUP_FK, 0)
         try:
             self.status_controller.start(status)
-            self.log.debug("Cleaning up unused foreign keys...")
-            for field_name, models in _CLEANUP_MAP.items():
-                self._bulk_cleanup_fks(models, field_name, status)
+            self.log.debug("Cleaning up orphan tags...")
+            count = 1
+            while count:
+                # Keep churning until we stop finding orphan tags.
+                count = 0
+                if self._is_abort_cleanup():
+                    break
+                count = self._cleanup_fks_one_level(status)
             level = "INFO" if status.complete else "DEBUG"
-            self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
+            self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
             self.status_controller.finish(status)
 
@@ -122,8 +169,7 @@ class JanitorCleanup(JanitorLatestVersion):
                     delete_pks.append(cover.pk)
                 status.increment_complete()
             delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
-            count = delete_qs.count()
-            delete_qs.delete()
+            count, _ = delete_qs.delete()
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Deleted {count} CustomCovers without source images.")
         finally:
@@ -135,7 +181,8 @@ class JanitorCleanup(JanitorLatestVersion):
         status = Status(JanitorStatusTypes.CLEANUP_SESSIONS)
         try:
             self.status_controller.start(status)
-            count, _ = Session.objects.filter(expire_date__lt=Now()).delete()
+            qs = Session.objects.filter(expire_date__lt=Now())
+            count, _ = qs.delete()
             if count:
                 self.log.info(f"Deleted {count} expired sessions.")
 
@@ -158,9 +205,9 @@ class JanitorCleanup(JanitorLatestVersion):
         status = Status(JanitorStatusTypes.CLEANUP_BOOKMARKS)
         try:
             self.status_controller.start(status)
-            orphan_bms = Bookmark.objects.filter(session=None, user=None)
-            if count := orphan_bms.count():
-                orphan_bms.delete()
-                self.log.info(f"Deleted {count} orphan bookmarks.")
+            orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
+            count, _ = orphan_bms.delete()
+            level = "INFO" if count else "DEBUG"
+            self.log.log(level, f"Deleted {count} orphan bookmarks.")
         finally:
             self.status_controller.finish(status)

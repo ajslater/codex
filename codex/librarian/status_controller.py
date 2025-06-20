@@ -129,9 +129,7 @@ class StatusController:
     def finish_many(self, statii, until=0.0, *, notify: bool = True):
         """Finish all librarian statuses."""
         try:
-            types = []
-            for status in statii:
-                types += [self._to_status_type_value(status)]
+            types = (self._to_status_type_value(status) for status in statii)
             ls_filter = {"status_type__in": types} if types else {}
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
             lses = LibrarianStatus.objects.filter(**ls_filter)

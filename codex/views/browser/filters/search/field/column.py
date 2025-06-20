@@ -13,8 +13,8 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
         "role": "credits__role__name",
         "credits": "credits__person__name",
-        "identifier": "identifier__nss",
-        "identirier_type": "identifier__identifier_type__name",
+        "identifier": "identifier__key",
+        "identifier_source": "identifier__source__name",
         "story_arcs": "story_arc_number__story_arc__name",
     }
 )

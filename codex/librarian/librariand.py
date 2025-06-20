@@ -1,7 +1,7 @@
 """Library process worker for background tasks."""
 
 from copy import copy
-from multiprocessing import Manager, Process
+from multiprocessing import Process
 from multiprocessing.queues import Queue
 from threading import Event, active_count
 from types import MappingProxyType
@@ -89,7 +89,6 @@ class LibrarianDaemon(Process):
 
         for task in startup_tasks:
             self.queue.put(task)
-        self.search_indexer_abort_event = Manager().Event()
         self.run_loop = True
         self._reversed_threads = ()
 
@@ -115,7 +114,7 @@ class LibrarianDaemon(Process):
                 )
             case SearchIndexAbortTask():
                 # Must come before the generic SearchIndexerTask below
-                self.search_indexer_abort_event.set()
+                self._threads.search_indexer_thread.abort_event.set()
                 self.log.debug("Told search indexers to stop for db updates.")
             case SearchIndexerTask():
                 self._threads.search_indexer_thread.queue.put(task)
@@ -146,8 +145,6 @@ class LibrarianDaemon(Process):
             thread_kwargs = copy(kwargs)
             if thread_class == NotifierThread:
                 thread_kwargs["broadcast_queue"] = self.broadcast_queue
-            elif thread_class == SearchIndexerThread:
-                thread_kwargs["abort_event"] = self.search_indexer_abort_event
             thread = thread_class(**thread_kwargs)  # pyright: ignore[reportArgumentType]
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")

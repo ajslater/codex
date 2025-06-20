@@ -1,12 +1,14 @@
 """Create Custom Covers."""
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.importer.const import (
-    COVERS_CREATE,
-    COVERS_UPDATE,
+    CLASS_CUSTOM_COVER_GROUP_MAP,
+    CREATE_COVERS,
     CUSTOM_COVER_UPDATE_FIELDS,
     LINK_COVER_PKS,
+    UPDATE_COVERS,
 )
 from codex.librarian.importer.create_comics import CreateComicsImporter
 from codex.librarian.importer.status import ImportStatusTypes
@@ -19,15 +21,31 @@ from codex.models import (
 class CreateCoversImporter(CreateComicsImporter):
     """Create Custom Covers."""
 
-    def update_custom_covers(self, status=None):
+    @staticmethod
+    def add_custom_cover_to_group(group_class, obj):
+        """If a custom cover exists for this group, add it."""
+        group = CLASS_CUSTOM_COVER_GROUP_MAP.get(group_class)
+        if not group:
+            # Normal, volume doesn't link to covers
+            return
+        try:
+            cover = CustomCover.objects.filter(group=group, sort_name=obj.sort_name)[0]
+            obj.custom_cover = cover
+        except (IndexError, ObjectDoesNotExist):
+            pass
+
+    def update_custom_covers(self):
         """Update Custom Covers."""
-        update_covers_qs = self.metadata.pop(COVERS_UPDATE, None)
+        status = Status(ImportStatusTypes.UPDATE_CUSTOM_COVERS, 0)
+        update_covers_qs = self.metadata.pop(UPDATE_COVERS, None)
         if not update_covers_qs:
+            self.status_controller.finish(status)
             return
         update_covers_count = update_covers_qs.count()
         if not update_covers_count:
+            self.status_controller.finish(status)
             return
-        status = Status(ImportStatusTypes.UPDATE_CUSTOM_COVERS, 0, update_covers_count)
+        status.total = update_covers_count
         self.status_controller.start(status)
 
         update_covers = []
@@ -58,15 +76,17 @@ class CreateCoversImporter(CreateComicsImporter):
         self.changed += count
         self.status_controller.finish(status)
 
-    def create_custom_covers(self, status=None):
+    def create_custom_covers(self):
         """Create Custom Covers."""
-        create_cover_paths = self.metadata.pop(COVERS_CREATE, ())
+        create_cover_paths = self.metadata.pop(CREATE_COVERS, ())
         num_create_cover_paths = len(create_cover_paths)
-        if not num_create_cover_paths:
-            return
         status = Status(
             ImportStatusTypes.CREATE_CUSTOM_COVERS, 0, num_create_cover_paths
         )
+        if not num_create_cover_paths:
+            self.status_controller.finish(status)
+            return
+
         self.status_controller.start(status)
 
         create_covers = []

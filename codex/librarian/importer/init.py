@@ -142,12 +142,6 @@ class InitImporter(WorkerStatusMixin):
                     len(self.task.covers_moved),
                 )
             ]
-        if self.task.dirs_modified:
-            status_list += [
-                Status(
-                    ImportStatusTypes.UPDATE_FOLDERS, None, len(self.task.dirs_modified)
-                )
-            ]
         return search_index_updates
 
     def _init_if_modified_or_created(self, path, status_list):
@@ -157,34 +151,18 @@ class InitImporter(WorkerStatusMixin):
             Status(ImportStatusTypes.READ_TAGS, 0, total_paths, subtitle=path),
             Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
             Status(ImportStatusTypes.QUERY_MISSING_TAGS, subtitle=path),
+            Status(ImportStatusTypes.QUERY_COMIC_UPDATES, subtitle=path),
+            Status(ImportStatusTypes.QUERY_TAG_LINKS, subtitle=path),
             Status(ImportStatusTypes.QUERY_MISSING_COVERS, subtitle=path),
             Status(ImportStatusTypes.CREATE_TAGS, subtitle=path),
+            Status(ImportStatusTypes.UPDATE_TAGS, subtitle=path),
         ]
-        if self.task.files_modified:
-            status_list += [
-                Status(
-                    ImportStatusTypes.UPDATE_COMICS,
-                    None,
-                    len(self.task.files_modified),
-                    subtitle=path,
-                )
-            ]
         if self.task.covers_modified:
             status_list += [
                 Status(
                     ImportStatusTypes.UPDATE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_modified),
-                    subtitle=path,
-                )
-            ]
-
-        if self.task.files_created or self.task.covers_created:
-            status_list += [
-                Status(
-                    ImportStatusTypes.CREATE_COMICS,
-                    None,
-                    len(self.task.files_created),
                     subtitle=path,
                 )
             ]
@@ -197,7 +175,24 @@ class InitImporter(WorkerStatusMixin):
                     subtitle=path,
                 )
             ]
-
+        if self.task.files_created or self.task.covers_created:
+            status_list += [
+                Status(
+                    ImportStatusTypes.CREATE_COMICS,
+                    None,
+                    len(self.task.files_created),
+                    subtitle=path,
+                )
+            ]
+        if self.task.files_modified:
+            status_list += [
+                Status(
+                    ImportStatusTypes.UPDATE_COMICS,
+                    None,
+                    len(self.task.files_modified),
+                    subtitle=path,
+                )
+            ]
         if self.task.files_modified or self.task.files_created:
             status_list += [
                 Status(ImportStatusTypes.LINK_COMICS_TO_TAGS, subtitle=path)
@@ -230,6 +225,12 @@ class InitImporter(WorkerStatusMixin):
                 )
             ]
             search_index_updates += len(self.task.files_deleted)
+        if self.task.dirs_deleted:
+            status_list += [
+                Status(
+                    ImportStatusTypes.REMOVE_FOLDERS, None, len(self.task.dirs_deleted)
+                )
+            ]
         if self.task.covers_deleted:
             status_list += [
                 Status(

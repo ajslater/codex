@@ -15,6 +15,7 @@ from codex.librarian.janitor.tasks import JanitorFTSRebuildTask
 from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models.base import BaseModel
+from codex.models.library import Library
 from codex.settings import (
     CONFIG_PATH,
     CUSTOM_COVERS_DIR,
@@ -45,17 +46,6 @@ def _exec_sql(sql):
         cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         cursor.execute(sql)
         return cursor.fetchall()
-
-
-def _foreign_key_check(log):
-    """Get table and row ids from foreign_key_check."""
-    sql = _PRAGMA_TMPL % "foreign_key_check"
-    if results := _exec_sql(sql):
-        log.warning(f"Found {len(results)} database rows with illegal foreign keys.")
-        log.debug(results)
-    else:
-        log.success("Database passed foreign key check.")
-    return results
 
 
 def _compile_foreign_key_results(results, log):
@@ -162,7 +152,6 @@ def _delete_bad_m2m_rows_table(table_name, ids, fix_comic_pks, log):
     """Delete illegal foreign keys for one table."""
     model = _get_model(table_name)
 
-    count = len(ids)
     qs = model.objects.filter(id__in=ids)
     try:
         comic_ids = qs.values_list("comic_id", flat=True)
@@ -170,8 +159,9 @@ def _delete_bad_m2m_rows_table(table_name, ids, fix_comic_pks, log):
     except (OperationalError, AttributeError):
         log.exception("Add comic ids to fix list.")
 
-    qs.delete()
-    log.info(f"Deleted {count} {table_name} rows that failed integrity check.")
+    count, _ = qs.delete()
+    level = "INFO" if count else "DEBUG"
+    log.log(level, f"Deleted {count} {table_name} rows that failed integrity check.")
     return count
 
 
@@ -223,15 +213,23 @@ def _mark_comics_for_update(fix_comic_pks, log):
 def fix_foreign_keys(log):
     """Foreign Key Check."""
     try:
-        results = _foreign_key_check(log)
+        sql = _PRAGMA_TMPL % "foreign_key_check"
+        results = _exec_sql(sql)
+        if count := len(results):
+            log.warning(f"Found {count} illegal foreign keys. Attempting fix...")
+            log.debug(results)
         bad_fk_rels, bad_m2m_rows = _compile_foreign_key_results(results, log)
     except Exception:
         log.exception("Integrity: foreign_key_check")
         return
-    fix_comic_pks = _null_bad_fk_rels(bad_fk_rels, log)
-    fix_comic_pks |= _delete_bad_m2m_rows(bad_m2m_rows, log)
     try:
-        _mark_comics_for_update(fix_comic_pks, log)
+        fix_comic_pks = _null_bad_fk_rels(bad_fk_rels, log)
+        fix_comic_pks |= _delete_bad_m2m_rows(bad_m2m_rows, log)
+        if count := len(fix_comic_pks):
+            _mark_comics_for_update(fix_comic_pks, log)
+        else:
+            log.success("Database passed foreign key check.")
+
     except Exception:
         log.exception("Could not mark comics with bad relations for update")
 
@@ -241,9 +239,8 @@ def _repair_extra_custom_cover_libraries(library_model, log):
     delete_libs = library_model.objects.filter(covers_only=True).exclude(
         path=CUSTOM_COVERS_DIR
     )
-    count = delete_libs.count()
+    count, _ = delete_libs.delete()
     if count:
-        delete_libs.delete()
         log.warning(
             f"Removed {count} duplicate custom cover libraries pointing to unused custom cover dirs."
         )
@@ -264,12 +261,12 @@ def cleanup_custom_cover_libraries(log):
 
         custom_cover_libraries = library_model.objects.filter(covers_only=True)
         count = custom_cover_libraries.count()
-        if count <= 1:
-            return
-        custom_cover_libraries.delete()
-        log.warning(
-            f"Removed all ({count}) custom cover libraries, Unable to determine valid one. Will recreate upon startup."
-        )
+        if count > 1:
+            count, _ = custom_cover_libraries.delete()
+            if count:
+                log.warning(
+                    f"Removed all ({count}) custom cover libraries, Unable to determine valid one. Will recreate upon startup."
+                )
     except Exception as exc:
         log.warning(f"Failed to check custom cover library for integrity - {exc}")
 
@@ -310,16 +307,17 @@ def fts_integrity_check(log):
     results = []
     sql = _FTS_INSERT_TMPL % "integrity-check"
     success = False
+    results = []
     try:
         results = _exec_sql(sql)
         if results:
             # I'm not sure if this raises or puts the error in the results.
             raise ValueError(results)  # noqa: TRY301
-    except Exception:
-        log.exception("Full Text Search Index failed integrity check.")
-    else:
         log.success("Full Text Search Index passed integrity check.")
         success = True
+    except Exception:
+        log.exception("Full Text Search Index failed integrity check")
+        log.debug(results)
     return success
 
 
@@ -330,8 +328,26 @@ class JanitorIntegrity(WorkerStatusMixin):
         """Init self.log."""
         self.init_worker(logger_, librarian_queue)
 
+    def is_library_importing(self):
+        """Return if libraries are importing."""
+        paths = tuple(
+            sorted(
+                Library.objects.filter(update_in_progress=True)
+                .distinct()
+                .values_list("path", flat=True)
+            )
+        )
+        if paths:
+            self.log.info(f"Library importing: {paths}")
+        return bool(paths)
+
     def foreign_key_check(self):
         """Foreign Key Check task."""
+        if self.is_library_importing():
+            self.log.warning(
+                "Not running db foreign key integrity check during import."
+            )
+            return
         status = Status(JanitorStatusTypes.INTEGRITY_FK)
         try:
             self.status_controller.start(status)
@@ -342,6 +358,9 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def integrity_check(self, *, long: bool):
         """Integrity check task."""
+        if self.is_library_importing():
+            self.log.warning("Not running full db integrity check during import.")
+            return
         subtitle = "" if long else "Quick"
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
         try:
@@ -352,6 +371,9 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def fts_rebuild(self):
         """FTS rebuild task."""
+        if self.is_library_importing():
+            self.log.warning("Not rebuilding search index during import.")
+            return
         status = Status(JanitorStatusTypes.FTS_REBUILD)
         try:
             self.status_controller.start(status)

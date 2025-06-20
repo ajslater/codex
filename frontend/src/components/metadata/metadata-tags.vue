@@ -24,6 +24,8 @@
 <script>
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import MetadataChip from "@/components/metadata/metadata-chip.vue";
+import { useBrowserStore } from "@/stores/browser";
+import { mapActions } from "pinia";
 
 export default {
   name: "MetadataTags",
@@ -56,8 +58,17 @@ export default {
       return toVuetifyItems({ items: this.mainValues, sort: false });
     },
     items() {
-      return toVuetifyItems({ items: this.values, sort: false });
+      let items;
+      if (this.filter === "universes") {
+        items = this.fixUniverseTitles(this.values);
+      } else {
+        items = this.values;
+      }
+      return toVuetifyItems({ items, sort: false });
     },
+  },
+  methods: {
+    ...mapActions(useBrowserStore, ["fixUniverseTitles"]),
   },
 };
 </script>

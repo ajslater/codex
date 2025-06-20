@@ -3,56 +3,75 @@
 from types import MappingProxyType
 
 from bidict import frozenbidict
+from django.db.models.base import Model
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
-from codex.models import (
-    Character,
-    Comic,
+from codex.models.base import BaseModel
+from codex.models.comic import Comic
+from codex.models.groups import (
+    BrowserGroupModel,
     Folder,
     Imprint,
     Publisher,
     Series,
-    StoryArc,
-    Team,
     Volume,
 )
-from codex.models.groups import BrowserGroupModel
-from codex.models.named import Credit, Identifier, StoryArcNumber, Universe
+from codex.models.identifier import Identifier, IdentifierSource
+from codex.models.named import (
+    AgeRating,
+    Character,
+    Country,
+    Credit,
+    CreditPerson,
+    CreditRole,
+    Genre,
+    Language,
+    Location,
+    OriginalFormat,
+    ScanInfo,
+    SeriesGroup,
+    Story,
+    StoryArc,
+    StoryArcNumber,
+    Tag,
+    Tagger,
+    Team,
+    Universe,
+)
 from codex.models.paths import CustomCover
 
 ###############
 # FIELD NAMES #
 ###############
-FOLDERS_FIELD = "folders"
-PUBLISHER = "publisher"
-IMPRINT = "imprint"
-VOLUME = "volume"
-SERIES = "series"
-PARENT_FOLDER = "parent_folder"
-VOLUME_COUNT = "volume_count"
-ISSUE_COUNT = "issue_count"
+FOLDERS_FIELD_NAME = "folders"
+PUBLISHER_FIELD_NAME = "publisher"
+IMPRINT_FIELD_NAME = "imprint"
+VOLUME_FIELD_NAME = "volume"
+SERIES_FIELD_NAME = "series"
+PARENT_FOLDER_FIELD_NAME = "parent_folder"
+VOLUME_COUNT_FIELD_NAME = "volume_count"
+ISSUE_COUNT_FIELD_NAME = "issue_count"
+PATH_FIELD_NAME = "path"
 
 ##########################
 # IMPORTER METADATA KEYS #
 ##########################
 EXTRACTED = "extracted"
 SKIPPED = "skipped"
-COMIC_PATHS = "comic_paths"
-COMIC_VALUES = "comic_values"
-M2M_LINK = "m2m_link"
-FK_LINK = "fk_link"
 QUERY_MODELS = "query_models"
-FIS = "fis"
-FK_CREATE = "fk_create"
-COVERS_UPDATE = "covers_update"
-COVERS_CREATE = "covers_create"
+CREATE_COMICS = "create_comics"
+CREATE_FKS = "create_fks"
+CREATE_COVERS = "create_covers"
+UPDATE_COMICS = "update_comics"
+UPDATE_FKS = "update_fks"
+UPDATE_COVERS = "update_covers"
 LINK_COVER_PKS = "link_cover_pks"
-FKC_CREATE_GROUPS = "create_groups"
-FKC_UPDATE_GROUPS = "update_groups"
-FKC_CREATE_FKS = "create_fks"
-FKC_FOLDER_PATHS = "create_folder_paths"
-FKC_TOTAL_FKS = "total_fks"
+LINK_FKS = "link_fks"
+LINK_M2MS = "link_m2ms"
+DELETE_M2MS = "delete_m2ms"
+FIS = "fis"
+TOTAL = "total"
 
 
 #######
@@ -60,21 +79,26 @@ FKC_TOTAL_FKS = "total_fks"
 #######
 GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] = (
     MappingProxyType(
-        {Publisher: None, Imprint: None, Series: VOLUME_COUNT, Volume: ISSUE_COUNT}
+        {
+            Publisher: None,
+            Imprint: None,
+            Series: VOLUME_COUNT_FIELD_NAME,
+            Volume: ISSUE_COUNT_FIELD_NAME,
+        }
     )
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType]
-    # Leaves out folders.
-    field
-    for field in Comic._meta.get_fields()
-    if field.many_to_many and field.name != FOLDERS_FIELD
+    field for field in Comic._meta.get_fields() if field.many_to_many
 )
-
+_COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(
+    field.name for field in COMIC_M2M_FIELDS
+)
+COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
 
 ########################
 # COMPLEX M2M METADATA #
 ########################
-DictModelType = type[Credit | Identifier | StoryArcNumber | Universe]
+DictModelType = Credit | Identifier | StoryArcNumber
 CREDITS_FIELD_NAME = "credits"
 CREDIT_PERSON_FIELD_NAME = "person"
 CREDIT_ROLE_FIELD_NAME = "role"
@@ -82,11 +106,13 @@ STORY_ARC_NUMBERS_FIELD_NAME = "story_arc_numbers"
 STORY_ARC_FIELD_NAME = "story_arc"
 NUMBER_FIELD_NAME = "number"
 IDENTIFIERS_FIELD_NAME = "identifiers"
-IDENTIFIER_TYPE_FIELD_NAME = "identifier_type"
-IDENTIFIER_CODE_FIELD_NAME = "nss"
+IDENTIFIER_SOURCE_FIELD_NAME = "source"
+IDENTIFIER_TYPE_FIELD_NAME = "id_type"
+IDENTIFIER_ID_KEY_FIELD_NAME = "key"
 IDENTIFIER_URL_FIELD_NAME = "url"
 UNIVERSES_FIELD_NAME = "universes"
 NAME_FIELD_NAME = "name"
+IDENTIFIER_FIELD_NAME = "identifier"
 DESIGNATION_FIELD_NAME = "designation"
 
 ########################
@@ -101,9 +127,160 @@ COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
     and field.related_model
     and not issubclass(field.related_model, BrowserGroupModel)
 )
+_GROUP_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
+_COMIC_GROUP_FIELDS: tuple[Field, ...] = tuple(
+    Comic._meta.get_field(field_name) for field_name in _GROUP_FIELD_NAMES
+)
+ALL_COMIC_FK_FIELDS = (*_COMIC_GROUP_FIELDS, *COMIC_FK_FIELDS)
+COMIC_FK_FIELD_NAMES: tuple[str, ...] = tuple(
+    field.name for field in ALL_COMIC_FK_FIELDS
+)
 PROTAGONIST_FIELD_MODEL_MAP = MappingProxyType(
     {"main_character": Character, "main_team": Team}
 )
+_DEFAULT_KEY_INDEX = 1
+_MODEL_KEY_INDEX_MAP: MappingProxyType[type[BaseModel], int] = MappingProxyType(
+    {
+        Imprint: 2,
+        Series: 3,
+        Volume: 4,
+        Credit: 2,
+        Identifier: 3,
+        StoryArcNumber: 2,
+    }
+)
+_IDENTIFIER_RELS = (
+    "identifier__source__name",
+    "identifier__id_type",
+    "identifier__key",
+)
+_NAMED_MODEL_RELS = ((NAME_FIELD_NAME,), "")
+NAMED_MODELS = frozenset(
+    {
+        AgeRating,
+        Country,
+        Language,
+        OriginalFormat,
+        Tagger,
+        ScanInfo,
+        SeriesGroup,
+        IdentifierSource,
+    }
+)
+_IDENTIFIED_MODEL_RELS = ((NAME_FIELD_NAME,), _IDENTIFIER_RELS)
+IDENTIFIED_MODELS = frozenset(
+    {Character, CreditPerson, CreditRole, Genre, Location, Story, StoryArc, Tag, Team}
+)
+MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple[str | tuple[str, ...], ...]] = (
+    MappingProxyType(
+        {
+            **dict.fromkeys(NAMED_MODELS, _NAMED_MODEL_RELS),
+            **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_MODEL_RELS),
+            Identifier: (
+                (
+                    f"{IDENTIFIER_SOURCE_FIELD_NAME}__name",
+                    IDENTIFIER_TYPE_FIELD_NAME,
+                    IDENTIFIER_ID_KEY_FIELD_NAME,
+                ),
+                "",
+                IDENTIFIER_URL_FIELD_NAME,
+            ),
+            Publisher: _IDENTIFIED_MODEL_RELS,
+            Imprint: (
+                (
+                    "publisher__name",
+                    NAME_FIELD_NAME,
+                ),
+                _IDENTIFIER_RELS,
+            ),
+            Series: (
+                (
+                    "publisher__name",
+                    "imprint__name",
+                    NAME_FIELD_NAME,
+                ),
+                _IDENTIFIER_RELS,
+                VOLUME_COUNT_FIELD_NAME,
+            ),
+            Volume: (
+                (
+                    "publisher__name",
+                    "imprint__name",
+                    "series__name",
+                    NAME_FIELD_NAME,
+                ),
+                "",
+                ISSUE_COUNT_FIELD_NAME,
+            ),
+            Folder: (
+                (PATH_FIELD_NAME,),
+                "",
+            ),
+            Credit: (
+                (
+                    f"{CREDIT_PERSON_FIELD_NAME}__name",
+                    f"{CREDIT_ROLE_FIELD_NAME}__name",
+                ),
+                "",
+            ),
+            StoryArcNumber: (
+                (f"{STORY_ARC_FIELD_NAME}__name", NUMBER_FIELD_NAME),
+                "",
+            ),
+            Universe: ((NAME_FIELD_NAME,), _IDENTIFIER_RELS, DESIGNATION_FIELD_NAME),
+        }
+    )
+)
+FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
+    {
+        field.name: MODEL_REL_MAP[field.related_model][0]  # pyright: ignore[reportArgumentType]
+        for field in (*ALL_COMIC_FK_FIELDS, *COMIC_M2M_FIELDS)
+    }
+)
+_NAMED_MODEL_ATTRS = ("name",)
+_IDENTIFIER_KEY_ATTRS = (
+    IDENTIFIER_SOURCE_FIELD_NAME,
+    IDENTIFIER_TYPE_FIELD_NAME,
+    IDENTIFIER_ID_KEY_FIELD_NAME,
+)
+FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
+    {
+        **dict.fromkeys(_COMIC_M2M_FIELD_NAMES, _NAMED_MODEL_ATTRS),
+        FOLDERS_FIELD_NAME: ("path",),
+        IDENTIFIER_FIELD_NAME: _IDENTIFIER_KEY_ATTRS,
+        IDENTIFIERS_FIELD_NAME: _IDENTIFIER_KEY_ATTRS,
+        PUBLISHER_FIELD_NAME: _NAMED_MODEL_ATTRS,
+        IMPRINT_FIELD_NAME: (PUBLISHER_FIELD_NAME, *_NAMED_MODEL_ATTRS),
+        SERIES_FIELD_NAME: (
+            PUBLISHER_FIELD_NAME,
+            IMPRINT_FIELD_NAME,
+            *_NAMED_MODEL_ATTRS,
+        ),
+        VOLUME_FIELD_NAME: (
+            PUBLISHER_FIELD_NAME,
+            IMPRINT_FIELD_NAME,
+            SERIES_FIELD_NAME,
+            *_NAMED_MODEL_ATTRS,
+        ),
+        CREDITS_FIELD_NAME: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
+        STORY_ARC_NUMBERS_FIELD_NAME: (STORY_ARC_FIELD_NAME, NUMBER_FIELD_NAME),
+    }
+)
+
+COMIC_M2M_FIELD_RELS = (
+    *_COMIC_M2M_FIELD_NAMES,
+    "credits__person",
+    "credits__role",
+    "identifiers__source",
+    "story_arc_numbers__story_arc",
+)
+
+
+def get_key_index(model: type[Model]) -> int:
+    """Return the key index divider for a model tuple."""
+    base_model: type[BaseModel] = model  # pyright: ignore[reportAssignmentType]
+    return _MODEL_KEY_INDEX_MAP.get(base_model, _DEFAULT_KEY_INDEX)
+
 
 #################
 # CREATE COMICS #
@@ -133,12 +310,6 @@ BULK_UPDATE_FOLDER_FIELDS = (
     "updated_at",
 )
 BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
-BULK_UPDATE_COMIC_FIELDS_WITH_VALUES = tuple(
-    sorted(
-        frozenset(BULK_UPDATE_COMIC_FIELDS)
-        - frozenset(BULK_UPDATE_FOLDER_MODIFIED_FIELDS)
-    )
-)
 
 ##########
 # COVERS #
@@ -162,11 +333,8 @@ CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group"
 ###########
 # DELETED #
 ###########
-COMIC_GROUP_FIELD_NAMES = (
-    "publisher",
-    "imprint",
-    "series",
-    "volume",
+ALL_COMIC_GROUP_FIELD_NAMES = (
+    *_GROUP_FIELD_NAMES,
     "story_arc_numbers",
     "folders",
 )

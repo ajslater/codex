@@ -15,7 +15,7 @@ _FILTER_REL_MAP = MappingProxyType(
     {
         CREDIT_PERSON_UI_FIELD: "credits__person",
         STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
-        IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
+        IDENTIFIER_TYPE_UI_FIELD: "identifiers__source",
     }
 )
 

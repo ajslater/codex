@@ -69,10 +69,6 @@ class FailedImportsImporter(DeletedImporter):
             existing_failed_import_paths
         )
         self.metadata.pop(FIS)
-
-        count = 0
-        for iterable in fis.values():
-            count += len(iterable)
         return
 
     def _bulk_update_failed_imports(self, update_failed_imports):
@@ -99,8 +95,8 @@ class FailedImportsImporter(DeletedImporter):
             update_failed_import_objs, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
         )
         count = len(update_failed_import_objs)
-        if count:
-            self.log.info(f"Updated {count} old failed imports.")
+        level = "INFO" if count else "DEBUG"
+        self.log.log(level, f"Updated {count} old failed imports.")
         return
 
     def _bulk_create_failed_imports(self, create_failed_imports):
@@ -123,8 +119,8 @@ class FailedImportsImporter(DeletedImporter):
             unique_fields=FailedImport._meta.unique_together[0],
         )
         count = len(create_objs)
-        if count:
-            self.log.info(f"Added {count} comics to failed imports.")
+        level = "INFO" if count else "DEBUG"
+        self.log.log(level, f"Added {count} comics to failed imports.")
         return count
 
     def _bulk_cleanup_failed_imports(self, delete_failed_imports_paths):
@@ -135,12 +131,11 @@ class FailedImportsImporter(DeletedImporter):
         qs = FailedImport.objects.filter(library=self.library).filter(
             path__in=delete_failed_imports_paths
         )
-        qs.delete()
-        count = len(delete_failed_imports_paths)
-        if count:
-            self.log.success(
-                f"Cleaned up {count} failed imports from {self.library.path}"
-            )
+        count, _ = qs.delete()
+        level = "INFO" if count else "DEBUG"
+        self.log.log(
+            level, f"Cleaned up {count} failed imports from {self.library.path}"
+        )
         return count
 
     def fail_imports(self):

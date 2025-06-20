@@ -79,7 +79,7 @@ class StatsComicMetadataSerializer(Serializer):
     country_count = IntegerField(required=False, read_only=True)
     genre_count = IntegerField(required=False, read_only=True)
     identifier_count = IntegerField(required=False, read_only=True)
-    identifier_type_count = IntegerField(required=False, read_only=True)
+    identifier_source_count = IntegerField(required=False, read_only=True)
     language_count = IntegerField(required=False, read_only=True)
     location_count = IntegerField(required=False, read_only=True)
     original_format_count = IntegerField(required=False, read_only=True)

@@ -114,7 +114,6 @@ export default {
         return state.choices.dynamic[this.name];
       },
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
-      identifierTypeTitles: (state) => state.choices.static.identifierType,
       filter(state) {
         return state.settings.filters[this.name];
       },
@@ -135,20 +134,12 @@ export default {
       return NUMERIC_FILTERS.has(this.name);
     },
     vuetifyItems() {
-      var items;
+      let items;
       if (this.name === "universes") {
-        items = [];
-        for (const item of this.choices) {
-          const universeItem = { ...item };
-          if (universeItem.designation) {
-            universeItem.name += ` (${item.designation})`;
-          }
-          items.push(universeItem);
-        }
+        items = this.fixUniverseTitles(this.choices);
       } else {
         items = this.choices;
       }
-
       return toVuetifyItems({
         items,
         filter: this.query,
@@ -173,7 +164,8 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, [
       "clearOneFilter",
-      "identifierTypeTitle",
+      "fixUniverseTitles",
+      "identifierSourceTitle",
       "loadAvailableFilterChoices",
       "loadFilterChoices",
     ]),
@@ -190,11 +182,11 @@ export default {
       };
       this.$emit("selected", data);
     },
-    itemTitle: function (item) {
+    itemTitle(item) {
       if (this.name === "readingDirection") {
         return this.readingDirectionTitles[item.value];
-      } else if (this.name === "identifierType") {
-        return this.identifierTypeTitle(item.title);
+      } else if (this.name === "identifierSource") {
+        return this.identifierSourceTitle(item.title);
       }
       return item.title;
     },

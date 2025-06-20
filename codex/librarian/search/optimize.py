@@ -1,7 +1,7 @@
 """Search Index cleanup."""
 
 from abc import ABC
-from threading import Event
+from multiprocessing import Manager
 from time import time
 
 from django.db import connection
@@ -19,9 +19,9 @@ _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 class SearchOptimizeThread(QueuedThread, ABC):
     """Search Index optimize methods."""
 
-    def __init__(self, *args, abort_event: Event, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize search engine."""
-        self.abort_event = abort_event
+        self.abort_event = Manager().Event()
         super().__init__(*args, **kwargs)
 
     def optimize(self, *, janitor: bool):
