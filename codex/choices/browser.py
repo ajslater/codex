@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from comicbox.identifiers import IdSources
+from comicbox.identifiers import ID_SOURCE_NAME_MAP
 
 BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
     {
@@ -54,23 +54,7 @@ BROWSER_CHOICES = MappingProxyType(
         "top_group": BROWSER_TOP_GROUP_CHOICES,
         "vuetify_null_code": VUETIFY_NULL_CODE,
         "settings_group": {**_GROUP_NAMES},
-        "identifier_sources": {
-            IdSources.METRON.value: "Metron",
-            IdSources.COMICVINE.value: "Comic Vine",
-            IdSources.GCD.value: "Grand Comics Database",
-            IdSources.LCG.value: "League of Comic Geeks",
-            IdSources.MARVEL.value: "Marvel",
-            IdSources.ANILIST.value: "AniList",
-            IdSources.KITSU.value: "Kitsu",
-            IdSources.MANGADEX.value: "MangaDex",
-            IdSources.MANGAUPDATES.value: "MangaUpdates",
-            IdSources.MYANIMELIST.value: "MyAnimeList",
-            IdSources.GTIN.value: "GTIN",
-            IdSources.ISBN.value: "ISBN",
-            IdSources.UPC.value: "UPC",
-            IdSources.ASIN.value: "Amazon",
-            IdSources.COMIXOLOGY.value: "ComiXology",
-        },
+        "identifier_sources": ID_SOURCE_NAME_MAP,
     }
 )
 
