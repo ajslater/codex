@@ -25,6 +25,12 @@ border-radius: 128px;
   - Janitor tasks that might disrupt an ongoing import are not run if an import
     is in progress.
 
+## v1.7.14
+
+- Fixes
+
+  - Fix Reader jumping back into the same book when changing to a new book.
+
 ## v1.7.13
 
 - Fixes

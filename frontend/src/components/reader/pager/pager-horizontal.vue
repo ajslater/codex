@@ -88,16 +88,6 @@ export default {
         }
       }
     },
-    prevBook(to) {
-      if (this.book.pk === to.pk) {
-        this.activePage = this.book.maxPage;
-      }
-    },
-    nextBook(to) {
-      if (this.book.pk === to.pk) {
-        this.activePage = 0;
-      }
-    },
   },
   created() {
     if (this.book.pk === this.storePk) {

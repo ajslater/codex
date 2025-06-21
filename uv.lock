@@ -1890,11 +1890,11 @@ wheels = [
 
 [[package]]
 name = "pygments"
-version = "2.19.1"
+version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7c/2d/c3338d48ea6cc0feb8446d8e6937e1408088a72a39937982cc6111d17f84/pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f", size = 4968581, upload-time = "2025-01-06T17:26:30.443Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887", size = 4968631, upload-time = "2025-06-21T13:39:12.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c", size = 1225293, upload-time = "2025-01-06T17:26:25.553Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217, upload-time = "2025-06-21T13:39:07.939Z" },
 ]
 
 [[package]]
@@ -3075,11 +3075,11 @@ wheels = [
 
 [[package]]
 name = "zipremove"
-version = "0.4.1"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b7/f8/b748c5cbe818909ac120591821b502af0a00f98b415f9e9e2f8858b8a22c/zipremove-0.4.1.tar.gz", hash = "sha256:4440f0f95ab12c253ca1cf247b0ba41a7bd0aab745dfa60959d3ed734b21f8df", size = 20250, upload-time = "2025-06-20T07:28:01.825Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/61/b870a0bc6c7994500bb308ea6571288c5f8051f8e0a1f441d0480ff4059e/zipremove-0.5.0.tar.gz", hash = "sha256:c3047dc8069bc7c60a165d7120e1bfd0fa6d759f9b4bdb6fba4737bacff0916e", size = 20329, upload-time = "2025-06-21T14:54:27.448Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/84/ba2125f327ee77d6a33f1739c33b0924dcfac84f995d31253615af106464/zipremove-0.4.1-py3-none-any.whl", hash = "sha256:99dfc9c589ff4c1135ef7561a648c7a4acdacdf2e83362afb13367ff60eec6e5", size = 9548, upload-time = "2025-06-20T07:28:00.676Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/01/8eda6bb9ad7f9af20c8750a52e7a94ad49c06a82cace434431b3f13c21b3/zipremove-0.5.0-py3-none-any.whl", hash = "sha256:ce11ceb6388bee527a259ee510e650b59671d07932b54a8648af8bf0b3ae2cc7", size = 9539, upload-time = "2025-06-21T14:54:26.682Z" },
 ]
 
 [[package]]
