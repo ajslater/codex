@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.14
+
+- Fixes
+
+  - Fix Reader jumping back into the same book when changing to a new book.
+
 ## v1.7.13
 
 - Fixes
