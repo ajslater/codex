@@ -47,7 +47,6 @@ export default {
     }),
     ...mapState(useReaderStore, {
       empty: (state) => state.empty,
-      arc: (state) => state.arc,
     }),
   },
   watch: {

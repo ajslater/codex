@@ -10,12 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-import sys
 from os import environ
 from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
+from loguru import logger
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.secret_key import get_secret_key
@@ -189,7 +189,7 @@ def _get_middleware():
 MIDDLEWARE = _get_middleware()
 
 if DEBUG:
-    NPLUSONE_LOGGER = sys.stdout
+    NPLUSONE_LOGGER = logger
     NPLUSONE_LOG_LEVEL = "WARNING"
 
 ROOT_URLCONF = "codex.urls.root"

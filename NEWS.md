@@ -21,6 +21,7 @@ border-radius: 128px;
     - Add Universes, Main Characters, and Main Team
 
 - Fix
+  - Reading Order in reader was not always defaulting to your last Browser Top Group.
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
   - Janitor tasks that might disrupt an ongoing import are not run if an import
     is in progress.

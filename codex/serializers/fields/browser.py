@@ -6,38 +6,23 @@ import pycountry
 from loguru import logger
 from pycountry.db import Database
 from rest_framework.serializers import (
-    ChoiceField,
     ListField,
 )
 from typing_extensions import override
 
 from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
-    BROWSER_TOP_GROUP_CHOICES,
     DUMMY_NULL_NAME,
 )
+from codex.serializers.fields.base import CodexChoiceField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.route import RouteSerializer
 
 
-class TopGroupField(ChoiceField):
-    """Valid Top Groups Only."""
-
-    class_choices = tuple(BROWSER_TOP_GROUP_CHOICES.keys())
-
-    def __init__(self, *args, **kwargs):
-        """Initialize with choices."""
-        super().__init__(*args, choices=self.class_choices, **kwargs)
-
-
-class BookmarkFilterField(ChoiceField):
+class BookmarkFilterField(CodexChoiceField):
     """Bookmark Choice Field."""
 
-    def __init__(self, *args, **kwargs):
-        """Use bookmark filter choices."""
-        super().__init__(
-            *args, choices=tuple(BROWSER_BOOKMARK_FILTER_CHOICES.keys()), **kwargs
-        )
+    class_choices = tuple(BROWSER_BOOKMARK_FILTER_CHOICES.keys())
 
 
 class PyCountryField(SanitizedCharField, ABC):

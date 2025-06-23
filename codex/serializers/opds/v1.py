@@ -12,7 +12,7 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
-from codex.serializers.fields.browser import TopGroupField
+from codex.serializers.fields.group import BrowseGroupField
 from codex.serializers.models.pycountry import LanguageSerializer
 
 UTC_TZ = ZoneInfo("UTC")
@@ -26,7 +26,7 @@ class OPDS1TemplateLinkSerializer(Serializer):
     mime_type = CharField(read_only=True)
     title = CharField(read_only=True, required=False)
     length = IntegerField(read_only=True, required=False)
-    facet_group = TopGroupField(read_only=True, required=False)
+    facet_group = BrowseGroupField(read_only=True, required=False)
     facet_active = BooleanField(read_only=True, required=False)
     thr_count = IntegerField(read_only=True, required=False)
     pse_count = IntegerField(read_only=True, required=False)

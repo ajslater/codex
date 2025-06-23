@@ -11,7 +11,8 @@ from rest_framework.serializers import (
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
-from codex.serializers.fields.browser import BreadcrumbsField, TopGroupField
+from codex.serializers.fields.browser import BreadcrumbsField
+from codex.serializers.fields.group import BrowseGroupField
 from codex.serializers.route import SimpleRouteSerializer
 
 
@@ -53,7 +54,7 @@ class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
-    top_group = TopGroupField(required=False)
+    top_group = BrowseGroupField(required=False)
 
 
 class OPDSSettingsSerializer(BrowserSettingsSerializerBase):

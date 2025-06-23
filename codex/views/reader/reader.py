@@ -1,23 +1,15 @@
 """Views for reading comic books."""
 
-from comicbox.box import Comicbox
-from django.urls import reverse
 from drf_spectacular.utils import extend_schema
-from loguru import logger
-from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
-from codex.librarian.importer.tasks import LazyImportComicsTask
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
-from codex.serializers.redirect import ReaderRedirectSerializer
-from codex.settings import COMICBOX_CONFIG
-from codex.views.reader.arcs import ReaderArcsView
+from codex.views.reader.books import ReaderBooksView
 
 
-class ReaderView(ReaderArcsView):
+class ReaderView(ReaderBooksView):
     """Get info for displaying comic pages."""
 
     serializer_class: type[BaseSerializer] | None = ReaderComicsSerializer
@@ -25,77 +17,28 @@ class ReaderView(ReaderArcsView):
     SESSION_KEY: str = "reader"
     TARGET: str = "reader"
 
-    def _raise_not_found(self):
-        """Raise not found exception."""
-        pk = self.kwargs.get("pk")
-        detail = {
-            "route": reverse("app:start"),
-            "reason": f"comic {pk} not found",
-            "serializer": ReaderRedirectSerializer,
-        }
-        raise NotFound(detail=detail)
-
-    @staticmethod
-    def _lazy_metadata(current, prev_book, next_book):
-        """Get reader metadata from comicbox if it's not in the db."""
-        import_pks = set()
-        if current and not (current.page_count and current.file_type):
-            with Comicbox(current.path) as cb:
-                current.file_type = cb.get_file_type()
-                current.page_count = cb.get_page_count()
-            import_pks.add(current.pk)
-
-        if prev_book and not prev_book.page_count:
-            with Comicbox(prev_book.path) as cb:
-                prev_book.page_count = cb.get_page_count()
-            import_pks.add(prev_book.pk)
-
-        if next_book and not next_book.page_count:
-            with Comicbox(next_book.path, config=COMICBOX_CONFIG, logger=logger) as cb:
-                next_book.page_count = cb.get_page_count()
-            import_pks.add(next_book.pk)
-
-        if import_pks:
-            task = LazyImportComicsTask(frozenset(import_pks))
-            LIBRARIAN_QUEUE.put(task)
-
     @override
     def get_object(self):
         """Get the previous and next comics in a group or story arc."""
+        # Arcs
+        arcs, mtime = self.get_arcs()
+
         # Books
         books = self.get_book_collection()
 
-        current = books.get("current")
-        if not current:
-            self._raise_not_found()
-
-        prev_book = books.get("prev")
-        next_book = books.get("next")
-        self._lazy_metadata(current, prev_book, next_book)
-
-        books = {
-            "current": current,
-            "prev_book": prev_book,
-            "next_book": next_book,
-        }
-
-        # Arcs
-        arcs, mtime = self.get_arcs(current)
-
-        arc = self.params.get("arc", {})
-        if not arc.get("group"):
-            arc["group"] = current.arc_group
-        if not arc.get("pks"):
-            arc["pks"] = (current.arc_pk,)
-        arc["index"] = current.arc_index
-        arc["count"] = current.arc_count
-
         close_route = self.get_last_route(name=True)
 
+        arc = {
+            "group": self._selected_arc_group,
+            "ids": self._selected_arc_ids,
+            "index": self._selected_arc_index,
+            "count": self._selected_arc_count,
+        }
+
         return {
-            "books": books,
             "arcs": arcs,
             "arc": arc,
+            "books": books,
             "close_route": close_route,
             "mtime": mtime,
         }

@@ -13,7 +13,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.serializers.fields.browser import TopGroupField
+from codex.serializers.fields.group import BrowseGroupField
 from codex.util import max_none
 from codex.views.const import EPOCH_START
 
@@ -21,7 +21,7 @@ from codex.views.const import EPOCH_START
 class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser, opds & metadata serializers."""
 
-    group = TopGroupField(read_only=True)
+    group = BrowseGroupField(read_only=True)
     ids = ListField(child=IntegerField(), read_only=True)
 
     # Aggregate Annotations
