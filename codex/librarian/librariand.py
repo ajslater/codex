@@ -28,11 +28,7 @@ from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.search.searchd import SearchIndexerThread
-from codex.librarian.search.tasks import (
-    SearchIndexAbortTask,
-    SearchIndexerTask,
-    SearchIndexUpdateTask,
-)
+from codex.librarian.search.tasks import SearchIndexAbortTask, SearchIndexerTask
 from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask, WakeCronTask
 from codex.librarian.telemeter.tasks import TelemeterTask
 from codex.librarian.telemeter.telemeter import send_telemetry
@@ -84,7 +80,6 @@ class LibrarianDaemon(Process):
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
-            SearchIndexUpdateTask(rebuild=False),
         )
 
         for task in startup_tasks:
