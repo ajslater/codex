@@ -27,14 +27,14 @@ export default {
     };
   },
   head() {
-    const names = [
-      "browse comics",
-      this.longBrowserTitlePrefix,
-      this.longBrowseTitleMain,
-      this.longBrowseTitleSuffix,
-    ];
+    const titleSuffix = this.subtitle ? this.subtitle : this.title;
+    const title = "Browse / " + titleSuffix;
+    const names = ["browse comics", this.title, this.subtitle];
     const content = names.filter(Boolean).join(" ");
-    return { meta: [{ hid: "description", name: "description", content }] };
+    return {
+      title,
+      meta: [{ hid: "description", name: "description", content }],
+    };
   },
   computed: {
     ...mapState(useBrowserStore, {

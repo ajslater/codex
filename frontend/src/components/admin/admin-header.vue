@@ -43,6 +43,10 @@ export default {
       TABS,
     };
   },
+  head() {
+    const title = "Admin / " + this.activeTab;
+    return { title };
+  },
   computed: {
     ...mapWritableState(useAdminStore, ["activeTab"]),
     mdAndDown() {

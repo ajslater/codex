@@ -77,8 +77,10 @@ export default {
     };
   },
   head() {
-    const content = `reader ${this.activeTitle} page ${this.storePage}`;
+    const title = `Read / ${this.activeTitle} / page ${this.storePage}`;
+    const content = `reader ${title}`;
     return {
+      title,
       meta: [
         {
           hid: "description",
@@ -96,6 +98,7 @@ export default {
       currentBook: (state) => state.books?.current || {},
       empty: (state) => state.empty,
       subtitle: (state) => state.books?.current?.name || "",
+      storePage: (state) => state.page,
     }),
     title() {
       return this.activeTitle;

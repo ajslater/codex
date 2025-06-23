@@ -1,5 +1,5 @@
-# 📜 Codex News
 
+# 📜 Codex News
 <img src="codex/static_src/img/logo.svg" style="
 height: 128px;
 width: 128px;
@@ -19,6 +19,7 @@ border-radius: 128px;
   - Logging format changed.
   - Metadata:
     - Add Universes, Main Characters, and Main Team
+  - Browser tab titles show route and page title.
 
 - Fix
   - Reading Order in reader was not always defaulting to your last Browser Top Group.
