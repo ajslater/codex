@@ -280,7 +280,6 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
                     create=create,
                 )
                 if self.abort_event.is_set():
-                    self.log.debug("Search index update aborted.")
                     break
                 batch_from += SEARCH_INDEX_BATCH_SIZE
         finally:
@@ -337,6 +336,7 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)
         self.log.success(f"Search index updated in {elapsed}.")
+        self.abort_event.clear()
 
     def update_search_index(self, *, rebuild: bool):
         """Update or Rebuild the search index."""
@@ -344,7 +344,10 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
         self.abort_event.clear()
         try:
             self._update_search_index(start_time, rebuild)
+            if self.abort_event.is_set():
+                self.log.debug("Search engine update aborted on signal.")
         except Exception:
             self.log.exception("Update search index")
         finally:
+            self.abort_event.clear()
             self.status_controller.finish_many(SearchIndexStatusTypes.values)
