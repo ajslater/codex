@@ -20,7 +20,11 @@ class LinkComicsImporter(LinkImporterDelete):
 
     def sum_path_ops(self, key):
         """Sum all the operations for the key."""
-        return sum(len(path_fks.values()) for path_fks in self.metadata[key].values())
+        return sum(len(path_ops.values()) for path_ops in self.metadata[key].values())
+
+    def sum_ops(self, key):
+        """Sum all the operations for the key."""
+        return sum(len(ops) for ops in self.metadata[key].values())
 
     def link_comic_m2m_field(self, field_name, m2m_links, status):
         """
@@ -60,7 +64,7 @@ class LinkComicsImporter(LinkImporterDelete):
 
     def link_comic_m2m_fields(self):
         """Combine query and bulk link into a batch."""
-        link_total = self.sum_path_ops(DELETE_M2MS) + self.sum_path_ops(LINK_M2MS)
+        link_total = self.sum_ops(DELETE_M2MS) + self.sum_path_ops(LINK_M2MS)
         status = Status(ImportStatusTypes.LINK_COMICS_TO_TAGS, 0, link_total)
         try:
             if not link_total:

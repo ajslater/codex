@@ -162,7 +162,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
 
     def query_all_missing_models(self):
         """Find all missing foreign key models."""
-        num_models = sum(len(models) for models in self.metadata[QUERY_MODELS].values())
+        num_models = self.sum_ops(QUERY_MODELS)
         status = Status(ImportStatusTypes.QUERY_MISSING_TAGS, 0, num_models)
         try:
             if not num_models:
