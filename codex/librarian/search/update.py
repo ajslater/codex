@@ -26,7 +26,6 @@ _COMICFTS_UPDATE_FIELDS = (
     "publisher",
     "imprint",
     "series",
-    "volume",
     # Attributes
     "age_rating",
     "country",
@@ -90,7 +89,6 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
             fts_publisher=F("publisher__name"),
             fts_imprint=F("imprint__name"),
             fts_series=F("series__name"),
-            fts_volume=F("volume__name"),
             fts_country=F("country__name"),
             fts_language=F("language__name"),
             fts_scan_info=F("scan_info__name"),
@@ -143,7 +141,6 @@ class SearchFTSUpdateThread(SearchRemoveThread, ABC):
                 publisher=comic.fts_publisher,
                 imprint=comic.fts_imprint,
                 series=comic.fts_series,
-                volume=comic.fts_volume,
                 # FKS
                 age_rating=comic.age_rating,
                 country=country,

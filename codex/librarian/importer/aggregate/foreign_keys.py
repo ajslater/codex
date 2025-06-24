@@ -10,6 +10,7 @@ from comicbox.schemas.comicbox import (
     IDENTIFIERS_KEY,
     NAME_KEY,
     NUMBER_KEY,
+    NUMBER_TO_KEY,
     PROTAGONIST_KEY,
 )
 from django.db.models import Field
@@ -95,7 +96,11 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
         clean_group_name = name_field.get_prep_value(group_name)
         group_list.append(clean_group_name)
         extra_vals = []
-        if model != Volume:
+        if model == Volume:
+            number_to = group.get(NUMBER_TO_KEY, model.DEFAULT_NAME)
+            clean_number_to = name_field.get_prep_value(number_to)
+            group_list.append(clean_number_to)
+        else:
             identifier_tuple = self.get_identifier_tuple(model, group)
             extra_vals.append(identifier_tuple)
         count_key = GROUP_MODEL_COUNT_FIELDS[model]
@@ -115,7 +120,7 @@ class AggregateForeignKeyMetadataImporter(ExtractMetadataImporter):
         for field_name, related_field in COMIC_FK_FIELD_NAMES_FIELD_MAP.items():
             # No identifiers on many2one fks yet
             # md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field_name, field_name) if they ever diverge
-            model = related_field.model
+            model: type[BaseModel] = related_field.model  # pyright: ignore[reportAssignmentType]
             md_key = field_name
             value = md.pop(md_key, None)
             if value is None and not issubclass(model, BrowserGroupModel):

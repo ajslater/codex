@@ -1,14 +1,13 @@
 """Settings Serializer."""
 
-from rest_framework.fields import BooleanField
 from rest_framework.serializers import ListSerializer, Serializer
 
-from codex.serializers.fields import BrowseGroupField, SessionKeyField
+from codex.serializers.fields import SessionKeyField
 
 
-class SettingsSerializer(Serializer):
+class SettingsInputSerializer(Serializer):
     """For requesting settings."""
 
+    JSON_PARAMS = frozenset({"only"})
+
     only = ListSerializer(child=SessionKeyField(), required=False)
-    group = BrowseGroupField(required=False)
-    breadcrumb_names = BooleanField(required=False, default=True)

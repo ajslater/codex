@@ -1,5 +1,5 @@
-
 # 📜 Codex News
+
 <img src="codex/static_src/img/logo.svg" style="
 height: 128px;
 width: 128px;
@@ -22,7 +22,8 @@ border-radius: 128px;
   - Browser tab titles show route and page title.
 
 - Fix
-  - Reading Order in reader was not always defaulting to your last Browser Top Group.
+  - Reading Order in reader was not always defaulting to your last Browser Top
+    Group.
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
   - Janitor tasks that might disrupt an ongoing import are not run if an import
     is in progress.

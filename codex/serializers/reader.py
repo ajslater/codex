@@ -70,6 +70,7 @@ class ReaderCurrentComicSerializer(ReaderComicSerializer):
     # For title
     series_name = CharField(read_only=True, required=False)
     volume_name = CharField(read_only=True, required=False)
+    volume_number_to = CharField(read_only=True, required=False)
     issue_number = DecimalField(
         max_digits=None,
         decimal_places=3,

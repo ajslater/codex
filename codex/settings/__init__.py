@@ -417,8 +417,5 @@ CACHALOT_UNCACHABLE_TABLES = frozenset(
 )
 
 COMICBOX_CONFIG = get_config(
-    {
-        "compute_pages": False,
-        "loglevel": LOGLEVEL,
-    }
+    {"compute_pages": False, "loglevel": LOGLEVEL, "close_fd": False}
 )

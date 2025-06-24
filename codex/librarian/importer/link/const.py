@@ -15,10 +15,17 @@ COMPLEX_MODEL_FIELD_NAMES = (
     STORY_ARC_NUMBERS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
 )
+DEFAULT_KEY_RELS = ("name",)
 GROUP_KEY_RELS: MappingProxyType[type[BaseModel], tuple[str, ...]] = MappingProxyType(
     {
-        Imprint: ("publisher__name",),
-        Series: ("publisher__name", "imprint__name"),
-        Volume: ("publisher__name", "imprint__name", "series__name"),
+        Imprint: ("publisher__name", "name"),
+        Series: ("publisher__name", "imprint__name", "name"),
+        Volume: (
+            "publisher__name",
+            "imprint__name",
+            "series__name",
+            "name",
+            "number_to",
+        ),
     }
 )

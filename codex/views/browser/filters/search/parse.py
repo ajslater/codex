@@ -20,6 +20,7 @@ _FTS_COLUMNS = frozenset(
 _NON_FTS_COLUMNS = frozenset(
     {
         "volume",
+        "volume_to",
         "created_at",
         "updated_at",
         "issue_number",

@@ -49,10 +49,12 @@ export default {
         title = "All";
       } else if (this.browserTitle) {
         let names = [];
-        const { groupName, groupCount } = this.browserTitle;
+        const { groupName, groupNumberTo, groupCount } = this.browserTitle;
         const group = this.$route.params.group;
         const formattedGroupName =
-          group === "v" ? formattedVolumeName(groupName) : groupName;
+          group === "v"
+            ? formattedVolumeName(groupName, groupNumberTo)
+            : groupName;
         if (formattedGroupName) {
           names.push(formattedGroupName);
         }

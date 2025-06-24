@@ -22,7 +22,7 @@ from codex.serializers.browser.choices import (
     BrowserChoicesFilterSerializer,
     BrowserFilterChoicesSerializer,
 )
-from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.session import (
     CREDIT_PERSON_UI_FIELD,
@@ -59,7 +59,9 @@ _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_
 class BrowserChoicesViewBase(BrowserFilterView):
     """Get choices for filter dialog."""
 
-    input_serializer_class: type[BaseSerializer] = BrowserFilterChoicesInputSerilalizer
+    input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
+        BrowserFilterChoicesInputSerializer
+    )
     TARGET: str = "choices"
 
     @staticmethod

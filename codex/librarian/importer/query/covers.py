@@ -4,7 +4,7 @@ from codex.librarian.importer.const import (
     CREATE_COVERS,
     UPDATE_COVERS,
 )
-from codex.librarian.importer.create_fks import CreateForeignKeysImporter
+from codex.librarian.importer.create import CreateForeignKeysImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
 from codex.models.paths import CustomCover

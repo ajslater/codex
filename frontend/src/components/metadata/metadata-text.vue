@@ -95,7 +95,7 @@ export default {
       if (this.group === "f" && this.computedValue) {
         value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
       } else if (this.group === "v" && this.computedValue) {
-        value = formattedVolumeName(this.computedValue);
+        value = formattedVolumeName(this.computedValue, this.value.numberTo);
       } else {
         value = this.computedValue;
       }

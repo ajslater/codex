@@ -14,7 +14,7 @@ from codex.librarian.importer.const import (
     MODEL_REL_MAP,
     UPDATE_FKS,
 )
-from codex.librarian.importer.create_fks.const import (
+from codex.librarian.importer.create.const import (
     CUSTOM_COVER_MODELS,
     DEFAULT_NON_NULL_CHARFIELD_NAMES,
     GROUP_BASE_FIELDS,
@@ -23,11 +23,10 @@ from codex.librarian.importer.create_fks.const import (
     NON_NULL_CHARFIELD_NAMES,
     ORDERED_CREATE_MODELS,
 )
-from codex.librarian.importer.create_fks.folders import (
+from codex.librarian.importer.create.folders import (
     CreateForeignKeysFolderImporter,
 )
 from codex.models.base import BaseModel
-from codex.settings import BUILD
 
 
 class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
@@ -91,8 +90,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         create_objs = []
-        if BUILD:
-            create_tuples = sorted(create_tuples, key=lambda t: str(t))
+        create_tuples = sorted(create_tuples, key=lambda t: str(t))
         for values_tuple in create_tuples:
             key_args, update_args = self._get_create_update_args(
                 model, key_args_map, update_args_map, values_tuple
@@ -156,8 +154,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         update_objs = []
-        if BUILD:
-            update_tuples = sorted(update_tuples, key=lambda t: str(t))
+        update_tuples = sorted(update_tuples, key=lambda t: str(t))
         for values_tuple in update_tuples:
             key_args, update_args = self._get_create_update_args(
                 model, key_args_map, update_args_map, values_tuple

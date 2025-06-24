@@ -12,7 +12,7 @@ from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.serializers.browser.metadata import MetadataSerializer
-from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.views.browser.metadata.copy_intersections import (
     MetadataCopyIntersectionsView,
 )
@@ -22,7 +22,9 @@ class MetadataView(MetadataCopyIntersectionsView):
     """Aggregate Group and Comic Metadata View."""
 
     serializer_class: type[BaseSerializer] | None = MetadataSerializer
-    input_serializer_class: type[BaseSerializer] = BrowserFilterChoicesInputSerilalizer
+    input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
+        BrowserFilterChoicesInputSerializer
+    )
     TARGET: str = "metadata"
     ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
         {

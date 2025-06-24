@@ -212,7 +212,7 @@ class BrowserView(BrowserTitleView):
             }
         )
 
-    @extend_schema(parameters=[BrowserTitleView.input_serializer_class])  # pyright: ignore[reportArgumentType]
+    @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
         data = self.get_object()

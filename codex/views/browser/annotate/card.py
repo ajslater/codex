@@ -14,14 +14,16 @@ from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, V
 from codex.models.named import StoryArc
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
-_GROUP_BY: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
-    {
-        Publisher: "sort_name",
-        Imprint: "sort_name",
-        Series: "sort_name",
-        Volume: "name",
-        StoryArc: "sort_name",
-    }
+_GROUP_BY: MappingProxyType[type[BrowserGroupModel], tuple[str, ...]] = (
+    MappingProxyType(
+        {
+            Publisher: ("sort_name",),
+            Imprint: ("sort_name",),
+            Series: ("sort_name",),
+            Volume: ("name", "number_to"),
+            StoryArc: ("sort_name",),
+        }
+    )
 )
 
 
@@ -32,7 +34,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         """Get the group by for the model."""
         # this method is here because this is class is what metadata imports
         if group_by := _GROUP_BY.get(qs.model):
-            qs = qs.group_by(group_by)
+            qs = qs.group_by(*group_by)
         return qs
 
     def _annotate_group(self, qs):

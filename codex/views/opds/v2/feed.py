@@ -38,7 +38,7 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
     throttle_scope = "opds"
 
     serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
-    input_serializer_class: type[BaseSerializer] = OPDSSettingsSerializer
+    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def _title(self, browser_title):
         """Create the feed title."""

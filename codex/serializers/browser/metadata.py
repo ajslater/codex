@@ -19,6 +19,7 @@ class GroupSerializer(Serializer):
 
     ids = ListField(child=IntegerField(), read_only=True)
     name = CharField(read_only=True)
+    number_to = CharField(read_only=True)
     url = URLField(read_only=True)
 
 

@@ -129,6 +129,7 @@ AGGREGATED_METADATA = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                     7,
                 ),
             },
@@ -210,6 +211,7 @@ AGGREGATED_METADATA = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                 ),
             }
         },
@@ -299,6 +301,7 @@ AGGREGATED_METADATA_UPDATE_ALL = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                 ),
             }
         },
@@ -390,6 +393,7 @@ AGGREGATED_METADATA_UPDATE_ALL = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                     1,
                 )
             },
@@ -522,6 +526,7 @@ QUERIED_METADATA = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                     7,
                 )
             },
@@ -551,6 +556,7 @@ QUERIED_METADATA = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                 ),
             }
         },
@@ -623,6 +629,7 @@ CREATED_FK_METADATA = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                 ),
             }
         },
@@ -802,6 +809,7 @@ QUERIED_METADATA_UPDATE_ALL = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                     1950,
+                    None,
                     1,
                 )
             },

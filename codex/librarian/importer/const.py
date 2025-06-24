@@ -3,7 +3,6 @@
 from types import MappingProxyType
 
 from bidict import frozenbidict
-from django.db.models.base import Model
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
@@ -112,6 +111,7 @@ IDENTIFIER_ID_KEY_FIELD_NAME = "key"
 IDENTIFIER_URL_FIELD_NAME = "url"
 UNIVERSES_FIELD_NAME = "universes"
 NAME_FIELD_NAME = "name"
+NUMBER_TO_FIELD_NAME = "number_to"
 IDENTIFIER_FIELD_NAME = "identifier"
 DESIGNATION_FIELD_NAME = "designation"
 
@@ -139,16 +139,6 @@ PROTAGONIST_FIELD_MODEL_MAP = MappingProxyType(
     {"main_character": Character, "main_team": Team}
 )
 _DEFAULT_KEY_INDEX = 1
-_MODEL_KEY_INDEX_MAP: MappingProxyType[type[BaseModel], int] = MappingProxyType(
-    {
-        Imprint: 2,
-        Series: 3,
-        Volume: 4,
-        Credit: 2,
-        Identifier: 3,
-        StoryArcNumber: 2,
-    }
-)
 _IDENTIFIER_RELS = (
     "identifier__source__name",
     "identifier__id_type",
@@ -208,6 +198,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple[str | tuple[str, ...], ..
                     "imprint__name",
                     "series__name",
                     NAME_FIELD_NAME,
+                    NUMBER_TO_FIELD_NAME,
                 ),
                 "",
                 ISSUE_COUNT_FIELD_NAME,
@@ -276,10 +267,9 @@ COMIC_M2M_FIELD_RELS = (
 )
 
 
-def get_key_index(model: type[Model]) -> int:
+def get_key_index(model: type[BaseModel]) -> int:
     """Return the key index divider for a model tuple."""
-    base_model: type[BaseModel] = model  # pyright: ignore[reportAssignmentType]
-    return _MODEL_KEY_INDEX_MAP.get(base_model, _DEFAULT_KEY_INDEX)
+    return len(MODEL_REL_MAP[model][0])
 
 
 #################

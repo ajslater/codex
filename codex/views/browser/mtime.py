@@ -14,10 +14,9 @@ from codex.views.const import GROUP_MODEL_MAP
 class MtimeView(BrowserGroupMtimeView):
     """Get the mtimes for the submitted groups."""
 
-    input_serializer_class: type[BaseSerializer] = GroupsMtimeSerializer
+    input_serializer_class: type[GroupsMtimeSerializer] = GroupsMtimeSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     serializer_class: type[BaseSerializer] | None = MtimeSerializer
 
-    REPARSE_JSON_FIELDS = frozenset({"groups", "filters"})
     TARGET: str = "mtime"
 
     def _get_group_mtime(self, item):

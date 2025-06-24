@@ -106,7 +106,7 @@ class Imprint(IdentifiedBrowserGroupModel):
     class Meta(IdentifiedBrowserGroupModel.Meta):
         """Constraints."""
 
-        unique_together = ("name", "publisher")
+        unique_together = ("publisher", "name")
 
     @override
     def _repr_parts(self):
@@ -125,7 +125,7 @@ class Series(IdentifiedBrowserGroupModel):
     class Meta(IdentifiedBrowserGroupModel.Meta):
         """Constraints."""
 
-        unique_together = ("name", "imprint")
+        unique_together = ("imprint", "name")
         verbose_name_plural = "Series"
 
     @override
@@ -151,6 +151,9 @@ class Volume(BrowserGroupModel):
     name = CoercingPositiveSmallIntegerField(  # pyright: ignore[reportIncompatibleUnannotatedOverride]
         db_index=True, null=True, default=DEFAULT_NAME
     )
+    number_to = CoercingPositiveSmallIntegerField(
+        db_index=True, null=True, default=DEFAULT_NAME
+    )
 
     # Harmful because name is numeric
     sort_name = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
@@ -163,16 +166,19 @@ class Volume(BrowserGroupModel):
     class Meta(BrowserGroupModel.Meta):
         """Constraints."""
 
-        unique_together = ("name", "series")
+        unique_together = ("series", "name", "number_to")
 
     @classmethod
-    def to_str(cls, name: int | None):
+    def to_str(cls, number: int | None, number_to: int | None):
         """Represent volume as a string."""
-        if name is None:
+        if number is None:
             rep = ""
         else:
-            name_str = str(name)
-            rep = f"({name_str})" if len(name_str) == cls.YEAR_LEN else "v" + name_str
+            number_str = str(number)
+            is_year = len(number_str) == cls.YEAR_LEN
+            numbers_strs = (number_str, str(number_to))
+            numbers_str = "-".join(numbers_strs)
+            rep = f"({numbers_str})" if is_year else f"v{numbers_str}"
         return rep
 
     @override
@@ -182,7 +188,7 @@ class Volume(BrowserGroupModel):
             self.publisher.name,
             self.imprint.name,
             self.series.name,
-            self.to_str(self.name),
+            self.to_str(self.name, self.number_to),
         )
 
 

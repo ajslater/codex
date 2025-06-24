@@ -8,7 +8,16 @@ _REVERSE_TYPE_MAP = MappingProxyType(
         "Date": ["date"],
         "DateTime": ["create_at", "updated_at"],
         "Decimal": ["critical_rating", "issue_number"],
-        "Integer": ["day", "month", "year", "page_count", "size", "decade"],
+        "Integer": [
+            "day",
+            "month",
+            "year",
+            "page_count",
+            "size",
+            "decade",
+            "volume",
+            "volume_to",
+        ],
     }
 )
 _TYPE_MAP = MappingProxyType(
@@ -84,6 +93,7 @@ FIELDMAP = MappingProxyType(
         "tags": ("tag",),
         "teams": ("team",),
         "updated_at": ("updated",),
+        "volume": ("volume_from",),
     }
 )
 

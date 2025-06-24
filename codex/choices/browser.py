@@ -45,7 +45,7 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
         "a": "Story Arcs",
     },
 )
-BROWSER_GROUP_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
+BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 VUETIFY_NULL_CODE = -1
 BROWSER_CHOICES = MappingProxyType(
     {

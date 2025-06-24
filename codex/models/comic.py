@@ -17,7 +17,6 @@ from django.db.models import (
     ManyToManyField,
     OneToOneField,
     PositiveIntegerField,
-    PositiveSmallIntegerField,
     TextChoices,
     TextField,
 )
@@ -303,7 +302,8 @@ class Comic(WatchedPathBrowserGroup):
 
         # Volume
         if volume and (vn := obj.volume.name):
-            vn = Volume.to_str(vn)
+            vn_to = obj.volume.number_to
+            vn = Volume.to_str(vn, vn_to)
             names.append(vn)
 
         # Issue
@@ -338,9 +338,9 @@ class Comic(WatchedPathBrowserGroup):
 class ComicFTS(BaseModel):
     comic = OneToOneField(primary_key=True, to=Comic, on_delete=CASCADE)
     # Attributes
+    collection_title = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    collection_title = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     notes = TextField(db_collation="nocase")
     review = TextField(db_collation="nocase")
     summary = TextField(db_collation="nocase")
@@ -348,7 +348,6 @@ class ComicFTS(BaseModel):
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    volume = PositiveSmallIntegerField()
     # FK
     age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     country = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

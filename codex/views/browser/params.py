@@ -3,8 +3,6 @@
 from types import MappingProxyType
 from typing import Any
 
-from rest_framework.serializers import BaseSerializer
-
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 from codex.views.session import SessionView
@@ -14,8 +12,7 @@ from codex.views.util import reparse_json_query_params
 class BrowserParamsView(SessionView):
     """Browser Params Parsing."""
 
-    input_serializer_class: type[BaseSerializer] = BrowserSettingsSerializer
-    REPARSE_JSON_FIELDS: frozenset[str] = frozenset({"breadcrumbs", "filters", "show"})
+    input_serializer_class: type[BrowserSettingsSerializer] = BrowserSettingsSerializer
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
@@ -25,7 +22,7 @@ class BrowserParamsView(SessionView):
     def _parse_query_params(self):
         """Parse GET query parameters: filter object & snake case."""
         query_params = reparse_json_query_params(
-            self.request.GET, self.REPARSE_JSON_FIELDS
+            self.request.GET, self.input_serializer_class.JSON_FIELDS
         )
         if "q" not in query_params and (query := query_params.get("query")):
             # parse query param for opds v2

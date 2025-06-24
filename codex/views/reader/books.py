@@ -1,17 +1,12 @@
 """Get Books methods."""
 
-from comicbox.box import Comicbox
 from django.db.models import F
 from django.db.models.query import Q, QuerySet
 from django.urls import reverse
-from loguru import logger
 from rest_framework.exceptions import NotFound
 
-from codex.librarian.importer.tasks import LazyImportComicsTask
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import Bookmark, Comic
 from codex.serializers.redirect import ReaderRedirectSerializer
-from codex.settings import COMICBOX_CONFIG
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
@@ -21,7 +16,7 @@ from codex.views.const import (
     STORY_ARC_GROUP,
 )
 from codex.views.mixins import SharedAnnotationsMixin
-from codex.views.reader.arcs import ReaderArcsView
+from codex.views.reader.lazy_metadata import ReaderLazyMetadataView
 
 _SETTINGS_ATTRS = ("fit_to", "two_pages", "reading_direction")
 _COMIC_FIELDS = (
@@ -41,7 +36,9 @@ _ISSUE_ORDERING = (
 )
 
 
-class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin):
+class ReaderBooksView(
+    ReaderLazyMetadataView, SharedAnnotationsMixin, BookmarkAuthMixin
+):
     """Get Books methods."""
 
     @staticmethod
@@ -66,34 +63,6 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             .first()
         )
         return book
-
-    @staticmethod
-    def _lazy_metadata(books):
-        """Get reader metadata from comicbox if it's not in the db."""
-        current = books.get("current")
-
-        import_pks = set()
-        if current and not (current.page_count and current.file_type):
-            with Comicbox(current.path) as cb:
-                current.file_type = cb.get_file_type()
-                current.page_count = cb.get_page_count()
-            import_pks.add(current.pk)
-
-        prev_book = books.get("prev")
-        if prev_book and not prev_book.page_count:
-            with Comicbox(prev_book.path) as cb:
-                prev_book.page_count = cb.get_page_count()
-            import_pks.add(prev_book.pk)
-
-        next_book = books.get("next")
-        if next_book and not next_book.page_count:
-            with Comicbox(next_book.path, config=COMICBOX_CONFIG, logger=logger) as cb:
-                next_book.page_count = cb.get_page_count()
-            import_pks.add(next_book.pk)
-
-        if import_pks:
-            task = LazyImportComicsTask(frozenset(import_pks))
-            LIBRARIAN_QUEUE.put(task)
 
     def _raise_not_found(self):
         """Raise not found exception."""
@@ -162,6 +131,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         qs = qs.only(*fields)
         qs = self.annotate_group_names(qs)
         qs = qs.annotate(
+            volume_number_to=(F("volume__number_to")),
             issue_count=F("volume__issue_count"),
             arc_pk=F(arc_pk_rel),
             arc_index=arc_index,
@@ -212,5 +182,5 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
 
         if not books.get("current"):
             self._raise_not_found()
-        self._lazy_metadata(books)
+        self.lazy_metadata(books)
         return books

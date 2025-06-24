@@ -1,9 +1,13 @@
 """Browser session view."""
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
-from codex.serializers.browser.settings import BrowserSettingsSerializer
+from codex.serializers.browser.settings import (
+    BrowserSettingsInputSerializer,
+    BrowserSettingsSerializer,
+)
 from codex.views.const import GROUP_ORDER
 from codex.views.settings import SettingsView
 
@@ -11,6 +15,7 @@ from codex.views.settings import SettingsView
 class BrowserSettingsView(SettingsView):
     """Get Browser Settings."""
 
+    input_serializer_class = BrowserSettingsInputSerializer
     # Put Browser Settings is normally done through BrowserView.get()
     serializer_class: type[BaseSerializer] | None = BrowserSettingsSerializer
 
@@ -52,7 +57,7 @@ class BrowserSettingsView(SettingsView):
         if group == top_group:
             return
 
-        if group in ("f", "a"):
+        if group in "fa":
             params["top_group"] = group
         else:
             cls._validate_browse_top_group(params, group, top_group)
@@ -68,3 +73,8 @@ class BrowserSettingsView(SettingsView):
             params = self._strip_breadcrumb_names(params)
 
         return params
+
+    @override
+    @extend_schema(parameters=[BrowserSettingsInputSerializer])
+    def get(self, *args, **kwargs):
+        return super().get(*args, **kwargs)

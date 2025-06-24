@@ -23,8 +23,10 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
+    volume_number_to = CharField(read_only=True)
     file_name = CharField(read_only=True)
     name = CharField(read_only=True)
+    number_to = CharField(read_only=True)
     issue_number = DecimalField(
         max_digits=16,
         decimal_places=3,
@@ -48,6 +50,7 @@ class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
     group_name = CharField(read_only=True)
+    group_number_to = CharField(read_only=True)
     group_count = IntegerField(read_only=True, allow_null=True)
 
 

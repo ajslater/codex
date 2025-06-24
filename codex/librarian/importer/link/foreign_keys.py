@@ -11,7 +11,7 @@ from codex.librarian.importer.const import (
     PARENT_FOLDER_FIELD_NAME,
     PROTAGONIST_FIELD_MODEL_MAP,
 )
-from codex.librarian.importer.link.const import GROUP_KEY_RELS
+from codex.librarian.importer.link.const import DEFAULT_KEY_RELS, GROUP_KEY_RELS
 from codex.librarian.importer.link.covers import LinkCoversImporter
 from codex.models import Folder
 from codex.models.comic import Comic
@@ -45,8 +45,7 @@ class LinkComicForeignKeysImporter(LinkCoversImporter):
         link_fks = self.metadata[LINK_FKS].pop(path, {})
         for field_name, values in link_fks.items():
             model: type[BaseModel] = Comic._meta.get_field(field_name).related_model  # pyright: ignore[reportAssignmentType]
-            extra_rels = GROUP_KEY_RELS.get(model, ())
-            key_rels = (*extra_rels, "name")
+            key_rels = GROUP_KEY_RELS.get(model, DEFAULT_KEY_RELS)
             filter_dict = dict(zip(key_rels, values, strict=True))
             md[field_name] = model.objects.get(**filter_dict)
 

@@ -6,7 +6,7 @@ from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 from typing_extensions import override
 
-from codex.serializers.fields.group import BrowseGroupField
+from codex.serializers.fields.group import BrowserRouteGroupField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
@@ -14,7 +14,7 @@ from codex.views.util import Route
 class SimpleRouteSerializer(Serializer):
     """A an abbreviated vue route for the browser."""
 
-    group = BrowseGroupField()
+    group = BrowserRouteGroupField()
     pks = CharField()
 
     @override

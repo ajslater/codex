@@ -6,6 +6,7 @@ from django.db.models.query import QuerySet
 from codex.librarian.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIELDS
 from codex.models import Comic
 from codex.models.functions import JsonGroupArray
+from codex.models.groups import Volume
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
 from codex.views.browser.metadata.const import (
     COMIC_MAIN_FIELD_NAME_BACK_REL_MAP,
@@ -34,10 +35,13 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         for model in GROUP_MODELS.get(group, ()):
             field_name = MODEL_REL_MAP[model]
             qs = model.objects.filter(**group_filter)
-            qs = qs.only("name").distinct()
-            qs = qs.group_by("name")  # pyright:ignore[reportAttributeAccessIssue]
+            only = ["name"]
+            if model is Volume:
+                only.append("number_to")
+            qs = qs.only(*only).distinct()
+            qs = qs.group_by(*only)  # pyright:ignore[reportAttributeAccessIssue]
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
-            qs = qs.values("ids", "name")
+            qs = qs.values("ids", *only)
             groups[field_name] = qs
         return groups
 

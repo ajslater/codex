@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from codex.librarian.importer.const import BULK_UPDATE_FOLDER_FIELDS
-from codex.librarian.importer.create_fks.covers import CreateCoversImporter
+from codex.librarian.importer.create.covers import CreateCoversImporter
 from codex.models import Folder
 
 

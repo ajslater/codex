@@ -9,7 +9,6 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.renderers import BaseRenderer
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.librarian.covers.create import CoverCreateThread
@@ -47,13 +46,12 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(BrowserAnnotateOrderView):
     """ComicCover View."""
 
-    input_serializer_class: type[BaseSerializer] = BrowserCoverInputSerializer
+    input_serializer_class: type[BrowserCoverInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
+        BrowserCoverInputSerializer
+    )
     renderer_classes: Sequence[type[BaseRenderer]] = (WEBPRenderer,)
     content_type = "image/webp"
     TARGET: str = "cover"
-    REPARSE_JSON_FIELDS = frozenset(
-        BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
-    )
 
     @override
     def get_group_filter(self, group=None, pks=None, *, page_mtime=False):
@@ -146,7 +144,7 @@ class CoverView(BrowserAnnotateOrderView):
         return cover_file, content_type
 
     @extend_schema(
-        parameters=[BrowserAnnotateOrderView.input_serializer_class],  # pyright: ignore[reportArgumentType]
+        parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
     def get(self, *args, **kwargs):

@@ -9,7 +9,7 @@ from codex.librarian.importer.const import (
     TOTAL,
     UPDATE_FKS,
 )
-from codex.librarian.importer.create_fks.create import (
+from codex.librarian.importer.create.foreign_keys import (
     CreateForeignKeysCreateUpdateImporter,
 )
 from codex.librarian.importer.status import ImportStatusTypes

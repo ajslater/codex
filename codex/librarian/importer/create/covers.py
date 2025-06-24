@@ -10,7 +10,7 @@ from codex.librarian.importer.const import (
     LINK_COVER_PKS,
     UPDATE_COVERS,
 )
-from codex.librarian.importer.create_comics import CreateComicsImporter
+from codex.librarian.importer.create.comics import CreateComicsImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
 from codex.models import (

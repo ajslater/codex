@@ -44,7 +44,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
 
     template_name = "opds_v1/index.xml"
     serializer_class: type[BaseSerializer] | None = OPDS1TemplateSerializer
-    input_serializer_class: type[BaseSerializer] = OPDSSettingsSerializer
+    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
     TARGET: str = "opds1"

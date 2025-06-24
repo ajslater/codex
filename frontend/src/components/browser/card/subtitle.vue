@@ -65,7 +65,10 @@ export default {
         this.item.group === "c" &&
         this.item.volumeName
       ) {
-        return formattedVolumeName(this.item.volumeName);
+        return formattedVolumeName(
+          this.item.volumeName,
+          this.item.volumeNumberTo,
+        );
       }
       return false;
     },
@@ -94,7 +97,7 @@ export default {
     },
     displayName() {
       return this.item.group === "v"
-        ? formattedVolumeName(this.item.name)
+        ? formattedVolumeName(this.item.name, this.item.numberTo)
         : this.item.name;
     },
     fileName() {
