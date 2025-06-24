@@ -34,6 +34,22 @@ class ImportDBDiffTask(ImportTask):
     force_import_metadata: bool = False
     check_metadata_mtime: bool = True
 
+    def total(self):
+        """Total number of operations."""
+        return (
+            len(self.dirs_moved)
+            + len(self.dirs_modified)
+            + len(self.dirs_deleted)
+            + len(self.files_moved)
+            + len(self.files_modified)
+            + len(self.files_created)
+            + len(self.files_deleted)
+            + len(self.covers_moved)
+            + len(self.covers_modified)
+            + len(self.covers_created)
+            + len(self.covers_deleted)
+        )
+
 
 @dataclass
 class LazyImportComicsTask(ImportTask):
