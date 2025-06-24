@@ -29,15 +29,6 @@ class Counts:
 class ComicImporter(MovedImporter):
     """Initialize, run and finish a bulk import."""
 
-    ##########
-    # FINISH #
-    ##########
-    def _finish_apply_status(self):
-        """Finish all librarian statuses."""
-        self.library.update_in_progress = False
-        self.library.save()
-        self.status_controller.finish_many(ImportStatusTypes.values)
-
     def _finish_apply(
         self,
         counts: Counts,
@@ -45,6 +36,8 @@ class ComicImporter(MovedImporter):
         new_failed_imports: bool,
     ):
         """Perform final tasks when the apply is done."""
+        self.library.end_update()
+        self.status_controller.finish_many(ImportStatusTypes.values)
         elapsed_time = time() - self.start_time.timestamp()
         elapsed = naturaldelta(elapsed_time)
         if self.changed or self.covers_changed:
@@ -130,5 +123,4 @@ class ComicImporter(MovedImporter):
                 deleted_comic_groups, self.start_time
             )
         finally:
-            self._finish_apply_status()
             self._finish_apply(count, new_failed_imports=new_failed_imports)

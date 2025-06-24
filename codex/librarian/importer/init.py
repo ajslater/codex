@@ -274,8 +274,7 @@ class InitImporter(WorkerStatusMixin):
         """Initialize the library and status flags."""
         self.start_time = now()
         self.librarian_queue.put(SearchIndexAbortTask())
-        self.library.update_in_progress = True
-        self.library.save()
+        self.library.start_update()
         too_long = self._wait_for_filesystem_ops_to_finish()
         if too_long:
             reason = (

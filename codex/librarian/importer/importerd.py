@@ -34,13 +34,14 @@ class ComicImporterThread(QueuedThread):
 
     def _lazy_import_metadata(self, task):
         """Kick off an import task for just these books."""
-        import_comics = Comic.objects.filter(pk__in=task.pks).only("path", "library_id")
+        comics = Comic.objects.filter(pk__in=task.pks).only("path", "library_id")
+        # Map comics to libraries.
         library_path_map = {}
-        for import_comic in import_comics:
-            library_id = import_comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
+        for comic in comics:
+            library_id = comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
             if library_id not in library_path_map:
                 library_path_map[library_id] = set()
-            library_path_map[library_id].add(import_comic.path)
+            library_path_map[library_id].add(comic.path)
 
         for library_id, paths in library_path_map.items():
             # An abridged import task.
@@ -51,19 +52,25 @@ class ComicImporterThread(QueuedThread):
             )
             self._import(task)
 
-    def _update_groups(self, task):
-        pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
-        start_time = task.start_time if task.start_time else timezone.now()
-        for pk in pks:
-            task = ImportDBDiffTask(library_id=pk)
+    def _update_group_library(self, library, start_time):
+        try:
+            library.start_update()
+            task = ImportDBDiffTask(library_id=library.pk)
             importer = self._create_importer(task)
             importer.update_all_groups({}, start_time)
+        finally:
+            library.end_update()
+
+    def _update_groups(self, task):
+        start_time = task.start_time if task.start_time else timezone.now()
+        libraries = Library.objects.filter(covers_only=False).only("pk")
+        for library in libraries:
+            self._update_group_library(library, start_time)
         self.librarian_queue.put(LIBRARY_CHANGED_TASK)
 
     def _adopt_orphan_folders_for_library(self, library):
         """Adopt orphan folders for one library."""
-        library.update_in_progress = True
-        library.save(update_fields=["update_in_progress"])
+        library.start_update()
         count = 0
         try:
             orphan_folder_paths = (
@@ -94,8 +101,7 @@ class ComicImporterThread(QueuedThread):
             # Only run the moved task.
             count = importer.bulk_folders_moved()
         finally:
-            library.update_in_progress = False
-            library.save(update_fields=["update_in_progress"])
+            library.end_update()
         return True, count
 
     def _adopt_orphan_folders(self, *, janitor: bool):

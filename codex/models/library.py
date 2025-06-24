@@ -62,3 +62,14 @@ class Library(BaseModel):
         """Pluralize."""
 
         verbose_name_plural = "Libraries"
+
+    def _save_update_in_progress(self, *, value: bool):
+        self.update_in_progress = value
+        self.save(update_fields=["update_in_progress"])
+
+    def start_update(self):
+        """Start a library update."""
+        self._save_update_in_progress(value=True)
+
+    def end_update(self):
+        """Finish a library update."""
