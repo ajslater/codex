@@ -351,7 +351,8 @@ export const useReaderStore = defineStore("reader", {
       // HACK because $reset doesn't seem to.
       this.$patch((state) => {
         state.arcs = {};
-        (state.arc = DEFAULT_ARC), (state.mtime = 0);
+        state.arc = DEFAULT_ARC;
+        state.mtime = 0;
         state.settingsLoaded = false;
         state.books = deepClone(BOOKS_NULL);
         state.routes = deepClone(ROUTES_NULL);
