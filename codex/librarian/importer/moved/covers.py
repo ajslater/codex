@@ -64,22 +64,26 @@ class MovedCoversImporter(MovedComicsImporter):
     def bulk_covers_moved(self, status=None):
         """Move covers."""
         num_covers_moved = len(self.task.covers_moved)
-        if not num_covers_moved:
-            return
         status = Status(ImportStatusTypes.MOVE_CUSTOM_COVERS, None, num_covers_moved)
-        self.status_controller.start(status)
+        try:
+            if not num_covers_moved:
+                return 0
+            self.status_controller.start(status)
 
-        moved_covers, unlink_pks = self._bulk_covers_moved_prepare(status)
-        if LINK_COVER_PKS not in self.metadata:
-            self.metadata[LINK_COVER_PKS] = set()
-        self.metadata[LINK_COVER_PKS].update(unlink_pks)
-        if moved_covers:
-            CustomCover.objects.bulk_update(moved_covers, CUSTOM_COVER_UPDATE_FIELDS)
+            moved_covers, unlink_pks = self._bulk_covers_moved_prepare(status)
+            if LINK_COVER_PKS not in self.metadata:
+                self.metadata[LINK_COVER_PKS] = set()
+            self.metadata[LINK_COVER_PKS].update(unlink_pks)
+            if moved_covers:
+                CustomCover.objects.bulk_update(
+                    moved_covers, CUSTOM_COVER_UPDATE_FIELDS
+                )
 
-        self._bulk_covers_moved_unlink(unlink_pks)
+            self._bulk_covers_moved_unlink(unlink_pks)
 
-        count = len(moved_covers)
-        self.changed += count
-        level = "INFO" if count else "DEBUG"
-        self.log.log(level, f"Moved {count} custom covers.")
-        self.status_controller.finish(status)
+            count = len(moved_covers)
+            level = "INFO" if count else "DEBUG"
+            self.log.log(level, f"Moved {count} custom covers.")
+        finally:
+            self.status_controller.finish(status)
+        return count

@@ -26,16 +26,16 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         fkc = self.metadata.get(CREATE_FKS, {})
         create_status = Status(ImportStatusTypes.CREATE_TAGS, 0, fkc.pop(TOTAL, 0))
         try:
-            if fkc:
-                self.status_controller.start(create_status)
-                count += self.bulk_folders_create(
-                    fkc.pop(Folder, frozenset()), create_status
-                )
-                count += self.bulk_create_all_models(create_status)
+            if not fkc:
+                return count
+            self.status_controller.start(create_status)
+            count += self.bulk_folders_create(
+                fkc.pop(Folder, frozenset()), create_status
+            )
+            count += self.bulk_create_all_models(create_status)
         finally:
             self.metadata.pop(CREATE_FKS, None)
             self.status_controller.finish(create_status)
-        self.changed += create_status.complete if create_status.complete else 0
         return count
 
     def update_all_fks(self) -> int:
@@ -44,15 +44,14 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         fku = self.metadata.get(UPDATE_FKS, {})
         update_status = Status(ImportStatusTypes.UPDATE_TAGS, 0, fku.pop(TOTAL, 0))
         try:
-            if fku:
-                self.status_controller.start(update_status)
-                count += self.bulk_folders_update(
-                    fku.pop(Folder, frozenset()), update_status
-                )
-                count += self.bulk_update_all_models(update_status)
+            if not fku:
+                return count
+            self.status_controller.start(update_status)
+            count += self.bulk_folders_update(
+                fku.pop(Folder, frozenset()), update_status
+            )
+            count += self.bulk_update_all_models(update_status)
         finally:
             self.metadata.pop(UPDATE_FKS, None)
             self.status_controller.finish(update_status)
-
-        self.changed += update_status.complete if update_status.complete else 0
         return count

@@ -47,7 +47,7 @@ class ComicImporter(MovedImporter):
         """Perform final tasks when the apply is done."""
         elapsed_time = time() - self.start_time.timestamp()
         elapsed = naturaldelta(elapsed_time)
-        if self.changed:
+        if self.changed or self.covers_changed:
             cache.clear()
             log_txt = f"Updated library {self.library.path} in {elapsed}."
             if counts.comic:
@@ -64,12 +64,13 @@ class ComicImporter(MovedImporter):
 
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
 
-            # Wait to start the search index update in case more updates are incoming.
-            until = time() + 2
-            delayed_search_task = DelayedTasks(
-                until, (SearchIndexUpdateTask(rebuild=False),)
-            )
-            self.librarian_queue.put(delayed_search_task)
+            if self.changed:
+                # Wait to start the search index update in case more updates are incoming.
+                until = time() + 2
+                delayed_search_task = DelayedTasks(
+                    until, (SearchIndexUpdateTask(rebuild=False),)
+                )
+                self.librarian_queue.put(delayed_search_task)
         else:
             log_txt = f"No updates neccissary for library {self.library.path}. Finished in {elapsed}."
         self.log.success(log_txt)
@@ -82,7 +83,7 @@ class ComicImporter(MovedImporter):
         count = Counts()
         try:
             self.init_apply()
-            self.move_and_modify_dirs()
+            self.changed += self.move_and_modify_dirs()
 
             #############
             # AGGREGATE #
@@ -102,12 +103,14 @@ class ComicImporter(MovedImporter):
             fk_count = self.create_all_fks()
             fk_count += self.update_all_fks()
             count.fk = fk_count
-            self.update_custom_covers()
-            self.create_custom_covers()
+            self.changed += fk_count
+            self.covers_changed += self.update_custom_covers()
+            self.covers_changed += self.create_custom_covers()
 
             comic_count = self.update_comics()
             comic_count += self.create_comics()
             count.comic = comic_count
+            self.changed += comic_count
 
             ########
             # LINK #
@@ -123,8 +126,9 @@ class ComicImporter(MovedImporter):
             self.changed += deleted_count
             count.deleted = deleted_count
 
-            self.update_all_groups(deleted_comic_groups, self.start_time)
-
+            self.changed += self.update_all_groups(
+                deleted_comic_groups, self.start_time
+            )
         finally:
             self._finish_apply_status()
             self._finish_apply(count, new_failed_imports=new_failed_imports)

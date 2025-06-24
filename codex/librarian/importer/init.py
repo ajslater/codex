@@ -28,6 +28,7 @@ class InitImporter(WorkerStatusMixin):
         self.task: ImportDBDiffTask = task
         self.metadata: dict[str, Any] = {}
         self.changed: int = 0
+        self.covers_changed: int = 0
         self.library = Library.objects.only("path", "update_in_progress").get(
             pk=self.task.library_id
         )

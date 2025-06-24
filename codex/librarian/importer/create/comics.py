@@ -140,6 +140,5 @@ class CreateComicsImporter(LinkComicsImporter):
             except Exception:
                 self.log.exception(f"While creating {num_comics} comics")
 
-        self.changed += count
         self.status_controller.finish(status)
         return count

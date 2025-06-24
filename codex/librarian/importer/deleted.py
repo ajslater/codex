@@ -139,5 +139,4 @@ class DeletedImporter(CacheUpdateImporter):
         deleted_comic_groups = self._init_deleted_comic_groups()
         count += self._bulk_comics_deleted(deleted_comic_groups)
         count += self._bulk_covers_deleted()
-        self.changed += count
         return count, deleted_comic_groups

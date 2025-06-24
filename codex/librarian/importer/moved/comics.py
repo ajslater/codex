@@ -94,27 +94,29 @@ class MovedComicsImporter(AggregateMetadataImporter):
     def bulk_comics_moved(self):
         """Move comcis."""
         num_files_moved = len(self.task.files_moved)
-        if not num_files_moved:
-            return
         status = Status(ImportStatusTypes.MOVE_COMICS, 0, num_files_moved)
-        self.status_controller.start(status)
+        try:
+            if not num_files_moved:
+                return 0
+            self.status_controller.start(status)
 
-        # Prepare
-        self._bulk_comics_moved_ensure_folders()
-        updated_comics, folder_m2m_links, del_folder_rows = (
-            self._bulk_comics_move_prepare()
-        )
+            # Prepare
+            self._bulk_comics_moved_ensure_folders()
+            updated_comics, folder_m2m_links, del_folder_rows = (
+                self._bulk_comics_move_prepare()
+            )
 
-        # Update comics
-        # Potentially could just add these to the right structures and do it later during create and link.
-        Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
-        if del_folder_rows:
-            self.delete_m2m_field(FOLDERS_FIELD_NAME, del_folder_rows, status)
-        if folder_m2m_links:
-            self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
+            # Update comics
+            # Potentially could just add these to the right structures and do it later during create and link.
+            Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
+            if del_folder_rows:
+                self.delete_m2m_field(FOLDERS_FIELD_NAME, del_folder_rows, status)
+            if folder_m2m_links:
+                self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
 
-        count = len(updated_comics)
-        self.changed += count
-        level = "INFO" if count else "DEBUG"
-        self.log.log(level, f"Moved {count} comics.")
-        self.status_controller.finish(status)
+            count = len(updated_comics)
+            level = "INFO" if count else "DEBUG"
+            self.log.log(level, f"Moved {count} comics.")
+        finally:
+            self.status_controller.finish(status)
+        return count

@@ -58,14 +58,15 @@ class MovedFoldersImporter(MovedCoversImporter):
         count = len(update_folders)
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Moved {count} folders.")
-        self.changed += count
         status.add_complete(count)
         self.status_controller.update(status)
+        return count
 
     def _bulk_move_folders_under_existing_parents(
         self, dest_parent_folder_paths_map, dirs_moved: frozenbidict[str, str], status
     ):
         """Move folders under existing folders."""
+        count = 0
         while True:
             # Get existing parent folders
             dest_parent_paths = tuple(dest_parent_folder_paths_map.keys())
@@ -88,7 +89,7 @@ class MovedFoldersImporter(MovedCoversImporter):
                         src_folder_paths_with_existing_dest_parents.append(src_path)
 
             if not src_folder_paths_with_existing_dest_parents:
-                return
+                return count
             src_folder_paths_with_existing_dest_parents = sorted(
                 src_folder_paths_with_existing_dest_parents
             )
@@ -96,7 +97,7 @@ class MovedFoldersImporter(MovedCoversImporter):
                 f"Moving folders under existing parents: {src_folder_paths_with_existing_dest_parents}"
             )
 
-            self._bulk_move_folders(
+            count += self._bulk_move_folders(
                 src_folder_paths_with_existing_dest_parents,
                 dest_parent_folders_map,
                 dirs_moved,
@@ -145,6 +146,7 @@ class MovedFoldersImporter(MovedCoversImporter):
 
     def _bulk_move_folders_and_create_parents(self, status):
         """Find folders that can be moved without creating parents."""
+        count = 0
         dirs_moved = bidict(self.task.dirs_moved)
 
         self._remove_move_collisions(dirs_moved)
@@ -175,18 +177,24 @@ class MovedFoldersImporter(MovedCoversImporter):
             )
 
             # Create one layer of folders
-            self.bulk_folders_create(create_folder_paths_one_layer, create_status)
+            count += self.bulk_folders_create(
+                create_folder_paths_one_layer, create_status
+            )
             layer += 1
+        return count
 
     def bulk_folders_moved(self):
         """Move folders in the database instead of recreating them."""
+        count = 0
         num_dirs_moved = len(self.task.dirs_moved)
-        if not num_dirs_moved:
-            return
         status = Status(ImportStatusTypes.MOVE_FOLDERS, None, num_dirs_moved)
-        self.status_controller.start(status)
+        try:
+            if not num_dirs_moved:
+                return count
+            self.status_controller.start(status)
 
-        self._bulk_move_folders_and_create_parents(status)
-        self.task.dirs_moved = {}
-
-        self.status_controller.finish(status)
+            count += self._bulk_move_folders_and_create_parents(status)
+            self.task.dirs_moved = {}
+        finally:
+            self.status_controller.finish(status)
+        return count

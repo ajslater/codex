@@ -18,7 +18,7 @@ class MovedImporter(MovedFoldersImporter):
         """Update folders stat and nothing else."""
         num_dirs_modified = len(self.task.dirs_modified)
         if not num_dirs_modified:
-            return
+            return 0
         status = Status(ImportStatusTypes.UPDATE_TAGS, None, num_dirs_modified)
         status.subtitle = "Folders"
         self.status_controller.start(status)
@@ -39,15 +39,17 @@ class MovedImporter(MovedFoldersImporter):
         count = len(update_folders)
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Modified {count} folders")
-        self.changed += count
         status.complete = status.total = None
         self.status_controller.update(status)
+        return count
 
     def move_and_modify_dirs(self):
         """Move files and dirs and modify dirs."""
         # It would be nice to move folders instead of recreating them but it would require
         # an inode map from the snapshots to do correctly.
+        count = 0
         self.bulk_folders_moved()
         self.bulk_comics_moved()
         self.bulk_covers_moved()
-        self._bulk_folders_modified()
+        count += self._bulk_folders_modified()
+        return count
