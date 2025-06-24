@@ -416,6 +416,4 @@ CACHALOT_UNCACHABLE_TABLES = frozenset(
     {"django_migrations", "django_session", "codex_useractive"}
 )
 
-COMICBOX_CONFIG = get_config(
-    {"compute_pages": False, "loglevel": LOGLEVEL, "close_fd": False}
-)
+COMICBOX_CONFIG = get_config({"compute_pages": False, "loglevel": LOGLEVEL})
