@@ -15,6 +15,7 @@ from codex.librarian.importer.tasks import (
 )
 from codex.librarian.janitor.tasks import JanitorAdoptOrphanFoldersFinishedTask
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.status import Status
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, Folder, Library
@@ -61,39 +62,47 @@ class ComicImporterThread(QueuedThread):
 
     def _adopt_orphan_folders_for_library(self, library):
         """Adopt orphan folders for one library."""
-        orphan_folder_paths = (
-            Folder.objects.filter(library=library, parent_folder=None)
-            .exclude(path=library.path)
-            .values_list("path", flat=True)
-        )
-        # Move in place
-        # Exclude deleted folders
-        folders_moved = {
-            path: path for path in orphan_folder_paths if Path(path).is_dir()
-        }
-
-        if folders_moved:
-            self.log.debug(
-                f"{len(folders_moved)} orphan folders found in {library.path}"
+        library.update_in_progress = True
+        library.save(update_fields=["update_in_progress"])
+        count = 0
+        try:
+            orphan_folder_paths = (
+                Folder.objects.filter(library=library, parent_folder=None)
+                .exclude(path=library.path)
+                .values_list("path", flat=True)
             )
-        else:
-            self.log.debug(f"No orphan folders in {library.path}")
-            return False
+            # Move in place
+            # Exclude deleted folders
+            folders_moved = {
+                path: path for path in orphan_folder_paths if Path(path).is_dir()
+            }
 
-        # An abridged import task.
-        task = ImportDBDiffTask(
-            library_id=library.pk,
-            dirs_moved=folders_moved,
-        )
-        importer = self._create_importer(task)
-        # Only run the moved task.
-        importer.bulk_folders_moved()
-        return True
+            if folders_moved:
+                self.log.debug(
+                    f"{len(folders_moved)} orphan folders found in {library.path}"
+                )
+            else:
+                self.log.debug(f"No orphan folders in {library.path}")
+                return False, count
+
+            # An abridged import task.
+            task = ImportDBDiffTask(
+                library_id=library.pk,
+                dirs_moved=folders_moved,
+            )
+            importer = self._create_importer(task)
+            # Only run the moved task.
+            count = importer.bulk_folders_moved()
+        finally:
+            library.update_in_progress = False
+            library.save(update_fields=["update_in_progress"])
+        return True, count
 
     def _adopt_orphan_folders(self, *, janitor: bool):
         """Find orphan folders and move them into their correct place."""
         status = Status(ImportStatusTypes.ADOPT_FOLDERS)
         moved_status = Status(ImportStatusTypes.MOVE_FOLDERS)
+        total_count = 0
         try:
             self.status_controller.start_many((status, moved_status))
             libraries = Library.objects.filter(covers_only=False).only("path")
@@ -101,12 +110,19 @@ class ComicImporterThread(QueuedThread):
                 folders_left = True
                 while folders_left:
                     # Run until there are no orphan folders
-                    folders_left = self._adopt_orphan_folders_for_library(library)
+                    folders_left, count = self._adopt_orphan_folders_for_library(
+                        library
+                    )
+                    total_count += count
         finally:
             self.status_controller.finish_many((moved_status, status))
             if janitor:
                 next_task = JanitorAdoptOrphanFoldersFinishedTask()
                 self.librarian_queue.put(next_task)
+            elif total_count:
+                self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+                task = SearchIndexUpdateTask()
+                self.librarian_queue.put(task)
 
     @override
     def process_item(self, item):
