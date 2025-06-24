@@ -9,7 +9,6 @@ from comicbox.schemas.comicbox import (
     TITLE_KEY,
 )
 
-from codex.librarian.importer.aggregate.folders import AggregatePathMetadataImporter
 from codex.librarian.importer.const import (
     CREATE_COMICS,
     EXTRACTED,
@@ -18,6 +17,7 @@ from codex.librarian.importer.const import (
     LINK_M2MS,
     QUERY_MODELS,
 )
+from codex.librarian.importer.read.folders import AggregatePathMetadataImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
 

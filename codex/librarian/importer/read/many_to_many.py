@@ -7,20 +7,20 @@ from comicbox.schemas.comicbox import IDENTIFIERS_KEY, NUMBER_KEY, ROLES_KEY
 from django.db.models import CharField, Field
 from django.db.models.fields.related import ManyToManyField
 
-from codex.librarian.importer.aggregate.const import (
-    COMPLEX_FIELD_AGG_MAP,
-    FIELD_NAME_TO_MD_KEY_MAP,
-    ID_TYPE_KEY,
-)
-from codex.librarian.importer.aggregate.foreign_keys import (
-    AggregateForeignKeyMetadataImporter,
-)
 from codex.librarian.importer.const import (
     COMIC_M2M_FIELDS,
     CREDITS_FIELD_NAME,
     LINK_M2MS,
     STORY_ARC_NUMBERS_FIELD_NAME,
     get_key_index,
+)
+from codex.librarian.importer.read.const import (
+    COMPLEX_FIELD_AGG_MAP,
+    FIELD_NAME_TO_MD_KEY_MAP,
+    ID_TYPE_KEY,
+)
+from codex.librarian.importer.read.foreign_keys import (
+    AggregateForeignKeyMetadataImporter,
 )
 from codex.models.comic import Comic
 from codex.models.groups import Folder

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
-from codex.librarian.importer.aggregate import AggregateMetadataImporter
 from codex.librarian.importer.const import (
     CREATE_FKS,
     FOLDERS_FIELD_NAME,
@@ -12,6 +11,7 @@ from codex.librarian.importer.const import (
     PARENT_FOLDER_FIELD_NAME,
     PATH_FIELD_NAME,
 )
+from codex.librarian.importer.read import AggregateMetadataImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic, Folder

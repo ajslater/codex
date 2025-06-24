@@ -16,14 +16,14 @@ from comicbox.schemas.comicbox import (
 from django.db.models import Field
 from django.db.models.base import Model
 
-from codex.librarian.importer.aggregate.const import COMIC_FK_FIELD_NAMES_FIELD_MAP
 from codex.librarian.importer.const import (
     GROUP_MODEL_COUNT_FIELDS,
     LINK_FKS,
     QUERY_MODELS,
     get_key_index,
 )
-from codex.librarian.importer.extract import ExtractMetadataImporter
+from codex.librarian.importer.read.const import COMIC_FK_FIELD_NAMES_FIELD_MAP
+from codex.librarian.importer.read.extract import ExtractMetadataImporter
 from codex.models.base import BaseModel
 from codex.models.groups import BrowserGroupModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource

@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from codex.librarian.importer.aggregate.many_to_many import (
-    AggregateManyToManyMetadataImporter,
-)
 from codex.librarian.importer.const import (
     FOLDERS_FIELD_NAME,
     LINK_M2MS,
     PATH_FIELD_NAME,
+)
+from codex.librarian.importer.read.many_to_many import (
+    AggregateManyToManyMetadataImporter,
 )
 from codex.models.groups import Folder
 

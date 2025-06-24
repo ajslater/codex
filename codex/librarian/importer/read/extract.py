@@ -90,35 +90,38 @@ class ExtractMetadataImporter(QueryForeignKeysImporter):
         self.task.files_modified = frozenset()
         self.task.files_created = frozenset()
         total_paths = len(all_paths)
-        if not total_paths:
-            return count
-
-        self.log.info(
-            f"Reading tags from {total_paths} comics in {self.library.path}..."
-        )
         status = Status(ImportStatusTypes.READ_TAGS, 0, total_paths)
-        self.status_controller.start(status, notify=True)
+        try:
+            if not total_paths:
+                return count
 
-        # Set import_metadata flag
-        import_metadata = self._set_import_metadata_flag()
+            self.log.info(
+                f"Reading tags from {total_paths} comics in {self.library.path}..."
+            )
+            self.status_controller.start(status, notify=True)
 
-        for path in all_paths:
-            if md := self._extract_path(path, import_metadata=import_metadata):
-                self.metadata[EXTRACTED][path] = md
-            else:
-                self.metadata[SKIPPED].add(path)
+            # Set import_metadata flag
+            import_metadata = self._set_import_metadata_flag()
 
-            status.increment_complete()
-            self.status_controller.update(status)
+            for path in all_paths:
+                if md := self._extract_path(path, import_metadata=import_metadata):
+                    self.metadata[EXTRACTED][path] = md
+                else:
+                    self.metadata[SKIPPED].add(path)
 
-        skipped_count = len(self.metadata[SKIPPED])
-        count = total_paths - skipped_count
-        level = "INFO" if count else "DEBUG"
-        self.log.log(level, f"Read metadata from {count} comics.")
-        level = "INFO" if skipped_count else "DEBUG"
-        self.log.log(
-            level, f"Skipped {skipped_count} comics because metadata appears unchanged."
-        )
-        self.metadata.pop(SKIPPED)
-        self.status_controller.finish(status)
+                status.increment_complete()
+                self.status_controller.update(status)
+
+            skipped_count = len(self.metadata[SKIPPED])
+            count = total_paths - skipped_count
+            level = "INFO" if count else "DEBUG"
+            self.log.log(level, f"Read metadata from {count} comics.")
+            level = "INFO" if skipped_count else "DEBUG"
+            self.log.log(
+                level,
+                f"Skipped {skipped_count} comics because metadata appears unchanged.",
+            )
+        finally:
+            self.metadata.pop(SKIPPED)
+            self.status_controller.finish(status)
         return count
