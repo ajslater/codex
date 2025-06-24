@@ -17,6 +17,7 @@ from codex.serializers.fields import (
     TimestampField,
 )
 from codex.serializers.fields.reader import ArcGroupField
+from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import RouteSerializer
 
 
@@ -58,8 +59,10 @@ class ReaderSelectedArcSerializer(Serializer):
     count = IntegerField(read_only=True, required=False)
 
 
-class ReaderViewInputSerializer(Serializer):
+class ReaderViewInputSerializer(JSONFieldSerializer):
     """Input for the reader serailizer."""
+
+    JSON_FIELDS = frozenset({"arc"})
 
     arc = ReaderSelectedArcSerializer(required=False)
 

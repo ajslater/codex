@@ -7,12 +7,14 @@ from rest_framework.serializers import (
     IntegerField,
     Serializer,
 )
+from typing_extensions import override
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
+from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import SimpleRouteSerializer
 from codex.serializers.settings import SettingsInputSerializer
 
@@ -26,7 +28,7 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     v = BooleanField()
 
 
-class BrowserFilterChoicesInputSerializer(Serializer):
+class BrowserFilterChoicesInputSerializer(JSONFieldSerializer):
     """Browser Settings for the filter choices response."""
 
     JSON_FIELDS: frozenset[str] = frozenset({"filters"})
@@ -64,6 +66,13 @@ class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
     top_group = BrowseGroupField(required=False)
+
+    @override
+    def to_internal_value(self, data):
+        if "q" not in data and (query := data.get("query")):
+            # parse query param for opds v2
+            data["q"] = query
+        return super().to_internal_value(data)
 
 
 class OPDSSettingsSerializer(BrowserSettingsSerializerBase):

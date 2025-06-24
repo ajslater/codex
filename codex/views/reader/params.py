@@ -9,9 +9,6 @@ from codex.serializers.fields.reader import VALID_ARC_GROUPS
 from codex.serializers.reader import ReaderViewInputSerializer
 from codex.util import mapping_to_dict
 from codex.views.session import SessionView
-from codex.views.util import reparse_json_query_params
-
-_JSON_KEYS = frozenset({"arc"})
 
 
 class ReaderParamsView(SessionView):
@@ -59,9 +56,9 @@ class ReaderParamsView(SessionView):
         """Memoized params property."""
         if self._params is None:
             try:
-                data = reparse_json_query_params(self.request.GET, _JSON_KEYS)
-                serializer = self.input_serializer_class(data=data)
+                serializer = self.input_serializer_class(data=self.request.GET)
                 serializer.is_valid(raise_exception=True)
+
                 params: dict = mapping_to_dict(serializer.validated_data)  # pyright: ignore[reportAssignmentType]
                 self._ensure_arc(params)
                 self._params = MappingProxyType(params)

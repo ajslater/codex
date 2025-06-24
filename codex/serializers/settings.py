@@ -1,11 +1,12 @@
 """Settings Serializer."""
 
-from rest_framework.serializers import ListSerializer, Serializer
+from rest_framework.serializers import ListSerializer
 
 from codex.serializers.fields import SessionKeyField
+from codex.serializers.mixins import JSONFieldSerializer
 
 
-class SettingsInputSerializer(Serializer):
+class SettingsInputSerializer(JSONFieldSerializer):
     """For requesting settings."""
 
     JSON_PARAMS = frozenset({"only"})

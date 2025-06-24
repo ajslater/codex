@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 from codex.serializers.settings import SettingsInputSerializer
 from codex.views.session import SessionView
-from codex.views.util import reparse_json_query_params
 
 
 class SettingsView(SessionView, ABC):
@@ -22,9 +21,7 @@ class SettingsView(SessionView, ABC):
     @extend_schema(parameters=[SettingsInputSerializer])
     def get(self, *args, **kwargs):
         """Get session settings."""
-        data = self.request.GET
-        data = reparse_json_query_params(data, self.input_serializer_class.JSON_PARAMS)
-        serializer = self.input_serializer_class(data=data)
+        serializer = self.input_serializer_class(data=self.request.GET)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
         only = validated_data.get("only") if validated_data else None
