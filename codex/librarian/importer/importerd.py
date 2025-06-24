@@ -5,6 +5,7 @@ from pathlib import Path
 from django.utils import timezone
 from typing_extensions import override
 
+from codex.librarian.importer.cache import TimestampUpdater
 from codex.librarian.importer.importer import ComicImporter
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import (
@@ -55,9 +56,8 @@ class ComicImporterThread(QueuedThread):
     def _update_group_library(self, library, start_time):
         try:
             library.start_update()
-            task = ImportDBDiffTask(library_id=library.pk)
-            importer = self._create_importer(task)
-            importer.update_all_groups({}, start_time)
+            timestamp_updater = TimestampUpdater(self.log, self.librarian_queue)
+            timestamp_updater.update_all_groups({}, start_time, library)
         finally:
             library.end_update()
 

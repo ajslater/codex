@@ -18,7 +18,8 @@ from glom import Path as GlomPath
 from loguru import logger
 from typing_extensions import override
 
-from codex.librarian.importer.const import (
+from codex.librarian.importer.importer import ComicImporter
+from codex.librarian.importer.importer.const import (
     CREATE_COMICS,
     CREATE_FKS,
     DELETE_M2MS,
@@ -30,7 +31,6 @@ from codex.librarian.importer.const import (
     UPDATE_COMICS,
     UPDATE_FKS,
 )
-from codex.librarian.importer.importer import ComicImporter
 from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import (

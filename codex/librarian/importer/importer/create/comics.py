@@ -1,0 +1,144 @@
+"""Bulk update and create comic objects and bulk update m2m fields."""
+
+from django.db.models import NOT_PROVIDED
+from django.db.models.functions import Now
+
+from codex.librarian.importer.importer.const import (
+    BULK_CREATE_COMIC_FIELDS,
+    BULK_UPDATE_COMIC_FIELDS,
+    CREATE_COMICS,
+    LINK_FKS,
+    PATH_FIELD_NAME,
+    UPDATE_COMICS,
+)
+from codex.librarian.importer.importer.link import LinkComicsImporter
+from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.status import Status
+from codex.models import Comic
+
+
+class CreateComicsImporter(LinkComicsImporter):
+    """Create comics methods."""
+
+    def _update_comic_values(self, comic: Comic, update_comics: list, comic_pks: list):
+        md = self.metadata[UPDATE_COMICS].pop(comic.path, {})
+        for field_name, value in md.items():
+            setattr(comic, field_name, value)
+
+        link_md = self.get_comic_fk_links(comic.path)
+        for field_name, value in link_md.items():
+            set_value = value
+            if set_value is None:
+                default_value = Comic._meta.get_field(field_name).default
+                if default_value != NOT_PROVIDED:
+                    set_value = default_value
+            setattr(comic, field_name, set_value)
+        comic.presave()
+        comic.updated_at = Now()
+        update_comics.append(comic)
+        comic_pks.append(comic.pk)
+
+    def update_comics(self):
+        """Bulk update comics, and move nonextant comics into create job.."""
+        count = 0
+        paths = tuple(sorted(self.metadata[UPDATE_COMICS].keys()))
+        num_comics = len(paths)
+        status = Status(ImportStatusTypes.UPDATE_COMICS, None, num_comics)
+        if not num_comics:
+            self.metadata.pop(UPDATE_COMICS)
+            self.status_controller.finish(status)
+            return count
+
+        self.log.debug(
+            f"Preparing {num_comics} comics for update in library {self.library.path}."
+        )
+        self.status_controller.start(status)
+        # Get existing comics to update
+        comics = Comic.objects.filter(library=self.library, path__in=paths).only(
+            PATH_FIELD_NAME, *BULK_UPDATE_COMIC_FIELDS
+        )
+
+        # set attributes for each comic
+        update_comics = []
+        comic_pks = []
+        for comic in comics:
+            try:
+                self._update_comic_values(comic, update_comics, comic_pks)
+            except Exception:
+                self.log.exception(f"Error preparing {comic} for update.")
+        self.metadata.pop(UPDATE_COMICS)
+
+        count = len(update_comics)
+        if count:
+            self.log.debug(f"Bulk updating {len(update_comics)} comics.")
+            try:
+                Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+                if comic_pks:
+                    self._remove_covers(comic_pks, custom=False)
+                    self.log.debug(
+                        f"Purging covers for {len(comic_pks)} updated comics."
+                    )
+                if count:
+                    self.log.info(f"Updated {count} comics.")
+            except Exception:
+                self.log.exception(f"While updating {paths}")
+        self.status_controller.finish(status)
+        return count
+
+    def _bulk_create_comic(self, path: str, create_comics: list[Comic]):
+        md = self.metadata[CREATE_COMICS].pop(path, {})
+        link_md = self.get_comic_fk_links(path)
+        md.update(link_md)
+        if not md:
+            return
+        comic = Comic(**md, library=self.library)
+        comic.presave()
+        create_comics.append(comic)
+
+    def create_comics(self):
+        """Bulk create comics."""
+        count = 0
+        paths = tuple(sorted(self.metadata[CREATE_COMICS].keys()))
+        num_comics = len(paths)
+        status = Status(ImportStatusTypes.CREATE_COMICS, None, num_comics)
+        if not num_comics:
+            self.metadata.pop(CREATE_COMICS)
+            self.metadata.pop(LINK_FKS)
+            self.status_controller.finish(status)
+            return count
+
+        self.log.debug(
+            f"Preparing {num_comics} comics for creation in library {self.library.path}."
+        )
+        self.status_controller.start(status)
+
+        create_comics = []
+        for path in paths:
+            try:
+                self._bulk_create_comic(path, create_comics)
+            except KeyError:
+                self.log.warning(f"No comic metadata for {path}")
+                self.log.exception(f"Error preparing {path} for create.")
+            except Exception:
+                self.log.exception(f"Error preparing {path} for create.")
+        self.metadata.pop(CREATE_COMICS)
+        self.metadata.pop(LINK_FKS)
+
+        num_comics = len(create_comics)
+        if num_comics:
+            self.log.debug(f"Bulk creating {num_comics} comics...")
+            try:
+                Comic.objects.bulk_create(
+                    create_comics,
+                    update_conflicts=True,
+                    update_fields=BULK_CREATE_COMIC_FIELDS,
+                    unique_fields=Comic._meta.unique_together[0],
+                )
+                count = len(create_comics)
+                if count:
+                    self.log.info(f"Created {count} comics.")
+            except Exception:
+                self.log.exception(f"While creating {num_comics} comics")
+
+        self.status_controller.finish(status)
+        return count
