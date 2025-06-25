@@ -4,6 +4,7 @@ from pathlib import Path
 from time import time
 
 from django.core.cache import cache
+from django.db.models.aggregates import Count
 from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from loguru import logger
@@ -33,8 +34,10 @@ class AdminLibraryViewSet(AdminModelViewSet):
 
     _WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
 
-    queryset = Library.objects.prefetch_related("groups").defer(
-        "update_in_progress", "created_at", "updated_at"
+    queryset = (
+        Library.objects.prefetch_related("groups")
+        .annotate(comic_count=Count("comic"), failed_count=Count("failedimport"))
+        .defer("update_in_progress", "created_at", "updated_at")
     )
     serializer_class = LibrarySerializer
 

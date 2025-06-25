@@ -5,6 +5,14 @@
         Add a Library to start using Codex
       </td>
     </template>
+    <template #[`item.comicCount`]="{ item }">
+      {{ item.comicCount }}
+    </template>
+    <template #[`item.failedCount`]="{ item }">
+      <span class="failedComics">
+        {{ item.failedCount }}
+      </span>
+    </template>
     <template #[`item.events`]="{ item }">
       <v-checkbox-btn :model-value="item.events" disabled />
     </template>
@@ -131,6 +139,8 @@ export default {
     headers() {
       const headers = [
         { title: "Path", key: "path", align: "start" },
+        { title: "Comics", key: "comicCount" },
+        { title: "Failed", key: "FailedCount" },
         {
           title: "Watch File Events",
           key: "events",
@@ -238,5 +248,8 @@ export default {
 
 .actionButtonCell :deep(> button:hover) {
   opacity: 1;
+}
+.failedComics {
+  color: rgb(var(--v-theme-error));
 }
 </style>

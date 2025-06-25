@@ -5,6 +5,7 @@ from pathlib import Path
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    IntegerField,
     ListField,
     Serializer,
     ValidationError,
@@ -16,6 +17,9 @@ from codex.serializers.models.base import BaseModelSerializer
 
 class LibrarySerializer(BaseModelSerializer):
     """Library Serializer."""
+
+    comic_count = IntegerField(read_only=True)
+    failed_count = IntegerField(read_only=True)
 
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
@@ -30,8 +34,16 @@ class LibrarySerializer(BaseModelSerializer):
             "poll_every",
             "groups",
             "covers_only",
+            "comic_count",
+            "failed_count",
         )
-        read_only_fields = ("last_poll", "pk", "covers_only")
+        read_only_fields = (
+            "last_poll",
+            "pk",
+            "covers_only",
+            "comic_count",
+            "failed_count",
+        )
 
     def validate_path(self, path):
         """Validate new library paths."""
