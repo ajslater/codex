@@ -38,7 +38,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             import_metadata = True
         else:
             key = AdminFlagChoices.IMPORT_METADATA.value
-            import_metadata = AdminFlag.objects.get(key=key).on
+            import_metadata = AdminFlag.objects.only("on").get(key=key).on
         if not import_metadata:
             self.log.warning("Admin flag set to NOT import metadata.")
         return import_metadata
