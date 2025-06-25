@@ -41,14 +41,14 @@ from codex.librarian.watchdog.tasks import (
 
 _THREAD_CLASSES = (
     BookmarkThread,
-    NotifierThread,
-    DelayedTasksThread,
     CoverThread,
-    ScribeThread,
-    WatchdogEventBatcherThread,
+    CronThread,
+    DelayedTasksThread,
     LibraryEventObserver,
     LibraryPollingObserver,
-    CronThread,
+    NotifierThread,
+    ScribeThread,
+    WatchdogEventBatcherThread,
 )
 _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
