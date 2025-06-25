@@ -39,30 +39,25 @@ from codex.librarian.watchdog.tasks import (
     WatchdogSyncTask,
 )
 
+_THREAD_CLASSES = (
+    BookmarkThread,
+    NotifierThread,
+    DelayedTasksThread,
+    CoverThread,
+    ScribeThread,
+    WatchdogEventBatcherThread,
+    LibraryEventObserver,
+    LibraryPollingObserver,
+    CronThread,
+)
+_THREAD_CLASS_MAP = MappingProxyType(
+    {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
+)
+LibrarianThreads = NamedTuple("LibrarianThreads", _THREAD_CLASS_MAP.items())
+
 
 class LibrarianDaemon(Process):
     """Librarian Process."""
-
-    _THREAD_CLASSES = (
-        BookmarkThread,
-        NotifierThread,
-        DelayedTasksThread,
-        CoverThread,
-        ScribeThread,
-        WatchdogEventBatcherThread,
-        LibraryEventObserver,
-        LibraryPollingObserver,
-        CronThread,
-    )
-    _THREAD_CLASS_MAP = MappingProxyType(
-        {
-            snakecase(thread_class.__name__): thread_class
-            for thread_class in _THREAD_CLASSES
-        }
-    )
-    LibrarianThreads = NamedTuple("LibrarianThreads", _THREAD_CLASS_MAP.items())
-
-    proc = None
 
     def __init__(self, logger_, queue: Queue, broadcast_queue: AioQueue):
         """Init process."""
@@ -125,14 +120,14 @@ class LibrarianDaemon(Process):
             "logger_": self.log,
             "librarian_queue": self.queue,
         }
-        for name, thread_class in self._THREAD_CLASS_MAP.items():
+        for name, thread_class in _THREAD_CLASS_MAP.items():
             thread_kwargs = copy(kwargs)
             if thread_class == NotifierThread:
                 thread_kwargs["broadcast_queue"] = self.broadcast_queue
             thread = thread_class(**thread_kwargs)  # pyright: ignore[reportArgumentType]
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
-        self._threads = self.LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._threads = LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
         self._observers = (  # pyright: ignore[reportUninitializedInstanceVariable]
             self._threads.library_event_observer,
             self._threads.library_polling_observer,
