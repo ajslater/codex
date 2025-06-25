@@ -88,10 +88,11 @@ export const useMetadataStore = defineStore("metadata", {
 
       // Convert credits into a role based map
       for (const { role, person } of state.md.credits) {
-        if (!(role.name in credits)) {
-          credits[role.name] = [];
+        const roleName = role?.name ? role.name : "Other";
+        if (!(roleName in credits)) {
+          credits[roleName] = [];
         }
-        credits[role.name].push(person);
+        credits[roleName].push(person);
       }
 
       // Sort persons by last name
@@ -231,6 +232,9 @@ export const useMetadataStore = defineStore("metadata", {
         tagMap[tagName] = { filter: key, tags: regularTags, mainTags };
       }
       return tagMap;
+    },
+    lazyImport({ group, ids }) {
+      return API.getLazyImport({ group, pks: ids });
     },
   },
 });
