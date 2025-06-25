@@ -1,5 +1,6 @@
 """Janitor task runner."""
 
+from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
@@ -12,13 +13,11 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
-    JanitorClearStatusTask,
     JanitorCodexUpdateTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
     JanitorIntegrityCheckTask,
-    JanitorLatestVersionTask,
     JanitorNightlyTask,
     JanitorVacuumTask,
 )
@@ -60,8 +59,7 @@ class Janitor(JanitorCodexUpdate):
         try:
             self.status_controller.start_many(_JANITOR_STATII)
             tasks = (
-                JanitorLatestVersionTask(),
-                JanitorCodexUpdateTask(),
+                CodexLatestVersionTask(),
                 JanitorAdoptOrphanFoldersTask(),
                 JanitorForeignKeyCheckTask(),
                 JanitorIntegrityCheckTask(),
@@ -90,8 +88,6 @@ class Janitor(JanitorCodexUpdate):
                     self.vacuum_db()
                 case JanitorBackupTask():
                     self.backup_db(show_status=True)
-                case JanitorLatestVersionTask():
-                    self.update_latest_version(force=task.force)
                 case JanitorCleanFKsTask():
                     self.cleanup_fks()
                 case JanitorCleanCoversTask():
@@ -100,8 +96,6 @@ class Janitor(JanitorCodexUpdate):
                     self.cleanup_sessions()
                 case JanitorCleanupBookmarksTask():
                     self.cleanup_orphan_bookmarks()
-                case JanitorClearStatusTask():
-                    self.status_controller.finish_many([])
                 case ForceUpdateAllFailedImportsTask():
                     self.force_update_all_failed_imports()
                 case JanitorForeignKeyCheckTask():
@@ -116,7 +110,6 @@ class Janitor(JanitorCodexUpdate):
                     self.queue_nightly_tasks()
                 case JanitorCodexUpdateTask():
                     self.update_codex(force=task.force)
-
                 case _:
                     self.log.warning(f"Janitor received unknown task {task}")
         except Exception:

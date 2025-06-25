@@ -6,7 +6,7 @@ from types import MappingProxyType
 from django.contrib.sessions.models import Session
 from django.db.models.functions.datetime import Now
 
-from codex.librarian.scribe.janitor.latest_version import JanitorLatestVersion
+from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import JanitorStatusTypes
 from codex.librarian.status import Status
 from codex.models import (
@@ -103,7 +103,7 @@ _BOOKMARK_FILTER = dict.fromkeys(
 )
 
 
-class JanitorCleanup(JanitorLatestVersion):
+class JanitorCleanup(JanitorUpdateFailedImports):
     """Cleanup methods for Janitor."""
 
     def _is_abort_cleanup(self) -> bool:

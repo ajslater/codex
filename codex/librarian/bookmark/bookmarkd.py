@@ -6,8 +6,11 @@ from dataclasses import dataclass
 from loguru import logger
 from typing_extensions import override
 
+from codex.librarian.bookmark.latest_version import CodexLatestVersionMixin
 from codex.librarian.bookmark.tasks import (
     BookmarkUpdateTask,
+    ClearLibrarianStatusTask,
+    CodexLatestVersionTask,
     UserActiveTask,
 )
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
@@ -58,20 +61,27 @@ class BookmarkThread(
     @override
     def aggregate_items(self, item):
         """Aggregate bookmark updates."""
-        if isinstance(item, UserActiveTask):
-            # Wedge the user active recorer into the bookmark thread because it
-            # it also wants to be done offline and low priority.
-            key = BookmarkKey(user_pk=item.pk)
-            self.cache[key] = None
-        elif isinstance(item, BookmarkUpdateTask):
-            key = BookmarkKey(item.auth_filter, item.comic_pks)
-            if key not in self.cache:
-                self.cache[key] = {}
-            self.cache[key].update(item.updates)
-        elif isinstance(item, TelemeterTask):
-            send_telemetry(self.log)
-        else:
-            self.log.warning(f"Unknown Bookmark task {item}")
+        task = item
+        match task:
+            case UserActiveTask():
+                # Wedge the user active recorer into the bookmark thread because it
+                # it also wants to be done offline and low priority.
+                key = BookmarkKey(user_pk=item.pk)
+                self.cache[key] = None
+            case BookmarkUpdateTask():
+                key = BookmarkKey(item.auth_filter, item.comic_pks)
+                if key not in self.cache:
+                    self.cache[key] = {}
+                self.cache[key].update(item.updates)
+            case TelemeterTask():
+                send_telemetry(self.log)
+            case ClearLibrarianStatusTask():
+                self.status_controller.finish_many([])
+            case CodexLatestVersionTask():
+                worker = CodexLatestVersionMixin(self.log, self.librarian_queue)
+                worker.update_latest_version(force=task.force)
+            case _:
+                self.log.warning(f"Unknown Bookmark task {item}")
 
     @override
     def send_all_items(self):

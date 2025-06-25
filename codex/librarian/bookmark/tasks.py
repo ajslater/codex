@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass
 class BookmarkTask:
     """Bookmark Base Class."""
 
@@ -24,3 +23,14 @@ class UserActiveTask(BookmarkTask):
     """Update the user's last active status."""
 
     pk: int
+
+
+class ClearLibrarianStatusTask(BookmarkTask):
+    """Clear all librarian statuses."""
+
+
+@dataclass
+class CodexLatestVersionTask(BookmarkTask):
+    """Get the latest version."""
+
+    force: bool = False

@@ -11,13 +11,6 @@ class JanitorTask(ScribeTask):
 
 
 @dataclass(order=True)
-class JanitorLatestVersionTask(JanitorTask):
-    """Get the latest version."""
-
-    force: bool = False
-
-
-@dataclass(order=True)
 class JanitorCodexUpdateTask(JanitorTask):
     """Task for updater."""
 
@@ -47,11 +40,6 @@ class JanitorCleanFKsTask(JanitorTask):
 @dataclass(order=True)
 class JanitorCleanCoversTask(JanitorTask):
     """Clean unused custom covers."""
-
-
-@dataclass(order=True)
-class JanitorClearStatusTask(JanitorTask):
-    """Clear all librarian statuses."""
 
 
 @dataclass(order=True)

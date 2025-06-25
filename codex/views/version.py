@@ -3,8 +3,8 @@
 from rest_framework.response import Response
 from typing_extensions import override
 
+from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.scribe.janitor.tasks import JanitorLatestVersionTask
 from codex.models import Timestamp
 from codex.serializers.versions import VersionsSerializer
 from codex.version import VERSION
@@ -23,7 +23,7 @@ class VersionView(AuthGenericAPIView):
         if ts.version:
             latest_version = ts.version
         else:
-            LIBRARIAN_QUEUE.put(JanitorLatestVersionTask())
+            LIBRARIAN_QUEUE.put(CodexLatestVersionTask())
             latest_version = "fetching..."
         return {"installed": VERSION, "latest": latest_version}
 

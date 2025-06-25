@@ -6,19 +6,20 @@ from datetime import timedelta
 import requests
 from django.utils import timezone
 
-from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import JanitorStatusTypes
+from codex.librarian.scribe.janitor.tasks import JanitorCodexUpdateTask
 from codex.librarian.status import Status
+from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Timestamp
 from codex.version import PACKAGE_NAME
 
 _PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
 _REPO_URL = _PYPI_URL_TEMPLATE % PACKAGE_NAME
-_CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=1)
+_CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=5)
 _REPO_TIMEOUT = 5
 
 
-class JanitorLatestVersion(JanitorUpdateFailedImports):
+class CodexLatestVersionMixin(WorkerStatusMixin):
     """Methods for fetching the latest version."""
 
     @staticmethod
@@ -27,7 +28,7 @@ class JanitorLatestVersion(JanitorUpdateFailedImports):
         response = requests.get(_REPO_URL, timeout=_REPO_TIMEOUT)
         return json.loads(response.text)["info"]["version"]
 
-    def update_latest_version(self, *, force: bool):
+    def update_latest_version(self, *, force: bool, update: bool = False):
         """Get the latest version from a remote repo using a cache."""
         status = Status(JanitorStatusTypes.CODEX_LATEST_VERSION)
         try:
@@ -47,9 +48,16 @@ class JanitorLatestVersion(JanitorUpdateFailedImports):
                 ts.save()
                 level = "INFO"
                 log_txt = f"Saved new latest codex version {latest_version}."
+                if update:
+                    task = JanitorCodexUpdateTask()
+                    self.librarian_queue.put(task)
             else:
                 level = "DEBUG"
                 log_txt = "Not fetching new latest version, not expired."
             self.log.log(level, log_txt)
         finally:
             self.status_controller.finish(status)
+
+    def __init__(self, *args, **kwargs):
+        """Init Worker."""
+        self.init_worker(*args, **kwargs)

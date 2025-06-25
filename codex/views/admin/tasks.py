@@ -9,6 +9,10 @@ from loguru import logger
 from rest_framework.response import Response
 
 from codex.choices.notifications import Notifications
+from codex.librarian.bookmark.tasks import (
+    ClearLibrarianStatusTask,
+    CodexLatestVersionTask,
+)
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
     CoverRemoveAllTask,
@@ -34,13 +38,11 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
-    JanitorClearStatusTask,
     JanitorCodexUpdateTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
     JanitorIntegrityCheckTask,
-    JanitorLatestVersionTask,
     JanitorNightlyTask,
     JanitorVacuumTask,
 )
@@ -88,7 +90,7 @@ _TASK_MAP = MappingProxyType(
         "db_fts_integrity_check": JanitorFTSIntegrityCheckTask(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
         "watchdog_sync": WatchdogSyncTask(),
-        "codex_latest_version": JanitorLatestVersionTask(force=True),
+        "codex_latest_version": CodexLatestVersionTask(force=True),
         "codex_update": JanitorCodexUpdateTask(force=False),
         "codex_shutdown": CodexShutdownTask(),
         "codex_restart": CodexRestartTask(),
@@ -104,7 +106,7 @@ _TASK_MAP = MappingProxyType(
         "cleanup_sessions": JanitorCleanupSessionsTask(),
         "cleanup_bookmarks": JanitorCleanupBookmarksTask(),
         "cleanup_covers": CoverRemoveOrphansTask(),
-        "librarian_clear_status": JanitorClearStatusTask(),
+        "librarian_clear_status": ClearLibrarianStatusTask(),
         "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
         "poll": WatchdogPollLibrariesTask(frozenset(), force=False),
         "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
