@@ -12,7 +12,7 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_COMICS,
 )
 from codex.librarian.scribe.importer.link import LinkComicsImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic
 
@@ -43,7 +43,7 @@ class CreateComicsImporter(LinkComicsImporter):
         count = 0
         paths = tuple(sorted(self.metadata[UPDATE_COMICS].keys()))
         num_comics = len(paths)
-        status = Status(ScribeStatusTypes.UPDATE_COMICS, None, num_comics)
+        status = Status(ImporterStatusTypes.UPDATE_COMICS, None, num_comics)
         if not num_comics:
             self.metadata.pop(UPDATE_COMICS)
             self.status_controller.finish(status)
@@ -100,7 +100,7 @@ class CreateComicsImporter(LinkComicsImporter):
         count = 0
         paths = tuple(sorted(self.metadata[CREATE_COMICS].keys()))
         num_comics = len(paths)
-        status = Status(ScribeStatusTypes.CREATE_COMICS, None, num_comics)
+        status = Status(ImporterStatusTypes.CREATE_COMICS, None, num_comics)
         if not num_comics:
             self.metadata.pop(CREATE_COMICS)
             self.metadata.pop(LINK_FKS)

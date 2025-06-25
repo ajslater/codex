@@ -14,7 +14,7 @@ from codex.librarian.scribe.importer.const import EXTRACTED, FIS, SKIPPED
 from codex.librarian.scribe.importer.read.aggregate_path import (
     AggregateMetadataImporter,
 )
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
@@ -92,7 +92,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self.task.files_modified = frozenset()
         self.task.files_created = frozenset()
         total_paths = len(all_paths)
-        status = Status(ScribeStatusTypes.READ_TAGS, 0, total_paths)
+        status = Status(ImporterStatusTypes.READ_TAGS, 0, total_paths)
         try:
             if not total_paths:
                 return count

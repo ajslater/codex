@@ -12,7 +12,7 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.create.foreign_keys import (
     CreateForeignKeysCreateUpdateImporter,
 )
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.groups import Folder
 
@@ -24,7 +24,7 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         """Bulk create all foreign keys."""
         count = 0
         fkc = self.metadata.get(CREATE_FKS, {})
-        create_status = Status(ScribeStatusTypes.CREATE_TAGS, 0, fkc.pop(TOTAL, 0))
+        create_status = Status(ImporterStatusTypes.CREATE_TAGS, 0, fkc.pop(TOTAL, 0))
         try:
             if not fkc:
                 return count
@@ -42,7 +42,7 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         """Bulk update all foreign keys."""
         count = 0
         fku = self.metadata.get(UPDATE_FKS, {})
-        update_status = Status(ScribeStatusTypes.UPDATE_TAGS, 0, fku.pop(TOTAL, 0))
+        update_status = Status(ImporterStatusTypes.UPDATE_TAGS, 0, fku.pop(TOTAL, 0))
         try:
             if not fku:
                 return count

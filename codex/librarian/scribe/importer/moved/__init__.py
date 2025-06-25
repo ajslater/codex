@@ -6,7 +6,7 @@ from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import BULK_UPDATE_FOLDER_MODIFIED_FIELDS
 from codex.librarian.scribe.importer.moved.folders import MovedFoldersImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Folder
 
@@ -19,7 +19,7 @@ class MovedImporter(MovedFoldersImporter):
         num_dirs_modified = len(self.task.dirs_modified)
         if not num_dirs_modified:
             return 0
-        status = Status(ScribeStatusTypes.UPDATE_TAGS, None, num_dirs_modified)
+        status = Status(ImporterStatusTypes.UPDATE_TAGS, None, num_dirs_modified)
         status.subtitle = "Folders"
         self.status_controller.start(status)
 

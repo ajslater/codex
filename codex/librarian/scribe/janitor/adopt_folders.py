@@ -4,10 +4,11 @@ from multiprocessing import Queue
 from pathlib import Path
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.scribe.importer import ComicImporter
+from codex.librarian.scribe.importer.importer import ComicImporter
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.importer.tasks import ImportTask
+from codex.librarian.scribe.janitor.status import JanitorStatusTypes
 from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
-from codex.librarian.scribe.status import ScribeStatusTypes
 from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Folder, Library
@@ -49,8 +50,8 @@ class OrphanFolderAdopter(WorkerStatusMixin):
     def adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
         self.abort_import_event.clear()
-        status = Status(ScribeStatusTypes.ADOPT_FOLDERS)
-        moved_status = Status(ScribeStatusTypes.MOVE_FOLDERS)
+        status = Status(JanitorStatusTypes.ADOPT_ORPHAN_FOLDERS)
+        moved_status = Status(ImporterStatusTypes.MOVE_FOLDERS)
         total_count = 0
         try:
             self.status_controller.start_many((status, moved_status))

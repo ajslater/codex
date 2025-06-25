@@ -3,7 +3,7 @@
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.scribe.importer.const import ALL_COMIC_GROUP_FIELD_NAMES
 from codex.librarian.scribe.importer.finish import FinishImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.status import Status
 from codex.models import Comic, Folder, StoryArc
@@ -21,7 +21,7 @@ class DeletedImporter(FinishImporter):
     def _bulk_folders_deleted(self, **kwargs):
         """Bulk delete folders."""
         status = Status(
-            ScribeStatusTypes.REMOVE_FOLDERS, 0, len(self.task.dirs_deleted)
+            ImporterStatusTypes.REMOVE_FOLDERS, 0, len(self.task.dirs_deleted)
         )
         try:
             if not self.task.dirs_deleted:
@@ -83,7 +83,7 @@ class DeletedImporter(FinishImporter):
     def _bulk_comics_deleted(self, deleted_comic_groups, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
         status = Status(
-            ScribeStatusTypes.REMOVE_COMICS, 0, len(self.task.files_deleted)
+            ImporterStatusTypes.REMOVE_COMICS, 0, len(self.task.files_deleted)
         )
         try:
             if not self.task.files_deleted:
@@ -110,7 +110,7 @@ class DeletedImporter(FinishImporter):
     def _bulk_covers_deleted(self, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
         status = Status(
-            ScribeStatusTypes.REMOVE_CUSTOM_COVERS, 0, len(self.task.covers_deleted)
+            ImporterStatusTypes.REMOVE_CUSTOM_COVERS, 0, len(self.task.covers_deleted)
         )
         try:
             if not self.task.covers_deleted:

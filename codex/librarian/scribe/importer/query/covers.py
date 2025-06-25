@@ -5,7 +5,7 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_COVERS,
 )
 from codex.librarian.scribe.importer.create import CreateForeignKeysImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.paths import CustomCover
 
@@ -17,7 +17,7 @@ class QueryCustomCoversImporter(CreateForeignKeysImporter):
         """Identify update & create covers."""
         cover_paths = self.task.covers_created | self.task.covers_modified
         num_cover_paths = len(cover_paths)
-        status = Status(ScribeStatusTypes.QUERY_MISSING_COVERS, None, num_cover_paths)
+        status = Status(ImporterStatusTypes.QUERY_MISSING_COVERS, None, num_cover_paths)
         if not num_cover_paths:
             self.status_controller.finish(status)
             return
@@ -30,13 +30,17 @@ class QueryCustomCoversImporter(CreateForeignKeysImporter):
         self.metadata[UPDATE_COVERS] = update_covers_qs
         update_cover_paths = frozenset(update_covers_qs.values_list("path", flat=True))
         update_count = len(update_cover_paths)
-        update_status = Status(ScribeStatusTypes.UPDATE_CUSTOM_COVERS, 0, update_count)
+        update_status = Status(
+            ImporterStatusTypes.UPDATE_CUSTOM_COVERS, 0, update_count
+        )
         self.status_controller.update(update_status)
 
         create_cover_paths = cover_paths - update_cover_paths
         self.metadata[CREATE_COVERS] = create_cover_paths
         create_count = len(create_cover_paths)
-        create_status = Status(ScribeStatusTypes.CREATE_CUSTOM_COVERS, 0, create_count)
+        create_status = Status(
+            ImporterStatusTypes.CREATE_CUSTOM_COVERS, 0, create_count
+        )
         self.status_controller.update(create_status)
 
         self.task.covers_created = self.task.covers_modified = frozenset()

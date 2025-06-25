@@ -8,7 +8,7 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.query.query_fks import (
     QueryForeignKeysQueryImporter,
 )
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic
 
@@ -19,7 +19,7 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
     def query_update_comics(self):
         """Pop existing comics from create & move to update if needed."""
         paths = tuple(self.metadata[CREATE_COMICS].keys())
-        status = Status(ScribeStatusTypes.QUERY_COMIC_UPDATES, 0, len(paths))
+        status = Status(ImporterStatusTypes.QUERY_COMIC_UPDATES, 0, len(paths))
         try:
             if not paths:
                 return
@@ -43,11 +43,15 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
                 self.status_controller.update(status)
 
             create_status = Status(
-                ScribeStatusTypes.CREATE_COMICS, None, len(self.metadata[CREATE_COMICS])
+                ImporterStatusTypes.CREATE_COMICS,
+                None,
+                len(self.metadata[CREATE_COMICS]),
             )
             self.status_controller.update(create_status)
             update_status = Status(
-                ScribeStatusTypes.UPDATE_COMICS, None, len(self.metadata[UPDATE_COMICS])
+                ImporterStatusTypes.UPDATE_COMICS,
+                None,
+                len(self.metadata[UPDATE_COMICS]),
             )
             self.status_controller.update(update_status)
         finally:

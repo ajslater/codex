@@ -2,6 +2,7 @@
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.janitor.status import JanitorStatusTypes
 from codex.librarian.scribe.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -27,7 +28,6 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.scribe.status import ScribeStatusTypes
 from codex.librarian.status import Status
 from codex.models import Timestamp
 
@@ -35,8 +35,8 @@ _JANITOR_STATII = (
     Status(JanitorStatusTypes.CODEX_LATEST_VERSION),
     Status(JanitorStatusTypes.INTEGRITY_FK),
     Status(JanitorStatusTypes.INTEGRITY_CHECK),
-    Status(JanitorStatusTypes.CLEANUP_FK),
     Status(JanitorStatusTypes.CLEANUP_COVERS),
+    Status(JanitorStatusTypes.CLEANUP_TAGS),
     Status(JanitorStatusTypes.CLEANUP_SESSIONS),
     Status(JanitorStatusTypes.CLEANUP_BOOKMARKS),
     Status(JanitorStatusTypes.DB_OPTIMIZE),
@@ -44,8 +44,8 @@ _JANITOR_STATII = (
     Status(JanitorStatusTypes.CODEX_UPDATE),
     Status(CoverStatusTypes.FIND_ORPHAN_COVERS),
     Status(CoverStatusTypes.PURGE_COVERS),
-    Status(ScribeStatusTypes.ADOPT_FOLDERS),
-    Status(ScribeStatusTypes.MOVE_FOLDERS),
+    Status(JanitorStatusTypes.ADOPT_ORPHAN_FOLDERS),
+    Status(ImporterStatusTypes.MOVE_FOLDERS),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE),

@@ -9,7 +9,7 @@ from codex.librarian.scribe.importer.const import (
     BULK_UPDATE_FOLDER_FIELDS,
 )
 from codex.librarian.scribe.importer.moved.covers import MovedCoversImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Folder
 
@@ -159,7 +159,7 @@ class MovedFoldersImporter(MovedCoversImporter):
                 dest_parent_folder_paths_map[parent] = set()
             dest_parent_folder_paths_map[parent].add(dest_path)
 
-        create_status = Status(ScribeStatusTypes.CREATE_TAGS)
+        create_status = Status(ImporterStatusTypes.CREATE_TAGS)
         layer = 1
         while True:
             self._bulk_move_folders_under_existing_parents(
@@ -187,7 +187,7 @@ class MovedFoldersImporter(MovedCoversImporter):
         """Move folders in the database instead of recreating them."""
         count = 0
         num_dirs_moved = len(self.task.dirs_moved)
-        status = Status(ScribeStatusTypes.MOVE_FOLDERS, None, num_dirs_moved)
+        status = Status(ImporterStatusTypes.MOVE_FOLDERS, None, num_dirs_moved)
         try:
             if not num_dirs_moved:
                 return count

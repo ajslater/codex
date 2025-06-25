@@ -7,7 +7,7 @@ from codex.librarian.scribe.importer.const import (
     LINK_M2MS,
 )
 from codex.librarian.scribe.importer.link.delete import LinkImporterDelete
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic
 
@@ -65,7 +65,7 @@ class LinkComicsImporter(LinkImporterDelete):
     def link_comic_m2m_fields(self):
         """Combine query and bulk link into a batch."""
         link_total = self.sum_ops(DELETE_M2MS) + self.sum_path_ops(LINK_M2MS)
-        status = Status(ScribeStatusTypes.LINK_COMICS_TO_TAGS, 0, link_total)
+        status = Status(ImporterStatusTypes.LINK_COMICS_TO_TAGS, 0, link_total)
         try:
             if not link_total:
                 self.status_controller.finish(status)

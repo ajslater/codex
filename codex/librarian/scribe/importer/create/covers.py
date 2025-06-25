@@ -11,7 +11,7 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_COVERS,
 )
 from codex.librarian.scribe.importer.create.comics import CreateComicsImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import (
     CustomCover,
@@ -37,7 +37,7 @@ class CreateCoversImporter(CreateComicsImporter):
     def update_custom_covers(self):
         """Update Custom Covers."""
         count = 0
-        status = Status(ScribeStatusTypes.UPDATE_CUSTOM_COVERS, 0)
+        status = Status(ImporterStatusTypes.UPDATE_CUSTOM_COVERS, 0)
         try:
             update_covers_qs = self.metadata.pop(UPDATE_COVERS, None)
             if not update_covers_qs:
@@ -70,7 +70,7 @@ class CreateCoversImporter(CreateComicsImporter):
                     status.add_complete(count)
 
                 link_covers_status = Status(
-                    ScribeStatusTypes.LINK_CUSTOM_COVERS,
+                    ImporterStatusTypes.LINK_CUSTOM_COVERS,
                     0,
                     len(self.metadata[LINK_COVER_PKS]),
                 )
@@ -85,7 +85,7 @@ class CreateCoversImporter(CreateComicsImporter):
         create_cover_paths = self.metadata.pop(CREATE_COVERS, ())
         num_create_cover_paths = len(create_cover_paths)
         status = Status(
-            ScribeStatusTypes.CREATE_CUSTOM_COVERS, 0, num_create_cover_paths
+            ImporterStatusTypes.CREATE_CUSTOM_COVERS, 0, num_create_cover_paths
         )
         try:
             if not num_create_cover_paths:
@@ -116,7 +116,7 @@ class CreateCoversImporter(CreateComicsImporter):
                     status.add_complete(count)
 
                 link_covers_status = Status(
-                    ScribeStatusTypes.LINK_CUSTOM_COVERS,
+                    ImporterStatusTypes.LINK_CUSTOM_COVERS,
                     0,
                     len(self.metadata[LINK_COVER_PKS]),
                 )

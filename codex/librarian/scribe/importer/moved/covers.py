@@ -10,7 +10,7 @@ from codex.librarian.scribe.importer.const import (
     LINK_COVER_PKS,
 )
 from codex.librarian.scribe.importer.moved.comics import MovedComicsImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import CustomCover
 
@@ -64,7 +64,7 @@ class MovedCoversImporter(MovedComicsImporter):
     def bulk_covers_moved(self, status=None):
         """Move covers."""
         num_covers_moved = len(self.task.covers_moved)
-        status = Status(ScribeStatusTypes.MOVE_CUSTOM_COVERS, None, num_covers_moved)
+        status = Status(ImporterStatusTypes.MOVE_CUSTOM_COVERS, None, num_covers_moved)
         try:
             if not num_covers_moved:
                 return 0

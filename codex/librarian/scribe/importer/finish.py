@@ -11,8 +11,8 @@ from codex.librarian.notifier.tasks import (
     LIBRARY_CHANGED_TASK,
 )
 from codex.librarian.scribe.importer.init import InitImporter
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
-from codex.librarian.scribe.status import ScribeStatusTypes
 from codex.librarian.tasks import DelayedTasks
 
 _REPORT_MAP = MappingProxyType(
@@ -38,7 +38,7 @@ class FinishImporter(InitImporter):
     def finish(self):
         """Perform final tasks when the apply is done."""
         self.library.end_update()
-        self.status_controller.finish_many(ScribeStatusTypes.values)
+        self.status_controller.finish_many(ImporterStatusTypes.values)
         elapsed_time = time() - self.start_time.timestamp()
         elapsed = naturaldelta(elapsed_time)
         if self.counts.changed():

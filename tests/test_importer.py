@@ -20,7 +20,6 @@ from loguru import logger
 from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.scribe.importer import ComicImporter
 from codex.librarian.scribe.importer.const import (
     CREATE_COMICS,
     CREATE_FKS,
@@ -33,6 +32,7 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_COMICS,
     UPDATE_FKS,
 )
+from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.models import (
     AgeRating,

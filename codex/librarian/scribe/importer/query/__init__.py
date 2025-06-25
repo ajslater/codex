@@ -8,13 +8,13 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_FKS,
 )
 from codex.librarian.scribe.importer.query.links import QueryPruneLinks
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 
 _STATII = (
-    ScribeStatusTypes.QUERY_MISSING_TAGS.value,
-    ScribeStatusTypes.QUERY_COMIC_UPDATES.value,
-    ScribeStatusTypes.QUERY_TAG_LINKS.value,
-    ScribeStatusTypes.QUERY_MISSING_COVERS.value,
+    ImporterStatusTypes.QUERY_MISSING_TAGS.value,
+    ImporterStatusTypes.QUERY_COMIC_UPDATES.value,
+    ImporterStatusTypes.QUERY_TAG_LINKS.value,
+    ImporterStatusTypes.QUERY_MISSING_COVERS.value,
 )
 
 

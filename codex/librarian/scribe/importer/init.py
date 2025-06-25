@@ -8,6 +8,7 @@ from typing import Any
 
 from django.utils.timezone import now
 
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.scribe.status import ScribeStatusTypes
@@ -166,17 +167,21 @@ class InitImporter(WorkerStatusMixin):
         search_index_updates = 0
         if self.task.dirs_moved:
             status_list += [
-                Status(ScribeStatusTypes.MOVE_FOLDERS, None, len(self.task.dirs_moved))
+                Status(
+                    ImporterStatusTypes.MOVE_FOLDERS, None, len(self.task.dirs_moved)
+                )
             ]
         if self.task.files_moved:
             status_list += [
-                Status(ScribeStatusTypes.MOVE_COMICS, None, len(self.task.files_moved))
+                Status(
+                    ImporterStatusTypes.MOVE_COMICS, None, len(self.task.files_moved)
+                )
             ]
             search_index_updates += len(self.task.files_moved)
         if self.task.covers_moved:
             status_list += [
                 Status(
-                    ScribeStatusTypes.MOVE_CUSTOM_COVERS,
+                    ImporterStatusTypes.MOVE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_moved),
                 )
@@ -187,19 +192,19 @@ class InitImporter(WorkerStatusMixin):
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(self.task.files_modified) + len(self.task.files_created)
         status_list += [
-            Status(ScribeStatusTypes.READ_TAGS, 0, total_paths, subtitle=path),
-            Status(ScribeStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
-            Status(ScribeStatusTypes.QUERY_MISSING_TAGS, subtitle=path),
-            Status(ScribeStatusTypes.QUERY_COMIC_UPDATES, subtitle=path),
-            Status(ScribeStatusTypes.QUERY_TAG_LINKS, subtitle=path),
-            Status(ScribeStatusTypes.QUERY_MISSING_COVERS, subtitle=path),
-            Status(ScribeStatusTypes.CREATE_TAGS, subtitle=path),
-            Status(ScribeStatusTypes.UPDATE_TAGS, subtitle=path),
+            Status(ImporterStatusTypes.READ_TAGS, 0, total_paths, subtitle=path),
+            Status(ImporterStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
+            Status(ImporterStatusTypes.QUERY_MISSING_TAGS, subtitle=path),
+            Status(ImporterStatusTypes.QUERY_COMIC_UPDATES, subtitle=path),
+            Status(ImporterStatusTypes.QUERY_TAG_LINKS, subtitle=path),
+            Status(ImporterStatusTypes.QUERY_MISSING_COVERS, subtitle=path),
+            Status(ImporterStatusTypes.CREATE_TAGS, subtitle=path),
+            Status(ImporterStatusTypes.UPDATE_TAGS, subtitle=path),
         ]
         if self.task.covers_modified:
             status_list += [
                 Status(
-                    ScribeStatusTypes.UPDATE_CUSTOM_COVERS,
+                    ImporterStatusTypes.UPDATE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_modified),
                     subtitle=path,
@@ -208,7 +213,7 @@ class InitImporter(WorkerStatusMixin):
         if self.task.covers_created:
             status_list += [
                 Status(
-                    ScribeStatusTypes.CREATE_CUSTOM_COVERS,
+                    ImporterStatusTypes.CREATE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_created),
                     subtitle=path,
@@ -217,7 +222,7 @@ class InitImporter(WorkerStatusMixin):
         if self.task.files_created or self.task.covers_created:
             status_list += [
                 Status(
-                    ScribeStatusTypes.CREATE_COMICS,
+                    ImporterStatusTypes.CREATE_COMICS,
                     None,
                     len(self.task.files_created),
                     subtitle=path,
@@ -226,7 +231,7 @@ class InitImporter(WorkerStatusMixin):
         if self.task.files_modified:
             status_list += [
                 Status(
-                    ScribeStatusTypes.UPDATE_COMICS,
+                    ImporterStatusTypes.UPDATE_COMICS,
                     None,
                     len(self.task.files_modified),
                     subtitle=path,
@@ -234,7 +239,7 @@ class InitImporter(WorkerStatusMixin):
             ]
         if self.task.files_modified or self.task.files_created:
             status_list += [
-                Status(ScribeStatusTypes.LINK_COMICS_TO_TAGS, subtitle=path)
+                Status(ImporterStatusTypes.LINK_COMICS_TO_TAGS, subtitle=path)
             ]
 
         num_covers_linked = (
@@ -245,7 +250,7 @@ class InitImporter(WorkerStatusMixin):
         if num_covers_linked:
             status_list += [
                 Status(
-                    ScribeStatusTypes.LINK_CUSTOM_COVERS,
+                    ImporterStatusTypes.LINK_CUSTOM_COVERS,
                     None,
                     num_covers_linked,
                     subtitle=path,
@@ -260,20 +265,24 @@ class InitImporter(WorkerStatusMixin):
         if self.task.files_deleted:
             status_list += [
                 Status(
-                    ScribeStatusTypes.REMOVE_COMICS, None, len(self.task.files_deleted)
+                    ImporterStatusTypes.REMOVE_COMICS,
+                    None,
+                    len(self.task.files_deleted),
                 )
             ]
             search_index_updates += len(self.task.files_deleted)
         if self.task.dirs_deleted:
             status_list += [
                 Status(
-                    ScribeStatusTypes.REMOVE_FOLDERS, None, len(self.task.dirs_deleted)
+                    ImporterStatusTypes.REMOVE_FOLDERS,
+                    None,
+                    len(self.task.dirs_deleted),
                 )
             ]
         if self.task.covers_deleted:
             status_list += [
                 Status(
-                    ScribeStatusTypes.REMOVE_CUSTOM_COVERS,
+                    ImporterStatusTypes.REMOVE_CUSTOM_COVERS,
                     None,
                     len(self.task.covers_deleted),
                 )

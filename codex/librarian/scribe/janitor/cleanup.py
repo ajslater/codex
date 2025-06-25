@@ -140,7 +140,7 @@ class JanitorCleanup(JanitorLatestVersion):
         """Clean up unused foreign keys."""
         if self._is_abort_cleanup():
             return
-        status = Status(JanitorStatusTypes.CLEANUP_FK, 0)
+        status = Status(JanitorStatusTypes.CLEANUP_TAGS, 0)
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up orphan tags...")

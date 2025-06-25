@@ -7,7 +7,7 @@ from codex.librarian.scribe.importer.const import (
     LINK_COVER_PKS,
 )
 from codex.librarian.scribe.importer.failed_imports import FailedImportsImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import CustomCover, Folder
 
@@ -54,7 +54,7 @@ class LinkCoversImporter(FailedImportsImporter):
         """Link Custom Covers to Groups."""
         link_cover_pks = self.metadata.get(LINK_COVER_PKS, {})
         num_link_cover_pks = len(link_cover_pks)
-        status = Status(ScribeStatusTypes.LINK_CUSTOM_COVERS, 0, num_link_cover_pks)
+        status = Status(ImporterStatusTypes.LINK_CUSTOM_COVERS, 0, num_link_cover_pks)
         try:
             if not num_link_cover_pks:
                 return 0

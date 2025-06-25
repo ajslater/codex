@@ -11,7 +11,7 @@ from codex.librarian.scribe.importer.const import (
     get_key_index,
 )
 from codex.librarian.scribe.importer.query.update_fks import QueryIsUpdateImporter
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
 from codex.settings import FILTER_BATCH_SIZE
@@ -151,7 +151,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             status,
         )
 
-    def _set_fk_totals(self, fk_key: str, status_type: ScribeStatusTypes):
+    def _set_fk_totals(self, fk_key: str, status_type: ImporterStatusTypes):
         total_fks = 0
         fks = self.metadata[fk_key]
         for rows in fks.values():
@@ -163,7 +163,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     def query_all_missing_models(self):
         """Find all missing foreign key models."""
         num_models = self.sum_ops(QUERY_MODELS)
-        status = Status(ScribeStatusTypes.QUERY_MISSING_TAGS, 0, num_models)
+        status = Status(ImporterStatusTypes.QUERY_MISSING_TAGS, 0, num_models)
         try:
             if not num_models:
                 return
@@ -171,7 +171,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             for model in tuple(self.metadata[QUERY_MODELS].keys()):
                 self._query_missing_model(model, status)
             self.metadata.pop(QUERY_MODELS)
-            self._set_fk_totals(CREATE_FKS, ScribeStatusTypes.CREATE_TAGS)
-            self._set_fk_totals(UPDATE_FKS, ScribeStatusTypes.UPDATE_TAGS)
+            self._set_fk_totals(CREATE_FKS, ImporterStatusTypes.CREATE_TAGS)
+            self._set_fk_totals(UPDATE_FKS, ImporterStatusTypes.UPDATE_TAGS)
         finally:
             self.status_controller.finish(status)

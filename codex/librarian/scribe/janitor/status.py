@@ -6,7 +6,8 @@ from django.db.models import TextChoices
 class JanitorStatusTypes(TextChoices):
     """Janitor Status Types."""
 
-    CLEANUP_FK = "JTD"
+    ADOPT_ORPHAN_FOLDERS = "JAF"
+    CLEANUP_TAGS = "JTR"
     CODEX_LATEST_VERSION = "JLV"
     CODEX_UPDATE = "JCU"
     DB_OPTIMIZE = "JDO"

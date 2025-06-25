@@ -5,7 +5,7 @@ from queue import PriorityQueue
 
 from typing_extensions import override
 
-from codex.librarian.scribe.importer import ComicImporter
+from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.adopt_folders import OrphanFolderAdopter
 from codex.librarian.scribe.janitor.janitor import Janitor
