@@ -1,9 +1,11 @@
 """Search Index cleanup."""
 
+from multiprocessing import Queue
 from time import time
 
 from django.db import connection
 from humanize import naturaldelta
+from loguru._logger import Logger
 
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.status import Status
@@ -16,13 +18,10 @@ _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 class SearchIndexerOptimize(WorkerStatusMixin):
     """Search Index optimize methods."""
 
-    def __init__(self, *args, event=None, **kwargs):
+    def __init__(self, log: Logger, library_queue: Queue, event):
         """Initialize search engine."""
-        if not event:
-            reason = "SearchIndexer needs an abort event."
-            raise ValueError(reason)
         self.abort_event = event
-        self.init_worker(*args, **kwargs)
+        self.init_worker(log, library_queue)
 
     def is_abort(self):
         """Is the abort state set."""
