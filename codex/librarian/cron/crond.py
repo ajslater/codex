@@ -7,8 +7,8 @@ from types import MappingProxyType
 from django.utils import timezone as django_timezone
 from typing_extensions import override
 
-from codex.librarian.janitor.scheduled_time import get_janitor_time
-from codex.librarian.janitor.tasks import JanitorNightlyTask
+from codex.librarian.scribe.janitor.scheduled_time import get_janitor_time
+from codex.librarian.scribe.janitor.tasks import JanitorNightlyTask
 from codex.librarian.telemeter.scheduled_time import get_telemeter_time
 from codex.librarian.telemeter.tasks import TelemeterTask
 from codex.librarian.threads import NamedThread

@@ -18,17 +18,13 @@ from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
 from codex.librarian.delayed_taskd import DelayedTasksThread
-from codex.librarian.importer.importerd import ComicImporterThread
-from codex.librarian.importer.tasks import (
-    AdoptOrphanFoldersTask,
-    ImportTask,
-)
-from codex.librarian.janitor.janitor import Janitor
-from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
-from codex.librarian.search.searchd import SearchIndexerThread
-from codex.librarian.search.tasks import SearchIndexAbortTask, SearchIndexerTask
+from codex.librarian.restarter.restarter import CodexRestarter
+from codex.librarian.restarter.tasks import CodexRestarterTask
+from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
+from codex.librarian.scribe.scribed import ScribeThread
+from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask, WakeCronTask
 from codex.librarian.telemeter.tasks import TelemeterTask
 from codex.librarian.telemeter.telemeter import send_telemetry
@@ -52,8 +48,7 @@ class LibrarianDaemon(Process):
         NotifierThread,
         DelayedTasksThread,
         CoverThread,
-        SearchIndexerThread,
-        ComicImporterThread,
+        ScribeThread,
         WatchdogEventBatcherThread,
         LibraryEventObserver,
         LibraryPollingObserver,
@@ -76,9 +71,8 @@ class LibrarianDaemon(Process):
         super().__init__(name=name, daemon=False)
         self.queue = queue
         self.broadcast_queue = broadcast_queue
-        self.janitor = Janitor(logger_, queue)
         startup_tasks = (
-            AdoptOrphanFoldersTask(),
+            JanitorAdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
         )
 
@@ -94,12 +88,12 @@ class LibrarianDaemon(Process):
                 self._threads.cover_thread.queue.put(task)
             case BookmarkTask():
                 self._threads.bookmark_thread.queue.put(task)
-            case WatchdogEventTask():
-                self._threads.watchdog_event_batcher_thread.queue.put(task)
-            case ImportTask():
-                self._threads.comic_importer_thread.queue.put(task)
             case NotifierTask():
                 self._threads.notifier_thread.queue.put(task)
+            case WatchdogEventTask():
+                self._threads.watchdog_event_batcher_thread.queue.put(task)
+            case ScribeTask():
+                self._threads.scribe_thread.put(task)
             case WatchdogSyncTask():
                 for observer in self._observers:
                     observer.sync_library_watches()
@@ -107,18 +101,13 @@ class LibrarianDaemon(Process):
                 self._threads.library_polling_observer.poll(
                     task.library_ids, force=task.force
                 )
-            case SearchIndexAbortTask():
-                # Must come before the generic SearchIndexerTask below
-                self._threads.search_indexer_thread.abort_event.set()
-                self.log.debug("Told search indexers to stop for db updates.")
-            case SearchIndexerTask():
-                self._threads.search_indexer_thread.queue.put(task)
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case TelemeterTask():
                 send_telemetry(logger)
-            case JanitorTask():
-                self.janitor.run(task)
+            case CodexRestarterTask():
+                restarter = CodexRestarter(self.log, self.queue)
+                restarter.handle_task(task)
             case DelayedTasks():
                 self._threads.delayed_tasks_thread.queue.put(task)
             case LibrarianShutdownTask():

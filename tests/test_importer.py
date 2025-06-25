@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from pprint import pformat, pprint
+from threading import Event
 from types import MappingProxyType
 
 from deepdiff import DeepDiff
@@ -18,8 +19,9 @@ from glom import Path as GlomPath
 from loguru import logger
 from typing_extensions import override
 
-from codex.librarian.importer.importer import ComicImporter
-from codex.librarian.importer.importer.const import (
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.importer import ComicImporter
+from codex.librarian.scribe.importer.const import (
     CREATE_COMICS,
     CREATE_FKS,
     DELETE_M2MS,
@@ -31,8 +33,7 @@ from codex.librarian.importer.importer.const import (
     UPDATE_COMICS,
     UPDATE_FKS,
 )
-from codex.librarian.importer.tasks import ImportDBDiffTask
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.models import (
     AgeRating,
     Character,
@@ -970,8 +971,8 @@ class BaseTestImporter(SerializeMixin, TestCase, ABC):
         cache.clear()
         Library.objects.create(path=LIBRARY_PATH)
         pk = Library.objects.get(path=LIBRARY_PATH).pk
-        self.task = ImportDBDiffTask(pk, files_modified=frozenset({PATH}))
-        self.importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE)
+        self.task = ImportTask(library_id=pk, files_modified=frozenset({PATH}))
+        self.importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE, Event())
 
     @override
     def tearDown(self):
@@ -982,13 +983,12 @@ class BaseTestImporter(SerializeMixin, TestCase, ABC):
 class TestImporterBasic(BaseTestImporter):
     def test_import(self):
         # Extract and Aggregate
-        self.importer.extract_metadata()
-        self.importer.aggregate_metadata()
+        self.importer.read()
         md = MappingProxyType(self.importer.metadata)
         _diff_assert(AGGREGATED_METADATA, md)
 
         # Query
-        self.importer.query_actions()
+        self.importer.query()
         md = MappingProxyType(self.importer.metadata)
         _diff_assert(QUERIED_METADATA, md)
 
@@ -1037,13 +1037,10 @@ class BaseTestImporterUpdate(BaseTestImporter, ABC):
     @override
     def setUp(self):
         super().setUp()
-        importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE)
+        importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE, Event())
         importer.metadata = dict(QUERIED_METADATA)
-        importer.create_all_fks()
-        importer.update_all_fks()
-        importer.update_comics()
-        importer.create_comics()
-        importer.link_comic_m2m_fields()
+        importer.create_and_update()
+        importer.link()
         md = MappingProxyType(importer.metadata)
         _diff_assert(LINKED_COMICS_METADATA, md)
         comic = Comic.objects.get(path=PATH)
@@ -1053,7 +1050,7 @@ class BaseTestImporterUpdate(BaseTestImporter, ABC):
 class TestImporterUpdateNone(BaseTestImporterUpdate):
     def test_update_none(self):
         self.importer.metadata = dict(AGGREGATED_METADATA)
-        self.importer.query_actions()
+        self.importer.query()
         md = MappingProxyType(self.importer.metadata)
         _diff_assert(QUERIED_METADATA_NONE, md)
 
@@ -1065,13 +1062,12 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         shutil.copy(UPDATE_PATH, PATH)
 
     def test_import(self):
-        self.importer.extract_metadata()
-        self.importer.aggregate_metadata()
+        self.importer.read()
         md = MappingProxyType(self.importer.metadata)
         _diff_assert(AGGREGATED_METADATA_UPDATE_ALL, md)
 
         # Query
-        self.importer.query_actions()
+        self.importer.query()
         md = MappingProxyType(self.importer.metadata)
         _diff_assert(QUERIED_METADATA_UPDATE_ALL, md)
 

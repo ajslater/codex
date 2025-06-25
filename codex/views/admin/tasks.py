@@ -14,29 +14,6 @@ from codex.librarian.covers.tasks import (
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
 )
-from codex.librarian.importer.tasks import (
-    AdoptOrphanFoldersTask,
-    UpdateGroupsTask,
-)
-from codex.librarian.janitor.tasks import (
-    ForceUpdateAllFailedImportsTask,
-    JanitorBackupTask,
-    JanitorCleanCoversTask,
-    JanitorCleanFKsTask,
-    JanitorCleanupBookmarksTask,
-    JanitorCleanupSessionsTask,
-    JanitorClearStatusTask,
-    JanitorForeignKeyCheck,
-    JanitorFTSIntegrityCheck,
-    JanitorFTSRebuildTask,
-    JanitorIntegrityCheck,
-    JanitorLatestVersionTask,
-    JanitorNightlyTask,
-    JanitorRestartTask,
-    JanitorShutdownTask,
-    JanitorUpdateTask,
-    JanitorVacuumTask,
-)
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import (
     ADMIN_FLAGS_CHANGED_TASK,
@@ -48,12 +25,35 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
-from codex.librarian.search.tasks import (
-    SearchIndexAbortTask,
+from codex.librarian.restarter.tasks import CodexRestartTask, CodexShutdownTask
+from codex.librarian.scribe.janitor.tasks import (
+    ForceUpdateAllFailedImportsTask,
+    JanitorAdoptOrphanFoldersTask,
+    JanitorBackupTask,
+    JanitorCleanCoversTask,
+    JanitorCleanFKsTask,
+    JanitorCleanupBookmarksTask,
+    JanitorCleanupSessionsTask,
+    JanitorClearStatusTask,
+    JanitorCodexUpdateTask,
+    JanitorForeignKeyCheckTask,
+    JanitorFTSIntegrityCheckTask,
+    JanitorFTSRebuildTask,
+    JanitorIntegrityCheckTask,
+    JanitorLatestVersionTask,
+    JanitorNightlyTask,
+    JanitorVacuumTask,
+)
+from codex.librarian.scribe.search.tasks import (
     SearchIndexClearTask,
     SearchIndexOptimizeTask,
     SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
+)
+from codex.librarian.scribe.tasks import (
+    ImportAbortTask,
+    SearchIndexAbortTask,
+    UpdateGroupsTask,
 )
 from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
@@ -77,20 +77,21 @@ _TASK_MAP = MappingProxyType(
         "search_index_update": SearchIndexUpdateTask(rebuild=False),
         "search_index_rebuild": SearchIndexUpdateTask(rebuild=True),
         "search_index_remove_stale": SearchIndexRemoveStaleTask(),
+        "import_abort_task": ImportAbortTask(),
         "search_index_abort": SearchIndexAbortTask(),
-        "search_index_optimize": SearchIndexOptimizeTask(janitor=False),
+        "search_index_optimize": SearchIndexOptimizeTask(),
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
-        "db_foreign_key_check": JanitorForeignKeyCheck(),
-        "db_integrity_check": JanitorIntegrityCheck(),
-        "db_fts_integrity_check": JanitorFTSIntegrityCheck(),
+        "db_foreign_key_check": JanitorForeignKeyCheckTask(),
+        "db_integrity_check": JanitorIntegrityCheckTask(),
+        "db_fts_integrity_check": JanitorFTSIntegrityCheckTask(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
         "watchdog_sync": WatchdogSyncTask(),
         "codex_latest_version": JanitorLatestVersionTask(force=True),
-        "codex_update": JanitorUpdateTask(force=False),
-        "codex_shutdown": JanitorShutdownTask(),
-        "codex_restart": JanitorRestartTask(),
+        "codex_update": JanitorCodexUpdateTask(force=False),
+        "codex_shutdown": CodexShutdownTask(),
+        "codex_restart": CodexRestartTask(),
         "notify_admin_flags_changed": ADMIN_FLAGS_CHANGED_TASK,
         "notify_covers_changed": COVERS_CHANGED_TASK,
         "notify_failed_imports_changed": FAILED_IMPORTS_CHANGED_TASK,
@@ -109,7 +110,7 @@ _TASK_MAP = MappingProxyType(
         "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
-        "adopt_folders": AdoptOrphanFoldersTask(),
+        "adopt_folders": JanitorAdoptOrphanFoldersTask(),
     }
 )
 

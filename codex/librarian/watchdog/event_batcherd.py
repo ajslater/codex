@@ -14,7 +14,7 @@ from types import MappingProxyType
 from typing_extensions import override
 from watchdog.events import EVENT_TYPE_MOVED, FileSystemEvent
 
-from codex.librarian.importer.tasks import ImportDBDiffTask
+from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.threads import AggregateMessageQueuedThread
 from codex.librarian.watchdog.const import EVENT_CLASS_DIFF_ALL_MAP
 from codex.librarian.watchdog.events import (
@@ -159,7 +159,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         args = self.cache.pop(library_id)
         self._subtract_args_items(args)
         self.deduplicate_events(args)
-        return ImportDBDiffTask(**args)
+        return ImportTask(**args)
 
     def _send_import_task(self, library_id: int):
         task = self._create_task(library_id)

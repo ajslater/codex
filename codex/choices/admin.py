@@ -6,9 +6,10 @@ from bidict import frozenbidict
 from django.db.models.enums import TextChoices
 
 from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.restarter.status import CodexRestarterStatusTypes
+from codex.librarian.scribe.janitor.status import JanitorStatusTypes
+from codex.librarian.scribe.search.status import SearchIndexStatusTypes
+from codex.librarian.scribe.status import ScribeStatusTypes
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 
 
@@ -41,8 +42,9 @@ ADMIN_STATUS_TITLES = frozenbidict(
         (key, val)
         for status_types in (
             CoverStatusTypes,
-            ImportStatusTypes,
+            ScribeStatusTypes,
             JanitorStatusTypes,
+            CodexRestarterStatusTypes,
             SearchIndexStatusTypes,
             WatchdogStatusTypes,
         )
@@ -80,6 +82,11 @@ ADMIN_TASK_GROUPS: MappingProxyType[
                         "value": "watchdog_sync",
                         "title": "Sync Watchdog with DB",
                         "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
+                    },
+                    {
+                        "value": "abort_import",
+                        "title": "Abort Running Import",
+                        "desc": "Abort the current running import after the current import subtask is complete",
                     },
                 ),
             },

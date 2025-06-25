@@ -3,8 +3,8 @@
 from rest_framework.response import Response
 from typing_extensions import override
 
-from codex.librarian.janitor.tasks import JanitorLatestVersionTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.janitor.tasks import JanitorLatestVersionTask
 from codex.models import Timestamp
 from codex.serializers.versions import VersionsSerializer
 from codex.version import VERSION

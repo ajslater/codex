@@ -8,15 +8,15 @@ from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from loguru import logger
 
-from codex.librarian.janitor.integrity import (
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.janitor.integrity import (
     cleanup_custom_cover_libraries,
     fix_foreign_keys,
     fts_integrity_check,
     fts_rebuild,
     integrity_check,
 )
-from codex.librarian.janitor.janitor import Janitor
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.settings import (
     BACKUP_DB_PATH,
     CONFIG_PATH,

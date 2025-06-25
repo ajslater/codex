@@ -3,7 +3,7 @@
 from django.db.models import Count
 from django.db.models.query import QuerySet
 
-from codex.librarian.importer.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIELDS
+from codex.librarian.scribe.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIELDS
 from codex.models import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import Volume

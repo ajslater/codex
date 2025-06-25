@@ -5,8 +5,8 @@ from types import MappingProxyType
 from comicbox.box import Comicbox
 from loguru import logger
 
-from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.models import Comic
 from codex.settings import COMICBOX_CONFIG
 from codex.views.reader.arcs import ReaderArcsView
@@ -38,5 +38,5 @@ class ReaderLazyMetadataView(ReaderArcsView):
             cls._lazy_metadata_comic(comic, import_pks, get_file_type=get_file_type)
 
         if import_pks:
-            task = LazyImportComicsTask(frozenset(import_pks))
+            task = LazyImportComicsTask(pks=frozenset(import_pks))
             LIBRARIAN_QUEUE.put(task)

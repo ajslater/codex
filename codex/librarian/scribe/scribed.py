@@ -1,0 +1,102 @@
+"""Bulk import and move comics and folders."""
+
+from multiprocessing import Manager
+from queue import PriorityQueue
+
+from typing_extensions import override
+
+from codex.librarian.scribe.importer import ComicImporter
+from codex.librarian.scribe.importer.tasks import ImportTask
+from codex.librarian.scribe.janitor.adopt_folders import OrphanFolderAdopter
+from codex.librarian.scribe.janitor.janitor import Janitor
+from codex.librarian.scribe.janitor.tasks import (
+    JanitorAdoptOrphanFoldersTask,
+    JanitorCleanFKsTask,
+    JanitorFTSIntegrityCheckTask,
+    JanitorFTSRebuildTask,
+    JanitorTask,
+)
+from codex.librarian.scribe.lazy_importer import LazyImporter
+from codex.librarian.scribe.priority import ScribeTaskPriority
+from codex.librarian.scribe.search.handler import SearchIndexer
+from codex.librarian.scribe.search.tasks import (
+    SearchIndexClearTask,
+    SearchIndexerTask,
+)
+from codex.librarian.scribe.tasks import (
+    ImportAbortTask,
+    LazyImportComicsTask,
+    SearchIndexAbortTask,
+    UpdateGroupsTask,
+)
+from codex.librarian.scribe.timestamp_update import TimestampUpdater
+from codex.librarian.threads import QueuedThread
+
+ABORT_SEARCH_UPDATE_TASKS = (
+    ImportTask,
+    LazyImportComicsTask,
+    JanitorAdoptOrphanFoldersTask,
+    SearchIndexClearTask,
+    SearchIndexAbortTask,
+    JanitorCleanFKsTask,
+    JanitorFTSRebuildTask,
+    JanitorFTSIntegrityCheckTask,
+)
+
+
+class ScribeThread(QueuedThread):
+    """A worker to handle all bulk database updates."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize abort event."""
+        self.abort_import_event = Manager().Event()
+        self.abort_search_update_event = Manager().Event()
+        super().__init__(*args, queue=PriorityQueue(), **kwargs)
+
+    @override
+    def process_item(self, item):
+        """Run the updater."""
+        task = item[1]
+        match task:
+            case ImportTask():
+                importer = ComicImporter(
+                    task, self.log, self.librarian_queue, self.abort_import_event
+                )
+                importer.apply()
+            case LazyImportComicsTask():
+                worker = LazyImporter(self.log, self.librarian_queue)
+                worker.lazy_import(task)
+            case UpdateGroupsTask():
+                worker = TimestampUpdater(self.log, self.librarian_queue)
+                worker.update_groups(task)
+            case JanitorAdoptOrphanFoldersTask():
+                worker = OrphanFolderAdopter(
+                    self.log, self.librarian_queue, self.abort_import_event
+                )
+                worker.adopt_orphan_folders()
+            case SearchIndexerTask():
+                worker = SearchIndexer(
+                    self.log,
+                    self.librarian_queue,
+                    self.abort_search_update_event,
+                )
+                worker.handle_task(task)
+            case JanitorTask():
+                worker = Janitor(self.log, self.librarian_queue)
+                worker.handle_task(task)
+            case _:
+                self.log.warning(f"Bad task sent to scribe: {task}")
+
+    def put(self, task):
+        """Put item in queue, and signal events."""
+        if isinstance(task, ABORT_SEARCH_UPDATE_TASKS):
+            self.abort_search_update_event.set()
+            self.log.debug("Search Index Update abort signal given.")
+            return
+        if isinstance(task, ImportAbortTask):
+            self.abort_import_event.set()
+            self.log.debug("Import abort signal given.")
+            return
+        priority = getattr(ScribeTaskPriority, task.__class__.__name__).value
+        item = (priority, task)
+        self.queue.put(item)

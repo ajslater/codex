@@ -10,8 +10,8 @@ from rest_framework.serializers import BaseSerializer
 from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from typing_extensions import override
 
-from codex.librarian.importer.tasks import LazyImportComicsTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
@@ -141,7 +141,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
                     import_pks.add(obj.pk)
                 entries.append(entry)
             if import_pks:
-                task = LazyImportComicsTask(frozenset(import_pks))
+                task = LazyImportComicsTask(pks=frozenset(import_pks))
                 LIBRARIAN_QUEUE.put(task)
         return entries
 
