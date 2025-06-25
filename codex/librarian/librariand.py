@@ -17,7 +17,6 @@ from codex.librarian.bookmark.tasks import BookmarkTask
 from codex.librarian.covers.coverd import CoverThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
-from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.restarter.restarter import CodexRestarter
@@ -25,7 +24,7 @@ from codex.librarian.restarter.tasks import CodexRestarterTask
 from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.tasks import ScribeTask
-from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask, WakeCronTask
+from codex.librarian.tasks import LibrarianShutdownTask, WakeCronTask
 from codex.librarian.telemeter.tasks import TelemeterTask
 from codex.librarian.telemeter.telemeter import send_telemetry
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
@@ -43,7 +42,6 @@ _THREAD_CLASSES = (
     BookmarkThread,
     CoverThread,
     CronThread,
-    DelayedTasksThread,
     LibraryEventObserver,
     LibraryPollingObserver,
     NotifierThread,
@@ -103,8 +101,6 @@ class LibrarianDaemon(Process):
             case CodexRestarterTask():
                 restarter = CodexRestarter(self.log, self.queue)
                 restarter.handle_task(task)
-            case DelayedTasks():
-                self._threads.delayed_tasks_thread.queue.put(task)
             case LibrarianShutdownTask():
                 self.log.info(f"Shutting down {self.name}...")
                 self.run_loop = False
