@@ -1,5 +1,6 @@
 """View for marking comics read and unread."""
 
+from itertools import chain
 from types import MappingProxyType
 from typing import Any
 
@@ -67,20 +68,13 @@ class BrowserChoicesViewBase(BrowserFilterView):
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
         """Get distinct values for the field."""
-        return (
-            comic_qs.exclude(**{field_name: None})
-            .values_list(field_name, flat=True)
-            .distinct()
-        )
+        return comic_qs.exclude(**{field_name: None}).distinct()
 
     def get_m2m_field_query(self, model, comic_qs: QuerySet):
         """Get distinct m2m value objects for the relation."""
         back_rel = _BACK_REL_MAP.get(model, "")
         m2m_filter = {f"{back_rel}comic__in": comic_qs}
-        values = ["pk", "name"]
-        if model == Universe:
-            values.append("designation")
-        return model.objects.filter(**m2m_filter).values(*values).distinct()
+        return model.objects.filter(**m2m_filter).distinct()
 
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):
@@ -127,9 +121,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
     def _get_m2m_field_choices_count(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
-        m2m_qs = self.get_m2m_field_query(model, comic_qs)
-        m2m_qs = m2m_qs.values("pk")
-        count = m2m_qs.count()
+        count = self.get_m2m_field_query(model, comic_qs).count()
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
@@ -175,14 +167,17 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     def _get_m2m_field_choices(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
         qs = self.get_m2m_field_query(model, comic_qs)
+        values = ["pk", "name"]
+        if qs.model == Universe:
+            values.append("designation")
+        qs = qs.values(*values)
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
         # on the comic above restrcts all results to only the filtered
         # rows. :(
         if self.does_m2m_null_exist(comic_qs, rel):
-            choices = list(qs)
-            choices.append(_NULL_NAMED_ROW)
+            choices = chain(qs, (_NULL_NAMED_ROW))
         else:
             choices = qs
         return choices
@@ -202,6 +197,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             choices = self._get_m2m_field_choices(m2m_model, qs, rel)
         else:
             choices = self.get_field_choices_query(qs, field_name)
+            choices = choices.values_list(field_name, flat=True)
 
         return {
             "field_name": field_name,
