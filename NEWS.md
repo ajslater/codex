@@ -18,7 +18,7 @@ border-radius: 128px;
   - Logging format changed.
   - Metadata:
     - Add Universes, Main Characters, and Main Team
-  - Browser tab titles show route and page title.
+  - Browser tab titles show route and page title, no longer show custom banner.
 
 - Fix
   - Reading Order in reader was not always defaulting to your last Browser Top

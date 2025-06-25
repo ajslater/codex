@@ -5,6 +5,7 @@
     API_V3_PATH: "{% url 'api:v3:base' %}",
     LAST_ROUTE: {{ last_route | safe }},
     STATIC: "{% static '/' %}",
+    TITLE: "{{ title | safe }}",
   };
   Object.freeze(CODEX);
 </script>
