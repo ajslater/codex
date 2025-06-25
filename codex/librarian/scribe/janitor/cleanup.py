@@ -1,7 +1,6 @@
 """Clean up the database after moves or imports."""
 
 from pathlib import Path
-from time import time
 from types import MappingProxyType
 
 from django.contrib.sessions.models import Session
@@ -173,8 +172,7 @@ class JanitorCleanup(JanitorLatestVersion):
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Deleted {count} CustomCovers without source images.")
         finally:
-            until = time() + 1
-            self.status_controller.finish(status, until=until)
+            self.status_controller.finish(status)
 
     def cleanup_sessions(self):
         """Delete corrupt sessions."""
@@ -197,8 +195,7 @@ class JanitorCleanup(JanitorLatestVersion):
                 count, _ = bad_sessions.delete()
                 self.log.info(f"Deleted {count} corrupt sessions.")
         finally:
-            until = time() + 1
-            self.status_controller.finish(status, until=until)
+            self.status_controller.finish(status)
 
     def cleanup_orphan_bookmarks(self):
         """Delete bookmarks without users or sessions."""

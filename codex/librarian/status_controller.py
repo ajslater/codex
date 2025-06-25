@@ -11,7 +11,6 @@ from loguru._logger import Logger
 from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.status import Status
-from codex.librarian.tasks import DelayedTasks
 from codex.models import LibrarianStatus
 
 
@@ -34,15 +33,11 @@ class StatusController:
         self.log = logger_
         self.librarian_queue = librarian_queue
 
-    def _enqueue_notifier_task(self, until=0.0, *, notify: bool = True):
+    def _enqueue_notifier_task(self, *, notify: bool = True):
         """Notify the status has changed."""
         if not notify:
             return
-        if until:
-            task = DelayedTasks(until, (LIBRARIAN_STATUS_TASK,))
-        else:
-            task = LIBRARIAN_STATUS_TASK
-        self.librarian_queue.put(task)
+        self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
 
     def _loggit(self, level, status):
         """Log with a ? in place of none."""
@@ -126,7 +121,7 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
-    def finish_many(self, statii, until=0.0, *, notify: bool = True):
+    def finish_many(self, statii, *, notify: bool = True):
         """Finish all librarian statuses."""
         try:
             types = (self._to_status_type_value(status) for status in statii)
@@ -139,15 +134,15 @@ class StatusController:
                     setattr(ls, key, value)
                 update_ls.append(ls)
             LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
-            self._enqueue_notifier_task(notify=notify, until=until)
+            self._enqueue_notifier_task(notify=notify)
             if not ls_filter:
                 self.log.info("Cleared all librarian statuses")
         except Exception as exc:
             self.log.warning(f"Finish status {statii}: {exc}")
 
-    def finish(self, status, until=0.0, *, notify: bool = True):
+    def finish(self, status, *, notify: bool = True):
         """Finish a librarian status."""
         try:
-            self.finish_many((status,), notify=notify, until=until)
+            self.finish_many((status,), notify=notify)
         except Exception as exc:
             self.log.warning(exc)

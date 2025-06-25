@@ -51,7 +51,11 @@ def _get_scheduled_time(ts):
 def get_telemeter_time(log: Logger):
     """Get the time to send telemetry."""
     # Should we schedule telemeter at all?
-    if not AdminFlag.objects.only("on").get(key=AdminFlagChoices.SEND_TELEMETRY.value).on:
+    if (
+        not AdminFlag.objects.only("on")
+        .get(key=AdminFlagChoices.SEND_TELEMETRY.value)
+        .on
+    ):
         log.trace("Telemeter disabled. Not scheduled.")
         return 0
 

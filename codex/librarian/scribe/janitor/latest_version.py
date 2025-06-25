@@ -2,7 +2,6 @@
 
 import json
 from datetime import timedelta
-from time import time
 
 import requests
 from django.utils import timezone
@@ -46,8 +45,11 @@ class JanitorLatestVersion(JanitorUpdateFailedImports):
                     raise ValueError(reason)
                 ts.version = latest_version
                 ts.save()
-                self.log.info(f"Saved new latest codex version {latest_version}.")
+                level = "INFO"
+                log_txt = f"Saved new latest codex version {latest_version}."
             else:
-                self.log.debug("Not fetching new latest version, not expired.")
+                level = "DEBUG"
+                log_txt = "Not fetching new latest version, not expired."
+            self.log.log(level, log_txt)
         finally:
-            self.status_controller.finish(status, until=time() + 2)
+            self.status_controller.finish(status)

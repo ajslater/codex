@@ -54,7 +54,11 @@ def _post_stats(data):
 
 def _send_telemetry(uuid):
     """Send telemetry to server."""
-    if not AdminFlag.objects.only("on").get(key=AdminFlagChoices.SEND_TELEMETRY.value).on:
+    if (
+        not AdminFlag.objects.only("on")
+        .get(key=AdminFlagChoices.SEND_TELEMETRY.value)
+        .on
+    ):
         reason = "Send Telemetry flag is off."
         raise ValueError(reason)
     stats = CodexStats().get()
