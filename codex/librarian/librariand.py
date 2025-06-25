@@ -9,7 +9,6 @@ from typing import NamedTuple
 
 from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
-from loguru import logger
 from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread
@@ -25,8 +24,6 @@ from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, WakeCronTask
-from codex.librarian.telemeter.tasks import TelemeterTask
-from codex.librarian.telemeter.telemeter import send_telemetry
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -74,7 +71,7 @@ class LibrarianDaemon(Process):
         self.run_loop = True
         self._reversed_threads = ()
 
-    def _process_task(self, task):  # noqa: PLR0912,C901
+    def _process_task(self, task):  # noqa: C901
         """Process an individual task popped off the queue."""
         match task:
             case CoverTask():
@@ -96,8 +93,6 @@ class LibrarianDaemon(Process):
                 )
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
-            case TelemeterTask():
-                send_telemetry(logger)
             case CodexRestarterTask():
                 restarter = CodexRestarter(self.log, self.queue)
                 restarter.handle_task(task)

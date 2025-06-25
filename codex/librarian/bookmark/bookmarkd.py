@@ -12,6 +12,8 @@ from codex.librarian.bookmark.tasks import (
 )
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.librarian.bookmark.user_active import UserActiveMixin
+from codex.librarian.telemeter.tasks import TelemeterTask
+from codex.librarian.telemeter.telemeter import send_telemetry
 from codex.librarian.threads import AggregateMessageQueuedThread
 
 
@@ -66,6 +68,8 @@ class BookmarkThread(
             if key not in self.cache:
                 self.cache[key] = {}
             self.cache[key].update(item.updates)
+        elif isinstance(item, TelemeterTask):
+            send_telemetry(self.log)
         else:
             self.log.warning(f"Unknown Bookmark task {item}")
 
