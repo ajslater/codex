@@ -118,3 +118,18 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
 
         # Release memory
         data = None
+
+    def is_empty(self) -> bool:
+        """Any contents."""
+        return any(
+            (
+                self._files_created,
+                self.files_deleted,
+                self._files_modified,
+                self._files_moved,
+                self._dirs_created,
+                self._dirs_deleted,
+                self._dirs_modified,
+                self._dirs_moved,
+            )
+        )

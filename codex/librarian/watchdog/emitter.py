@@ -198,8 +198,13 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
         )
 
-    def _queue_events(self, diff):
+    def _queue_events(self):
         """Create and queue the events from the diff."""
+        diff = self._get_diff()
+        if not diff or diff.is_empty():
+            reason = "Nothing changed for {self.watch.path} not sending anything."
+            self.log.debug(reason)
+            return
         reason = (
             f"Poller sending unfiltered files: {len(diff.files_deleted)} "
             f"deleted, {len(diff.files_modified)} modified, "
@@ -239,8 +244,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {self.watch.path}...")
-            if diff := self._get_diff():
-                self._queue_events(diff)
+            self._queue_events()
             library = Library.objects.get(path=self.watch.path)
             library.last_poll = Now()
             library.save()

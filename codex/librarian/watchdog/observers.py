@@ -106,7 +106,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
                         f"Could not find {library.path} to watch. May be unmounted."
                     )
                 except Exception:
-                    self.log.exception(f"sync library watch for {library.path}")
+                    self.log.exception(f"Sync library watch for {library.path}")
             self._unschedule_orphan_watches(library_paths)
         except Exception:
             self.log.exception(f"{self.__class__.__name__} sync library watches")
