@@ -6,7 +6,6 @@ from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.janitor.status import JanitorStatusTypes
 from codex.librarian.scribe.janitor.tasks import (
-    ForceUpdateAllFailedImportsTask,
     JanitorAdoptOrphanFoldersTask,
     JanitorBackupTask,
     JanitorCleanCoversTask,
@@ -17,6 +16,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
+    JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
     JanitorNightlyTask,
     JanitorVacuumTask,
@@ -96,7 +96,7 @@ class Janitor(JanitorCodexUpdate):
                     self.cleanup_sessions()
                 case JanitorCleanupBookmarksTask():
                     self.cleanup_orphan_bookmarks()
-                case ForceUpdateAllFailedImportsTask():
+                case JanitorImportForceAllFailedTask():
                     self.force_update_all_failed_imports()
                 case JanitorForeignKeyCheckTask():
                     self.foreign_key_check()

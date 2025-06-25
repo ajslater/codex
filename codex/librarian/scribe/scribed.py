@@ -17,7 +17,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorTask,
 )
 from codex.librarian.scribe.lazy_importer import LazyImporter
-from codex.librarian.scribe.priority import ScribeTaskPriority
+from codex.librarian.scribe.priority import get_task_priority
 from codex.librarian.scribe.search.handler import SearchIndexer
 from codex.librarian.scribe.search.tasks import (
     SearchIndexClearTask,
@@ -97,6 +97,6 @@ class ScribeThread(QueuedThread):
             self.abort_import_event.set()
             self.log.debug("Import abort signal given.")
             return
-        priority = getattr(ScribeTaskPriority, task.__class__.__name__).value
+        priority = get_task_priority(task)
         item = (priority, task)
         self.queue.put(item)

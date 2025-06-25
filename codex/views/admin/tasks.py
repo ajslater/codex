@@ -31,7 +31,6 @@ from codex.librarian.notifier.tasks import (
 )
 from codex.librarian.restarter.tasks import CodexRestartTask, CodexShutdownTask
 from codex.librarian.scribe.janitor.tasks import (
-    ForceUpdateAllFailedImportsTask,
     JanitorAdoptOrphanFoldersTask,
     JanitorBackupTask,
     JanitorCleanCoversTask,
@@ -42,6 +41,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
+    JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
     JanitorNightlyTask,
     JanitorVacuumTask,
@@ -107,7 +107,7 @@ _TASK_MAP = MappingProxyType(
         "cleanup_bookmarks": JanitorCleanupBookmarksTask(),
         "cleanup_covers": CoverRemoveOrphansTask(),
         "librarian_clear_status": ClearLibrarianStatusTask(),
-        "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
+        "force_update_all_failed_imports": JanitorImportForceAllFailedTask(),
         "poll": WatchdogPollLibrariesTask(frozenset(), force=False),
         "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
