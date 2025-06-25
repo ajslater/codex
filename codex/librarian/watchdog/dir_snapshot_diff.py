@@ -121,10 +121,10 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
 
     def is_empty(self) -> bool:
         """Any contents."""
-        return any(
+        return not any(
             (
                 self._files_created,
-                self.files_deleted,
+                self._files_deleted,
                 self._files_modified,
                 self._files_moved,
                 self._dirs_created,
