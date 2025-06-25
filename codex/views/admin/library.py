@@ -1,7 +1,6 @@
 """Admin Library Views."""
 
 from pathlib import Path
-from time import time
 
 from django.core.cache import cache
 from django.db.models.aggregates import Count
@@ -14,7 +13,6 @@ from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.tasks import DelayedTasks
 from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
@@ -46,7 +44,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if validated_keys is None or validated_keys.intersection(
             cls._WATCHDOG_SYNC_FIELDS
         ):
-            task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
+            task = WatchdogSyncTask()
             LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
