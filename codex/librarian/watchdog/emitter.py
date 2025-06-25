@@ -202,7 +202,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         """Create and queue the events from the diff."""
         diff = self._get_diff()
         if not diff or diff.is_empty():
-            reason = "Nothing changed for {self.watch.path} not sending anything."
+            reason = f"Nothing changed for {self.watch.path} not sending anything."
             self.log.debug(reason)
             return
         reason = (
