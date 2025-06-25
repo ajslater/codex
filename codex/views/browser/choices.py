@@ -167,20 +167,19 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     def _get_m2m_field_choices(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
         qs = self.get_m2m_field_query(model, comic_qs)
-        values = ["pk", "name"]
-        if qs.model == Universe:
-            values.append("designation")
-        qs = qs.values(*values)
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
         # on the comic above restrcts all results to only the filtered
         # rows. :(
-        if self.does_m2m_null_exist(comic_qs, rel):
-            choices = chain(qs, (_NULL_NAMED_ROW))
-        else:
-            choices = qs
-        return choices
+        null_exists = self.does_m2m_null_exist(comic_qs, rel)
+
+        values = ["pk", "name"]
+        if qs.model == Universe:
+            values.append("designation")
+        qs = qs.values(*values)
+
+        return chain(qs, (_NULL_NAMED_ROW)) if null_exists else qs
 
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
