@@ -13,7 +13,6 @@ from codex.librarian.notifier.tasks import (
 from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
-from codex.librarian.tasks import DelayedTasks
 
 _REPORT_MAP = MappingProxyType(
     {
@@ -57,11 +56,8 @@ class FinishImporter(InitImporter):
 
             if self.counts.search_changed():
                 # Wait to start the search index update in case more updates are incoming.
-                until = time() + 2
-                delayed_search_task = DelayedTasks(
-                    until, (SearchIndexUpdateTask(rebuild=False),)
-                )
-                self.librarian_queue.put(delayed_search_task)
+                task = SearchIndexUpdateTask(rebuild=False)
+                self.librarian_queue.put(task)
         else:
             log_txt = f"No updates neccissary for library {self.library.path}. Finished in {elapsed}."
         self.log.success(log_txt)
