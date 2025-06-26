@@ -43,7 +43,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
             level = "WARNING"
             msg = str(err)
         logger.log(level, f"Query Error: {msg}")
-        logger.exception(f"Query Error: {msg}")
+        # logger.exception(f"Query Error: {msg}") debug
 
     def get_max_bookmark_updated_at_aggregate(
         self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
