@@ -73,3 +73,4 @@ class Library(BaseModel):
 
     def end_update(self):
         """Finish a library update."""
+        self._save_update_in_progress(value=False)
