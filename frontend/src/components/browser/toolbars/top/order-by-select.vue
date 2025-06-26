@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -33,7 +33,7 @@ export default {
   },
   extends: ToolbarSelect,
   computed: {
-    ...mapGetters(useBrowserStore, ["orderByChoices", "orderByChoicesMaxLen"]),
+    ...mapState(useBrowserStore, ["orderByChoices", "orderByChoicesMaxLen"]),
     ...mapState(useBrowserStore, {
       orderBySetting: (state) => state.settings.orderBy,
     }),

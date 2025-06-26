@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -43,10 +43,7 @@ export default {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
     }),
-    ...mapGetters(useBrowserStore, [
-      "topGroupChoices",
-      "topGroupChoicesMaxLen",
-    ]),
+    ...mapState(useBrowserStore, ["topGroupChoices", "topGroupChoicesMaxLen"]),
     topGroup: {
       get() {
         return this.topGroupSetting;

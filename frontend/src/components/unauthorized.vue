@@ -19,7 +19,7 @@
 
 <script>
 import { mdiLockOutline } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import AdminBrowserLink from "@/components/admin/browser-link.vue";
 import AuthMenu from "@/components/auth/auth-menu.vue";
@@ -49,11 +49,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, [
-      "isAuthChecked",
-      "isAuthorized",
-      "isUserAdmin",
-    ]),
+    ...mapState(useAuthStore, ["isAuthChecked", "isAuthorized", "isUserAdmin"]),
     ...mapState(useAuthStore, {
       showAdminBrowserLink(state) {
         return (

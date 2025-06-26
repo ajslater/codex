@@ -84,7 +84,7 @@ import {
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
@@ -126,7 +126,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
+    ...mapState(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
     }),

@@ -66,7 +66,7 @@
   </v-expansion-panels>
 </template>
 <script>
-import { mapGetters } from "pinia";
+import { mapState } from "pinia";
 
 import AdminLibraryTable from "@/components/admin/tabs/library-table.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -77,7 +77,7 @@ export default {
     AdminLibraryTable,
   },
   computed: {
-    ...mapGetters(useAdminStore, ["customCoverLibraries"]),
+    ...mapState(useAdminStore, ["customCoverLibraries"]),
   },
 };
 </script>

@@ -33,7 +33,7 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
@@ -76,7 +76,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["groupNames"]),
+    ...mapState(useBrowserStore, ["groupNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
       browserTopGroup: (state) => state.settings.topGroup,

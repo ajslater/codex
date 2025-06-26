@@ -13,7 +13,7 @@
 </template>
 <script>
 import { mdiDownload } from "@mdi/js";
-import { mapGetters } from "pinia";
+import { mapState } from "pinia";
 
 import { getGroupDownloadURL } from "@/api/v3/browser";
 import { getDownloadIOSPWAFix } from "@/api/v3/common";
@@ -41,7 +41,7 @@ export default {
     return { mdiDownload };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["filterOnlySettings", "groupNames"]),
+    ...mapState(useBrowserStore, ["filterOnlySettings", "groupNames"]),
     show() {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },

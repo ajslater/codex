@@ -13,7 +13,7 @@
 
 <script>
 import { mdiReload } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import { useAuthStore } from "@/stores/auth";
@@ -42,7 +42,7 @@ export default {
       groupNames: (state) => state.choices.static.groupNames,
       modelGroup: (state) => state.page.modelGroup,
     }),
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     title() {
       let title;
       if (Number(this.$route.params.pks) === 0) {

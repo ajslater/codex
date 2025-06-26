@@ -51,7 +51,7 @@
 <script>
 import { mdiClose } from "@mdi/js";
 import deepClone from "deep-clone";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
@@ -90,8 +90,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
-    ...mapGetters(useReaderStore, ["activeTitle", "closeBookRoute"]),
+    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
+    ...mapState(useReaderStore, ["activeTitle", "closeBookRoute"]),
     ...mapState(useReaderStore, {
       showToolbars: (state) => state.showToolbars,
       currentBook: (state) => state.books?.current || {},

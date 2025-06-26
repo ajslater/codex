@@ -9,13 +9,13 @@
   />
 </template>
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 export default {
   name: "AppBanner",
   computed: {
-    ...mapGetters(useAuthStore, ["isBanner"]),
+    ...mapState(useAuthStore, ["isBanner"]),
     ...mapState(useAuthStore, {
       banner: (state) => state.adminFlags.bannerText,
     }),

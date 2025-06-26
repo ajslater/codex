@@ -11,7 +11,7 @@
 
 <script>
 import deepClone from "deep-clone";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -27,7 +27,7 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isBTT"]),
+    ...mapState(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       toRoute(state) {
         const params = state?.routes?.books[this.direction];
