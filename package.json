@@ -87,7 +87,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-nginx": "^1.0.3",
     "prettier-plugin-packagejson": "^2.5.8",
-    "prettier-plugin-sh": "^0.17.2",
+    "prettier-plugin-sh": "^0.18.0",
     "prettier-plugin-toml": "^2.0.1",
     "remark-gfm": "^4.0.0",
     "remark-preset-lint-consistent": "^6.0.0",

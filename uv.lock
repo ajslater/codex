@@ -592,7 +592,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a24"
+version = "2.0.0a25"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -618,9 +618,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/38/075b8981cd0599dd8639ee9322eb1e27ed93e0cda78b0b63d096880d48f4/comicbox-2.0.0a24.tar.gz", hash = "sha256:2abc19fb864dfab3aaf05ab601468d629e39e4f50ba008919cc4892b5b897d5c", size = 70904958, upload-time = "2025-06-24T02:15:40.357Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/66/9fee71fc69e83d3453bdee4a82beb5f7a99f6667259e4b49881e0c2d9d13/comicbox-2.0.0a25.tar.gz", hash = "sha256:4192dc62c163c1a27231d45b6de2bcec7ee962cd7c970dcdc40162c2adb33e8d", size = 70905223, upload-time = "2025-06-26T16:36:37.165Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/16/8404c84899d4d3adb9172223cb2195cf908b35c5b28a6edc739dfceffab9/comicbox-2.0.0a24-py3-none-any.whl", hash = "sha256:79fbd75139e4535f3dc2d90f5000b9bd1ff129faaaaa677f1485556e823090d2", size = 152156, upload-time = "2025-06-24T02:15:37.238Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/07/86143b93f6862f255bfc341cbe8e73de6e0a64f0d517535cebf1d87e44d5/comicbox-2.0.0a25-py3-none-any.whl", hash = "sha256:132eda8b26aa1e66fab91a06e435cf3e80c2695e2d7e6b7f98a4b2da7f9dc381", size = 152389, upload-time = "2025-06-26T16:36:33.761Z" },
 ]
 
 [package.optional-dependencies]
@@ -809,7 +809,7 @@ wheels = [
 
 [[package]]
 name = "dateparser"
-version = "1.2.1"
+version = "1.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "python-dateutil" },
@@ -817,9 +817,9 @@ dependencies = [
     { name = "regex" },
     { name = "tzlocal" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bd/3f/d3207a05f5b6a78c66d86631e60bfba5af163738a599a5b9aa2c2737a09e/dateparser-1.2.1.tar.gz", hash = "sha256:7e4919aeb48481dbfc01ac9683c8e20bfe95bb715a38c1e9f6af889f4f30ccc3", size = 309924, upload-time = "2025-02-05T12:34:55.593Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/30/064144f0df1749e7bb5faaa7f52b007d7c2d08ec08fed8411aba87207f68/dateparser-1.2.2.tar.gz", hash = "sha256:986316f17cb8cdc23ea8ce563027c5ef12fc725b6fb1d137c14ca08777c5ecf7", size = 329840, upload-time = "2025-06-26T09:29:23.211Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/0a/981c438c4cd84147c781e4e96c1d72df03775deb1bc76c5a6ee8afa89c62/dateparser-1.2.1-py3-none-any.whl", hash = "sha256:bdcac262a467e6260030040748ad7c10d6bacd4f3b9cdb4cfd2251939174508c", size = 295658, upload-time = "2025-02-05T12:34:53.1Z" },
+    { url = "https://files.pythonhosted.org/packages/87/22/f020c047ae1346613db9322638186468238bcfa8849b4668a22b97faad65/dateparser-1.2.2-py3-none-any.whl", hash = "sha256:5a5d7211a09013499867547023a2a0c91d5a27d15dd4dbcea676ea9fe66f2482", size = 315453, upload-time = "2025-06-26T09:29:21.412Z" },
 ]
 
 [[package]]
@@ -1245,7 +1245,7 @@ wheels = [
 
 [[package]]
 name = "icecream"
-version = "2.1.4"
+version = "2.1.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asttokens" },
@@ -1253,9 +1253,9 @@ dependencies = [
     { name = "executing" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/5e/9f41831f032b9ce456c919c4989952562fcc2b0eb8c038080c24ce20d6cd/icecream-2.1.4.tar.gz", hash = "sha256:58755e58397d5350a76f25976dee7b607f5febb3c6e1cddfe6b1951896e91573", size = 15872, upload-time = "2025-01-09T16:23:20.993Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/5f/9635c20f14f558768e89b0e20c32ca852640b8973e102ff2f6ee229bbebc/icecream-2.1.5.tar.gz", hash = "sha256:14d21e3383326a69a8c1a3bcf11f83283459f0d269ece5af83fce2c0d663efec", size = 16744, upload-time = "2025-06-25T18:02:31.44Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/1d/43ef7a6875190e6745ffcd1b12c7aaa7efed082897401e311ee1cd75c8b2/icecream-2.1.4-py3-none-any.whl", hash = "sha256:7bb715f69102cae871b3a361c3b656536db02cfcadac9664c673581cac4df4fd", size = 14782, upload-time = "2025-01-09T16:23:18.213Z" },
+    { url = "https://files.pythonhosted.org/packages/36/0a/9496191b82b2839cc92fc713a5888931ab301dfcc55b9d5a49665cdb2aa5/icecream-2.1.5-py3-none-any.whl", hash = "sha256:c020917c5cb180a528dbba170250ccd8b74ebc75f2a7a8e839819bf959b9f80c", size = 14378, upload-time = "2025-06-25T18:02:30.262Z" },
 ]
 
 [[package]]
