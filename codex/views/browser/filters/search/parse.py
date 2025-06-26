@@ -35,8 +35,6 @@ _NON_FTS_COLUMNS = frozenset(
         "decade",
         "size",
         "path",
-        "identifier",
-        "identifier_source",
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
@@ -103,7 +101,7 @@ class SearchFilterView(BrowserFTSFilter):
         return False
 
     def _parse_column_match(self, preop, col, exp, field_tokens):  # , fts_tokens):
-        col = _ALIAS_FIELD_MAP.get(col, col)
+        col = _ALIAS_FIELD_MAP.get(col.lower(), col)
         if col not in _VALID_COLUMNS:
             return True
         if col == "path" and not self._is_path_column_allowed():
@@ -115,18 +113,21 @@ class SearchFilterView(BrowserFTSFilter):
                 field_tokens[preop] = set()
             field_tokens[preop].add((col, exp))
             return True
-
         return False
 
     @staticmethod
     def _add_fts_token(fts_tokens, token):
         token = _FTS_OPERATOR_RE.sub(lambda op: op.group("operator").upper(), token)
-        if (
-            token.lower() not in _FTS_OPERATORS
-            and not (token.startswith('"') and token.endswith('"'))
-            and ":" not in token
+
+        if ":" in token:
+            col, value = token.split(":")
+            col = _ALIAS_FIELD_MAP.get(col.lower(), col)
+            token = f"{col}:{value}"
+        elif token.lower() not in _FTS_OPERATORS and not (
+            token.startswith('"') and token.endswith('"')
         ):
             token = f'"{token}"'
+
         fts_tokens.append(token)
 
     def _preparse_search_query_token(self, match, field_tokens, fts_tokens):
@@ -162,7 +163,6 @@ class SearchFilterView(BrowserFTSFilter):
                 logger.debug(f"Error preparsing search query token {tok}: {exc}")
                 self.search_error = "Syntax error"
         text = " ".join(fts_tokens)
-
         return field_tokens, text
 
     def _create_search_filters(self, model):
