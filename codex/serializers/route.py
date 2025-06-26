@@ -20,8 +20,7 @@ class SimpleRouteSerializer(Serializer):
     @override
     def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""
-        if isinstance(instance, Route):
-            instance = asdict(instance)
+        instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
         pks = instance["pks"]
         if not pks:
             instance["pks"] = "0"
