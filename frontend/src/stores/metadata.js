@@ -83,7 +83,8 @@ export const useMetadataStore = defineStore("metadata", {
     roleMap(state) {
       const rm = {};
       for (const { role } of state.md.credits) {
-        rm[role.name] = role;
+        const roleName = role?.name ? role.name : "Other";
+        rm[roleName] = role;
       }
       return rm;
     },
