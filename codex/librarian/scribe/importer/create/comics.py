@@ -21,7 +21,7 @@ class CreateComicsImporter(LinkComicsImporter):
     """Create comics methods."""
 
     def _update_comic_values(self, comic: Comic, update_comics: list, comic_pks: list):
-        md = self.metadata[UPDATE_COMICS].pop(comic.path, {})
+        md = self.metadata[UPDATE_COMICS].pop(comic.pk, {})
         for field_name, value in md.items():
             setattr(comic, field_name, value)
 
@@ -41,8 +41,8 @@ class CreateComicsImporter(LinkComicsImporter):
     def update_comics(self):
         """Bulk update comics, and move nonextant comics into create job.."""
         count = 0
-        paths = tuple(sorted(self.metadata[UPDATE_COMICS].keys()))
-        num_comics = len(paths)
+        pks = tuple(sorted(self.metadata[UPDATE_COMICS].keys()))
+        num_comics = len(pks)
         status = Status(ImporterStatusTypes.UPDATE_COMICS, None, num_comics)
         if not num_comics:
             self.metadata.pop(UPDATE_COMICS)
@@ -54,7 +54,7 @@ class CreateComicsImporter(LinkComicsImporter):
         )
         self.status_controller.start(status)
         # Get existing comics to update
-        comics = Comic.objects.filter(library=self.library, path__in=paths).only(
+        comics = Comic.objects.filter(library=self.library, pk__in=pks).only(
             PATH_FIELD_NAME, *BULK_UPDATE_COMIC_FIELDS
         )
 
@@ -81,7 +81,7 @@ class CreateComicsImporter(LinkComicsImporter):
                 if count:
                     self.log.info(f"Updated {count} comics.")
             except Exception:
-                self.log.exception(f"While updating {paths}")
+                self.log.exception(f"While updating comics: {pks}")
         self.status_controller.finish(status)
         return count
 

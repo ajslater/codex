@@ -32,7 +32,7 @@ class LinkComicForeignKeysImporter(LinkCoversImporter):
 
     def _get_comic_protagonist_fk_link(self, md, path):
         """Protagonist does not create. Only links."""
-        name = self.metadata[LINK_FKS][path].pop(PROTAGONIST_KEY, None)
+        name = self.metadata[LINK_FKS].get(path, {}).pop(PROTAGONIST_KEY, None)
         if not name:
             return
         name = name[0]

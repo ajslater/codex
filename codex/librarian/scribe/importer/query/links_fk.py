@@ -34,7 +34,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         rel_obj = field_obj
         key_val = None
         while parts:
-            key_val = getattr(rel_obj, parts.pop(0))
+            key_val = getattr(rel_obj, parts.pop(0), None)
             rel_obj = key_val
         return key_val == key_value
 
