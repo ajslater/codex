@@ -20,7 +20,11 @@ class LinkComicsImporter(LinkImporterDelete):
 
     def sum_path_ops(self, key):
         """Sum all the operations for the key."""
-        return sum(len(path_ops.values()) for path_ops in self.metadata[key].values())
+        count = 0
+        for fields in self.metadata[key].values():
+            for ops in fields.values():
+                count += len(ops)
+        return count
 
     def sum_ops(self, key):
         """Sum all the operations for the key."""
