@@ -66,7 +66,7 @@ class FinishImporter(InitImporter):
             else:
                 self.status_controller.finish_many(_SEARCH_INDEX_STATII)
         else:
-            log_txt = f"No updates neccissary for library {self.library.path}. Finished in {elapsed}."
+            log_txt = f"No updates necessary for library {self.library.path}. Finished in {elapsed}."
             self.status_controller.finish_many(_SEARCH_INDEX_STATII)
         self.log.success(log_txt)
         if self.counts.failed_imports:
