@@ -51,6 +51,7 @@ class ScribeThread(QueuedThread):
         """Initialize abort event."""
         self.abort_import_event = Manager().Event()
         self.abort_search_update_event = Manager().Event()
+        self.abort_cleanup_event = Manager().Event()
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     @override
@@ -82,7 +83,9 @@ class ScribeThread(QueuedThread):
                 )
                 worker.handle_task(task)
             case JanitorTask():
-                worker = Janitor(self.log, self.librarian_queue)
+                worker = Janitor(
+                    self.log, self.librarian_queue, self.abort_cleanup_event
+                )
                 worker.handle_task(task)
             case _:
                 self.log.warning(f"Bad task sent to scribe: {task}")
@@ -91,9 +94,13 @@ class ScribeThread(QueuedThread):
         """Put item in queue, and signal events."""
         if isinstance(task, ABORT_SEARCH_UPDATE_TASKS):
             self.abort_search_update_event.set()
-            self.log.debug("Search Index Update abort signal given.")
-            return
-        if isinstance(task, ImportAbortTask):
+            if isinstance(task, ImportTask | JanitorAdoptOrphanFoldersTask):
+                self.abort_cleanup_event.set()
+                self.log.debug("Abort cleanup db signal given.")
+            elif isinstance(task, SearchIndexAbortTask):
+                self.log.debug("Search Index Update abort signal given.")
+                return
+        elif isinstance(task, ImportAbortTask):
             self.abort_import_event.set()
             self.log.debug("Import abort signal given.")
             return
