@@ -107,10 +107,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
     """Cleanup methods for Janitor."""
 
     def _is_abort_cleanup(self) -> bool:
-        if self.is_library_importing():
-            self.log.warning("Not safe to cleanup unused tags.")
-            return True
-        return False
+        return self.abort_cleanup_event.is_set()
 
     def _bulk_del_model(self, model, filter_dict):
         qs = model.objects.filter(**filter_dict).distinct()

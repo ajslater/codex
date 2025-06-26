@@ -16,9 +16,6 @@ class JanitorVacuum(JanitorIntegrity):
 
     def vacuum_db(self):
         """Vacuum the database and report on savings."""
-        if self.is_library_importing():
-            self.log.warning("Not safe to vacuum db during import.")
-            return
         status = Status(JanitorStatusTypes.DB_OPTIMIZE)
         try:
             self.status_controller.start(status)
@@ -35,8 +32,6 @@ class JanitorVacuum(JanitorIntegrity):
 
     def backup_db(self, backup_path=BACKUP_DB_PATH, *, show_status: bool):
         """Backup the database."""
-        if self.is_library_importing():
-            self.log.warning("Not backing up db during import.")
         status = Status(JanitorStatusTypes.DB_BACKUP) if show_status else ""
         try:
             if show_status:

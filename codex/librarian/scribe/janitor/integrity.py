@@ -15,7 +15,6 @@ from codex.librarian.scribe.janitor.tasks import JanitorFTSRebuildTask
 from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models.base import BaseModel
-from codex.models.library import Library
 from codex.settings import (
     CONFIG_PATH,
     CUSTOM_COVERS_DIR,
@@ -324,30 +323,13 @@ def fts_integrity_check(log):
 class JanitorIntegrity(WorkerStatusMixin):
     """Integrity Check Mixin."""
 
-    def __init__(self, logger_, librarian_queue: Queue):
+    def __init__(self, logger_, librarian_queue: Queue, event):
         """Init self.log."""
+        self.abort_cleanup_event = event
         self.init_worker(logger_, librarian_queue)
-
-    def is_library_importing(self):
-        """Return if libraries are importing."""
-        paths = tuple(
-            sorted(
-                Library.objects.filter(update_in_progress=True)
-                .distinct()
-                .values_list("path", flat=True)
-            )
-        )
-        if paths:
-            self.log.info(f"Library importing: {paths}")
-        return bool(paths)
 
     def foreign_key_check(self):
         """Foreign Key Check task."""
-        if self.is_library_importing():
-            self.log.warning(
-                "Not running db foreign key integrity check during import."
-            )
-            return
         status = Status(JanitorStatusTypes.INTEGRITY_FK)
         try:
             self.status_controller.start(status)
@@ -358,9 +340,6 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def integrity_check(self, *, long: bool):
         """Integrity check task."""
-        if self.is_library_importing():
-            self.log.warning("Not running full db integrity check during import.")
-            return
         subtitle = "" if long else "Quick"
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
         try:
@@ -371,9 +350,6 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def fts_rebuild(self):
         """FTS rebuild task."""
-        if self.is_library_importing():
-            self.log.warning("Not rebuilding search index during import.")
-            return
         status = Status(JanitorStatusTypes.FTS_REBUILD)
         try:
             self.status_controller.start(status)
