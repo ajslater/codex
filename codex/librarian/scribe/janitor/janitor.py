@@ -40,7 +40,6 @@ _JANITOR_STATII = (
     Status(JanitorStatusTypes.CLEANUP_BOOKMARKS),
     Status(JanitorStatusTypes.DB_OPTIMIZE),
     Status(JanitorStatusTypes.DB_BACKUP),
-    Status(JanitorStatusTypes.CODEX_UPDATE),
     Status(CoverStatusTypes.FIND_ORPHAN_COVERS),
     Status(CoverStatusTypes.PURGE_COVERS),
     Status(JanitorStatusTypes.ADOPT_ORPHAN_FOLDERS),

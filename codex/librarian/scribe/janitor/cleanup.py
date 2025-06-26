@@ -134,8 +134,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
 
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
-        if self._is_abort_cleanup():
-            return
+        self.abort_cleanup_event.clear()
         status = Status(JanitorStatusTypes.CLEANUP_TAGS, 0)
         try:
             self.status_controller.start(status)
@@ -150,6 +149,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
+            self.abort_cleanup_event.clear()
             self.status_controller.finish(status)
 
     def cleanup_custom_covers(self):

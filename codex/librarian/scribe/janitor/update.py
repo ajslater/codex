@@ -37,35 +37,38 @@ class JanitorCodexUpdate(JanitorCleanup):
         self.log.debug(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
         return result
 
+    def _update_codex(self, *, force: bool):
+        if force:
+            self.log.info("Forcing update of Codex.")
+        else:
+            eau = AdminFlag.objects.only("on").get(
+                key=AdminFlagChoices.AUTO_UPDATE.value
+            )
+            if not eau.on or not self._is_outdated():
+                self.log.info("Codex is up to date.")
+                return
+
+            self.log.info("Codex seems outdated. Trying to update.")
+
+        args = (
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "codex",
+        )
+        subprocess.run(  # noqa: S603
+            args,
+            check=True,
+        )
+
     def update_codex(self, *, force: bool):
         """Update the package and restart everything if the version changed."""
         status = Status(JanitorStatusTypes.CODEX_UPDATE)
         try:
             self.status_controller.start(status)
-            if force:
-                self.log.info("Forcing update of Codex.")
-            else:
-                eau = AdminFlag.objects.only("on").get(
-                    key=AdminFlagChoices.AUTO_UPDATE.value
-                )
-                if not eau.on or not self._is_outdated():
-                    self.log.info("Codex is up to date.")
-                    return
-
-                self.log.info("Codex seems outdated. Trying to update.")
-
-            args = (
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--upgrade",
-                "codex",
-            )
-            subprocess.run(  # noqa: S603
-                args,
-                check=True,
-            )
+            self._update_codex(force=force)
         except Exception:
             self.log.exception("Updating Codex software")
         finally:
