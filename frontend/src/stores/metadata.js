@@ -80,6 +80,13 @@ export const useMetadataStore = defineStore("metadata", {
     md: undefined,
   }),
   getters: {
+    roleMap(state) {
+      const rm = {};
+      for (const { role } of state.md.credits) {
+        rm[role.name] = role;
+      }
+      return rm;
+    },
     _mappedCredits(state) {
       const credits = {};
       if (!state?.md?.credits) {
@@ -152,7 +159,7 @@ export const useMetadataStore = defineStore("metadata", {
           tags: this.identifiers,
         };
       }
-      for (const [tagName, tagObj] of Object.entries(tags)) {
+      for (const tagObj of Object.values(tags)) {
         tagObj.tags = tagObj.tags.sort((a, b) => a.name.localeCompare(b.name));
       }
       return tags;

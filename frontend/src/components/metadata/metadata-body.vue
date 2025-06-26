@@ -4,7 +4,11 @@
       <MetadataText :value="md.summary" :max-height="100" />
       <MetadataText :value="md.review" label="Review" :max-height="100" />
     </section>
-    <MetadataTagsTable :tag-map="credits" class="mdSection" />
+    <MetadataTagsTable
+      :key-map="roleMap"
+      :tag-map="credits"
+      class="mdSection"
+    />
     <section class="mdSection">
       <div class="quarterRow">
         <MetadataText
@@ -60,7 +64,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
@@ -84,13 +88,14 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(useMetadataStore, ["credits", "ratings", "tags"]),
+    ...mapState(useMetadataStore, ["credits", "ratings", "tags"]),
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
+      roleMap: (state) => state.roleMap,
     }),
     readingDirectionText() {
       if (!this.md) {
