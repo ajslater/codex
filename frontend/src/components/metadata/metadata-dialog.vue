@@ -4,7 +4,6 @@
       <MetadataActivator
         v-bind="activatorProps"
         :book="book"
-        :group="group"
         :toolbar="toolbar"
       />
     </template>
@@ -18,8 +17,8 @@
       id="metadataContainer"
       @keyup.esc="dialog = false"
     >
-      <MetadataHeader :group="group" />
-      <MetadataBody :book="book" :group="group" />
+      <MetadataHeader :group="book.group" />
+      <MetadataBody :book="book" />
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
@@ -64,14 +63,6 @@ export default {
       type: Object,
       required: true,
     },
-    children: {
-      type: Number,
-      default: 1,
-    },
-    group: {
-      type: String,
-      required: true,
-    },
     toolbar: {
       type: Boolean,
       default: false,
@@ -90,6 +81,9 @@ export default {
     showContainer() {
       return this.md?.loaded || false;
     },
+    children() {
+      return this.book.childCount || 0;
+    },
   },
   watch: {
     dialog(to) {
@@ -105,7 +99,7 @@ export default {
     dialogOpened() {
       const pks = this.book.ids || [this.book.pk];
       const data = {
-        group: this.group,
+        group: this.book.group,
         pks,
       };
       this.loadMetadata(data);

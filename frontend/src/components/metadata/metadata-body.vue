@@ -78,10 +78,6 @@ export default {
     MetadataText,
   },
   props: {
-    group: {
-      type: String,
-      required: true,
-    },
     book: {
       type: Object,
       required: true,

@@ -25,9 +25,8 @@
           <ReaderArcSelect />
           <MetadataDialog
             ref="metadataDialog"
-            group="c"
-            :toolbar="true"
             :book="metadataBook"
+            :toolbar="true"
           />
         </v-toolbar-items>
         <v-toolbar-items>
@@ -121,6 +120,7 @@ export default {
     metadataBook() {
       const book = { ...this.currentBook };
       book.group = "c";
+      book.childCount = 0;
       return book;
     },
   },

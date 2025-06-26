@@ -19,7 +19,6 @@ export default {
   name: "MetadataActivator",
   props: {
     book: { type: Object, required: true },
-    group: { type: String, required: true },
     toolbar: { type: Boolean, require: true },
   },
   data() {
@@ -38,11 +37,11 @@ export default {
     onMouseEnter() {
       if (
         this.lazyImportEnabled &&
-        this.group === "c" &&
+        this.book.group === "c" &&
         !this.book.hasMetadata
       ) {
-        const ids = this.book?.ids ? this.book.ids : [this.book.pk];
-        this.lazyImport({ group: this.group, ids });
+        const ids = this.book.ids || [this.book.pk];
+        this.lazyImport({ group: this.book.group, ids });
         this.book.hasMetadata = true;
       }
     },
