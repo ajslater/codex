@@ -16,7 +16,7 @@ from codex.views.const import (
     STORY_ARC_GROUP,
 )
 from codex.views.mixins import SharedAnnotationsMixin
-from codex.views.reader.lazy_metadata import ReaderLazyMetadataView
+from codex.views.reader.arcs import ReaderArcsView
 
 _SETTINGS_ATTRS = ("fit_to", "two_pages", "reading_direction")
 _COMIC_FIELDS = (
@@ -36,9 +36,7 @@ _ISSUE_ORDERING = (
 )
 
 
-class ReaderBooksView(
-    ReaderLazyMetadataView, SharedAnnotationsMixin, BookmarkAuthMixin
-):
+class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin):
     """Get Books methods."""
 
     @staticmethod
@@ -136,6 +134,7 @@ class ReaderBooksView(
             arc_pk=F(arc_pk_rel),
             arc_index=arc_index,
             mtime=F("updated_at"),
+            has_metadata=F("metadata_mtime"),
         )
         sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
             qs.model, ordering
@@ -182,5 +181,4 @@ class ReaderBooksView(
 
         if not books.get("current"):
             self._raise_not_found()
-        self.lazy_metadata(books)
         return books

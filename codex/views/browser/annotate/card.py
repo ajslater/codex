@@ -52,6 +52,12 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
             file_name = self.get_filename_func(qs.model)
         return qs.annotate(file_name=file_name)
 
+    def _annotate_has_metadata(self, qs):
+        """Annotate if we have metadata."""
+        if qs.model is Comic:
+            qs = qs.annotate(has_metadata=F("metadata_mtime"))
+        return qs
+
     def annotate_card_aggregates(self, qs):
         """Annotate aggregates that appear the browser card."""
         if qs.model is Comic:
@@ -63,4 +69,5 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         qs = self.annotate_child_count(qs)
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
+        qs = self._annotate_has_metadata(qs)
         return qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))

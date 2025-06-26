@@ -37,6 +37,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     order_value = CharField(read_only=True)
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
+    has_metadata = BooleanField(read_only=True)
 
 
 class BrowserAdminFlagsSerializer(Serializer):

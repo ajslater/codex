@@ -32,11 +32,9 @@ class BrowserView(BrowserTitleView):
 
     serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
 
-    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
-        {
-            AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
-            AdminFlagChoices.IMPORT_METADATA.value: "import_metadata",
-        }
+    ADMIN_FLAGS = (
+        AdminFlagChoices.FOLDER_VIEW,
+        AdminFlagChoices.IMPORT_METADATA,
     )
     TARGET: str = "browser"
 

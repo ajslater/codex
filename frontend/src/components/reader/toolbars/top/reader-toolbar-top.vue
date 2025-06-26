@@ -27,7 +27,7 @@
             ref="metadataDialog"
             group="c"
             :toolbar="true"
-            :book="currentBook"
+            :book="metadataBook"
           />
         </v-toolbar-items>
         <v-toolbar-items>
@@ -117,6 +117,11 @@ export default {
       delete params["name"];
       route.params = params;
       return route;
+    },
+    metadataBook() {
+      const book = { ...this.currentBook };
+      book.group = "c";
+      return book;
     },
   },
   watch: {

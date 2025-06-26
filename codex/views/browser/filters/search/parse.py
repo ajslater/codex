@@ -63,11 +63,7 @@ _ALIAS_FIELD_MAP = MappingProxyType(
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
-    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
-        {
-            AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
-        }
-    )
+    ADMIN_FLAGS: tuple[AdminFlagChoices, ...] = (AdminFlagChoices.FOLDER_VIEW,)
 
     def __init__(self, *args, **kwargs):
         """Initialize search variables."""
@@ -81,15 +77,15 @@ class SearchFilterView(BrowserFTSFilter):
     def admin_flags(self) -> MappingProxyType[str, bool]:
         """Set browser relevant admin flags."""
         if self._admin_flags is None:
-            if self.ADMIN_FLAG_VALUE_KEY_MAP:
+            if self.ADMIN_FLAGS:
                 admin_pairs = AdminFlag.objects.filter(
-                    key__in=self.ADMIN_FLAG_VALUE_KEY_MAP.keys()
+                    key__in=(enum.value for enum in self.ADMIN_FLAGS)
                 ).values_list("key", "on")
             else:
                 admin_pairs = ()
             admin_flags = {}
             for key, on in admin_pairs:
-                export_key = self.ADMIN_FLAG_VALUE_KEY_MAP[key]
+                export_key = AdminFlagChoices(key).name.lower()
                 admin_flags[export_key] = on
             self._admin_flags = MappingProxyType(admin_flags)
         return self._admin_flags

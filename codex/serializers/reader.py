@@ -41,6 +41,7 @@ class ReaderComicSerializer(Serializer):
     max_page = IntegerField(read_only=True)
     reading_direction = ReadingDirectionField(read_only=True)
     mtime = TimestampField(read_only=True)
+    has_metadata = BooleanField(read_only=True)
 
 
 class ReaderArcInfoSerializer(Serializer):

@@ -1,7 +1,5 @@
 """Aggregate Group and Comic Metadata View."""
 
-from types import MappingProxyType
-
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from loguru import logger
@@ -26,11 +24,7 @@ class MetadataView(MetadataCopyIntersectionsView):
         BrowserFilterChoicesInputSerializer
     )
     TARGET: str = "metadata"
-    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
-        {
-            AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
-        }
-    )
+    ADMIN_FLAGS = (AdminFlagChoices.FOLDER_VIEW,)
 
     @override
     def _get_valid_browse_nav_groups(self, valid_top_groups):

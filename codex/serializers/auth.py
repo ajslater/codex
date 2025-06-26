@@ -84,6 +84,7 @@ class UserLoginSerializer(UserCreateSerializer):
 class AuthAdminFlagsSerializer(Serializer):
     """Admin flags related to auth."""
 
+    banner_text = CharField(read_only=True)
+    lazy_import_metadata = BooleanField(read_only=True)
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)
-    banner_text = CharField(read_only=True)

@@ -11,6 +11,7 @@ from codex.views.browser.cover import CoverView
 from codex.views.browser.download import GroupDownloadView
 from codex.views.browser.metadata import MetadataView
 from codex.views.browser.settings import BrowserSettingsView
+from codex.views.lazy_import import LazyImportView
 
 METADATA_TIMEOUT = PAGE_MAX_AGE
 
@@ -63,5 +64,13 @@ urlpatterns = [
         "<int_list:pks>/download/<str:filename>",
         GroupDownloadView.as_view(),
         name="download",
+    ),
+    #
+    #
+    # Lazy Import
+    path(
+        "<int_list:pks>/import",
+        LazyImportView.as_view(),
+        name="import",
     ),
 ]

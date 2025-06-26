@@ -19,6 +19,7 @@ class UpdateGroupsTask(ScribeTask):
 class LazyImportComicsTask(ScribeTask):
     """Lazy import of metadaa for existing comics."""
 
+    group: str
     pks: frozenset[int]
 
 
