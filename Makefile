@@ -80,6 +80,12 @@ icons:
 collectstatic:
 	bin/collectstatic.sh
 
+.PHONE: check
+## Django check
+## @category Build
+check:
+	bin/pm check
+
 .PHONY: build-backend
 ## Build python package
 ## @category Build
