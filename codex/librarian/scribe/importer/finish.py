@@ -12,6 +12,7 @@ from codex.librarian.notifier.tasks import (
 )
 from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
 
 _REPORT_MAP = MappingProxyType(
@@ -28,6 +29,10 @@ _REPORT_MAP = MappingProxyType(
         "comics_moved": "comics moved",
         "covers_moved": " covers moved",
     }
+)
+_SEARCH_INDEX_STATII = (
+    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
 )
 
 
@@ -58,8 +63,11 @@ class FinishImporter(InitImporter):
                 # Wait to start the search index update in case more updates are incoming.
                 task = SearchIndexUpdateTask(rebuild=False)
                 self.librarian_queue.put(task)
+            else:
+                self.status_controller.finish_many(_SEARCH_INDEX_STATII)
         else:
             log_txt = f"No updates neccissary for library {self.library.path}. Finished in {elapsed}."
+            self.status_controller.finish_many(_SEARCH_INDEX_STATII)
         self.log.success(log_txt)
         if self.counts.failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_CHANGED_TASK)
