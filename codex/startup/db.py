@@ -2,6 +2,7 @@
 
 import sqlite3
 import subprocess
+from threading import Event
 
 from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connection, connections
@@ -58,7 +59,7 @@ def _get_backup_db_path(prefix):
 def _backup_db_before_migration():
     """If there are migrations to do, backup the db."""
     backup_path = _get_backup_db_path(f"before-v{VERSION}")
-    janitor = Janitor(logger, LIBRARIAN_QUEUE)
+    janitor = Janitor(logger, LIBRARIAN_QUEUE, Event())
     janitor.backup_db(show_status=False, backup_path=backup_path)
     logger.info("Backed up database before migrations")
 
