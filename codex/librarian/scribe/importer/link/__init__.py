@@ -84,6 +84,8 @@ class LinkComicsImporter(LinkImporterDelete):
 
             created_total = 0
             for field_name, m2m_links in all_m2m_links.items():
+                if self.abort_event.is_set():
+                    return created_total + del_total
                 try:
                     created_total += self.link_comic_m2m_field(
                         field_name, m2m_links, status
@@ -100,4 +102,6 @@ class LinkComicsImporter(LinkImporterDelete):
     def link(self):
         """Link tags and covers."""
         self.counts.link += self.link_comic_m2m_fields()
+        if self.abort_event.is_set():
+            return
         self.counts.link_covers += self.link_custom_covers()

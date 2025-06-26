@@ -136,10 +136,20 @@ class DeletedImporter(FinishImporter):
 
     def delete(self):
         """Delete files and folders."""
+        if self.abort_event.is_set():
+            return
         self.counts.folders_deleted += self._bulk_folders_deleted()
+        if self.abort_event.is_set():
+            return
         deleted_comic_groups = self._init_deleted_comic_groups()
+        if self.abort_event.is_set():
+            return
         self.counts.comics_deleted = self._bulk_comics_deleted(deleted_comic_groups)
+        if self.abort_event.is_set():
+            return
         self.counts.covers_deleted = self._bulk_covers_deleted()
+        if self.abort_event.is_set():
+            return
         timestamp_updater = TimestampUpdater(self.log, self.librarian_queue)
         timestamp_updater.update_library_groups(
             self.library, self.start_time, deleted_comic_groups

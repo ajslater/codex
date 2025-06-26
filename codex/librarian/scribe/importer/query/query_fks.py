@@ -169,6 +169,8 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
                 return
             self.status_controller.start(status)
             for model in tuple(self.metadata[QUERY_MODELS].keys()):
+                if self.abort_event.is_set():
+                    return
                 self._query_missing_model(model, status)
             self.metadata.pop(QUERY_MODELS)
             self._set_fk_totals(CREATE_FKS, ImporterStatusTypes.CREATE_TAGS)

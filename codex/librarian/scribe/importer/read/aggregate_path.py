@@ -94,6 +94,8 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         # Aggregate further
 
         for path in tuple(self.metadata[EXTRACTED]):
+            if self.abort_event.is_set():
+                return status.complete
             self._aggregate_path(path, status)
         del self.metadata[EXTRACTED]
 

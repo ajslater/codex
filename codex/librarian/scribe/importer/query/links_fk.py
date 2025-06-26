@@ -85,6 +85,8 @@ class QueryPruneLinksFKs(QueryUpdateComics):
 
         start = 0
         while start < num_paths:
+            if self.abort_event.is_set():
+                return
             end = start + LINK_FK_BATCH_SIZE
             batch_paths = paths[start:end]
             self._query_prune_comic_fk_links_batch(batch_paths, status)

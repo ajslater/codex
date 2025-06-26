@@ -62,6 +62,8 @@ class CreateComicsImporter(LinkComicsImporter):
         update_comics = []
         comic_pks = []
         for comic in comics:
+            if self.abort_event.is_set():
+                return count
             try:
                 self._update_comic_values(comic, update_comics, comic_pks)
             except Exception:
@@ -114,6 +116,8 @@ class CreateComicsImporter(LinkComicsImporter):
 
         create_comics = []
         for path in paths:
+            if self.abort_event.is_set():
+                return count
             try:
                 self._bulk_create_comic(path, create_comics)
             except KeyError:

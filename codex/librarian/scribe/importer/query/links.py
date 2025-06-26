@@ -20,7 +20,11 @@ class QueryPruneLinks(QueryPruneLinksM2M):
             if not total_query_ops:
                 return
             self.status_controller.start(status)
+            if self.abort_event.is_set():
+                return
             self._query_prune_comic_fk_links(status)
+            if self.abort_event.is_set():
+                return
             self._query_prune_comic_m2m_links(status)
         finally:
             self.status_controller.finish(status)

@@ -83,6 +83,8 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         # objects for comparing with tuples.
         start = 0
         while start < num_paths:
+            if self.abort_event.is_set():
+                return
             end = start + LINK_M2M_BATCH_SIZE
             batch_paths = paths[start:end]
             self._query_prune_comic_m2m_links_batch(batch_paths, status)

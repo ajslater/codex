@@ -98,7 +98,9 @@ class ScribeThread(QueuedThread):
                 self.abort_cleanup_event.set()
                 self.log.debug("Abort cleanup db signal given.")
             elif isinstance(task, SearchIndexAbortTask):
-                self.log.debug("Search Index Update abort signal given.")
+                self.log.debug(
+                    "Search Index Update abort signal given. May take a bit for the current import subtask to finish."
+                )
                 return
         elif isinstance(task, ImportAbortTask):
             self.abort_import_event.set()

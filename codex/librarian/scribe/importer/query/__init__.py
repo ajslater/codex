@@ -33,9 +33,17 @@ class QueryForeignKeysImporter(QueryPruneLinks):
             f"Querying existing foreign keys for comics in {self.library.path}"
         )
         try:
+            if self.abort_event.is_set():
+                return
             self.query_all_missing_models()
+            if self.abort_event.is_set():
+                return
             self.query_update_comics()
+            if self.abort_event.is_set():
+                return
             self.query_prune_comic_links()
+            if self.abort_event.is_set():
+                return
             self.query_missing_custom_covers()
         finally:
             self.status_controller.finish_many(_STATII)

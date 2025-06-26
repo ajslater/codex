@@ -106,6 +106,8 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             import_metadata = self._set_import_metadata_flag()
 
             for path in all_paths:
+                if self.abort_event.is_set():
+                    return count
                 if md := self._extract_path(path, import_metadata=import_metadata):
                     self.metadata[EXTRACTED][path] = md
                 else:

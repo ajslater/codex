@@ -31,6 +31,8 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
             status.add_complete(len(paths) - comics.count())
 
             for comic in comics:
+                if self.abort_event.is_set():
+                    return
                 proposed_comic_dict = self.metadata[CREATE_COMICS].pop(comic.path)
                 update_comic_dict = {
                     key: value
