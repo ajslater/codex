@@ -102,7 +102,7 @@ class BrowserValidateView(SearchFilterView):
         nav_group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
         if top_group not in valid_top_groups:
-            reason = f"top_group {top_group} not in valid nav groups, changed to "
+            reason = f"top_group {top_group} not in valid nav groups {valid_top_groups}, changed to "
             if nav_group in valid_top_groups:
                 valid_top_group = nav_group
                 reason += "nav group: "

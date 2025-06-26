@@ -335,8 +335,8 @@ export const useBrowserStore = defineStore("browser", {
        */
       const currentParams = router?.currentRoute?.value?.params;
       const currentGroup = currentParams?.group;
-      if (currentGroup === "r") {
-        // r group can have any top groups?
+      if (currentGroup === "r" && !["a", "f"].includes(data.topGroup)) {
+        // r nav group can have any browse top group.
         return redirect;
       }
 
