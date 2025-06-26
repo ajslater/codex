@@ -63,7 +63,8 @@ const getSettings = (data) => {
 };
 
 const updateSettings = (settings) => {
-  return HTTP.patch("/r/settings", settings);
+  const params = serializeParams(settings);
+  return HTTP.patch("/r/settings", { params });
 };
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
