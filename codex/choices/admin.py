@@ -88,7 +88,7 @@ ADMIN_TASK_GROUPS: MappingProxyType[
                         "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
                     },
                     {
-                        "value": "abort_import",
+                        "value": "import_abort",
                         "title": "Abort Running Import",
                         "desc": "Abort the current running import after the current import subtask is complete",
                     },

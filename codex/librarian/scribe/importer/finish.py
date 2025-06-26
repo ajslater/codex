@@ -14,6 +14,7 @@ from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
+from codex.librarian.scribe.status import ScribeStatusTypes
 
 _REPORT_MAP = MappingProxyType(
     {
@@ -30,9 +31,13 @@ _REPORT_MAP = MappingProxyType(
         "covers_moved": " covers moved",
     }
 )
+_FINISH_STATII = (
+    *ImporterStatusTypes.values,
+    ScribeStatusTypes.UPDATE_GROUP_TIMESTAMPS.value,
+)
 _SEARCH_INDEX_STATII = (
-    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
+    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value,
 )
 
 
@@ -42,7 +47,7 @@ class FinishImporter(InitImporter):
     def finish(self):
         """Perform final tasks when the apply is done."""
         self.library.end_update()
-        self.status_controller.finish_many(ImporterStatusTypes.values)
+        self.status_controller.finish_many(_FINISH_STATII)
         elapsed_time = time() - self.start_time.timestamp()
         elapsed = naturaldelta(elapsed_time)
         if self.counts.changed():

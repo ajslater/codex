@@ -79,7 +79,7 @@ _TASK_MAP = MappingProxyType(
         "search_index_update": SearchIndexUpdateTask(rebuild=False),
         "search_index_rebuild": SearchIndexUpdateTask(rebuild=True),
         "search_index_remove_stale": SearchIndexRemoveStaleTask(),
-        "import_abort_task": ImportAbortTask(),
+        "import_abort": ImportAbortTask(),
         "search_index_abort": SearchIndexAbortTask(),
         "search_index_optimize": SearchIndexOptimizeTask(),
         "search_index_clear": SearchIndexClearTask(),
