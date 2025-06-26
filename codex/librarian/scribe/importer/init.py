@@ -24,20 +24,20 @@ _WRITE_WAIT_EXPIRY = 60
 class Counts:
     """Total counts of operations."""
 
-    comic = 0
-    tags = 0
-    link = 0
-    link_covers = 0
-    folders = 0
-    comics_deleted = 0
-    folders_deleted = 0
-    tags_deleted = 0
-    covers = 0
-    covers_deleted = 0
-    comics_moved = 0
-    folders_moved = 0
-    covers_moved = 0
-    failed_imports = 0
+    comic: int = 0
+    tags: int = 0
+    link: int = 0
+    link_covers: int = 0
+    folders: int = 0
+    comics_deleted: int = 0
+    folders_deleted: int = 0
+    tags_deleted: int = 0
+    covers: int = 0
+    covers_deleted: int = 0
+    comics_moved: int = 0
+    folders_moved: int = 0
+    covers_moved: int = 0
+    failed_imports: int = 0
 
     def _any(self, exclude_prefixes: tuple[str, ...]):
         return any(
