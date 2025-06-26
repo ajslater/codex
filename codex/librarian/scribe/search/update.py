@@ -113,16 +113,21 @@ class SearchIndexerUpdate(SearchIndexerRemove):
         )
 
     @staticmethod
-    def _get_pycountry_fts_field(field_instance: PyCountryField, iso_code):
+    def _get_pycountry_fts_field(field: PyCountryField, iso_code):
         if not iso_code:
             return ""
-        return ",".join((iso_code, field_instance.to_representation(iso_code)))
+        return ",".join((iso_code, field.to_representation(iso_code)))
 
-    def _get_comics_fts_list(
-        self, comics, country_field, language_field, obj_list, create
-    ):
-        """Prepare a batch of search entries."""
+    def _get_comicfts_list(self, comics, *, create: bool):
+        """Create a ComicFTS object for bulk_create or bulk_update."""
+        country_field: PyCountryField = CountryField()  # pyright: ignore[reportAssignmentType]
+        language_field: PyCountryField = LanguageField()  # pyright: ignore[reportAssignmentType]
+        obj_list = []
+        comics = self._annotate_fts_query(comics)
         for comic in comics:
+            if self.is_abort():
+                return obj_list
+
             country = self._get_pycountry_fts_field(country_field, comic.fts_country)
             language = self._get_pycountry_fts_field(language_field, comic.fts_language)
 
@@ -169,18 +174,12 @@ class SearchIndexerUpdate(SearchIndexerRemove):
 
             obj_list.append(comicfts)
 
-    def _get_comicfts_list(self, comics, *, create: bool):
-        """Create a ComicFTS object for bulk_create or bulk_update."""
-        country_field = CountryField()
-        language_field = LanguageField()
-        obj_list = []
-        comics = self._annotate_fts_query(comics)
-        self._get_comics_fts_list(
-            comics, country_field, language_field, obj_list, create
-        )
         return obj_list
 
-    def _update_search_index_finish(self, count, verbed, status, start_time):
+    def _update_search_index_finish(
+        self, count, verbed, prepare_status, operate_status, start_time
+    ):
+        self.status_controller.finish(prepare_status)
         total_time = time() - start_time
         human_time = naturaldelta(total_time)
         if total_time:
@@ -193,7 +192,7 @@ class SearchIndexerUpdate(SearchIndexerRemove):
             self.log.info(f"{verbed} {count} {suffix}")
         else:
             self.log.debug(f"{verbed} no {suffix}.")
-        self.status_controller.finish(status)
+        self.status_controller.finish(operate_status)
 
     def _update_search_index_operate_batch(  # noqa: PLR0913
         self,
@@ -202,7 +201,8 @@ class SearchIndexerUpdate(SearchIndexerRemove):
         count: int,
         verbing: str,
         verbed: str,
-        status,
+        prepare_status,
+        operate_status,
         *,
         create: bool,
     ):
@@ -210,29 +210,41 @@ class SearchIndexerUpdate(SearchIndexerRemove):
             return
         batch_start = time()
         batch_to = batch_from + SEARCH_INDEX_BATCH_SIZE
-        comics_batch = comics_qs[batch_from:batch_to]
+        batch_min_to = min(batch_to, count)
+        batch_count = batch_min_to - batch_from
+        batch_position = f"({batch_from}:{batch_min_to}/{count})"
         self.log.debug(
-            f"Checking {comics_batch.count()}/{count} comics for search index operations..."
+            f"Preparing {batch_count} {batch_position} comics for search indexing..."
         )
+        comics_batch = comics_qs[batch_from:batch_to]
+        if prepare_status.complete is None:
+            prepare_status.complete = 0
+            self.status_controller.update(prepare_status, notify=True)
         operate_comicfts = self._get_comicfts_list(comics_batch, create=create)
         operate_comicfts_count = len(operate_comicfts)
+        prepare_status.add_complete(operate_comicfts_count)
+        self.status_controller.update(prepare_status)
+        if prepare_status.complete and prepare_status.complete >= prepare_status.total:
+            self.status_controller.finish(prepare_status)
         if self.is_abort():
             return
-        self.log.debug(f"{verbing} {operate_comicfts_count} search entries...")
-        if status.complete is None:
-            status.add_complete(0)
-            self.status_controller.update(status, notify=True)
+        self.log.debug(
+            f"{verbing} {operate_comicfts_count} {batch_position}) search entries..."
+        )
+        if operate_status.complete is None:
+            operate_status.add_complete(0)
+            self.status_controller.update(operate_status, notify=True)
         if create:
             ComicFTS.objects.bulk_create(operate_comicfts)
         else:
             ComicFTS.objects.bulk_update(operate_comicfts, _COMICFTS_UPDATE_FIELDS)
-        status.add_complete(operate_comicfts_count)
-        self.status_controller.update(status)
+        operate_status.add_complete(operate_comicfts_count)
+        self.status_controller.update(operate_status)
         batch_time = time() - batch_start
         human_time = naturaldelta(batch_time)
         eps = round(count / batch_time)
         self.log.debug(
-            f"{verbed} {operate_comicfts_count}/{count} search entries in {human_time}, {eps} per second."
+            f"{verbed} {operate_comicfts_count} {batch_position} search entries in {human_time}, {eps} per second."
         )
 
     def _update_search_index_operate(self, comics_qs, *, create: bool):
@@ -259,6 +271,10 @@ class SearchIndexerUpdate(SearchIndexerRemove):
         )
         operate_status = Status(status_type, total=count, subtitle=subtitle)
         self.status_controller.start(operate_status)
+        prepare_status = Status(
+            SearchIndexStatusTypes.SEARCH_INDEX_PREPARE, total=count, subtitle=subtitle
+        )
+        self.status_controller.start(prepare_status)
 
         verbing = (verb[:-1] + "ing").capitalize()
         verbed = verb.capitalize() + "d"
@@ -272,6 +288,7 @@ class SearchIndexerUpdate(SearchIndexerRemove):
                     count,
                     verbing,
                     verbed,
+                    prepare_status,
                     operate_status,
                     create=create,
                 )
@@ -279,7 +296,9 @@ class SearchIndexerUpdate(SearchIndexerRemove):
                     break
                 batch_from += SEARCH_INDEX_BATCH_SIZE
         finally:
-            self._update_search_index_finish(count, verbed, operate_status, start_time)
+            self._update_search_index_finish(
+                count, verbed, operate_status, prepare_status, start_time
+            )
 
     def _update_search_index_update(self, all_indexed_comic_ids):
         """Update out of date search entries."""
