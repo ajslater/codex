@@ -46,6 +46,9 @@ class FinishImporter(InitImporter):
 
     def finish(self):
         """Perform final tasks when the apply is done."""
+        if self.abort_event.is_set():
+            self.log.info("Import task aborted early.")
+        self.abort_event.clear()
         self.library.end_update()
         self.status_controller.finish_many(_FINISH_STATII)
         elapsed_time = time() - self.start_time.timestamp()

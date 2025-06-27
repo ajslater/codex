@@ -28,4 +28,3 @@ class ComicImporter(MovedImporter):
                     return
         finally:
             self.finish()
-            self.abort_event.clear()

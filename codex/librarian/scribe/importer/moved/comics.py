@@ -89,7 +89,10 @@ class MovedComicsImporter(ExtractMetadataImporter):
             )
         self.task.files_moved = {}
         self.log.debug(f"Prepared {len(updated_comics)} for move...")
-        return updated_comics, folder_m2m_links, tuple(del_folder_rows)
+        del_rows_map = {}
+        if del_folder_rows:
+            del_rows_map[FOLDERS_FIELD_NAME] = del_folder_rows
+        return updated_comics, folder_m2m_links, del_rows_map
 
     def bulk_comics_moved(self):
         """Move comcis."""
@@ -102,15 +105,15 @@ class MovedComicsImporter(ExtractMetadataImporter):
 
             # Prepare
             self._bulk_comics_moved_ensure_folders()
-            updated_comics, folder_m2m_links, del_folder_rows = (
+            updated_comics, folder_m2m_links, del_rows_map = (
                 self._bulk_comics_move_prepare()
             )
 
             # Update comics
             # Potentially could just add these to the right structures and do it later during create and link.
             Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
-            if del_folder_rows:
-                self.delete_m2m_field(FOLDERS_FIELD_NAME, del_folder_rows, status)
+            if del_rows_map:
+                self.delete_m2m_field(FOLDERS_FIELD_NAME, del_rows_map, status)
             if folder_m2m_links:
                 self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
 

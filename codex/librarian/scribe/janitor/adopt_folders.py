@@ -41,15 +41,13 @@ class OrphanFolderAdopter(WorkerStatusMixin):
 
         # An abridged import task.
         task = ImportTask(library_id=library.pk, dirs_moved=folders_moved)
-        importer = ComicImporter(
-            task, self.log, self.librarian_queue, self.abort_import_event
-        )
+        importer = ComicImporter(task, self.log, self.librarian_queue, self.abort_event)
         count = importer.bulk_folders_moved(mark_in_progress=True)
         return True, count
 
     def adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
-        self.abort_import_event.clear()
+        self.abort_event.clear()
         status = Status(JanitorStatusTypes.ADOPT_ORPHAN_FOLDERS)
         moved_status = Status(ImporterStatusTypes.MOVE_FOLDERS)
         total_count = 0
@@ -57,13 +55,9 @@ class OrphanFolderAdopter(WorkerStatusMixin):
             self.status_controller.start_many((status, moved_status))
             libraries = Library.objects.filter(covers_only=False).only("path")
             for library in libraries.iterator():
-                if self.abort_import_event.is_set():
-                    self.log.debug("Adopt Orphan Folders aborted.")
-                    return
                 folders_left = True
                 while folders_left:
-                    if self.abort_import_event.is_set():
-                        self.log.debug("Adopt Orphan Folders aborted.")
+                    if self.abort_event.is_set():
                         return
                     # Run until there are no orphan folders
                     folders_left, count = self._adopt_orphan_folders_for_library(
@@ -76,9 +70,12 @@ class OrphanFolderAdopter(WorkerStatusMixin):
                 self.librarian_queue.put(LIBRARY_CHANGED_TASK)
                 task = SearchIndexUpdateTask()
                 self.librarian_queue.put(task)
-            self.abort_import_event.clear()
+            if self.abort_event.is_set():
+                self.log.debug("Adopt Orphan Folders aborted early.")
+
+            self.abort_event.clear()
 
     def __init__(self, logger_, librarian_queue: Queue, event):
         """Initialize Worker."""
-        self.abort_import_event = event
+        self.abort_event = event
         self.init_worker(logger_, librarian_queue)

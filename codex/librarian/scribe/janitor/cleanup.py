@@ -106,9 +106,6 @@ _BOOKMARK_FILTER = dict.fromkeys(
 class JanitorCleanup(JanitorUpdateFailedImports):
     """Cleanup methods for Janitor."""
 
-    def _is_abort_cleanup(self) -> bool:
-        return self.abort_cleanup_event.is_set()
-
     def _bulk_del_model(self, model, filter_dict):
         qs = model.objects.filter(**filter_dict).distinct()
         count, _ = qs.delete()
@@ -127,14 +124,14 @@ class JanitorCleanup(JanitorUpdateFailedImports):
     def _cleanup_fks_one_level(self, status):
         count = 0
         for model, filter_dict in _MODEL_REVERSE_EMPTY_FILTER_MAP.items():
-            if self._is_abort_cleanup():
+            if self.abort_event.is_set():
                 return count
             count += self._cleanup_fks_model(model, filter_dict, status)
         return count
 
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
-        self.abort_cleanup_event.clear()
+        self.abort_event.clear()
         status = Status(JanitorStatusTypes.CLEANUP_TAGS, 0)
         try:
             self.status_controller.start(status)
@@ -142,14 +139,13 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             count = 1
             while count:
                 # Keep churning until we stop finding orphan tags.
-                count = 0
-                if self._is_abort_cleanup():
-                    break
                 count = self._cleanup_fks_one_level(status)
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
-            self.abort_cleanup_event.clear()
+            if self.abort_event.is_set():
+                self.log.info("Cleanup tags task aborted early.")
+            self.abort_event.clear()
             self.status_controller.finish(status)
 
     def cleanup_custom_covers(self):

@@ -325,7 +325,7 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def __init__(self, logger_, librarian_queue: Queue, event):
         """Init self.log."""
-        self.abort_cleanup_event = event
+        self.abort_event = event
         self.init_worker(logger_, librarian_queue)
 
     def foreign_key_check(self):
