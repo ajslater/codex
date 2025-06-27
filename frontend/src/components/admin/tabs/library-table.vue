@@ -193,12 +193,6 @@ export default {
       "librarianTask",
       "loadTables",
     ]),
-    formatDateTime(dttm) {
-      if (dttm && Date(dttm).getFullYear() > 2000) {
-        return getDateTime(dttm, this.twentyFourHourTime);
-      }
-      return "Never";
-    },
     formatNumber(num) {
       return NUMBER_FORMAT.format(num);
     },
