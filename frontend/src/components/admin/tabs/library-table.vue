@@ -137,9 +137,10 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
     headers() {
+      const comicsHeader = this.coversDir ? "Covers" : "Comics";
       const headers = [
         { title: "Path", key: "path", align: "start" },
-        { title: "Comics", key: "comicCount" },
+        { title: comicsHeader, key: "comicCount" },
         { title: "Failed", key: "FailedCount" },
         {
           title: "Watch File Events",
@@ -249,6 +250,7 @@ export default {
 .actionButtonCell :deep(> button:hover) {
   opacity: 1;
 }
+
 .failedComics {
   color: rgb(var(--v-theme-error));
 }
