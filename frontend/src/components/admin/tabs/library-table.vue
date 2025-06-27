@@ -6,11 +6,11 @@
       </td>
     </template>
     <template #[`item.comicCount`]="{ item }">
-      {{ item.comicCount }}
+      {{ formatNumber(item.comicCount) }}
     </template>
     <template #[`item.failedCount`]="{ item }">
       <span class="failedComics">
-        {{ item.failedCount }}
+        {{ formatNumber(item.failedCount) }}
       </span>
     </template>
     <template #[`item.events`]="{ item }">
@@ -94,7 +94,7 @@ import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { getDateTime } from "@/datetime";
+import { NUMBER_FORMAT, getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -194,7 +194,13 @@ export default {
       "loadTables",
     ]),
     formatDateTime(dttm) {
-      return dttm ? getDateTime(dttm, this.twentyFourHourTime) : "";
+      if (dttm && Date(dttm).getFullYear() > 2000) {
+        return getDateTime(dttm, this.twentyFourHourTime);
+      }
+      return "Never";
+    },
+    formatNumber(num) {
+      return NUMBER_FORMAT.format(num);
     },
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;
