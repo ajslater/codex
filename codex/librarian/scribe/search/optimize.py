@@ -23,14 +23,9 @@ class SearchIndexerOptimize(WorkerStatusMixin):
         self.abort_event = event
         self.init_worker(log, library_queue)
 
-    def is_abort(self):
-        """Is the abort state set."""
-        return self.abort_event.is_set()
-
     def optimize(self):
         """Remove records not in the database from the index, trapping exceptions."""
         start_time = time()
-        self.abort_event.clear()
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
         try:
             self.status_controller.update(status)
