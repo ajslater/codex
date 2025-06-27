@@ -166,7 +166,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         if task.total():
             self.librarian_queue.put(task)
         else:
-            self.log.debug("Empty task. Batcher not sending.")
+            self.log.debug("Empty task after filtering. Not sending to importer.")
 
     @override
     def send_all_items(self):
