@@ -2,8 +2,8 @@
   <div class="statusItem">
     <div class="statusItemTitle">
       {{ title }}
-      <div v-if="status.subtitle" class="statusItemSubtitle">
-        {{ status.subtitle }}
+      <div v-if="status.subtitle || duration" class="statusItemSubtitle">
+        {{ status.subtitle }} ({{ duration }})
       </div>
       <div v-if="showNumbers" class="statusItemSubtitle">
         <span v-if="showComplete"> {{ nf(status.complete) }} / </span>
@@ -20,13 +20,17 @@
 
 <script>
 import STATUS_TITLES from "@/choices/admin-status-titles.json";
-import { NUMBER_FORMAT } from "@/datetime";
+import { NUMBER_FORMAT, getFormattedDuration} from "@/datetime";
 
 export default {
   name: "AdminStatusListItem",
   props: {
     status: {
       type: Object,
+      required: true,
+    },
+    now: {
+      type: Number,
       required: true,
     },
   },
@@ -51,6 +55,15 @@ export default {
     },
     title() {
       return STATUS_TITLES[this.status.statusType];
+    },
+    activeTime() {
+      return new Date(this.status.active).getTime();
+    },
+    duration() {
+      if (!this.status.active) {
+        return "";
+      }
+      return getFormattedDuration(this.activeTime, this.now);
     },
   },
   methods: {

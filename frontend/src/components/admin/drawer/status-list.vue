@@ -14,7 +14,7 @@
           v-for="status of librarianStatuses"
           :key="status.id"
         >
-          <StatusListItem :status="status" />
+          <StatusListItem :status="status" :now="now" />
         </v-expand-transition>
       </div>
       <v-list-item-title v-else id="noTasksRunning">
@@ -30,6 +30,7 @@ import { mapActions, mapState } from "pinia";
 import CloseButton from "@/components/close-button.vue";
 import StatusListItem from "@/components/admin/drawer/status-list-item.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminStatusList",
@@ -37,7 +38,13 @@ export default {
     CloseButton,
     StatusListItem,
   },
+  data() {
+    return { now: Date.now() };
+  },
   computed: {
+    ...mapState(useCommonStore, {
+      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
+    }),
     ...mapState(useAdminStore, {
       librarianStatuses: (state) => state.librarianStatuses,
       show: (state) => state.librarianStatuses.length > 0,
@@ -46,6 +53,21 @@ export default {
   created() {
     this.load();
   },
+  watch: {
+    show(to) {
+      if (to) {
+        this.updateTime();
+      }
+    },
+    isSettingsDrawerOpen(to) {
+      if (to) {
+        this.updateTime();
+      }
+    },
+  },
+  mounted() {
+    this.updateTime();
+  },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
     load() {
@@ -53,6 +75,14 @@ export default {
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");
+    },
+    updateTime() {
+      this.now = Date.now();
+      setTimeout(() => {
+        if (this.isSettingsDrawerOpen && this.show) {
+          this.updateTime();
+        }
+      }, 1000);
     },
   },
 };
