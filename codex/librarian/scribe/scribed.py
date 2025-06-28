@@ -2,6 +2,7 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
+from threading import Lock
 
 from typing_extensions import override
 
@@ -47,11 +48,12 @@ ABORT_SEARCH_UPDATE_TASKS = (
 class ScribeThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, db_write_lock: Lock, **kwargs):
         """Initialize abort event."""
         self.abort_import_event = Manager().Event()
         self.abort_search_update_event = Manager().Event()
         self.abort_cleanup_event = Manager().Event()
+        self.db_write_lock = db_write_lock
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     @override
@@ -84,7 +86,10 @@ class ScribeThread(QueuedThread):
                 worker.handle_task(task)
             case JanitorTask():
                 worker = Janitor(
-                    self.log, self.librarian_queue, self.abort_cleanup_event
+                    self.log,
+                    self.librarian_queue,
+                    self.abort_cleanup_event,
+                    self.db_write_lock,
                 )
                 worker.handle_task(task)
             case _:
