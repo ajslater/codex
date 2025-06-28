@@ -8,7 +8,7 @@
       <div v-if="showNumbers || duration" class="statusItemSubtitle">
         <span v-if="showComplete"> {{ nf(status.complete) }} / </span>
         {{ nf(status.total) }}
-        <span v-if="duration">({{ duration }})</span>
+        <span class="duration" v-if="duration">{{ duration }}</span>
       </div>
     </div>
     <v-progress-linear
@@ -88,5 +88,8 @@ export default {
   opacity: 0.75;
   font-size: small;
   overflow-x: auto;
+}
+.duration {
+  float: right;
 }
 </style>
