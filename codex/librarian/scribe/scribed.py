@@ -2,7 +2,6 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
-from threading import Lock
 
 from typing_extensions import override
 
@@ -48,12 +47,11 @@ ABORT_SEARCH_UPDATE_TASKS = (
 class ScribeThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
-    def __init__(self, *args, db_write_lock: Lock, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize abort event."""
         self.abort_import_event = Manager().Event()
         self.abort_search_update_event = Manager().Event()
         self.abort_cleanup_event = Manager().Event()
-        self.db_write_lock = db_write_lock
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     @override
@@ -63,33 +61,45 @@ class ScribeThread(QueuedThread):
         match task:
             case ImportTask():
                 importer = ComicImporter(
-                    task, self.log, self.librarian_queue, self.abort_import_event
+                    task,
+                    self.log,
+                    self.librarian_queue,
+                    self.db_write_lock,
+                    self.abort_import_event,
                 )
                 importer.apply()
             case LazyImportComicsTask():
-                worker = LazyImporter(self.log, self.librarian_queue)
+                worker = LazyImporter(
+                    self.log, self.librarian_queue, self.db_write_lock
+                )
                 worker.lazy_import(task)
             case UpdateGroupsTask():
-                worker = TimestampUpdater(self.log, self.librarian_queue)
+                worker = TimestampUpdater(
+                    self.log, self.librarian_queue, self.db_write_lock
+                )
                 worker.update_groups(task)
             case JanitorAdoptOrphanFoldersTask():
                 worker = OrphanFolderAdopter(
-                    self.log, self.librarian_queue, self.abort_import_event
+                    self.log,
+                    self.librarian_queue,
+                    self.db_write_lock,
+                    event=self.abort_import_event,
                 )
                 worker.adopt_orphan_folders()
             case SearchIndexerTask():
                 worker = SearchIndexer(
                     self.log,
                     self.librarian_queue,
-                    self.abort_search_update_event,
+                    self.db_write_lock,
+                    event=self.abort_search_update_event,
                 )
                 worker.handle_task(task)
             case JanitorTask():
                 worker = Janitor(
                     self.log,
                     self.librarian_queue,
-                    self.abort_cleanup_event,
                     self.db_write_lock,
+                    event=self.abort_cleanup_event,
                 )
                 worker.handle_task(task)
             case _:
