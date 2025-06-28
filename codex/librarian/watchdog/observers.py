@@ -166,9 +166,7 @@ class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGen
 
     ENABLE_FIELD: str = "events"
 
-    def __init__(
-        self, logger_, librarian_queue: Queue, db_write_lock, *args, **kwargs
-    ):
+    def __init__(self, logger_, librarian_queue: Queue, db_write_lock, *args, **kwargs):
         """Initialize queues."""
         if db_write_lock is None:
             reason = "db_write_lock argument must be a Lock."

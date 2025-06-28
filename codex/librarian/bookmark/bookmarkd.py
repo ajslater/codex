@@ -62,17 +62,17 @@ class BookmarkThread(
         if self.db_write_lock.locked():
             self.log.warning(f"Database locked, not processing {task}")
         match task:
-                case TelemeterTask():
-                    send_telemetry(self.log)
-                case ClearLibrarianStatusTask():
-                    self.status_controller.finish_many([])
-                case CodexLatestVersionTask():
-                    worker = CodexLatestVersionUpdater(
-                        self.log, self.librarian_queue, self.db_write_lock
-                    )
-                    worker.update_latest_version(force=task.force)
-                case _:
-                    self.log.warning(f"Unknown Bookmark task {task}")
+            case TelemeterTask():
+                send_telemetry(self.log)
+            case ClearLibrarianStatusTask():
+                self.status_controller.finish_many([])
+            case CodexLatestVersionTask():
+                worker = CodexLatestVersionUpdater(
+                    self.log, self.librarian_queue, self.db_write_lock
+                )
+                worker.update_latest_version(force=task.force)
+            case _:
+                self.log.warning(f"Unknown Bookmark task {task}")
 
     @override
     def aggregate_items(self, item):
@@ -101,11 +101,11 @@ class BookmarkThread(
         cleanup = set()
         for key, value in self.cache.items():
             try:
-               if key.user_pk:
-                        self.update_user_active(key.user_pk, logger)
-               elif key.comic_pks:
-                        self.update_bookmarks(key.auth_filter, key.comic_pks, value)
-               cleanup.add(key)
+                if key.user_pk:
+                    self.update_user_active(key.user_pk, logger)
+                elif key.comic_pks:
+                    self.update_bookmarks(key.auth_filter, key.comic_pks, value)
+                cleanup.add(key)
             except Exception:
                 self.log.exception("Updating bookmarks")
 

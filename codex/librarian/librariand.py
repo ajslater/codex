@@ -105,13 +105,9 @@ class LibrarianDaemon(Process):
         """Create all the threads."""
         self.log.debug("Creating Librarian threads...")
         self.log.debug(f"Active threads before thread creation: {active_count()}")
-        self.db_write_lock = Lock()
+        self.db_write_lock = Lock()  # pyright: ignore[reportUninitializedInstanceVariable]
         threads = {}
         kwargs: dict[str, Any] = {}
-        # "logger_": self.log,
-        # "librarian_queue": self.queue,
-        # "db_write_lock": self.db_write_lock,
-        # }
         for name, thread_class in _THREAD_CLASS_MAP.items():
             thread_kwargs = copy(kwargs)
             if thread_class == NotifierThread:
