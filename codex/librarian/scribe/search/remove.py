@@ -1,9 +1,5 @@
 """Search Index cleanup."""
 
-from time import time
-
-from humanize import naturaldelta
-
 from codex.librarian.scribe.search.optimize import SearchIndexerOptimize
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.status import Status
@@ -23,20 +19,20 @@ class SearchIndexerRemove(SearchIndexerOptimize):
 
     def _remove_stale_records(self, status):
         """Remove records not in the database from the index."""
-        start_time = time()
+        self.status_controller.start(status)
+        self.log.debug("Finding stale records to remove...")
         delete_comicfts = ComicFTS.objects.filter(comic__isnull=True)
-        status.total = len(delete_comicfts)
-        self.status_controller.update(status, notify=False)
+        status.total = delete_comicfts.count()
+        self.status_controller.update(status)
+        if status.total:
+            self.log.debug(f"Removing {status.total} stale records...")
         count, _ = delete_comicfts.delete()
 
         # Finish
         if count:
-            elapsed_time = time() - start_time
-            elapsed = naturaldelta(elapsed_time)
-            cps = int(count / elapsed_time)
             reason = (
                 f"Removed {count} stale records from the search index"
-                f" in {elapsed} at {cps} per second."
+                f" in {status.elapsed()} at {status.per_second('records')}."
             )
             self.log.info(reason)
         else:
