@@ -64,11 +64,6 @@ _COMICFTS_UPDATE_FIELDS = (
 )
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 _CHUNK_HUMAN_SIZE = intcomma(SEARCH_INDEX_BATCH_SIZE)
-# Prefetching is good for speed, but breaks the query depth limit somewhere greater
-# than 1600 and less than 2600 comics.
-_COMIC_PREFETCH = False
-_COMIC_SELECT = True
-# The old way was annotate AFTER the batch with no prefetch or select and a 10k limit.
 
 
 class SearchIndexerUpdate(SearchIndexerRemove):
@@ -98,38 +93,35 @@ class SearchIndexerUpdate(SearchIndexerRemove):
 
     @staticmethod
     def _select_related_fts_query(qs):
-        if _COMIC_SELECT:
-            qs = qs.select_related(
-                "publisher",
-                "imprint",
-                "series",
-                "country",
-                "language",
-                "scan_info",
-                "tagger",
-            )
-        return qs
+        return qs.select_related(
+            "publisher",
+            "imprint",
+            "series",
+            "country",
+            "language",
+            "scan_info",
+            "tagger",
+        )
 
     @staticmethod
     def _prefetch_related_fts_query(qs):
-        if _COMIC_PREFETCH:
-            qs = qs.prefetch_related(
-                "characters",
-                "credits",
-                # "credits__person",
-                "identifiers",
-                # "identifiers__source",
-                "genres",
-                "locations",
-                "series_groups",
-                "stories",
-                "story_arc_numbers",
-                # "story_arc_numbers__story_arc",
-                "tags",
-                "teams",
-                "universes",
-            )
-        return qs
+        # Prefecthing deep relations breaks the 1000 sqlite query depth limit
+        return qs.prefetch_related(
+            "characters",
+            "credits",
+            # "credits__person",
+            "identifiers",
+            # "identifiers__source",
+            "genres",
+            "locations",
+            "series_groups",
+            "stories",
+            "story_arc_numbers",
+            # "story_arc_numbers__story_arc",
+            "tags",
+            "teams",
+            "universes",
+        )
 
     @staticmethod
     def _annotate_fts_query(qs):
