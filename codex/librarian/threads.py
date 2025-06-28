@@ -21,13 +21,14 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
 
     def __init__(
         self,
+        logger_: Logger,
+        librarian_queue: Queue,
+        db_write_lock,
         *args,
-        logger_: Logger | None = None,
-        librarian_queue: Queue | None = None,
         **kwargs,
     ):
         """Initialize queues."""
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(logger_, librarian_queue, db_write_lock)
         super().__init__(*args, name=self.__class__.__name__, **kwargs)
 
     def run_start(self):

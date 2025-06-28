@@ -1,7 +1,5 @@
 """Kick off an import task for one batch of books."""
 
-from multiprocessing import Queue
-
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.worker import WorkerMixin
@@ -48,6 +46,6 @@ class LazyImporter(WorkerMixin):
                 )
                 self.librarian_queue.put(task)
 
-    def __init__(self, logger_, librarian_queue: Queue):
+    def __init__(self, *args, **kwargs):
         """Initialize Worker."""
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(*args, **kwargs)

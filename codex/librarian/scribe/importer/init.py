@@ -63,9 +63,11 @@ class Counts:
 class InitImporter(WorkerStatusMixin):
     """Initial Importer."""
 
-    def __init__(self, task: ImportTask, logger_, librarian_queue: Queue, event):
+    def __init__(
+        self, task: ImportTask, logger_, librarian_queue: Queue, db_write_lock, event
+    ):
         """Initialize the import."""
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(logger_, librarian_queue, db_write_lock)
         self.task: ImportTask = task
         self.metadata: dict[str, Any] = {}
         self.counts = Counts()

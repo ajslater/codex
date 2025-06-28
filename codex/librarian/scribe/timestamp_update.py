@@ -2,7 +2,6 @@
 
 from collections.abc import Mapping
 from datetime import datetime
-from multiprocessing import Queue
 
 from django.db.models import QuerySet
 from django.db.models.aggregates import Count
@@ -136,6 +135,6 @@ class TimestampUpdater(WorkerStatusMixin):
         self.log.log(level, f"Updated timestamps for {count} groups.")
         self.librarian_queue.put(LIBRARY_CHANGED_TASK)
 
-    def __init__(self, logger_, librarian_queue: Queue):
+    def __init__(self, log, librarian_queue, db_write_lock):
         """Initialize Worker."""
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(log, librarian_queue, db_write_lock)

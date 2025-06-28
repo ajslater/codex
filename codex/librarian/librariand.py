@@ -1,10 +1,10 @@
 """Library process worker for background tasks."""
 
 from copy import copy
-from multiprocessing import Process, Queue, Manager
-from threading import Event, active_count
+from multiprocessing import Process, Queue
+from threading import Lock, active_count
 from types import MappingProxyType
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
@@ -60,7 +60,6 @@ class LibrarianDaemon(Process):
         super().__init__(name=name, daemon=False)
         self.queue = queue
         self.broadcast_queue = broadcast_queue
-        self.db_write_lock = Manager().Lock()
         startup_tasks = (
             JanitorAdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
@@ -106,18 +105,20 @@ class LibrarianDaemon(Process):
         """Create all the threads."""
         self.log.debug("Creating Librarian threads...")
         self.log.debug(f"Active threads before thread creation: {active_count()}")
+        self.db_write_lock = Lock()
         threads = {}
-        kwargs: dict[str, Event | Queue | AioQueue | Lock] = {
-            "logger_": self.log,
-            "librarian_queue": self.queue,
-        }
+        kwargs: dict[str, Any] = {}
+        # "logger_": self.log,
+        # "librarian_queue": self.queue,
+        # "db_write_lock": self.db_write_lock,
+        # }
         for name, thread_class in _THREAD_CLASS_MAP.items():
             thread_kwargs = copy(kwargs)
             if thread_class == NotifierThread:
                 thread_kwargs["broadcast_queue"] = self.broadcast_queue
-            if thread_class in (BookmarkThread, LibraryPollingObserver, ScribeThread):
-                thread_kwargs["db_write_lock"] = self.db_write_lock
-            thread = thread_class(**thread_kwargs)  # pyright: ignore[reportArgumentType]
+            thread = thread_class(
+                self.log, self.queue, self.db_write_lock, **thread_kwargs
+            )
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
         self._threads = LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]

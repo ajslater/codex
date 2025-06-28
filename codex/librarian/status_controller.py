@@ -112,7 +112,7 @@ class StatusController:
         """Start many librarian statuses."""
         for index, status in enumerate(statii):
             status.start()
-            pad_ms = index * 100 # for order
+            pad_ms = index * 100  # for order
             preactive = now() + timedelta(milliseconds=pad_ms)
             self._update(status, notify=False, preactive=preactive)
         self._enqueue_notifier_task(notify=True)

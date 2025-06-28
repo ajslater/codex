@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from loguru import logger
 from typing_extensions import override
 
-from codex.librarian.bookmark.latest_version import CodexLatestVersionMixin
+from codex.librarian.bookmark.latest_version import CodexLatestVersionUpdater
 from codex.librarian.bookmark.tasks import (
     BookmarkUpdateTask,
     ClearLibrarianStatusTask,
@@ -52,22 +52,22 @@ class BookmarkThread(
     FLOOD_DELAY = 3.0
     MAX_DELAY = 5.0
 
-    def __init__(self, *args, db_write_lock, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Init mixins."""
         super().__init__(*args, **kwargs)
-        self.db_write_lock = db_write_lock
         self.init_group_acl()
         self.init_user_active()
 
     def _process_task_immediately(self, task):
-        with self.db_write_lock:
-            match task:
+        if self.db_write_lock.locked():
+            self.log.warning(f"Database locked, not processing {task}")
+        match task:
                 case TelemeterTask():
                     send_telemetry(self.log)
                 case ClearLibrarianStatusTask():
                     self.status_controller.finish_many([])
                 case CodexLatestVersionTask():
-                    worker = CodexLatestVersionMixin(
+                    worker = CodexLatestVersionUpdater(
                         self.log, self.librarian_queue, self.db_write_lock
                     )
                     worker.update_latest_version(force=task.force)
@@ -95,15 +95,17 @@ class BookmarkThread(
     @override
     def send_all_items(self):
         """Run the task method."""
+        if self.db_write_lock.locked():
+            self.log.warning("Database locked, waiting to process bookmarks.")
+            return
         cleanup = set()
         for key, value in self.cache.items():
             try:
-                with self.db_write_lock:
-                    if key.user_pk:
+               if key.user_pk:
                         self.update_user_active(key.user_pk, logger)
-                    elif key.comic_pks:
+               elif key.comic_pks:
                         self.update_bookmarks(key.auth_filter, key.comic_pks, value)
-                cleanup.add(key)
+               cleanup.add(key)
             except Exception:
                 self.log.exception("Updating bookmarks")
 

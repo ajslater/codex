@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from pprint import pformat, pprint
-from threading import Event
+from threading import Event, Lock
 from types import MappingProxyType
 
 from deepdiff import DeepDiff
@@ -972,7 +972,9 @@ class BaseTestImporter(SerializeMixin, TestCase, ABC):
         Library.objects.create(path=LIBRARY_PATH)
         pk = Library.objects.get(path=LIBRARY_PATH).pk
         self.task = ImportTask(library_id=pk, files_modified=frozenset({PATH}))
-        self.importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE, Event())
+        self.importer = ComicImporter(
+            self.task, logger, LIBRARIAN_QUEUE, Lock(), Event()
+        )
 
     @override
     def tearDown(self):
@@ -1037,7 +1039,7 @@ class BaseTestImporterUpdate(BaseTestImporter, ABC):
     @override
     def setUp(self):
         super().setUp()
-        importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE, Event())
+        importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE, Lock(), Event())
         importer.metadata = dict(QUERIED_METADATA)
         importer.create_and_update()
         importer.link()

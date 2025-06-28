@@ -1,7 +1,6 @@
 """The Codex Library Watchdog Observer threads."""
 
 from multiprocessing.queues import Queue
-from threading import Lock
 
 from typing_extensions import override
 from watchdog.events import (
@@ -42,11 +41,6 @@ class UatuObserver(WorkerMixin, BaseObserver):
     ENABLE_FIELD: str = ""
     ALWAYS_WATCH: bool = False
 
-    def __init__(self, *args, db_write_lock: Lock, **kwargs):
-        """Set the db write lock."""
-        self.db_write_lock = db_write_lock
-        super().__init__(*args, **kwargs)
-
     def _get_watch(self, path):
         """Find the watch by path."""
         for watch in self._watches:
@@ -80,6 +74,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
             library.pk,
             logger_=self.log,
             librarian_queue=self.librarian_queue,
+            db_write_lock=self.db_write_lock,
         )
         self.schedule(handler, library.path, recursive=True)
         self.log.info(f"Started {watching_log}")
@@ -172,11 +167,14 @@ class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGen
     ENABLE_FIELD: str = "events"
 
     def __init__(
-        self, *args, logger_, librarian_queue: Queue, db_write_lock=None, **kwargs
+        self, logger_, librarian_queue: Queue, db_write_lock, *args, **kwargs
     ):
         """Initialize queues."""
-        self.init_worker(logger_, librarian_queue)
-        super().__init__(*args, db_write_lock=db_write_lock, **kwargs)
+        if db_write_lock is None:
+            reason = "db_write_lock argument must be a Lock."
+            raise ValueError(reason)
+        self.init_worker(logger_, librarian_queue, db_write_lock)
+        super().__init__(*args, **kwargs)
 
 
 class LibraryPollingObserver(UatuObserver):
@@ -189,11 +187,13 @@ class LibraryPollingObserver(UatuObserver):
         self,
         logger_,
         librarian_queue: Queue,
+        db_write_lock,
+        *args,
         timeout: float = DEFAULT_OBSERVER_TIMEOUT,
         **kwargs,
     ):
         """Use the DatabasePollingEmitter."""
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(logger_, librarian_queue, db_write_lock)
         super().__init__(
             emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )

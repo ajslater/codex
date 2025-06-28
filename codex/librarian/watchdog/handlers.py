@@ -1,6 +1,7 @@
 """Watchdog Event Handlers."""
 
 from abc import ABC, abstractmethod
+from multiprocessing import Queue
 from os import fsdecode
 from pathlib import Path
 
@@ -33,11 +34,17 @@ class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler, ABC):
     """Base class for Codex Event Handlers."""
 
     def __init__(
-        self, library_pk: int, *args, logger_=None, librarian_queue=None, **kwargs
+        self,
+        library_pk: int,
+        *args,
+        logger_,
+        librarian_queue: Queue,
+        db_write_lock,
+        **kwargs,
     ):
         """Let us send along he library id."""
         self.library_pk = library_pk
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(logger_, librarian_queue, db_write_lock)
         super().__init__(*args, **kwargs)
 
     @staticmethod

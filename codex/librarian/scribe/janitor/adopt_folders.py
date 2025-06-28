@@ -1,6 +1,5 @@
 """Bulk import and move comics and folders."""
 
-from multiprocessing import Queue
 from pathlib import Path
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
@@ -41,7 +40,9 @@ class OrphanFolderAdopter(WorkerStatusMixin):
 
         # An abridged import task.
         task = ImportTask(library_id=library.pk, dirs_moved=folders_moved)
-        importer = ComicImporter(task, self.log, self.librarian_queue, self.abort_event)
+        importer = ComicImporter(
+            task, self.log, self.librarian_queue, self.db_write_lock, self.abort_event
+        )
         count = importer.bulk_folders_moved(mark_in_progress=True)
         return True, count
 
@@ -75,7 +76,7 @@ class OrphanFolderAdopter(WorkerStatusMixin):
 
             self.abort_event.clear()
 
-    def __init__(self, logger_, librarian_queue: Queue, event):
+    def __init__(self, *args, event, **kwargs):
         """Initialize Worker."""
         self.abort_event = event
-        self.init_worker(logger_, librarian_queue)
+        self.init_worker(*args, **kwargs)

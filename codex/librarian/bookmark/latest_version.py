@@ -19,7 +19,7 @@ _CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=5)
 _REPO_TIMEOUT = 5
 
 
-class CodexLatestVersionMixin(WorkerStatusMixin):
+class CodexLatestVersionUpdater(WorkerStatusMixin):
     """Methods for fetching the latest version."""
 
     @staticmethod
@@ -30,6 +30,9 @@ class CodexLatestVersionMixin(WorkerStatusMixin):
 
     def update_latest_version(self, *, force: bool, update: bool = False):
         """Get the latest version from a remote repo using a cache."""
+        if self.db_write_lock.locked():
+            self.log.warning("Database locked, not retrieving latest codex version.")
+            return
         status = Status(JanitorStatusTypes.CODEX_LATEST_VERSION)
         try:
             self.status_controller.start(status)

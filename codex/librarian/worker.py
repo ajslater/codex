@@ -1,4 +1,4 @@
-"""General worker class inherits queues."""
+"""Mixin because watchdog Observers already inherit from Thread.."""
 
 from multiprocessing.queues import Queue
 
@@ -9,24 +9,24 @@ from codex.librarian.status_controller import StatusController
 
 
 class WorkerMixin:
-    """Mixin for inheriting queues."""
+    """Mixin for common thread attributes."""
 
-    def init_worker(self, logger_: Logger | None, librarian_queue: Queue | None):
+    def init_worker(self, /, logger_: Logger, librarian_queue: Queue, db_write_lock):
         """Initialize queues."""
-        if not logger_ or not librarian_queue:
-            reason = f"logger and librarian queue must be passed in {logger_=} {librarian_queue=}"
+        if not all((logger_, librarian_queue, db_write_lock)):
+            reason = f"{logger_=}, {librarian_queue=}, and {db_write_lock=} must be passed in."
             raise ValueError(reason)
         self.log = logger_  # pyright: ignore[reportUninitializedInstanceVariable]
         self.librarian_queue = librarian_queue  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.db_write_lock = db_write_lock  # pyright: ignore[reportUninitializedInstanceVariable]
 
 
 class WorkerStatusMixin(WorkerMixin):
     """Worker mixin also sets up status controller."""
 
     @override
-    def init_worker(self, logger_, librarian_queue: Queue | None):
-        super().init_worker(logger_, librarian_queue)
-        if logger_ and librarian_queue:
-            self.status_controller = StatusController(  # pyright: ignore[reportUninitializedInstanceVariable]
-                logger_, librarian_queue
-            )
+    def init_worker(self, /, logger_, librarian_queue: Queue, db_write_lock):
+        super().init_worker(logger_, librarian_queue, db_write_lock)
+        self.status_controller = StatusController(  # pyright: ignore[reportUninitializedInstanceVariable]
+            logger_, librarian_queue
+        )
