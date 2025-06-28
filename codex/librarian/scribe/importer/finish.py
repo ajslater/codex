@@ -21,7 +21,7 @@ _REPORT_MAP = MappingProxyType(
         "comics_moved": "comics moved",
         "folders_moved": "folders moved",
         "covers_moved": " covers moved",
-        "comics": "comics imported",
+        "comic": "comics imported",
         "folders": "folders imported",
         "tags": "tags imported",
         "covers": "custom covers imported",
