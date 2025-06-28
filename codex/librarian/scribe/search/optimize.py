@@ -1,11 +1,9 @@
 """Search Index cleanup."""
 
-from multiprocessing import Queue
 from time import time
 
 from django.db import connection
 from humanize import naturaldelta
-from loguru._logger import Logger
 
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.status import Status
@@ -18,10 +16,10 @@ _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 class SearchIndexerOptimize(WorkerStatusMixin):
     """Search Index optimize methods."""
 
-    def __init__(self, log: Logger, library_queue: Queue, event):
+    def __init__(self, *args, event, **kwargs):
         """Initialize search engine."""
         self.abort_event = event
-        self.init_worker(log, library_queue)
+        self.init_worker(*args, **kwargs)
 
     def optimize(self):
         """Remove records not in the database from the index, trapping exceptions."""
