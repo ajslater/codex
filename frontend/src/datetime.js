@@ -33,12 +33,23 @@ export const getTimestamp = function () {
 
 export const getFormattedDuration = (fromTime, toTime) => {
   const totalSeconds = Math.floor((toTime - fromTime) / 1000);
-  const duration = {
-    days: Math.floor(totalSeconds / (24 * 60 * 60)),
-    hours: Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60)),
-    minutes: Math.floor((totalSeconds % (60 * 60)) / 60),
-    seconds: totalSeconds % 60,
-  };
+  days = Math.floor(totalSeconds / (24 * 60 * 60));
+  hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+  minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  seconds = totalSeconds % 60;
+
+  const duration = {};
+  if (days) {
+    duration.days = days;
+  }
+  if (hours || days) {
+    duration.hours = hours;
+  }
+  if (hours || days || minutes) {
+    duration.minutes = minutes;
+  }
+  duration.seconds = seconds;
+
   return DURATION_FORMAT.format(duration);
 };
 

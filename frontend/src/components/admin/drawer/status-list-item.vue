@@ -2,12 +2,13 @@
   <div class="statusItem">
     <div class="statusItemTitle">
       {{ title }}
-      <div v-if="status.subtitle || duration" class="statusItemSubtitle">
-        {{ status.subtitle }} <span v-if="duration">({{ duration }})</span>
+      <div v-if="status.subtitle" class="statusItemSubtitle">
+        {{ status.subtitle }}
       </div>
-      <div v-if="showNumbers" class="statusItemSubtitle">
+      <div v-if="showNumbers || duration" class="statusItemSubtitle">
         <span v-if="showComplete"> {{ nf(status.complete) }} / </span>
         {{ nf(status.total) }}
+        <span v-if="duration">({{ duration }})</span>
       </div>
     </div>
     <v-progress-linear
