@@ -28,7 +28,7 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
             comics = Comic.objects.filter(library=self.library, path__in=paths).only(
                 *BULK_UPDATE_COMIC_FIELDS
             )
-            status.add_complete(len(paths) - comics.count())
+            status.increment_complete(len(paths) - comics.count())
 
             for comic in comics:
                 if self.abort_event.is_set():

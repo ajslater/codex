@@ -2,7 +2,7 @@
 
 from multiprocessing.queues import Queue
 from pathlib import Path
-from threading import Condition
+from threading import Condition, Lock
 
 from django.db.models.functions import Now
 from django.utils import timezone
@@ -73,6 +73,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         librarian_queue: Queue | None = None,
         covers_only=False,
         library_id: int,
+        db_write_lock: Lock,
     ):
         """Initialize snapshot methods."""
         self.init_worker(logger_, librarian_queue)
@@ -82,6 +83,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
         self._covers_only = covers_only
+        self.db_write_lock = db_write_lock
         self._handler = (
             CodexCustomCoverEventHandler if covers_only else CodexLibraryEventHandler
         )
@@ -242,13 +244,14 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             return
         status = Status(WatchdogStatusTypes.POLL, subtitle=self.watch.path)
         try:
-            self.status_controller.start(status)
-            self.log.debug(f"Polling {self.watch.path}...")
-            self._queue_events()
-            library = Library.objects.get(path=self.watch.path)
-            library.last_poll = Now()
-            library.save()
-            self.log.info(f"Polled {self.watch.path}")
+            with self.db_write_lock:
+                self.status_controller.start(status)
+                self.log.debug(f"Polling {self.watch.path}...")
+                self._queue_events()
+                library = Library.objects.get(path=self.watch.path)
+                library.last_poll = Now()
+                library.save()
+                self.log.info(f"Polled {self.watch.path}")
         except Exception:
             self.log.exception("poll for watchdog events and queue them")
             raise

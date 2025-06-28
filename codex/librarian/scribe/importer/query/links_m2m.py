@@ -1,7 +1,7 @@
 """Prune M2M links that don't need updating."""
 
 from codex.librarian.scribe.importer.const import (
-    COMIC_M2M_FIELD_RELS,
+    COMIC_M2M_FIELD_NAMES,
     DELETE_M2MS,
     FIELD_NAME_KEY_ATTRS_MAP,
     LINK_M2MS,
@@ -65,35 +65,25 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         if not self.metadata[LINK_M2MS][comic.path]:
             del self.metadata[LINK_M2MS][comic.path]
 
-    def _query_prune_comic_m2m_links_batch(self, batch_paths: tuple[str], status):
+    def _query_prune_comic_m2m_links_batch(self, paths: tuple[str], status):
         comics = (
-            Comic.objects.filter(library=self.library, path__in=batch_paths)
-            .prefetch_related(*COMIC_M2M_FIELD_RELS)
-            .only(*COMIC_M2M_FIELD_RELS)
+            Comic.objects.filter(library=self.library, path__in=paths)
+            # prefetching deep links means a batch size of 190 or less
+            .prefetch_related(*COMIC_M2M_FIELD_NAMES)
+            .only(*COMIC_M2M_FIELD_NAMES)
         )
-        for comic in comics:
+        for comic in comics.iterator(chunk_size=LINK_M2M_BATCH_SIZE):
             self._query_prune_comic_m2m_links_comic(comic, status)
 
     def _query_prune_comic_m2m_links(self, status):
         status.subtitle = "Many to Many"
         self.status_controller.update(status)
         paths = tuple(self.metadata[LINK_M2MS].keys())
-        num_paths = len(paths)
-        # Use comic objects because it helps naturally segregate deep objects into
-        # objects for comparing with tuples.
-        start = 0
-        while start < num_paths:
-            if self.abort_event.is_set():
-                return
-            end = start + LINK_M2M_BATCH_SIZE
-            batch_paths = paths[start:end]
-            self._query_prune_comic_m2m_links_batch(batch_paths, status)
-            start += LINK_M2M_BATCH_SIZE
-
+        self._query_prune_comic_m2m_links_batch(paths, status)
         field_names = tuple(self.metadata[DELETE_M2MS].keys())
         for field_name in field_names:
             rows = self.metadata[DELETE_M2MS][field_name]
             if not rows:
                 del self.metadata[DELETE_M2MS][field_name]
-            status.increment_complete()
+        status.increment_complete(len(field_names))
         self.status_controller.update(status)

@@ -110,7 +110,7 @@ class TimestampUpdater(WorkerStatusMixin):
                 if not count:
                     continue
                 self.log.debug(f"Updated {count} {model.__name__}s timestamps.")
-                status.add_complete(count)
+                status.increment_complete(count)
                 self.status_controller.update(status)
                 total_count += count
 

@@ -1,8 +1,7 @@
 """Library process worker for background tasks."""
 
 from copy import copy
-from multiprocessing import Process
-from multiprocessing.queues import Queue
+from multiprocessing import Process, Queue, Manager
 from threading import Event, active_count
 from types import MappingProxyType
 from typing import NamedTuple
@@ -61,6 +60,7 @@ class LibrarianDaemon(Process):
         super().__init__(name=name, daemon=False)
         self.queue = queue
         self.broadcast_queue = broadcast_queue
+        self.db_write_lock = Manager().Lock()
         startup_tasks = (
             JanitorAdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
@@ -107,7 +107,7 @@ class LibrarianDaemon(Process):
         self.log.debug("Creating Librarian threads...")
         self.log.debug(f"Active threads before thread creation: {active_count()}")
         threads = {}
-        kwargs: dict[str, Event | Queue | AioQueue] = {
+        kwargs: dict[str, Event | Queue | AioQueue | Lock] = {
             "logger_": self.log,
             "librarian_queue": self.queue,
         }
@@ -115,6 +115,8 @@ class LibrarianDaemon(Process):
             thread_kwargs = copy(kwargs)
             if thread_class == NotifierThread:
                 thread_kwargs["broadcast_queue"] = self.broadcast_queue
+            if thread_class in (BookmarkThread, LibraryPollingObserver, ScribeThread):
+                thread_kwargs["db_write_lock"] = self.db_write_lock
             thread = thread_class(**thread_kwargs)  # pyright: ignore[reportArgumentType]
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")

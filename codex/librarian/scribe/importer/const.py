@@ -89,9 +89,7 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType]
     field for field in Comic._meta.get_fields() if field.many_to_many
 )
-_COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(
-    field.name for field in COMIC_M2M_FIELDS
-)
+COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(field.name for field in COMIC_M2M_FIELDS)
 COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
 
 ########################
@@ -222,6 +220,22 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple[str | tuple[str, ...], ..
         }
     )
 )
+_IDENTIFIED_SELECT_RELATED = ("identifier", "identifier__source")
+MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
+    MappingProxyType(
+        {
+            **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_SELECT_RELATED),
+            Identifier: (IDENTIFIER_SOURCE_FIELD_NAME,),
+            Publisher: _IDENTIFIED_SELECT_RELATED,
+            Imprint: ("publisher",),
+            Series: ("publisher", "imprint"),
+            Volume: ("publisher", "imprint", "series"),
+            Credit: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
+            StoryArcNumber: (STORY_ARC_FIELD_NAME,),
+            Universe: _IDENTIFIED_SELECT_RELATED,
+        }
+    )
+)
 FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
     {
         field.name: MODEL_REL_MAP[field.related_model][0]  # pyright: ignore[reportArgumentType]
@@ -236,7 +250,7 @@ _IDENTIFIER_KEY_ATTRS = (
 )
 FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
     {
-        **dict.fromkeys(_COMIC_M2M_FIELD_NAMES, _NAMED_MODEL_ATTRS),
+        **dict.fromkeys(COMIC_M2M_FIELD_NAMES, _NAMED_MODEL_ATTRS),
         FOLDERS_FIELD_NAME: ("path",),
         IDENTIFIER_FIELD_NAME: _IDENTIFIER_KEY_ATTRS,
         IDENTIFIERS_FIELD_NAME: _IDENTIFIER_KEY_ATTRS,
@@ -256,14 +270,6 @@ FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
         CREDITS_FIELD_NAME: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
         STORY_ARC_NUMBERS_FIELD_NAME: (STORY_ARC_FIELD_NAME, NUMBER_FIELD_NAME),
     }
-)
-
-COMIC_M2M_FIELD_RELS = (
-    *_COMIC_M2M_FIELD_NAMES,
-    "credits__person",
-    "credits__role",
-    "identifiers__source",
-    "story_arc_numbers__story_arc",
 )
 
 

@@ -26,7 +26,7 @@ class MovedFoldersImporter(MovedCoversImporter):
         src_folder_paths_with_existing_dest_parents,
         dest_parent_folders_map,
         dirs_moved: frozenbidict[str, str],
-        status,
+        status: Status,
     ):
         """Bulk move folders."""
         # Move collisions removed before this
@@ -58,7 +58,7 @@ class MovedFoldersImporter(MovedCoversImporter):
         count = len(update_folders)
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Moved {count} folders.")
-        status.add_complete(count)
+        status.increment_complete(count)
         self.status_controller.update(status)
         return count
 

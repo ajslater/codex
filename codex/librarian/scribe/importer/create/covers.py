@@ -67,7 +67,7 @@ class CreateCoversImporter(CreateComicsImporter):
                 self._remove_covers(update_cover_pks, custom=True)
                 count = len(update_covers)
                 if status:
-                    status.add_complete(count)
+                    status.increment_complete(count)
 
                 link_covers_status = Status(
                     ImporterStatusTypes.LINK_CUSTOM_COVERS,
@@ -113,7 +113,7 @@ class CreateCoversImporter(CreateComicsImporter):
                 self.metadata[LINK_COVER_PKS].update(created_pks)
                 count = len(created_pks)
                 if status:
-                    status.add_complete(count)
+                    status.increment_complete(count)
 
                 link_covers_status = Status(
                     ImporterStatusTypes.LINK_CUSTOM_COVERS,

@@ -3,6 +3,7 @@
 
 import re
 from multiprocessing.queues import Queue
+from threading import Lock
 from typing import TYPE_CHECKING
 
 from django.apps import apps
@@ -323,9 +324,10 @@ def fts_integrity_check(log):
 class JanitorIntegrity(WorkerStatusMixin):
     """Integrity Check Mixin."""
 
-    def __init__(self, logger_, librarian_queue: Queue, event):
+    def __init__(self, logger_, librarian_queue: Queue, event, db_write_lock: Lock):
         """Init self.log."""
         self.abort_event = event
+        self.db_write_lock = db_write_lock
         self.init_worker(logger_, librarian_queue)
 
     def foreign_key_check(self):
@@ -333,8 +335,8 @@ class JanitorIntegrity(WorkerStatusMixin):
         status = Status(JanitorStatusTypes.INTEGRITY_FK)
         try:
             self.status_controller.start(status)
-            fix_foreign_keys(self.log)
-
+            with self.db_write_lock:
+                fix_foreign_keys(self.log)
         finally:
             self.status_controller.finish(status)
 
@@ -344,7 +346,8 @@ class JanitorIntegrity(WorkerStatusMixin):
         status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
         try:
             self.status_controller.start(status)
-            integrity_check(self.log, long=long)
+            with self.db_write_lock:
+                integrity_check(self.log, long=long)
         finally:
             self.status_controller.finish(status)
 
@@ -353,7 +356,8 @@ class JanitorIntegrity(WorkerStatusMixin):
         status = Status(JanitorStatusTypes.FTS_REBUILD)
         try:
             self.status_controller.start(status)
-            fts_rebuild(self.log)
+            with self.db_write_lock:
+                fts_rebuild(self.log)
         finally:
             self.status_controller.finish(status)
 
@@ -362,7 +366,8 @@ class JanitorIntegrity(WorkerStatusMixin):
         status = Status(JanitorStatusTypes.FTS_INTEGRITY_CHECK)
         try:
             self.status_controller.start(status)
-            success = fts_integrity_check(self.log)
+            with self.db_write_lock:
+                success = fts_integrity_check(self.log)
             if not success:
                 self.librarian_queue.put(JanitorFTSRebuildTask())
         finally:

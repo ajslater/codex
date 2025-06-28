@@ -26,6 +26,7 @@ from codex.librarian.scribe.importer.create.const import (
 from codex.librarian.scribe.importer.create.folders import (
     CreateForeignKeysFolderImporter,
 )
+from codex.librarian.status import Status
 from codex.models.base import BaseModel
 
 
@@ -67,13 +68,13 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
     def _add_custom_cover(self, model, obj):
         self.add_custom_cover_to_group(model, obj)
 
-    def _finish_create_update(self, model, objs, status):
+    def _finish_create_update(self, model, objs, status: Status):
         count = len(objs)
         if count:
             vnp = model._meta.verbose_name_plural
             title = vnp.title() if vnp else model._meta.verbose_name
             self.log.info(f"Created {count} {title}.")
-        status.add_complete(count)
+        status.increment_complete(count)
         self.status_controller.update(status)
 
     def _bulk_create_models(

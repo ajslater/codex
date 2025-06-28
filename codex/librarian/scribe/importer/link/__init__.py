@@ -30,7 +30,7 @@ class LinkComicsImporter(LinkImporterDelete):
         """Sum all the operations for the key."""
         return sum(len(ops) for ops in self.metadata[key].values())
 
-    def link_comic_m2m_field(self, field_name, m2m_links, status):
+    def link_comic_m2m_field(self, field_name, m2m_links, status: Status):
         """
         Recreate an m2m field for a set of comics.
 
@@ -62,7 +62,7 @@ class LinkComicsImporter(LinkImporterDelete):
                 unique_fields=update_fields,
             )
             self.log.info(f"Linked {count} new {field_name} to altered comics.")
-            status.add_complete(count)
+            status.increment_complete(count)
             self.status_controller.update(status)
         return count
 

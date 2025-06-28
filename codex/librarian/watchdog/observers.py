@@ -1,6 +1,7 @@
 """The Codex Library Watchdog Observer threads."""
 
 from multiprocessing.queues import Queue
+from threading import Lock
 
 from typing_extensions import override
 from watchdog.events import (
@@ -40,6 +41,11 @@ class UatuObserver(WorkerMixin, BaseObserver):
 
     ENABLE_FIELD: str = ""
     ALWAYS_WATCH: bool = False
+
+    def __init__(self, *args, db_write_lock: Lock, **kwargs):
+        """Set the db write lock."""
+        self.db_write_lock = db_write_lock
+        super().__init__(*args, **kwargs)
 
     def _get_watch(self, path):
         """Find the watch by path."""
@@ -125,6 +131,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
             librarian_queue=self.librarian_queue,
             covers_only=covers_only,
             library_id=library_id,
+            db_write_lock=self.db_write_lock,
         )
         self._add_emitter(emitter)
         if self.is_alive():
@@ -164,10 +171,12 @@ class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGen
 
     ENABLE_FIELD: str = "events"
 
-    def __init__(self, *args, logger_, librarian_queue: Queue, **kwargs):
+    def __init__(
+        self, *args, logger_, librarian_queue: Queue, db_write_lock=None, **kwargs
+    ):
         """Initialize queues."""
         self.init_worker(logger_, librarian_queue)
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, db_write_lock=db_write_lock, **kwargs)
 
 
 class LibraryPollingObserver(UatuObserver):

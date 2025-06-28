@@ -1,5 +1,6 @@
 """Librarian Status."""
 
+from collections.abc import Iterable
 from enum import Enum
 from multiprocessing import Queue
 from time import time
@@ -104,12 +105,14 @@ class StatusController:
         preactive: datetime | None = None,
     ):
         """Start a librarian status."""
+        status.start()
         self._update(status, notify=notify, preactive=preactive, active=now())
 
-    def start_many(self, status_iterable):
+    def start_many(self, statii: Iterable[Status]):
         """Start many librarian statuses."""
-        for index, status in enumerate(status_iterable):
-            pad_ms = index * 100
+        for index, status in enumerate(statii):
+            status.start()
+            pad_ms = index * 100 # for order
             preactive = now() + timedelta(milliseconds=pad_ms)
             self._update(status, notify=False, preactive=preactive)
         self._enqueue_notifier_task(notify=True)

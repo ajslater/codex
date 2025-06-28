@@ -5,6 +5,7 @@ from django.db.models import Q
 from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
     MODEL_REL_MAP,
+    MODEL_SELECT_RELATED,
     QUERY_MODELS,
     TOTAL,
     UPDATE_FKS,
@@ -25,8 +26,11 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     def query_existing_mds(model: type[BaseModel], fk_filter: Q):
         """Query existing metatata tables."""
         rels = MODEL_REL_MAP[model]
+        select_related = MODEL_SELECT_RELATED.get(model, ())
         fields = tuple(filter(bool, flatten(rels)))
-        qs = model.objects.filter(fk_filter).distinct().values_list(*fields)
+        qs = model.objects
+        qs = qs.select_related(*select_related)
+        qs = qs.filter(fk_filter).distinct().values_list(*fields)
         extra_index = get_key_index(model)
         return {
             existing_values[:extra_index]: existing_values for existing_values in qs
@@ -40,7 +44,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         proposed_values_map: dict[tuple, set[tuple]],
         create_values: set[tuple],
         update_values: set[tuple],
-        status,
+        status: Status,
     ):
         # Do this in batches so as not to exceed the 1k line sqlite limit
         end = start + FILTER_BATCH_SIZE
@@ -69,7 +73,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             else:
                 create_values.add(best_values)
 
-        status.add_complete(num_in_batch)
+        status.increment_complete(num_in_batch)
         self.status_controller.update(status)
 
     def _finish_query_missing(

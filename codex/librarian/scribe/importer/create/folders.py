@@ -4,6 +4,7 @@ from pathlib import Path
 
 from codex.librarian.scribe.importer.const import BULK_UPDATE_FOLDER_FIELDS
 from codex.librarian.scribe.importer.create.covers import CreateCoversImporter
+from codex.librarian.status import Status
 from codex.models import Folder
 
 
@@ -39,7 +40,7 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
         self.add_custom_cover_to_group(Folder, folder)
         create_folders.append(folder)
 
-    def _bulk_folders_create_depth_level(self, paths, status):
+    def _bulk_folders_create_depth_level(self, paths, status: Status):
         """Create a depth level of folders."""
         create_folders = []
         for path in sorted(paths):
@@ -51,7 +52,7 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
             unique_fields=Folder._meta.unique_together[0],
         )
         count = len(create_folders)
-        status.add_complete(count)
+        status.increment_complete(count)
         self.status_controller.update(status)
         return count
 
