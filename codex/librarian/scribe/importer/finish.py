@@ -18,6 +18,10 @@ from codex.librarian.scribe.status import ScribeStatusTypes
 
 _REPORT_MAP = MappingProxyType(
     {
+        "comics_moved": "comics moved",
+        "folders_moved": "folders moved",
+        "covers_moved": " covers moved",
+        "comics": "comics imported",
         "folders": "folders imported",
         "tags": "tags imported",
         "covers": "custom covers imported",
@@ -26,9 +30,6 @@ _REPORT_MAP = MappingProxyType(
         "comics_deleted": "comics deleted",
         "tags_deleted": "tags deleted",
         "folders_deleted": "folders deleted",
-        "folders_moved": "folders moved",
-        "comics_moved": "comics moved",
-        "covers_moved": " covers moved",
     }
 )
 _FINISH_STATII = (
@@ -55,12 +56,14 @@ class FinishImporter(InitImporter):
         elapsed = naturaldelta(elapsed_time)
         if self.counts.changed():
             cache.clear()
-            log_txt = f"Updated library {self.library.path} in {elapsed}."
+            log_txt = f"Imported library {self.library.path} in {elapsed}"
             if self.counts.comic:
                 cps = round(self.counts.comic / elapsed_time, 1)
-                log_txt += f" Imported {self.counts.comic} at {cps} comics per second."
+                log_txt += f" at {cps} comics per second"
             else:
-                log_txt += " No comics to import."
+                log_txt += " but no comics were imported"
+            log_txt += "."
+
             for attr, suffix in _REPORT_MAP.items():
                 if value := getattr(self.counts, attr):
                     log_txt += f" {value} {suffix}."
