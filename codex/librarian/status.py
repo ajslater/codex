@@ -45,7 +45,7 @@ class Status:
             return ""
         elapsed = self._elapsed()
         ips = intword(num / elapsed) if elapsed else "infinite"
-        return f"{ips} {plural_name} per second."
+        return f"{ips} {plural_name} per second"
 
     def reset(self):
         """Reset for batch statii."""
