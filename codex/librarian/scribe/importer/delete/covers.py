@@ -1,0 +1,45 @@
+"""Clean up covers from the db."""
+
+from codex.librarian.covers.tasks import CoverRemoveTask
+from codex.librarian.scribe.importer.finish import FinishImporter
+from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.status import Status
+from codex.models.paths import CustomCover
+
+
+class DeletedCoversImporter(FinishImporter):
+    """Clean up covers from the db."""
+
+    def remove_covers(self, delete_pks, *, custom: bool):
+        """Queue a remove covers task."""
+        task = CoverRemoveTask(delete_pks, custom)
+        self.librarian_queue.put(task)
+
+
+    def bulk_covers_deleted(self, **kwargs):
+        """Bulk delete comics found missing from the filesystem."""
+        status = Status(
+            ImporterStatusTypes.REMOVE_CUSTOM_COVERS, 0, len(self.task.covers_deleted)
+        )
+        try:
+            if not self.task.covers_deleted:
+                return 0
+            self.status_controller.start(status)
+            covers = CustomCover.objects.filter(
+                library=self.library, path__in=self.task.covers_deleted
+            )
+            self.task.covers_deleted = frozenset()
+            delete_cover_pks = frozenset(covers.values_list("pk", flat=True))
+            count, _ = covers.delete()
+
+            self.remove_covers(delete_cover_pks, custom=True)
+
+            level = "INFO" if count else "DEBUG"
+            self.log.log(
+                level, f"Deleted {count} custom covers from {self.library.path}"
+            )
+        finally:
+            self.status_controller.finish(status)
+
+        return count
+
