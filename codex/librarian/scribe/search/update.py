@@ -199,9 +199,6 @@ class SearchIndexerUpdate(SearchIndexerRemove):
         self.log.info(
             f"{verbed} {num_comic_fts} {batch_position} search entries in {batch_status.elapsed()}, {batch_status.per_second('entries', num_comic_fts)}."
         )
-        self.log.debug(
-            f"Preparing up to {SEARCH_INDEX_BATCH_SIZE} comics for search indexing..."
-        )
         obj_list.clear()
         batch_status.reset()
 
@@ -266,13 +263,6 @@ class SearchIndexerUpdate(SearchIndexerRemove):
         status.increment_complete()
         batch_status.increment_complete()
         self.status_controller.update(status)
-        if len(obj_list) >= SEARCH_INDEX_BATCH_SIZE:
-            self._update_search_index_create_or_update(
-                obj_list,
-                status,
-                batch_status,
-                create=create,
-            )
 
     def _update_search_index_finish(self, status, *, create: bool):
         verb = "create" if create else "update"
@@ -328,13 +318,29 @@ class SearchIndexerUpdate(SearchIndexerRemove):
             obj_list = []
             batch_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, 0)
             batch_status.start()
-
+            prep_num = min(SEARCH_INDEX_BATCH_SIZE, total_comics)
+            self.log.debug(f"Preparing {prep_num} comics for search indexing...")
             for comic in comics.iterator(chunk_size=SEARCH_INDEX_BATCH_SIZE):
                 if self.abort_event.is_set():
                     break
                 self._create_comicfts_entry(
                     comic, obj_list, status, batch_status, create=create
                 )
+                if len(obj_list) >= SEARCH_INDEX_BATCH_SIZE:
+                    self._update_search_index_create_or_update(
+                        obj_list,
+                        status,
+                        batch_status,
+                        create=create,
+                    )
+                    complete = status.complete or 0
+                    if prep_num := min(
+                        SEARCH_INDEX_BATCH_SIZE, total_comics - complete
+                    ):
+                        self.log.debug(
+                            f"Preparing {prep_num} comics for search indexing..."
+                        )
+
             self._update_search_index_create_or_update(
                 obj_list,
                 status,
