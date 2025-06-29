@@ -5,7 +5,7 @@ from pathlib import Path
 from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import FIS
-from codex.librarian.scribe.importer.deleted import DeletedImporter
+from codex.librarian.scribe.importer.delete import DeletedImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic, FailedImport
