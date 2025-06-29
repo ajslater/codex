@@ -53,9 +53,7 @@ MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", "1000"))
 # FILTER_BATCH_SIZE of 990 errors sometimes.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
 LINK_FK_BATCH_SIZE = int(environ.get("CODEX_LINK_FK_BATCH_SIZE", "20000"))
-# LINK_M2M_BATCH_SIZE of 210 breaks consistently with a well populated db on update.
-# 190 works for deep prefetch
-LINK_M2M_BATCH_SIZE = int(environ.get("CODEX_LINK_M2M_BATCH_SIZE", "10000"))
+LINK_M2M_BATCH_SIZE = int(environ.get("CODEX_LINK_M2M_BATCH_SIZE", "20000"))
 VITE_HOST = environ.get("VITE_HOST")
 SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", "10000"))
 LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
