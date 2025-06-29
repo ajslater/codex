@@ -68,7 +68,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
         """Get distinct values for the field."""
-        return comic_qs.exclude(**{field_name: None}).distinct()
+        return comic_qs.exclude(**{f"{field_name}__isnull": True}).distinct()
 
     def get_m2m_field_query(self, model, comic_qs: QuerySet):
         """Get distinct m2m value objects for the relation."""
@@ -114,23 +114,36 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     serializer_class: type[BaseSerializer] | None = BrowserFilterChoicesSerializer
 
     @classmethod
-    def _get_field_choices_count(cls, comic_qs, field_name):
+    def _is_field_choices_exists(cls, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""
         qs = cls.get_field_choices_query(comic_qs, field_name)
-        return qs.count()
+        return qs.exists()
 
-    def _get_m2m_field_choices_count(self, model, comic_qs, rel):
+    def _is_m2m_field_choices_exists(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
-        count = self.get_m2m_field_query(model, comic_qs).count()
+        qs = self.get_m2m_field_query(model, comic_qs)
+        exists = qs.exists()
+        if exists:
+            return exists
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
         # on the comic above restricts all results to only the filtered
         # rows. :(
-        if self.does_m2m_null_exist(comic_qs, rel):
-            count += 1
+        return self.does_m2m_null_exist(comic_qs, rel)
 
-        return count
+    def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str):
+        rel, m2m_model = self.get_rel_and_model(field_name)
+
+        if m2m_model:
+            exists = self._is_m2m_field_choices_exists(m2m_model, qs, rel)
+        else:
+            exists = self._is_field_choices_exists(qs, rel)
+        try:
+            flag = exists
+        except TypeError:
+            flag = False
+        return flag
 
     @override
     def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
@@ -143,18 +156,10 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
-            rel, m2m_model = self.get_rel_and_model(field_name)
-
-            if m2m_model:
-                count = self._get_m2m_field_choices_count(m2m_model, qs, rel)
+            if bool(filters.get(field_name)):
+                flag = True
             else:
-                count = self._get_field_choices_count(qs, rel)
-
-            try:
-                is_filter_set = bool(filters.get(field_name))
-                flag = is_filter_set or count > 1
-            except TypeError:
-                flag = False
+                flag = self._is_filter_field_choices_exists(qs, field_name)
             data[field_name] = flag
         return data
 
@@ -168,16 +173,16 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         """Get choices with nulls where there are nulls."""
         qs = self.get_m2m_field_query(model, comic_qs)
 
+        values = ["pk", "name"]
+        if qs.model == Universe:
+            values.append("designation")
+        qs = qs.values(*values)
+
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
         # on the comic above restrcts all results to only the filtered
         # rows. :(
         null_exists = self.does_m2m_null_exist(comic_qs, rel)
-
-        values = ["pk", "name"]
-        if qs.model == Universe:
-            values.append("designation")
-        qs = qs.values(*values)
 
         return chain(qs, (_NULL_NAMED_ROW)) if null_exists else qs
 
