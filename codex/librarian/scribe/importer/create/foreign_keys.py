@@ -94,7 +94,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         create_objs = []
-        create_tuples = sorted(create_tuples, key=lambda t: str(t))
+        create_tuples = sorted(create_tuples, key=str)
         for values_tuple in create_tuples:
             key_args, update_args = self._get_create_update_args(
                 model, key_args_map, update_args_map, values_tuple
