@@ -11,13 +11,13 @@ from codex.librarian.scribe.importer.const import (
     PARENT_FOLDER_FIELD_NAME,
     PATH_FIELD_NAME,
 )
-from codex.librarian.scribe.importer.read import ExtractMetadataImporter
+from codex.librarian.scribe.importer.read import ReadMetadataImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic, Folder
 
 
-class MovedComicsImporter(ExtractMetadataImporter):
+class MovedComicsImporter(ReadMetadataImporter):
     """Methods for moving comics and folders."""
 
     def _bulk_comics_moved_ensure_folders(self):
