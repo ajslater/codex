@@ -15,7 +15,6 @@ class DeletedCoversImporter(FinishImporter):
         task = CoverRemoveTask(delete_pks, custom)
         self.librarian_queue.put(task)
 
-
     def bulk_covers_deleted(self, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
         status = Status(
@@ -42,4 +41,3 @@ class DeletedCoversImporter(FinishImporter):
             self.status_controller.finish(status)
 
         return count
-

@@ -1,3 +1,5 @@
+"""Link Comics M2M fields."""
+
 from typing import TYPE_CHECKING
 
 from codex.librarian.scribe.importer.const import (
@@ -14,6 +16,8 @@ if TYPE_CHECKING:
 
 
 class LinkManyToManyImporter(LinkSumImporter):
+    """Link Comics M2M fields."""
+
     def link_comic_m2m_field(self, field_name, m2m_links, status: Status):
         """
         Recreate an m2m field for a set of comics.

@@ -6,7 +6,6 @@ from codex.librarian.scribe.importer.link.many_to_many import LinkManyToManyImpo
 class LinkComicsImporter(LinkManyToManyImporter):
     """Link comics methods."""
 
-
     def link(self):
         """Link tags and covers."""
         self.counts.link += self.link_comic_m2m_fields()
