@@ -76,7 +76,7 @@ class CreateComicsImporter(LinkComicsImporter):
             try:
                 Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
                 if comic_pks:
-                    self._remove_covers(comic_pks, custom=False)
+                    self.remove_covers(comic_pks, custom=False)
                     self.log.debug(
                         f"Purging covers for {len(comic_pks)} updated comics."
                     )

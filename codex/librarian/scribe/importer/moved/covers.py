@@ -59,7 +59,7 @@ class MovedCoversImporter(MovedComicsImporter):
                     f"Unlinked {len(unlink_groups)} {model.__name__} moved custom covers."
                 )
 
-        self._remove_covers(unlink_pks, custom=True)
+        self.remove_covers(unlink_pks, custom=True)
 
     def bulk_covers_moved(self, status=None):
         """Move covers."""

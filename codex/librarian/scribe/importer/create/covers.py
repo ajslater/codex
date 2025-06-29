@@ -64,7 +64,7 @@ class CreateCoversImporter(CreateComicsImporter):
                 if LINK_COVER_PKS not in self.metadata:
                     self.metadata[LINK_COVER_PKS] = set()
                 self.metadata[LINK_COVER_PKS].update(update_cover_pks)
-                self._remove_covers(update_cover_pks, custom=True)
+                self.remove_covers(update_cover_pks, custom=True)
                 count = len(update_covers)
                 if status:
                     status.increment_complete(count)
