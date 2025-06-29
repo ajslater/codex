@@ -176,9 +176,11 @@
         <h3>Single Quote complex field Queries</h3>
         <p>
           Use quotes to tell Codex that a complex or natural language phrase
-          should be applied to a specific field
+          should be applied to a specific field. Or to escape characters like
+          '.' that the search bar interprets as operators.
         </p>
         <code> created:'this year' </code>
+        <code> source:'comic.db.websi.te' </code>
         <h3>Size Byte Multipliers</h3>
         <p>
           The size field can make use of convenient byte multiplier suffixes
