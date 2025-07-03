@@ -42,6 +42,9 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         rel = f"comic__{field_name}__in"
         fts_value = self._get_fts_m2m_concat(field_name)
         model_pks = self.metadata[FTS_UPDATED_M2MS].pop(field_name)
+        self.log.debug(
+            "Preparing {len(model_pks)} search entries for {field_name} updates."
+        )
         comicftss = (
             ComicFTS.objects.filter(**{rel: model_pks})
             .exclude(pk__in=already_updated_comicfts_pks)
@@ -66,13 +69,16 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
             self._sync_fts_for_m2m_updates_model(
                 field_name, already_updated_comicfts_pks, update_fields, update_objs
             )
-        if update_objs:
-            ComicFTS.objects.bulk_update(update_objs, update_fields)
         count += len(update_objs)
-        level = "INFO" if count else "DEBUG"
         tags = ", ".join(update_fields)
+        self.log.debug(
+            f"Updating {count} search index entries for comics linked to updated tags: {tags}"
+        )
+        if count:
+            ComicFTS.objects.bulk_update(update_objs, update_fields)
+        level = "INFO" if count else "DEBUG"
         self.log.log(
             level,
-            f"Updated {count} Search Indexes for comics linked to updated tags: {tags}.",
+            f"Updated {count} search indexes entries for comics linked to updated tags: {tags}.",
         )
         self.metadata.pop(FTS_UPDATED_M2MS)
