@@ -24,7 +24,7 @@ from codex.librarian.scribe.search.tasks import (
 from codex.librarian.scribe.tasks import (
     ImportAbortTask,
     LazyImportComicsTask,
-    SearchIndexAbortTask,
+    SearchIndexSyncAbortTask,
     UpdateGroupsTask,
 )
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
@@ -33,7 +33,7 @@ from codex.settings import SEARCH_INDEX_BATCH_SIZE
 
 _ABORT_SEARCH_UPDATE_TASKS = (
     SearchIndexClearTask,
-    SearchIndexAbortTask,
+    SearchIndexSyncAbortTask,
     JanitorFTSRebuildTask,
 )
 _ABORT_SEARCH_UPDATE_ON_IMPORT_TASKS = (
@@ -116,7 +116,7 @@ class ScribeThread(QueuedThread):
             if isinstance(task, ImportTask | JanitorAdoptOrphanFoldersTask):
                 self.abort_cleanup_event.set()
                 self.log.debug("Abort cleanup db signal given.")
-            elif isinstance(task, SearchIndexAbortTask):
+            elif isinstance(task, SearchIndexSyncAbortTask):
                 self.log.debug(
                     "Search Index Update abort signal given. May take a bit for the current import subtask to finish."
                 )

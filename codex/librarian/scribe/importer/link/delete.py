@@ -4,7 +4,11 @@ from typing import TYPE_CHECKING
 
 from django.db.models import ManyToManyField, Q
 
-from codex.librarian.scribe.importer.const import DELETE_M2MS
+from codex.librarian.scribe.importer.const import (
+    DELETE_M2MS,
+    FTS_EXISTING_M2MS,
+    FTS_UPDATE,
+)
 from codex.librarian.scribe.importer.link.prepare import LinkComicsImporterPrepare
 from codex.models import Comic
 from codex.models.base import BaseModel
@@ -28,15 +32,30 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         column_name: str,
         through_model: type[BaseModel],
         batch_rows: tuple,
+        comic_ids: set[int],
     ):
         del_filter = Q()
         for row in batch_rows:
             comic_id, model_id = row
             del_filter_dict = {"comic_id": comic_id, column_name: model_id}
             del_filter |= Q(**del_filter_dict)
+            comic_ids.add(comic_id)
+
         qs = through_model.objects.filter(del_filter)
         count, _ = qs.delete()
         return count
+
+    def _delete_m2m_fts_entries(self, field_name: str, comic_ids: set[int]):
+        fts_field_name = (
+            "story_arcs" if field_name == "story_arc_numbers" else field_name
+        )
+        for comic_id in comic_ids:
+            if not self.metadata[FTS_UPDATE].get(comic_id, {}).get(
+                fts_field_name
+            ) and not self.metadata[FTS_EXISTING_M2MS].get(comic_id, {}).get(
+                fts_field_name
+            ):
+                self.add_links_to_fts(comic_id, fts_field_name, ())
 
     def delete_m2m_field(self, field_name: str, delete_m2ms: dict, status):
         """Delete one comic field's m2m relations."""
@@ -52,12 +71,15 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         table_name = related_model._meta.db_table
         column_name = table_name.removeprefix("codex_") + "_id"
         through_model = self.get_through_model(field)
+        comic_ids = set()
 
         start = 0
         while start < num_rows:
             end = start + FILTER_BATCH_SIZE
             batch_rows = rows[start:end]
-            count = self._delete_m2m_field_batch(column_name, through_model, batch_rows)
+            count = self._delete_m2m_field_batch(
+                column_name, through_model, batch_rows, comic_ids
+            )
             status.complete += count
             total_field_count += count
             if count:
@@ -67,6 +89,9 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
 
             self.status_controller.update(status)
             start += FILTER_BATCH_SIZE
+
+        self._delete_m2m_fts_entries(field_name, comic_ids)
+
         return total_field_count
 
     def delete_m2ms(self, status):

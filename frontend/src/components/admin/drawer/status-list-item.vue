@@ -88,6 +88,7 @@ export default {
   opacity: 0.75;
   font-size: small;
   overflow-x: auto;
+  direction: rtl; // This starts the overflow scroll rightmost.
 }
 .duration {
   float: right;

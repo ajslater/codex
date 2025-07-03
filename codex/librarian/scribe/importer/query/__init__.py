@@ -3,6 +3,7 @@
 from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
     DELETE_M2MS,
+    FTS_EXISTING_M2MS,
     QUERY_MODELS,
     UPDATE_COMICS,
     UPDATE_FKS,
@@ -29,6 +30,7 @@ class QueryForeignKeysImporter(QueryPruneLinks):
         self.metadata[CREATE_FKS] = {}
         self.metadata[UPDATE_FKS] = {}
         self.metadata[DELETE_M2MS] = {}
+        self.metadata[FTS_EXISTING_M2MS] = {}
         self.log.debug(
             f"Querying existing foreign keys for comics in {self.library.path}"
         )

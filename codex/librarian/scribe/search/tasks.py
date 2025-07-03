@@ -10,7 +10,7 @@ class SearchIndexerTask(ScribeTask):
 
 
 @dataclass
-class SearchIndexUpdateTask(SearchIndexerTask):
+class SearchIndexSyncTask(SearchIndexerTask):
     """Update the search index."""
 
     rebuild: bool = False
@@ -20,7 +20,7 @@ class SearchIndexOptimizeTask(SearchIndexerTask):
     """Optimize search index."""
 
 
-class SearchIndexRemoveStaleTask(SearchIndexerTask):
+class SearchIndexCleanStaleTask(SearchIndexerTask):
     """Remove stale records."""
 
 

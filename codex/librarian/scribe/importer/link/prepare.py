@@ -8,11 +8,13 @@ from django.db.models.query import Q
 from codex.librarian.scribe.importer.const import (
     FIELD_NAME_KEYS_REL_MAP,
     FOLDERS_FIELD_NAME,
+    FTS_CREATED_M2MS,
+    IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
 )
 from codex.librarian.scribe.importer.link.const import COMPLEX_MODEL_FIELD_NAMES
-from codex.librarian.scribe.importer.link.foreign_keys import (
-    LinkComicForeignKeysImporter,
+from codex.librarian.scribe.importer.link.covers import (
+    LinkCoversImporter,
 )
 from codex.models import Comic
 from codex.util import flatten
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
     from codex.models.base import BaseModel
 
 
-class LinkComicsImporterPrepare(LinkComicForeignKeysImporter):
+class LinkComicsImporterPrepare(LinkCoversImporter):
     """Prepare links with database objects."""
 
     @staticmethod
@@ -40,6 +42,19 @@ class LinkComicsImporterPrepare(LinkComicForeignKeysImporter):
             dict_filter |= Q(**rel_complex)
         return dict_filter
 
+    def _add_complex_link_to_fts(
+        self, comic_pk: int, field_name: str, values: frozenset
+    ):
+        if field_name == IDENTIFIERS_FIELD_NAME:
+            # sources extracton must come before identifiers is minified
+            sources = tuple(subvalues[0] for subvalues in values)
+            self.add_links_to_fts(comic_pk, "sources", sources)
+
+        field_name, fts_values = self.minify_complex_link_to_fts_tuple(
+            field_name, values
+        )
+        self.add_links_to_fts(comic_pk, field_name, fts_values)
+
     def _link_prepare_complex_m2ms(
         self,
         all_m2m_links: dict,
@@ -52,6 +67,7 @@ class LinkComicsImporterPrepare(LinkComicForeignKeysImporter):
         values = md.pop(field_name, None)
         if not values:
             return
+        self._add_complex_link_to_fts(comic_pk, field_name, values)
         model: type[BaseModel] = Comic._meta.get_field(field_name).related_model  # pyright: ignore[reportAssignmentType]
         m2m_filter = link_filter_method(field_name, values)
         pks = model.objects.filter(m2m_filter).values_list("pk", flat=True).distinct()
@@ -72,7 +88,8 @@ class LinkComicsImporterPrepare(LinkComicForeignKeysImporter):
         if model is None:
             self.log.error(f"No related class found for Comic.{field_name}")
             return
-        names = frozenset({values_tuple[0] for values_tuple in names})
+        self.add_links_to_fts(comic_pk, field_name, tuple(names))
+        names = frozenset(name[0] for name in names)
         pks = (
             model.objects.filter(name__in=names).values_list("pk", flat=True).distinct()
         )
@@ -111,4 +128,5 @@ class LinkComicsImporterPrepare(LinkComicForeignKeysImporter):
             for field, names in md.items():
                 self._link_prepare_named_m2ms(all_m2m_links, comic_pk, field, names)
         self.metadata.pop(LINK_M2MS)
+        self.metadata.pop(FTS_CREATED_M2MS)
         return all_m2m_links

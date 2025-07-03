@@ -120,30 +120,14 @@ ADMIN_TASK_GROUPS: MappingProxyType[
                 "title": "Search Index",
                 "tasks": (
                     {
-                        "value": "search_index_update",
-                        "title": "Update Search Index",
-                        "desc": "with recently changed comics",
-                    },
-                    {
                         "value": "search_index_optimize",
                         "title": "Optimize Search Index",
                         "desc": "Merge Search Index for optimal lookup time. Runs nightly.",
                     },
                     {
-                        "value": "search_index_rebuild",
-                        "title": "Rebuild Search Index",
-                        "desc": "Delete and rebuild the search index from scratch",
-                        "confirm": "This can take a long time",
-                    },
-                    {
                         "value": "search_index_remove_stale",
-                        "title": "Remove Stale Index Entries",
-                        "desc": "Remove search index entries that are no longer in the library.",
-                    },
-                    {
-                        "value": "search_index_abort",
-                        "title": "Abort Search Indexing",
-                        "desc": "Aborts search index update and remove tasks.",
+                        "title": "Clean Stale Index Entries",
+                        "desc": "Clean search index entries that are no longer in the library.",
                     },
                     {
                         "value": "search_index_clear",
@@ -159,6 +143,23 @@ ADMIN_TASK_GROUPS: MappingProxyType[
                         "value": "db_fts_rebuild",
                         "title": "Repair Search Index",
                         "desc": "Probably faster than Rebuild if integrity check fails.",
+                    },
+                    {
+                        "value": "search_index_abort",
+                        "title": "Abort Legacy Search Index Sync",
+                        "desc": "Aborts search index sync tasks.",
+                    },
+                    {
+                        "value": "search_index_update",
+                        "title": "Sync Search Index",
+                        "desc": "with recently changed comics. This should not need to be run.",
+                        "confirm": "This can take a long time",
+                    },
+                    {
+                        "value": "search_index_rebuild",
+                        "title": "Rebuild Search Index Using Sync.",
+                        "desc": "Delete and rebuild the search index from scratch using the legacy syncer. This should not need to be run.",
+                        "confirm": "This can take a long time",
                     },
                 ),
             },

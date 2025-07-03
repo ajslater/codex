@@ -13,7 +13,6 @@ from codex.librarian.notifier.tasks import (
 from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
-from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
 from codex.librarian.scribe.status import ScribeStatusTypes
 
 _REPORT_MAP = MappingProxyType(
@@ -35,10 +34,7 @@ _REPORT_MAP = MappingProxyType(
 _FINISH_STATII = (
     *ImporterStatusTypes.values,
     ScribeStatusTypes.UPDATE_GROUP_TIMESTAMPS.value,
-)
-_SEARCH_INDEX_STATII = (
-    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
-    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value,
+    SearchIndexStatusTypes.SEARCH_INDEX_CLEAN.value,
 )
 
 
@@ -69,16 +65,8 @@ class FinishImporter(InitImporter):
                     log_txt += f" {value} {suffix}."
 
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
-
-            if self.counts.search_changed():
-                # Wait to start the search index update in case more updates are incoming.
-                task = SearchIndexUpdateTask(rebuild=False)
-                self.librarian_queue.put(task)
-            else:
-                self.status_controller.finish_many(_SEARCH_INDEX_STATII)
         else:
             log_txt = f"No updates necessary for library {self.library.path}. Finished in {elapsed}."
-            self.status_controller.finish_many(_SEARCH_INDEX_STATII)
         self.log.success(log_txt)
         if self.counts.failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_CHANGED_TASK)

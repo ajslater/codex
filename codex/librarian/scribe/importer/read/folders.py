@@ -31,6 +31,7 @@ class AggregatePathMetadataImporter(AggregateManyToManyMetadataImporter):
     def get_path_metadata(self, md: dict, path: Path | str):
         """Set the path metadata."""
         proposed_folder_paths = self.get_all_library_relative_paths((path,))
-        self.add_query_model(Folder, proposed_folder_paths)
+        for proposed_path in proposed_folder_paths:
+            self.add_query_model(Folder, proposed_path)
         self.metadata[LINK_M2MS][path][FOLDERS_FIELD_NAME] = proposed_folder_paths
         md[PATH_FIELD_NAME] = str(path)

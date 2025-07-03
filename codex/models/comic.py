@@ -105,7 +105,7 @@ class Comic(WatchedPathBrowserGroup):
     # Unique comic fields
     collection_title = CleaningCharField(
         db_index=True,
-        max_length=MAX_ISSUE_SUFFIX_LEN,
+        max_length=MAX_NAME_LEN,
         default="",
         db_collation="nocase",
     )

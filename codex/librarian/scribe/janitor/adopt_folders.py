@@ -7,7 +7,7 @@ from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.status import JanitorStatusTypes
-from codex.librarian.scribe.search.tasks import SearchIndexUpdateTask
+from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Folder, Library
@@ -69,7 +69,7 @@ class OrphanFolderAdopter(WorkerStatusMixin):
             self.status_controller.finish_many((moved_status, status))
             if total_count:
                 self.librarian_queue.put(LIBRARY_CHANGED_TASK)
-                task = SearchIndexUpdateTask()
+                task = SearchIndexSyncTask()
                 self.librarian_queue.put(task)
             if self.abort_event.is_set():
                 self.log.debug("Adopt Orphan Folders aborted early.")

@@ -47,14 +47,14 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.search.tasks import (
+    SearchIndexCleanStaleTask,
     SearchIndexClearTask,
     SearchIndexOptimizeTask,
-    SearchIndexRemoveStaleTask,
-    SearchIndexUpdateTask,
+    SearchIndexSyncTask,
 )
 from codex.librarian.scribe.tasks import (
     ImportAbortTask,
-    SearchIndexAbortTask,
+    SearchIndexSyncAbortTask,
     UpdateGroupsTask,
 )
 from codex.librarian.watchdog.tasks import (
@@ -76,11 +76,11 @@ _TASK_MAP = MappingProxyType(
     {
         "purge_comic_covers": CoverRemoveAllTask(),
         "create_all_comic_covers": CoverCreateAllTask(),
-        "search_index_update": SearchIndexUpdateTask(rebuild=False),
-        "search_index_rebuild": SearchIndexUpdateTask(rebuild=True),
-        "search_index_remove_stale": SearchIndexRemoveStaleTask(),
+        "search_index_update": SearchIndexSyncTask(rebuild=False),
+        "search_index_rebuild": SearchIndexSyncTask(rebuild=True),
+        "search_index_remove_stale": SearchIndexCleanStaleTask(),
         "import_abort": ImportAbortTask(),
-        "search_index_abort": SearchIndexAbortTask(),
+        "search_index_abort": SearchIndexSyncAbortTask(),
         "search_index_optimize": SearchIndexOptimizeTask(),
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),

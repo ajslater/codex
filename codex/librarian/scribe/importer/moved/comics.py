@@ -31,9 +31,10 @@ class MovedComicsImporter(ReadMetadataImporter):
         status = Status(ImporterStatusTypes.QUERY_MISSING_TAGS)
         if CREATE_FKS not in self.metadata:
             self.metadata[CREATE_FKS] = {}
+        proposed_values_map = {(path,): set() for path in dest_comic_paths}
         self.query_missing_models(
             Folder,
-            dest_comic_paths,
+            proposed_values_map,
             status,
         )
         create_folder_paths = self.metadata[CREATE_FKS].pop(Folder, {})

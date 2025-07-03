@@ -32,29 +32,41 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         comic: Comic,
         field_name: str,
         m2m_obj: BaseModel,
+        kept_existing_values: set,
+        proposed_values: set,
     ):
         """Remove existing m2m links from the action list and add missing ones delete list."""
         # transform objs into tuples
         key_attrs = FIELD_NAME_KEY_ATTRS_MAP[field_name]
         existing_key_value_tuple = self._m2m_obj_to_key_tuple(key_attrs, m2m_obj)
-        field_proposed_values = self.metadata[LINK_M2MS][comic.path][field_name]
-        if existing_key_value_tuple in field_proposed_values:
+        if existing_key_value_tuple in proposed_values:
             # If already linked correctly, remove from action set
-            field_proposed_values.discard(existing_key_value_tuple)
+            kept_existing_values.add(existing_key_value_tuple)
+            proposed_values.discard(existing_key_value_tuple)
+            deleted = False
         else:
             # Delete existing m2m links that aren't in the new comic
             delete_m2m = (comic.pk, m2m_obj.pk)
             self.metadata[DELETE_M2MS][field_name].add(delete_m2m)
+            deleted = True
+        return deleted
 
     def _query_prune_comic_m2m_links_field(self, comic: Comic, field_name: str, status):
         if field_name not in self.metadata[DELETE_M2MS]:
             self.metadata[DELETE_M2MS][field_name] = set()
 
         m2m_objs = getattr(comic, field_name).all()
+        deleted = False
+        kept_existing_values = set()
+        proposed_values = self.metadata[LINK_M2MS][comic.path][field_name]
         for m2m_obj in m2m_objs:
-            self._query_prune_comic_m2m_links_field_obj(comic, field_name, m2m_obj)
+            deleted |= self._query_prune_comic_m2m_links_field_obj(
+                comic, field_name, m2m_obj, kept_existing_values, proposed_values
+            )
             status.increment_complete()
             self.status_controller.update(status)
+        if kept_existing_values and (deleted or proposed_values):
+            self.add_to_fts_existing(comic.pk, field_name, tuple(kept_existing_values))
         if not self.metadata[LINK_M2MS][comic.path][field_name]:
             del self.metadata[LINK_M2MS][comic.path][field_name]
 
@@ -75,7 +87,8 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         for comic in comics.iterator(chunk_size=LINK_M2M_BATCH_SIZE):
             self._query_prune_comic_m2m_links_comic(comic, status)
 
-    def _query_prune_comic_m2m_links(self, status):
+    def query_prune_comic_m2m_links(self, status):
+        """Prune comic m2m links that already exists or should be deleted."""
         status.subtitle = "Many to Many"
         self.status_controller.update(status)
         paths = tuple(self.metadata[LINK_M2MS].keys())

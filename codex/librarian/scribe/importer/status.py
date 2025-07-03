@@ -35,3 +35,6 @@ class ImporterStatusTypes(TextChoices):
     REMOVE_CUSTOM_COVERS = "ICD"
 
     MARK_FAILED_IMPORTS = "IFI"
+
+    SEARCH_INDEX_UPDATE = "SIU"
+    SEARCH_INDEX_CREATE = "SIC"

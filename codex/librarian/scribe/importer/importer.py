@@ -11,6 +11,7 @@ _METHODS = (
     "link",
     "fail_imports",
     "delete",
+    "full_text_search",
 )
 
 

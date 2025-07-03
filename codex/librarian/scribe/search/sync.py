@@ -66,7 +66,7 @@ _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 _CHUNK_HUMAN_SIZE = intcomma(SEARCH_INDEX_BATCH_SIZE)
 
 
-class SearchIndexerUpdate(SearchIndexerRemove):
+class SearchIndexerSync(SearchIndexerRemove):
     """Search Index update methods."""
 
     def _init_statuses(self, rebuild):
@@ -77,10 +77,10 @@ class SearchIndexerUpdate(SearchIndexerRemove):
             ]
         else:
             statii = [
-                Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
-                Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
+                Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN),
+                Status(SearchIndexStatusTypes.SEARCH_INDEX_SYNC_UPDATE),
             ]
-        statii.append(Status(SearchIndexStatusTypes.SEARCH_INDEX_CREATE))
+        statii.append(Status(SearchIndexStatusTypes.SEARCH_INDEX_SYNC_CREATE))
         self.status_controller.start_many(statii)
 
     def _update_search_index_clean(self, rebuild):
@@ -280,9 +280,9 @@ class SearchIndexerUpdate(SearchIndexerRemove):
         self, total_comics: int, *, create: bool
     ):
         status_type = (
-            SearchIndexStatusTypes.SEARCH_INDEX_CREATE
+            SearchIndexStatusTypes.SEARCH_INDEX_SYNC_CREATE
             if create
-            else SearchIndexStatusTypes.SEARCH_INDEX_UPDATE
+            else SearchIndexStatusTypes.SEARCH_INDEX_SYNC_UPDATE
         )
         subtitle = f"Chunks of {_CHUNK_HUMAN_SIZE}" if total_comics else ""
         return Status(status_type, total=total_comics, subtitle=subtitle)
@@ -316,7 +316,7 @@ class SearchIndexerUpdate(SearchIndexerRemove):
             comics = comics.order_by("pk")
 
             obj_list = []
-            batch_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, 0)
+            batch_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_SYNC_UPDATE, 0)
             batch_status.start()
             prep_num = min(SEARCH_INDEX_BATCH_SIZE, total_comics)
             self.log.debug(f"Preparing {prep_num} comics for search indexing...")

@@ -1,13 +1,13 @@
 """Clean up covers from the db."""
 
 from codex.librarian.covers.tasks import CoverRemoveTask
-from codex.librarian.scribe.importer.finish import FinishImporter
+from codex.librarian.scribe.importer.search import SearchIndexImporter
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.paths import CustomCover
 
 
-class DeletedCoversImporter(FinishImporter):
+class DeletedCoversImporter(SearchIndexImporter):
     """Clean up covers from the db."""
 
     def remove_covers(self, delete_pks, *, custom: bool):

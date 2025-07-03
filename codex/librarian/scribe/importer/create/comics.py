@@ -7,25 +7,41 @@ from codex.librarian.scribe.importer.const import (
     BULK_CREATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS,
     CREATE_COMICS,
+    FTS_CREATE,
+    FTS_UPDATE,
     LINK_FKS,
+    NON_FTS_FIELDS,
     PATH_FIELD_NAME,
     UPDATE_COMICS,
 )
-from codex.librarian.scribe.importer.link import LinkComicsImporter
+from codex.librarian.scribe.importer.create.link_fks import (
+    CreateForeignKeyLinksImporter,
+)
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models import Comic
 
 
-class CreateComicsImporter(LinkComicsImporter):
+class CreateComicsImporter(CreateForeignKeyLinksImporter):
     """Create comics methods."""
+
+    def _populate_fts_attribute_values(self, key: str, sub_key: str | int, md):
+        if sub_key not in self.metadata[key]:
+            self.metadata[key][sub_key] = {}
+        for field_name, value in md.items():
+            if field_name not in NON_FTS_FIELDS:
+                self.metadata[key][sub_key][field_name] = (value,)
+
+        issue = (str(md.get("issue_number", "")) + md.get("issue_suffix", ""),)
+        self.metadata[key][sub_key]["issue"] = issue
 
     def _update_comic_values(self, comic: Comic, update_comics: list, comic_pks: list):
         md = self.metadata[UPDATE_COMICS].pop(comic.pk, {})
         for field_name, value in md.items():
             setattr(comic, field_name, value)
 
-        link_md = self.get_comic_fk_links(comic.path)
+        self._populate_fts_attribute_values(FTS_UPDATE, comic.pk, md)
+        link_md = self.get_comic_fk_links(comic.pk, comic.path)
         for field_name, value in link_md.items():
             set_value = value
             if set_value is None:
@@ -53,6 +69,7 @@ class CreateComicsImporter(LinkComicsImporter):
             f"Preparing {num_comics} comics for update in library {self.library.path}."
         )
         self.status_controller.start(status)
+        self.metadata[FTS_UPDATE] = {}
         # Get existing comics to update
         comics = Comic.objects.filter(library=self.library, pk__in=pks).only(
             PATH_FIELD_NAME, *BULK_UPDATE_COMIC_FIELDS
@@ -89,7 +106,8 @@ class CreateComicsImporter(LinkComicsImporter):
 
     def _bulk_create_comic(self, path: str, create_comics: list[Comic]):
         md = self.metadata[CREATE_COMICS].pop(path, {})
-        link_md = self.get_comic_fk_links(path)
+        self._populate_fts_attribute_values(FTS_CREATE, path, md)
+        link_md = self.get_comic_fk_links(path, path)
         md.update(link_md)
         if not md:
             return
@@ -114,6 +132,7 @@ class CreateComicsImporter(LinkComicsImporter):
         )
         self.status_controller.start(status)
 
+        self.metadata[FTS_CREATE] = {}
         create_comics = []
         for path in paths:
             if self.abort_event.is_set():
@@ -132,15 +151,22 @@ class CreateComicsImporter(LinkComicsImporter):
         if num_comics:
             self.log.debug(f"Bulk creating {num_comics} comics...")
             try:
-                Comic.objects.bulk_create(
+                created_comics = Comic.objects.bulk_create(
                     create_comics,
                     update_conflicts=True,
                     update_fields=BULK_CREATE_COMIC_FIELDS,
                     unique_fields=Comic._meta.unique_together[0],
                 )
-                count = len(create_comics)
+                count = len(created_comics)
                 if count:
                     self.log.info(f"Created {count} comics.")
+
+                # Replace FTS_CREATE path keyed entries with pk keys
+                for created_comic in created_comics:
+                    self.metadata[FTS_CREATE][created_comic.pk] = self.metadata[
+                        FTS_CREATE
+                    ].pop(created_comic.path)
+
             except Exception:
                 self.log.exception(f"While creating {num_comics} comics")
 

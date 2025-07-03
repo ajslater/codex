@@ -20,7 +20,6 @@ from codex.librarian.scribe.importer.const import (
     GROUP_MODEL_COUNT_FIELDS,
     LINK_FKS,
     QUERY_MODELS,
-    get_key_index,
 )
 from codex.librarian.scribe.importer.query import QueryForeignKeysImporter
 from codex.librarian.scribe.importer.read.const import COMIC_FK_FIELD_NAMES_FIELD_MAP
@@ -33,17 +32,22 @@ from codex.util import max_none
 class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
     """Aggregate Browser Group Trees."""
 
-    def add_query_model(self, model: type[Model], clean_values):
+    def add_query_model(
+        self,
+        model: type[Model],
+        clean_key_values: tuple,
+        clean_extra_values: frozenset | set | None = None,
+    ):
         """Add to the queury models set for the model."""
         if model not in self.metadata[QUERY_MODELS]:
-            self.metadata[QUERY_MODELS][model] = set()
-        if not isinstance(clean_values, set | frozenset):
-            clean_values = {
-                clean_values,
-            }
-        if "metron" in clean_values:
-            raise ValueError
-        self.metadata[QUERY_MODELS][model] |= clean_values
+            self.metadata[QUERY_MODELS][model] = {}
+        if clean_key_values not in self.metadata[QUERY_MODELS][model]:
+            self.metadata[QUERY_MODELS][model][clean_key_values] = set()
+        if clean_extra_values is None:
+            clean_extra_values = frozenset()
+        else:
+            clean_extra_values = frozenset(clean_extra_values)
+        self.metadata[QUERY_MODELS][model][clean_key_values] |= clean_extra_values
 
     def get_identifier_tuple(self, model: type[BaseModel], obj: Mapping):
         """Parse first highest priority identifier from metadata."""
@@ -69,17 +73,18 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             return None
         id_url = id_obj.get(ID_URL_KEY)
 
-        identifier_tuple = (id_source, id_type, id_key, id_url)
+        identifier_tuple_keys = (id_source, id_type, id_key)
+        identifier_tuple_extra = frozenset([(id_url,)])
         self.add_query_model(IdentifierSource, (id_source,))
-        self.add_query_model(Identifier, identifier_tuple)
+        self.add_query_model(Identifier, identifier_tuple_keys, identifier_tuple_extra)
 
-        return identifier_tuple[:-1]
+        return identifier_tuple_keys
 
     def _set_simple_fk(self, related_field: Field, value) -> tuple:
         value = related_field.get_prep_value(value)
         if value is None:
             return ()
-        return (value,)
+        return (value,), None
 
     def _set_group_tree_group(
         self,
@@ -112,7 +117,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
                 )
                 count = max_none(old_count_val, count)
             extra_vals.append(count)
-        return tuple(group_list + extra_vals)
+        return tuple(group_list), frozenset((tuple(extra_vals),))
 
     def get_fk_metadata(self, md, path):
         """Aggregate Simple Foreign Keys."""
@@ -127,16 +132,14 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
                 continue
 
             if issubclass(model, BrowserGroupModel):
-                values = self._set_group_tree_group(
+                key_values, extra_values = self._set_group_tree_group(
                     model, related_field, value, group_list
                 )
             else:
-                values = self._set_simple_fk(related_field, value)
-            if not values and not issubclass(model, BrowserGroupModel):
+                key_values, extra_values = self._set_simple_fk(related_field, value)
+            if not key_values and not extra_values:
                 continue
 
             if md_key != PROTAGONIST_KEY:
-                self.add_query_model(model, values)
-            key_index = get_key_index(model)
-            key_values = values[:key_index]
+                self.add_query_model(model, key_values, extra_values)
             self.metadata[LINK_FKS][path][field_name] = key_values

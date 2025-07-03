@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from codex.librarian.scribe.importer.const import DictModelType
 from codex.librarian.scribe.importer.query.covers import QueryCustomCoversImporter
+from codex.models.base import BaseModel
 from codex.models.groups import BrowserGroupModel
 
 
@@ -12,12 +13,12 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
 
     @staticmethod
     def _get_query_missing_simple_filter(
-        key_rels: tuple[str],
+        key_rels: tuple[str, ...],
         key_values: tuple[str, ...],
     ):
         filter_args = {}
         rel = key_rels[0]
-        values = tuple(key[0] for key in key_values if key[0])
+        values = frozenset(key[0] for key in key_values if key[0])
         filter_args[f"{rel}__in"] = values
         return Q(**filter_args)
 
@@ -42,7 +43,12 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
             query_filter |= Q(**filter_dict)
         return query_filter
 
-    def query_missing_model_filter(self, model, key_rels, key_value_tuples):
+    def query_missing_model_filter(
+        self,
+        model: type[BaseModel],
+        key_rels: tuple[str, ...],
+        key_value_tuples: tuple,
+    ):
         """Get filters for the model."""
         if issubclass(model, DictModelType | BrowserGroupModel):
             fk_filter = self._query_missing_complex_model_filter(

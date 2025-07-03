@@ -25,7 +25,6 @@ from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
 from codex.librarian.scribe.search.status import SearchIndexStatusTypes
 from codex.librarian.scribe.search.tasks import (
     SearchIndexOptimizeTask,
-    SearchIndexUpdateTask,
 )
 from codex.librarian.status import Status
 from codex.models import Timestamp
@@ -44,8 +43,7 @@ _JANITOR_STATII = (
     Status(CoverStatusTypes.PURGE_COVERS),
     Status(JanitorStatusTypes.ADOPT_ORPHAN_FOLDERS),
     Status(ImporterStatusTypes.MOVE_FOLDERS),
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
+    Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN),
     Status(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE),
 )
 
@@ -67,7 +65,6 @@ class Janitor(JanitorCodexUpdate):
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
                 JanitorCleanupBookmarksTask(),
-                SearchIndexUpdateTask(),
                 SearchIndexOptimizeTask(),
                 JanitorVacuumTask(),
                 JanitorBackupTask(),

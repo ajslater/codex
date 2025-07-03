@@ -1,6 +1,6 @@
 """Consts and maps for import."""
 
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 
 from bidict import frozenbidict
 from django.db.models.fields import Field
@@ -52,6 +52,26 @@ PARENT_FOLDER_FIELD_NAME = "parent_folder"
 VOLUME_COUNT_FIELD_NAME = "volume_count"
 ISSUE_COUNT_FIELD_NAME = "issue_count"
 PATH_FIELD_NAME = "path"
+NON_FTS_FIELDS = frozenset(
+    {
+        # Attributes
+        "critical_rating",
+        "day",
+        "metadata_mtime",
+        "monochrome",
+        "month",
+        "page_count",
+        "path",
+        "year",
+        "issue_number",
+        "issue_suffix",
+        # FKs
+        PARENT_FOLDER_FIELD_NAME,
+        VOLUME_FIELD_NAME,
+        # M2Ms
+        FOLDERS_FIELD_NAME,
+    }
+)
 
 ##########################
 # IMPORTER METADATA KEYS #
@@ -71,7 +91,12 @@ LINK_M2MS = "link_m2ms"
 DELETE_M2MS = "delete_m2ms"
 FIS = "fis"
 TOTAL = "total"
-
+FK_KEYS = SimpleNamespace(CREATE_FKS=CREATE_FKS, UPDATE_FKS=UPDATE_FKS)
+FTS_UPDATE = "fts_update"
+FTS_CREATE = "fts_create"
+FTS_EXISTING_M2MS = "fts_existing_m2ms"
+FTS_CREATED_M2MS = "fts_created_m2ms"
+FTS_UPDATED_M2MS = "fts_updated_m2ms"
 
 #######
 # M2M #

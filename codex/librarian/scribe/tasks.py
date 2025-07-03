@@ -27,5 +27,5 @@ class ImportAbortTask(ScribeTask):
     """Abort Import."""
 
 
-class SearchIndexAbortTask(ScribeTask):
-    """Abort current search index."""
+class SearchIndexSyncAbortTask(ScribeTask):
+    """Abort current search index sync."""

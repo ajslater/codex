@@ -10,6 +10,8 @@ from itertools import chain
 from codex.librarian.scribe.importer.const import (
     COMPLEX_M2M_MODELS,
     CREATE_FKS,
+    FTS_CREATED_M2MS,
+    FTS_UPDATED_M2MS,
     GROUP_MODEL_COUNT_FIELDS,
     MODEL_REL_MAP,
     TOTAL,
@@ -31,6 +33,7 @@ from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
 from codex.models.groups import Folder
+from codex.models.named import Universe
 
 
 class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
@@ -95,6 +98,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         create_objs = []
         create_tuples = sorted(create_tuples, key=str)
+        created_fts_values = {}
         for values_tuple in create_tuples:
             key_args, update_args = self._get_create_update_args(
                 model, key_args_map, update_args_map, values_tuple
@@ -104,6 +108,15 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             if model in CUSTOM_COVER_MODELS:
                 self._add_custom_cover(model, obj)
             create_objs.append(obj)
+            if model == Universe and update_args:
+                fts_update_values = tuple(
+                    value for value in update_args.values() if isinstance(value, str)
+                )
+                created_fts_values[tuple(key_args.values())] = fts_update_values
+
+        if created_fts_values:
+            field_name = model.__name__.lower() + "s"
+            self.metadata[FTS_CREATED_M2MS][field_name] = created_fts_values
 
         update_fields = tuple(key_args_map.keys()) + tuple(update_args_map.keys())
         if model in GROUP_BASE_MODELS:
@@ -159,6 +172,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         update_objs = []
         update_tuples = sorted(update_tuples, key=lambda t: str(t))
+        fts_update_pks = set()
         for values_tuple in update_tuples:
             key_args, update_args = self._get_create_update_args(
                 model, key_args_map, update_args_map, values_tuple
@@ -170,6 +184,16 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             if model in CUSTOM_COVER_MODELS:
                 self._add_custom_cover(model, obj)
             update_objs.append(obj)
+            # Generic code, but really it's only universe
+            # if tuple(
+            #    value for value in update_args.values() if isinstance(value, str)
+            # ):
+            if model == Universe:
+                fts_update_pks.add(obj.pk)
+
+        if fts_update_pks:
+            field_name = model.__name__.lower() + "s"
+            self.metadata[FTS_UPDATED_M2MS][field_name] = fts_update_pks
 
         update_fields = tuple(update_args_map.keys())
         if model in GROUP_BASE_MODELS:
@@ -184,10 +208,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         """Bulk update all complex models."""
         count = 0
         for model in tuple(self.metadata[UPDATE_FKS].keys()):
-            count += self._bulk_update_models(
-                model,
-                status,
-            )
+            count += self._bulk_update_models(model, status)
         return count
 
     def create_all_fks(self) -> int:
@@ -196,6 +217,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         fkc = self.metadata.get(CREATE_FKS, {})
         create_status = Status(ImporterStatusTypes.CREATE_TAGS, 0, fkc.pop(TOTAL, 0))
         try:
+            self.metadata[FTS_CREATED_M2MS] = {}
             if not fkc:
                 return count
             self.status_controller.start(create_status)
@@ -214,6 +236,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         fku = self.metadata.get(UPDATE_FKS, {})
         update_status = Status(ImporterStatusTypes.UPDATE_TAGS, 0, fku.pop(TOTAL, 0))
         try:
+            self.metadata[FTS_UPDATED_M2MS] = {}
             if not fku:
                 return count
             self.status_controller.start(update_status)

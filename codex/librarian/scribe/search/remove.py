@@ -40,7 +40,7 @@ class SearchIndexerRemove(SearchIndexerOptimize):
 
     def remove_stale_records(self):
         """Remove records not in the database from the index, trapping exceptions."""
-        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN)
         try:
             self._remove_stale_records(status)
         except Exception:

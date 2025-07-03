@@ -1,9 +1,8 @@
 """Query the missing foreign keys methods."""
 
-from django.db.models import Q
-
 from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
+    FK_KEYS,
     MODEL_REL_MAP,
     MODEL_SELECT_RELATED,
     QUERY_MODELS,
@@ -15,6 +14,7 @@ from codex.librarian.scribe.importer.query.update_fks import QueryIsUpdateImport
 from codex.librarian.scribe.importer.status import ImporterStatusTypes
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
+from codex.models.named import Universe
 from codex.settings import FILTER_BATCH_SIZE
 from codex.util import flatten
 
@@ -22,9 +22,14 @@ from codex.util import flatten
 class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     """Query the missing foreign keys methods."""
 
-    @staticmethod
-    def query_existing_mds(model: type[BaseModel], fk_filter: Q):
+    def query_existing_mds(self, model: type[BaseModel], batch_proposed_key_tuples):
         """Query existing metatata tables."""
+        key_rels: tuple[str, ...] = MODEL_REL_MAP[model][0]  # pyright:ignore[reportAssignmentType]
+        fk_filter = self.query_missing_model_filter(
+            model,
+            key_rels,
+            batch_proposed_key_tuples,
+        )
         rels = MODEL_REL_MAP[model]
         select_related = MODEL_SELECT_RELATED.get(model, ())
         fields = tuple(filter(bool, flatten(rels)))
@@ -32,9 +37,16 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         qs = qs.select_related(*select_related)
         qs = qs.filter(fk_filter).distinct().values_list(*fields)
         extra_index = get_key_index(model)
-        return {
-            existing_values[:extra_index]: existing_values for existing_values in qs
-        }
+        has_id = bool(rels[1])
+        existing_mds = {}
+        for existing_values in qs:
+            key = existing_values[:extra_index]
+            value = existing_values[extra_index:]
+            if has_id:
+                identifier = value[:3] if any(value[:3]) else None
+                value = (identifier, *value[3:])
+            existing_mds[key] = value
+        return existing_mds
 
     def _query_missing_models_batch(  # noqa: PLR0913
         self,
@@ -44,34 +56,32 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         proposed_values_map: dict[tuple, set[tuple]],
         create_values: set[tuple],
         update_values: set[tuple],
+        fts_values: dict[tuple, tuple],
         status: Status,
     ):
-        # Do this in batches so as not to exceed the 1k line sqlite limit
+        # Do this in batches so as not to exceed the 1k sqlite query depth limit
         end = start + FILTER_BATCH_SIZE
         batch_proposed_key_tuples = all_proposed_key_values[start:end]
         num_in_batch = len(batch_proposed_key_tuples)
 
-        # Existing
-        key_rels = MODEL_REL_MAP[model][0]
-        fk_filter = self.query_missing_model_filter(
-            model,
-            key_rels,
-            batch_proposed_key_tuples,
-        )
-        existing_values_map = self.query_existing_mds(model, fk_filter)
+        existing_values_map = self.query_existing_mds(model, batch_proposed_key_tuples)
 
         for key_values in batch_proposed_key_tuples:
-            proposed_values_set = proposed_values_map.pop(key_values)
-            existing_values = existing_values_map.pop(key_values, None)
+            proposed_extra_values_set = proposed_values_map.pop(key_values)
+            exists = key_values in existing_values_map
+            existing_extra_values = existing_values_map.pop(key_values, None)
 
-            do_update, best_values = self.query_model_best_values(
-                model, key_values, existing_values, proposed_values_set
+            do_update, best_extra_values = self.query_model_best_extra_values(
+                model, existing_extra_values, proposed_extra_values_set
             )
-            if existing_values:
+            best_values = (*key_values, *best_extra_values)
+            if exists:
                 if do_update:
                     update_values.add(best_values)
             else:
                 create_values.add(best_values)
+            if model is Universe:
+                fts_values[key_values] = best_extra_values
 
         status.increment_complete(num_in_batch)
         self.status_controller.update(status)
@@ -79,41 +89,44 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     def _finish_query_missing(
         self,
         model: type[BaseModel],
-        values: set | frozenset,
+        values: set | frozenset | dict,
         key: str,
         title: str,
     ):
         if values:
             fks = self.metadata[key]
-            if model not in fks:
-                fks[model] = set()
-            fks[model] |= values
+            if isinstance(values, dict):
+                if model not in fks:
+                    fks[model] = {}
+                fks[model].update(values)
+            else:
+                if model not in fks:
+                    fks[model] = set()
+                fks[model] |= values
             level = "INFO"
         else:
             level = "DEBUG"
         num = len(values)
-        verb = "create" if key == CREATE_FKS else "update"
-        self.log.log(level, f"Prepared {num} {title} for {verb}.")
+        match key:
+            case FK_KEYS.CREATE_FKS:
+                verb = "create"
+            case FK_KEYS.UPDATE_FKS:
+                verb = "update"
+            case _:
+                verb = ""
+        if verb:
+            self.log.log(level, f"Prepared {num} {title} for {verb}.")
 
     def query_missing_models(
         self,
         model: type[BaseModel],
-        all_proposed_values: set,
-        status,
+        proposed_values_map: dict[tuple, set[tuple]],
+        status: Status,
     ):
         """Find missing foreign key models."""
-        if not all_proposed_values:
+        if not proposed_values_map:
             return 0
-        proposed_extra_index = get_key_index(model)
-        proposed_values_map = {}
-        for values_tuple in all_proposed_values:
-            key_proposed_values = values_tuple[:proposed_extra_index]
-            if not key_proposed_values:
-                continue
-            if key_proposed_values not in proposed_values_map:
-                proposed_values_map[key_proposed_values] = set()
-            proposed_values_map[key_proposed_values].add(values_tuple)
-        num_all_proposed_values = len(all_proposed_values)
+        num_all_proposed_values = len(proposed_values_map)
         proposed_key_values = tuple(proposed_values_map.keys())
         start = 0
 
@@ -123,6 +136,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
 
         create_values = set()
         update_values = set()
+        fts_values = {}
 
         while start < num_all_proposed_values:
             self._query_missing_models_batch(
@@ -132,6 +146,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
                 proposed_values_map,
                 create_values,
                 update_values,
+                fts_values,
                 status,
             )
             start += FILTER_BATCH_SIZE
@@ -141,7 +156,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         status.subtitle = ""
         return num_all_proposed_values
 
-    def _query_missing_model(self, model: type[BaseModel], status):
+    def _query_missing_model(self, model: type[BaseModel], status: Status):
         """Find missing model and update create and update sets."""
         count = 0
         proposed_values = self.metadata[QUERY_MODELS].pop(model, None)

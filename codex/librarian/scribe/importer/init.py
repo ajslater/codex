@@ -259,7 +259,10 @@ class InitImporter(WorkerStatusMixin):
                 )
             ]
 
-        return total_paths
+        modified = len(self.task.files_moved) + len(self.task.files_modified)
+        created = len(self.task.files_created)
+
+        return modified, created
 
     def _init_librarian_status_deleted(self, status_list):
         """Init deleted statuses."""
@@ -292,31 +295,35 @@ class InitImporter(WorkerStatusMixin):
         return search_index_updates
 
     @staticmethod
-    def _init_librarian_status_search_index(search_index_updates, status_list):
+    def _init_librarian_status_search_index(
+        comic_updates, comic_creates, comic_deletes, status_list
+    ):
         """Init search index statuses."""
         status_list += [
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN, total=comic_deletes),
             Status(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                total=search_index_updates,
+                ImporterStatusTypes.SEARCH_INDEX_UPDATE,
+                total=comic_updates,
             ),
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
+            Status(
+                ImporterStatusTypes.SEARCH_INDEX_CREATE,
+                total=comic_creates,
+            ),
         ]
 
     def _init_librarian_status(self, path):
         """Update the librarian status self.tasks."""
         status_list = []
-        search_index_updates = 0
-        search_index_updates += self._init_librarian_status_moved(status_list)
-        if (
-            self.task.files_modified
-            or self.task.files_created
-            or self.task.covers_modified
-            or self.task.covers_created
-        ):
-            search_index_updates += self._init_if_modified_or_created(path, status_list)
-        search_index_updates += self._init_librarian_status_deleted(status_list)
+        moved = self._init_librarian_status_moved(status_list)
+        modified, created = self._init_if_modified_or_created(path, status_list)
+        deleted = self._init_librarian_status_deleted(status_list)
         status_list += [Status(ScribeStatusTypes.UPDATE_GROUP_TIMESTAMPS)]
-        self._init_librarian_status_search_index(search_index_updates, status_list)
+        self._init_librarian_status_search_index(
+            modified + moved,
+            created,
+            deleted,
+            status_list,
+        )
         self.status_controller.start_many(status_list)
 
     def init_apply(self):

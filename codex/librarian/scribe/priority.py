@@ -20,28 +20,29 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.search.tasks import (
+    SearchIndexCleanStaleTask,
     SearchIndexClearTask,
     SearchIndexOptimizeTask,
-    SearchIndexRemoveStaleTask,
-    SearchIndexUpdateTask,
+    SearchIndexSyncTask,
 )
 from codex.librarian.scribe.tasks import (
     ImportAbortTask,
     LazyImportComicsTask,
     ScribeTask,
-    SearchIndexAbortTask,
+    SearchIndexSyncAbortTask,
     UpdateGroupsTask,
 )
 
 _SCRIBE_TASK_PRIORITY = (
     ImportAbortTask,
-    SearchIndexAbortTask,
+    SearchIndexSyncAbortTask,
     JanitorNightlyTask,
     JanitorCodexUpdateTask,
     JanitorAdoptOrphanFoldersTask,
     JanitorForeignKeyCheckTask,
     JanitorIntegrityCheckTask,
     JanitorFTSIntegrityCheckTask,
+    JanitorFTSRebuildTask,
     JanitorImportForceAllFailedTask,
     ImportTask,
     LazyImportComicsTask,
@@ -51,9 +52,8 @@ _SCRIBE_TASK_PRIORITY = (
     JanitorCleanupSessionsTask,
     JanitorCleanupBookmarksTask,
     SearchIndexClearTask,
-    JanitorFTSRebuildTask,
-    SearchIndexRemoveStaleTask,
-    SearchIndexUpdateTask,
+    SearchIndexCleanStaleTask,
+    SearchIndexSyncTask,
     SearchIndexOptimizeTask,
     JanitorVacuumTask,
     JanitorBackupTask,

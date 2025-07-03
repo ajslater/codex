@@ -19,13 +19,18 @@ _QUERY_LINK_FK_PRUNE_ONLY = (
 class QueryPruneLinksFKs(QueryUpdateComics):
     """Prune M2O links that don't need updating."""
 
+    def pop_links_to_fts(self, path, field_name):
+        """Pop a link to the FTS structure."""
+        link_key = self.metadata[LINK_FKS][path].pop(field_name)
+        self.add_links_to_fts(path, field_name, (link_key,))
+
     def _query_prune_comic_fk_links_protagonist(
         self, comic: Comic, path: str, field_name: str, key_values: tuple
     ):
         prot = key_values[0]
         for obj in (comic.main_character, comic.main_team):
             if obj and obj.name == prot:
-                del self.metadata[LINK_FKS][path][field_name]
+                self.metadata[LINK_FKS][path].pop(field_name)
                 break
 
     @staticmethod
@@ -56,7 +61,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
             if not keys_equal:
                 break
         if keys_equal:
-            del self.metadata[LINK_FKS][path][field_name]
+            self.metadata[LINK_FKS][path].pop(field_name)
 
     def _query_prune_comic_fk_links_comic(self, comic, status):
         path = comic.path
@@ -77,7 +82,8 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         for comic in comics:
             self._query_prune_comic_fk_links_comic(comic, status)
 
-    def _query_prune_comic_fk_links(self, status):
+    def query_prune_comic_fk_links(self, status):
+        """Prune comic fk links that already exist."""
         status.subtitle = "Many to One"
         self.status_controller.update(status)
         paths = tuple(self.metadata[LINK_FKS].keys())

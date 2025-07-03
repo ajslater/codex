@@ -10,6 +10,7 @@ from django.db.models.fields.related import ManyToManyField
 from codex.librarian.scribe.importer.const import (
     COMIC_M2M_FIELDS,
     CREDITS_FIELD_NAME,
+    IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
     STORY_ARC_NUMBERS_FIELD_NAME,
     get_key_index,
@@ -41,7 +42,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         sub_sub_md_key: str,
         sub_sub_field: Field,
     ):
-        # sub_sub_md_key is gonna be like identifiers or designation or roles or number
+        # sub_sub_md_key is identifiers or designation or roles or number
         # StoryArcNumber.number can be None.
         clean_sub_sub_values = None
         if sub_value_obj is None:
@@ -76,41 +77,36 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
     def _get_m2m_metadata_aggregate_sub_values_init(
         self,
         md_key: str,
-        field_name: str,
+        sub_key_name_field,
         sub_key_name: str,
-        sub_value_obj: Mapping | None,
+        sub_key_identifier_field,
+        sub_value_obj,
     ):
-        sub_key_name_field, sub_key_identifier_field, dict_field_keys = (
-            COMPLEX_FIELD_AGG_MAP[field_name]
+        name_field = (
+            sub_key_name_field
+            if isinstance(sub_key_name_field, CharField)
+            else sub_key_name_field.field
         )
-        if isinstance(sub_key_name_field, CharField):
-            clean_sub_key_name = sub_key_name_field.get_prep_value(sub_key_name)
-        else:
-            clean_sub_key_name = sub_key_name_field.field.get_prep_value(sub_key_name)
-        if sub_value_obj and sub_key_identifier_field:
-            sub_model: type[BaseModel] = sub_key_identifier_field.field.model  # pyright: ignore[reportAssignmentType]
+        clean_sub_key_name = name_field.get_prep_value(sub_key_name)
+
+        clean_sub_values = []
+        sub_model = None
+        if sub_key_identifier_field:
+            sub_model = sub_key_identifier_field.field.model
             sub_key_identifier_tuple = self.get_identifier_tuple(
                 sub_model, sub_value_obj
             )
-        else:
-            sub_key_identifier_tuple = None
-        if sub_key_identifier_field:
-            clean_sub_key = (clean_sub_key_name, sub_key_identifier_tuple)
-            # adds same models
-            sub_key_model = sub_key_identifier_field.field.model
-        else:
-            clean_sub_key = (clean_sub_key_name,)
-            if md_key == IDENTIFIERS_KEY and clean_sub_key_name:
-                sub_key_model = IdentifierSource
-            else:
-                sub_key_model = None
+            clean_sub_values.append(sub_key_identifier_tuple)
+        elif md_key == IDENTIFIERS_KEY and clean_sub_key_name:
+            sub_model = IdentifierSource
 
-        if sub_key_model and clean_sub_key:
-            self.add_query_model(
-                sub_key_model,
-                clean_sub_key,
+        clean_sub_key = (clean_sub_key_name,)
+        if sub_model:
+            clean_sub_values_set = (
+                frozenset({tuple(clean_sub_values)}) if clean_sub_values else None
             )
-        return dict_field_keys, clean_sub_key
+            self.add_query_model(sub_model, clean_sub_key, clean_sub_values_set)
+        return clean_sub_key, clean_sub_values
 
     def _get_m2m_metadata_dict_model_aggregate_sub_values(
         self,
@@ -122,13 +118,19 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         # Clean name and if there are sub values get those.
         # sub_key: story_arc_name_a,
         # sub_key: character_name_a,
-        dict_field_keys, clean_sub_key = (
+        sub_key_name_field, sub_key_identifier_field, dict_field_keys = (
+            COMPLEX_FIELD_AGG_MAP[field.name]
+        )
+        clean_sub_key, clean_sub_values = (
             self._get_m2m_metadata_aggregate_sub_values_init(
-                md_key, field.name, sub_key_name, sub_value_obj
+                md_key,
+                sub_key_name_field,
+                sub_key_name,
+                sub_key_identifier_field,
+                sub_value_obj,
             )
         )
 
-        clean_sub_values = []
         roles_or_numbers = set()
         for sub_sub_md_key, sub_sub_field in dict_field_keys.items():
             # Sub_sub_md_key is identifiers or designation or roles
@@ -139,7 +141,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 continue
 
             # Get one sub value tuple for the aggregate tuple
-            clean_sub_sub_values = (
+            clean_sub_sub_value = (
                 self._get_m2m_metadata_dict_model_aggregate_sub_sub_value(
                     field.name,
                     sub_value_obj,
@@ -147,25 +149,43 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                     sub_sub_field.field,
                 )
             )
-            if isinstance(clean_sub_sub_values, frozenset):
+            if isinstance(clean_sub_sub_value, frozenset):
                 # Special multiplier for Roles
-                roles_or_numbers |= clean_sub_sub_values
+                roles_or_numbers |= clean_sub_sub_value
             else:
-                clean_sub_values.append(clean_sub_sub_values)
+                clean_sub_values.append(clean_sub_sub_value)
 
+        # Create sub_map with special provisions for complex types.
+        clean_sub_map = {}
         if roles_or_numbers:
-            if field.name == CREDITS_FIELD_NAME:
-                self.add_query_model(CreditRole, roles_or_numbers)
             clean_sub_key = clean_sub_key[0]
-            # Remove non key values for complex type rels
+            clean_sub_map = {}
             if field.name == CREDITS_FIELD_NAME:
-                clean_sub_values = {(clean_sub_key, val[0]) for val in roles_or_numbers}
+                # Credits
+                for role_values in roles_or_numbers:
+                    role_keys, role_extras = role_values
+                    self.add_query_model(
+                        CreditRole, (role_keys,), frozenset({(role_extras,)})
+                    )
+                    clean_sub_map[(clean_sub_key, role_keys)] = set()
             else:
-                clean_sub_values = {(clean_sub_key, val) for val in roles_or_numbers}
+                # StoryArcNumbers
+                for role_values in roles_or_numbers:
+                    clean_sub_map[(clean_sub_key, role_values)] = set()
+        elif field.name == IDENTIFIERS_FIELD_NAME:
+            clean_sub_key += tuple(clean_sub_values[:2])
+            url_value = tuple(clean_sub_values[2:])
+            clean_sub_value = frozenset({url_value})
+            clean_sub_map = {clean_sub_key: clean_sub_value}
         else:
-            clean_sub_values = {clean_sub_key + tuple(clean_sub_values)}
+            clean_sub_value = (
+                frozenset((tuple(clean_sub_values),))
+                if clean_sub_values
+                else frozenset()
+            )
+            clean_sub_map = {clean_sub_key: clean_sub_value}
         # Create query models for complex types who's keys are other types.
-        return clean_sub_values
+        return clean_sub_map
 
     def _get_m2m_metadata_dict_model(
         self,
@@ -176,19 +196,20 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         # Process values dict for a field
         # {story_arc_name_a: { number: 1, identifiers: {} }, ...}
         # {character_name_a: { identifiers: {} }, ...}
-        clean_values = set()
+        clean_values_map: dict[tuple, frozenset[tuple]] = {}
         if not isinstance(values, Mapping):
             values = dict.fromkeys(values)
+        related_model: type[BaseModel] = field.related_model
         for sub_key_name, sub_value in values.items():
-            clean_sub_value = self._get_m2m_metadata_dict_model_aggregate_sub_values(
+            clean_sub_map = self._get_m2m_metadata_dict_model_aggregate_sub_values(
                 md_key, field, sub_key_name, sub_value
             )
-            clean_values |= clean_sub_value
+            clean_values_map.update(clean_sub_map)
 
-        related_model: type[BaseModel] = field.related_model
-        if clean_values and related_model != Folder:
-            self.add_query_model(related_model, clean_values)
-        return clean_values
+        if related_model != Folder:
+            for key, value in clean_values_map.items():
+                self.add_query_model(related_model, key, value)
+        return clean_values_map
 
     def get_m2m_metadata(self, md, path):
         """Many_to_many fields get moved into a separate dict."""
