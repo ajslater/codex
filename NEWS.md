@@ -9,25 +9,32 @@ border-radius: 128px;
 ## v1.8.0
 
 - Features
-  - Support MetronInfo.xml v1.0 Schema for comic metadata but only metadata
-    features that already exist in Codex for now.
+  - Support
+    [MetronInfo.xml v1.0 Schema](https://metron-project.github.io/docs/category/metroninfo)
+    for comic metadata.
   - Support CB7 (7zip) comic archives.
-  - Search Indexing now done in import phase. Speeds up search indexing more
-    than 15x.
-  - Fewer database updates when comics change means faster imports.
-  - Uses Comicbox 2.0 see
-    [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
-  - Logging format changed.
+  - Search Indexing now done in the import phase. Stupendously faster.
+    - 20k comics both imported and indexed in 9 minutes on my old macbook at a
+      rate of 30 comics per second. Ergo half a million comics might take less
+      than 5 hours on the same machine.
+  - Fewer database updates when comics change metadata or don't change metadata
+    at all means fewer and faster update imports.
   - Metadata:
-    - Add Universes, Main Characters, and Main Team
+    - Add Universes. Main Characters, and Main Team marked with a ★.
+    - Metron metadata provides links to web databases for tags.
   - Browser tab titles show route and page title, no longer show custom banner.
+  - Logging format changed.
   - Add manual Import Abort task for admins.
 
 - Fix
   - Reading Order in reader was not always defaulting to your last Browser Top
     Group.
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
-  - Fixed many database locking crashes.
+  - Fixed database locking crashes.
+
+- Dev
+  - Uses Comicbox 2.0 see
+    [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
 
 ## v1.7.14
 
