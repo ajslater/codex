@@ -4,7 +4,7 @@ from time import time
 from types import MappingProxyType
 
 from django.core.cache import cache
-from humanize import naturaldelta
+from humanize import intcomma, naturaldelta
 
 from codex.librarian.notifier.tasks import (
     FAILED_IMPORTS_CHANGED_TASK,
@@ -55,6 +55,7 @@ class FinishImporter(InitImporter):
             log_txt = f"Imported library {self.library.path} in {elapsed}"
             if self.counts.comic:
                 cps = round(self.counts.comic / elapsed_time, 1)
+                cps = intcomma(cps)
                 log_txt += f" at {cps} comics per second"
             else:
                 log_txt += " but no comics were imported"
@@ -62,6 +63,7 @@ class FinishImporter(InitImporter):
 
             for attr, suffix in _REPORT_MAP.items():
                 if value := getattr(self.counts, attr):
+                    value = intcomma(value)
                     log_txt += f" {value} {suffix}."
 
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
