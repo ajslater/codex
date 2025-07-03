@@ -212,7 +212,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             return
         self.sync_fts_for_m2m_updates(pks)
 
-    def _update_search_index(self):
+    def _update_search_index(self, cleaned_count: int):
         """Update or Rebuild the search index."""
         start_time = time()
         if self.abort_event.is_set():
@@ -226,15 +226,16 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         elapsed = naturaldelta(elapsed_time)
         updated = f"{updated_count} entries updated" if updated_count else ""
         created = f"{created_count} entries created" if created_count else ""
-        summary_parts = filter(None, ("cleaned", updated, created))
+        cleaned = f"{cleaned_count} entries cleaned up" if cleaned_count else ""
+        summary_parts = filter(None, (cleaned, updated, created))
         summary = ", ".join(summary_parts)
         self.log.success(f"Search index {summary} in {elapsed}.")
 
-    def import_search_index(self):
+    def import_search_index(self, cleaned_count: int):
         """Update or Rebuild the search index."""
         self.abort_event.clear()
         try:
-            self._update_search_index()
+            self._update_search_index(cleaned_count)
         except Exception:
             self.log.exception("Update search index")
         finally:
