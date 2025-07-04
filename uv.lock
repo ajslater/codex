@@ -525,7 +525,7 @@ requires-dist = [
     { name = "ansicolors", specifier = ">=1.1,<2.0" },
     { name = "bidict", specifier = ">=0.23.1,<1.0.0" },
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a27,<3.0.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a28,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
     { name = "django", specifier = ">=5.2.1,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
@@ -592,7 +592,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a27"
+version = "2.0.0a28"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -618,9 +618,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/dd/2916cc0b8e3262390976b2c66f21170787099eafe485ed89ef45251aa343/comicbox-2.0.0a27.tar.gz", hash = "sha256:510017a02bec4a92d41f3db38f6f5e0967d0a67bbdc817df7ae13acf121f0668", size = 70905812, upload-time = "2025-07-04T04:43:06.855Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/66/7275bd618097806ce588135e190196442209a9a524c3b929b85512a0989f/comicbox-2.0.0a28.tar.gz", hash = "sha256:8491e8bf68dd08ff6727694ae0aabb852a80e67d6b27b68d6a5d32c3855ec202", size = 70905672, upload-time = "2025-07-04T06:23:18.87Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/d7/11b4d0f4765cec4ab93db99ff6d7ae61e85bcaf9c671396d61eeedbec95d/comicbox-2.0.0a27-py3-none-any.whl", hash = "sha256:eaaf171eb81ab008b90b6192e68bb5de6c0817a962666286460c6f09d8ab9825", size = 153114, upload-time = "2025-07-04T04:43:03.215Z" },
+    { url = "https://files.pythonhosted.org/packages/74/16/27a4e2d9950cdf5dadf383e990c61cfcf974084360439d9b4e731eaf1d80/comicbox-2.0.0a28-py3-none-any.whl", hash = "sha256:2e4c1ea16c578a3c53a59e5bc609a8b4976dbae2694e297afdc5b82d28594fc2", size = 152946, upload-time = "2025-07-04T06:23:15.447Z" },
 ]
 
 [package.optional-dependencies]
