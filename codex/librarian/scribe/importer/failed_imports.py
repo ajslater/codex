@@ -84,9 +84,11 @@ class FailedImportsImporter(DeletedImporter):
             try:
                 exc = update_failed_imports.pop(fi.path)
                 fi.set_reason(exc)
-                fi.presave()
                 fi.updated_at = Now()
-            except Exception as exc:
+                fi.presave()
+            except (OSError) as exc:
+                self.log.warning(f"Presaving failed import {fi.path}: {exc}")
+            except Exception:
                 self.log.exception(
                     f"Error preparing failed import update for {fi.path}"
                 )
@@ -108,17 +110,20 @@ class FailedImportsImporter(DeletedImporter):
             try:
                 fi = FailedImport(library=self.library, path=path, parent_folder=None)
                 fi.set_reason(exc)
-                fi.presave()
                 create_objs.append(fi)
-            except Exception as exc:
+                fi.presave()
+            except OSError:
+                self.log.warning(f"Error preparing failed import create for {path}: {exc}")
+            except Exception:
                 self.log.exception(f"Error preparing failed import create for {path}")
-        FailedImport.objects.bulk_create(
-            create_objs,
-            update_conflicts=True,
-            update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
-            unique_fields=FailedImport._meta.unique_together[0],
-        )
         count = len(create_objs)
+        if count:
+            FailedImport.objects.bulk_create(
+                create_objs,
+                update_conflicts=True,
+                update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
+                unique_fields=FailedImport._meta.unique_together[0],
+            )
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Added {count} comics to failed imports.")
         return count
