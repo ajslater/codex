@@ -3,11 +3,11 @@
 set -euxo pipefail
 
 export PYTHONPATH=.
-#export DJANGO_TEST_PROCESSES=auto
+export DJANGO_TEST_PROCESSES=auto
 # Django unit tests interfere with each other's database so cannot be run in parallel.
-cmd="uv run python3 -Wa bin/manage.py test --parallel auto"
+cmd=(uv run python3 -Wa bin/manage.py test)
 if [ "${1:-}" ]; then
-    cmd="${cmd} tests.${1}"
+    cmd+=("tests.${1}")
 fi
 
-$cmd
+"${cmd[@]}"
