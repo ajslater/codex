@@ -5,11 +5,13 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import (
     BooleanField,
     CharField,
-    FloatField,
+    DecimalField,
     IntegerField,
 )
 
 from codex.choices.browser import VUETIFY_NULL_CODE
+from codex.models.comic import FileType, ReadingDirection
+from codex.serializers.fields.base import CodexChoiceField
 
 
 class VuetifyNullCodeFieldMixin:
@@ -22,7 +24,19 @@ class VuetifyNullCodeFieldMixin:
         return None if data == self.NULL_CODE else data
 
 
-class VuetifyFloatField(VuetifyNullCodeFieldMixin, FloatField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):
+    """File Type Choice Field."""
+
+    class_choices = FileType.values
+
+
+class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):
+    """Reading Direction Choice Field."""
+
+    class_choices = ReadingDirection.values
+
+
+class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Float Field with null code conversion."""
 
 

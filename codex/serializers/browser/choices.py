@@ -14,10 +14,14 @@ from codex.serializers.fields import (
     VuetifyBooleanField,
     VuetifyCharField,
     VuetifyDecadeField,
-    VuetifyFloatField,
+    VuetifyDecimalField,
     VuetifyIntegerField,
 )
 from codex.serializers.fields.browser import BookmarkFilterField
+from codex.serializers.fields.vuetify import (
+    VuetifyFileTypeChoiceField,
+    VuetifyReadingDirectionChoiceField,
+)
 from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
 
@@ -58,10 +62,14 @@ class BrowserSettingsFilterSerializer(Serializer):
     country = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     credits = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     critical_rating = ListField(
-        child=VuetifyFloatField(), required=False, read_only=True
+        child=VuetifyDecimalField(max_digits=5, decimal_places=2),
+        required=False,
+        read_only=True,
     )
     decade = ListField(child=VuetifyDecadeField(), required=False, read_only=True)
-    file_type = ListField(child=VuetifyCharField(), required=False, read_only=True)
+    file_type = ListField(
+        child=VuetifyFileTypeChoiceField(), required=False, read_only=True
+    )
     genres = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     identifier_source = ListField(
         child=VuetifyCharField(), required=False, read_only=True
@@ -73,7 +81,7 @@ class BrowserSettingsFilterSerializer(Serializer):
         child=VuetifyCharField(), required=False, read_only=True
     )
     reading_direction = ListField(
-        child=VuetifyCharField(), required=False, read_only=True
+        child=VuetifyReadingDirectionChoiceField(), required=False, read_only=True
     )
     series_groups = ListField(
         child=VuetifyIntegerField(), required=False, read_only=True
@@ -92,7 +100,11 @@ class BrowserChoicesIntegerPkSerializer(Serializer):
 
     pk = VuetifyIntegerField(read_only=True)
     name = CharField(read_only=True)
-    # Universes Only
+
+
+class BrowserChoicesUniversePkSerializer(Serializer):
+    """Universes Only."""
+
     designation = CharField(read_only=True)
 
 
@@ -102,11 +114,20 @@ class BrowserChoicesCharPkSerializer(BrowserChoicesIntegerPkSerializer):
     pk = VuetifyCharField(read_only=True)
 
 
+class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
+    """Named Model Serailizer with pk = char hack for languages & countries."""
+
+    pk = VuetifyDecimalField(max_digits=5, decimal_places=2, read_only=True)
+
+
 _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     {
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
+        "critical_rating": BrowserChoicesDecimalPkSerializer,
+        "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
+        "universe": BrowserChoicesUniversePkSerializer,
     }
 )
 _LIST_FIELDS = frozenset({"decade", "monochrome", "reading_direction", "year"})

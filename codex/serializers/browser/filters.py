@@ -5,7 +5,7 @@ from rest_framework.serializers import ListField, Serializer
 from codex.serializers.fields import (
     VuetifyBooleanField,
     VuetifyDecadeField,
-    VuetifyFloatField,
+    VuetifyDecimalField,
     VuetifyIntegerField,
 )
 from codex.serializers.fields.browser import BookmarkFilterField
@@ -20,7 +20,9 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     characters = ListField(child=VuetifyIntegerField(), required=False)
     country = ListField(child=VuetifyIntegerField(), required=False)
     credits = ListField(child=VuetifyIntegerField(), required=False)
-    critical_rating = ListField(child=VuetifyFloatField(), required=False)
+    critical_rating = ListField(
+        child=VuetifyDecimalField(max_digits=5, decimal_places=2), required=False
+    )
     decade = ListField(child=VuetifyDecadeField(), required=False)
     file_type = ListField(child=VuetifyIntegerField(), required=False)
     genres = ListField(child=VuetifyIntegerField(), required=False)

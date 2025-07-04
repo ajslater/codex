@@ -6,7 +6,7 @@ import re
 from datetime import MAXYEAR, MINYEAR, date
 from pathlib import Path
 
-from comicbox.fields.enum_fields import ReadingDirectionEnum
+from comicbox.fields.enum_fields import FileTypeEnum, ReadingDirectionEnum
 from django.db.models import (
     CASCADE,
     BooleanField,
@@ -77,10 +77,11 @@ class ReadingDirection(TextChoices):
 class FileType(TextChoices):
     """Identifiers for file formats."""
 
-    CBZ = "CBZ"
-    CBR = "CBR"
-    CBT = "CBT"
-    PDF = "PDF"
+    CBR = FileTypeEnum.CBR.value
+    CBZ = FileTypeEnum.CBZ.value
+    CBT = FileTypeEnum.CBT.value
+    CB7 = FileTypeEnum.CB7.value
+    PDF = FileTypeEnum.PDF.value
 
 
 class Comic(WatchedPathBrowserGroup):

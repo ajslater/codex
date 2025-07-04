@@ -203,6 +203,9 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             choices = self.get_field_choices_query(qs, field_name)
             choices = choices.values_list(field_name, flat=True)
 
+        if field_name in ("critical_rating", "file_type"):
+            choices = tuple({"pk": choice, "name": choice} for choice in choices)
+
         return {
             "field_name": field_name,
             "choices": choices,
