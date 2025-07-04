@@ -2,13 +2,20 @@
   <div class="statusItem">
     <div class="statusItemTitle">
       {{ title }}
+    </div>
+    <div
+      v-if="status.subtitle || showNumbers || duration"
+      class="statusItemDetails"
+    >
       <div v-if="status.subtitle" class="statusItemSubtitle">
         {{ status.subtitle }}
       </div>
-      <div v-if="showNumbers || duration" class="statusItemSubtitle">
-        <span v-if="showComplete"> {{ nf(status.complete) }} / </span>
-        {{ nf(status.total) }}
-        <span class="duration" v-if="duration">{{ duration }}</span>
+      <div v-if="showNumbers || duration" class="statusItemProgress">
+        <span v-if="showNumbers" class="statusItemProgressNumbers">
+          <span v-if="showComplete"> {{ nf(status.complete) }} / </span>
+          {{ nf(status.total) }}
+        </span>
+        <span v-if="duration" class="statusItemDuration">{{ duration }}</span>
       </div>
     </div>
     <v-progress-linear
@@ -83,14 +90,15 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
 }
 
-.statusItemSubtitle {
+.statusItemDetails {
   padding-left: 1rem;
   opacity: 0.75;
   font-size: small;
-  overflow-x: auto;
-  direction: rtl; // This starts the overflow scroll rightmost.
 }
-.duration {
+.statusItemSubtitle {
+  overflow-x: auto;
+}
+.statusItemDuration {
   float: right;
 }
 </style>
