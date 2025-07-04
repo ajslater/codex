@@ -24,13 +24,13 @@ class VuetifyNullCodeFieldMixin:
         return None if data == self.NULL_CODE else data
 
 
-class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):
+class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """File Type Choice Field."""
 
     class_choices = FileType.values
 
 
-class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):
+class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Reading Direction Choice Field."""
 
     class_choices = ReadingDirection.values
