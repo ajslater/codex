@@ -30,6 +30,7 @@ border-radius: 128px;
   - Reading Order in reader was not always defaulting to your last Browser Top
     Group.
   - Fixed filtering on Critical Rating and FileType
+  - Fixed searching on Critical Rating field.
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
   - Fixed database locking crashes.
 

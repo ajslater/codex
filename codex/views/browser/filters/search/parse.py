@@ -28,7 +28,7 @@ _NON_FTS_COLUMNS = frozenset(
         "year",
         "month",
         "day",
-        "criticial_rating",
+        "critical_rating",
         "page_count",
         "monochrome",
         "date",
@@ -111,7 +111,8 @@ class SearchFilterView(BrowserFTSFilter):
                 preop = "and"
             if preop not in field_tokens:
                 field_tokens[preop] = set()
-            field_tokens[preop].add((col, exp))
+            field_token = (col, exp)
+            field_tokens[preop].add(field_token)
             return True
         return False
 
