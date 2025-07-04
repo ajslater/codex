@@ -15,13 +15,14 @@ border-radius: 128px;
   - Support CB7 (7zip) comic archives.
   - Search Indexing now done in the import phase. Stupendously faster.
     - 20k comics both imported and indexed in 9 minutes on my old macbook at a
-      rate of 30 comics per second. Ergo half a million comics might take less
-      than 5 hours on the same machine.
+      rate of 30 comics per second. Half a million comics might take less than 5
+      hours on the same machine.
   - Fewer database updates when comics change metadata or don't change metadata
     at all means fewer and faster update imports.
   - Metadata:
     - Add Universes. Main Characters, and Main Team marked with a ★.
     - Metron metadata provides links to web databases for tags.
+  - New Import Metadata on Demand Flag.
   - Browser tab titles show route and page title, no longer show custom banner.
   - Logging format changed.
   - Add manual Import Abort task for admins.
