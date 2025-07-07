@@ -91,7 +91,7 @@ export default {
 <style scoped lang="scss">
 h4 {
   padding-top: 10px;
-  padding-left: 16px;
+  padding-left: 8px;
   padding-right: 10px;
   padding-bottom: 10px;
 }

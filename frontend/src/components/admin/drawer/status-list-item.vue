@@ -84,7 +84,7 @@ export default {
 
 <style scoped lang="scss">
 .statusItem {
-  padding-left: 16px;
+  padding-left: 8px;
   padding-right: 5px;
   padding-bottom: 10px;
   color: rgb(var(--v-theme-textDisabled));
