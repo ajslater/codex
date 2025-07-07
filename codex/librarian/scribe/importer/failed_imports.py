@@ -86,7 +86,7 @@ class FailedImportsImporter(DeletedImporter):
                 fi.set_reason(exc)
                 fi.updated_at = Now()
                 fi.presave()
-            except (OSError) as exc:
+            except OSError as exc:
                 self.log.warning(f"Presaving failed import {fi.path}: {exc}")
             except Exception:
                 self.log.exception(
@@ -113,7 +113,9 @@ class FailedImportsImporter(DeletedImporter):
                 create_objs.append(fi)
                 fi.presave()
             except OSError:
-                self.log.warning(f"Error preparing failed import create for {path}: {exc}")
+                self.log.warning(
+                    f"Error preparing failed import create for {path}: {exc}"
+                )
             except Exception:
                 self.log.exception(f"Error preparing failed import create for {path}")
         count = len(create_objs)

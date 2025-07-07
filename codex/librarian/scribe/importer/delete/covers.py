@@ -32,12 +32,8 @@ class DeletedCoversImporter(SearchIndexImporter):
             count, _ = covers.delete()
 
             self.remove_covers(delete_cover_pks, custom=True)
-
-            level = "INFO" if count else "DEBUG"
-            self.log.log(
-                level, f"Deleted {count} custom covers from {self.library.path}"
-            )
         finally:
+            status.log_finish(self.log, "Deleted", "custom covers")
             self.status_controller.finish(status)
 
         return count

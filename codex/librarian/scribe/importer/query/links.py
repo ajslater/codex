@@ -27,4 +27,5 @@ class QueryPruneLinks(QueryPruneLinksM2M):
                 return
             self.query_prune_comic_m2m_links(status)
         finally:
+            status.log_finish(self.log, "Queried existing", "links")
             self.status_controller.finish(status)

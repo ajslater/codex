@@ -1,6 +1,6 @@
 """Query the missing foreign keys methods."""
 
-from comicbox.identifiers import compare_identifier_source
+from comicbox.enums.comicbox import compare_identifier_source
 
 from codex.librarian.scribe.importer.const import MODEL_REL_MAP
 from codex.librarian.scribe.importer.query.filters import (

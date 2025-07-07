@@ -76,6 +76,7 @@ class CreateCoversImporter(CreateComicsImporter):
                 )
                 self.status_controller.update(link_covers_status, notify=False)
         finally:
+            status.log_finish(self.log, "Updated", "custom covers")
             self.status_controller.finish(status)
         return count
 
@@ -123,5 +124,6 @@ class CreateCoversImporter(CreateComicsImporter):
                 self.status_controller.update(link_covers_status, notify=False)
 
         finally:
+            status.log_finish(self.log, "Created", "custom covers")
             self.status_controller.finish(status)
         return count

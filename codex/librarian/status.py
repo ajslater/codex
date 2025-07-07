@@ -47,6 +47,20 @@ class Status:
         ips = intword(num / elapsed) if elapsed else "infinite"
         return f"{ips} {plural_name} per second"
 
+    def log_finish(self, log, verbed: str, plural_name: str, num=None):
+        """Log the finish of the status."""
+        if count := self.complete:
+            level = "INFO"
+            elapsed = self.elapsed()
+            persecond = self.per_second(plural_name, num)
+            suffix = f" in {elapsed} at a rate of {persecond}"
+        else:
+            count = 0
+            level = "DEBUG"
+            suffix = ""
+        log.log(level, f"{verbed} from {count} {plural_name}{suffix}.")
+        return count
+
     def reset(self):
         """Reset for batch statii."""
         self.complete = 0

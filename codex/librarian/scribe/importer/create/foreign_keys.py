@@ -227,6 +227,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             count += self.bulk_create_all_models(create_status)
         finally:
             self.metadata.pop(CREATE_FKS, None)
+            create_status.log_finish(self.log, "Created", "tags")
             self.status_controller.finish(create_status)
         return count
 
@@ -246,5 +247,6 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             count += self.bulk_update_all_models(update_status)
         finally:
             self.metadata.pop(UPDATE_FKS, None)
+            update_status.log_finish(self.log, "Updated", "tags")
             self.status_controller.finish(update_status)
         return count

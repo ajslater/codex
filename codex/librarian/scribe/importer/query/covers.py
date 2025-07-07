@@ -46,6 +46,7 @@ class QueryCustomCoversImporter(CreateForeignKeysImporter):
         self.task.covers_created = self.task.covers_modified = frozenset()
 
         count = create_count + update_count
+        status.log_finish(self.log, "Query missing", "custom covers")
         if count:
             self.log.debug(
                 f"Discovered {update_count} custom covers to update and {create_count} to create."

@@ -101,6 +101,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                     self.log.info(f"Updated {count} comics.")
             except Exception:
                 self.log.exception(f"While updating comics: {pks}")
+        status.log_finish(self.log, "Updated", "comics")
         self.status_controller.finish(status)
         return count
 
@@ -170,5 +171,6 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             except Exception:
                 self.log.exception(f"While creating {num_comics} comics")
 
+        status.log_finish(self.log, "Created", "comics")
         self.status_controller.finish(status)
         return count

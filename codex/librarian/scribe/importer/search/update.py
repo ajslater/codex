@@ -1,8 +1,10 @@
 """Search Index update."""
 
+from contextlib import suppress
 from time import time
 
-from comicbox.identifiers import ID_SOURCE_NAME_MAP
+from comicbox.enums.comicbox import IdSources
+from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 from django.db.models.functions.datetime import Now
 from humanize import naturaldelta
 
@@ -38,10 +40,12 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
     def _get_sources_fts_field(entry) -> tuple[str, ...]:
         sources = entry.get("sources", ())
         names = []
-        for source in sources:
-            names.append(source)
-            if long_name := ID_SOURCE_NAME_MAP.get(source):
-                names.append(long_name)
+        for source_str in sources:
+            names.append(source_str)
+            with suppress(ValueError):
+                id_source = IdSources(source_str)
+                if long_name := ID_SOURCE_NAME_MAP.get(id_source):
+                    names.append(long_name)
         return tuple(names)
 
     @staticmethod

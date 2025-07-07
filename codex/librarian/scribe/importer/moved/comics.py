@@ -119,8 +119,7 @@ class MovedComicsImporter(ReadMetadataImporter):
                 self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
 
             count = len(updated_comics)
-            level = "INFO" if count else "DEBUG"
-            self.log.log(level, f"Moved {count} comics.")
         finally:
+            status.log_finish(self.log, "Moved", "comics")
             self.status_controller.finish(status)
         return count

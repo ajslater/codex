@@ -84,9 +84,7 @@ class LinkManyToManyImporter(LinkSumImporter):
                     )
                 except Exception:
                     self.log.exception(f"Error recreating m2m field: {field_name}")
-
-            if created_total:
-                self.log.info(f"Linked {created_total} tags to comics.")
         finally:
+            status.log_finish(self.log, "Linked", "tags to comics")
             self.status_controller.finish(status)
         return created_total + del_total

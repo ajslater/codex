@@ -104,8 +104,6 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         # Set statii
         fi_status = Status(ImporterStatusTypes.MARK_FAILED_IMPORTS, 0, len(fis))
         self.status_controller.update(fi_status, notify=False)
-        count = status.complete if status else 0
-        self.log.info(f"Aggregated tags from {count} comics.")
-
+        count = status.log_finish(self.log, "Aggregated tags", "comics")
         self.status_controller.finish(status)
         return count

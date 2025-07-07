@@ -57,4 +57,5 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
             )
             self.status_controller.update(update_status)
         finally:
+            status.log_finish(self.log, "Queried existing", "comics")
             self.status_controller.finish(status)

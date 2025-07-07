@@ -31,10 +31,7 @@ class DeletedFoldersImporter(DeletedComicsImporter):
             count, _ = folders.delete()
 
             self.remove_covers(delete_comic_pks, custom=False)
-
-            level = "INFO" if count else "DEBUG"
-            reason = f"Deleted {count} folders from {self.library.path}"
-            self.log.log(level, reason)
         finally:
+            status.log_finish(self.log, "Deleted", "folders")
             self.status_controller.finish(status)
         return count

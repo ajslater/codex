@@ -62,7 +62,21 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         """Add a link to FTS structure."""
         if field_name in NON_FTS_FIELDS:
             return
-        key = FTS_UPDATE if sub_key in self.metadata.get(FTS_UPDATE, {}) else FTS_CREATE
+        if sub_key in self.metadata.get(FTS_UPDATE, {}):
+            key = FTS_UPDATE
+        elif sub_key in self.metadata.get(FTS_CREATE, {}):
+            key = FTS_CREATE
+        else:
+            key = FTS_UPDATE
+            if key not in self.metadata:
+                self.metadata[key] = {}
+            if sub_key not in self.metadata[key]:
+                self.metadata[key][sub_key] = {}
+            self.log.warning(
+                f"FTS import anomaly, attempting FTS update for comic {sub_key} {field_name}"
+            )
+            # Alternative might be kicking off an FTS sync
+
         flat_values = flatten(values)
         extra_values = (
             self.metadata[FTS_CREATED_M2MS].get(field_name, {}).pop(flat_values, ())

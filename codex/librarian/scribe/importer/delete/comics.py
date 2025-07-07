@@ -66,9 +66,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
             count, _ = delete_qs.delete()
 
             self.remove_covers(delete_comic_pks, custom=False)
-
-            level = "INFO" if count else "DEBUG"
-            self.log.log(level, f"Deleted {count} comics from {self.library.path}")
         finally:
+            status.log_finish(self.log, "Deleted", "comics")
             self.status_controller.finish(status)
         return count, deleted_comic_groups

@@ -4,7 +4,7 @@ from datetime import datetime
 from time import time
 from zoneinfo import ZoneInfo
 
-from comicbox.identifiers import ID_SOURCE_NAME_MAP
+from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 from django.db.models.aggregates import Max
 from django.db.models.expressions import F, Value
 from django.db.models.functions import Concat

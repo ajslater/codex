@@ -185,14 +185,16 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         status = Status(ImporterStatusTypes.QUERY_MISSING_TAGS, 0, num_models)
         try:
             if not num_models:
-                return
+                return num_models
             self.status_controller.start(status)
             for model in tuple(self.metadata[QUERY_MODELS].keys()):
                 if self.abort_event.is_set():
-                    return
+                    return num_models
                 self._query_missing_model(model, status)
             self.metadata.pop(QUERY_MODELS)
             self._set_fk_totals(CREATE_FKS, ImporterStatusTypes.CREATE_TAGS)
             self._set_fk_totals(UPDATE_FKS, ImporterStatusTypes.UPDATE_TAGS)
+            count = status.log_finish(self.log, "Queried missing tags", "tags")
         finally:
             self.status_controller.finish(status)
+        return count

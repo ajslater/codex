@@ -118,8 +118,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
 
             skipped_count = len(self.metadata[SKIPPED])
             count = total_paths - skipped_count
-            level = "INFO" if count else "DEBUG"
-            self.log.log(level, f"Read metadata from {count} comics.")
+            status.log_finish(self.log, "Read tags", "comics", count)
             level = "INFO" if skipped_count else "DEBUG"
             self.log.log(
                 level,
