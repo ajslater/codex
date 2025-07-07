@@ -6,7 +6,7 @@ import re
 from datetime import MAXYEAR, MINYEAR, date
 from pathlib import Path
 
-from comicbox.fields.enum_fields import FileTypeEnum, ReadingDirectionEnum
+from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
 from django.db.models import (
     CASCADE,
     BooleanField,
