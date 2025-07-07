@@ -525,7 +525,7 @@ requires-dist = [
     { name = "ansicolors", specifier = ">=1.1,<2.0" },
     { name = "bidict", specifier = ">=0.23.1,<1.0.0" },
     { name = "channels", specifier = ">=4.0.0,<5.0.0" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a28,<3.0.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.0a31,<3.0.0" },
     { name = "dateparser", specifier = ">=1.2.0,<2.0.0" },
     { name = "django", specifier = ">=5.2.1,<6.0.0" },
     { name = "django-cachalot", specifier = ">=2.6.3,<3.0.0" },
@@ -592,7 +592,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a28"
+version = "2.0.0a31"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -618,9 +618,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/86/66/7275bd618097806ce588135e190196442209a9a524c3b929b85512a0989f/comicbox-2.0.0a28.tar.gz", hash = "sha256:8491e8bf68dd08ff6727694ae0aabb852a80e67d6b27b68d6a5d32c3855ec202", size = 70905672, upload-time = "2025-07-04T06:23:18.87Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/5a/6ea047794afb963e2e96a92e8499cef6c3457f722008d036c9c2b9f8f2ed/comicbox-2.0.0a31.tar.gz", hash = "sha256:7416a82d367d10c40642e63e54f11b13180b463408629054f412b15ed946f5c3", size = 70906690, upload-time = "2025-07-07T03:28:33.741Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/16/27a4e2d9950cdf5dadf383e990c61cfcf974084360439d9b4e731eaf1d80/comicbox-2.0.0a28-py3-none-any.whl", hash = "sha256:2e4c1ea16c578a3c53a59e5bc609a8b4976dbae2694e297afdc5b82d28594fc2", size = 152946, upload-time = "2025-07-04T06:23:15.447Z" },
+    { url = "https://files.pythonhosted.org/packages/39/07/4d8207d681a23e79d3111d33f9b8dfe0dc443b868828d176407eb4616336/comicbox-2.0.0a31-py3-none-any.whl", hash = "sha256:4e8e0eb6e7087b223c2726c0a59f2b4965686ddc7cac611c34894583d00877c8", size = 156530, upload-time = "2025-07-07T03:28:30.407Z" },
 ]
 
 [package.optional-dependencies]
@@ -3008,11 +3008,11 @@ wheels = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.14.0"
+version = "4.14.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d1/bc/51647cd02527e87d05cb083ccc402f93e441606ff1f01739a62c8ad09ba5/typing_extensions-4.14.0.tar.gz", hash = "sha256:8676b788e32f02ab42d9e7c61324048ae4c6d844a399eebace3d4979d75ceef4", size = 107423, upload-time = "2025-06-02T14:52:11.399Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/5a/da40306b885cc8c09109dc2e1abd358d5684b1425678151cdaed4731c822/typing_extensions-4.14.1.tar.gz", hash = "sha256:38b39f4aeeab64884ce9f74c94263ef78f3c22467c8724005483154c26648d36", size = 107673, upload-time = "2025-07-04T13:28:34.16Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/e0/552843e0d356fbb5256d21449fa957fa4eff3bbc135a74a691ee70c7c5da/typing_extensions-4.14.0-py3-none-any.whl", hash = "sha256:a1514509136dd0b477638fc68d6a91497af5076466ad0fa6c338e44e359944af", size = 43839, upload-time = "2025-06-02T14:52:10.026Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/00/d631e67a838026495268c2f6884f3711a15a9a2a96cd244fdaea53b823fb/typing_extensions-4.14.1-py3-none-any.whl", hash = "sha256:d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76", size = 43906, upload-time = "2025-07-04T13:28:32.743Z" },
 ]
 
 [[package]]
