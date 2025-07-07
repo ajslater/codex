@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.7.15
+
+- Fixes
+  - Fix unable to change top group to folders or story arcs if on root browse page.
+
 ## v1.7.14
 
 - Fixes
