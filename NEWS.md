@@ -39,6 +39,12 @@ border-radius: 128px;
   - Uses Comicbox 2.0 see
     [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
 
+## v1.7.15
+
+- Fixes
+  - Fix unable to change top group to folders or story arcs if on root browse
+    page.
+
 ## v1.7.14
 
 - Fixes
