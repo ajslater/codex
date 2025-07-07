@@ -30,6 +30,8 @@ const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 const NO_REDIRECT_ON_SEARCH_GROUPS = new Set(["a", "c", "f"]);
 Object.freeze(NO_REDIRECT_ON_SEARCH_GROUPS);
+const NON_BROWSE_GROUPS = new Set(["a", "f"]);
+Object.freeze(NON_BROWSE_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
@@ -321,13 +323,13 @@ export const useBrowserStore = defineStore("browser", {
        */
       const currentParams = router?.currentRoute?.value?.params;
       const currentGroup = currentParams?.group;
-      if (currentGroup === "r") {
+      const newTopGroup = data.topGroup;
+      if (currentGroup === "r" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
         // r group can have any top groups?
         return redirect;
       }
 
       const oldTopGroup = this.settings.topGroup;
-      const newTopGroup = data.topGroup;
       if (
         oldTopGroup === newTopGroup ||
         !newTopGroup ||
@@ -380,7 +382,7 @@ export const useBrowserStore = defineStore("browser", {
     getTopGroup(group) {
       // Very similar to browser store logic, could possibly combine.
       let topGroup;
-      if (this.settings.topGroup === group || ["a", "f"].includes(group)) {
+      if (this.settings.topGroup === group || NON_BROWSE_GROUPS.has(group)) {
         topGroup = group;
       } else {
         const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
