@@ -55,6 +55,7 @@ _BACK_REL_MAP = MappingProxyType(
     }
 )
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
+_NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
 
 
 class BrowserChoicesViewBase(BrowserFilterView):
@@ -79,6 +80,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):
         """Get if comics exist in the filter without values exists for an m2m field."""
+        # Detect if there are null choices. Regretably with another query.
         return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
 
     def get_rel_and_model(self, field_name):
@@ -125,13 +127,12 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         qs = qs[:2]
         count = qs.count()
         if count > 1:
+            # There are choices
             return True
         if count == 1:
-            # Detect if there are null choices.
-            # Regretabbly with another query, but doing a forward query
-            # on the comic above restricts all results to only the filtered
-            # rows. :(
+            # There are only choices if a null exists
             return self.does_m2m_null_exist(comic_qs, rel)
+        # There is only one or no choices.
         return False
 
     def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str):
@@ -140,7 +141,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         if m2m_model:
             exists = self._is_m2m_field_choices_exists(m2m_model, qs, rel)
         else:
-            exists = self._is_field_choices_exists(qs, rel)
+            exists = self._is_field_choices_exists(qs, field_name)
         try:
             flag = exists
         except TypeError:
@@ -173,20 +174,22 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
     def _get_m2m_field_choices(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
-        qs = self.get_m2m_field_query(model, comic_qs)
+        iterables = []
 
+        # Choices
+        qs = self.get_m2m_field_query(model, comic_qs)
         values = ["pk", "name"]
         if qs.model == Universe:
             values.append("designation")
         qs = qs.values(*values)
 
-        # Detect if there are null choices.
-        # Regretabbly with another query, but doing a forward query
-        # on the comic above restrcts all results to only the filtered
-        # rows. :(
-        null_exists = self.does_m2m_null_exist(comic_qs, rel)
+        # Add null if it exists
+        if self.does_m2m_null_exist(comic_qs, rel):
+            iterables.append(_NULL_NAMED_ROW_ITERABLE)
 
-        return chain(qs, (_NULL_NAMED_ROW)) if null_exists else qs
+        iterables.append(qs)
+
+        return chain.from_iterable(iterables)
 
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
