@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from comicbox.identifiers import ID_SOURCE_NAME_MAP
+from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 
 BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
     {
@@ -47,6 +47,9 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
 )
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 VUETIFY_NULL_CODE = -1
+_IDENTIFIER_SOURCES = MappingProxyType(
+    {key.value: value for key, value in ID_SOURCE_NAME_MAP.items()}
+)
 BROWSER_CHOICES = MappingProxyType(
     {
         "bookmark_filter": BROWSER_BOOKMARK_FILTER_CHOICES,
@@ -54,7 +57,7 @@ BROWSER_CHOICES = MappingProxyType(
         "top_group": BROWSER_TOP_GROUP_CHOICES,
         "vuetify_null_code": VUETIFY_NULL_CODE,
         "settings_group": {**_GROUP_NAMES},
-        "identifier_sources": ID_SOURCE_NAME_MAP,
+        "identifier_sources": _IDENTIFIER_SOURCES,
     }
 )
 
