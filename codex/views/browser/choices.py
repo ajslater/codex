@@ -122,15 +122,17 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     def _is_m2m_field_choices_exists(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
         qs = self.get_m2m_field_query(model, comic_qs)
-        exists = qs.exists()
-        if exists:
-            return exists
-
-        # Detect if there are null choices.
-        # Regretabbly with another query, but doing a forward query
-        # on the comic above restricts all results to only the filtered
-        # rows. :(
-        return self.does_m2m_null_exist(comic_qs, rel)
+        qs = qs[:2]
+        count = qs.count()
+        if count > 1:
+            return True
+        if count == 1:
+            # Detect if there are null choices.
+            # Regretabbly with another query, but doing a forward query
+            # on the comic above restricts all results to only the filtered
+            # rows. :(
+            return self.does_m2m_null_exist(comic_qs, rel)
+        return False
 
     def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str):
         rel, m2m_model = self.get_rel_and_model(field_name)
