@@ -159,17 +159,17 @@ def create_web(md, key, _limit):
     if is_valid() is None:
         return
     nid = random.choice(tuple(IDENTIFIER_PARTS_MAP.keys()))
-    if nid == IdSources.COMICVINE.value:
+    if nid == IdSources.COMICVINE:
         id_key = "4000-" + rand_digits(6)
     elif nid in FIVE_BY_FIVE_NIDS:
         id_key = rand_string(5) + "/" + rand_string(5)
-    elif nid == IdSources.ASIN.value:
+    elif nid == IdSources.ASIN:
         id_key = rand_string(10)
-    elif nid == IdSources.COMIXOLOGY.value:
+    elif nid == IdSources.COMIXOLOGY:
         id_key = "x/x/" + rand_string(10)
-    elif nid == IdSources.ISBN.value:
+    elif nid == IdSources.ISBN:
         id_key = rand_digits(10)
-    elif nid == IdSources.UPC.value:
+    elif nid == IdSources.UPC:
         id_key = rand_digits(12)
     else:
         return
