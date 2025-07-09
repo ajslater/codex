@@ -166,8 +166,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                 status.increment_complete()
             delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
             count, _ = delete_qs.delete()
-            level = "INFO" if status.complete else "DEBUG"
-            self.log.log(level, f"Deleted {count} CustomCovers without source images.")
+            status.complete = count
         finally:
             self.status_controller.finish(status)
 
