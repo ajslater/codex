@@ -96,7 +96,7 @@ class BookmarkThread(
     def send_all_items(self):
         """Run the task method."""
         if self.db_write_lock.locked():
-            self.log.warning("Database locked, waiting to process bookmarks.")
+            self.log.debug("Database locked, waiting to process bookmarks.")
             return
         cleanup = set()
         for key, value in self.cache.items():
