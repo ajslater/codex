@@ -265,18 +265,6 @@ class SearchIndexerSync(SearchIndexerRemove):
         status.increment_complete()
         self.status_controller.update(status)
 
-    def _update_search_index_finish(self, status, *, create: bool):
-        verb = "create" if create else "update"
-        verbed = verb.capitalize() + "d"
-        suffix = f"search entries in {status.elapsed()}"
-
-        if status.complete:
-            eps = status.per_second()
-            self.log.info(f"{verbed} {status.complete} {suffix}, {eps}.")
-        else:
-            self.log.debug(f"{verbed} no {suffix}.")
-        self.status_controller.finish(status)
-
     def _update_search_index_operate_get_status(
         self, total_comics: int, *, create: bool
     ):
@@ -303,9 +291,10 @@ class SearchIndexerSync(SearchIndexerRemove):
                     f" Search engine {verb}s run much faster as one large batch but then there's no progress updates."
                     " You may adjust the batch size with the environment variable CODEX_SEARCH_INDEX_BATCH_SIZE."
                 )
-                self.log.debug(reason)
             else:
-                self.log.info(f"No search entries to {verb}.")
+                reason = f"No search entries to {verb}."
+            self.log.debug(reason)
+            if not total_comics:
                 return total_comics
 
             self.status_controller.start(status)
@@ -342,7 +331,7 @@ class SearchIndexerSync(SearchIndexerRemove):
             )
 
         finally:
-            self._update_search_index_finish(status, create=create)
+            self.status_controller.finish(status)
         return total_comics
 
     def _update_search_index_update(self):

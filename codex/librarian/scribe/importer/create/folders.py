@@ -80,8 +80,6 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
                 f"Created {level_count} Folders at depth level {depth_level}"
             )
 
-        if count:
-            self.log.info(f"Created {count} Folders.")
         self.status_controller.update(status)
         return count
 
@@ -96,7 +94,5 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
         for folder in folders:
             folder.save()
 
-        if count:
-            self.log.info(f"Updated {count} Folders.")
         self.status_controller.update(status)
         return count

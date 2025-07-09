@@ -49,7 +49,6 @@ class LinkManyToManyImporter(LinkSumImporter):
                 update_fields=update_fields,
                 unique_fields=update_fields,
             )
-            self.log.info(f"Linked {count} new {field_name} to altered comics.")
             status.increment_complete(count)
             self.status_controller.update(status)
         return count

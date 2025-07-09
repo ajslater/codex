@@ -110,17 +110,11 @@ _BOOKMARK_FILTER = dict.fromkeys(
 class JanitorCleanup(JanitorUpdateFailedImports):
     """Cleanup methods for Janitor."""
 
-    def _bulk_del_model(self, model, filter_dict):
-        qs = model.objects.filter(**filter_dict).distinct()
-        count, _ = qs.delete()
-        if count:
-            self.log.info(f"Deleted {count} orphan {model.__name__}s")
-        return count
-
     def _cleanup_fks_model(self, model, filter_dict, status):
         status.subtitle = model._meta.verbose_name_plural
         self.status_controller.update(status)
-        count = self._bulk_del_model(model, filter_dict)
+        qs = model.objects.filter(**filter_dict).distinct()
+        count, _ = qs.delete()
         status.complete += count
         self.status_controller.update(status)
         return count
@@ -179,7 +173,6 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             count, _ = qs.delete()
             if count:
                 self.log.info(f"Deleted {count} expired sessions.")
-
             bad_session_keys = set()
             for encoded_session in Session.objects.all():
                 session = encoded_session.get_decoded()

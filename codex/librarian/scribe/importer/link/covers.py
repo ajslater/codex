@@ -39,15 +39,11 @@ class LinkCoversImporter(FailedImportsImporter):
 
     def _link_custom_cover_group(self, model, objs, status):
         """Bulk link a group to it's custom covers."""
-        count = 0
         if not objs:
-            return count
+            return
         model.objects.bulk_update(objs, ["custom_cover"])
-        count += len(objs)
-        self.log.info(f"Linked {count} custom covers to {model.__name__}s")
-        status.complete += count
+        status.complete += len(objs)
         self.status_controller.update(status)
-        return count
 
     def link_custom_covers(self):
         """Link Custom Covers to Groups."""
@@ -67,11 +63,8 @@ class LinkCoversImporter(FailedImportsImporter):
                 self._link_custom_cover_prepare(cover, model_map)
 
             # Bulk update each model type
-            total_count = 0
             for model, objs in model_map.items():
-                total_count += self._link_custom_cover_group(model, objs, status)
-            level = "INFO" if total_count else "DEBUG"
-            self.log.log(level, f"Linked {total_count} custom covers.")
+                self._link_custom_cover_group(model, objs, status)
         finally:
             self.status_controller.finish(status)
-        return total_count
+        return status.complete

@@ -80,7 +80,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
     ):
         """Get aggregated metadata for the paths given."""
         num_extracted_paths = len(self.metadata[EXTRACTED])
-        self.log.info(
+        self.log.debug(
             f"Aggregating tags from {num_extracted_paths} comics in {self.library.path}..."
         )
         status = ImporterAggregateStatus(0, num_extracted_paths)

@@ -111,10 +111,6 @@ class TimestampUpdater(WorkerStatusMixin):
                 status.increment_complete(count)
                 self.status_controller.update(status)
                 total_count += count
-
-            if total_count:
-                groups_log = ", ".join(log_list)
-                self.log.info(f"Updated timestamps for {groups_log}.")
         finally:
             if mark_library_in_progress:
                 library.end_update()

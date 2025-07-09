@@ -22,10 +22,10 @@ class SearchIndexerOptimize(WorkerStatusMixin):
         status = SearchIndexOptimizeStatus()
         try:
             self.status_controller.update(status)
-            self.log.info("Optimizing search index...")
+            self.log.debug("Optimizing search index...")
             with connection.cursor() as cursor:
                 cursor.execute(_OPTIMIZE_SQL)
         except Exception:
-            self.log.exception("Removing stale records:")
+            self.log.exception("Optimizing search index:")
         finally:
             self.status_controller.finish(status)

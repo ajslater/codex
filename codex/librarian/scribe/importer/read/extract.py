@@ -96,7 +96,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             if not total_paths:
                 return count
 
-            self.log.info(
+            self.log.debug(
                 f"Reading tags from {total_paths} comics in {self.library.path}..."
             )
             self.status_controller.start(status, notify=True)

@@ -158,7 +158,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         try:
             verb = "create" if create else "update"
             if not total_entries:
-                self.log.info(f"No search entries to {verb}.")
+                self.log.debug(f"No search entries to {verb}.")
                 return updated_pks
             self.status_controller.start(status)
 
