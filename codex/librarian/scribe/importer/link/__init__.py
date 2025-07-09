@@ -11,4 +11,5 @@ class LinkComicsImporter(LinkManyToManyImporter):
         self.counts.link += self.link_comic_m2m_fields()
         if self.abort_event.is_set():
             return
-        self.counts.link_covers += self.link_custom_covers()
+        if count := self.link_custom_covers():
+            self.counts.link_covers += count
