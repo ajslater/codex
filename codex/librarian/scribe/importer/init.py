@@ -8,11 +8,45 @@ from typing import Any
 
 from django.utils.timezone import now
 
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.scribe.importer.statii.create import (
+    ImporterCreateComicsStatus,
+    ImporterCreateCoversStatus,
+    ImporterCreateTagsStatus,
+    ImporterUpdateComicsStatus,
+    ImporterUpdateCoversStatus,
+    ImporterUpdateTagsStatus,
+)
+from codex.librarian.scribe.importer.statii.delete import (
+    ImporterRemoveComicsStatus,
+    ImporterRemoveCoversStatus,
+    ImporterRemoveFoldersStatus,
+)
+from codex.librarian.scribe.importer.statii.link import (
+    ImporterLinkCoversStatus,
+    ImporterLinkTagsStatus,
+)
+from codex.librarian.scribe.importer.statii.moved import (
+    ImporterMoveComicsStatus,
+    ImporterMoveCoversStatus,
+    ImporterMoveFoldersStatus,
+)
+from codex.librarian.scribe.importer.statii.query import (
+    ImporterQueryComicUpdatesStatus,
+    ImporterQueryMissingCoversStatus,
+    ImporterQueryMissingTagsStatus,
+    ImporterQueryTagLinksStatus,
+)
+from codex.librarian.scribe.importer.statii.read import (
+    ImporterAggregateStatus,
+    ImporterReadStatus,
+)
+from codex.librarian.scribe.importer.statii.search import (
+    ImporterFTSCreateStatus,
+    ImporterFTSUpdateStatus,
+)
 from codex.librarian.scribe.importer.tasks import ImportTask
-from codex.librarian.scribe.search.status import SearchIndexStatusTypes
-from codex.librarian.scribe.status import ScribeStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.search.status import SearchIndexCleanStatus
+from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 from codex.settings import LOGLEVEL
@@ -168,45 +202,30 @@ class InitImporter(WorkerStatusMixin):
         """Initialize moved statuses."""
         search_index_updates = 0
         if self.task.dirs_moved:
-            status_list += [
-                Status(
-                    ImporterStatusTypes.MOVE_FOLDERS, None, len(self.task.dirs_moved)
-                )
-            ]
+            status_list += [ImporterMoveFoldersStatus(None, len(self.task.dirs_moved))]
         if self.task.files_moved:
-            status_list += [
-                Status(
-                    ImporterStatusTypes.MOVE_COMICS, None, len(self.task.files_moved)
-                )
-            ]
+            status_list += [ImporterMoveComicsStatus(None, len(self.task.files_moved))]
             search_index_updates += len(self.task.files_moved)
         if self.task.covers_moved:
-            status_list += [
-                Status(
-                    ImporterStatusTypes.MOVE_CUSTOM_COVERS,
-                    None,
-                    len(self.task.covers_moved),
-                )
-            ]
+            status_list += [ImporterMoveCoversStatus(None, len(self.task.covers_moved))]
         return search_index_updates
 
     def _init_if_modified_or_created(self, path, status_list):
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(self.task.files_modified) + len(self.task.files_created)
         status_list += [
-            Status(ImporterStatusTypes.READ_TAGS, 0, total_paths, subtitle=path),
-            Status(ImporterStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
-            Status(ImporterStatusTypes.QUERY_MISSING_TAGS, subtitle=path),
-            Status(ImporterStatusTypes.QUERY_COMIC_UPDATES, subtitle=path),
-            Status(ImporterStatusTypes.QUERY_TAG_LINKS, subtitle=path),
-            Status(ImporterStatusTypes.QUERY_MISSING_COVERS, subtitle=path),
-            Status(ImporterStatusTypes.CREATE_TAGS, subtitle=path),
-            Status(ImporterStatusTypes.UPDATE_TAGS, subtitle=path),
+            ImporterReadStatus(0, total_paths, subtitle=path),
+            ImporterAggregateStatus(0, total_paths, subtitle=path),
+            ImporterQueryMissingTagsStatus(subtitle=path),
+            ImporterQueryComicUpdatesStatus(subtitle=path),
+            ImporterQueryTagLinksStatus(subtitle=path),
+            ImporterQueryMissingCoversStatus(subtitle=path),
+            ImporterCreateTagsStatus(subtitle=path),
+            ImporterUpdateTagsStatus(subtitle=path),
         ]
         if self.task.covers_modified:
             status_list += [
-                Status(
-                    ImporterStatusTypes.UPDATE_CUSTOM_COVERS,
+                ImporterUpdateCoversStatus(
                     None,
                     len(self.task.covers_modified),
                     subtitle=path,
@@ -214,8 +233,7 @@ class InitImporter(WorkerStatusMixin):
             ]
         if self.task.covers_created:
             status_list += [
-                Status(
-                    ImporterStatusTypes.CREATE_CUSTOM_COVERS,
+                ImporterCreateCoversStatus(
                     None,
                     len(self.task.covers_created),
                     subtitle=path,
@@ -223,8 +241,7 @@ class InitImporter(WorkerStatusMixin):
             ]
         if self.task.files_created or self.task.covers_created:
             status_list += [
-                Status(
-                    ImporterStatusTypes.CREATE_COMICS,
+                ImporterCreateComicsStatus(
                     None,
                     len(self.task.files_created),
                     subtitle=path,
@@ -232,17 +249,14 @@ class InitImporter(WorkerStatusMixin):
             ]
         if self.task.files_modified:
             status_list += [
-                Status(
-                    ImporterStatusTypes.UPDATE_COMICS,
+                ImporterUpdateComicsStatus(
                     None,
                     len(self.task.files_modified),
                     subtitle=path,
                 )
             ]
         if self.task.files_modified or self.task.files_created:
-            status_list += [
-                Status(ImporterStatusTypes.LINK_COMICS_TO_TAGS, subtitle=path)
-            ]
+            status_list += [ImporterLinkTagsStatus(subtitle=path)]
 
         num_covers_linked = (
             len(self.task.covers_moved)
@@ -251,8 +265,7 @@ class InitImporter(WorkerStatusMixin):
         )
         if num_covers_linked:
             status_list += [
-                Status(
-                    ImporterStatusTypes.LINK_CUSTOM_COVERS,
+                ImporterLinkCoversStatus(
                     None,
                     num_covers_linked,
                     subtitle=path,
@@ -269,28 +282,16 @@ class InitImporter(WorkerStatusMixin):
         search_index_updates = 0
         if self.task.files_deleted:
             status_list += [
-                Status(
-                    ImporterStatusTypes.REMOVE_COMICS,
-                    None,
-                    len(self.task.files_deleted),
-                )
+                ImporterRemoveComicsStatus(None, len(self.task.files_deleted))
             ]
             search_index_updates += len(self.task.files_deleted)
         if self.task.dirs_deleted:
             status_list += [
-                Status(
-                    ImporterStatusTypes.REMOVE_FOLDERS,
-                    None,
-                    len(self.task.dirs_deleted),
-                )
+                ImporterRemoveFoldersStatus(None, len(self.task.dirs_deleted))
             ]
         if self.task.covers_deleted:
             status_list += [
-                Status(
-                    ImporterStatusTypes.REMOVE_CUSTOM_COVERS,
-                    None,
-                    len(self.task.covers_deleted),
-                )
+                ImporterRemoveCoversStatus(None, len(self.task.covers_deleted))
             ]
         return search_index_updates
 
@@ -300,15 +301,9 @@ class InitImporter(WorkerStatusMixin):
     ):
         """Init search index statuses."""
         status_list += [
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN, total=comic_deletes),
-            Status(
-                ImporterStatusTypes.SEARCH_INDEX_UPDATE,
-                total=comic_updates,
-            ),
-            Status(
-                ImporterStatusTypes.SEARCH_INDEX_CREATE,
-                total=comic_creates,
-            ),
+            SearchIndexCleanStatus(total=comic_deletes),
+            ImporterFTSUpdateStatus(total=comic_updates),
+            ImporterFTSCreateStatus(total=comic_creates),
         ]
 
     def _init_librarian_status(self, path):
@@ -317,7 +312,7 @@ class InitImporter(WorkerStatusMixin):
         moved = self._init_librarian_status_moved(status_list)
         modified, created = self._init_if_modified_or_created(path, status_list)
         deleted = self._init_librarian_status_deleted(status_list)
-        status_list += [Status(ScribeStatusTypes.UPDATE_GROUP_TIMESTAMPS)]
+        status_list += [UpdateGroupTimestampsStatus()]
         self._init_librarian_status_search_index(
             modified + moved,
             created,

@@ -9,9 +9,13 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
-from codex.librarian.scribe.janitor.status import JanitorStatusTypes
+from codex.librarian.scribe.janitor.status import (
+    JanitorDBFKIntegrityStatus,
+    JanitorDBFTSIntegrityStatus,
+    JanitorDBFTSRebuildStatus,
+    JanitorDBIntegrityStatus,
+)
 from codex.librarian.scribe.janitor.tasks import JanitorFTSRebuildTask
-from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models.base import BaseModel
 from codex.settings import (
@@ -293,11 +297,10 @@ def integrity_check(log, *, long: bool):
         )
 
 
-def fts_rebuild(log):
+def fts_rebuild():
     """FTS Rebuild."""
     sql = _FTS_INSERT_TMPL % "rebuild"
     _exec_sql(sql)
-    log.success("Rebuilt FTS Virtual Table.")
 
 
 def fts_integrity_check(log):
@@ -329,7 +332,7 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def foreign_key_check(self):
         """Foreign Key Check task."""
-        status = Status(JanitorStatusTypes.INTEGRITY_FK)
+        status = JanitorDBFKIntegrityStatus()
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
@@ -340,7 +343,7 @@ class JanitorIntegrity(WorkerStatusMixin):
     def integrity_check(self, *, long: bool):
         """Integrity check task."""
         subtitle = "" if long else "Quick"
-        status = Status(JanitorStatusTypes.INTEGRITY_CHECK, subtitle=subtitle)
+        status = JanitorDBIntegrityStatus(subtitle=subtitle)
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
@@ -350,17 +353,17 @@ class JanitorIntegrity(WorkerStatusMixin):
 
     def fts_rebuild(self):
         """FTS rebuild task."""
-        status = Status(JanitorStatusTypes.FTS_REBUILD)
+        status = JanitorDBFTSRebuildStatus()
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
-                fts_rebuild(self.log)
+                fts_rebuild()
         finally:
             self.status_controller.finish(status)
 
     def fts_integrity_check(self):
         """FTS integrity check task."""
-        status = Status(JanitorStatusTypes.FTS_INTEGRITY_CHECK)
+        status = JanitorDBFTSIntegrityStatus()
         try:
             self.status_controller.start(status)
             with self.db_write_lock:

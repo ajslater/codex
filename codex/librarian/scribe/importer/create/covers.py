@@ -11,11 +11,12 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_COVERS,
 )
 from codex.librarian.scribe.importer.create.comics import CreateComicsImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
-from codex.models import (
-    CustomCover,
+from codex.librarian.scribe.importer.statii.create import (
+    ImporterCreateCoversStatus,
+    ImporterUpdateCoversStatus,
 )
+from codex.librarian.scribe.importer.statii.link import ImporterLinkCoversStatus
+from codex.models import CustomCover
 
 
 class CreateCoversImporter(CreateComicsImporter):
@@ -37,7 +38,7 @@ class CreateCoversImporter(CreateComicsImporter):
     def update_custom_covers(self):
         """Update Custom Covers."""
         count = 0
-        status = Status(ImporterStatusTypes.UPDATE_CUSTOM_COVERS, 0)
+        status = ImporterUpdateCoversStatus(0)
         try:
             update_covers_qs = self.metadata.pop(UPDATE_COVERS, None)
             if not update_covers_qs:
@@ -69,14 +70,12 @@ class CreateCoversImporter(CreateComicsImporter):
                 if status:
                     status.increment_complete(count)
 
-                link_covers_status = Status(
-                    ImporterStatusTypes.LINK_CUSTOM_COVERS,
+                link_covers_status = ImporterLinkCoversStatus(
                     0,
                     len(self.metadata[LINK_COVER_PKS]),
                 )
                 self.status_controller.update(link_covers_status, notify=False)
         finally:
-            status.log_finish(self.log, "Updated", "custom covers")
             self.status_controller.finish(status)
         return count
 
@@ -85,9 +84,7 @@ class CreateCoversImporter(CreateComicsImporter):
         count = 0
         create_cover_paths = self.metadata.pop(CREATE_COVERS, ())
         num_create_cover_paths = len(create_cover_paths)
-        status = Status(
-            ImporterStatusTypes.CREATE_CUSTOM_COVERS, 0, num_create_cover_paths
-        )
+        status = ImporterCreateCoversStatus(0, num_create_cover_paths)
         try:
             if not num_create_cover_paths:
                 self.status_controller.finish(status)
@@ -116,14 +113,11 @@ class CreateCoversImporter(CreateComicsImporter):
                 if status:
                     status.increment_complete(count)
 
-                link_covers_status = Status(
-                    ImporterStatusTypes.LINK_CUSTOM_COVERS,
-                    0,
-                    len(self.metadata[LINK_COVER_PKS]),
+                link_covers_status = ImporterLinkCoversStatus(
+                    0, len(self.metadata[LINK_COVER_PKS])
                 )
                 self.status_controller.update(link_covers_status, notify=False)
 
         finally:
-            status.log_finish(self.log, "Created", "custom covers")
             self.status_controller.finish(status)
         return count

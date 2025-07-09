@@ -8,8 +8,7 @@ from versio.version import Version
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.restarter.tasks import CodexRestartTask
 from codex.librarian.scribe.janitor.cleanup import JanitorCleanup
-from codex.librarian.scribe.janitor.status import JanitorStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.janitor.status import JanitorCodexUpdateStatus
 from codex.models import AdminFlag
 from codex.models.admin import Timestamp
 from codex.version import VERSION, get_version
@@ -65,7 +64,7 @@ class JanitorCodexUpdate(JanitorCleanup):
 
     def update_codex(self, *, force: bool):
         """Update the package and restart everything if the version changed."""
-        status = Status(JanitorStatusTypes.CODEX_UPDATE)
+        status = JanitorCodexUpdateStatus()
         try:
             self.status_controller.start(status)
             self._update_codex(force=force)

@@ -29,7 +29,10 @@ from codex.librarian.scribe.importer.create.const import (
 from codex.librarian.scribe.importer.create.folders import (
     CreateForeignKeysFolderImporter,
 )
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.scribe.importer.statii.create import (
+    ImporterCreateTagsStatus,
+    ImporterUpdateTagsStatus,
+)
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
 from codex.models.groups import Folder
@@ -215,7 +218,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         """Bulk create all foreign keys."""
         count = 0
         fkc = self.metadata.get(CREATE_FKS, {})
-        create_status = Status(ImporterStatusTypes.CREATE_TAGS, 0, fkc.pop(TOTAL, 0))
+        create_status = ImporterCreateTagsStatus(0, fkc.pop(TOTAL, 0))
         try:
             self.metadata[FTS_CREATED_M2MS] = {}
             if not fkc:
@@ -227,7 +230,6 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             count += self.bulk_create_all_models(create_status)
         finally:
             self.metadata.pop(CREATE_FKS, None)
-            create_status.log_finish(self.log, "Created", "tags")
             self.status_controller.finish(create_status)
         return count
 
@@ -235,7 +237,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         """Bulk update all foreign keys."""
         count = 0
         fku = self.metadata.get(UPDATE_FKS, {})
-        update_status = Status(ImporterStatusTypes.UPDATE_TAGS, 0, fku.pop(TOTAL, 0))
+        update_status = ImporterUpdateTagsStatus(0, fku.pop(TOTAL, 0))
         try:
             self.metadata[FTS_UPDATED_M2MS] = {}
             if not fku:
@@ -247,6 +249,5 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             count += self.bulk_update_all_models(update_status)
         finally:
             self.metadata.pop(UPDATE_FKS, None)
-            update_status.log_finish(self.log, "Updated", "tags")
             self.status_controller.finish(update_status)
         return count

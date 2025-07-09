@@ -72,7 +72,8 @@ def _repair_db(log):
         integrity_check(log, long=True)
     success = fts_integrity_check(log) if FTS_INTEGRITY_CHECK else True
     if FTS_REBUILD or not success:
-        fts_rebuild(log)
+        fts_rebuild()
+        log.success("Rebuilt FTS virtual table.")
     cleanup_custom_cover_libraries(log)
 
 

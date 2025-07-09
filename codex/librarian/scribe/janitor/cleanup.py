@@ -7,8 +7,12 @@ from django.contrib.sessions.models import Session
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
-from codex.librarian.scribe.janitor.status import JanitorStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.janitor.status import (
+    JanitorCleanupBookmarksStatus,
+    JanitorCleanupCoversStatus,
+    JanitorCleanupSessionsStatus,
+    JanitorCleanupTagsStatus,
+)
 from codex.models import (
     AgeRating,
     Character,
@@ -132,7 +136,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
         self.abort_event.clear()
-        status = Status(JanitorStatusTypes.CLEANUP_TAGS, 0)
+        status = JanitorCleanupTagsStatus(0)
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up orphan tags...")
@@ -151,7 +155,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
     def cleanup_custom_covers(self):
         """Clean up unused custom covers."""
         covers = CustomCover.objects.only("path")
-        status = Status(JanitorStatusTypes.CLEANUP_COVERS, 0, covers.count())
+        status = JanitorCleanupCoversStatus(0, covers.count())
         delete_pks = []
         try:
             self.status_controller.start(status)
@@ -169,7 +173,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
 
     def cleanup_sessions(self):
         """Delete corrupt sessions."""
-        status = Status(JanitorStatusTypes.CLEANUP_SESSIONS)
+        status = JanitorCleanupSessionsStatus()
         try:
             self.status_controller.start(status)
             qs = Session.objects.filter(expire_date__lt=Now())
@@ -192,7 +196,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
 
     def cleanup_orphan_bookmarks(self):
         """Delete bookmarks without users or sessions."""
-        status = Status(JanitorStatusTypes.CLEANUP_BOOKMARKS)
+        status = JanitorCleanupBookmarksStatus()
         try:
             self.status_controller.start(status)
             orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)

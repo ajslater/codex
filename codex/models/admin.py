@@ -17,7 +17,8 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 from typing_extensions import override
 
-from codex.choices.admin import ADMIN_STATUS_TITLES, AdminFlagChoices
+from codex.choices.admin import AdminFlagChoices
+from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
@@ -45,7 +46,7 @@ class AdminFlag(BaseModel):
 class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
-    CHOICES = TextChoices("LibrarianStatusTypes", ADMIN_STATUS_TITLES.inverse)
+    CHOICES = TextChoices("LibrarianStatusTypes", ADMIN_STATUS_TITLES.inverse.items())
 
     status_type = CharField(
         db_index=True,

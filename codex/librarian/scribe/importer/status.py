@@ -1,40 +1,21 @@
 """Librarian Status for scribe bulk writes."""
 
-from django.db.models import TextChoices
+from abc import ABC
+
+from codex.librarian.scribe.status import ScribeStatus
 
 
-class ImporterStatusTypes(TextChoices):
-    """Importer Status Types."""
+class ImporterStatus(ScribeStatus, ABC):
+    """Importer Status."""
 
-    MOVE_FOLDERS = "IDM"
-    MOVE_COMICS = "IFM"
-    MOVE_CUSTOM_COVERS = "ICM"
 
-    READ_TAGS = "IRT"
+class ImporterFailedImportsStatus(ImporterStatus):
+    """Importer Failed Imports Status."""
 
-    AGGREGATE_TAGS = "ITR"
+    CODE = "IFI"
+    VERB = "Mark"
+    _verbed = "Marked"
+    ITEM_NAME = "failed imports"
 
-    QUERY_MISSING_TAGS = "IQT"
-    QUERY_COMIC_UPDATES = "IQU"
-    QUERY_TAG_LINKS = "IQL"
-    QUERY_MISSING_COVERS = "ICQ"
 
-    CREATE_TAGS = "ITC"
-    UPDATE_TAGS = "ITU"
-    UPDATE_CUSTOM_COVERS = "ICU"
-    CREATE_CUSTOM_COVERS = "ICC"
-
-    CREATE_COMICS = "IFC"
-    UPDATE_COMICS = "IFU"
-
-    LINK_COMICS_TO_TAGS = "ILT"
-    LINK_CUSTOM_COVERS = "ICL"
-
-    REMOVE_FOLDERS = "IDD"
-    REMOVE_COMICS = "IFD"
-    REMOVE_CUSTOM_COVERS = "ICD"
-
-    MARK_FAILED_IMPORTS = "IFI"
-
-    SEARCH_INDEX_UPDATE = "SIU"
-    SEARCH_INDEX_CREATE = "SIC"
+FAILED_IMPORTS_STATII = (ImporterFailedImportsStatus,)

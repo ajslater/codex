@@ -1,13 +1,66 @@
-"""Search Index Status Types."""
+"""Search Index Sync Statii."""
 
-from django.db.models import TextChoices
+from abc import ABC
+
+from codex.librarian.scribe.status import ScribeStatus
 
 
-class SearchIndexStatusTypes(TextChoices):
-    """Search Index Status Types."""
+class SearchIndexStatus(ScribeStatus, ABC):
+    """Search Index Sync Statii."""
 
-    SEARCH_INDEX_CLEAR = "SIX"
-    SEARCH_INDEX_SYNC_UPDATE = "SSU"
-    SEARCH_INDEX_SYNC_CREATE = "SSC"
-    SEARCH_INDEX_CLEAN = "SID"
-    SEARCH_INDEX_OPTIMIZE = "SIO"
+
+class SearchIndexClearStatus(SearchIndexStatus):
+    """Search Index Clear Status."""
+
+    CODE = "SIX"
+    VERB = "Clear"
+    _verbed = "Cleared"
+    ITEM_NAME = "full text search table"
+    SINGLE = True
+    LOG_SUCCESS = True
+
+
+class SearchIndexCleanStatus(SearchIndexStatus):
+    """Search Index Clean Status."""
+
+    CODE = "SIR"
+    VERB = "Clean"
+    _verbed = "Cleaned"
+    ITEM_NAME = "orphan search entries"
+
+
+class SearchIndexOptimizeStatus(SearchIndexStatus):
+    """Search Index Optimize Status."""
+
+    CODE = "SIO"
+    VERB = "Optimize"
+    ITEM_NAME = "search virtual table"
+    SINGLE = True
+    LOG_SUCCESS = True
+
+
+class SearchIndexSyncUpdateStatus(SearchIndexStatus):
+    """Search Index Sync Update Status."""
+
+    CODE = "SSU"
+    VERB = "Sync old"
+    _verbed = "Synced old"
+    ITEM_NAME = "search entries"
+
+
+class SearchIndexSyncCreateStatus(SearchIndexStatus):
+    """Search Index Sync Create Status."""
+
+    CODE = "SSC"
+    VERB = "Sync new"
+    _verbed = "Synced new"
+    ITEM_NAME = "search entries"
+
+
+SEARCH_INDEX_STATII = (
+    SearchIndexClearStatus,
+    SearchIndexCleanStatus,
+    SearchIndexOptimizeStatus,
+    SearchIndexSyncUpdateStatus,
+    SearchIndexSyncCreateStatus,
+)

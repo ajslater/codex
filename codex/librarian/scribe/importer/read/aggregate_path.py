@@ -18,8 +18,8 @@ from codex.librarian.scribe.importer.const import (
     QUERY_MODELS,
 )
 from codex.librarian.scribe.importer.read.folders import AggregatePathMetadataImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.read import ImporterAggregateStatus
+from codex.librarian.scribe.importer.status import ImporterFailedImportsStatus
 
 _UNUSED_COMICBOX_FIELDS = (
     "alternate_images",
@@ -83,7 +83,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         self.log.info(
             f"Aggregating tags from {num_extracted_paths} comics in {self.library.path}..."
         )
-        status = Status(ImporterStatusTypes.AGGREGATE_TAGS, 0, num_extracted_paths)
+        status = ImporterAggregateStatus(0, num_extracted_paths)
         self.status_controller.start(status)
 
         # Init metadata, extract and aggregate
@@ -102,8 +102,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         fis = self.metadata[FIS].keys()
 
         # Set statii
-        fi_status = Status(ImporterStatusTypes.MARK_FAILED_IMPORTS, 0, len(fis))
+        fi_status = ImporterFailedImportsStatus(0, len(fis))
         self.status_controller.update(fi_status, notify=False)
-        count = status.log_finish(self.log, "Aggregated tags", "comics")
         self.status_controller.finish(status)
-        return count
+        return status.complete

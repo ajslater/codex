@@ -6,8 +6,7 @@ from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import FIS
 from codex.librarian.scribe.importer.delete import DeletedImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.status import ImporterFailedImportsStatus
 from codex.models import Comic, FailedImport
 
 _UPDATE_FIS = "update_fis"
@@ -150,7 +149,7 @@ class FailedImportsImporter(DeletedImporter):
         fis = self.metadata.get(FIS)
         if not fis:
             return
-        status = Status(ImporterStatusTypes.MARK_FAILED_IMPORTS)
+        status = ImporterFailedImportsStatus()
         self.status_controller.start(status)
         created_count = 0
 

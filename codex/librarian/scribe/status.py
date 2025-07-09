@@ -1,13 +1,20 @@
 """Librarian Status for scribe bulk writes."""
 
-from django.db.models import TextChoices
+from abc import ABC
+
+from codex.librarian.status import Status
 
 
-class ScribeStatusTypes(TextChoices):
-    """
-    Keys for Scribe tasks.
+class ScribeStatus(Status, ABC):
+    """Scribe Statii."""
 
-    Actual text is taken by titlecasing the left side.
-    """
 
-    UPDATE_GROUP_TIMESTAMPS = "IGU"
+class UpdateGroupTimestampsStatus(ScribeStatus):
+    """Update Group Timestamps Status."""
+
+    CODE = "IGU"
+    PURAL = "browser groups"
+    _verbed = "Updated timestamps for"
+
+
+SCRIBE_STATII = (UpdateGroupTimestampsStatus,)

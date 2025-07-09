@@ -1,15 +1,15 @@
 """Librarian Status."""
 
 from collections.abc import Iterable
-from enum import Enum
+from inspect import isclass
 from multiprocessing import Queue
 from time import time
+from typing import Any
 
 from django.db.models.functions.datetime import Now
 from django.utils.timezone import datetime, now, timedelta
 from loguru._logger import Logger
 
-from codex.choices.admin import ADMIN_STATUS_TITLES
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.status import Status
 from codex.models import LibrarianStatus
@@ -40,10 +40,9 @@ class StatusController:
             return
         self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
 
-    def _loggit(self, level, status):
+    def _loggit(self, level: str, status: Status):
         """Log with a ? in place of none."""
-        type_title = ADMIN_STATUS_TITLES[status.status_type]
-        msg = f"{type_title} {status.subtitle}".strip()
+        msg = f"{status.title()} {status.subtitle}".strip()
         msg += ": "
         if status.complete is None and status.total is None:
             msg += "In progress"
@@ -54,18 +53,9 @@ class StatusController:
 
         self.log.log(level, msg)
 
-    @staticmethod
-    def _to_status_type_value(status):
-        """Convert Status and Enums to str types."""
-        if isinstance(status, Status):
-            status = status.status_type
-        elif isinstance(status, Enum):
-            status = status.value
-        return status
-
     def _update(
         self,
-        status,
+        status: Status,
         *,
         notify: bool,
         active: datetime | None = None,
@@ -73,10 +63,7 @@ class StatusController:
     ):
         """Start a librarian status."""
         try:
-            if not status.status_type:
-                reason = f"Bad status type: {status.status_type}"
-                raise ValueError(reason)  # noqa: TRY301
-            updates = {
+            updates: dict[str, Any] = {
                 "complete": status.complete,
                 "total": status.total,
                 "updated_at": Now(),
@@ -87,19 +74,16 @@ class StatusController:
                 updates["active"] = active
             if status.subtitle:
                 updates["subtitle"] = status.subtitle
-            LibrarianStatus.objects.filter(status_type=status.status_type).update(
-                **updates
-            )
+            LibrarianStatus.objects.filter(status_type=status.CODE).update(**updates)
             self._enqueue_notifier_task(notify=notify)
             self._loggit("DEBUG", status)
-            status.since = time()
+            status.since_updated = time()
         except Exception:
-            title = ADMIN_STATUS_TITLES[status.status_type]
-            self.log.exception(f"Update status: {title}")
+            self.log.exception(f"Update status: {status.title()}")
 
     def start(
         self,
-        status,
+        status: Status,
         *,
         notify: bool = True,
         preactive: datetime | None = None,
@@ -108,27 +92,53 @@ class StatusController:
         status.start()
         self._update(status, notify=notify, preactive=preactive, active=now())
 
-    def start_many(self, statii: Iterable[Status]):
+    def start_many(self, statii: Iterable[Status | type[Status]]):
         """Start many librarian statuses."""
-        for index, status in enumerate(statii):
+        for index, status_or_class in enumerate(statii):
+            status = status_or_class() if isclass(status_or_class) else status_or_class
             status.start()
             pad_ms = index * 100  # for order
             preactive = now() + timedelta(milliseconds=pad_ms)
             self._update(status, notify=False, preactive=preactive)
         self._enqueue_notifier_task(notify=True)
 
-    def update(self, status, *, notify: bool = True):
+    def update(self, status: Status, *, notify: bool = True):
         """Update a librarian status."""
-        if time() - status.since < self._UPDATE_DELTA:
+        if time() - status.since_updated < self._UPDATE_DELTA:
             # noop unless time has expired.
             return
         self._update(status, notify=notify)
 
-    def finish_many(self, statii, *, notify: bool = True):
+    def _log_finish(self, status: Status):
+        """Log finish of status with stats."""
+        level = "INFO"
+        suffix = ""
+        if count := status.complete:
+            if elapsed := status.elapsed():
+                suffix = f" in {elapsed}"
+            if persecond := status.per_second():
+                suffix += f" at a rate of {persecond}"
+        elif count == 0:
+            count = "no"
+            level = "DEBUG"
+        if status.SINGLE or count is None:
+            count = ""
+
+        prefix_parts = (status.verbed(), str(count), status.ITEM_NAME)
+        prefix = " ".join(filter(None, prefix_parts))
+
+        if status.LOG_SUCCESS:
+            level = "SUCCESS"
+
+        self.log.log(level, f"{prefix}{suffix}.")
+
+    def finish_many(
+        self, statii: Iterable[Status | type[Status]], *, notify: bool = True
+    ):
         """Finish all librarian statuses."""
         try:
-            types = (self._to_status_type_value(status) for status in statii)
-            ls_filter = {"status_type__in": types} if types else {}
+            type_codes = frozenset(status.CODE for status in statii)
+            ls_filter = {"status_type__in": type_codes} if type_codes else {}
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
             lses = LibrarianStatus.objects.filter(**ls_filter)
             update_ls = []
@@ -140,10 +150,13 @@ class StatusController:
             self._enqueue_notifier_task(notify=notify)
             if not ls_filter:
                 self.log.info("Cleared all librarian statuses")
+            for status in statii:
+                if isinstance(status, Status):
+                    self._log_finish(status)
         except Exception as exc:
             self.log.warning(f"Finish status {statii}: {exc}")
 
-    def finish(self, status, *, notify: bool = True):
+    def finish(self, status: Status, *, notify: bool = True):
         """Finish a librarian status."""
         try:
             self.finish_many((status,), notify=notify)

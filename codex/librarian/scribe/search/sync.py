@@ -13,7 +13,13 @@ from django.db.models.query import QuerySet
 from humanize import intcomma, naturaldelta
 
 from codex.librarian.scribe.search.remove import SearchIndexerRemove
-from codex.librarian.scribe.search.status import SearchIndexStatusTypes
+from codex.librarian.scribe.search.status import (
+    SEARCH_INDEX_STATII,
+    SearchIndexCleanStatus,
+    SearchIndexClearStatus,
+    SearchIndexSyncCreateStatus,
+    SearchIndexSyncUpdateStatus,
+)
 from codex.librarian.status import Status
 from codex.models import Comic
 from codex.models.comic import ComicFTS
@@ -71,16 +77,19 @@ class SearchIndexerSync(SearchIndexerRemove):
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
+        statii: list[Status] = []
         if rebuild:
-            statii = [
-                Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR),
-            ]
+            statii.append(
+                SearchIndexClearStatus(),
+            )
         else:
-            statii = [
-                Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN),
-                Status(SearchIndexStatusTypes.SEARCH_INDEX_SYNC_UPDATE),
-            ]
-        statii.append(Status(SearchIndexStatusTypes.SEARCH_INDEX_SYNC_CREATE))
+            statii.extend(
+                [
+                    SearchIndexCleanStatus(),
+                    SearchIndexSyncUpdateStatus(),
+                ]
+            )
+        statii.append(SearchIndexSyncCreateStatus())
         self.status_controller.start_many(statii)
 
     def _update_search_index_clean(self, rebuild):
@@ -179,14 +188,12 @@ class SearchIndexerSync(SearchIndexerRemove):
         self,
         obj_list: list[ComicFTS],
         status,
-        batch_status,
         *,
         create: bool,
     ):
         if self.abort_event.is_set():
             return
         verb = "create" if create else "update"
-        verbed = verb.capitalize() + "d"
         verbing = (verb[:-1] + "ing").capitalize()
         num_comic_fts = len(obj_list)
 
@@ -196,18 +203,13 @@ class SearchIndexerSync(SearchIndexerRemove):
             ComicFTS.objects.bulk_create(obj_list)
         else:
             ComicFTS.objects.bulk_update(obj_list, _COMICFTS_UPDATE_FIELDS)
-        self.log.info(
-            f"{verbed} {num_comic_fts} {batch_position} search entries in {batch_status.elapsed()}, {batch_status.per_second('entries', num_comic_fts)}."
-        )
         obj_list.clear()
-        batch_status.reset()
 
     def _create_comicfts_entry(
         self,
         comic,
         obj_list: list[ComicFTS],
         status: Status,
-        batch_status: Status,
         *,
         create: bool,
     ):
@@ -261,7 +263,6 @@ class SearchIndexerSync(SearchIndexerRemove):
 
         obj_list.append(comicfts)
         status.increment_complete()
-        batch_status.increment_complete()
         self.status_controller.update(status)
 
     def _update_search_index_finish(self, status, *, create: bool):
@@ -270,7 +271,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         suffix = f"search entries in {status.elapsed()}"
 
         if status.complete:
-            eps = status.per_second("entries")
+            eps = status.per_second()
             self.log.info(f"{verbed} {status.complete} {suffix}, {eps}.")
         else:
             self.log.debug(f"{verbed} no {suffix}.")
@@ -279,13 +280,11 @@ class SearchIndexerSync(SearchIndexerRemove):
     def _update_search_index_operate_get_status(
         self, total_comics: int, *, create: bool
     ):
-        status_type = (
-            SearchIndexStatusTypes.SEARCH_INDEX_SYNC_CREATE
-            if create
-            else SearchIndexStatusTypes.SEARCH_INDEX_SYNC_UPDATE
+        status_class = (
+            SearchIndexSyncCreateStatus if create else SearchIndexSyncUpdateStatus
         )
         subtitle = f"Chunks of {_CHUNK_HUMAN_SIZE}" if total_comics else ""
-        return Status(status_type, total=total_comics, subtitle=subtitle)
+        return status_class(total=total_comics, subtitle=subtitle)
 
     def _update_search_index_operate(
         self, comics_filtered_qs: QuerySet, *, create: bool
@@ -316,21 +315,16 @@ class SearchIndexerSync(SearchIndexerRemove):
             comics = comics.order_by("pk")
 
             obj_list = []
-            batch_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_SYNC_UPDATE, 0)
-            batch_status.start()
             prep_num = min(SEARCH_INDEX_BATCH_SIZE, total_comics)
             self.log.debug(f"Preparing {prep_num} comics for search indexing...")
             for comic in comics.iterator(chunk_size=SEARCH_INDEX_BATCH_SIZE):
                 if self.abort_event.is_set():
                     break
-                self._create_comicfts_entry(
-                    comic, obj_list, status, batch_status, create=create
-                )
+                self._create_comicfts_entry(comic, obj_list, status, create=create)
                 if len(obj_list) >= SEARCH_INDEX_BATCH_SIZE:
                     self._update_search_index_create_or_update(
                         obj_list,
                         status,
-                        batch_status,
                         create=create,
                     )
                     complete = status.complete or 0
@@ -344,7 +338,6 @@ class SearchIndexerSync(SearchIndexerRemove):
             self._update_search_index_create_or_update(
                 obj_list,
                 status,
-                batch_status,
                 create=create,
             )
 
@@ -389,8 +382,8 @@ class SearchIndexerSync(SearchIndexerRemove):
         elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)
         cleaned = "cleared" if rebuild else "cleaned"
-        updated = f"{updated_count} entries updated" if updated_count else ""
-        created = f"{created_count} entries created" if created_count else ""
+        updated = f"{updated_count} entries updated by sync" if updated_count else ""
+        created = f"{created_count} entries created by sync" if created_count else ""
         summary_parts = filter(None, (cleaned, updated, created))
         summary = ", ".join(summary_parts)
         self.log.success(f"Search index {summary} in {elapsed}.")
@@ -406,4 +399,4 @@ class SearchIndexerSync(SearchIndexerRemove):
             if self.abort_event.is_set():
                 self.log.info("Search Index update aborted early.")
             self.abort_event.clear()
-            self.status_controller.finish_many(SearchIndexStatusTypes.values)
+            self.status_controller.finish_many(SEARCH_INDEX_STATII)

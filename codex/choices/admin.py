@@ -2,16 +2,7 @@
 
 from types import MappingProxyType
 
-from bidict import frozenbidict
 from django.db.models.enums import TextChoices
-
-from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.restarter.status import CodexRestarterStatusTypes
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.scribe.janitor.status import JanitorStatusTypes
-from codex.librarian.scribe.search.status import SearchIndexStatusTypes
-from codex.librarian.scribe.status import ScribeStatusTypes
-from codex.librarian.watchdog.status import WatchdogStatusTypes
 
 
 class AdminFlagChoices(TextChoices):
@@ -40,21 +31,6 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
     }
 )
 
-ADMIN_STATUS_TITLES = frozenbidict(
-    sorted(
-        (key, val)
-        for status_types in (
-            CoverStatusTypes,
-            ScribeStatusTypes,
-            ImporterStatusTypes,
-            JanitorStatusTypes,
-            CodexRestarterStatusTypes,
-            SearchIndexStatusTypes,
-            WatchdogStatusTypes,
-        )
-        for key, val in status_types.choices
-    )
-)
 
 # Easier to store in vuetify format
 ADMIN_TASK_GROUPS: MappingProxyType[

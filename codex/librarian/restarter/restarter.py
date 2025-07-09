@@ -3,7 +3,10 @@
 import os
 import signal
 
-from codex.librarian.restarter.status import CodexRestarterStatusTypes
+from codex.librarian.restarter.status import (
+    CodexRestarterRestartStatus,
+    CodexRestarterStopStatus,
+)
 from codex.librarian.restarter.tasks import (
     CodexRestartTask,
     CodexShutdownTask,
@@ -31,15 +34,11 @@ class CodexRestarter(WorkerStatusMixin):
 
     def shutdown_codex(self):
         """Shutdown codex."""
-        self._shutdown_codex(
-            CodexRestarterStatusTypes.CODEX_STOP, "stop", signal.SIGTERM
-        )
+        self._shutdown_codex(CodexRestarterStopStatus(), "stop", signal.SIGTERM)
 
     def restart_codex(self):
         """Restart codex."""
-        self._shutdown_codex(
-            CodexRestarterStatusTypes.CODEX_RESTART, "restart", signal.SIGUSR1
-        )
+        self._shutdown_codex(CodexRestarterRestartStatus(), "restart", signal.SIGUSR1)
 
     def handle_task(self, task):
         """Handle Codex reatarter tasks."""

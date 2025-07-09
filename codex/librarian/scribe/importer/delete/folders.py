@@ -1,8 +1,7 @@
 """Delete database folders methods."""
 
 from codex.librarian.scribe.importer.delete.comics import DeletedComicsImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.delete import ImporterRemoveFoldersStatus
 from codex.models.comic import Comic
 from codex.models.groups import Folder
 
@@ -12,9 +11,7 @@ class DeletedFoldersImporter(DeletedComicsImporter):
 
     def bulk_folders_deleted(self, **kwargs):
         """Bulk delete folders."""
-        status = Status(
-            ImporterStatusTypes.REMOVE_FOLDERS, 0, len(self.task.dirs_deleted)
-        )
+        status = ImporterRemoveFoldersStatus(0, len(self.task.dirs_deleted))
         try:
             if not self.task.dirs_deleted:
                 return 0
@@ -32,6 +29,5 @@ class DeletedFoldersImporter(DeletedComicsImporter):
 
             self.remove_covers(delete_comic_pks, custom=False)
         finally:
-            status.log_finish(self.log, "Deleted", "folders")
             self.status_controller.finish(status)
         return count

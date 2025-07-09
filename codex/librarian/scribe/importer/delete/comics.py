@@ -2,8 +2,7 @@
 
 from codex.librarian.scribe.importer.const import ALL_COMIC_GROUP_FIELD_NAMES
 from codex.librarian.scribe.importer.delete.covers import DeletedCoversImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.delete import ImporterRemoveComicsStatus
 from codex.models import Comic, Folder, StoryArc
 from codex.settings import MAX_CHUNK_SIZE
 
@@ -48,9 +47,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
 
     def bulk_comics_deleted(self, **kwargs) -> tuple[int, dict]:
         """Bulk delete comics found missing from the filesystem."""
-        status = Status(
-            ImporterStatusTypes.REMOVE_COMICS, 0, len(self.task.files_deleted)
-        )
+        status = ImporterRemoveComicsStatus(0, len(self.task.files_deleted))
         try:
             if not self.task.files_deleted:
                 return 0, {}
@@ -67,6 +64,5 @@ class DeletedComicsImporter(DeletedCoversImporter):
 
             self.remove_covers(delete_comic_pks, custom=False)
         finally:
-            status.log_finish(self.log, "Deleted", "comics")
             self.status_controller.finish(status)
         return count, deleted_comic_groups

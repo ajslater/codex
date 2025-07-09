@@ -10,13 +10,13 @@ from caseconverter import camelcase
 
 from codex.choices.admin import (
     ADMIN_FLAG_CHOICES,
-    ADMIN_STATUS_TITLES,
     ADMIN_TASK_GROUPS,
 )
 from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
 from codex.choices.notifications import Notifications
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.choices.search import SEARCH_FIELDS
+from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.serializers.route import RouteSerializer
 
 _DEFAULTS = MappingProxyType(

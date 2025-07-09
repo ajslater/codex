@@ -2,8 +2,7 @@
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.scribe.importer.search import SearchIndexImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.delete import ImporterRemoveCoversStatus
 from codex.models.paths import CustomCover
 
 
@@ -17,9 +16,7 @@ class DeletedCoversImporter(SearchIndexImporter):
 
     def bulk_covers_deleted(self, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
-        status = Status(
-            ImporterStatusTypes.REMOVE_CUSTOM_COVERS, 0, len(self.task.covers_deleted)
-        )
+        status = ImporterRemoveCoversStatus(0, len(self.task.covers_deleted))
         try:
             if not self.task.covers_deleted:
                 return 0
@@ -33,7 +30,6 @@ class DeletedCoversImporter(SearchIndexImporter):
 
             self.remove_covers(delete_cover_pks, custom=True)
         finally:
-            status.log_finish(self.log, "Deleted", "custom covers")
             self.status_controller.finish(status)
 
         return count

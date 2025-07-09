@@ -11,9 +11,9 @@ from codex.librarian.notifier.tasks import (
     LIBRARY_CHANGED_TASK,
 )
 from codex.librarian.scribe.importer.init import InitImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.scribe.search.status import SearchIndexStatusTypes
-from codex.librarian.scribe.status import ScribeStatusTypes
+from codex.librarian.scribe.importer.statii import IMPORTER_STATII
+from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
+from codex.librarian.scribe.status import SCRIBE_STATII
 
 _REPORT_MAP = MappingProxyType(
     {
@@ -31,11 +31,7 @@ _REPORT_MAP = MappingProxyType(
         "folders_deleted": "folders deleted",
     }
 )
-_FINISH_STATII = (
-    *ImporterStatusTypes.values,
-    ScribeStatusTypes.UPDATE_GROUP_TIMESTAMPS.value,
-    SearchIndexStatusTypes.SEARCH_INDEX_CLEAN.value,
-)
+_FINISH_STATII = (*IMPORTER_STATII, *SEARCH_INDEX_STATII, *SCRIBE_STATII)
 
 
 class FinishImporter(InitImporter):

@@ -9,14 +9,7 @@ from codex.librarian.scribe.importer.const import (
     UPDATE_FKS,
 )
 from codex.librarian.scribe.importer.query.links import QueryPruneLinks
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-
-_STATII = (
-    ImporterStatusTypes.QUERY_MISSING_TAGS.value,
-    ImporterStatusTypes.QUERY_COMIC_UPDATES.value,
-    ImporterStatusTypes.QUERY_TAG_LINKS.value,
-    ImporterStatusTypes.QUERY_MISSING_COVERS.value,
-)
+from codex.librarian.scribe.importer.statii.query import QUERY_STATII
 
 
 class QueryForeignKeysImporter(QueryPruneLinks):
@@ -48,4 +41,4 @@ class QueryForeignKeysImporter(QueryPruneLinks):
                 return
             self.query_missing_custom_covers()
         finally:
-            self.status_controller.finish_many(_STATII)
+            self.status_controller.finish_many(QUERY_STATII)

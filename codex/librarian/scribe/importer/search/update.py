@@ -20,7 +20,10 @@ from codex.librarian.scribe.importer.search.const import (
 from codex.librarian.scribe.importer.search.sync_m2m import (
     SearchIndexSyncManyToManyImporter,
 )
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.scribe.importer.statii.search import (
+    ImporterFTSCreateStatus,
+    ImporterFTSUpdateStatus,
+)
 from codex.librarian.status import Status
 from codex.models.comic import ComicFTS
 
@@ -139,27 +142,11 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             ComicFTS.objects.bulk_update(obj_list, COMICFTS_UPDATE_FIELDS)
         obj_list.clear()
 
-    def _update_search_index_finish(self, status, *, create: bool):
-        verb = "create" if create else "update"
-        verbed = verb.capitalize() + "d"
-        suffix = f"search entries in {status.elapsed()}"
-
-        if status.complete:
-            eps = status.per_second("entries")
-            self.log.info(f"{verbed} {status.complete} {suffix}, {eps}.")
-        else:
-            self.log.debug(f"{verbed} no {suffix}.")
-        self.status_controller.finish(status)
-
     def _update_search_index_operate_get_status(
         self, total_entries: int, *, create: bool
     ):
-        status_type = (
-            ImporterStatusTypes.SEARCH_INDEX_CREATE
-            if create
-            else ImporterStatusTypes.SEARCH_INDEX_UPDATE
-        )
-        return Status(status_type, total=total_entries)
+        status_class = ImporterFTSCreateStatus if create else ImporterFTSUpdateStatus
+        return status_class(total=total_entries)
 
     def _update_search_index_operate(self, *, create: bool) -> tuple[int, ...]:
         key = FTS_CREATE if create else FTS_UPDATE
@@ -202,7 +189,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             )
 
         finally:
-            self._update_search_index_finish(status, create=create)
+            self.status_controller.finish(status)
         return tuple(updated_pks)
 
     def _update_search_index_update(self):
@@ -228,12 +215,18 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
 
         elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)
-        updated = f"{updated_count} entries updated" if updated_count else ""
-        created = f"{created_count} entries created" if created_count else ""
-        cleaned = f"{cleaned_count} entries cleaned up" if cleaned_count else ""
+        cleaned = f"{cleaned_count} cleaned up" if cleaned_count else ""
+        updated = f"{updated_count} updated" if updated_count else ""
+        created = f"{created_count} created" if created_count else ""
         summary_parts = filter(None, (cleaned, updated, created))
-        summary = ", ".join(summary_parts)
-        self.log.success(f"Search index {summary} in {elapsed}.")
+        if summary := ", ".join(summary_parts):
+            level = "INFO"
+            log_txt = f"Search index entries {summary}"
+        else:
+            level = "DEBUG"
+            log_txt = "Nothing done to Search index"
+        log_txt += f" in {elapsed}."
+        self.log.log(level, log_txt)
 
     def import_search_index(self, cleaned_count: int):
         """Update or Rebuild the search index."""
@@ -248,8 +241,5 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             self.abort_event.clear()
             self.metadata.pop(FTS_EXISTING_M2MS)
             self.status_controller.finish_many(
-                (
-                    ImporterStatusTypes.SEARCH_INDEX_UPDATE,
-                    ImporterStatusTypes.SEARCH_INDEX_CREATE,
-                )
+                (ImporterFTSCreateStatus, ImporterFTSUpdateStatus)
             )

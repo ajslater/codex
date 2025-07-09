@@ -10,8 +10,7 @@ from django.db.models.query import Q
 from django.utils import timezone
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.scribe.status import ScribeStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import StoryArc, Volume
 from codex.models.groups import BrowserGroupModel
@@ -98,7 +97,7 @@ class TimestampUpdater(WorkerStatusMixin):
         total_count = 0
         if mark_library_in_progress:
             library.start_update()
-        status = Status(ScribeStatusTypes.UPDATE_GROUP_TIMESTAMPS)
+        status = UpdateGroupTimestampsStatus()
         self.status_controller.start(status)
         try:
             log_list = []

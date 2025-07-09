@@ -8,8 +8,11 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.query.query_fks import (
     QueryForeignKeysQueryImporter,
 )
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.create import (
+    ImporterCreateComicsStatus,
+    ImporterUpdateComicsStatus,
+)
+from codex.librarian.scribe.importer.statii.query import ImporterQueryComicUpdatesStatus
 from codex.models import Comic
 
 
@@ -19,7 +22,7 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
     def query_update_comics(self):
         """Pop existing comics from create & move to update if needed."""
         paths = tuple(self.metadata[CREATE_COMICS].keys())
-        status = Status(ImporterStatusTypes.QUERY_COMIC_UPDATES, 0, len(paths))
+        status = ImporterQueryComicUpdatesStatus(0, len(paths))
         try:
             if not paths:
                 return
@@ -44,18 +47,13 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
                 status.increment_complete()
                 self.status_controller.update(status)
 
-            create_status = Status(
-                ImporterStatusTypes.CREATE_COMICS,
-                None,
-                len(self.metadata[CREATE_COMICS]),
+            create_status = ImporterCreateComicsStatus(
+                None, len(self.metadata[CREATE_COMICS])
             )
             self.status_controller.update(create_status)
-            update_status = Status(
-                ImporterStatusTypes.UPDATE_COMICS,
-                None,
-                len(self.metadata[UPDATE_COMICS]),
+            update_status = ImporterUpdateComicsStatus(
+                None, len(self.metadata[UPDATE_COMICS])
             )
             self.status_controller.update(update_status)
         finally:
-            status.log_finish(self.log, "Queried existing", "comics")
             self.status_controller.finish(status)

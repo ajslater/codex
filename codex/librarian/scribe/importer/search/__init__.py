@@ -3,16 +3,14 @@
 from codex.librarian.scribe.importer.search.prepare import (
     SearchIndexPrepareImporter,
 )
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.scribe.search.handler import SearchIndexer
-from codex.librarian.scribe.search.status import SearchIndexStatusTypes
-from codex.librarian.status import Status
-
-_STATII = (
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAN),
-    Status(ImporterStatusTypes.SEARCH_INDEX_UPDATE),
-    Status(ImporterStatusTypes.SEARCH_INDEX_CREATE),
+from codex.librarian.scribe.importer.statii.search import (
+    ImporterFTSCreateStatus,
+    ImporterFTSUpdateStatus,
 )
+from codex.librarian.scribe.search.handler import SearchIndexer
+from codex.librarian.scribe.search.status import SearchIndexCleanStatus
+
+_STATII = (SearchIndexCleanStatus, ImporterFTSCreateStatus, ImporterFTSUpdateStatus)
 
 
 class SearchIndexImporter(SearchIndexPrepareImporter):
@@ -27,9 +25,10 @@ class SearchIndexImporter(SearchIndexPrepareImporter):
 
     def full_text_search(self):
         """Sync the fts index with the imported database."""
-        self.status_controller.start_many(_STATII)
+        statii = (status_class() for status_class in _STATII)
+        self.status_controller.start_many(statii)
         try:
             count = self.clean_fts()
             self.import_search_index(count)
         finally:
-            self.status_controller.finish_many(_STATII)
+            self.status_controller.finish_many(statii)

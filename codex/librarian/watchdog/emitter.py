@@ -26,7 +26,6 @@ from watchdog.observers.api import (
 )
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
-from codex.librarian.status import Status
 from codex.librarian.watchdog.const import ATTR_EVENT_MAP
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
@@ -39,7 +38,7 @@ from codex.librarian.watchdog.handlers import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
 )
-from codex.librarian.watchdog.status import WatchdogStatusTypes
+from codex.librarian.watchdog.status import WatchdogPollStatus
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 
@@ -244,7 +243,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         if self.db_write_lock.locked():
             self.log.warning("Database locked, not polling {self.watch.path}.")
             return
-        status = Status(WatchdogStatusTypes.POLL, subtitle=self.watch.path)
+        status = WatchdogPollStatus(subtitle=self.watch.path)
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {self.watch.path}...")

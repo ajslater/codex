@@ -12,8 +12,9 @@ from codex.librarian.scribe.importer.const import (
     PATH_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.read import ReadMetadataImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.create import ImporterCreateTagsStatus
+from codex.librarian.scribe.importer.statii.moved import ImporterMoveComicsStatus
+from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTagsStatus
 from codex.models import Comic, Folder
 
 
@@ -28,7 +29,7 @@ class MovedComicsImporter(ReadMetadataImporter):
         if not num_dest_comic_paths:
             return
         # Not sending statues to the controller for now.
-        status = Status(ImporterStatusTypes.QUERY_MISSING_TAGS)
+        status = ImporterQueryMissingTagsStatus()
         if CREATE_FKS not in self.metadata:
             self.metadata[CREATE_FKS] = {}
         proposed_values_map = {(path,): set() for path in dest_comic_paths}
@@ -41,7 +42,7 @@ class MovedComicsImporter(ReadMetadataImporter):
         count = len(create_folder_paths)
         if not count:
             return
-        status = Status(ImporterStatusTypes.CREATE_TAGS, 0, count)
+        status = ImporterCreateTagsStatus(0, count)
         self.log.debug(
             "Creating {count} folders for {num_dest_comic_paths} moved comics."
         )
@@ -98,7 +99,7 @@ class MovedComicsImporter(ReadMetadataImporter):
     def bulk_comics_moved(self):
         """Move comcis."""
         num_files_moved = len(self.task.files_moved)
-        status = Status(ImporterStatusTypes.MOVE_COMICS, 0, num_files_moved)
+        status = ImporterMoveComicsStatus(0, num_files_moved)
         try:
             if not num_files_moved:
                 return 0
@@ -120,6 +121,5 @@ class MovedComicsImporter(ReadMetadataImporter):
 
             count = len(updated_comics)
         finally:
-            status.log_finish(self.log, "Moved", "comics")
             self.status_controller.finish(status)
         return count

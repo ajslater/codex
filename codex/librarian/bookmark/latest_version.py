@@ -6,9 +6,8 @@ from datetime import timedelta
 import requests
 from django.utils import timezone
 
-from codex.librarian.scribe.janitor.status import JanitorStatusTypes
+from codex.librarian.scribe.janitor.status import JanitorCodexLatestVersionStatus
 from codex.librarian.scribe.janitor.tasks import JanitorCodexUpdateTask
-from codex.librarian.status import Status
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Timestamp
 from codex.version import PACKAGE_NAME
@@ -33,7 +32,7 @@ class CodexLatestVersionUpdater(WorkerStatusMixin):
         if self.db_write_lock.locked():
             self.log.warning("Database locked, not retrieving latest codex version.")
             return
-        status = Status(JanitorStatusTypes.CODEX_LATEST_VERSION)
+        status = JanitorCodexLatestVersionStatus()
         try:
             self.status_controller.start(status)
             ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)

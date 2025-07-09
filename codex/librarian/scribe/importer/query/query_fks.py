@@ -11,7 +11,11 @@ from codex.librarian.scribe.importer.const import (
     get_key_index,
 )
 from codex.librarian.scribe.importer.query.update_fks import QueryIsUpdateImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.scribe.importer.statii.create import (
+    ImporterCreateTagsStatus,
+    ImporterUpdateTagsStatus,
+)
+from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTagsStatus
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
 from codex.models.named import Universe
@@ -170,19 +174,19 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             status,
         )
 
-    def _set_fk_totals(self, fk_key: str, status_type: ImporterStatusTypes):
+    def _set_fk_totals(self, fk_key: str, status_class):
         total_fks = 0
         fks = self.metadata[fk_key]
         for rows in fks.values():
             total_fks += len(rows)
-        status = Status(status_type, None, total_fks)
+        status = status_class(None, total_fks)
         self.status_controller.update(status, notify=False)
         self.metadata[fk_key][TOTAL] = total_fks
 
     def query_all_missing_models(self):
         """Find all missing foreign key models."""
         num_models = self.sum_ops(QUERY_MODELS)
-        status = Status(ImporterStatusTypes.QUERY_MISSING_TAGS, 0, num_models)
+        status = ImporterQueryMissingTagsStatus(0, num_models)
         try:
             if not num_models:
                 return num_models
@@ -192,9 +196,8 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
                     return num_models
                 self._query_missing_model(model, status)
             self.metadata.pop(QUERY_MODELS)
-            self._set_fk_totals(CREATE_FKS, ImporterStatusTypes.CREATE_TAGS)
-            self._set_fk_totals(UPDATE_FKS, ImporterStatusTypes.UPDATE_TAGS)
-            count = status.log_finish(self.log, "Queried missing tags", "tags")
+            self._set_fk_totals(CREATE_FKS, ImporterCreateTagsStatus)
+            self._set_fk_totals(UPDATE_FKS, ImporterUpdateTagsStatus)
         finally:
             self.status_controller.finish(status)
-        return count
+        return status.complete

@@ -11,9 +11,8 @@ from humanize import naturaldelta
 from PIL import Image
 
 from codex.librarian.covers.path import CoverPathMixin
-from codex.librarian.covers.status import CoverStatusTypes
+from codex.librarian.covers.status import CreateCoversStatus
 from codex.librarian.covers.tasks import CoverSaveToCache
-from codex.librarian.status import Status
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
 from codex.settings import COMICBOX_CONFIG
@@ -108,7 +107,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         num_comics = len(pks)
         if not num_comics:
             return 0
-        status = Status(CoverStatusTypes.CREATE_COVERS, 0, num_comics)
+        status = CreateCoversStatus(0, num_comics)
         try:
             start_time = time()
             self.log.debug(f"Creating {num_comics} comic covers...")
@@ -145,10 +144,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
 
     def create_all_covers(self):
         """Create all covers for all libraries."""
-        start_time = time()
         pks = CustomCover.objects.values_list("pk", flat=True)
         count = self._bulk_create_comic_covers(pks, custom=True)
         pks = Comic.objects.values_list("pk", flat=True)
         count += self._bulk_create_comic_covers(pks, custom=False)
-        elapsed = naturaldelta(time() - start_time)
-        self.log.success(f"Created {count} covers in {elapsed}")

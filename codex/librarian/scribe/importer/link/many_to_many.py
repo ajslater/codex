@@ -7,7 +7,7 @@ from codex.librarian.scribe.importer.const import (
     LINK_M2MS,
 )
 from codex.librarian.scribe.importer.link.sum import LinkSumImporter
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
+from codex.librarian.scribe.importer.statii.link import ImporterLinkTagsStatus
 from codex.librarian.status import Status
 from codex.models import Comic
 
@@ -57,7 +57,7 @@ class LinkManyToManyImporter(LinkSumImporter):
     def link_comic_m2m_fields(self):
         """Combine query and bulk link into a batch."""
         link_total = self.sum_ops(DELETE_M2MS) + self.sum_path_ops(LINK_M2MS)
-        status = Status(ImporterStatusTypes.LINK_COMICS_TO_TAGS, 0, link_total)
+        status = ImporterLinkTagsStatus(0, link_total)
         try:
             if not link_total:
                 self.status_controller.finish(status)
@@ -85,6 +85,5 @@ class LinkManyToManyImporter(LinkSumImporter):
                 except Exception:
                     self.log.exception(f"Error recreating m2m field: {field_name}")
         finally:
-            status.log_finish(self.log, "Linked", "tags to comics")
             self.status_controller.finish(status)
         return created_total + del_total

@@ -14,8 +14,7 @@ from codex.librarian.scribe.importer.const import EXTRACTED, FIS, SKIPPED
 from codex.librarian.scribe.importer.read.aggregate_path import (
     AggregateMetadataImporter,
 )
-from codex.librarian.scribe.importer.status import ImporterStatusTypes
-from codex.librarian.status import Status
+from codex.librarian.scribe.importer.statii.read import ImporterReadComicsStatus
 from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG
@@ -92,7 +91,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self.task.files_modified = frozenset()
         self.task.files_created = frozenset()
         total_paths = len(all_paths)
-        status = Status(ImporterStatusTypes.READ_TAGS, 0, total_paths)
+        status = ImporterReadComicsStatus(0, total_paths)
         try:
             if not total_paths:
                 return count
@@ -118,7 +117,6 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
 
             skipped_count = len(self.metadata[SKIPPED])
             count = total_paths - skipped_count
-            status.log_finish(self.log, "Read tags", "comics", count)
             level = "INFO" if skipped_count else "DEBUG"
             self.log.log(
                 level,
