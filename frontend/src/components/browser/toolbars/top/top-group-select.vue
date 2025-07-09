@@ -3,12 +3,10 @@
     v-model="topGroup"
     class="topGroupSelect"
     select-label="top group"
-    :items="topGroupChoices"
+    :items="topGroupChoicesWithDividers"
     :max-select-len="topGroupChoicesMaxLen - 2.25"
   >
     <template #item="{ item, props }">
-      <!-- Divider in items not implemented yet in Vuetify 3 -->
-      <v-divider v-if="DIVIDED_VALUES.has(item.value)" />
       <v-list-item
         v-bind="props"
         density="compact"
@@ -52,6 +50,16 @@ export default {
         const settings = { topGroup: value };
         this.setSettings(settings);
       },
+    },
+    topGroupChoicesWithDividers() {
+      const items = [];
+      for (const item of this.topGroupChoices) {
+        if (DIVIDED_VALUES.has(item.value)) {
+          items.push({ type: "divider" });
+        }
+        items.push(item);
+      }
+      return items;
     },
   },
   methods: {
