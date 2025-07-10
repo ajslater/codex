@@ -45,7 +45,6 @@ jobs:
     !!merge <<: *build-base
     executor: arm64-medium-executor
   test-amd64:
-    type: approval
     executor: amd64-medium-executor
     steps:
       - checkout
