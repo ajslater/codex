@@ -3,7 +3,7 @@ ARG CODEX_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BASE_VERSION
 
-COPY docker/debian.sources /etc/apt/sources.list.d/
+COPY ./docker/debian.sources /etc/apt/sources.list.d/
 # hadolint ignore=DL3008
 RUN apt-get clean \
   && apt-get update \
