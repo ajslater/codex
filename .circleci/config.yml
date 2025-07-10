@@ -121,7 +121,6 @@ jobs:
     !!merge <<: *build
     executor: arm64-medium-executor
   deploy:
-    type: release
     executor: amd64-medium-executor
     steps:
       - checkout
