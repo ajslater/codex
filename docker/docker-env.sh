@@ -2,7 +2,8 @@
 # create the docker .env firl for this architecture
 set -euo pipefail
 ./docker/install-uv.sh
-export PATH=$PATH:"$HOME/.local/bin/env"
+PATH=$PATH:"$HOME/.local/bin"
+export PATH
 pip3 install --upgrade pip
 PKG_VERSION=$(./bin/version.sh)
 ENV_FN=$(./docker/docker-env-filename.sh)
