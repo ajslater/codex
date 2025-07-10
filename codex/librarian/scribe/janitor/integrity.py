@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
     from codex.models.comic import Comic
 
+
 REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
 REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
 BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".bak")
