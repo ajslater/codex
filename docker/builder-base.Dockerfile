@@ -4,7 +4,7 @@ LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
 # **** install codex system build dependency packages ****"
-COPY ./docker/debian.sources /etc/apt/sources.list.d/
+COPY docker/debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \

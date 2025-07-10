@@ -3,7 +3,8 @@ ARG CODEX_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BASE_VERSION
 
-COPY ./docker/debian.sources /etc/apt/sources.list.d/
+COPY docker/debian.sources /etc/apt/sources.list.d/
+
 # hadolint ignore=DL3008
 RUN apt-get clean \
   && apt-get update \
@@ -20,3 +21,6 @@ RUN apt-get clean \
     zlib1g \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+# hadolint ignore=DL3013,DL3042
+RUN pip3 install --no-cache --upgrade pip
