@@ -55,7 +55,6 @@ BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
 ######################
 pwd
 ls -a || true
-ls ./dist || true
 cat .dockerignore || true
 #####################
 docker buildx bake \
