@@ -36,18 +36,6 @@ export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
 export const getTimestamp = function () {
   return Math.floor(Date.now() / 1000);
 };
-var foo = 1;
-
-export const getFormattedDuration = (fromTime, toTime) => {
-  const totalSeconds = Math.floor((toTime - fromTime) / 1000);
-  const duration = {
-    days: Math.floor(totalSeconds / DAY_SECONDS),
-    hours: Math.floor((totalSeconds % DAY_SECONDS) / HOUR_SECONDS),
-    minutes: Math.floor((totalSeconds % HOUR_SECONDS) / MINUTE_SECONDS),
-    seconds: totalSeconds % MINUTE_SECONDS,
-  };
-  return DURATION_FORMAT.format(duration);
-};
 
 export const getFormattedDuration = (fromTime, toTime) => {
   const totalSeconds = Math.floor((toTime - fromTime) / 1000);

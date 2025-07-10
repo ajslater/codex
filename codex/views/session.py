@@ -3,7 +3,6 @@
 from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from loguru import logger
 

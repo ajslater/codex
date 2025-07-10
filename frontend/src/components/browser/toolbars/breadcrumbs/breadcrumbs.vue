@@ -19,7 +19,7 @@ import {
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
 import deepClone from "deep-clone";
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";

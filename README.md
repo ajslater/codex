@@ -97,7 +97,7 @@ apt-cache search libjpeg-turbo
 ###### <a href="alpine">Alpine</a> Dependencies
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp mupdf openssl-dev sqlite yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on non-debian Linux
