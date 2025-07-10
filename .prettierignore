@@ -22,4 +22,3 @@ frontend
 package-lock.json
 uv.lock
 webpack-stats.json
-!codex/templates/pwa/serviceworkerRegister.js
