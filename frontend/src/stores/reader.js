@@ -454,22 +454,17 @@ export const useReaderStore = defineStore("reader", {
           const books = data.books;
 
           // Undefined settings breaks code.
-          const allBooks = [books?.prevBook, books?.current, books?.nextBook];
+          const allBooks = [books?.prev, books?.current, books?.next];
           for (const book of allBooks) {
             if (book && !book.settings) {
               book.settings = {};
             }
           }
           // Generate routes.
-          const routesBooks = this._getBookRoutes(
-            books.prevBook,
-            books.nextBook,
-          );
+          const routesBooks = this._getBookRoutes(books.prev, books.next);
 
           this.$patch((state) => {
-            state.books.current = books.current;
-            state.books.prev = books.prevBook;
-            state.books.next = books.nextBook;
+            state.books = books;
             state.arcs = data.arcs;
             state.arc = data.arc;
             state.routes.prev = this._getRouteParams(
