@@ -52,7 +52,10 @@ jobs:
           at: .
       - run:
           command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
+          name: Login to Docker Hub, install binfmt platform, & create the buildx builder
+      - run:
+          command: ./docker/docker-compose-exit.sh codex-build-prepare
+          name: "Build Prepare: choices & collectstatic"
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"

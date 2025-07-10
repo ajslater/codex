@@ -23,34 +23,44 @@ services:
         CODEX_DIST_BUILDER_VERSION:
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
     container_name: codex-dist-builder
+  codex-build-prepare:
+    <<: *codex-dist-builder
+    container_name: codex-backend-lint
+    command: make build-choices collectstatic
+    volumes:
+      - ./frontend/src/choices:/app/frontend/src/choices
+      - ./codex/static_root:/app/codex/static_root
   codex-backend-lint:
     <<: *codex-dist-builder
     container_name: codex-backend-lint
-    command: make collectstatic lint-backend
+    command: make lint-backend
+    volumes:
+      - ./codex/static_root:/app/codex/static_root:ro
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontend-lint
-    command: make build-choices lint-frontend
+    command: make lint-frontend
     volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices
+      - ./frontend/src/choices:/app/frontend/src/choices:ro
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
     command: make test-frontend
     volumes:
-      - ./test-results/:/app/test-results/
       - ./frontend/src/choices:/app/frontend/src/choices:ro
+      - ./test-results/:/app/test-results/
   codex-frontend-build:
     <<: *codex-dist-builder
     container_name: codex-frontend-build
     volumes:
-      - ./codex/static_build:/app/codex/static_build
       - ./frontend/src/choices:/app/frontend/src/choices:ro
+      - ./codex/static_build:/app/codex/static_build
     command: make build-frontend
   codex-backend-test:
     <<: *codex-dist-builder
     container_name: codex-backend-test
     volumes:
+      - ./codex/static_root:/app/codex/static_root:ro
       - ./codex/static_build:/app/codex/static_build:ro
       - ./test-results/:/app/test-results/
     command: make test-backend
@@ -59,6 +69,7 @@ services:
     container_name: codex-build-dist
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
+      - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
     command: make build-backend
   codex-arch:
