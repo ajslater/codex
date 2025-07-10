@@ -1,7 +1,12 @@
 #!/bin/bash
 # Sort all ignore files in place and remove duplicates
-for f in .*ignore; do
-  if [ ! -L "$f" ]; then
-    sort --mmap --unique --output="$f" "$f"
-  fi
+# Place ! exclusions at the end.
+for fn in .*ignore; do
+    if [ ! -L "$fn" ]; then
+        output=$(
+            grep -v '^!' "$fn" | sort --mmap --unique
+            grep '^!' "$fn" | sort --mmap --unique
+        )
+        echo "$output" >"$fn"
+    fi
 done
