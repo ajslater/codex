@@ -23,31 +23,20 @@ services:
         CODEX_DIST_BUILDER_VERSION:
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
     container_name: codex-dist-builder
-  codex-build-prepare:
-    <<: *codex-dist-builder
-    container_name: codex-backend-lint
-    command: make build-choices collectstatic
-    volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices
-      - ./codex/static_root:/app/codex/static_root
   codex-backend-lint:
     <<: *codex-dist-builder
     container_name: codex-backend-lint
     command: make lint-backend
-    volumes:
-      - ./codex/static_root:/app/codex/static_root:ro
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontend-lint
     command: make lint-frontend
-    volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices:ro
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
-    command: make test-frontend
+    command: make build-choices test-frontend
     volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices:ro
+      - ./frontend/src/choices:/app/frontend/src/choices
       - ./test-results/:/app/test-results/
   codex-frontend-build:
     <<: *codex-dist-builder
@@ -60,10 +49,10 @@ services:
     <<: *codex-dist-builder
     container_name: codex-backend-test
     volumes:
-      - ./codex/static_root:/app/codex/static_root:ro
+      - ./codex/static_root:/app/codex/static_root
       - ./codex/static_build:/app/codex/static_build:ro
       - ./test-results/:/app/test-results/
-    command: make test-backend
+    command: make build-icons collectstatic test-backend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist

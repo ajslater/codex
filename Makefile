@@ -65,7 +65,7 @@ build-choices:
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-build-frontend: clean-frontend
+build-frontend: clean-frontend build-choices
 	cd frontend && make build
 
 .PHONY: build-icons
@@ -80,23 +80,22 @@ build-icons:
 collectstatic:
 	bin/collectstatic.sh
 
-.PHONE: check
+.PHONE: django-check
 ## Django check
 ## @category Build
-check:
+django-check:
 	bin/pm check
 
 .PHONY: build-backend
 ## Build python package
 ## @category Build
-build-backend: build-icons collectstatic check
+build-backend: build-icons
 	uv build
 
 .PHONY: build
 ## Build python package
 ## @category Build
 build: build-frontend build-backend
-
 
 .PHONY: publish
 ## Publish package to pypi
@@ -145,16 +144,10 @@ typecheck:
 lint-frontend:
 	cd frontend && make lint
 
-.PHONY: django-check
-## Check django is ok
-## @category Lint
-django-check:
-	./bin/pm check
-
 .PHONY: lint-backend
 ## Lint the backend
 ## @category Lint
-lint-backend: django-check
+lint-backend:
 	./bin/lint-backend.sh
 
 .PHONY: lint
@@ -184,7 +177,7 @@ test-frontend:
 .PHONY: test-backend
 ## Run backend tests
 ## @category Test
-test-backend:
+test-backend: django-check
 	./bin/test-backend.sh
 
 .PHONY: test
