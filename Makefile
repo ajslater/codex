@@ -71,7 +71,7 @@ build-frontend: clean-frontend build-choices
 .PHONY: build-icons
 ## Build all icons from source
 ## @category Build
-icons:
+build-icons:
 	bin/icons_transform.py
 
 .PHONY: collectstatic
