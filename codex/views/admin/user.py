@@ -19,8 +19,6 @@ from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
 _BAD_CURRENT_USER_FALSE_KEYS = ("is_active", "is_staff", "is_superuser")
 
-_BAD_CURRENT_USER_FALSE_KEYS = ("is_active", "is_staff", "is_superuser")
-
 
 class AdminUserViewSet(AdminModelViewSet):
     """User ViewSet."""

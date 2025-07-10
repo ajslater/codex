@@ -26,8 +26,6 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
         super().__init__(*args, **kwargs)
         self.init_group_acl()
 
-    TARGET = "bookmark"
-
     def _parse_params(self):
         """Validate and translate the submitted data."""
         group = self.kwargs.get("group")

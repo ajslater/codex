@@ -49,6 +49,17 @@ export const getFormattedDuration = (fromTime, toTime) => {
   return DURATION_FORMAT.format(duration);
 };
 
+export const getFormattedDuration = (fromTime, toTime) => {
+  const totalSeconds = Math.floor((toTime - fromTime) / 1000);
+  const duration = {
+    days: Math.floor(totalSeconds / DAY_SECONDS),
+    hours: Math.floor((totalSeconds % DAY_SECONDS) / HOUR_SECONDS),
+    minutes: Math.floor((totalSeconds % HOUR_SECONDS) / MINUTE_SECONDS),
+    seconds: totalSeconds % MINUTE_SECONDS,
+  };
+  return DURATION_FORMAT.format(duration);
+};
+
 export default {
   DATE_FORMAT,
   NUMBER_FORMAT,
