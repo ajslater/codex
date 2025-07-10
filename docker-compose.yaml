@@ -26,11 +26,11 @@ services:
   codex-backend-lint:
     <<: *codex-dist-builder
     container_name: codex-backend-lint
-    command: make lint-backend
+    command: make collectstatic lint-backend
   codex-frontend-lint:
     <<: *codex-dist-builder
-    container_name: codex-frontent-lint
-    command: make choices lint-frontend
+    container_name: codex-frontend-lint
+    command: make build-choices lint-frontend
     volumes:
       - ./frontend/src/choices:/app/frontend/src/choices
   codex-frontend-test:

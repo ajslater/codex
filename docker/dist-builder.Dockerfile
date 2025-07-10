@@ -31,7 +31,6 @@ WORKDIR /app
 # **** copying source for dev build ****
 COPY . .
 
-RUN make build-frontend collectstatic
 VOLUME /app/codex/static_build
 VOLUME /app/codex/static_root
 VOLUME /app/dist
