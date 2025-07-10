@@ -1,9 +1,22 @@
-"""Watchdog Status Types."""
+"""Watchdog Statii."""
 
-from django.db.models import TextChoices
+from abc import ABC
+
+from codex.librarian.status import Status
 
 
-class WatchdogStatusTypes(TextChoices):
-    """Watchdog Status Types."""
+class WatchdogStatus(Status, ABC):
+    """Watchdog Statii."""
 
-    POLL = "WPO"
+
+class WatchdogPollStatus(WatchdogStatus):
+    """Watchdog Poll Status."""
+
+    CODE = "WPO"
+    VERB = "Poll"
+    _verbed = "Polled"
+    ITEM_NAME = "library"
+    SINGLE = True
+
+
+WATCHDOG_STATII = (WatchdogPollStatus,)

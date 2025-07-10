@@ -46,7 +46,7 @@ def _regex_like(regex, lookahead):
     return regex
 
 
-def like_qs_to_regex_q(q: Q, regex_op: str, many_to_many: bool):
+def like_qs_to_regex_q(q: Q, regex_op: str, *, many_to_many: bool):
     """Optimize a tree of like lookup qs to one regex q."""
     regexes = []
     # Optimize like equations into regexes

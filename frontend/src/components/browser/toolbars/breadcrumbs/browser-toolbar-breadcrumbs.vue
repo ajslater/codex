@@ -19,6 +19,6 @@ export default {
 #breadcrumbsToolbar {
   padding-top: 6px;
   padding-left: 0px; // given to first breadcrumb child
-  padding-right: max(calc(env(safe-area-inset-right) /4), 10px);
+  padding-right: max(calc(env(safe-area-inset-right) / 4), 10px);
 }
 </style>

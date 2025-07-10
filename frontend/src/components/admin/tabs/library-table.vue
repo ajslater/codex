@@ -5,6 +5,14 @@
         Add a Library to start using Codex
       </td>
     </template>
+    <template #[`item.comicCount`]="{ item }">
+      {{ formatNumber(item.comicCount) }}
+    </template>
+    <template #[`item.failedCount`]="{ item }">
+      <span class="failedComics">
+        {{ formatNumber(item.failedCount) }}
+      </span>
+    </template>
     <template #[`item.events`]="{ item }">
       <v-checkbox-btn :model-value="item.events" disabled />
     </template>
@@ -40,7 +48,7 @@
         />
         <ConfirmDialog
           :icon="mdiDatabaseSyncOutline"
-          :title-text="`Force update every ${itemName}`"
+          :title-text="`Force update ${itemName}`"
           :text="item.path"
           confirm-text="Force Update"
           :size="iconSize"
@@ -76,7 +84,7 @@ import {
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
@@ -86,7 +94,7 @@ import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { getDateTime } from "@/datetime";
+import { NUMBER_FORMAT, getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -118,7 +126,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
+    ...mapState(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
     }),
@@ -129,8 +137,11 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
     headers() {
+      const comicsHeader = this.coversDir ? "Covers" : "Comics";
       const headers = [
         { title: "Path", key: "path", align: "start" },
+        { title: comicsHeader, key: "comicCount" },
+        { title: "Failed", key: "FailedCount" },
         {
           title: "Watch File Events",
           key: "events",
@@ -182,8 +193,8 @@ export default {
       "librarianTask",
       "loadTables",
     ]),
-    formatDateTime(dttm) {
-      return dttm ? getDateTime(dttm, this.twentyFourHourTime) : "";
+    formatNumber(num) {
+      return NUMBER_FORMAT.format(num);
     },
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;
@@ -238,5 +249,9 @@ export default {
 
 .actionButtonCell :deep(> button:hover) {
   opacity: 1;
+}
+
+.failedComics {
+  color: rgb(var(--v-theme-error));
 }
 </style>

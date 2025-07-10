@@ -9,7 +9,7 @@
 
 <script>
 import { mdiLogin } from "@mdi/js";
-import { mapGetters } from "pinia";
+import { mapState } from "pinia";
 
 import AdminHeader from "@/components/admin/admin-header.vue";
 import AdminSettingsDrawer from "@/components/admin/drawer/admin-settings-drawer.vue";
@@ -31,7 +31,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
   },
 };
 </script>

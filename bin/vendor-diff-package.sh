@@ -16,7 +16,7 @@ cat << EOT > vendorize.toml
 target = "$VENDOR_TARGET"
 packages = [ "$PKG" ]
 EOT
-poetry run python-vendorize
+uv run python-vendorize
 
 # compare
 DIFF_FN="../codex/_vendor/$PKG.diff"

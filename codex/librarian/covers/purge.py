@@ -2,23 +2,20 @@
 
 import os
 import shutil
+from abc import ABC
 from pathlib import Path
 
 from codex.librarian.covers.create import CoverCreateThread
-from codex.librarian.covers.status import CoverStatusTypes
+from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
 from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
 from codex.models import Comic
 from codex.models.paths import CustomCover
-from codex.status import Status
 
 
-class CoverPurgeThread(CoverCreateThread):
+class CoverPurgeThread(CoverCreateThread, ABC):
     """Cover Purge methods."""
 
-    _CLEANUP_STATUS_MAP = (
-        Status(CoverStatusTypes.FIND_ORPHAN),
-        Status(CoverStatusTypes.PURGE_COVERS),
-    )
+    _CLEANUP_STATUS_MAP = (FindOrphanCoversStatus, RemoveCoversStatus)
 
     @classmethod
     def _cleanup_cover_dirs(cls, path, cover_root):
@@ -31,10 +28,10 @@ class CoverPurgeThread(CoverCreateThread):
         except OSError:
             pass
 
-    def purge_cover_paths(self, cover_paths, cover_root):
+    def purge_cover_paths(self, cover_paths, cover_root) -> int:
         """Purge a set a cover paths."""
         self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
-        status = Status(CoverStatusTypes.PURGE_COVERS, 0, len(cover_paths))
+        status = RemoveCoversStatus(0, len(cover_paths))
         try:
             self.status_controller.start(status)
             cover_dirs = set()
@@ -48,12 +45,11 @@ class CoverPurgeThread(CoverCreateThread):
                 self.status_controller.update(status, notify=False)
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir, cover_root)
-            self.log.info(f"Removed {status.complete} cover thumbnails.")
         finally:
             self.status_controller.finish(status)
-        return status.complete
+        return status.complete or 0
 
-    def purge_comic_covers(self, pks: frozenset[int], custom: bool):
+    def purge_comic_covers(self, pks: frozenset[int], *, custom: bool):
         """Purge a set a cover paths."""
         cover_paths = self.get_cover_paths(pks, custom)
         cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
@@ -62,20 +58,26 @@ class CoverPurgeThread(CoverCreateThread):
     def purge_all_comic_covers(self, librarian_queue):
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")
+        changed = False
         try:
-            shutil.rmtree(self.COVERS_ROOT)
-            self.log.info("Removed entire comic cover cache.")
-            shutil.rmtree(self.CUSTOM_COVERS_ROOT)
-            self.log.info("Removed entire custom cover cache.")
+            if self.COVERS_ROOT.exists():
+                shutil.rmtree(self.COVERS_ROOT)
+                changed = True
+            if self.COVERS_ROOT.exists():
+                shutil.rmtree(self.CUSTOM_COVERS_ROOT)
+                changed = True
+            self.log.success("Removed entire comic cover cache and custom cover cache.")
         except OSError as exc:
             self.log.warning(exc)
-        librarian_queue.put(COVERS_CHANGED_TASK)
+        if changed:
+            librarian_queue.put(COVERS_CHANGED_TASK)
 
     def _cleanup_orphan_covers(self, cover_class, cover_root, name):
         """Remove all orphan cover thumbs."""
+        status = FindOrphanCoversStatus()
         try:
             self.log.debug(f"Removing covers from missing {name}.")
-            self.status_controller.start_many(self._CLEANUP_STATUS_MAP)
+            self.status_controller.start(status)
             pks = cover_class.objects.all().values_list("pk", flat=True)
             db_cover_paths = self.get_cover_paths(pks, custom=False)
 
@@ -87,11 +89,9 @@ class CoverPurgeThread(CoverCreateThread):
                     if fs_cover_path not in db_cover_paths:
                         orphan_cover_paths.add(fs_cover_path)
         finally:
-            self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN)
+            self.status_controller.finish(status)
 
-        count = self.purge_cover_paths(orphan_cover_paths, cover_root)
-        self.log.info(f"Removed {count} covers for missing {name}.")
-        return count
+        self.purge_cover_paths(orphan_cover_paths, cover_root)
 
     def cleanup_orphan_covers(self):
         """Cleanup both comic and custom covers."""

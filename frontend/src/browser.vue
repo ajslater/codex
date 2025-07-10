@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BrowserHeader from "@/components/browser/browser-header.vue";
 import BrowserSettingsDrawer from "@/components/browser/drawer/browser-settings-drawer.vue";
@@ -32,7 +32,7 @@ export default {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapState(useAuthStore, ["isAuthorized"]),
   },
   watch: {
     $route(to) {
@@ -43,12 +43,16 @@ export default {
     user() {
       this.loadSettings();
     },
-    isAuthorized() {
-      this.loadSettings();
-    },
   },
   created() {
-    this.loadSettings();
+    const wait = this.user ? 0 : 300;
+    const createdUser = this.user;
+    setTimeout(() => {
+      if (this.user?.id === createdUser?.id) {
+        // Only loadSettings if app.vue didn't login and change the user.
+        this.loadSettings();
+      }
+    }, wait);
   },
   methods: {
     ...mapActions(useBrowserStore, [

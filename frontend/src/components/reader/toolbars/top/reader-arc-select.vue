@@ -3,8 +3,8 @@
     :model-value="arc"
     class="arcSelect"
     select-label="reading order"
-    :items="arcItems"
-    :disabled="!arcItems || arcItems.length <= 1"
+    :items="items"
+    :disabled="!items || items.length <= 1"
     @update:model-value="onUpdate"
   >
     <template #item="{ item, props }">
@@ -13,14 +13,17 @@
         density="compact"
         variant="plain"
         :prepend-icon="item.raw.prependIcon"
-        :subtitle="subtitle(item.raw)"
-        :append-icon="checkIcon(props.value)"
+        :subtitle="item.raw.subtitle"
+        :append-icon="item.raw.appendIcon"
       />
     </template>
-    <template #selection="{ item, props }">
-      <v-icon size="large" v-bind="props" class="arcSelectIcon">
-        {{ arcIcon(item.raw.group) }}
-      </v-icon>
+    <template #selection="{ props }">
+      <v-icon
+        :icon="prependIcon(arc.group)"
+        size="large"
+        v-bind="props"
+        class="arcSelectIcon"
+      />
       <span id="arcPos"> {{ arc.index }} / {{ arc.count }} </span>
     </template>
   </ToolbarSelect>
@@ -40,6 +43,7 @@ import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
+import { topGroup as GROUP_LABELS } from "@/choices/browser-map";
 
 const ARC_ICONS = {
   a: mdiRedo,
@@ -48,15 +52,6 @@ const ARC_ICONS = {
   i: mdiFeather,
   s: mdiBookshelf,
   v: mdiBookMultiple,
-};
-
-const LABELS = {
-  a: "Story Arc",
-  f: "Folder",
-  p: "Publisher",
-  i: "Imprint",
-  s: "Series",
-  v: "Volume",
 };
 
 export default {
@@ -71,53 +66,62 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
-      arcGroup: (state) => state.arc?.group || "s",
       arc: (state) => state.arc,
-      arcName: (state) => {
-        for (const arc of state.arcs) {
-          if (state.arc.group === arc.group && state.arc.pks === arc.pks) {
-            return arc.name;
+      arcs: (state) => state.arcs,
+    }),
+    items() {
+      const items = [];
+      if (!this.arcs) {
+        return items;
+      }
+      for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
+        for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
+          let subtitle = GROUP_LABELS[group];
+          if (group !== "s") {
+            subtitle = subtitle.slice(0, -1);
           }
-        }
-        return "Unknown";
-      },
-      arcItems: (state) => {
-        const items = [];
-        for (const arc of state.arcs) {
+          const prependIcon = ARC_ICONS[group];
+          const appendIcon =
+            group === this.arc?.group && ids == this.arc?.ids ? mdiCheck : "";
+          const value = { group, ids, prependIcon, ...arcInfo };
           const item = {
-            value: arc,
-            title: arc.name,
-            group: arc.group,
-            filters: arc.filters,
-            subtitle: LABELS[arc.group],
-            prependIcon: ARC_ICONS[arc.group],
+            group,
+            value,
+            title: arcInfo.name,
+            subtitle,
+            prependIcon,
+            appendIcon,
           };
           items.push(item);
         }
-        return items;
-      },
-    }),
+      }
+      return items;
+    },
+    arcInfo() {
+      if (!this.arcs || !this.arc) {
+        return {};
+      }
+      const arcIdsInfo = this.arcs[this.arc?.group];
+      if (!arcIdsInfo) {
+        return {};
+      }
+      return arcIdsInfo[this.arc?.ids];
+    },
+    arcIcon() {
+      return ARC_ICONS[this.arc?.group];
+    },
   },
   methods: {
     ...mapActions(useReaderStore, ["loadBooks"]),
-    arcIcon(group) {
-      return ARC_ICONS[group];
-    },
-    checkIcon(value) {
-      return value.group === this.arc.group && value.pks == this.arc.pks
-        ? mdiCheck
-        : "";
-    },
-    subtitle(item) {
-      let text = item.subtitle;
-      if (item.filters) {
-        text += " (filtered)";
-      }
-      return text;
-    },
-    onUpdate(selectedArc) {
-      const arc = { group: selectedArc.group, pks: selectedArc.pks };
+    onUpdate(item) {
+      const arc = {
+        group: item.group,
+        ids: item.ids.split(",").map(Number),
+      };
       this.loadBooks({ arc });
+    },
+    prependIcon(group) {
+      return ARC_ICONS[group];
     },
   },
 };
@@ -125,14 +129,14 @@ export default {
 
 <style scoped lang="scss">
 .arcSelect {
-  min-width: 74px;
+  min-width: 79px;
 }
 
 #arcPos {
   height: 22.75px;
   padding-top: 4px;
   font-size: 16px;
-  letter-spacing: -.15em;
+  letter-spacing: -0.15em;
 }
 
 :deep(.v-select__selection) {

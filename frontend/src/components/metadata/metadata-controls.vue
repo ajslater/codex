@@ -157,12 +157,12 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.controlRow>* {
+.controlRow > * {
   margin-right: 10px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .controlRow>* {
+  .controlRow > * {
     margin-right: 1px;
   }
 }

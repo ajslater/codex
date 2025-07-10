@@ -6,11 +6,10 @@ from pathlib import Path
 
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
-from codex.logger_base import LoggerBaseMixin
 from codex.models import Comic, CustomCover, FailedImport, Folder
 
 
-class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
+class CodexDatabaseSnapshot(DirectorySnapshot):
     """Take snapshots from the Codex database."""
 
     MODELS = (Folder, Comic, FailedImport, CustomCover)
@@ -58,19 +57,26 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         i = (st.st_ino, st.st_dev)
         self._inode_to_path[i] = path
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 # pyright: ignore[reportMissingSuperCall]
         self,
         path,
-        _recursive=True,  # noqa: FBT002 unused, always recursive
+        *,
+        recursive=True,  # noqa: ARG002
         stat=os.stat,
-        _listdir=os.listdir,  # unused for database
-        force=False,  # noqa: FBT002
-        log_queue=None,
-        covers_only=False,  # noqa: FBT002
+        listdir=os.scandir,  # noqa: ARG002 unused for database
+        logger_=None,
+        force=False,
+        covers_only=False,
     ):
         """Initialize like DirectorySnapshot but use a database walk."""
+        # Do not call super().__init__(), because it walks.
+        if not logger_:
+            reason = "logger_ must be set"
+            raise ValueError(reason)
+
+        self.log = logger_
+        self.stat = stat
         self._covers_only = covers_only
-        self.init_logger(log_queue)
         self._stat_info = {}
         self._inode_to_path = {}
         if not Path(path).is_dir():
@@ -78,7 +84,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
             return
 
         # Add the library root
-        root_stat = stat(path)
+        root_stat = self.stat(path)
         self._set_lookups(path, root_stat)
 
         for wp in chain.from_iterable(self._walk(path)):

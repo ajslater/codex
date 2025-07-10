@@ -49,12 +49,6 @@ Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1;
 const FIT_TO_CLASSES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 Object.freeze(FIT_TO_CLASSES);
-const READER_INFO_KEYS = ["breadcrumbs", "show", "topGroup", "filters"];
-Object.freeze(READER_INFO_KEYS);
-const READER_INFO_ONLY_KEYS = READER_INFO_KEYS.map((key) => snakeCase(key));
-Object.freeze(READER_INFO_ONLY_KEYS);
-const READER_INFO_SOURCE_KEYS = [...READER_INFO_KEYS, "browserArc"];
-Object.freeze(READER_INFO_SOURCE_KEYS);
 const BOOKS_NULL = {
   current: undefined,
   prev: false,
@@ -71,6 +65,11 @@ const ROUTES_NULL = {
   close: BROWSER_DEFAULTS.breadcrumbs[0],
 };
 Object.freeze(ROUTES_NULL);
+const DEFAULT_ARC = {
+  group: "s",
+  ids: [],
+};
+Object.freeze(DEFAULT_ARC);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by SCREEN, small to WIDTH;
@@ -107,15 +106,11 @@ export const useReaderStore = defineStore("reader", {
       readingDirection: "ltr",
       readRtlInReverse: READER_CHOICES.readRtlInReverse,
       finishOnLastPage: READER_CHOICES.finishOnLastPage,
-    },
-    browserSettings: {
-      breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,
-      show: BROWSER_DEFAULTS.show,
-      topGroup: "p",
+      pageTransition: true,
     },
     books: deepClone(BOOKS_NULL),
-    arcs: [],
-    arc: {},
+    arcs: {},
+    arc: { group: "s", ids: [] },
     mtime: 0,
 
     // local reader
@@ -141,7 +136,7 @@ export const useReaderStore = defineStore("reader", {
       const book = state.books.current;
       let title;
       if (book) {
-        if (state.arcs[0]?.group != "f") {
+        if (state.arc?.group != "f") {
           title = getFullComicName(book);
         }
         if (!title) {
@@ -198,47 +193,6 @@ export const useReaderStore = defineStore("reader", {
       }
       route.params = params;
       return route;
-    },
-    browserArcFilters(state) {
-      const usedFilters = {};
-      for (const [key, value] of Object.entries(
-        state.browserSettings.filters,
-      )) {
-        if (key !== "bookmark" && value && value.length > 0) {
-          usedFilters[key] = value;
-        }
-      }
-      return usedFilters;
-    },
-    browserArc(state) {
-      const closeRoute = state.routes?.close;
-      if (closeRoute && closeRoute.pks && closeRoute.pks !== "0") {
-        return {
-          group: closeRoute.group,
-          pks: closeRoute.pks,
-          name: closeRoute.name,
-          mtime: closeRoute.mtime,
-          filters: state.browserArcFilters,
-        };
-      }
-    },
-    readerInfoSettings(state) {
-      const usedKeys = {};
-      for (const key of READER_INFO_SOURCE_KEYS) {
-        const value = state.browserSettings[key];
-        if (value) {
-          usedKeys[key] = value;
-        }
-      }
-      if (state.arc && Object.keys(state.arc).length > 0) {
-        usedKeys.arc = {
-          group: state.arc.group,
-          pks: state.arc.pks,
-        };
-      } else if (state.browserArc) {
-        usedKeys.arc = state.browserArc;
-      }
-      return usedKeys;
     },
   },
   actions: {
@@ -390,11 +344,14 @@ export const useReaderStore = defineStore("reader", {
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;
     },
+    setShowToolbars() {
+      this.showToolbars = true;
+    },
     reset() {
       // HACK because $reset doesn't seem to.
       this.$patch((state) => {
-        state.arc = undefined;
-        state.arcs = [];
+        state.arcs = {};
+        state.arc = DEFAULT_ARC;
         state.mtime = 0;
         state.settingsLoaded = false;
         state.books = deepClone(BOOKS_NULL);
@@ -466,38 +423,12 @@ export const useReaderStore = defineStore("reader", {
         window.scrollTo(0, 0);
       }
     },
-    async loadBrowserSettings() {
-      return BROWSER_API.getSettings({
-        only: READER_INFO_ONLY_KEYS,
-        breadcrumbNames: false,
-      })
-        .then((response) => {
-          /*
-           * Get reader settings before getting books ensures closeRoute.
-           * Get browser settings before getting books gets filters & breadcrumbs.
-           * Ensures getting the reader arc from breadcrumbs.
-           */
-          this.$patch((state) => {
-            state.browserSettings = response.data;
-            if (!state.routes.close && state.browserSettings.breadcrumbs) {
-              state.routes.close = state.browserSettings.breadcrumbs.at(-1);
-            }
-          });
-          if (!this.settingsLoaded) {
-            this.settingsLoaded = true;
-            return this.loadBooks({});
-          }
-          return true;
-        })
-        .catch(console.error);
-    },
     async loadReaderSettings() {
       READER_API.getReaderSettings()
         .then((response) => {
           const data = response.data;
           this._updateSettings(data, false);
           this.empty = false;
-          return this.loadBrowserSettings();
         })
         .catch(console.error);
     },
@@ -510,10 +441,7 @@ export const useReaderStore = defineStore("reader", {
         params = route.params;
       }
       const pk = params.pk;
-      const settings = this.readerInfoSettings;
-      if (arc) {
-        settings.arc = arc;
-      }
+      const settings = { arc };
       if (!mtime) {
         mtime = route.query?.ts;
         if (!mtime) {
@@ -526,22 +454,17 @@ export const useReaderStore = defineStore("reader", {
           const books = data.books;
 
           // Undefined settings breaks code.
-          const allBooks = [books?.prevBook, books?.current, books?.nextBook];
+          const allBooks = [books?.prev, books?.current, books?.next];
           for (const book of allBooks) {
             if (book && !book.settings) {
               book.settings = {};
             }
           }
           // Generate routes.
-          const routesBooks = this._getBookRoutes(
-            books.prevBook,
-            books.nextBook,
-          );
+          const routesBooks = this._getBookRoutes(books.prev, books.next);
 
           this.$patch((state) => {
-            state.books.current = books.current;
-            state.books.prev = books.prevBook;
-            state.books.next = books.nextBook;
+            state.books = books;
             state.arcs = data.arcs;
             state.arc = data.arc;
             state.routes.prev = this._getRouteParams(
@@ -568,7 +491,14 @@ export const useReaderStore = defineStore("reader", {
         });
     },
     async loadMtimes() {
-      return await COMMON_API.getMtime(this.arcs, {})
+      const arcs = [];
+      for (const [group, arcIdInfos] of Object.entries(this.arcs)) {
+        for (const pks of Object.keys(arcIdInfos)) {
+          const arc = { group, pks };
+          arcs.push(arc);
+        }
+      }
+      return await COMMON_API.getMtime(arcs, {})
         .then((response) => {
           const newMtime = response.data.maxMtime;
           if (newMtime !== this.mtime) {

@@ -4,10 +4,12 @@ from django.contrib.auth.models import User
 from rest_framework.fields import BooleanField, CharField
 from rest_framework.serializers import (
     Serializer,
+    SerializerMetaclass,
     SerializerMethodField,
 )
 
-from codex.models import AdminFlag
+from codex.choices.admin import AdminFlagChoices
+from codex.models.admin import AdminFlag
 from codex.serializers.fields.auth import TimezoneField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.models.base import BaseModelSerializer
@@ -17,8 +19,8 @@ class UserSerializer(BaseModelSerializer):
     """Serialize User model for UI."""
 
     _ADMIN_FLAG_KEYS = (
-        AdminFlag.FlagChoices.NON_USERS.value,
-        AdminFlag.FlagChoices.REGISTRATION.value,
+        AdminFlagChoices.NON_USERS.value,
+        AdminFlagChoices.REGISTRATION.value,
     )
 
     admin_flags = SerializerMethodField()
@@ -48,13 +50,17 @@ class UserSerializer(BaseModelSerializer):
         read_only_fields = fields
 
 
-class TimezoneSerializer(Serializer):
+class TimezoneSerializerMixin(metaclass=SerializerMetaclass):
     """Serialize Timezone submission from front end."""
 
     timezone = TimezoneField(write_only=True)
 
 
-class UserCreateSerializer(BaseModelSerializer, TimezoneSerializer):
+class TimezoneSerializer(TimezoneSerializerMixin, Serializer):
+    """Serialize Timezone submission from front end."""
+
+
+class UserCreateSerializer(BaseModelSerializer, TimezoneSerializerMixin):
     """Serialize registration input for creating users."""
 
     class Meta(BaseModelSerializer.Meta):
@@ -78,6 +84,7 @@ class UserLoginSerializer(UserCreateSerializer):
 class AuthAdminFlagsSerializer(Serializer):
     """Admin flags related to auth."""
 
+    banner_text = CharField(read_only=True)
+    lazy_import_metadata = BooleanField(read_only=True)
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)
-    banner_text = CharField(read_only=True)

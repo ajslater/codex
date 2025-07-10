@@ -20,7 +20,8 @@
       disabled
       :eager="eager(book.pk)"
       :value="book.pk"
-      :transition="true"
+      :transition="transition"
+      :reverse-transitin="transition"
     >
       <Pager :book="book" @click="click" />
     </v-window-item>
@@ -28,7 +29,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
 import Pager from "@/components/reader/pager/pager.vue";
@@ -41,7 +42,7 @@ export default {
     Pager,
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isBTT"]),
+    ...mapState(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       books: (state) =>
         [state.books.prev, state.books.current, state.books.next].filter(
@@ -50,6 +51,7 @@ export default {
       bookChange: (state) => state.bookChange,
       currentBookPk: (state) => state.books?.current?.pk || 0,
       bookRoutes: (state) => state.routes.books,
+      transition: (state) => state.readerSettings.pageTransition,
     }),
     bookChangePrev() {
       return this.bookChangeShow("prev");

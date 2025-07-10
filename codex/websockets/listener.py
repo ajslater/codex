@@ -7,11 +7,10 @@ from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
 from wsproto.frame_protocol import CloseReason
 
-from codex.logger_base import LoggerBaseMixin
 from codex.websockets.consumers import ChannelGroups
 
 
-class BroadcastListener(LoggerBaseMixin):
+class BroadcastListener:
     """Listens to the Broadcast Queue and sends its messages to channels."""
 
     _WS_DISCONNECT_EVENT = MappingProxyType(
@@ -24,9 +23,9 @@ class BroadcastListener(LoggerBaseMixin):
         }
     )
 
-    def __init__(self, queue, log_queue):
+    def __init__(self, logger_, queue):
         """Initialize."""
-        self.init_logger(log_queue)
+        self.log = logger_
         self.queue = queue
         self.channel_layer = get_channel_layer()
 
@@ -53,7 +52,7 @@ class BroadcastListener(LoggerBaseMixin):
 
     async def listen(self):
         """Listen to the broadcast queue until a shutdown message."""
-        self.log.info(f"{self.__class__.__name__} started.")
+        self.log.success(f"{self.__class__.__name__} started.")
         while True:
             try:
                 event = await self.queue.coro_get()

@@ -1,10 +1,7 @@
 """Custom url converters."""
 
 from django.urls.converters import StringConverter
-
-from codex.logger.logger import get_logger
-
-LOG = get_logger(__name__)
+from loguru import logger
 
 
 class GroupConverter(StringConverter):
@@ -32,7 +29,7 @@ class IntListConverter:
                 pks.add(pk)
             except ValueError:
                 reason = f"Bad pk list submitted to IntConverter {part=} in {value=}"
-                LOG.warn(reason)
+                logger.warning(reason)
 
         return tuple(sorted(pks))
 

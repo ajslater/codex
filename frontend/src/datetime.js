@@ -8,6 +8,15 @@
 const TWENTY_FOUR_HOUR_LOCALE = "sv-SE";
 export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE);
 export const NUMBER_FORMAT = new Intl.NumberFormat();
+export const DURATION_FORMAT = new Intl.DurationFormat("en", {
+  style: "digital",
+  daysDisplay: "auto",
+  hoursDisplay: "auto",
+  minutesDisplay: "auto",
+});
+const MINUTE_SECONDS = 60;
+const HOUR_SECONDS = MINUTE_SECONDS * 60;
+const DAY_SECONDS = HOUR_SECONDS * 24;
 export const getTimeFormat = function (twentyFourHourTime) {
   const locale = twentyFourHourTime ? TWENTY_FOUR_HOUR_LOCALE : undefined;
   return new Intl.DateTimeFormat(locale, {
@@ -29,10 +38,22 @@ export const getTimestamp = function () {
 };
 var foo = 1;
 
+export const getFormattedDuration = (fromTime, toTime) => {
+  const totalSeconds = Math.floor((toTime - fromTime) / 1000);
+  const duration = {
+    days: Math.floor(totalSeconds / DAY_SECONDS),
+    hours: Math.floor((totalSeconds % DAY_SECONDS) / HOUR_SECONDS),
+    minutes: Math.floor((totalSeconds % HOUR_SECONDS) / MINUTE_SECONDS),
+    seconds: totalSeconds % MINUTE_SECONDS,
+  };
+  return DURATION_FORMAT.format(duration);
+};
+
 export default {
   DATE_FORMAT,
   NUMBER_FORMAT,
   getDateTime,
+  getFormattedDuration,
   getTimeFormat,
   getTimestamp,
 };

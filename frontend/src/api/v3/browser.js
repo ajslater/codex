@@ -50,7 +50,7 @@ const getBrowserPage = ({ group, pks, page }, data, ts) => {
 
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
-  const mtime = Math.max(group.mtime, settings.mtime);
+  const mtime = settings.mtime;
   const data = deepClone(settings);
   delete data.mtime;
   const params = serializeParams(data, mtime);
@@ -63,7 +63,8 @@ const getSettings = (data) => {
 };
 
 const updateSettings = (settings) => {
-  return HTTP.patch("/r/settings", settings);
+  const params = serializeParams(settings);
+  return HTTP.patch("/r/settings", { params });
 };
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
@@ -89,6 +90,10 @@ const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
   return HTTP.patch(`${group}/${pkList}/bookmark?${queryString}`, updates);
 };
 
+const getLazyImport = ({ group, pks }) => {
+  return HTTP.get(`/${group}/${pks}/import`);
+};
+
 export default {
   getAvailableFilterChoices,
   getBrowserHref,
@@ -98,6 +103,7 @@ export default {
   getMetadata,
   getSettings,
   getBrowserPage,
+  getLazyImport,
   updateGroupBookmarks,
   updateSettings,
 };

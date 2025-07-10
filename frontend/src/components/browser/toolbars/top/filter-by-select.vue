@@ -68,7 +68,7 @@
 
 <script>
 import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
@@ -89,7 +89,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useBrowserStore, [
+    ...mapState(useBrowserStore, [
       // eslint-disable-next-line no-secrets/no-secrets
       "filterByChoicesMaxLen",
       "isDynamicFiltersSelected",
@@ -178,6 +178,6 @@ export default {
 
 .clearFilter {
   color: black;
-  background-color: rgb(var(--v-theme-primary))
+  background-color: rgb(var(--v-theme-primary));
 }
 </style>

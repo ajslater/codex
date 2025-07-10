@@ -3,12 +3,10 @@
 from math import ceil
 
 from django.core.paginator import EmptyPage, Paginator
+from loguru import logger
 
-from codex.logger.logger import get_logger
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
-from codex.views.const import MAX_OBJ_PER_PAGE
-
-LOG = get_logger(__name__)
 
 
 class BrowserPaginateView(BrowserPageInBoundsView):
@@ -24,7 +22,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         except EmptyPage:
             if self.model_group != "f":
                 model_name = qs.model.__name__ if qs.model else "UnknownGroup"
-                LOG.warning(f"No {model_name}s on page {page}")
+                logger.warning(f"No {model_name}s on page {page}")
             qs = qs.model.objects.none()
 
         return qs

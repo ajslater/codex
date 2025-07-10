@@ -1,5 +1,6 @@
 <template>
-  <time v-if="dttm" datetime="formattedDate">
+  <span v-if="isNever">Never</span>
+  <time v-else datetime="formattedDate">
     {{ formattedDate }}
     <time class="colTime" datetime="formattedTime">
       {{ formattedTime }}
@@ -30,12 +31,15 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
-    formattedDate: function () {
+    formattedDate() {
       return DATE_FORMAT.format(this.date);
     },
-    formattedTime: function () {
+    formattedTime() {
       const timeFormat = getTimeFormat(this.twentyFourHourTime);
       return timeFormat.format(this.date);
+    },
+    isNever() {
+      return !this.dttm || new Date(this.dttm).getUTCFullYear() < 2000;
     },
   },
   created() {},

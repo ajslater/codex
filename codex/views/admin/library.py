@@ -1,22 +1,22 @@
 """Admin Library Views."""
 
 from pathlib import Path
-from time import time
 
 from django.core.cache import cache
+from django.db.models.aggregates import Count
 from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.tasks import DelayedTasks
 from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.logger.logger import get_logger
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,
@@ -26,16 +26,16 @@ from codex.serializers.admin.libraries import (
 )
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
-LOG = get_logger(__name__)
-
 
 class AdminLibraryViewSet(AdminModelViewSet):
     """Admin Library Viewset."""
 
     _WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
 
-    queryset = Library.objects.prefetch_related("groups").defer(
-        "update_in_progress", "created_at", "updated_at"
+    queryset = (
+        Library.objects.prefetch_related("groups")
+        .annotate(comic_count=Count("comic"), failed_count=Count("failedimport"))
+        .defer("update_in_progress", "created_at", "updated_at")
     )
     serializer_class = LibrarySerializer
 
@@ -44,7 +44,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if validated_keys is None or validated_keys.intersection(
             cls._WATCHDOG_SYNC_FIELDS
         ):
-            task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
+            task = WatchdogSyncTask()
             LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
@@ -64,6 +64,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         task = WatchdogPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
 
+    @override
     def perform_create(self, serializer):
         """Perform create and run hooks."""
         super().perform_create(serializer)
@@ -76,6 +77,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         self._sync_watchdog()
         self._poll(library.pk, force=False)
 
+    @override
     def perform_update(self, serializer):
         """Perform update an run hooks."""
         validated_keys = frozenset(serializer.validated_data.keys())
@@ -89,6 +91,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         self._sync_watchdog(validated_keys)
         self._poll(pk, force=False)
 
+    @override
     def perform_destroy(self, instance):
         """Perform destroy and run hooks."""
         if instance.covers_only:
@@ -142,7 +145,7 @@ class AdminFolderListView(AdminGenericAPIView):
         except ValidationError:
             raise
         except Exception as exc:
-            LOG.exception("get admin folder list view")
+            logger.exception("get admin folder list view")
             reason = "Server Error"
             raise ValidationError(reason) from exc
         else:

@@ -5,6 +5,13 @@
     </div>
     <div>
       <MetadataChip
+        v-for="item in mainItems"
+        :key="`${filter}/${item.value}`"
+        :filter="filter"
+        :item="item"
+        :main="true"
+      />
+      <MetadataChip
         v-for="item in items"
         :key="`${filter}/${item.value}`"
         :filter="filter"
@@ -17,6 +24,8 @@
 <script>
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import MetadataChip from "@/components/metadata/metadata-chip.vue";
+import { useBrowserStore } from "@/stores/browser";
+import { mapActions } from "pinia";
 
 export default {
   name: "MetadataTags",
@@ -32,6 +41,12 @@ export default {
         return [];
       },
     },
+    mainValues: {
+      type: Array,
+      default() {
+        return [];
+      },
+    },
     filter: {
       type: String,
       required: false,
@@ -39,9 +54,21 @@ export default {
     },
   },
   computed: {
-    items() {
-      return toVuetifyItems(this.values);
+    mainItems() {
+      return toVuetifyItems({ items: this.mainValues, sort: false });
     },
+    items() {
+      let items;
+      if (this.filter === "universes") {
+        items = this.fixUniverseTitles(this.values);
+      } else {
+        items = this.values;
+      }
+      return toVuetifyItems({ items, sort: false });
+    },
+  },
+  methods: {
+    ...mapActions(useBrowserStore, ["fixUniverseTitles"]),
   },
 };
 </script>

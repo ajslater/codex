@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { mapGetters } from "pinia";
+import { mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
 import Unauthorized from "@/components/unauthorized.vue";
@@ -39,7 +39,7 @@ export default {
     return {};
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapState(useAuthStore, ["isAuthorized"]),
     code: function () {
       return +this.$route.params.code;
     },

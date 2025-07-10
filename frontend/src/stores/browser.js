@@ -6,7 +6,10 @@ import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
-import { topGroup as GROUP_NAMES } from "@/choices/browser-map.json";
+import {
+  topGroup as GROUP_NAMES,
+  identifierSources as IDENTIFIER_SOURCES,
+} from "@/choices/browser-map.json";
 import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
@@ -30,6 +33,8 @@ const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 const NO_REDIRECT_ON_SEARCH_GROUPS = new Set(["a", "c", "f"]);
 Object.freeze(NO_REDIRECT_ON_SEARCH_GROUPS);
+const NON_BROWSE_GROUPS = new Set(["a", "f"]);
+Object.freeze(NON_BROWSE_GROUPS);
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
 Object.freeze(COVER_KEYS);
@@ -60,7 +65,7 @@ export const useBrowserStore = defineStore("browser", {
         groupNames: GROUP_NAMES,
         settingsGroup: BROWSER_CHOICES.settingsGroup,
         readingDirection: READING_DIRECTION,
-        identifierType: BROWSER_CHOICES.identifierTypes,
+        identifierSources: IDENTIFIER_SOURCES,
       }),
       dynamic: undefined,
     },
@@ -216,7 +221,7 @@ export const useBrowserStore = defineStore("browser", {
       const settings = this._filterSettings(state, keys);
       const pks = params.pks;
       if (!dc && group !== "r" && pks) {
-        settings["parent"] = {
+        settings["parentRoute"] = {
           group,
           pks,
         };
@@ -267,13 +272,24 @@ export const useBrowserStore = defineStore("browser", {
       }
       return maxLen;
     },
-    identifierTypeTitle(idType) {
-      if (!idType) {
-        return idType;
+    identifierSourceTitle(idSource) {
+      if (!idSource) {
+        return idSource;
       }
-      const lowerIdType = idType.toLowerCase();
-      const longName = this.choices.static.identifierType[lowerIdType];
-      return longName || idType;
+      const lowerIdSource = idSource.toLowerCase();
+      const longName = this.choices.static.identifierSources[lowerIdSource];
+      return longName || idSource;
+    },
+    fixUniverseTitles(universes) {
+      const items = [];
+      for (const oldItem of universes) {
+        const item = { ...oldItem };
+        if (item.designation) {
+          item.name += ` (${item.designation})`;
+        }
+        items.push(item);
+      }
+      return items;
     },
     setIsSearchOpen(value) {
       this.isSearchOpen = value;
@@ -319,14 +335,20 @@ export const useBrowserStore = defineStore("browser", {
        * If the top group changed supergroups or we're at the root group and the new
        * top group is above the proper nav group
        */
-      const oldTopGroup = this.settings.topGroup;
-      const newTopGroup = data.topGroup;
       const currentParams = router?.currentRoute?.value?.params;
+      const currentGroup = currentParams?.group;
+      const newTopGroup = data.topGroup;
+      if (currentGroup === "r" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
+        return redirect;
+        // r group can have any top groups?
+      }
+
+      const oldTopGroup = this.settings.topGroup;
       if (
-        (!oldTopGroup && newTopGroup) ||
-        !newTopGroup ||
         oldTopGroup === newTopGroup ||
-        newTopGroup === currentParams?.group
+        !newTopGroup ||
+        (!oldTopGroup && newTopGroup) ||
+        newTopGroup === currentGroup
       ) {
         /*
          * First url, initializing settings.
@@ -374,7 +396,7 @@ export const useBrowserStore = defineStore("browser", {
     getTopGroup(group) {
       // Very similar to browser store logic, could possibly combine.
       let topGroup;
-      if (this.settings.topGroup === group || ["a", "f"].includes(group)) {
+      if (this.settings.topGroup === group || NON_BROWSE_GROUPS.has(group)) {
         topGroup = group;
       } else {
         const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
@@ -394,8 +416,7 @@ export const useBrowserStore = defineStore("browser", {
     _addSettings(data) {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
-          let newValue;
-          newValue =
+          const newValue =
             typeof state.settings[key] === "object" &&
             !Array.isArray(state.settings[key])
               ? { ...state.settings[key], ...value }
@@ -554,7 +575,7 @@ export const useBrowserStore = defineStore("browser", {
           if (redirect) {
             return redirectRoute(redirect);
           }
-          return this.loadBrowserPage(undefined, true);
+          return this.loadBrowserPage(undefined);
         })
         .catch((error) => {
           this.browserPageLoaded = true;

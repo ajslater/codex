@@ -3,11 +3,8 @@
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.logger.logger import get_logger
 from codex.models.comic import Comic
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
-
-LOG = get_logger(__name__)
 
 
 class BrowserFilterView(BrowserFilterBookmarkView):
@@ -52,8 +49,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         model,
         group=None,
         pks=None,
-        page_mtime=False,  # noqa: FBT002
-        bookmark_filter=True,  # noqa: FBT002
+        *,
+        page_mtime=False,
+        bookmark_filter=True,
     ) -> QuerySet:
         """Get a filtered queryset for the model."""
         query_filters = self._get_query_filters(

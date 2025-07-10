@@ -80,7 +80,7 @@
 </template>
 <script>
 import { mdiReload } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -95,7 +95,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapState(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
       isUserAuthorized: (state) => Boolean(state.user),
     }),

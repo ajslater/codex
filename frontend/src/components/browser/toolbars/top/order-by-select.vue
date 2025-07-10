@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -18,7 +18,6 @@ import { useBrowserStore } from "@/stores/browser";
 const REVERSE_BY_DEFAULT = new Set([
   "bookmark_updated_at",
   "child_count",
-  "community_rating",
   "created_at",
   "critical_rating",
   "page_count",
@@ -34,7 +33,7 @@ export default {
   },
   extends: ToolbarSelect,
   computed: {
-    ...mapGetters(useBrowserStore, ["orderByChoices", "orderByChoicesMaxLen"]),
+    ...mapState(useBrowserStore, ["orderByChoices", "orderByChoicesMaxLen"]),
     ...mapState(useBrowserStore, {
       orderBySetting: (state) => state.settings.orderBy,
     }),

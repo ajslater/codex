@@ -26,7 +26,7 @@ import {
   mdiDatabaseClockOutline,
   mdiOpenInNew,
 } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AdminStatusList from "@/components/admin/drawer/status-list.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
@@ -47,7 +47,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useAdminStore, ["unseenFailedImports"]),
     failedImportsIcon() {
       return this.unseenFailedImports ? mdiBookAlert : undefined;

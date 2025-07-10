@@ -34,7 +34,7 @@ DEPS=(
   package.json
   package-lock.json
   pyproject.toml
-  poetry.lock
+  uv.lock
   Makefile
   "${SOURCE_DEPS[@]}"
 )

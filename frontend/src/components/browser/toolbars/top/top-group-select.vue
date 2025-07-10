@@ -3,12 +3,10 @@
     v-model="topGroup"
     class="topGroupSelect"
     select-label="top group"
-    :items="topGroupChoices"
+    :items="topGroupChoicesWithDividers"
     :max-select-len="topGroupChoicesMaxLen - 2.25"
   >
     <template #item="{ item, props }">
-      <!-- Divider in items not implemented yet in Vuetify 3 -->
-      <v-divider v-if="DIVIDED_VALUES.has(item.value)" />
       <v-list-item
         v-bind="props"
         density="compact"
@@ -21,7 +19,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -43,10 +41,7 @@ export default {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
     }),
-    ...mapGetters(useBrowserStore, [
-      "topGroupChoices",
-      "topGroupChoicesMaxLen",
-    ]),
+    ...mapState(useBrowserStore, ["topGroupChoices", "topGroupChoicesMaxLen"]),
     topGroup: {
       get() {
         return this.topGroupSetting;
@@ -55,6 +50,16 @@ export default {
         const settings = { topGroup: value };
         this.setSettings(settings);
       },
+    },
+    topGroupChoicesWithDividers() {
+      const items = [];
+      for (const item of this.topGroupChoices) {
+        if (DIVIDED_VALUES.has(item.value)) {
+          items.push({ type: "divider" });
+        }
+        items.push(item);
+      }
+      return items;
     },
   },
   methods: {

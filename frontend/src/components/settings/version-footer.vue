@@ -9,7 +9,7 @@
 
 <script>
 import { mdiContentCopy, mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -25,7 +25,7 @@ export default {
     ...mapState(useCommonStore, {
       versions: (state) => state.versions,
     }),
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     outdated: function () {
       return (
         this.isUserAdmin &&

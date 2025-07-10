@@ -15,8 +15,10 @@ from django.db.models import (
     TextChoices,
 )
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import override
 
-from codex.choices.admin import ADMIN_STATUS_TITLES
+from codex.choices.admin import AdminFlagChoices
+from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
@@ -25,23 +27,12 @@ __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
 class AdminFlag(BaseModel):
     """Flags set by administrators."""
 
-    class FlagChoices(TextChoices):
-        """Choices for Admin Flags."""
-
-        FOLDER_VIEW = "FV"
-        REGISTRATION = "RG"
-        NON_USERS = "NU"
-        AUTO_UPDATE = "AU"
-        IMPORT_METADATA = "IM"
-        SEND_TELEMETRY = "ST"
-        BANNER_TEXT = "BT"
-
-    FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
+    FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
 
     key = CharField(
         db_index=True,
-        max_length=max_choices_len(FlagChoices),
-        choices=FlagChoices.choices,
+        max_length=max_choices_len(AdminFlagChoices),
+        choices=AdminFlagChoices.choices,
     )
     on = BooleanField(default=True)
     value = CharField(max_length=MAX_NAME_LEN, default="", blank=True)
@@ -55,7 +46,7 @@ class AdminFlag(BaseModel):
 class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
-    CHOICES = TextChoices("LibrarianStatusTypes", ADMIN_STATUS_TITLES.inverse)
+    CHOICES = TextChoices("LibrarianStatusTypes", ADMIN_STATUS_TITLES.inverse.items())
 
     status_type = CharField(
         db_index=True,
@@ -78,7 +69,7 @@ class LibrarianStatus(BaseModel):
 class Timestamp(BaseModel):
     """Timestamped Named Strings."""
 
-    class TimestampChoices(TextChoices):
+    class Choices(TextChoices):
         """Choices for Timestamps."""
 
         API_KEY = "AP", _("API Key")
@@ -88,8 +79,8 @@ class Timestamp(BaseModel):
 
     key = CharField(
         db_index=True,
-        max_length=max_choices_len(TimestampChoices),
-        choices=TimestampChoices.choices,
+        max_length=max_choices_len(Choices),
+        choices=Choices.choices,
     )
     version = CharField(max_length=MAX_FIELD_LEN, default="")
 
@@ -110,9 +101,10 @@ class Timestamp(BaseModel):
 
         unique_together = ("key",)
 
-    def __str__(self):
+    @override
+    def __repr__(self):
         """Print name for choice."""
-        return self.TimestampChoices(self.key).name
+        return self.Choices(self.key).name
 
 
 class UserActive(BaseModel):

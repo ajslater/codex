@@ -1,16 +1,19 @@
 """Comic cover thumbnail view."""
 
+from collections.abc import Sequence
+
 from django.db import OperationalError
 from django.db.models.query import Q
 from django.http.response import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.renderers import BaseRenderer
+from typing_extensions import override
 
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.models import Comic, Volume
 from codex.models.groups import Folder
 from codex.models.paths import CustomCover
@@ -25,17 +28,16 @@ from codex.views.const import (
 )
 from codex.views.util import chunker
 
-LOG = get_logger(__name__)
-
 
 class WEBPRenderer(BaseRenderer):
     """Render WEBP images."""
 
     media_type = "image/webp"
     format = "webp"
-    charset = None
+    charset: str | None = None
     render_style = "binary"
 
+    @override
     def render(self, data, *_args, **_kwargs):
         """Return raw data."""
         return data
@@ -44,15 +46,15 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(BrowserAnnotateOrderView):
     """ComicCover View."""
 
-    input_serializer_class = BrowserCoverInputSerializer
-    renderer_classes = (WEBPRenderer,)
-    content_type = "image/webp"
-    TARGET = "cover"
-    REPARSE_JSON_FIELDS = frozenset(
-        BrowserAnnotateOrderView.REPARSE_JSON_FIELDS | {"parent"}
+    input_serializer_class: type[BrowserCoverInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
+        BrowserCoverInputSerializer
     )
+    renderer_classes: Sequence[type[BaseRenderer]] = (WEBPRenderer,)
+    content_type = "image/webp"
+    TARGET: str = "cover"
 
-    def get_group_filter(self, group=None, pks=None, page_mtime=False):  # noqa: FBT002
+    @override
+    def get_group_filter(self, group=None, pks=None, *, page_mtime=False):
         """Get group filter for First Cover View."""
         if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
@@ -68,9 +70,9 @@ class CoverView(BrowserAnnotateOrderView):
         model_rel = GROUP_RELATION[self.model_group]
         group_filter = {f"{model_rel}__sort_name__in": sort_names}
 
-        parent = self.params.get("parent", {})
-        if parent_pks := parent.get("pks"):
-            parent_rel = GROUP_RELATION[parent["group"]]
+        parent_route = self.params.get("parent_route", {})
+        if parent_pks := parent_route.get("pks"):
+            parent_rel = GROUP_RELATION[parent_route["group"]]
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
 
@@ -124,14 +126,14 @@ class CoverView(BrowserAnnotateOrderView):
         cover_path = STATIC_IMG_PATH / cover_fn
         return cover_path, content_type
 
-    def _get_cover_data(self, pk, custom):
+    def _get_cover_data(self, pk, *, custom: bool):
         thumb_buffer = None
         content_type = "image/webp"
 
-        cover_path = CoverPathMixin.get_cover_path(pk, custom)
+        cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
         if not cover_path.exists():
             thumb_buffer = CoverCreateThread.create_cover_from_path(
-                pk, cover_path, LOG, LIBRARIAN_QUEUE, custom
+                pk, str(cover_path), logger, LIBRARIAN_QUEUE, custom=custom
             )
             if not thumb_buffer:
                 cover_path, content_type = self._get_missing_cover_path()
@@ -154,7 +156,7 @@ class CoverView(BrowserAnnotateOrderView):
                 self._handle_operational_error(exc)
                 pk = 0
                 custom = False
-            cover_file, content_type = self._get_cover_data(pk, custom)
+            cover_file, content_type = self._get_cover_data(pk, custom=custom)
             return StreamingHttpResponse(chunker(cover_file), content_type=content_type)
         except Exception:
-            LOG.exception("Get cover")
+            logger.exception("Get cover")

@@ -1,11 +1,42 @@
 """Cover status types."""
 
-from django.db.models import TextChoices
+from abc import ABC
+
+from codex.librarian.status import Status
 
 
-class CoverStatusTypes(TextChoices):
-    """Cover Types."""
+class CoversStatus(Status, ABC):
+    """Covers Status."""
 
-    CREATE_COVERS = "CCC"
-    PURGE_COVERS = "CCD"
-    FIND_ORPHAN = "CFO"
+    ITEM_NAME = "covers"
+
+
+class CreateCoversStatus(CoversStatus):
+    """Create Covers Status."""
+
+    CODE = "CCC"
+    VERB = "Create"
+
+
+class RemoveCoversStatus(CoversStatus):
+    """Purge Covers Status."""
+
+    CODE = "CRC"
+    VERB = "Remove"
+    LOG_SUCCESS = True
+
+
+class FindOrphanCoversStatus(CoversStatus):
+    """Find Orphan Covers Status."""
+
+    CODE = "CFO"
+    ITEM_NAME = "orphan covers"
+    VERB = "Find"
+    _verbed = "Found"
+
+
+COVERS_STATII = (
+    CreateCoversStatus,
+    RemoveCoversStatus,
+    FindOrphanCoversStatus,
+)

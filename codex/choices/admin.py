@@ -2,47 +2,45 @@
 
 from types import MappingProxyType
 
-from bidict import frozenbidict
+from django.db.models.enums import TextChoices
 
-from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.watchdog.status import WatchdogStatusTypes
+
+class AdminFlagChoices(TextChoices):
+    """Choices for Admin Flags."""
+
+    AUTO_UPDATE = "AU"
+    BANNER_TEXT = "BT"
+    FOLDER_VIEW = "FV"
+    IMPORT_METADATA = "IM"
+    LAZY_IMPORT_METADATA = "LI"
+    NON_USERS = "NU"
+    REGISTRATION = "RG"
+    SEND_TELEMETRY = "ST"
+
 
 ADMIN_FLAG_CHOICES = MappingProxyType(
     {
-        "AU": "Auto Update",
-        "FV": "Folder View",
-        "IM": "Import Metadata on Library Scan",
-        "NU": "Non Users",
-        "RG": "Registration",
-        "ST": "Send Stats",
-        "BT": "Banner Text",
+        AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
+        AdminFlagChoices.BANNER_TEXT.value: "Banner Text",
+        AdminFlagChoices.FOLDER_VIEW.value: "Folder View",
+        AdminFlagChoices.IMPORT_METADATA.value: "Import Metadata on Library Scan",
+        AdminFlagChoices.LAZY_IMPORT_METADATA.value: "Import Metadata on Demand",
+        AdminFlagChoices.NON_USERS.value: "Non Users",
+        AdminFlagChoices.REGISTRATION.value: "Registration",
+        AdminFlagChoices.SEND_TELEMETRY.value: "Send Stats",
     }
 )
 
-ADMIN_STATUS_TITLES = frozenbidict(
-    sorted(
-        (key, val)
-        for status_types in (
-            CoverStatusTypes,
-            ImportStatusTypes,
-            JanitorStatusTypes,
-            SearchIndexStatusTypes,
-            WatchdogStatusTypes,
-        )
-        for key, val in status_types.choices
-    )
-)
 
 # Easier to store in vuetify format
-ADMIN_TASK_GROUPS = MappingProxyType(
+ADMIN_TASK_GROUPS: MappingProxyType[
+    str, tuple[dict[str, str | tuple[dict[str, str], ...]], ...]
+] = MappingProxyType(
     {
         "tasks": (
             {
                 "title": "Libraries",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "poll",
                         "title": "Poll All Libraries",
@@ -65,11 +63,16 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Sync Watchdog with DB",
                         "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
                     },
-                ],
+                    {
+                        "value": "import_abort",
+                        "title": "Abort Running Import",
+                        "desc": "Abort the current running import after the current import subtask is complete",
+                    },
+                ),
             },
             {
                 "title": "Covers",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "purge_comic_covers",
                         "title": "Remove Comic Covers",
@@ -87,36 +90,20 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Update Group Timestamps",
                         "desc": "Force the update of group timestamps. Will bust the browser cache for browser views and covers.",
                     },
-                ],
+                ),
             },
             {
                 "title": "Search Index",
-                "tasks": [
-                    {
-                        "value": "search_index_update",
-                        "title": "Update Search Index",
-                        "desc": "with recently changed comics",
-                    },
+                "tasks": (
                     {
                         "value": "search_index_optimize",
                         "title": "Optimize Search Index",
                         "desc": "Merge Search Index for optimal lookup time. Runs nightly.",
                     },
                     {
-                        "value": "search_index_rebuild",
-                        "title": "Rebuild Search Index",
-                        "desc": "Delete and rebuild the search index from scratch",
-                        "confirm": "This can take a long time",
-                    },
-                    {
                         "value": "search_index_remove_stale",
-                        "title": "Remove Stale Index Entries",
-                        "desc": "Remove search index entries that are no longer in the library.",
-                    },
-                    {
-                        "value": "search_index_abort",
-                        "title": "Abort Search Indexing",
-                        "desc": "Aborts search index update and remove tasks.",
+                        "title": "Clean Stale Index Entries",
+                        "desc": "Clean search index entries that are no longer in the library.",
                     },
                     {
                         "value": "search_index_clear",
@@ -133,11 +120,28 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Repair Search Index",
                         "desc": "Probably faster than Rebuild if integrity check fails.",
                     },
-                ],
+                    {
+                        "value": "search_index_abort",
+                        "title": "Abort Legacy Search Index Sync",
+                        "desc": "Aborts search index sync tasks.",
+                    },
+                    {
+                        "value": "search_index_update",
+                        "title": "Sync Search Index",
+                        "desc": "with recently changed comics. This should not need to be run.",
+                        "confirm": "This can take a long time",
+                    },
+                    {
+                        "value": "search_index_rebuild",
+                        "title": "Rebuild Search Index Using Sync.",
+                        "desc": "Delete and rebuild the search index from scratch using the legacy syncer. This should not need to be run.",
+                        "confirm": "This can take a long time",
+                    },
+                ),
             },
             {
                 "title": "Database",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "db_vacuum",
                         "title": "Optimize & Compact Database",
@@ -159,11 +163,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Check logs for results. Runs nightly.",
                         "confirm": "Can take a while on large databases, Are you sure?",
                     },
-                ],
+                ),
             },
             {
                 "title": "Codex Software",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "codex_latest_version",
                         "title": "Check for Codex Latest Version",
@@ -187,11 +191,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Immediately",
                         "confirm": "Are you sure?",
                     },
-                ],
+                ),
             },
             {
                 "title": "Cleanup",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "cleanup_fks",
                         "title": "Remove Orphan Tags",
@@ -233,11 +237,11 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "desc": "Runs several tasks above that also run nightly.",
                         "confirm": "Launches several tasks that run nightly anyway.",
                     },
-                ],
+                ),
             },
             {
                 "title": "Notify",
-                "tasks": [
+                "tasks": (
                     {
                         "value": "notify_admin_flags_changed",
                         "title": "Notify Admin Flags Changed",
@@ -278,7 +282,7 @@ ADMIN_TASK_GROUPS = MappingProxyType(
                         "title": "Notify Users Changed",
                         "desc": "Notify one user that their users changed or all users if a user was deleted.",
                     },
-                ],
+                ),
             },
         ),
     }

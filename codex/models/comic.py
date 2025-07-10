@@ -6,28 +6,33 @@ import re
 from datetime import MAXYEAR, MINYEAR, date
 from pathlib import Path
 
-from comicbox.fields.enum_fields import ReadingDirectionEnum
+from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
 from django.db.models import (
     CASCADE,
     BooleanField,
     CharField,
     DateField,
     DateTimeField,
-    DecimalField,
     ForeignKey,
     ManyToManyField,
     OneToOneField,
     PositiveIntegerField,
-    PositiveSmallIntegerField,
     TextChoices,
     TextField,
 )
+from typing_extensions import override
 
 from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,
     MAX_NAME_LEN,
     BaseModel,
     max_choices_len,
+)
+from codex.models.fields import (
+    CleaningCharField,
+    CleaningTextField,
+    CoercingDecimalField,
+    CoercingPositiveSmallIntegerField,
 )
 from codex.models.groups import (
     Folder,
@@ -37,13 +42,13 @@ from codex.models.groups import (
     Volume,
     WatchedPathBrowserGroup,
 )
+from codex.models.identifier import Identifier
 from codex.models.named import (
     AgeRating,
     Character,
-    Contributor,
     Country,
+    Credit,
     Genre,
-    Identifier,
     Language,
     Location,
     OriginalFormat,
@@ -54,6 +59,7 @@ from codex.models.named import (
     Tag,
     Tagger,
     Team,
+    Universe,
 )
 
 __all__ = ("Comic",)
@@ -71,10 +77,11 @@ class ReadingDirection(TextChoices):
 class FileType(TextChoices):
     """Identifiers for file formats."""
 
-    CBZ = "CBZ"
-    CBR = "CBR"
-    CBT = "CBT"
-    PDF = "PDF"
+    CBR = FileTypeEnum.CBR.value
+    CBZ = FileTypeEnum.CBZ.value
+    CBT = FileTypeEnum.CBT.value
+    CB7 = FileTypeEnum.CB7.value
+    PDF = FileTypeEnum.PDF.value
 
 
 class Comic(WatchedPathBrowserGroup):
@@ -92,15 +99,21 @@ class Comic(WatchedPathBrowserGroup):
     updated_at = DateTimeField(auto_now=True, db_index=True)
 
     # From WatchedPath, but interferes with related_name from folders m2m field
-    parent_folder = ForeignKey(
+    parent_folder: ForeignKey | None = ForeignKey(
         "Folder", on_delete=CASCADE, null=True, related_name="comic_in"
     )
 
     # Unique comic fields
-    issue_number = DecimalField(
+    collection_title = CleaningCharField(
+        db_index=True,
+        max_length=MAX_NAME_LEN,
+        default="",
+        db_collation="nocase",
+    )
+    issue_number = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=10, null=True
     )
-    issue_suffix = CharField(
+    issue_suffix = CleaningCharField(
         db_index=True,
         max_length=MAX_ISSUE_SUFFIX_LEN,
         default="",
@@ -111,6 +124,7 @@ class Comic(WatchedPathBrowserGroup):
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
     publisher = ForeignKey(Publisher, db_index=True, on_delete=CASCADE)
+
     # Other FKs
     age_rating = ForeignKey(AgeRating, db_index=True, null=True, on_delete=CASCADE)
     original_format = ForeignKey(
@@ -118,31 +132,43 @@ class Comic(WatchedPathBrowserGroup):
     )
     scan_info = ForeignKey(ScanInfo, db_index=True, null=True, on_delete=CASCADE)
     tagger = ForeignKey(Tagger, db_index=True, null=True, on_delete=CASCADE)
+    main_character = ForeignKey(
+        Character,
+        db_index=True,
+        null=True,
+        on_delete=CASCADE,
+        related_name="main_character_in_comics",
+    )
+    main_team = ForeignKey(
+        Character,
+        db_index=True,
+        null=True,
+        on_delete=CASCADE,
+        related_name="main_team_in_comics",
+    )
+
     # Alpha2 codes
     country = ForeignKey(Country, db_index=True, null=True, on_delete=CASCADE)
     language = ForeignKey(Language, db_index=True, null=True, on_delete=CASCADE)
 
     # Date
-    year = PositiveSmallIntegerField(db_index=True, null=True)
-    month = PositiveSmallIntegerField(db_index=True, null=True)
-    day = PositiveSmallIntegerField(db_index=True, null=True)
+    year = CoercingPositiveSmallIntegerField(db_index=True, null=True)
+    month = CoercingPositiveSmallIntegerField(db_index=True, null=True)
+    day = CoercingPositiveSmallIntegerField(db_index=True, null=True)
 
     # Text
-    summary = TextField(default="", db_collation="nocase")
-    review = TextField(default="", db_collation="nocase")
-    notes = TextField(default="", db_collation="nocase")
+    summary = CleaningCharField(default="", db_collation="nocase")
+    review = CleaningTextField(default="", db_collation="nocase")
+    notes = CleaningTextField(default="", db_collation="nocase")
 
     # Ratings
-    community_rating = DecimalField(
-        db_index=True, decimal_places=2, max_digits=5, default=None, null=True
-    )
-    critical_rating = DecimalField(
+    critical_rating = CoercingDecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
 
     # Reader
-    page_count = PositiveSmallIntegerField(db_index=True, default=0)
-    reading_direction = CharField(
+    page_count = CoercingPositiveSmallIntegerField(db_index=True, default=0)
+    reading_direction = CleaningCharField(
         db_index=True,
         choices=ReadingDirection.choices,
         default=ReadingDirectionEnum.LTR.value,
@@ -155,7 +181,7 @@ class Comic(WatchedPathBrowserGroup):
 
     # ManyToMany
     characters = ManyToManyField(Character)
-    contributors = ManyToManyField(Contributor)
+    credits = ManyToManyField(Credit)
     genres = ManyToManyField(Genre)
     identifiers = ManyToManyField(Identifier)
     locations = ManyToManyField(Location)
@@ -164,6 +190,7 @@ class Comic(WatchedPathBrowserGroup):
     story_arc_numbers = ManyToManyField(StoryArcNumber)
     tags = ManyToManyField(Tag)
     teams = ManyToManyField(Team)
+    universes = ManyToManyField(Universe)
 
     #####################
     # Comicbox Ignored:
@@ -178,10 +205,10 @@ class Comic(WatchedPathBrowserGroup):
 
     # codex only
     date = DateField(db_index=True, null=True)
-    decade = PositiveSmallIntegerField(db_index=True, null=True)
+    decade = CoercingPositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)
     size = PositiveIntegerField(db_index=True)
-    file_type = CharField(
+    file_type = CleaningCharField(
         db_index=True,
         choices=FileType.choices,
         max_length=max_choices_len(FileType),
@@ -189,9 +216,10 @@ class Comic(WatchedPathBrowserGroup):
         default="",
         db_collation="nocase",
     )
+    metadata_mtime = DateTimeField(null=True)
 
     # Not useful
-    custom_cover = None
+    custom_cover: ForeignKey | None = None
 
     class Meta(WatchedPathBrowserGroup.Meta):
         """Constraints."""
@@ -218,6 +246,7 @@ class Comic(WatchedPathBrowserGroup):
         else:
             self.decade = self.year - (self.year % 10)
 
+    @override
     def presave(self):
         """Set computed values."""
         super().presave()
@@ -263,7 +292,7 @@ class Comic(WatchedPathBrowserGroup):
 
     @classmethod
     def get_title(
-        cls, obj, volume: bool, name: bool, filename_fallback: bool, zero_pad=None
+        cls, obj, *, volume: bool, name: bool, filename_fallback: bool, zero_pad=None
     ):
         """Create the comic title for display."""
         names = []
@@ -274,7 +303,8 @@ class Comic(WatchedPathBrowserGroup):
 
         # Volume
         if volume and (vn := obj.volume.name):
-            vn = Volume.to_str(vn)
+            vn_to = obj.volume.number_to
+            vn = Volume.to_str(vn, vn_to)
             names.append(vn)
 
         # Issue
@@ -291,7 +321,8 @@ class Comic(WatchedPathBrowserGroup):
             title = obj.get_filename()
         return title
 
-    def __str__(self):
+    @override
+    def __repr__(self):
         """Most common text representation for logging."""
         return self.get_title(self, volume=True, name=True, filename_fallback=True)
 
@@ -307,35 +338,41 @@ class Comic(WatchedPathBrowserGroup):
 
 class ComicFTS(BaseModel):
     comic = OneToOneField(primary_key=True, to=Comic, on_delete=CASCADE)
+    # Attributes
+    collection_title = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    notes = TextField(db_collation="nocase")
+    review = TextField(db_collation="nocase")
+    summary = TextField(db_collation="nocase")
+    # FK groups
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    volume = PositiveIntegerField()
-    issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    # FK
     age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     country = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    file_type = CharField(db_collation="nocase", max_length=max_choices_len(FileType))
     language = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    notes = TextField(db_collation="nocase")
     original_format = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    review = TextField(db_collation="nocase")
     scan_info = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    summary = TextField(db_collation="nocase")
     tagger = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    # M2M
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    contributors = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     genres = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    identifiers = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    sources = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     locations = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    reading_direction = CharField(
+        db_collation="nocase", max_length=max_choices_len(ReadingDirection)
+    )
     series_groups = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     stories = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     story_arcs = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     tags = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     teams = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-
-    reading_direction = CharField(
-        db_collation="nocase", max_length=max_choices_len(ReadingDirection)
-    )
-    file_type = CharField(db_collation="nocase", max_length=max_choices_len(FileType))
+    universes = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
 
     class Meta(BaseModel.Meta):
         managed = False

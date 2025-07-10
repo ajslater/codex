@@ -18,7 +18,8 @@
       disabled
       :eager="page >= storePage - 1 && page <= storePage + 2"
       :model-value="page"
-      :transition="true"
+      :transition="transition"
+      :reverse-transition="transition"
     >
       <HorizontalPages :book="book" :page="page" />
     </v-window-item>
@@ -57,6 +58,7 @@ export default {
       nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
       storePk: (state) => state.books.current.pk,
+      transition: (state) => state.readerSettings.pageTransition,
     }),
     bookSettings() {
       return this.getBookSettings(this.book);
@@ -84,16 +86,6 @@ export default {
         if (to < backLimit || to > foreLimit) {
           this.setPages();
         }
-      }
-    },
-    prevBook(to) {
-      if (this.book.pk === to.pk) {
-        this.activePage = this.book.maxPage;
-      }
-    },
-    nextBook(to) {
-      if (this.book.pk === to.pk) {
-        this.activePage = 0;
       }
     },
   },

@@ -4,26 +4,25 @@ from types import MappingProxyType
 from typing import Any, ClassVar
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.serializers import empty
+from typing_extensions import override
 
 from codex.librarian.telemeter.stats import CodexStats
-from codex.logger.logger import get_logger
 from codex.models.admin import Timestamp
-from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin.stats import (
     AdminStatsRequestSerializer,
     StatsSerializer,
 )
 from codex.views.admin.auth import AdminGenericAPIView
-
-LOG = get_logger(__name__)
+from codex.views.admin.permissions import HasAPIKeyOrIsAdminUser
 
 
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]
+    permission_classes: ClassVar[list[type[BasePermission]]] = [HasAPIKeyOrIsAdminUser]
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
@@ -55,13 +54,12 @@ class AdminStatsView(AdminGenericAPIView):
         request_counts = self.params.get("config", {})
         if request_counts and ("apikey" not in request_counts):
             return
-        api_key = Timestamp.objects.get(
-            key=Timestamp.TimestampChoices.API_KEY.value
-        ).version
+        api_key = Timestamp.objects.get(key=Timestamp.Choices.API_KEY.value).version
         if "config" not in obj:
             obj["config"] = {}
         obj["config"]["api_key"] = api_key
 
+    @override
     def get_object(self):
         """Get the stats object with an api key."""
         getter = CodexStats(self.params)

@@ -2,9 +2,9 @@
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
-from codex.librarian.bookmark.update import BookmarkUpdate
-from codex.logger.logger import get_logger
+from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.models.comic import Comic
 from codex.serializers.models.bookmark import (
     BookmarkFinishedSerializer,
@@ -13,13 +13,18 @@ from codex.serializers.models.bookmark import (
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.filter import BrowserFilterView
 
-LOG = get_logger(__name__)
 
-
-class BookmarkView(BookmarkUpdate, BookmarkAuthMixin, BrowserFilterView):
+class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
     """User Bookmark View."""
 
-    serializer_class = BookmarkSerializer
+    serializer_class: type[BaseSerializer] | None = BookmarkSerializer
+
+    TARGET: str = "bookmark"
+
+    def __init__(self, *args, **kwargs):
+        """Init acl properties."""
+        super().__init__(*args, **kwargs)
+        self.init_group_acl()
 
     TARGET = "bookmark"
 
@@ -51,5 +56,5 @@ class BookmarkView(BookmarkUpdate, BookmarkAuthMixin, BrowserFilterView):
         auth_filter = self.get_bookmark_auth_filter()
         comic_qs = self._get_comic_query()
 
-        self.update_bookmarks(auth_filter, comic_qs, updates, LOG)
+        self.update_bookmarks(auth_filter, comic_qs, updates)
         return Response()

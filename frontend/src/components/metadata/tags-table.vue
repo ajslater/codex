@@ -1,10 +1,22 @@
 <template>
   <v-table v-if="show">
     <tbody>
-      <tr v-for="[key, { filter, tags }] of Object.entries(tagMap)" :key="key">
-        <td class="key">{{ key }}</td>
+      <tr
+        v-for="[key, { filter, tags, mainTags }] of Object.entries(tagMap)"
+        :key="key"
+      >
+        <td class="key keyLink" v-if="keyMap && keyMap[key] && keyMap[key].url">
+          <a href="keyMap[key].url"
+            >{{ key }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
+          >
+        </td>
+        <td v-else class="key">{{ key }}</td>
         <td class="tags">
-          <MetadataTags :filter="filter" :values="tags" />
+          <MetadataTags
+            :filter="filter"
+            :values="tags"
+            :mainValues="mainTags"
+          />
         </td>
       </tr>
     </tbody>
@@ -13,13 +25,18 @@
 
 <script>
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
+import { mdiOpenInNew } from "@mdi/js";
 
 export default {
   name: "MetadataTagsTable",
   components: {
     MetadataTags,
   },
+  data() {
+    return { mdiOpenInNew };
+  },
   props: {
+    keyMap: { type: Object, default: undefined },
     tagMap: {
       type: Object,
       required: true,
@@ -36,6 +53,10 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 @use "./table";
+
+.keyLink {
+  color: rgb(var(--v-theme-primary-darken-1));
+}
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .key {

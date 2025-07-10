@@ -82,7 +82,7 @@ before installing Codex.
 ...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
 ```sh
-apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf sqlite3 unrar zlib1g
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip sqlite3 unrar zlib1g
 ```
 
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
@@ -124,7 +124,7 @@ natively on the Windows Subsystem for Linux.
 Installation instructions are in the <a href="/WINDOWS.md">Native Windows
 Dependencies Installation Document</a>.
 
-#### Installing Codex on ARM (AARCH64) with Python 3.13
+#### Installing Codex on Linux on ARM (AARCH64) with Python 3.13
 
 Pymupdf has no pre-built wheels for AARCH64 so pip must build it and the build
 fails on Python 3.13 without this environment variable set:
@@ -132,6 +132,9 @@ fails on Python 3.13 without this environment variable set:
 ```sh
 PYMUPDF_SETUP_PY_LIMITED_API=0 pip install codex
 ```
+
+You will also have to have the `build-essential` and `python3-dev` or equivalent
+packages installed on on your Linux.
 
 #### <a href="#run">Run</a> Codex Natively
 

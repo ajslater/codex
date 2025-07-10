@@ -25,9 +25,8 @@
           <ReaderArcSelect />
           <MetadataDialog
             ref="metadataDialog"
-            group="c"
+            :book="metadataBook"
             :toolbar="true"
-            :book="currentBook"
           />
         </v-toolbar-items>
         <v-toolbar-items>
@@ -52,7 +51,7 @@
 <script>
 import { mdiClose } from "@mdi/js";
 import deepClone from "deep-clone";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
@@ -77,8 +76,10 @@ export default {
     };
   },
   head() {
-    const content = `reader ${this.activeTitle} page ${this.storePage}`;
+    const title = `Read / ${this.activeTitle} / page ${this.storePage}`;
+    const content = `reader ${title}`;
     return {
+      title,
       meta: [
         {
           hid: "description",
@@ -89,13 +90,14 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
-    ...mapGetters(useReaderStore, ["activeTitle", "closeBookRoute"]),
+    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
+    ...mapState(useReaderStore, ["activeTitle", "closeBookRoute"]),
     ...mapState(useReaderStore, {
       showToolbars: (state) => state.showToolbars,
       currentBook: (state) => state.books?.current || {},
       empty: (state) => state.empty,
       subtitle: (state) => state.books?.current?.name || "",
+      storePage: (state) => state.page,
     }),
     title() {
       return this.activeTitle;
@@ -114,6 +116,12 @@ export default {
       delete params["name"];
       route.params = params;
       return route;
+    },
+    metadataBook() {
+      const book = { ...this.currentBook };
+      book.group = "c";
+      book.childCount = 0;
+      return book;
     },
   },
   watch: {
@@ -207,8 +215,9 @@ export default {
   padding-bottom: 10px;
 }
 
-@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .closeBook {
+    font-size: small;
     padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
   }
 }

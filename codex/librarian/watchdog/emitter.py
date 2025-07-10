@@ -1,12 +1,13 @@
 """A Codex database event emitter for use by the observer."""
 
-from logging import DEBUG, WARNING
+from multiprocessing.queues import Queue
 from pathlib import Path
 from threading import Condition
 
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
+from typing_extensions import override
 from watchdog.events import (
     DirDeletedEvent,
     DirModifiedEvent,
@@ -15,18 +16,34 @@ from watchdog.events import (
     FileDeletedEvent,
     FileModifiedEvent,
     FileMovedEvent,
+    FileSystemEvent,
 )
-from watchdog.observers.api import DEFAULT_EMITTER_TIMEOUT, EventEmitter
+from watchdog.observers.api import (
+    DEFAULT_EMITTER_TIMEOUT,
+    EventEmitter,
+    EventQueue,
+    ObservedWatch,
+)
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
+from codex.librarian.watchdog.const import ATTR_EVENT_MAP
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
-from codex.librarian.watchdog.status import WatchdogStatusTypes
+from codex.librarian.watchdog.events import (
+    CodexPollEvent,
+    FinishPollEvent,
+    StartPollEvent,
+)
+from codex.librarian.watchdog.handlers import (
+    CodexCustomCoverEventHandler,
+    CodexLibraryEventHandler,
+)
+from codex.librarian.watchdog.status import WatchdogPollStatus
+from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
-from codex.status import Status
-from codex.worker_base import WorkerBaseMixin
 
-_CODEX_EVENT_FILTER = [
+_DIR_NOT_FOUND_TIMEOUT = 15 * 60
+_CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
     FileMovedEvent,
     FileModifiedEvent,
     FileCreatedEvent,
@@ -37,31 +54,38 @@ _CODEX_EVENT_FILTER = [
     DirModifiedEvent,
     DirDeletedEvent,
     # DirCreatedEvent,
+    CodexPollEvent,
 ]
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
-class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
-    """Use DatabaseSnapshots to compare against the DirectorySnapshots."""
-
-    _DIR_NOT_FOUND_TIMEOUT = 15 * 60
+class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
+    """Dispatch an Importer Task from an diff without serializing back into the queue."""
 
     def __init__(  # noqa: PLR0913
         self,
-        event_queue,
-        watch,
-        timeout=DEFAULT_EMITTER_TIMEOUT,
-        log_queue=None,
-        librarian_queue=None,
-        covers_only=False,  # noqa: FBT002
+        event_queue: EventQueue,
+        watch: ObservedWatch,
+        *,
+        timeout: float = DEFAULT_EMITTER_TIMEOUT,
+        logger_,
+        librarian_queue: Queue,
+        covers_only=False,
+        library_id: int,
+        db_write_lock,
     ):
         """Initialize snapshot methods."""
-        self.init_worker(log_queue, librarian_queue)
+        self.init_worker(logger_, librarian_queue, db_write_lock)
         self._poll_cond = Condition()
         self._force = False
+        self._manual_poll = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
         self._covers_only = covers_only
+        self._handler = (
+            CodexCustomCoverEventHandler if covers_only else CodexLibraryEventHandler
+        )
+        self._library_id = library_id
         super().__init__(
             event_queue, watch, timeout=timeout, event_filter=_CODEX_EVENT_FILTER
         )
@@ -72,77 +96,68 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             # default stat and listdir params
         )
 
-    def poll(self, force: bool):
-        """Poll now, sooner than timeout."""
-        self._force = force
-        with self._poll_cond:
-            self._poll_cond.notify()
-
-    def _take_db_snapshot(self):
-        """Get a database snapshot with optional force argument."""
-        db_snapshot = CodexDatabaseSnapshot(
-            self.watch.path,
-            self.watch.is_recursive,
-            force=self._force,
-            log_queue=self.log_queue,
-            covers_only=self._covers_only,
+    @staticmethod
+    def _get_poll_timeout(library):
+        since_last_poll = timezone.now() - library.last_poll
+        return max(
+            0,
+            library.poll_every.total_seconds() - since_last_poll.total_seconds(),
         )
-        self._force = False
-        return db_snapshot
 
-    def _is_watch_path_ok(self, library):
+    def _get_timeout(self) -> int | None:
         """Return a special timeout value if there's a problem with the watch dir."""
-        ok = False
         msg = ""
-        log_level = WARNING
+        log_level = "WARNING"
+        library = Library.objects.get(path=self.watch.path)
         if not library.poll:
             # Wait forever. Manual poll only
-            ok = None
+            log_level = "INFO"
+            msg = f"Library {self._watch_path} waiting for manual poll."
+            timeout = None
         elif not self._watch_path.is_dir():
             msg = f"Library {self._watch_path} not found. Not Polling."
+            timeout = _DIR_NOT_FOUND_TIMEOUT
         elif self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
             msg = f"Library {self._watch_path} looks like an unmounted docker volume. Not polling."
+            timeout = _DIR_NOT_FOUND_TIMEOUT
         elif not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
             msg = f"{self._watch_path} is empty. Suspect it may be unmounted. Not polling."
+            timeout = _DIR_NOT_FOUND_TIMEOUT
         elif library.update_in_progress:
+            log_level = "DEBUG"
             msg = f"Library {library.path} update in progress. Not polling."
-            log_level = DEBUG
+            timeout = self._get_poll_timeout(library)
+        elif self._manual_poll:
+            log_level = "DEBUG"
+            msg = f"Manual poll requested for {library.path}"
+            self._manual_poll = False
+            timeout = 0
+        elif library.last_poll:
+            timeout = self._get_poll_timeout(library)
         else:
-            ok = True
+            msg = f"First ever poll for {library.path}"
+            log_level = "DEBUG"
+            timeout = 0
 
         if msg:
             self.log.log(log_level, msg)
 
-        return ok
+        return timeout
 
     @property
-    def timeout(self) -> int | None:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def timeout(self) -> int | None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Get the timeout for this emitter from its library."""
         # The timeout from the constructor, self._timeout, is thrown away in favor
         # of a dynamic timeout from the database.
-        timeout = self._timeout  # default is 1 second
         try:
-            library = Library.objects.get(path=self.watch.path)
-            ok = self._is_watch_path_ok(library)
-            if ok is None:
-                self.log.info(f"Library {self._watch_path} waiting for manual poll.")
-                return None  # None waits forever.
-            if ok is False:
-                return self._DIR_NOT_FOUND_TIMEOUT
-
-            if library.last_poll:
-                since_last_poll = timezone.now() - library.last_poll
-                timeout = max(
-                    0,
-                    library.poll_every.total_seconds()
-                    - since_last_poll.total_seconds(),
-                )
+            return self._get_timeout()
         except Exception:
             timeout = 0
             self.log.exception(f"Getting timeout for {self.watch.path}")
-        return int(timeout)
+        return timeout
 
     def _is_take_snapshot(self, timeout):
         """Determine if we should take a snapshot."""
@@ -153,15 +168,17 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                 )
             self._poll_cond.wait(timeout)
 
-        if not self.should_keep_running():
-            return None
+        # Zero or None are acceptable timeouts to run now.
+        return self.should_keep_running() and not self._get_timeout()
 
-        library = Library.objects.get(path=self.watch.path)
-        ok = self._is_watch_path_ok(library)
-        if ok is False:
-            self.log.warning("Not Polling.")
-            return None
-        return library
+    def _take_db_snapshot(self):
+        """Get a database snapshot with optional force argument."""
+        return CodexDatabaseSnapshot(
+            self.watch.path,
+            logger_=self.log,
+            force=self._force,
+            covers_only=self._covers_only,
+        )
 
     def _get_diff(self):
         """Take snapshots and compute the diff."""
@@ -181,68 +198,77 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
         )
 
-    def _queue_events(self, diff):
+    def _queue_events(self):
         """Create and queue the events from the diff."""
-        self.log.debug(
+        diff = self._get_diff()
+        if not diff or diff.is_empty():
+            reason = f"Nothing changed for {self.watch.path} not sending anything."
+            self.log.debug(reason)
+            return
+        reason = (
             f"Poller sending unfiltered files: {len(diff.files_deleted)} "
             f"deleted, {len(diff.files_modified)} modified, "
             f"{len(diff.files_created)} created, "
-            f"{len(diff.files_moved)} moved."
-        )
-        self.log.debug(
+            f"{len(diff.files_moved)} moved. "
             f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
             f" {len(diff.dirs_modified)} modified,"
             f" {len(diff.dirs_moved)} moved."
         )
-        # Files.
-        # Could remove non-comics here, but handled by the EventHandler
-        for src_path in diff.files_deleted:
-            self.queue_event(FileDeletedEvent(src_path))
-        for src_path in diff.files_modified:
-            self.queue_event(FileModifiedEvent(src_path))
-        for src_path in diff.files_created:
-            self.queue_event(FileCreatedEvent(src_path))
-        for src_path, dest_path in diff.files_moved:
-            self.queue_event(FileMovedEvent(src_path, dest_path))
+        self.log.debug(reason)
+        self.queue_event(StartPollEvent("", force=self._force))
 
-        # Directories.
-        for src_path in diff.dirs_deleted:
-            self.queue_event(DirDeletedEvent(src_path))
-        for src_path in diff.dirs_modified:
-            self.queue_event(DirModifiedEvent(src_path))
-        # Folders are only created by comics themselves
-        # The event handler excludes DirCreatedEvent as well.
-        for src_path, dest_path in diff.dirs_moved:
-            self.queue_event(DirMovedEvent(src_path, dest_path))
+        for attr, event_class in ATTR_EVENT_MAP.items():
+            if attr.endswith("moved"):
+                for src_path, dest_path in getattr(diff, attr):
+                    self.queue_event(event_class(src_path, dest_path))
+            else:
+                for src_path in getattr(diff, attr):
+                    self.queue_event(event_class(src_path))
 
+        self.queue_event(FinishPollEvent("", force=self._force))
+
+    @override
     def queue_events(self, timeout):
-        """Queue events like PollingEmitter but always use a fresh db snapshot."""
+        """
+        Like PollingEmitter but use a fresh db snapshot and send an entire import task.
+
+        Importantly do not put ti on the actual event_queue because it will adding the
+        check_metadata_mtime flag on the import task.
+        """
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
-        library = self._is_take_snapshot(timeout)
-        if not library:
+        if not self._is_take_snapshot(timeout):
+            self._force = False
             return
-        status = Status(WatchdogStatusTypes.POLL, subtitle=self.watch.path)
+        if self.db_write_lock.locked():
+            self.log.warning("Database locked, not polling {self.watch.path}.")
+            return
+        status = WatchdogPollStatus(subtitle=self.watch.path)
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {self.watch.path}...")
-            diff = self._get_diff()
-            if not diff:
-                return
-
-            self._queue_events(diff)
-
+            self._queue_events()
+            library = Library.objects.get(path=self.watch.path)
             library.last_poll = Now()
             library.save()
-
             self.log.info(f"Polled {self.watch.path}")
         except Exception:
             self.log.exception("poll for watchdog events and queue them")
             raise
         finally:
             self.status_controller.finish(status)
+            # Reset on poll()
+            self._force = False
 
+    @override
     def on_thread_stop(self):
         """Send the poller as well."""
+        with self._poll_cond:
+            self._poll_cond.notify()
+
+    def poll(self, *, force: bool):
+        """Poll now, sooner than timeout."""
+        self._force = force
+        self._manual_poll = True
         with self._poll_cond:
             self._poll_cond.notify()

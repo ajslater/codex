@@ -17,10 +17,11 @@ def cast_issue_count(apps, _schema_editor):
             volume.issue_count = round(volume.issue_count_decimal)
             update_volumes.append(volume)
         except Exception:
-            print(
+            reason = (
                 f"unable to cast volume {volume.name} "
                 f"issue_count {volume.old_issue_count} to int"
             )
+            print(reason)
 
     volume_model.objects.bulk_update(update_volumes, ("issue_count",))
 
@@ -81,7 +82,7 @@ class Migration(migrations.Migration):
             model_name="comic",
             name="issue",
             field=models.DecimalField(
-                db_index=True, decimal_places=2, default=Decimal("0"), max_digits=10
+                db_index=True, decimal_places=2, default=Decimal(0), max_digits=10
             ),
         ),
         migrations.AlterField(

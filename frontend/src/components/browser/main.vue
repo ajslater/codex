@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
 import BrowserEmptyState from "@/components/browser/empty.vue";
@@ -39,8 +39,8 @@ export default {
     ...mapState(useAuthStore, {
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapGetters(useAuthStore, ["isAuthorized", "isBanner"]),
-    ...mapGetters(useBrowserStore, ["isSearchMode"]),
+    ...mapState(useAuthStore, ["isAuthorized", "isBanner"]),
+    ...mapState(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
@@ -130,7 +130,6 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
 .browsePaneSearchBanner {
   margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
 }
-
 
 #browsePaneContainer {
   margin-top: $card-margin;

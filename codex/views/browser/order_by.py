@@ -1,6 +1,7 @@
 """Base view for ordering the query."""
 
 from codex.models import Comic
+from codex.models.groups import Volume
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
 
 
@@ -39,6 +40,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 *comic_sort_names,
                 "issue_number",
                 "issue_suffix",
+                "collection_title",
                 "sort_name",
             ]
         else:
@@ -55,9 +57,10 @@ class BrowserOrderByView(BrowserGroupMtimeView):
 
     def add_order_by(self, qs, order_key="", comic_sort_names=None):
         """Create the order_by list."""
-        order_fields_head = ()
         if qs.model is Comic:
             order_fields_head = self._add_comic_order_by(order_key, comic_sort_names)
+        elif qs.model is Volume and order_key == "sort_name":
+            order_fields_head = ["name", "number_to"]
         else:
             order_fields_head = ["order_value"]
 

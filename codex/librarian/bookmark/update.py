@@ -1,6 +1,5 @@
 """Sends notifications to connections, reading from a queue."""
 
-from django.contrib.auth.models import User
 from django.db.models.expressions import F
 from django.db.models.functions import Now
 from django.db.models.query import Q
@@ -9,7 +8,6 @@ from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
-from codex.models.admin import UserActive
 from codex.views.auth import GroupACLMixin
 
 _VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
@@ -24,7 +22,7 @@ _BOOKMARK_UPDATE_FIELDS = frozenset(
 )
 
 
-class BookmarkUpdate(GroupACLMixin):
+class BookmarkUpdateMixin(GroupACLMixin):
     """Update Bookmarks."""
 
     # Used by Bookmarkd and view.bookmark.
@@ -159,29 +157,10 @@ class BookmarkUpdate(GroupACLMixin):
         return count
 
     @classmethod
-    def _update_user_active(cls, auth_filter, log):
-        """Update user active."""
-        # Offline because profile gets hit rapidly in succession.
-        try:
-            user = None
-            for key, value in auth_filter.items():
-                if key == "user":
-                    user = User.objects.get(pk=value)
-                    if user:
-                        UserActive.objects.update_or_create(user=user)
-                break
-        except User.DoesNotExist:
-            pass
-        except Exception as exc:
-            reason = f"Update user activity {exc}"
-            log.warning(reason)
-
-    @classmethod
-    def update_bookmarks(cls, auth_filter, comic_pks, updates, log):
+    def update_bookmarks(cls, auth_filter, comic_pks, updates):
         """Update a user bookmark."""
         count = cls._update_bookmarks(auth_filter, comic_pks, updates)
         count += cls._create_bookmarks(auth_filter, comic_pks, updates)
-        cls._update_user_active(auth_filter, log)
         if count:
             uid = next(iter(auth_filter.values()))
             cls._notify_library_changed(uid)

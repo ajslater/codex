@@ -1,15 +1,16 @@
 // Create comic names
-export const formattedVolumeName = function (volume) {
-  let volumeName;
-  if (volume) {
-    volumeName =
-      volume.length === 4 && !Number.isNaN(volume)
-        ? "(" + volume + ")"
-        : "v" + volume;
+export const formattedVolumeName = function (name, numberTo) {
+  let fmtName;
+  if (name != null && !Number.isNaN(name)) {
+    let compoundName = name;
+    if (numberTo != null && !Number.isNaN(numberTo)) {
+      compoundName += "-" + numberTo;
+    }
+    fmtName = name.length === 4 ? `(${compoundName})` : `v${compoundName}`;
   } else {
-    volumeName = "";
+    fmtName = "";
   }
-  return volumeName;
+  return fmtName;
 };
 
 export const formattedIssue = function ({ issueNumber, issueSuffix }, zeroPad) {
@@ -53,11 +54,18 @@ export const getIssueName = function (
 };
 
 export const getFullComicName = function (
-  { seriesName, volumeName, issueNumber, issueSuffix, issueCount },
+  {
+    seriesName,
+    volumeName,
+    volumeNumberTo,
+    issueNumber,
+    issueSuffix,
+    issueCount,
+  },
   zeroPad,
 ) {
   // Format a full comic name from the series on down.
-  const fvn = formattedVolumeName(volumeName);
+  const fvn = formattedVolumeName(volumeName, volumeNumberTo);
   const issueName = getIssueName(
     { issueNumber, issueSuffix, issueCount },
     zeroPad,

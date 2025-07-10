@@ -1,0 +1,144 @@
+appID: comicbox dev
+comicbox:
+  age_rating: Adult
+  alternate_images:
+    - alt0.jxl
+    - alt2.jxl
+  arcs:
+    c: {}
+    d:
+      number: 1
+      identifiers:
+        comicvine:
+          key: "890"
+    e:
+      number: 3
+      identifiers:
+        comicvine:
+          key: "456"
+    g:
+      number: 5
+  bookmark: 8
+  characters:
+    Captain Science:
+      identifiers:
+        metron:
+          key: "123"
+  collection_title: The Big Omnibus Part 2
+  country: GB
+  credits:
+    Joe Orlando:
+      roles:
+        Writer:
+          identifiers:
+            key: "890"
+      identifiers:
+        metron:
+          key: "123"
+    Wally Wood:
+      roles:
+        Penciller: {}
+  credit_primaries:
+    Joe Orlando: Writer
+    Wally Wood: Penciller
+  critical_rating: 5.0
+  date:
+    cover_date: 1951-12-20
+    store_date: 1951-11-28
+    day: 20
+    month: 12
+    year: 1951
+  ext: cbz
+  original_format: Hardcover
+  genres:
+    Science Fiction:
+      identifiers:
+        metron:
+          key: "012"
+    Mystery: {}
+  identifiers:
+    comicvine:
+      key: "145265"
+    metron:
+      key: "999"
+  imprint:
+    name: TestImprint
+    identifiers:
+      metron:
+        key: "123"
+  issue:
+    name: 2.2XXX
+    number: 2.2
+    suffix: XXX
+  language: fr
+  locations:
+    Mars:
+      identifiers:
+        comicvine:
+          key: "111"
+  manga: Yes
+  monochrome: True
+  notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145265
+  page_count: 24
+  publisher:
+    name: "Youthful Adventure Stories"
+    identifiers:
+      metron:
+        key: "111"
+  prices:
+    GB: 0.25
+  protagonist: Team Cornish Game Hen
+  reading_direction: rtl
+  remainders:
+    - cruddo
+  reprints:
+    - language: es
+      series:
+        sort_name: Capitan Sciencia
+      volume:
+        number: 1
+    - language: de
+      series:
+        name: Kapitän Wissenschaft
+  review: Actually unreadable.
+  scan_info: Digital
+  series:
+    name: "Captain Science"
+    identifiers:
+      comicvine:
+        key: "333"
+  series_groups:
+    - adult comics
+  stories:
+    The Beginning:
+      identifiers:
+        metron:
+          key: "555"
+    The End: {}
+  summary: Captain Science's many adult adventures
+  tagger: comicbox dev
+  tags:
+    a:
+      identifiers:
+        metron:
+          identifiers:
+            key: "334"
+    c: {}
+  teams:
+    Team Scientific Method:
+      identifiers:
+        metron:
+          key: "123"
+    Team Cornish Game Hen:
+  title: The Beginning; The End
+  universes:
+    Young Adult Silly Universe:
+      designation: 6969
+      identifiers:
+        metron:
+          key: 6969
+  updated_at: 1970-01-01T00:00:00Z
+  volume:
+    issue_count: 1
+    number: 1950
+schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v2.0/comicbox-v2.0.schema.json"

@@ -1,17 +1,45 @@
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
+[project]
+authors = [{ name = "AJ Slater", email = "aj@slater.net" }]
+license = { text = "GPL-3.0-only" }
+requires-python = "<4.0,>=3.10"
+dependencies = [
+  "aioprocessing<3.0.0,>=2.0.1",
+  "ansicolors<2.0,>=1.1",
+  "bidict<1.0.0,>=0.23.1",
+  "channels<5.0.0,>=4.0.0",
+  "comicbox[pdf]<3.0.0,>=2.0.0a31",
+  "dateparser<2.0.0,>=1.2.0",
+  "django<6.0.0,>=5.2.1",
+  "djangorestframework<4.0.0,>=3.15.1",
+  "djangorestframework-camel-case<2.0.0,>=1.4.2",
+  "django-cachalot<3.0.0,>=2.6.3",
+  "django-cors-headers<5.0,>=4.0",
+  "django-rest-registration<1.0.0,>=0.9.0",
+  "django-vite<4.0.0,>=3.0.1",
+  "drf-spectacular<1.0.0,>=0.28.0",
+  "fnvhash<1.0,>=0.1",
+  "humanfriendly<11.0,>=10.0",
+  "humanize<5.0.0,>=4.0.0",
+  "hypercorn[h3]<1.0.0,>=0.17.3",
+  "nh3<1.0.0,>=0.2.18",
+  "psutil<8.0.0,>=7.0.0",
+  "pyparsing<4.0.0,>=3.1.2",
+  "python-dateutil<3.0.0,>=2.8.2",
+  "requests<3.0,>=2.24",
+  "typing-extensions>=4.13.2",
+  "tzlocal<6.0,>=5.0",
+  "watchdog<7.0.0,>=6.0.0",
+  "websocket-client<2.0,>=1.2",
+  "whitenoise[brotli]<7.0,>=6.0",
+  "versio<1.0.0,>=0.5.0",
+  "zipstream-ng<2.0.0,>=1.8.0",
+  "Pillow<12.0.0,>=11.0.0",
+  "loguru>=0.7.3",
+]
 name = "codex"
-version = "1.7.11a0"
+version = "1.8.0a0"
 description = "A comic archive web server."
-license = "GPL-3.0-only"
-authors = ["AJ Slater <aj@slater.net>"]
 readme = "README.md"
-homepage = "https://github.com/ajslater/codex"
-repository = "https://github.com/ajslater/codex"
-documentation = "https://github.com/ajslater/codex"
 keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -26,85 +54,95 @@ classifiers = [
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
-packages = [{ include = "codex" }, { include = "tests", format = "sdist" }]
+
+[project.urls]
+News = "https://github.com/ajslater/codex/blob/main/NEWS.md"
+"Docker Image" = "https://hub.docker.com/r/ajslater/codex"
+"Report Issues" = "https://github.com/ajslater/codex/issues"
+homepage = "https://github.com/ajslater/codex"
+repository = "https://github.com/ajslater/codex"
+documentation = "https://github.com/ajslater/codex"
+
+[project.scripts]
+codex = "codex.run:main"
+
+[dependency-groups]
+dev = [
+  "basedpyright~=1.29.1",
+  "cairosvg<3.0.0,>=2.7.1",
+  "codespell<3.0.0,>=2.1.0",
+  "coverage[toml]<8.0,>=7.0",
+  "djangorestframework-types<1.0.0,>=0.9.0",
+  "django-schema-graph<4.0.0,>=3.1.0",
+  "django-types<1.0.0,>=0.20.0",
+  "djlint<2.0.0,>=1.2.1",
+  "hatchling<2.0.0,>=1.27.0",
+  "icecream<3.0.0,>=2.1.4",
+  "neovim<1.0.0,>=0.3.1",
+  "nplusone<2.0.0,>=1.0.0",
+  "picopt>=5.0.0",
+  "pytest-asyncio<2.0.0,>=1.0.0",
+  "pytest-cov<7.0,>=6.0",
+  "pytest-django<5.0,>=4.1",
+  "pytest-gitignore<2.0,>=1.3",
+  "radon[toml]<7.0.0,>=6.0.1",
+  "ruff<1.0.0,>=0.11.5",
+  "toml-cli<1.0.0,>=0.7.0",
+  "types-python-dateutil<3.0.0,>=2.8.19",
+  "vulture<3.0,>=2.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = ["codex", "tests", "codex/static_root/**/*"]
 exclude = [
   "*/**/*~",
   "codex/img/*.svg",
   "codex/static_src/*",
   "codex/static_build/*",
 ]
-include = ["codex/static_root/**/*"]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-aioprocessing = "^2.0.1"
-ansicolors = "^1.1"
-bidict = "^0.23.1"
-case-converter = "^1.1.0"
-channels = "^4.0.0"
-comicbox = { extras = ["pdf"], version = "^1.2.3" }
-dateparser = "^1.2.0"
-django = "^5.1.4"
-djangorestframework = "^3.15.1"
-djangorestframework-camel-case = "^1.4.2"
-django-cachalot = "^2.6.3"
-django-cors-headers = "^4.0"
-django-rest-registration = "^0.9.0"
-django-vite = "^3.0.1"
-drf-spectacular = "^0.28.0"
-fnvhash = "^0.1"
-humanfriendly = "^10.0"
-humanize = "^4.0.0"
-hypercorn = { extras = ["h3"], version = "^0.17.3" }
-nh3 = "^0.2.18"
-psutil = "^7.0.0"
-pyparsing = "^3.1.2"
-python-dateutil = "^2.8.2"
-requests = "^2.24"
-tzlocal = "^5.0"
-watchdog = "^6.0.0"
-websocket_client = "^1.2"
-whitenoise = { extras = ["brotli"], version = "^6.0" }
-versio = "^0.5.0"
-zipstream-ng = "^1.8.0"
-Pillow = "^11.0.0"
-
-[tool.poetry.group.dev.dependencies]
-django-schema-graph = "^3.1.0"
-picopt = "^4.0.1"
-neovim = "^0.3.1"
-nplusone = "^1.0.0"
-
-[tool.poetry.group.test.dependencies]
-coverage = { extras = ["toml"], version = "^7.0" }
-pytest-asyncio = "^0.25.0"
-pytest-cov = "^6.0"
-pytest-django = "^4.1"
-pytest-gitignore = "^1.3"
-
-[tool.poetry.group.lint.dependencies]
-# pyright looks for cairosvg so can't be in dev
-cairosvg = "^2.7.1"
-codespell = "^2.1.0"
-djangorestframework-types = "^0.9.0"
-django-types = "^0.20.0"
-djlint = "^1.2.1"
-pyright = "^1.1.357"
-radon = { extras = ["toml"], version = "^6.0.1" }
-ruff = "^0.9.2"
-types-python-dateutil = "^2.8.19"
-vulture = "^2.3"
-
-[tool.poetry.scripts]
-codex = "codex.run:main"
-
-[tool.poetry.urls]
-"News" = "https://github.com/ajslater/codex/blob/main/NEWS.md"
-"Docker Image" = "https://hub.docker.com/r/ajslater/codex"
-"Report Issues" = "https://github.com/ajslater/codex/issues"
+[tool.basedpyright]
+exclude = [
+  "**/.*",
+  "**/__pycache__",
+  "**/node_modules",
+  "codex/_vendor",
+  "codex/search/backend_search.py",
+  "codex/static_build",
+  "codex/static_root",
+  "comics",
+  "config",
+  "dist",
+  "frontend",
+  "test-results",
+  "typings",
+  "vulture_ignorelist.py",
+]
+pythonVersion = "3.10"
+failOnWarnings = false
+reportAny = false
+reportExplicitAny = false
+reportImportCycles = true
+reportIncompatibleUnannotatedOverride = true
+reportMissingParameterType = false
+reportMissingTypeArgument = false
+reportPrivateUsage = false # ruff does this
+reportUnannotatedClassAttribute = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportUnusedCallResult = false
+reportUnusedParameter = false # ruff does this 
+reportMissingTypeStubs = false
 
 [tool.codespell]
-skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,node_modules,package-lock.json,poetry.lock,run.spec,.eslintcache'
+skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./uv.lock,./test-results"
+
 builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
@@ -119,12 +157,8 @@ source = ["codex"]
 branch = true
 concurrency = ["multiprocessing"]
 omit = [
-  ".git/*",
-  ".mypy_cache/*",
-  ".pytest_cache/*",
-  ".venv*/*",
+  "*/.*",
   "*__pycache__*",
-  "cache/*",
   "codex/_vendor/*",
   "codex/static_build/*",
   "codex/static_root/*",
@@ -134,41 +168,14 @@ omit = [
   "node_modules/*",
   "test-results/*",
   "typings/*",
+  "vulture_ignorelist.py",
 ]
 
 [tool.djlint]
+extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static_root,./comics,dist,test-results,typings"
 ignore = "H030,H031"
-extend_exclude = "dist"
-
-[tool.pyright]
-exclude = [
-  "**/__pycache__",
-  "**/node_modules",
-  ".git",
-  ".mypy_cache",
-  ".pytest_cache",
-  ".venv*",
-  "cache",
-  "codex/_vendor",
-  "codex/search/backend_search.py",
-  "codex/static_build",
-  "codex/static_root",
-  "comics",
-  "config",
-  "dist",
-  "frontend",
-  "package-lock.json",
-  "poetry.lock",
-  "test-results",
-  "typings",
-]
-useLibraryCodeForTypes = true
-reportMissingImports = true
-reportImportCycles = true
-pythonVersion = "3.10"
-pythonPlatform = "All"
-venvPath = "."
-venv = ".venv"
+profile = "django"
+use_gitignore = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -184,19 +191,28 @@ addopts = """
 """
 junit_family = "xunit2"
 testpaths = "tests"
-DJANGO_SETTINGS_MODULE = "codex.settings.settings"
+DJANGO_SETTINGS_MODULE = "codex.settings"
 pythonpath = ["."]
 
 [tool.radon]
 exclude = """\
-  *~,.git/*,.mypy_cache/*,.pytest_cache/*,.venv*,__pycache__/*\
-  ,cache/*,codex/_vendor/*,codex/static_build/*,codex/static_root/*\
-  ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*\
-  ,codex/search/backend_search.py\
+  *~,.*,.*/*,__pycache__/*
+  ,codex/_vendor/*,codex/static_build/*,codex/static_root/*
+  ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*
   """
 
 [tool.ruff]
-extend-exclude = ["cache", "codex/_vendor", "frontend", "typings"]
+builtins = ["ic"]
+extend-exclude = [
+  "**/.*",
+  "**/__pycache__",
+  "codex/_vendor",
+  "dist",
+  "frontend",
+  "test-results",
+  "typings",
+  "vulture_ignorelist.py",
+]
 show-fixes = true
 target-version = "py310"
 
@@ -212,7 +228,6 @@ extend-ignore = [
   "E114",    # formatted
   "E117",    # over-indented
   "E501",    # 88 char line
-  "FBT001",  # boolean params
   "ISC001",  # formatted
   "PERF203", # try block in loop
   "S101",    # assert
@@ -317,23 +332,20 @@ ignore-overlong-task-comments = true
   "TRY003",
   "UP031",
 ]
+"tests/*" = ["D101", "D102", "T203"]
 
 [tool.vulture]
 exclude = [
-  ".git/",
-  ".mypy_cache/",
-  ".pytest_cache/",
-  "*.venv*",
-  "*/__pycache__",
-  "cache/",
+  "*/.*",
+  "*/__pycache__*",
+  "*/node_modules*",
   "codex/_vendor",
   "codex/search/backend_search.py",
   "codex/static_build/",
   "codex/static_root/",
-  "frontend/",
   "comics/",
   "dist/",
-  "node_modules/",
+  "frontend/",
   "test_results/",
   "typings/",
 ]

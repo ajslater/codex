@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from django.test import TestCase
+from typing_extensions import override
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
@@ -22,6 +23,7 @@ class ComicTestCase(TestCase):
     DAY = 9
     DATE = datetime.date(YEAR, MONTH, DAY)
 
+    @override
     def setUp(self):
         """Set up for tests."""
         TMP_DIR.mkdir(exist_ok=True, parents=True)
@@ -50,6 +52,7 @@ class ComicTestCase(TestCase):
             day=self.DAY,
         )
 
+    @override
     def tearDown(self):
         """Tear down tests."""
         shutil.rmtree(TMP_DIR)

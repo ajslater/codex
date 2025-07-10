@@ -6,28 +6,90 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.0
+
+- Features
+  - Support
+    [MetronInfo.xml v1.0 Schema](https://metron-project.github.io/docs/category/metroninfo)
+    for comic metadata.
+  - Support CB7 (7zip) comic archives.
+  - Search Indexing now done in the import phase. Stupendously faster.
+    - 20k comics both imported and indexed in 9 minutes on my old macbook at a
+      rate of 30 comics per second. Half a million comics might take less than 5
+      hours on the same machine.
+  - Fewer database updates when comics change metadata or don't change metadata
+    at all means fewer and faster update imports.
+  - Metadata:
+    - Add Universes. Main Characters, and Main Team marked with a ★.
+    - Metron metadata provides links to web databases for tags.
+  - New Import Metadata on Demand Flag.
+  - Browser tab titles show route and page title, no longer show custom banner.
+  - Logging format changed.
+  - Add manual Import Abort task for admins.
+
+- Fix
+  - Reading Order in reader was not always defaulting to your last Browser Top
+    Group.
+  - Fixed filtering on Critical Rating and FileType
+  - Fixed searching on Critical Rating field.
+  - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
+  - Fixed database locking crashes.
+
+- Dev
+  - Uses Comicbox 2.0 see
+    [Comicbox NEWS for all details](https://github.com/ajslater/comicbox/blob/main/NEWS.md)
+
+## v1.7.15
+
+- Fixes
+  - Fix unable to change top group to folders or story arcs if on root browse
+    page.
+
+## v1.7.14
+
+- Fixes
+  - Fix Reader jumping back into the same book when changing to a new book.
+
+## v1.7.13
+
+- Fixes
+  - Fix Reader Reading Order dropdown unable to change reading order.
+  - Fix loading root browser pages greater than 1 as a new route.
+  - Missing books error screen had no toolbars, could not close it.
+  - Fix docker configuration for Synology by creating a comicbox config
+    directory.
+  - Wait to load browser and reader pages until login tried with a cookie.
+
+- Features
+  - Experimental `CODEX_BROWSER_MAX_OBJ_PER_PAGE` env variable. Default is 100.
+
+## v1.7.12
+
+- Fixes
+  - Crash downloading comics when user is in a group.
+  - User last active activity was often not recorded.
+
+- Features
+  - Animate Pages option toggle in reader settings
+
 ## v1.7.11
 
 - Fixes
-
   - Fix importing of story arc tags
 
 ## v1.7.10
 
 - Fixes
-
   - Fix occasional import link tags crash.
 
 ## v1.7.9
 
 - Fixes
-
   - Tags page layout fixes.
 
 ## v1.7.8
 
 - Features
-
   - Tags page layout changes with more notes from @beville.
 
 - Fixes
@@ -47,12 +109,10 @@ border-radius: 128px;
 ## v1.7.6
 
 - Features
-
   - Always Show Filenames setting for browser cards.
   - Tags page layout changes with notes from @beville.
 
 - Fixes
-
   - Fix import crash on files with escapable html characters or utf-8 chars in
     the filename.
   - Fix page range crash in reader.
@@ -63,7 +123,6 @@ border-radius: 128px;
 ## v1.7.5
 
 - Fixes
-
   - More granular websocket notifications means the web UI does fewer more
     targeted data updates.
   - Prevent deactivating and deprivileging the logged in user.
@@ -74,21 +133,18 @@ border-radius: 128px;
 ## v1.7.4
 
 - Fixes
-
   - Fix setting bookmarks and book settings bug.
   - Sanitize HTML out of imported comic metadata fields and admin inputs.
 
 ## v1.7.3
 
 - Features
-
   - Browser Order By Child Count.
   - Customized site title option in Admin Flags.
   - Codex logs are now compressed when rotated.
   - Support OPDS v2.0 Progression (streaming) draft proposal from Aldiko.
 
 - Fixes
-
   - Browser Group Mark Read/Unread obeys browser filters.
   - Fixed bad redirect when to deep linking into browser Folders or Story Arcs.
   - Fixed order by name for issues disregarding volume names in browser and
@@ -100,29 +156,24 @@ border-radius: 128px;
 ## v1.7.2
 
 - Features
-
   - Download entire groups of comics from the browser and metadata screens.
 
 - Fixes
-
   - Fix reader page API sometimes crashing.
 
 ## v1.7.1
 
 - Features
-
   - Always display filename for comics on browser cards in Folder View
   - Detect .jxl extension (JPEG XL) as a comic page.
 
 - Fixes
-
   - Fix ignoring MacOS resource forks in archives.
   - Don't redirect to issue view on first search in Folder View
 
 ## v1.7.0
 
 - Features
-
   - Search
     - Use SQLite Full Text Search v5 for search engine.
     - Search syntax has changed. See the help popup at the end of the search
@@ -137,7 +188,6 @@ border-radius: 128px;
       in README.
 
 - Fixes
-
   - Actually fix browser opening reader at correct bookmark.
     - Also fixes progress calculation on browser cards.
   - Fixed crashes when the upstream codex version is not accessible.
@@ -146,7 +196,6 @@ border-radius: 128px;
 ## v1.6.19
 
 - Fixes
-
   - Fix browser opening reader at correct bookmark.
   - Fix for browser triple tap bug for android tablet browsers in desktop mode.
   - Fix populating arcs in reading order menu in reader.
@@ -163,18 +212,15 @@ border-radius: 128px;
 ## v1.6.17
 
 - Features
-
   - Admin Action buttons now responsive to view size.
 
 - Fixes
-
   - Auto update wasn't comparing versions well.
   - Possible fix for initializing admin flags crash.
 
 ## v1.6.16
 
 - Fixes
-
   - Import may have been marking mounted drive's comics modified
     inappropriately.
   - Import crash when moving comics.
@@ -187,34 +233,29 @@ border-radius: 128px;
 ## v1.6.15
 
 - Fixes
-
   - Fix more Metadata links to browser groups not computing and resolving
     properly.
 
 ## v1.6.14
 
 - Fixes
-
   - Fix Metadata links to browser groups not resetting topGroup properly.
 
 ## v1.6.13
 
 - Fixes
-
   - Admin Panel Link was showing in the admin panel, not in the browser or
     reader.
 
 ## v1.6.12
 
 - Features
-
   - Native Windows installation instructions in the README thanks to
     @professionaltart.
   - Anonymously send stats to improve Codex. See admin/flags for description and
     opt-out.
 
 - Fixes
-
   - Detect iOS devices in Desktop Mode for proper iOS tap behavior.
 
 ## v1.6.9, v1.6.10, v1.6.11
@@ -224,7 +265,6 @@ border-radius: 128px;
 ## v1.6.8
 
 - Fixes
-
   - Fix OPDS streaming in lazy metadata mode for Chunky-like readers which
     require a page count.
 
@@ -274,7 +314,6 @@ border-radius: 128px;
 ## v1.6.1
 
 - Features
-
   - Add a retry button on book load error and page load error pages.
 
 - Fixes
@@ -978,7 +1017,6 @@ border-radius: 128px;
 ## v0.10.10
 
 - Features
-
   - Reader nav toolbar shows position in series.
 
 - Fixes
@@ -989,7 +1027,6 @@ border-radius: 128px;
 ## v0.10.9
 
 - Fixes
-
   - Fix null bookmark and count fields in metadata
   - Fix indeterminate finished state when children have bookmark progress.
   - Fix maintenance running inappropriately on first run. Crashed xapian
@@ -997,7 +1034,6 @@ border-radius: 128px;
   - Fix reader metadata keymap
 
 - Features
-
   - Progressive Web App support
   - Reader "Shrink to" settings replaced by "Fit to"
 
@@ -1007,7 +1043,6 @@ border-radius: 128px;
 ## v0.10.8
 
 - Fixes
-
   - Fixed reader nav clicks always showing the toolbars.
   - Attempt to fix unwanted browser toolbars when treated as mobile app
   - Wait half a second before displaying reader placeholder spinner.
@@ -1020,7 +1055,6 @@ border-radius: 128px;
 ## v0.10.7
 
 - Features
-
   - Browser tries to scroll to closed book to keep your place.
 
 - Fixes
@@ -1034,7 +1068,6 @@ border-radius: 128px;
 ## v0.10.5
 
 - Features
-
   - Reader shrink to screen setting becomes fit to screen and embiggens small
     images.
   - Reader changing to the next book now has visual feedback and requires two
@@ -1047,7 +1080,6 @@ border-radius: 128px;
 ## v0.10.4
 
 - Fixes
-
   - Fix double tap for non-iOS touch devices.
 
 - Features
@@ -1080,7 +1112,6 @@ border-radius: 128px;
 ### Portable Document Format
 
 - Features
-
   - PDF support. Optional poppler-utils binary package needed to generate PDF
     cover thumbnails.
   - CBT support. Tarball comic archives.
@@ -1103,7 +1134,6 @@ border-radius: 128px;
 ## v0.9.14
 
 - Fixes
-
   - Fix comicbox config crash.
   - Use codex config namespace (\~/.config/codex) so codex doesn't interfere
     with standalone comicbox configs.
@@ -1123,7 +1153,6 @@ border-radius: 128px;
 ## v0.9.12
 
 - Fixes
-
   - Fix setting global reader settings.
   - Fixed reader settings not applying due to caching.
   - Bust reader caches when library updates.
@@ -1136,7 +1165,6 @@ border-radius: 128px;
 ## v0.9.11
 
 - Fixes
-
   - Fixed covers not creating on import.
   - Covers update in browser when updated on disk.
   - Create missing covers on startup.
@@ -1158,7 +1186,6 @@ Yanked. Crash loading admin page.
 ## v0.9.9
 
 - Fixes
-
   - Fixed combining CBI credits with other format credits
   - Failed imports notification appears only for new failed imports.
 
@@ -1169,7 +1196,6 @@ Yanked. Crash loading admin page.
 ## v0.9.8
 
 - Fixes
-
   - Fixed search index update crash while database is still updating.
   - Fixed issues larger than 99 bug.
   - Fixed issue not imported due to metadata cleaning bug.
@@ -1187,7 +1213,6 @@ Yanked. Crash loading admin page.
 ## v0.9.7
 
 - Fixes
-
   - Coerce decimal values into valid ranges and precision before importing.
 
 - Features
@@ -1197,7 +1222,6 @@ Yanked. Crash loading admin page.
 ## v0.9.6
 
 - Fixes
-
   - Don't open browser when a library changes when reading a comic.
   - Fixed crash creating illegal dates on import.
 
@@ -1307,12 +1331,10 @@ Yanked. Crash loading admin page.
 ### Feels Snappier
 
 - Database Migration
-
   - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run
     on previous versions of codex.
 
 - Features
-
   - Big speed up to importing comics for large imports.
   - Speed up creating comic covers on large imports.
   - Admin Panel options for polling (formerly "scanning") and watching events
@@ -1431,7 +1453,6 @@ Yanked. Crash loading admin page.
 ## v0.5.14
 
 - Features
-
   - Metadata view for browse containers. Also observes filters.
   - Covers now regenerate on re-import.
 
@@ -1467,7 +1488,6 @@ Yanked. Crash loading admin page.
 ## v0.5.10
 
 - Fixes
-
   - Fix filtering bugs
   - Fix mark read/unread bugs
   - Fix reader settings not setting properly
@@ -1491,7 +1511,6 @@ Yanked. Crash loading admin page.
 ## v0.5.7
 
 - Fixes
-
   - Fix import crashes
   - Remove scan locks on startup
 

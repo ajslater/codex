@@ -90,6 +90,8 @@ import { mapActions, mapState, mapWritableState } from "pinia";
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
+const NUMERIC_FILTERS = new Set(["decade", "year"]);
+
 export default {
   name: "BrowserFilterSubMenu",
   props: {
@@ -112,7 +114,6 @@ export default {
         return state.choices.dynamic[this.name];
       },
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
-      identifierTypeTitles: (state) => state.choices.static.identifierType,
       filter(state) {
         return state.settings.filters[this.name];
       },
@@ -129,8 +130,21 @@ export default {
       }
       return false;
     },
+    isNumeric() {
+      return NUMERIC_FILTERS.has(this.name);
+    },
     vuetifyItems() {
-      return toVuetifyItems(this.choices, this.query);
+      let items;
+      if (this.name === "universes") {
+        items = this.fixUniverseTitles(this.choices);
+      } else {
+        items = this.choices;
+      }
+      return toVuetifyItems({
+        items,
+        filter: this.query,
+        numeric: this.isNumeric,
+      });
     },
     title() {
       return capitalCase(this.name);
@@ -150,7 +164,8 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, [
       "clearOneFilter",
-      "identifierTypeTitle",
+      "fixUniverseTitles",
+      "identifierSourceTitle",
       "loadAvailableFilterChoices",
       "loadFilterChoices",
     ]),
@@ -167,11 +182,11 @@ export default {
       };
       this.$emit("selected", data);
     },
-    itemTitle: function (item) {
+    itemTitle(item) {
       if (this.name === "readingDirection") {
         return this.readingDirectionTitles[item.value];
-      } else if (this.name === "identifierType") {
-        return this.identifierTypeTitle(item.title);
+      } else if (this.name === "identifierSource") {
+        return this.identifierSourceTitle(item.title);
       }
       return item.title;
     },
@@ -222,10 +237,10 @@ export default {
 .clearFilter {
   color: black;
   background-color: rgb(var(--v-theme-primary));
-  opacity: .7;
+  opacity: 0.7;
 }
 
 .clearFilter:hover {
-  opacity: 1.0;
+  opacity: 1;
 }
 </style>

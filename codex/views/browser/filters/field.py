@@ -6,16 +6,16 @@ from django.db.models import Q
 
 from codex.views.browser.filters.group import GroupFilterView
 from codex.views.session import (
-    CONTRIBUTOR_PERSON_UI_FIELD,
+    CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,
 )
 
 _FILTER_REL_MAP = MappingProxyType(
     {
-        CONTRIBUTOR_PERSON_UI_FIELD: "contributors__person",
+        CREDIT_PERSON_UI_FIELD: "credits__person",
         STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
-        IDENTIFIER_TYPE_UI_FIELD: "identifiers__identifier_type",
+        IDENTIFIER_TYPE_UI_FIELD: "identifiers__source",
     }
 )
 

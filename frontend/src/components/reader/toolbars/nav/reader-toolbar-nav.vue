@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
@@ -45,8 +45,8 @@ export default {
     ReaderBookChangeNavButton,
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
-    ...mapGetters(useReaderStore, [
+    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
+    ...mapState(useReaderStore, [
       "activeSettings",
       "isReadInReverse",
       "isVertical",

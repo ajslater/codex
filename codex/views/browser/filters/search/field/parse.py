@@ -1,6 +1,7 @@
 """Parse field boolean expressions into Django ORM Queries."""
 
 import re
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from django.db.models import Q
@@ -13,6 +14,7 @@ from pyparsing import (
     infix_notation,
     printables,
 )
+from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN
 from codex.models.comic import Comic
@@ -32,14 +34,28 @@ _IMPLICIT_AND_RE = re.compile(_IMPLICIT_AND_REXP, flags=re.IGNORECASE)
 ParserElement.enablePackrat()
 
 
-class BoolOperand:
+class BoolOperandBase(ABC):
+    """Hold context."""
+
+    def __init__(self, context):
+        """Initialize context."""
+        self.context = context
+
+    @abstractmethod
+    def to_query(self) -> Q:
+        """Construct a django ORM Query."""
+        raise NotImplementedError
+
+
+class BoolOperand(BoolOperandBase):
     """Hacky Base for injecting rel."""
 
     def __init__(self, tokens, context):
         """Initialize value from first token."""
+        super().__init__(context)
         self.value = tokens[0]
-        self.context = context
 
+    @override
     def __repr__(self) -> str:
         """Represent as string."""
         return str(self.value)
@@ -59,6 +75,7 @@ class BoolOperand:
             prefixed_q_dict[prefixed_rel] = value
         return prefixed_q_dict
 
+    @override
     def to_query(self) -> Q:
         """Construct Django ORM Query from rel & value."""
         rel = self.context[0]
@@ -72,39 +89,43 @@ class BoolOperand:
         return Q(**prefixed_q_dict)
 
 
-class BoolNot(BoolOperand):
+class BoolNot(BoolOperandBase):
     """NOT Operand."""
 
     def __init__(self, tokens, context):
         """Initialize args from first token."""
+        super().__init__(context)
         self.arg = tokens[0][1]
-        self.context = context
 
+    @override
     def __repr__(self) -> str:
         """Represent as string."""
         return f"NOT {self.arg}"
 
+    @override
     def to_query(self) -> Q:
         """Negate argument query."""
         q = self.arg.to_query()
         return ~q
 
 
-class BoolBinaryOperand:
+class BoolBinaryOperand(BoolOperandBase):
     """Boolean Binary Operand."""
 
     OP: str = ""
 
     def __init__(self, tokens, context):
         """Initialize args from first two tokens."""
+        super().__init__(context)
         self.args = tokens[0][0::2]
-        self.context = context
 
+    @override
     def __repr__(self) -> str:
         """Represent as string."""
         sep = f" {self.OP} "
         return f"({sep.join(map(str, self.args))})"
 
+    @override
     def to_query(self) -> Q:
         """Construct Django ORM Query from args."""
         q = Q()
@@ -183,5 +204,5 @@ def get_field_query(rel, rel_class, exp, model, many_to_many):
     bool_expr = _create_context_expression(context)
 
     parsed_result = bool_expr.parse_string(exp)
-    root_bool_operand: BoolOperand = parsed_result[0]  # type:ignore[reportAssignmentType]
+    root_bool_operand: BoolOperandBase = parsed_result[0]  # pyright:ignore[reportAssignmentType]
     return root_bool_operand.to_query()

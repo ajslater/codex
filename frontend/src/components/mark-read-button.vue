@@ -35,7 +35,7 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["groupNames"]),
+    ...mapState(useBrowserStore, ["groupNames"]),
     verb() {
       return this.item.finished ? "Unread" : "Read";
     },

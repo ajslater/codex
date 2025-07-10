@@ -1,19 +1,26 @@
 """Cross view annotation methods."""
 
-from django.db.models.expressions import F
+from typing import TYPE_CHECKING
 
-from codex.logger.logger import get_logger
-from codex.models.comic import Comic, Imprint, Volume
-from codex.views.browser.filters.filter import BrowserFilterView
+from django.db.models import CharField
+from django.db.models.expressions import Case, F, Value, When
+from django.db.models.functions import Concat
+
+from codex.librarian.bookmark.tasks import UserActiveTask
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.models.comic import Comic
+from codex.models.groups import Imprint, Volume
 from codex.views.const import GROUP_NAME_MAP
 
-LOG = get_logger(__name__)
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+
 _SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
 _GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"
 
 
-class SharedAnnotationsMixin(BrowserFilterView):
+class SharedAnnotationsMixin:  # (BrowserFilterView):
     """Cross view annotation methods."""
 
     @staticmethod
@@ -51,14 +58,32 @@ class SharedAnnotationsMixin(BrowserFilterView):
             sort_name_annotations["sort_name"] = F("name")
         return sort_name_annotations
 
+    @staticmethod
+    def _volume_name_annotation(model):
+        prefix = "volume__" if model is Comic else ""
+        name_rel = prefix + "name"
+        number_to_rel = prefix + "number_to"
+
+        return Case(
+            When(**{f"{number_to_rel}__isnull": True}, then=F(name_rel)),
+            default=Concat(
+                F(name_rel),
+                Value("-"),
+                F(number_to_rel),
+            ),
+            output_field=CharField(),
+        )
+
     @classmethod
     def annotate_group_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
-        target = cls.TARGET
+        target = cls.TARGET  #  pyright: ignore[reportAttributeAccessIssue]
         if target not in _GROUP_NAME_TARGETS:
             return qs
         group_names = {}
+        if qs.model in (Comic, Volume):
+            group_names["series_name"] = F("series__name")
         if qs.model is Comic:
             if target != "reader":
                 group_names["publisher_name"] = F("publisher__name")
@@ -66,12 +91,22 @@ class SharedAnnotationsMixin(BrowserFilterView):
                     group_names["imprint_name"] = F("imprint__name")
             group_names.update(
                 {
-                    "series_name": F("series__name"),
                     "volume_name": F("volume__name"),
+                    "volume_number_to": F("volume__number_to"),
                 }
             )
-        elif qs.model is Volume:
-            group_names["series_name"] = F("series__name")
         elif qs.model is Imprint:
             group_names["publisher_name"] = F("publisher__name")
         return qs.annotate(**group_names)
+
+
+class UserActiveMixin:
+    """View that records user activity."""
+
+    def mark_user_active(self):
+        """Get the app index page."""
+        if TYPE_CHECKING:
+            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
+        if self.request.user and self.request.user.pk:
+            task = UserActiveTask(pk=self.request.user.pk)
+            LIBRARIAN_QUEUE.put(task)

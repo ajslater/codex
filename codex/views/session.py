@@ -5,29 +5,24 @@ from copy import deepcopy
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
+from loguru import logger
+
 from codex.choices.browser import BROWSER_DEFAULTS
 from codex.choices.reader import READER_DEFAULTS
-from codex.logger.logger import get_logger
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.util import pop_name
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-LOG = get_logger(__name__)
-
-CONTRIBUTOR_PERSON_UI_FIELD = "contributors"
+CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
-IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
+IDENTIFIER_TYPE_UI_FIELD = "identifier_source"
 
 _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
     {
         "age_rating": [],
         "characters": [],
         "country": [],
-        CONTRIBUTOR_PERSON_UI_FIELD: [],
-        "community_rating": [],
+        CREDIT_PERSON_UI_FIELD: [],
         "critical_rating": [],
         "decade": [],
         "file_type": [],
@@ -44,6 +39,7 @@ _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
         "tagger": [],
         "tags": [],
         "teams": [],
+        "universes": [],
         "year": [],
     }
 )
@@ -53,8 +49,8 @@ class SessionView(AuthFilterGenericAPIView, ABC):
     """Generic Session View."""
 
     # Must override this
-    SESSION_KEY = ""
-    FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
+    SESSION_KEY: str = ""
+    FILTER_ATTRIBUTES: frozenset[str] = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
     BROWSER_SESSION_KEY = "browser"
     READER_SESSION_KEY = "reader"
     SESSION_DEFAULTS = MappingProxyType(
@@ -83,16 +79,14 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             default = self.SESSION_DEFAULTS[session_key][key]
         return session.get(key, default)
 
-    def get_last_route(self, name: bool):
+    def get_last_route(self, *, name: bool):
         """Get the last route from the breadcrumbs."""
+        breadcrumbs: tuple
         breadcrumbs = self.get_from_session(
             "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
         )
         if not breadcrumbs:
-            default_breadcrumbs: tuple[
-                Mapping[str, str | tuple[int, ...] | int], ...
-            ] = BROWSER_DEFAULTS["breadcrumbs"]  # type: ignore[reportAssignmentType]
-            breadcrumbs = default_breadcrumbs
+            breadcrumbs = BROWSER_DEFAULTS["breadcrumbs"]  # pyright: ignore[reportAssignmentType]
         last_route = breadcrumbs[-1]
         if not name:
             last_route = pop_name(last_route)
@@ -141,4 +135,4 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             self.request.session[self.SESSION_KEY] = data
             self.request.session.save()
         except Exception as exc:
-            LOG.warning(f"Saving params to session: {exc}")
+            logger.warning(f"Saving params to session: {exc}")

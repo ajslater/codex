@@ -36,7 +36,7 @@
       </div>
     </section>
     <span v-if="md.name" id="titleRow">
-      {{ md.name }}
+      {{ collectionTitle }} {{ md.name }}
     </span>
     <MetadataTags
       v-if="md.seriesList?.length > 1"
@@ -141,6 +141,11 @@ export default {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
+    collectionTitle() {
+      if (this.md.collectionTitle) {
+        return `${this.md.collectionTitle}:`;
+      }
+    },
     date() {
       if (!this.md.year && !this.md.month && !this.md.day) {
         return "";
@@ -236,9 +241,8 @@ export default {
   margin-right: 15px;
 }
 
-
 .inlineRow,
-.inlineRow>* {
+.inlineRow > * {
   display: inline-flex;
 }
 
@@ -262,7 +266,7 @@ export default {
 }
 
 .subdued {
-  color: rgb(var(--v-theme-textDisabled))
+  color: rgb(var(--v-theme-textDisabled));
 }
 
 #pageDateRow {
