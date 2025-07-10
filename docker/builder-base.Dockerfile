@@ -1,10 +1,7 @@
-FROM nikolaik/python-nodejs:python3.13-nodejs23
+FROM nikolaik/python-nodejs:python3.13-nodejs24
 ARG CODEX_BUILDER_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
-
-# hadolint ignore=DL4006
-RUN curl -fsSL https://deb.nodesource.com/setup_23.x | bash -o pipefail -s --
 
 # **** install codex system build dependency packages ****"
 COPY docker/debian.sources /etc/apt/sources.list.d/
@@ -31,7 +28,5 @@ RUN apt-get clean \
 
 WORKDIR /app
 
-COPY builder-requirements.txt ./
 # hadolint ignore=DL3013,DL3042
-RUN pip3 install --no-cache --upgrade pip \
-  && pip3 install --no-cache --requirement builder-requirements.txt
+RUN pip3 install --no-cache --upgrade pip
