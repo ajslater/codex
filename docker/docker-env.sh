@@ -4,8 +4,8 @@ set -euo pipefail
 ./docker/install-uv.sh
 PATH=$PATH:"$HOME/.local/bin"
 export PATH
+PKG_VERSION=$(uv version --short)
 pip3 install --upgrade pip
-PKG_VERSION=$(./bin/version.sh)
 ENV_FN=$(./docker/docker-env-filename.sh)
 rm -f "$ENV_FN"
 # shellcheck disable=SC1091,SC2129
