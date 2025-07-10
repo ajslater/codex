@@ -42,7 +42,7 @@ jobs:
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
   build-base-arm64:
-    !!merge <<: *build-base
+    <<: *build-base
     executor: arm64-medium-executor
   test-amd64:
     executor: amd64-medium-executor
@@ -118,7 +118,7 @@ jobs:
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
           success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** built."
   build-arm64:
-    !!merge <<: *build
+    <<: *build
     executor: arm64-medium-executor
   deploy:
     executor: amd64-medium-executor
@@ -165,25 +165,25 @@ workflows:
                 - pre-release
                 - main
       - test-amd64:
-          !!merge <<: *filters-all
+          <<: *filters-all
           requires:
             - build-base-amd64
       - build-dist:
-          !!merge <<: *filters-all
+          <<: *filters-all
           requires:
             - test-amd64
       - build-amd64:
-          !!merge <<: *filters-release
+          <<: *filters-release
           requires:
             - build-base-amd64
             - build-dist
       - build-arm64:
-          !!merge <<: *filters-release
+          <<: *filters-release
           requires:
             - build-base-arm64
             - build-dist
       - deploy:
-          !!merge <<: *filters-release
+          <<: *filters-release
           requires:
             - build-amd64
             - build-arm64
