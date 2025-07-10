@@ -126,7 +126,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run: uv publish
       - run:
           command: ./docker/docker-install-api-deps.sh
           name: Install docker API dependencies
@@ -144,8 +143,6 @@ jobs:
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
           success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** deployed."
-    docker:
-      - image: nikolaik/python-nodejs:latest
 version: 2.1
 workflows:
   main:
