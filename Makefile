@@ -65,7 +65,7 @@ build-choices:
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-build-frontend: clean-frontend build-choices
+build-frontend: clean-frontend
 	cd frontend && make build
 
 .PHONY: build-icons
