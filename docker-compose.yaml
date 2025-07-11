@@ -49,16 +49,12 @@ services:
     <<: *codex-dist-builder
     container_name: codex-backend-test
     volumes:
-      - ./codex/static_root:/app/codex/static_root
       - ./codex/static_build:/app/codex/static_build:ro
-      - ./test-results/:/app/test-results/
     command: make build-icons collectstatic test-backend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
     volumes:
-      - ./codex/static_build:/app/codex/static_build:ro
-      - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
     command: make build-backend
   codex-arch:

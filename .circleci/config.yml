@@ -70,6 +70,9 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-test
           name: "Backend: Test"
+      - persist_to_workspace:
+            paths:
+                - ./codex/static_root
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
