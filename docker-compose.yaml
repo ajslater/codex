@@ -58,7 +58,7 @@ services:
     container_name: codex-build-dist
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
-      - ./codex/static_root:/app/codex/static_root:ro
+      - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
     command: make build-backend
   codex-arch:

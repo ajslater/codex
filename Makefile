@@ -89,7 +89,7 @@ django-check:
 .PHONY: build-backend
 ## Build python package
 ## @category Build
-build-backend: build-icons collectstatic
+build-backend:
 	uv build
 
 .PHONY: build
