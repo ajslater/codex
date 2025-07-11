@@ -113,22 +113,26 @@ class StatusController:
         """Log finish of status with stats."""
         level = "INFO"
         suffix = ""
-        if count := status.complete:
+        if status.SINGLE:
+            count = ""
+        elif count := status.complete:
+            count = str(count)
             if elapsed := status.elapsed():
                 suffix = f" in {elapsed}"
             if persecond := status.per_second():
                 suffix += f" at a rate of {persecond}"
-        elif count == 0:
+        else:
             count = "no"
             level = "DEBUG"
-        if status.SINGLE or count is None:
-            count = ""
-
-        prefix_parts = (status.verbed(), str(count), status.ITEM_NAME)
-        prefix = " ".join(filter(None, prefix_parts))
 
         if status.LOG_SUCCESS:
             level = "SUCCESS"
+
+        prefix_parts = [status.verbed()]
+        if count:
+            prefix_parts.append(count)
+        prefix_parts.append(status.ITEM_NAME)
+        prefix = " ".join(prefix_parts)
 
         self.log.log(level, f"{prefix}{suffix}.")
 
