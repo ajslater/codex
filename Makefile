@@ -65,7 +65,7 @@ build-choices:
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-build-frontend: clean-frontend
+build-frontend:
 	cd frontend && make build
 
 .PHONY: build-icons
@@ -89,7 +89,7 @@ django-check:
 .PHONY: build-backend
 ## Build python package
 ## @category Build
-build-backend: build-icons
+build-backend: build-icons collectstatic
 	uv build
 
 .PHONY: build
