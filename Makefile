@@ -72,7 +72,7 @@ build-frontend: clean-frontend
 ## Build all icons from source
 ## @category Build
 build-icons:
-	bin/icons_transform.py
+	uv run bin/icons_transform.py
 
 .PHONY: collectstatic
 ## Collect static files for django
