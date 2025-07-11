@@ -65,11 +65,7 @@ build-choices:
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-<<<<<<< HEAD
-build-frontend: clean-frontend
-=======
 build-frontend:
->>>>>>> comicbox2
 	cd frontend && make build
 
 .PHONY: build-icons
