@@ -48,7 +48,7 @@ ATTR_EVENT_MAP = MappingProxyType(
 
 
 def _get_comic_matcher():
-    comic_regex = r"\.(cb[zt"
+    comic_regex = r"\.(cb[zt7"
     unsupported = []
     if Comicbox.is_unrar_supported():
         comic_regex += r"r"
