@@ -1,7 +1,18 @@
 [project]
 authors = [{ name = "AJ Slater", email = "aj@slater.net" }]
-license = { text = "GPL-3.0-only" }
-requires-python = "<4.0,>=3.10"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Web Environment",
+  "Framework :: Django :: 5.1",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: JavaScript",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Multimedia :: Graphics :: Viewers",
+]
 dependencies = [
   "aioprocessing~=2.0",
   "ansicolors~=1.1",
@@ -35,32 +46,21 @@ dependencies = [
   "Pillow~=11.3",
   "loguru~=0.7.3",
 ]
-name = "codex"
-version = "1.8.0a0"
 description = "A comic archive web server."
+keywords = ["comic", "cbz", "cbr", "cb7", "cbt", "pdf"]
+name = "codex"
+license = { text = "GPL-3.0-only" }
 readme = "README.md"
-keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
-classifiers = [
-  "Development Status :: 5 - Production/Stable",
-  "Environment :: Web Environment",
-  "Framework :: Django :: 5.1",
-  "Intended Audience :: End Users/Desktop",
-  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-  "Natural Language :: English",
-  "Operating System :: OS Independent",
-  "Programming Language :: JavaScript",
-  "Programming Language :: Python :: 3 :: Only",
-  "Topic :: Internet :: WWW/HTTP",
-  "Topic :: Multimedia :: Graphics :: Viewers",
-]
+requires-python = "<4.0,>=3.10"
+version = "1.8.0a1"
 
 [project.urls]
 News = "https://github.com/ajslater/codex/blob/main/NEWS.md"
 "Docker Image" = "https://hub.docker.com/r/ajslater/codex"
 "Report Issues" = "https://github.com/ajslater/codex/issues"
-homepage = "https://github.com/ajslater/codex"
 repository = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
+homepage = "https://github.com/ajslater/codex"
 
 [project.scripts]
 codex = "codex.run:main"
@@ -95,14 +95,24 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build.targets.sdist]
-include = ["codex", "tests", "codex/static_root/**/*"]
+[tool.hatch.build]
+ignore-vcs = true
+skip-excluded-dirs = true
+
+[tool.hatch.build.targets.wheel]
+artifacts = ["codex/static_root/**"]
 exclude = [
-  "*/**/*~",
-  "codex/img/*.svg",
-  "codex/static_src/*",
-  "codex/static_build/*",
+  "**/*~",
+  "codex/**/README.md",
+  "codex/img",
+  "codex/static_src",
+  "docker",
 ]
+packages = ["codex"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["**/*~"]
+packages = ["codex", "tests"]
 
 [tool.basedpyright]
 exclude = [
