@@ -42,10 +42,9 @@ jobs:
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
   build-base-arm64:
-    !!merge <<: *build-base
+    <<: *build-base
     executor: arm64-medium-executor
   test-amd64:
-    type: approval
     executor: amd64-medium-executor
     steps:
       - checkout
@@ -53,7 +52,7 @@ jobs:
           at: .
       - run:
           command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
+          name: Login to Docker Hub, install binfmt platform, & create the buildx builder
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"
@@ -119,16 +118,14 @@ jobs:
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
           success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** built."
   build-arm64:
-    !!merge <<: *build
+    <<: *build
     executor: arm64-medium-executor
   deploy:
-    type: release
     executor: amd64-medium-executor
     steps:
       - checkout
       - attach_workspace:
           at: .
-      - run: uv publish
       - run:
           command: ./docker/docker-install-api-deps.sh
           name: Install docker API dependencies
@@ -146,8 +143,6 @@ jobs:
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
           success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** deployed."
-    docker:
-      - image: nikolaik/python-nodejs:latest
 version: 2.1
 workflows:
   main:
@@ -167,25 +162,25 @@ workflows:
                 - pre-release
                 - main
       - test-amd64:
-          !!merge <<: *filters-all
+          <<: *filters-all
           requires:
             - build-base-amd64
       - build-dist:
-          !!merge <<: *filters-all
+          <<: *filters-all
           requires:
             - test-amd64
       - build-amd64:
-          !!merge <<: *filters-release
+          <<: *filters-release
           requires:
             - build-base-amd64
             - build-dist
       - build-arm64:
-          !!merge <<: *filters-release
+          <<: *filters-release
           requires:
             - build-base-arm64
             - build-dist
       - deploy:
-          !!merge <<: *filters-release
+          <<: *filters-release
           requires:
             - build-amd64
             - build-arm64

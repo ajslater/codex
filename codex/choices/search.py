@@ -36,7 +36,9 @@ def gen_multipart_field_aliases(field):
 
     # Singular from plural
     if field.endswith("s"):
-        aliases.add(field[:-1])
+        singular = field[:-1]
+        if not singular.endswith("ie"):
+            aliases.add(singular)
 
     # Alternate delimiters
     for connector in ("", "-"):

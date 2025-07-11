@@ -1,6 +1,4 @@
 __pycache__
-!dist
-!docker/debian.sources
 .circleci
 .coverage*
 .docker-token
@@ -36,3 +34,5 @@ test-results
 TODO.md
 update-builder-requirement.sh
 version.sh
+!dist
+!docker/debian.sources
