@@ -4,24 +4,25 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
-from codex.librarian.scribe.importer.const import FIS
+from codex.librarian.scribe.importer.const import (
+    BULK_UPDATE_FAILED_IMPORT_FIELDS,
+    CREATE_FIS,
+    DELETE_FI_PATHS,
+    FIS,
+    UPDATE_FIS,
+)
 from codex.librarian.scribe.importer.delete import DeletedImporter
 from codex.librarian.scribe.importer.status import ImporterFailedImportsStatus
 from codex.models import Comic, FailedImport
-
-_UPDATE_FIS = "update_fis"
-_CREATE_FIS = "create_fis"
-_DELETE_FI_PATHS = "delete_fi_paths"
-_BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 
 
 class FailedImportsImporter(DeletedImporter):
     """Methods for failed imports."""
 
-    def _query_failed_import_deletes(self, existing_failed_import_paths):
+    def _query_failed_import_deletes(self, existing_failed_import_paths, new_fis_paths):
         """Calculate Deletes."""
         untouched_failed_import_paths = existing_failed_import_paths - frozenset(
-            self.metadata[FIS].keys()
+            new_fis_paths
         )
 
         succeeded_failed_imports = frozenset(
@@ -35,22 +36,13 @@ class FailedImportsImporter(DeletedImporter):
         )
         missing_failed_imports = set()
         for path in possibly_missing_failed_import_paths:
-            if not Path(path).exists():
+            if not Path(path).is_file():
                 missing_failed_imports.add(path)
 
         return succeeded_failed_imports | missing_failed_imports
 
-    def _query_failed_imports(
-        self,
-        fis,
-    ):
+    def _query_failed_imports(self):
         """Determine what to do with failed imports."""
-        if not self.metadata[FIS]:
-            return
-
-        # Remove the files deleted hack thing.
-        self.metadata[FIS].pop("files_deleted", None)
-
         existing_failed_import_paths = set(
             FailedImport.objects.filter(library=self.library).values_list(
                 "path", flat=True
@@ -58,25 +50,29 @@ class FailedImportsImporter(DeletedImporter):
         )
 
         # Calculate creates and updates
-        for path, exc in self.metadata[FIS].items():
+        fis = self.metadata.pop(FIS, {})
+        self.metadata[UPDATE_FIS] = {}
+        self.metadata[CREATE_FIS] = {}
+        for path, exc in fis.items():
             if path in existing_failed_import_paths:
-                fis[_UPDATE_FIS][path] = exc
+                self.metadata[UPDATE_FIS][path] = exc
             else:
-                fis[_CREATE_FIS][path] = exc
+                self.metadata[CREATE_FIS][path] = exc
 
-        fis[_DELETE_FI_PATHS] |= self._query_failed_import_deletes(
-            existing_failed_import_paths
+        if DELETE_FI_PATHS not in self.metadata:
+            self.metadata[DELETE_FI_PATHS] = set()
+        self.metadata[DELETE_FI_PATHS] |= self._query_failed_import_deletes(
+            existing_failed_import_paths, fis.keys()
         )
-        self.metadata.pop(FIS)
-        return
 
-    def _bulk_update_failed_imports(self, update_failed_imports):
+    def _bulk_update_failed_imports(self):
         """Bulk update failed imports."""
+        update_failed_imports = self.metadata.pop(UPDATE_FIS, None)
         if not update_failed_imports:
             return
         update_failed_import_objs = FailedImport.objects.filter(
             library=self.library, path__in=update_failed_imports.keys()
-        ).only(*_BULK_UPDATE_FAILED_IMPORT_FIELDS)
+        ).only(*BULK_UPDATE_FAILED_IMPORT_FIELDS)
         if not update_failed_import_objs:
             return
         for fi in update_failed_import_objs:
@@ -93,15 +89,16 @@ class FailedImportsImporter(DeletedImporter):
                 )
 
         FailedImport.objects.bulk_update(
-            update_failed_import_objs, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
+            update_failed_import_objs, fields=BULK_UPDATE_FAILED_IMPORT_FIELDS
         )
         count = len(update_failed_import_objs)
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Updated {count} old failed imports.")
         return
 
-    def _bulk_create_failed_imports(self, create_failed_imports):
+    def _bulk_create_failed_imports(self):
         """Bulk create failed imports."""
+        create_failed_imports = self.metadata.pop(CREATE_FIS, None)
         if not create_failed_imports:
             return 0
         create_objs = []
@@ -122,15 +119,16 @@ class FailedImportsImporter(DeletedImporter):
             FailedImport.objects.bulk_create(
                 create_objs,
                 update_conflicts=True,
-                update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
+                update_fields=BULK_UPDATE_FAILED_IMPORT_FIELDS,
                 unique_fields=FailedImport._meta.unique_together[0],
             )
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Added {count} comics to failed imports.")
         return count
 
-    def _bulk_cleanup_failed_imports(self, delete_failed_imports_paths):
+    def _bulk_cleanup_failed_imports(self):
         """Remove FailedImport objects that have since succeeded."""
+        delete_failed_imports_paths = self.metadata.pop(DELETE_FI_PATHS, None)
         if not delete_failed_imports_paths:
             return 0
         # Cleanup FailedImports that were actually successful
@@ -154,14 +152,10 @@ class FailedImportsImporter(DeletedImporter):
         created_count = 0
 
         try:
-            fis = {_UPDATE_FIS: {}, _CREATE_FIS: {}, _DELETE_FI_PATHS: set()}
-            if self.task.files_deleted:
-                # if any files were deleted. Run the failed import check
-                self.metadata[FIS]["files_deleted"] = True
-            self._query_failed_imports(fis)
-            self._bulk_update_failed_imports(fis[_UPDATE_FIS])
-            created_count += self._bulk_create_failed_imports(fis[_CREATE_FIS])
-            self._bulk_cleanup_failed_imports(fis[_DELETE_FI_PATHS])
+            self._query_failed_imports()
+            self._bulk_update_failed_imports()
+            created_count += self._bulk_create_failed_imports()
+            self._bulk_cleanup_failed_imports()
         except Exception:
             self.log.exception("Processing failed imports")
         self.status_controller.finish(status)
