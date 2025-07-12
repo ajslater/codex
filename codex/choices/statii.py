@@ -8,11 +8,11 @@ from codex.librarian.covers.status import COVERS_STATII
 from codex.librarian.restarter.status import RESTARTER_STATII
 from codex.librarian.scribe.importer.statii.create import CREATE_STATII
 from codex.librarian.scribe.importer.statii.delete import REMOVE_STATII
+from codex.librarian.scribe.importer.statii.failed import FAILED_IMPORTS_STATII
 from codex.librarian.scribe.importer.statii.link import LINK_STATII
 from codex.librarian.scribe.importer.statii.query import QUERY_STATII
 from codex.librarian.scribe.importer.statii.read import READ_STATII
 from codex.librarian.scribe.importer.statii.search import IMPORTER_SEARCH_INDEX_STATII
-from codex.librarian.scribe.importer.status import FAILED_IMPORTS_STATII
 from codex.librarian.scribe.janitor.status import JANITOR_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII

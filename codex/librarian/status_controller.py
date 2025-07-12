@@ -4,9 +4,11 @@ from collections.abc import Iterable
 from inspect import isclass
 from multiprocessing import Queue
 from time import time
+from types import MappingProxyType
 from typing import Any
 
 from django.db.models.functions.datetime import Now
+from django.db.models.query import Q
 from django.utils.timezone import datetime, now, timedelta
 from loguru._logger import Logger
 
@@ -137,30 +139,45 @@ class StatusController:
         self.log.log(level, f"{prefix}{suffix}.")
 
     def finish_many(
-        self, statii: Iterable[Status | type[Status]], *, notify: bool = True
+        self, statii: Iterable[Status | type[Status] | None], *, notify: bool = True
     ):
         """Finish all librarian statuses."""
+        positive_statii: MappingProxyType[str, Status | type[Status]] = (
+            MappingProxyType({status.CODE: status for status in statii if status})
+        )
         try:
-            type_codes = frozenset(status.CODE for status in statii)
-            ls_filter = {"status_type__in": type_codes} if type_codes else {}
+            if statii and not positive_statii:
+                # if statii has elements but they were all None, this is a noop.
+                # But if statii was empty this is a finish all command.
+                return
+            # Filter on submitted codes or all statii if nothing.
+            ls_filter_dict: dict[str, Any] = (
+                {"status_type__in": positive_statii.keys()} if positive_statii else {}
+            )
+            # Filter all active or preactive statii
+            ls_filter = (Q(active__isnull=False) | Q(preactive__isnull=False)) & Q(
+                **ls_filter_dict
+            )
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
-            lses = LibrarianStatus.objects.filter(**ls_filter)
+            lses = LibrarianStatus.objects.filter(ls_filter)
             update_ls = []
+            log_statii = []
             for ls in lses.iterator():
                 for key, value in updates.items():
                     setattr(ls, key, value)
                 update_ls.append(ls)
+                log_statii.append(positive_statii[ls.status_type])
+
             LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
             self._enqueue_notifier_task(notify=notify)
-            if not ls_filter:
+            if not ls_filter_dict:
                 self.log.info("Cleared all librarian statuses")
-            for status in statii:
-                if isinstance(status, Status):
-                    self._log_finish(status)
+            for status in log_statii:
+                self._log_finish(status)
         except Exception as exc:
-            self.log.warning(f"Finish status {statii}: {exc}")
+            self.log.warning(f"Finish status {positive_statii}: {exc}")
 
-    def finish(self, status: Status, *, notify: bool = True):
+    def finish(self, status: Status | None, *, notify: bool = True):
         """Finish a librarian status."""
         try:
             self.finish_many((status,), notify=notify)

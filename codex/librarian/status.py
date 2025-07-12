@@ -9,12 +9,12 @@ from humanize import intword, naturaldelta
 
 
 @dataclass
-class Status(ABC):  # noqa: B024
+class Status(ABC):
     """Keep track of librarians status in memory."""
 
-    CODE: ClassVar[str] = "UNASSIGNED"
-    VERB: ClassVar[str] = "Operate"
-    ITEM_NAME: ClassVar[str] = "items"
+    CODE: ClassVar[str]
+    VERB: ClassVar[str]
+    ITEM_NAME: ClassVar[str]
     SINGLE: ClassVar[bool] = False
     LOG_SUCCESS: ClassVar[bool] = False
     _title: ClassVar[str] = ""

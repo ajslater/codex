@@ -18,8 +18,10 @@ from codex.librarian.scribe.importer.const import (
     QUERY_MODELS,
 )
 from codex.librarian.scribe.importer.read.folders import AggregatePathMetadataImporter
+from codex.librarian.scribe.importer.statii.failed import (
+    ImporterFailedImportsQueryStatus,
+)
 from codex.librarian.scribe.importer.statii.read import ImporterAggregateStatus
-from codex.librarian.scribe.importer.status import ImporterFailedImportsStatus
 
 _UNUSED_COMICBOX_FIELDS = (
     "alternate_images",
@@ -102,7 +104,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         fis = self.metadata[FIS].keys()
 
         # Set statii
-        fi_status = ImporterFailedImportsStatus(0, len(fis))
+        fi_status = ImporterFailedImportsQueryStatus(0, len(fis))
         self.status_controller.update(fi_status, notify=False)
         self.status_controller.finish(status)
         return status.complete
