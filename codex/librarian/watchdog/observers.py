@@ -4,10 +4,6 @@ from multiprocessing.queues import Queue
 
 from typing_extensions import override
 from watchdog.events import (
-    DirCreatedEvent,
-    FileClosedEvent,
-    FileClosedNoWriteEvent,
-    FileOpenedEvent,
     FileSystemEvent,
     FileSystemEventHandler,
 )
@@ -19,7 +15,8 @@ from watchdog.observers.api import (
     ObservedWatch,
 )
 
-from codex.librarian.watchdog.emitter import DatabasePollingEmitter
+from codex.librarian.watchdog.const import EVENT_FILTER
+from codex.librarian.watchdog.emitter import DatabasePollingEmitter, extend_event_filter
 from codex.librarian.watchdog.handlers import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
@@ -27,16 +24,9 @@ from codex.librarian.watchdog.handlers import (
 from codex.librarian.worker import WorkerMixin
 from codex.models import Library
 
-_IGNORED_EVENTS: tuple[type[FileSystemEvent], ...] = (
-    DirCreatedEvent,
-    FileClosedEvent,
-    FileClosedNoWriteEvent,
-    FileOpenedEvent,
-)
-
 
 class UatuObserver(WorkerMixin, BaseObserver):
-    """Watch over librarys from the blue area of the moon."""
+    """Watch over libraries from the blue area of the moon."""
 
     ENABLE_FIELD: str = ""
     ALWAYS_WATCH: bool = False
@@ -134,13 +124,19 @@ class UatuObserver(WorkerMixin, BaseObserver):
 
     @override
     def schedule(
-        self, event_handler: FileSystemEventHandler, path: str, **kwargs
+        self,
+        event_handler: FileSystemEventHandler,
+        path: str,
+        *,
+        event_filter: list[type[FileSystemEvent]] | None = None,
+        **kwargs,
     ) -> ObservedWatch:
         """Override BaseObserver for Codex emitter class."""
         if self._emitter_class != DatabasePollingEmitter:
             return super().schedule(event_handler, path, **kwargs)
         with self._lock:
-            watch = ObservedWatch(path, **kwargs)
+            event_filter = extend_event_filter(event_filter, EVENT_FILTER)
+            watch = ObservedWatch(path, event_filter=event_filter, **kwargs)
             self._add_handler_for_watch(event_handler, watch)
             if self._emitter_for_watch.get(watch) is None:
                 self._add_emitter_for_watch(event_handler, watch)

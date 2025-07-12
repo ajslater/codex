@@ -94,19 +94,22 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         mem_limit_gb = get_mem_limit("g")
         self.max_items = int(self.MAX_ITEMS_PER_GB * mem_limit_gb)
 
-    def _args_field_by_event(self, library_id, event):
+    def _args_field_by_event(self, library_id: int, event: FileSystemEvent):
         """Translate event class names into field names."""
         if library_id not in self.cache:
             self.cache[library_id] = self.create_import_task_args(library_id)
-        key = EVENT_CLASS_DIFF_ALL_MAP[type(event)]
-        return self.cache[library_id].get(key)
+        if key := EVENT_CLASS_DIFF_ALL_MAP.get(type(event)):
+            args_field = self.cache[library_id].get(key)
+        else:
+            args_field = None
+        return args_field
 
     @override
     def aggregate_items(self, item):
         """Aggregate events into cache by library."""
         event = item.event
         args_field = self._args_field_by_event(item.library_id, event)
-        if args_field is None:
+        if not args_field:
             self.log.debug(f"Unhandled event, not batching: {event}")
             return
         if event.event_type == EVENT_TYPE_MOVED:

@@ -173,20 +173,20 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
                     self._create_comicfts_entry(pk, entry, obj_list, status)
                 updated_pks = pks
             else:
-                comic_ids = tuple(self.metadata[FTS_UPDATE].keys())
-                comicftss = ComicFTS.objects.filter(comic_id__in=comic_ids)
-                for comicfts in comicftss:
-                    if self.abort_event.is_set():
-                        return tuple(updated_pks)
-                    self._update_comicfts_entry(comicfts, obj_list, status)
+                if pks := tuple(self.metadata[FTS_UPDATE].keys()):
+                    comicftss = ComicFTS.objects.filter(comic_id__in=pks)
+                    for comicfts in comicftss:
+                        if self.abort_event.is_set():
+                            return updated_pks
+                        self._update_comicfts_entry(comicfts, obj_list, status)
                 self.metadata.pop(FTS_UPDATE)
-
             self.log.debug(f"Preparing {total_entries} comics for search indexing...")
             self._update_search_index_create_or_update(
                 obj_list,
                 status,
                 create=create,
             )
+            updated_pks = pks
 
         finally:
             self.status_controller.finish(status)
