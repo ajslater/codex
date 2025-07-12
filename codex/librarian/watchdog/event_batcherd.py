@@ -46,8 +46,8 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     MAX_DELAY = 60.0
     MAX_ITEMS_PER_GB = 50000
 
-    @classmethod
-    def create_import_task_args(cls, library_id: int) -> dict:
+    @staticmethod
+    def create_import_task_args(library_id: int) -> dict:
         """Create import task args."""
         args = deepcopy(dict(_IMPORT_TASK_PARAMS))
         args["library_id"] = library_id  # pyright: ignore[reportArgumentType]
@@ -101,22 +101,23 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         if key := EVENT_CLASS_DIFF_ALL_MAP.get(type(event)):
             args_field = self.cache[library_id].get(key)
         else:
-            args_field = None
+            reason = f"Unhandled event, not batching: {event}"
+            raise ValueError(reason)
         return args_field
 
     @override
     def aggregate_items(self, item):
         """Aggregate events into cache by library."""
         event = item.event
-        args_field = self._args_field_by_event(item.library_id, event)
-        if not args_field:
-            self.log.debug(f"Unhandled event, not batching: {event}")
-            return
-        if event.event_type == EVENT_TYPE_MOVED:
-            args_field[event.src_path] = event.dest_path
-        else:
-            args_field.add(event.src_path)
-        self._total_items += 1
+        try:
+            args_field = self._args_field_by_event(item.library_id, event)
+            if event.event_type == EVENT_TYPE_MOVED:
+                args_field[event.src_path] = event.dest_path
+            else:
+                args_field.add(event.src_path)
+            self._total_items += 1
+        except ValueError as exc:
+            self.log.debug(exc)
         if self._total_items > self.max_items:
             reason = (
                 "Event batcher hit size limit."
