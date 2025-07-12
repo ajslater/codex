@@ -27,7 +27,7 @@
     <template #[`item.lastPoll`]="{ item }">
       <DateTimeColumn :dttm="item.lastPoll" />
     </template>
-    <template #[`item.groups`]="{ item }">
+    <template v-if="isGroups" #[`item.groups`]="{ item }">
       <RelationChips
         :pks="item.groups"
         :objs="groups"
@@ -160,7 +160,7 @@ export default {
           { title: "Last Poll", key: "lastPoll" },
         ],
       );
-      if (!this.coversDir) {
+      if (!this.coversDir && this.isGroups) {
         headers.push({ title: "Groups", key: "groups" });
       }
       headers.push({ title: "Actions", key: "actions", sortable: false });
@@ -188,6 +188,9 @@ export default {
       } else {
         return "small";
       }
+    },
+    isGroups() {
+      return Boolean(this.groups?.length);
     },
   },
   mounted() {
