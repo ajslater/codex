@@ -98,7 +98,7 @@ class SearchIndexerSync(SearchIndexerRemove):
             self.log.info("Rebuilding search index...")
             self.clear_search_index()
         else:
-            self.remove_stale_records()
+            self.remove_stale_records(log_success=False)
 
     @staticmethod
     def _select_related_fts_query(qs):
@@ -360,7 +360,7 @@ class SearchIndexerSync(SearchIndexerRemove):
 
         if self.abort_event.is_set():
             return
-        self._update_search_index_clean(rebuild)
+        cleaned_count = self._update_search_index_clean(rebuild)
         if self.abort_event.is_set():
             return
         updated_count = self._update_search_index_update()
@@ -370,11 +370,18 @@ class SearchIndexerSync(SearchIndexerRemove):
 
         elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)
-        cleaned = "cleared" if rebuild else "cleaned"
+        if rebuild:
+            cleaned = "cleared entire search index"
+        elif cleaned_count:
+            cleaned = f"cleaned {cleaned_count} stale entries"
+        else:
+            cleaned = ""
         updated = f"{updated_count} entries updated by sync" if updated_count else ""
         created = f"{created_count} entries created by sync" if created_count else ""
         summary_parts = filter(None, (cleaned, updated, created))
         summary = ", ".join(summary_parts)
+        if not summary:
+            summary = "found to be already synced"
         self.log.success(f"Search index {summary} in {elapsed}.")
 
     def update_search_index(self, *, rebuild: bool):
