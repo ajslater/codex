@@ -42,8 +42,6 @@ class Status(ABC):
             cls._verbed = cls.VERB + "d"
         return cls._verbed
 
-
-
     def increment_complete(self, count: int = 1):
         """Add count to complete."""
         self.complete = self.complete + count if self.complete else count

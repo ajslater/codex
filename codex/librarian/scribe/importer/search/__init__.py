@@ -21,7 +21,7 @@ class SearchIndexImporter(SearchIndexPrepareImporter):
         indexer = SearchIndexer(
             self.log, self.librarian_queue, self.db_write_lock, event=self.abort_event
         )
-        return indexer.remove_stale_records()
+        return indexer.remove_stale_records(log_success=False)
 
     def full_text_search(self):
         """Sync the fts index with the imported database."""
