@@ -13,6 +13,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCodexLatestVersionStatus,
     JanitorDBBackupStatus,
     JanitorDBFKIntegrityStatus,
+    JanitorDBFTSIntegrityStatus,
     JanitorDBIntegrityStatus,
     JanitorDBOptimizeStatus,
 )
@@ -36,28 +37,34 @@ from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
 from codex.librarian.scribe.search.status import (
     SearchIndexCleanStatus,
     SearchIndexOptimizeStatus,
+    SearchIndexSyncCreateStatus,
+    SearchIndexSyncUpdateStatus,
 )
 from codex.librarian.scribe.search.tasks import (
     SearchIndexOptimizeTask,
+    SearchIndexSyncTask,
 )
 from codex.models import Timestamp
 
 _JANITOR_STATII = (
     JanitorCodexLatestVersionStatus,
+    JanitorAdoptOrphanFoldersStatus,
+    ImporterMoveFoldersStatus,
     JanitorDBFKIntegrityStatus,
     JanitorDBIntegrityStatus,
-    JanitorCleanupCoversStatus,
+    JanitorDBFTSIntegrityStatus,
     JanitorCleanupTagsStatus,
+    JanitorCleanupCoversStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupBookmarksStatus,
+    SearchIndexCleanStatus,
+    SearchIndexSyncUpdateStatus,
+    SearchIndexSyncCreateStatus,
+    SearchIndexOptimizeStatus,
     JanitorDBOptimizeStatus,
     JanitorDBBackupStatus,
     FindOrphanCoversStatus,
     RemoveCoversStatus,
-    JanitorAdoptOrphanFoldersStatus,
-    ImporterMoveFoldersStatus,
-    SearchIndexCleanStatus,
-    SearchIndexOptimizeStatus,
 )
 
 
@@ -78,6 +85,7 @@ class Janitor(JanitorCodexUpdate):
                 JanitorCleanCoversTask(),
                 JanitorCleanupSessionsTask(),
                 JanitorCleanupBookmarksTask(),
+                SearchIndexSyncTask(),
                 SearchIndexOptimizeTask(),
                 JanitorVacuumTask(),
                 JanitorBackupTask(),
