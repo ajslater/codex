@@ -17,7 +17,7 @@ class SearchIndexClearStatus(SearchIndexStatus):
     _verbed = "Cleared"
     ITEM_NAME = "full text search table"
     SINGLE = True
-    LOG_SUCCESS = True
+    log_success = True
 
 
 class SearchIndexCleanStatus(SearchIndexStatus):
@@ -36,7 +36,7 @@ class SearchIndexOptimizeStatus(SearchIndexStatus):
     VERB = "Optimize"
     ITEM_NAME = "search virtual table"
     SINGLE = True
-    LOG_SUCCESS = True
+    log_success = True
 
 
 class SearchIndexSyncUpdateStatus(SearchIndexStatus):

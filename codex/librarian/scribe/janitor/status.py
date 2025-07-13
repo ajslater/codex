@@ -44,6 +44,7 @@ class JanitorCodexUpdateStatus(JanitorStatus):
     VERB = "Update"
     ITEM_NAME = "Codex server software"
     SINGLE = True
+    log_success = True
 
 
 class JanitorDBOptimizeStatus(JanitorStatus):
@@ -53,7 +54,7 @@ class JanitorDBOptimizeStatus(JanitorStatus):
     VERB = "Optimize"
     ITEM_NAME = "database"
     SINGLE = True
-    LOG_SUCCESS = True
+    log_success = True
 
 
 class JanitorDBBackupStatus(JanitorStatus):
@@ -131,7 +132,7 @@ class JanitorDBFTSRebuildStatus(JanitorStatus):
     _verbed = "Rebuilt"
     ITEM_NAME = "full text search virtual table"
     SINGLE = True
-    LOG_SUCCESS = True
+    log_success = True
 
 
 JANITOR_STATII = (

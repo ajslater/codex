@@ -127,7 +127,7 @@ class StatusController:
             count = "no"
             level = "DEBUG"
 
-        if status.LOG_SUCCESS:
+        if status.log_success:
             level = "SUCCESS"
 
         prefix_parts = [status.verbed()]
