@@ -144,7 +144,7 @@ export default {
         { title: comicsHeader, key: "comicCount" },
       ];
       if (this.isFailedImports) {
-        headers.push({ title: "Failed", key: "FailedCount" });
+        headers.push({ title: "Failed", key: "failedCount" });
       }
       headers.push(
         ...[
