@@ -21,6 +21,7 @@ from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
 from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
+from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, WakeCronTask
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
@@ -63,6 +64,7 @@ class LibrarianDaemon(Process):
         startup_tasks = (
             JanitorAdoptOrphanFoldersTask(),
             WatchdogSyncTask(),
+            SearchIndexSyncTask(),
         )
 
         for task in startup_tasks:
