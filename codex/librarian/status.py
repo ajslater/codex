@@ -16,7 +16,6 @@ class Status(ABC):
     VERB: ClassVar[str]
     ITEM_NAME: ClassVar[str]
     SINGLE: ClassVar[bool] = False
-    LOG_SUCCESS: ClassVar[bool] = False
     _title: ClassVar[str] = ""
     _verbed: ClassVar[str] = ""
 
@@ -25,6 +24,7 @@ class Status(ABC):
     since_updated: float = 0.0
     subtitle: str = ""
     start_time: float | None = None
+    log_success: bool = False
 
     @classmethod
     def title(cls):
@@ -41,6 +41,8 @@ class Status(ABC):
         if not cls._verbed:
             cls._verbed = cls.VERB + "d"
         return cls._verbed
+
+
 
     def increment_complete(self, count: int = 1):
         """Add count to complete."""
