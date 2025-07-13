@@ -71,7 +71,7 @@ def init_timestamps():
 
 def init_librarian_statuses():
     """Init librarian statuses."""
-    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES.labels)
+    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES.values)
 
     for status_type, title in LibrarianStatus.CHOICES.choices:
         _, created = LibrarianStatus.objects.update_or_create(
