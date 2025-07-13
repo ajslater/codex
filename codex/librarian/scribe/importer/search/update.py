@@ -128,7 +128,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         *,
         create: bool,
     ):
-        if self.abort_event.is_set():
+        if obj_list or not self.abort_event.is_set():
             return
         verb = "create" if create else "update"
         verbing = (verb[:-1] + "ing").capitalize()
@@ -161,6 +161,10 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
                 self.log.debug(f"No search entries to {verb}.")
                 return updated_pks
             self.status_controller.start(status)
+            verbing = "creating" if create else "updating"
+            self.log.debug(
+                f"Preparing {total_entries} comics for search index {verbing}..."
+            )
 
             obj_list = []
             if create:
@@ -179,8 +183,15 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
                         if self.abort_event.is_set():
                             return updated_pks
                         self._update_comicfts_entry(comicfts, obj_list, status)
+                    if self.metadata[FTS_UPDATE]:
+                        # If updates not popped, turn them into creates.
+                        if FTS_CREATE not in self.metadata:
+                            self.metadata[FTS_CREATE] = {}
+                        self.metadata[FTS_CREATE].update(self.metadata[FTS_UPDATE])
                 self.metadata.pop(FTS_UPDATE)
-            self.log.debug(f"Preparing {total_entries} comics for search indexing...")
+            self.log.debug(
+                f"Prepared {len(obj_list)} comics for search index {verbing}..."
+            )
             self._update_search_index_create_or_update(
                 obj_list,
                 status,
