@@ -115,12 +115,12 @@ class StatusController:
         """Log finish of status with stats."""
         level = "INFO"
         suffix = ""
+        if elapsed := status.elapsed():
+            suffix += f" in {elapsed}"
         if status.SINGLE:
             count = ""
         elif count := status.complete:
             count = str(count)
-            if elapsed := status.elapsed():
-                suffix = f" in {elapsed}"
             if persecond := status.per_second():
                 suffix += f" at a rate of {persecond}"
         else:
