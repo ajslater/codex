@@ -43,18 +43,18 @@ class SearchIndexSyncUpdateStatus(SearchIndexStatus):
     """Search Index Sync Update Status."""
 
     CODE = "SSU"
-    VERB = "Sync old"
-    _verbed = "Synced old"
-    ITEM_NAME = "search entries"
+    VERB = "Sync"
+    _verbed = "Synced"
+    ITEM_NAME = "old search entries"
 
 
 class SearchIndexSyncCreateStatus(SearchIndexStatus):
     """Search Index Sync Create Status."""
 
     CODE = "SSC"
-    VERB = "Sync new"
-    _verbed = "Synced new"
-    ITEM_NAME = "search entries"
+    VERB = "Sync"
+    _verbed = "Synced"
+    ITEM_NAME = "new search entries"
 
 
 SEARCH_INDEX_STATII = (
