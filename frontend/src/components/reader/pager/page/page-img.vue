@@ -41,11 +41,8 @@ export default {
       s.transform = `scale(${this.scale})`;
       return s;
     },
-    bookSettings() {
-      return this.getBookSettings(this.book);
-    },
     classes() {
-      return this.bookSettings.fitToClass;
+      return this.bookSettings(this.book).fitToClass;
     },
   },
   methods: {
