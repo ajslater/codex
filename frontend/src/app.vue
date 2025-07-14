@@ -8,27 +8,28 @@
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
-import { useSocketStore } from "@/stores/socket";
 
 export default {
   name: "App",
   computed: {
-    ...mapState(useSocketStore, {
-      isConnected: (state) => state.isConnected,
-    }),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
   },
   watch: {
-    user() {
-      this.setTimezone();
+    user(to) {
+      if (to) {
+        this.setTimezone();
+      }
     },
   },
   async created() {
-    this.setTimezone();
     this.loadAdminFlags();
-    this.loadProfile();
+    this.loadProfile().then(() => {
+      if (this.user) {
+        this.setTimezone();
+      }
+    });
   },
   methods: {
     ...mapActions(useAuthStore, [
