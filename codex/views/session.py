@@ -131,6 +131,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             params = deepcopy(dict(params))
             defaults = mapping_to_dict(self.SESSION_DEFAULTS[self.SESSION_KEY])
             data = self._get_source_values_or_set_defaults(defaults, params, {})
+            data = mapping_to_dict(data)
             self.request.session[self.SESSION_KEY] = data
             self.request.session.save()
         except Exception as exc:

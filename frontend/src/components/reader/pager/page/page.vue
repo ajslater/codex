@@ -93,8 +93,11 @@ export default {
     component() {
       return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
     },
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
     twoPages() {
-      return this.getBookSettings(this.book).twoPages;
+      return this.bookSettings.twoPages;
     },
   },
   mounted() {

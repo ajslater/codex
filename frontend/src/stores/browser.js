@@ -382,7 +382,7 @@ export const useBrowserStore = defineStore("browser", {
         } else {
           /*
            * New top group is a child (REVERSED)
-           * Redrect to the new root.
+           * Redirect to the new root.
            */
           params = { group: "r", pks: "0", page: "1" };
         }
