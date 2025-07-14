@@ -56,9 +56,6 @@
       "preset-prettier"
     ]
   },
-  "dependencies": {
-    "eslint-config-prettier": "^10.1.1"
-  },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
     "@eslint/json": "^0.13.0",
@@ -67,6 +64,7 @@
     "@stylistic/eslint-plugin": "^5.1.0",
     "eslint": "^9.21.0",
     "eslint_d": "^14.2.2",
+    "eslint-config-prettier": "^10.1.1",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-array-func": "^5.0.1",
     "eslint-plugin-depend": "^1.0.0",
