@@ -40,7 +40,6 @@
     "@unhead/addons": "^2.0.0-rc.5",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vitest/eslint-plugin": "^1.1.7",
-    "@vtsls/language-server": "^0.2.9",
     "@vue/test-utils": "^2.2.1",
     "@vue/typescript-plugin": "^3.0.1",
     "eslint-plugin-vue": "^10.0.0",
@@ -55,7 +54,6 @@
     "vite-plugin-run": "^0.6.0",
     "vite-plugin-vuetify": "^2.0.1",
     "vitest": "^3.0.2",
-    "vls": "^0.8.5",
     "vue-eslint-parser": "^10.1.1"
   }
 }
