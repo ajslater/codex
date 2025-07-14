@@ -1,6 +1,5 @@
 """Views for reading comic books."""
 
-from copy import deepcopy
 from types import MappingProxyType
 from typing import Any
 
@@ -8,6 +7,7 @@ from loguru import logger
 
 from codex.serializers.fields.reader import VALID_ARC_GROUPS
 from codex.serializers.reader import ReaderViewInputSerializer
+from codex.util import mapping_to_dict
 from codex.views.session import SessionView
 
 
@@ -59,11 +59,11 @@ class ReaderParamsView(SessionView):
                 serializer = self.input_serializer_class(data=self.request.GET)
                 serializer.is_valid(raise_exception=True)
 
-                params = deepcopy(dict(self.SESSION_DEFAULTS[self.SESSION_KEY]))
+                params = mapping_to_dict(dict(self.SESSION_DEFAULTS[self.SESSION_KEY]))
                 if serializer.validated_data:
                     params.update(serializer.validated_data)
-                self.save_params_to_session(params)
                 self._ensure_arc(params)
+                self.save_params_to_session(params)
                 self._params = MappingProxyType(params)
             except Exception:
                 logger.exception("validate")
