@@ -456,7 +456,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.8.0a5"
+version = "1.8.0a6"
 source = { editable = "." }
 dependencies = [
     { name = "aioprocessing" },
