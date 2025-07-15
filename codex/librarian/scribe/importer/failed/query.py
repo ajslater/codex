@@ -39,12 +39,15 @@ class FailedImportsQueryImporter(DeletedImporter):
         for path in possibly_missing_failed_import_paths:
             name = path.casefold()
             # Case sensitive matching. exists() and is_file() are case insensitive.
-            # This will fail if there is a parent directory case mismatch and need to be replaced
-            # with a recursive level by level matcher.
-            for path_obj in Path(path).parent.iterdir():
-                if path_obj.name.casefold() == name:
-                    break
-            else:
+            # This will fail if there is a parent directory case mismatch.
+            # Rather than do a recursive solution, add it to missing if it fails.
+            try:
+                for path_obj in Path(path).parent.iterdir():
+                    if path_obj.name.casefold() == name:
+                        break
+                else:
+                    missing_failed_import_paths.add(path)
+            except FileNotFoundError:
                 missing_failed_import_paths.add(path)
 
         return succeeded_failed_imports | missing_failed_import_paths

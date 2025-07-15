@@ -15,8 +15,8 @@ from watchdog.observers.api import (
     ObservedWatch,
 )
 
-from codex.librarian.watchdog.const import EVENT_FILTER
-from codex.librarian.watchdog.emitter import DatabasePollingEmitter, extend_event_filter
+from codex.librarian.watchdog.const import EVENT_FILTER, POLLING_EVENT_FILTER
+from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.handlers import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
@@ -117,6 +117,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
             covers_only=covers_only,
             library_id=library_id,
             db_write_lock=self.db_write_lock,
+            event_filter=list(POLLING_EVENT_FILTER),
         )
         self._add_emitter(emitter)
         if self.is_alive():
@@ -133,10 +134,11 @@ class UatuObserver(WorkerMixin, BaseObserver):
     ) -> ObservedWatch:
         """Override BaseObserver for Codex emitter class."""
         if self._emitter_class != DatabasePollingEmitter:
-            return super().schedule(event_handler, path, **kwargs)
+            return super().schedule(
+                event_handler, path, event_filter=list(POLLING_EVENT_FILTER), **kwargs
+            )
         with self._lock:
-            event_filter = extend_event_filter(event_filter, EVENT_FILTER)
-            watch = ObservedWatch(path, event_filter=event_filter, **kwargs)
+            watch = ObservedWatch(path, event_filter=list(EVENT_FILTER), **kwargs)
             self._add_handler_for_watch(event_handler, watch)
             if self._emitter_for_watch.get(watch) is None:
                 self._add_emitter_for_watch(event_handler, watch)

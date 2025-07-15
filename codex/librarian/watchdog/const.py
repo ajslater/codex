@@ -31,6 +31,24 @@ from codex.librarian.watchdog.events import (
     CoverMovedEvent,
 )
 
+#############
+# Observers #
+#############
+EVENT_FILTER: tuple[type[FileSystemEvent], ...] = (
+    # FileClosed,
+    # FileClosedNoWriteEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileMovedEvent,
+    # FileSystemMovedEvent
+    # FileOpenedEvent,
+    # DirCreatedEvent,
+    DirDeletedEvent,
+    DirMovedEvent,
+    DirModifiedEvent,
+)
+
 ###########
 # Emitter #
 ###########
@@ -47,29 +65,10 @@ ATTR_EVENT_MAP = MappingProxyType(
 )
 DIR_NOT_FOUND_TIMEOUT = 15 * 60
 POLLING_EVENT_FILTER: tuple[type[FileSystemEvent], ...] = (
-    FileMovedEvent,
-    FileModifiedEvent,
-    FileCreatedEvent,
-    FileDeletedEvent,
-    # FileClosedEvent,
-    # FileOpenedEvent,
-    DirMovedEvent,
-    DirModifiedEvent,
-    DirDeletedEvent,
-    # DirCreatedEvent,
+    *EVENT_FILTER,
     CodexPollEvent,
 )
 DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
-
-#############
-# Observers #
-#############
-EVENT_FILTER: tuple[type[FileSystemEvent], ...] = (
-    DirCreatedEvent,
-    FileClosedEvent,
-    FileClosedNoWriteEvent,
-    FileOpenedEvent,
-)
 
 ############
 # Handlers #

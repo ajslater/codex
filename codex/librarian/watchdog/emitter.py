@@ -21,7 +21,6 @@ from codex.librarian.watchdog.const import (
     ATTR_EVENT_MAP,
     DIR_NOT_FOUND_TIMEOUT,
     DOCKER_UNMOUNTED_FN,
-    POLLING_EVENT_FILTER,
 )
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
@@ -58,12 +57,12 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         event_queue: EventQueue,
         watch: ObservedWatch,
         *,
-        timeout: float = DEFAULT_EMITTER_TIMEOUT,
         logger_,
         librarian_queue: Queue,
-        covers_only=False,
         library_id: int,
         db_write_lock,
+        covers_only=False,
+        timeout: float = DEFAULT_EMITTER_TIMEOUT,
         event_filter: list[type[FileSystemEvent]] | None = None,
     ):
         """Initialize snapshot methods."""
@@ -79,7 +78,6 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         )
         self._library_id = library_id
 
-        event_filter = extend_event_filter(event_filter, POLLING_EVENT_FILTER)
         super().__init__(event_queue, watch, timeout=timeout, event_filter=event_filter)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
