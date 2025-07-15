@@ -21,8 +21,8 @@ HTTP.interceptors.response.use(
       error.response.data.includes("CSRF")
     ) {
       // CSRF failure — delete the sessionid cookie
-      console.error("CSRF response error. Deleting sessionid cookie.");
       await cookieStore.delete("sessionid");
+      console.error("CSRF response error. Deleted login cookie.");
     }
     return Promise.reject(error);
   },
