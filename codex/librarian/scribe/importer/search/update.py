@@ -22,6 +22,7 @@ from codex.librarian.scribe.importer.search.sync_m2m import (
 )
 from codex.librarian.scribe.importer.statii.search import (
     ImporterFTSCreateStatus,
+    ImporterFTSStatus,
     ImporterFTSUpdateStatus,
 )
 from codex.librarian.status import Status
@@ -144,9 +145,39 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
 
     def _update_search_index_operate_get_status(
         self, total_entries: int, *, create: bool
-    ):
+    ) -> ImporterFTSStatus:
         status_class = ImporterFTSCreateStatus if create else ImporterFTSUpdateStatus
         return status_class(total=total_entries)
+
+    def _update_search_index_operate_create(
+        self, obj_list: list, status: ImporterFTSStatus
+    ):
+        entries = self.metadata.pop(FTS_CREATE, {})
+        pks = tuple(entries.keys())
+        for pk in pks:
+            if self.abort_event.is_set():
+                return ()
+
+            entry = entries.pop(pk)
+            self._create_comicfts_entry(pk, entry, obj_list, status)
+        return pks
+
+    def _update_search_index_operate_update(
+        self, obj_list: list, status: ImporterFTSStatus
+    ):
+        if pks := tuple(self.metadata.get(FTS_UPDATE, {}).keys()):
+            comicftss = ComicFTS.objects.filter(comic_id__in=pks)
+            for comicfts in comicftss:
+                if self.abort_event.is_set():
+                    return ()
+                self._update_comicfts_entry(comicfts, obj_list, status)
+            if self.metadata[FTS_UPDATE]:
+                # If updates not popped, turn them into creates.
+                if FTS_CREATE not in self.metadata:
+                    self.metadata[FTS_CREATE] = {}
+                self.metadata[FTS_CREATE].update(self.metadata[FTS_UPDATE])
+        self.metadata.pop(FTS_UPDATE)
+        return pks
 
     def _update_search_index_operate(self, *, create: bool) -> tuple[int, ...]:
         key = FTS_CREATE if create else FTS_UPDATE
@@ -168,36 +199,20 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
 
             obj_list = []
             if create:
-                entries = self.metadata.pop(FTS_CREATE, {})
-                pks = tuple(entries.keys())
-                for pk in pks:
-                    if self.abort_event.is_set():
-                        return updated_pks
-                    entry = entries.pop(pk)
-                    self._create_comicfts_entry(pk, entry, obj_list, status)
-                updated_pks = pks
+                updated_pks = self._update_search_index_operate_create(obj_list, status)
             else:
-                if pks := tuple(self.metadata[FTS_UPDATE].keys()):
-                    comicftss = ComicFTS.objects.filter(comic_id__in=pks)
-                    for comicfts in comicftss:
-                        if self.abort_event.is_set():
-                            return updated_pks
-                        self._update_comicfts_entry(comicfts, obj_list, status)
-                    if self.metadata[FTS_UPDATE]:
-                        # If updates not popped, turn them into creates.
-                        if FTS_CREATE not in self.metadata:
-                            self.metadata[FTS_CREATE] = {}
-                        self.metadata[FTS_CREATE].update(self.metadata[FTS_UPDATE])
-                self.metadata.pop(FTS_UPDATE)
+                updated_pks = self._update_search_index_operate_update(obj_list, status)
             self.log.debug(
                 f"Prepared {len(obj_list)} comics for search index {verbing}..."
             )
+            if self.abort_event.is_set():
+                return updated_pks
+
             self._update_search_index_create_or_update(
                 obj_list,
                 status,
                 create=create,
             )
-            updated_pks = pks
 
         finally:
             self.status_controller.finish(status)

@@ -81,6 +81,7 @@ COMIC_PATH = FILES_DIR / "comicbox-2-example.cbz"
 PATH = str(LIBRARY_PATH / "test.cbz")
 PATH_PARENTS = {(str(Path(PATH).parent),)}
 PATH_PARENTS_QUERY = {(str(Path(PATH).parent),): set()}
+COMPLEX_FIELD_NAMES = frozenset({"credits", "story_arc_numbers", "identifiers"})
 
 
 AGGREGATED = MappingProxyType(
@@ -1260,6 +1261,54 @@ def diff_assert(old_md: Mapping, new_md: Mapping, phase: str):
     assert not diff
 
 
+def _test_comic_creation_field_protagonist(comic, field_name, test_value):
+    diff = (comic.main_character and test_value == comic.main_character.name) or (
+        comic.main_team and test_value == comic.main_team.name
+    )
+    if not diff:
+        print(  # noqa: T201
+            f"{field_name}:{test_value} == {comic.main_character=} or {comic.main_team=}"
+        )
+    assert diff
+
+
+def _test_comic_creation_field_complex(field_name: str, value):
+    if field_name == "credits":
+        value = tuple(
+            sorted((subval.person.name, subval.role.name) for subval in value.all())
+        )
+    elif field_name == "story_arc_numbers":
+        value = tuple(
+            sorted((subval.story_arc.name, subval.number) for subval in value.all())
+        )
+    elif field_name == "identifiers":
+        value = tuple(
+            sorted(
+                (subval.source.name, subval.id_type, subval.key)
+                for subval in value.all()
+            )
+        )
+    return value
+
+
+def _test_comic_creation_field(comic, field_name, test_value):
+    if field_name == "protagonist":
+        _test_comic_creation_field_protagonist(comic, field_name, test_value)
+        return
+    value = getattr(comic, field_name)
+
+    if field_name in COMIC_FK_FIELD_NAMES:
+        value = value.name
+    elif field_name in COMPLEX_FIELD_NAMES:
+        value = _test_comic_creation_field_complex(field_name, value)
+    elif field_name in COMIC_M2M_FIELD_NAMES:
+        value = tuple(sorted(subval.name for subval in value.all()))
+    diff = test_value == value
+    if not diff:
+        print(f"{field_name} {test_value=} {value=}")  # noqa: T201
+    assert diff
+
+
 def test_comic_creation(values_const: MappingProxyType):
     """Test Comic Creation and Linking."""
     qs = Comic.objects.prefetch_related(*COMIC_M2M_FIELD_NAMES).select_related(
@@ -1270,41 +1319,7 @@ def test_comic_creation(values_const: MappingProxyType):
     # ic(values) debug
 
     for field_name, test_value in values_const.items():
-        if field_name == "protagonist":
-            diff = (
-                comic.main_character and test_value == comic.main_character.name
-            ) or (comic.main_team and test_value == comic.main_team.name)
-            if not diff:
-                print(  # noqa: T201
-                    f"{field_name}:{test_value} == {comic.main_character=} or {comic.main_team=}"
-                )
-            assert diff
-            continue
-        value = getattr(comic, field_name)
-
-        if field_name in COMIC_FK_FIELD_NAMES:
-            value = value.name
-        elif field_name == "credits":
-            value = tuple(
-                sorted((subval.person.name, subval.role.name) for subval in value.all())
-            )
-        elif field_name == "story_arc_numbers":
-            value = tuple(
-                sorted((subval.story_arc.name, subval.number) for subval in value.all())
-            )
-        elif field_name == "identifiers":
-            value = tuple(
-                sorted(
-                    (subval.source.name, subval.id_type, subval.key)
-                    for subval in value.all()
-                )
-            )
-        elif field_name in COMIC_M2M_FIELD_NAMES:
-            value = tuple(sorted(subval.name for subval in value.all()))
-        diff = test_value == value
-        if not diff:
-            print(f"{field_name} {test_value=} {value=}")  # noqa: T201
-        assert diff
+        _test_comic_creation_field(comic, field_name, test_value)
     return comic
 
 
