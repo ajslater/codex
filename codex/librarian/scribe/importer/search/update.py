@@ -128,7 +128,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         *,
         create: bool,
     ):
-        if obj_list or not self.abort_event.is_set():
+        if not obj_list or self.abort_event.is_set():
             return
         verb = "create" if create else "update"
         verbing = (verb[:-1] + "ing").capitalize()
