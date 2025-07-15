@@ -213,11 +213,10 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
                 status,
                 create=create,
             )
-            updated_pks = pks
 
         finally:
             self.status_controller.finish(status)
-        return tuple(updated_pks)
+        return updated_pks
 
     def _update_search_index_update(self):
         """Update out of date search entries."""
