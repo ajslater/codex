@@ -31,10 +31,10 @@ class SearchIndexerRemove(SearchIndexerOptimize):
         status.complete = count
         return count
 
-    def remove_stale_records(self) -> int:
+    def remove_stale_records(self, *, log_success: bool = True) -> int:
         """Remove records not in the database from the index, trapping exceptions."""
         count = 0
-        status = SearchIndexCleanStatus()
+        status = SearchIndexCleanStatus(log_success=log_success)
         try:
             count = self._remove_stale_records(status)
         except Exception:

@@ -59,8 +59,11 @@ class ReaderParamsView(SessionView):
                 serializer = self.input_serializer_class(data=self.request.GET)
                 serializer.is_valid(raise_exception=True)
 
-                params: dict = mapping_to_dict(serializer.validated_data)  # pyright: ignore[reportAssignmentType]
+                params = mapping_to_dict(dict(self.SESSION_DEFAULTS[self.SESSION_KEY]))
+                if serializer.validated_data:
+                    params.update(serializer.validated_data)
                 self._ensure_arc(params)
+                self.save_params_to_session(params)
                 self._params = MappingProxyType(params)
             except Exception:
                 logger.exception("validate")

@@ -359,3 +359,11 @@ ALL_COMIC_GROUP_FIELD_NAMES = (
     "story_arc_numbers",
     "folders",
 )
+
+##########
+# Failed #
+##########
+UPDATE_FIS = "update_fis"
+CREATE_FIS = "create_fis"
+DELETE_FI_PATHS = "delete_fi_paths"
+BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")

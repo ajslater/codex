@@ -8,7 +8,7 @@
     <template #[`item.comicCount`]="{ item }">
       {{ formatNumber(item.comicCount) }}
     </template>
-    <template #[`item.failedCount`]="{ item }">
+    <template v-if="isFailedImports" #[`item.failedCount`]="{ item }">
       <span class="failedComics">
         {{ formatNumber(item.failedCount) }}
       </span>
@@ -27,7 +27,7 @@
     <template #[`item.lastPoll`]="{ item }">
       <DateTimeColumn :dttm="item.lastPoll" />
     </template>
-    <template #[`item.groups`]="{ item }">
+    <template v-if="isGroups" #[`item.groups`]="{ item }">
       <RelationChips
         :pks="item.groups"
         :objs="groups"
@@ -129,6 +129,7 @@ export default {
     ...mapState(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
+      isFailedImports: (state) => Boolean(state?.failedImports?.length),
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form?.errors,
@@ -141,19 +142,25 @@ export default {
       const headers = [
         { title: "Path", key: "path", align: "start" },
         { title: comicsHeader, key: "comicCount" },
-        { title: "Failed", key: "FailedCount" },
-        {
-          title: "Watch File Events",
-          key: "events",
-        },
-        {
-          title: "Poll Files Periodically",
-          key: "poll",
-        },
-        { title: "Poll Every", key: "pollEvery" },
-        { title: "Last Poll", key: "lastPoll" },
       ];
-      if (!this.coversDir) {
+      if (this.isFailedImports) {
+        headers.push({ title: "Failed", key: "failedCount" });
+      }
+      headers.push(
+        ...[
+          {
+            title: "Watch File Events",
+            key: "events",
+          },
+          {
+            title: "Poll Files Periodically",
+            key: "poll",
+          },
+          { title: "Poll Every", key: "pollEvery" },
+          { title: "Last Poll", key: "lastPoll" },
+        ],
+      );
+      if (!this.coversDir && this.isGroups) {
         headers.push({ title: "Groups", key: "groups" });
       }
       headers.push({ title: "Actions", key: "actions", sortable: false });
@@ -181,6 +188,9 @@ export default {
       } else {
         return "small";
       }
+    },
+    isGroups() {
+      return Boolean(this.groups?.length);
     },
   },
   mounted() {

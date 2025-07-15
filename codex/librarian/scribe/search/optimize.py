@@ -21,8 +21,7 @@ class SearchIndexerOptimize(WorkerStatusMixin):
         """Remove records not in the database from the index, trapping exceptions."""
         status = SearchIndexOptimizeStatus()
         try:
-            self.status_controller.update(status)
-            self.log.debug("Optimizing search index...")
+            self.status_controller.start(status)
             with connection.cursor() as cursor:
                 cursor.execute(_OPTIMIZE_SQL)
         except Exception:

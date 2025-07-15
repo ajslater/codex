@@ -23,7 +23,7 @@ class RemoveCoversStatus(CoversStatus):
 
     CODE = "CRC"
     VERB = "Remove"
-    LOG_SUCCESS = True
+    log_success = True
 
 
 class FindOrphanCoversStatus(CoversStatus):

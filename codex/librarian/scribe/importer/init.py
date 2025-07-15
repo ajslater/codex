@@ -38,7 +38,7 @@ from codex.librarian.scribe.importer.statii.query import (
 )
 from codex.librarian.scribe.importer.statii.read import (
     ImporterAggregateStatus,
-    ImporterReadStatus,
+    ImporterReadComicsStatus,
 )
 from codex.librarian.scribe.importer.statii.search import (
     ImporterFTSCreateStatus,
@@ -214,7 +214,7 @@ class InitImporter(WorkerStatusMixin):
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(self.task.files_modified) + len(self.task.files_created)
         status_list += [
-            ImporterReadStatus(0, total_paths, subtitle=path),
+            ImporterReadComicsStatus(0, total_paths, subtitle=path),
             ImporterAggregateStatus(0, total_paths, subtitle=path),
             ImporterQueryMissingTagsStatus(subtitle=path),
             ImporterQueryComicUpdatesStatus(subtitle=path),

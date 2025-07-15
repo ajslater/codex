@@ -16,7 +16,9 @@ class DeletedCoversImporter(SearchIndexImporter):
 
     def bulk_covers_deleted(self, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
-        status = ImporterRemoveCoversStatus(0, len(self.task.covers_deleted))
+        status = ImporterRemoveCoversStatus(
+            0, len(self.task.covers_deleted), log_success=False
+        )
         try:
             if not self.task.covers_deleted:
                 return 0

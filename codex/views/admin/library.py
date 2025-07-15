@@ -34,7 +34,10 @@ class AdminLibraryViewSet(AdminModelViewSet):
 
     queryset = (
         Library.objects.prefetch_related("groups")
-        .annotate(comic_count=Count("comic"), failed_count=Count("failedimport"))
+        .annotate(
+            comic_count=Count("comic", distinct=True),
+            failed_count=Count("failedimport", distinct=True),
+        )
         .defer("update_in_progress", "created_at", "updated_at")
     )
     serializer_class = LibrarySerializer

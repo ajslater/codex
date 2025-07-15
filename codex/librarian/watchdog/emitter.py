@@ -8,16 +8,7 @@ from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
 from typing_extensions import override
-from watchdog.events import (
-    DirDeletedEvent,
-    DirModifiedEvent,
-    DirMovedEvent,
-    FileCreatedEvent,
-    FileDeletedEvent,
-    FileModifiedEvent,
-    FileMovedEvent,
-    FileSystemEvent,
-)
+from watchdog.events import FileSystemEvent
 from watchdog.observers.api import (
     DEFAULT_EMITTER_TIMEOUT,
     EventEmitter,
@@ -26,11 +17,15 @@ from watchdog.observers.api import (
 )
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
-from codex.librarian.watchdog.const import ATTR_EVENT_MAP
+from codex.librarian.watchdog.const import (
+    ATTR_EVENT_MAP,
+    DIR_NOT_FOUND_TIMEOUT,
+    DOCKER_UNMOUNTED_FN,
+    POLLING_EVENT_FILTER,
+)
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
 from codex.librarian.watchdog.dir_snapshot_diff import CodexDirectorySnapshotDiff
 from codex.librarian.watchdog.events import (
-    CodexPollEvent,
     FinishPollEvent,
     StartPollEvent,
 )
@@ -42,21 +37,17 @@ from codex.librarian.watchdog.status import WatchdogPollStatus
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 
-_DIR_NOT_FOUND_TIMEOUT = 15 * 60
-_CODEX_EVENT_FILTER: list[type[FileSystemEvent]] = [
-    FileMovedEvent,
-    FileModifiedEvent,
-    FileCreatedEvent,
-    FileDeletedEvent,
-    # FileClosedEvent,
-    # FileOpenedEvent,
-    DirMovedEvent,
-    DirModifiedEvent,
-    DirDeletedEvent,
-    # DirCreatedEvent,
-    CodexPollEvent,
-]
-_DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
+
+def extend_event_filter(
+    event_filter: list[type[FileSystemEvent]] | None,
+    extended_event_filter: tuple[type[FileSystemEvent], ...],
+):
+    """Initialize event filter with a some constant types."""
+    if event_filter is None:
+        event_filter = []
+    for event_type in extended_event_filter:
+        if event_type not in event_filter:
+            event_filter.append(event_type)
 
 
 class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
@@ -73,6 +64,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         covers_only=False,
         library_id: int,
         db_write_lock,
+        event_filter: list[type[FileSystemEvent]] | None = None,
     ):
         """Initialize snapshot methods."""
         self.init_worker(logger_, librarian_queue, db_write_lock)
@@ -80,15 +72,15 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         self._force = False
         self._manual_poll = False
         self._watch_path = Path(watch.path)
-        self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
+        self._watch_path_unmounted = self._watch_path / DOCKER_UNMOUNTED_FN
         self._covers_only = covers_only
         self._handler = (
             CodexCustomCoverEventHandler if covers_only else CodexLibraryEventHandler
         )
         self._library_id = library_id
-        super().__init__(
-            event_queue, watch, timeout=timeout, event_filter=_CODEX_EVENT_FILTER
-        )
+
+        event_filter = extend_event_filter(event_filter, POLLING_EVENT_FILTER)
+        super().__init__(event_queue, watch, timeout=timeout, event_filter=event_filter)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
             self._watch.path,
@@ -116,15 +108,15 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             timeout = None
         elif not self._watch_path.is_dir():
             msg = f"Library {self._watch_path} not found. Not Polling."
-            timeout = _DIR_NOT_FOUND_TIMEOUT
+            timeout = DIR_NOT_FOUND_TIMEOUT
         elif self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
             msg = f"Library {self._watch_path} looks like an unmounted docker volume. Not polling."
-            timeout = _DIR_NOT_FOUND_TIMEOUT
+            timeout = DIR_NOT_FOUND_TIMEOUT
         elif not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
             msg = f"{self._watch_path} is empty. Suspect it may be unmounted. Not polling."
-            timeout = _DIR_NOT_FOUND_TIMEOUT
+            timeout = DIR_NOT_FOUND_TIMEOUT
         elif library.update_in_progress:
             log_level = "DEBUG"
             msg = f"Library {library.path} update in progress. Not polling."

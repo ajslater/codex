@@ -34,6 +34,8 @@ border-radius: 128px;
   - Fixed searching on Critical Rating field.
   - Bug displaying Age Rating, Original Format, Scan Info, Tagger in metadata.
   - Fixed database locking crashes.
+  - Attempt to fix major version change CSRF errors by forcing logout if CSRF
+    errors occur.
 
 - Dev
   - Uses Comicbox 2.0 see

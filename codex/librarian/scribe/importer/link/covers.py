@@ -6,7 +6,7 @@ from codex.librarian.scribe.importer.const import (
     CLASS_CUSTOM_COVER_GROUP_MAP,
     LINK_COVER_PKS,
 )
-from codex.librarian.scribe.importer.failed_imports import FailedImportsImporter
+from codex.librarian.scribe.importer.failed.failed import FailedImportsImporter
 from codex.librarian.scribe.importer.statii.link import ImporterLinkCoversStatus
 from codex.models import CustomCover, Folder
 

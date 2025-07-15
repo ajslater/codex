@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.8.0-a2",
+  "version": "1.8.0-a3",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -41,6 +41,7 @@
     "@vitejs/plugin-vue": "^6.0.0",
     "@vitest/eslint-plugin": "^1.1.7",
     "@vue/test-utils": "^2.2.1",
+    "@vue/typescript-plugin": "^3.0.1",
     "eslint-plugin-vue": "^10.0.0",
     "eslint-plugin-vue-scoped-css": "^2.2.0",
     "jsdom-global": "^3.0.2",

@@ -9,17 +9,22 @@ from watchdog.events import (
     EVENT_TYPE_CREATED,
     EVENT_TYPE_DELETED,
     EVENT_TYPE_MODIFIED,
+    DirCreatedEvent,
     DirDeletedEvent,
     DirModifiedEvent,
     DirMovedEvent,
+    FileClosedEvent,
+    FileClosedNoWriteEvent,
     FileCreatedEvent,
     FileDeletedEvent,
     FileModifiedEvent,
     FileMovedEvent,
+    FileOpenedEvent,
     FileSystemEvent,
 )
 
 from codex.librarian.watchdog.events import (
+    CodexPollEvent,
     CoverCreatedEvent,
     CoverDeletedEvent,
     CoverModifiedEvent,
@@ -40,7 +45,31 @@ ATTR_EVENT_MAP = MappingProxyType(
         "dirs_moved": DirMovedEvent,
     }
 )
+DIR_NOT_FOUND_TIMEOUT = 15 * 60
+POLLING_EVENT_FILTER: tuple[type[FileSystemEvent], ...] = (
+    FileMovedEvent,
+    FileModifiedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    # FileClosedEvent,
+    # FileOpenedEvent,
+    DirMovedEvent,
+    DirModifiedEvent,
+    DirDeletedEvent,
+    # DirCreatedEvent,
+    CodexPollEvent,
+)
+DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
+#############
+# Observers #
+#############
+EVENT_FILTER: tuple[type[FileSystemEvent], ...] = (
+    DirCreatedEvent,
+    FileClosedEvent,
+    FileClosedNoWriteEvent,
+    FileOpenedEvent,
+)
 
 ############
 # Handlers #
@@ -48,7 +77,7 @@ ATTR_EVENT_MAP = MappingProxyType(
 
 
 def _get_comic_matcher():
-    comic_regex = r"\.(cb[zt"
+    comic_regex = r"\.(cb[zt7"
     unsupported = []
     if Comicbox.is_unrar_supported():
         comic_regex += r"r"

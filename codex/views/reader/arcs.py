@@ -1,6 +1,7 @@
 """Reader get Arcs methods."""
 
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from types import MappingProxyType
 
 from codex.choices.admin import AdminFlagChoices
@@ -19,6 +20,7 @@ from codex.views.reader.params import ReaderParamsView
 _COMIC_ARC_FIELD_NAMES = ("series", "volume", "parent_folder")
 _STORY_ARC_ONLY = ("name", "ids", "updated_ats")
 _BROWSE_GROUP_SET = frozenset("rpisv")
+_UPDATED_ATS_DATE_FORMAT_STR = "%Y-%m-%d %H:%M:%S.%f"
 
 
 class ReaderArcsView(ReaderParamsView):
@@ -108,20 +110,28 @@ class ReaderArcsView(ReaderParamsView):
     def _get_story_arcs(self, comic: Comic, arcs, max_mtime: int | None):
         """Append the story arcs."""
         qs = StoryArc.objects.filter(storyarcnumber__comic__pk=comic.pk)
-        qs = qs.group_by("sort_name")  # pyright: ignore[reportAttributeAccessIssue]
-        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
-        qs = qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))
-        qs = qs.order_by("sort_name").values(*_STORY_ARC_ONLY)
-
         if not qs.exists():
             return max_mtime
+
+        qs = qs.group_by("sort_name")  # pyright: ignore[reportAttributeAccessIssue]
+        qs = qs.annotate(
+            ids=JsonGroupArray("id", distinct=True),
+            updated_ats=JsonGroupArray("updated_at", distinct=True),
+        )
+        qs = qs.order_by("sort_name").only("name")
 
         arcs[STORY_ARC_GROUP] = {}
 
         for sa in qs:
             arc = {"name": sa.name}
             ids = tuple(sorted(set(sa.ids)))
-            mtime = max_none(EPOCH_START, *sa.updated_ats)
+            updated_ats = (
+                datetime.strptime(ua, _UPDATED_ATS_DATE_FORMAT_STR).replace(
+                    tzinfo=timezone.utc
+                )
+                for ua in sa.updated_ats
+            )
+            mtime = max_none(EPOCH_START, *updated_ats)
             arc["mtime"] = mtime
             max_mtime = max_none(max_mtime, mtime)
             arcs[STORY_ARC_GROUP][ids] = arc

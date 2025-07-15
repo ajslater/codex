@@ -49,6 +49,7 @@ services:
     <<: *codex-dist-builder
     container_name: codex-backend-test
     volumes:
+      - ./codex/static_root:/app/codex/static_root
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
     command: make build-icons collectstatic test-backend
