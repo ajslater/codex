@@ -51,7 +51,7 @@ class LibrarianStatus(BaseModel):
     status_type = CharField(
         db_index=True,
         max_length=max_choices_len(CHOICES),
-        choices=CHOICES.choices,
+        choices=CHOICES.choices,  # ty: ignore[unresolved-attribute]
     )
     subtitle = CharField(db_index=True, max_length=MAX_NAME_LEN)
     complete = PositiveSmallIntegerField(null=True, default=None)

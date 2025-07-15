@@ -163,7 +163,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         args = self.cache.pop(library_id)
         self._subtract_args_items(args)
         self.deduplicate_events(args)
-        return ImportTask(**args)
+        return ImportTask(**args)  # ty: ignore[missing-argument]
 
     def _send_import_task(self, library_id: int):
         task = self._create_task(library_id)

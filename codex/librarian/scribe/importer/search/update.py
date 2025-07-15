@@ -107,7 +107,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         obj_list: list[ComicFTS],
         status: Status,
     ):
-        comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue]
+        comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         entry = self.metadata[FTS_UPDATE].pop(comic_id)
         self._create_comicfts_entry_m2ms(comic_id, entry)
         for field_name in entry:

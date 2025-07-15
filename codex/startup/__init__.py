@@ -71,9 +71,9 @@ def init_timestamps():
 
 def init_librarian_statuses():
     """Init librarian statuses."""
-    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES.values)
+    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES.values)  # ty: ignore[possibly-unbound-attribute]
 
-    for status_type, title in LibrarianStatus.CHOICES.choices:
+    for status_type, title in LibrarianStatus.CHOICES.choices:  # ty: ignore[possibly-unbound-attribute]
         _, created = LibrarianStatus.objects.update_or_create(
             defaults=STATUS_DEFAULTS, status_type=status_type
         )

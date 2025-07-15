@@ -5,7 +5,7 @@ from codex.librarian.scribe.importer.const import (
     CREATE_COMICS,
     UPDATE_COMICS,
 )
-from codex.librarian.scribe.importer.query.query_fks import (
+from codex.librarian.scribe.importer.query.foreign_keys import (
     QueryForeignKeysQueryImporter,
 )
 from codex.librarian.scribe.importer.statii.create import (
