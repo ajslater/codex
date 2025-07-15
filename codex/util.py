@@ -26,4 +26,4 @@ def flatten(seq: tuple | list | frozenset | set):
             flattened.extend(list(item))
         else:
             flattened.append(item)
-    return seq.__class__(flattened)
+    return seq.__class__(tuple(flattened))

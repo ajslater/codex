@@ -87,6 +87,7 @@ dev = [
   "radon[toml]~=6.0.1",
   "ruff~=0.12.2",
   "toml-cli~=0.7.0",
+  "ty>=0.0.1a14",
   "types-python-dateutil~=2.9",
   "vulture~=2.3",
 ]
@@ -120,7 +121,6 @@ exclude = [
   "**/__pycache__",
   "**/node_modules",
   "codex/_vendor",
-  "codex/search/backend_search.py",
   "codex/static_build",
   "codex/static_root",
   "comics",
@@ -343,13 +343,32 @@ ignore-overlong-task-comments = true
 ]
 "tests/*" = ["D101", "D102", "T203"]
 
+[tool.ty.environment]
+python = "./.venv"
+python-version = "3.10"
+
+[tool.ty.src]
+exclude = [
+  "**/.*",
+  "**/__pycache__",
+  "**/node_modules",
+  "codex/_vendor",
+  "codex/static_build",
+  "codex/static_root",
+  "comics",
+  "dist",
+  "frontend",
+  "test-results",
+  "typings",
+  "vulture_ignorelist.py",
+]
+
 [tool.vulture]
 exclude = [
   "*/.*",
   "*/__pycache__*",
   "*/node_modules*",
   "codex/_vendor",
-  "codex/search/backend_search.py",
   "codex/static_build/",
   "codex/static_root/",
   "comics/",
