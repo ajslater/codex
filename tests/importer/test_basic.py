@@ -16,7 +16,6 @@ from deepdiff import DeepDiff
 from django.core.cache import cache
 from django.test import TestCase
 from django.test.testcases import SerializeMixin
-from glom import Path as GlomPath
 from loguru import logger
 from typing_extensions import override
 
@@ -74,24 +73,14 @@ from codex.models import (
 from codex.models.comic import ComicFTS
 from codex.models.library import Library
 from codex.startup import codex_init
-from codex.util import flatten
 
 TMP_DIR = Path("/tmp") / Path(__file__).stem  # noqa: S108
 LIBRARY_PATH = TMP_DIR
-FILES_DIR = Path(__file__).parent / "files"
+FILES_DIR = Path(__file__).parent.parent / "files"
 COMIC_PATH = FILES_DIR / "comicbox-2-example.cbz"
-UPDATE_PATH = FILES_DIR / "comicbox-2-update.cbz"
 PATH = str(LIBRARY_PATH / "test.cbz")
 PATH_PARENTS = {(str(Path(PATH).parent),)}
 PATH_PARENTS_QUERY = {(str(Path(PATH).parent),): set()}
-FOLDERS_LINK_KEYPATH = GlomPath(LINK_M2MS, PATH, "folders")
-FOLDERS_QUERY_MODELS_KEYPATH = GlomPath(QUERY_MODELS, Folder)
-FLAT_PATH_PARENTS = flatten(frozenset(PATH_PARENTS))
-CHARACTER_NAMES = (
-    "Boy Empirical",
-    "Captain Science",
-)
-UPDATED_CHARACTER_NAMES = ("Captain Science",)
 
 
 AGGREGATED = MappingProxyType(
@@ -1212,7 +1201,8 @@ _COMPLEX_KEYS = frozenset({"credits", "identifiers", "story_arc_numbers"})
 _COMICFTS_IGNORE_KEYS = ("comic_id", "updated_at", "created_at")
 
 
-def _create_fts_strings(md, pk):
+def create_fts_strings(md, pk):
+    """Create the fts values for comparison from the md."""
     fts_md = {}
     for key in (FTS_CREATE, FTS_UPDATE):
         for field_name, values in md.get(key, {}).get(pk, {}).items():
@@ -1223,27 +1213,16 @@ def _create_fts_strings(md, pk):
 
 FTS_FINAL_BASIC = MappingProxyType(
     {
-        **_create_fts_strings(LINKED_COMICS, 1),
+        **create_fts_strings(LINKED_COMICS, 1),
         "country": "US,United States",
         "language": "en,English",
         "sources": "Comic Vine,comicvine",
     }
 )
-FTS_FINAL_UPDATE_ALL = MappingProxyType(
-    {
-        **FTS_FINAL_BASIC,
-        **_create_fts_strings(LINKED_COMICS_UPDATE_ALL, 1),
-        "country": "GB,United Kingdom",
-        "language": "fr,French",
-        "sources": "Comic Vine,Metron,comicvine,metron",
-        "universes": "6969,Young Adult Silly Universe",
-        "characters": "Captain Science",
-        "tags": "a,c",
-    }
-)
 
 
-def _create_compare_comic_values(agg_md):
+def create_compare_comic_values(agg_md):
+    """Create the comic values for comparison from the aggregate md."""
     comic = {**agg_md[CREATE_COMICS][PATH]}
     for key, values in agg_md[LINK_FKS][PATH].items():
         pos = _FK_VALUE_POS.get(key, -1)
@@ -1261,11 +1240,7 @@ def _create_compare_comic_values(agg_md):
     return MappingProxyType(comic)
 
 
-COMIC_VALUES_BASIC = _create_compare_comic_values(AGGREGATED)
-_COMIC_VALUES_UPDATE_ALL = _create_compare_comic_values(AGGREGATED_UPDATE_ALL)
-COMIC_VALUES_UPDATE_ALL = MappingProxyType(
-    {**COMIC_VALUES_BASIC, **_COMIC_VALUES_UPDATE_ALL}
-)
+COMIC_VALUES_BASIC = create_compare_comic_values(AGGREGATED)
 
 
 def write_out(old_md, new_md):
@@ -1274,7 +1249,8 @@ def write_out(old_md, new_md):
     Path("new.py").write_text(pformat(new_md))
 
 
-def _diff_assert(old_md: Mapping, new_md: Mapping, phase: str):
+def diff_assert(old_md: Mapping, new_md: Mapping, phase: str):
+    """Assert a deep diff."""
     if diff := DeepDiff(old_md, new_md):
         print("Test Phase:", phase)  # noqa: T201
         pprint(diff)
@@ -1284,7 +1260,7 @@ def _diff_assert(old_md: Mapping, new_md: Mapping, phase: str):
     assert not diff
 
 
-def _test_comic_creation(values_const: MappingProxyType):
+def test_comic_creation(values_const: MappingProxyType):
     """Test Comic Creation and Linking."""
     qs = Comic.objects.prefetch_related(*COMIC_M2M_FIELD_NAMES).select_related(
         *COMIC_FK_FIELD_NAMES, "main_team", "main_character"
@@ -1332,14 +1308,16 @@ def _test_comic_creation(values_const: MappingProxyType):
     return comic
 
 
-def _test_fts_creation(values_const: MappingProxyType, comic: Comic):
-    # FTS Values
+def test_fts_creation(values_const: MappingProxyType, comic: Comic):
+    """FTS Values."""
+    ic(comic.pk, comic)
+    ic(ComicFTS.objects.all().values("comic_id"))
     qs = ComicFTS.objects.filter(comic_id=comic.pk).values()
     comicfts = qs[0]
     fts_values = deepcopy(dict(values_const))
     for key in _COMICFTS_IGNORE_KEYS:
         comicfts.pop(key)
-    _diff_assert(fts_values, comicfts, "COMIC_FTS")
+    diff_assert(fts_values, comicfts, "COMIC_FTS")
 
 
 class BaseTestImporter(SerializeMixin, TestCase, ABC):
@@ -1380,25 +1358,25 @@ class TestImporterBasic(BaseTestImporter):
         # Extract and Aggregate
         self.importer.read()
         md = MappingProxyType(self.importer.metadata)
-        _diff_assert(AGGREGATED, md, "AGGREGATED")
+        diff_assert(AGGREGATED, md, "AGGREGATED")
 
         # Query
         self.importer.query()
         md = MappingProxyType(self.importer.metadata)
-        _diff_assert(QUERIED, md, "QUERIED")
+        diff_assert(QUERIED, md, "QUERIED")
 
         # Create Fks
         self.importer.create_all_fks()
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
-        _diff_assert(CREATED_FK, md, "CREATED_FK")
+        diff_assert(CREATED_FK, md, "CREATED_FK")
         assert Identifier.objects.count() == 3  # noqa: PLR2004
 
         # Create Comics
         self.importer.update_comics()
         self.importer.create_comics()
         md = MappingProxyType(self.importer.metadata)
-        _diff_assert(CREATED_COMICS, md, "CREATED_COMICS")
+        diff_assert(CREATED_COMICS, md, "CREATED_COMICS")
         comic = Comic.objects.get(path=PATH)
         assert comic
         assert comic.year == 1950  # noqa: PLR2004
@@ -1406,79 +1384,13 @@ class TestImporterBasic(BaseTestImporter):
         # Link
         self.importer.link()
         md = MappingProxyType(self.importer.metadata)
-        _diff_assert(LINKED_COMICS, md, "LINKED_COMICS")
+        diff_assert(LINKED_COMICS, md, "LINKED_COMICS")
 
-        comic = _test_comic_creation(COMIC_VALUES_BASIC)
-
-        # FTS
-        self.importer.full_text_search()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(FTSED, md, "FTSED")
-
-        _test_fts_creation(FTS_FINAL_BASIC, comic)
-
-
-class BaseTestImporterUpdate(BaseTestImporter, ABC):
-    @override
-    def setUp(self):
-        super().setUp()
-        importer = ComicImporter(self.task, logger, LIBRARIAN_QUEUE, Lock(), Event())
-        importer.metadata = deepcopy(dict(QUERIED))
-        importer.create_and_update()
-        importer.link()
-        comic = _test_comic_creation(COMIC_VALUES_BASIC)
-        importer.full_text_search()
-        _test_fts_creation(FTS_FINAL_BASIC, comic)
-
-
-class TestImporterUpdateNone(BaseTestImporterUpdate):
-    def test_update_none(self):
-        self.importer.metadata = deepcopy(dict(AGGREGATED))
-        self.importer.query()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(QUERIED_NONE, md, "QUERIED_NONE")
-
-
-class TestImporterUpdateAll(BaseTestImporterUpdate):
-    @override
-    def setUp(self):
-        super().setUp()
-        shutil.copy(UPDATE_PATH, PATH)
-
-    def test_import(self):
-        self.importer.read()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(AGGREGATED_UPDATE_ALL, md, "AGGREGATED_UPDATE_ALL")
-
-        # Query
-        self.importer.query()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(QUERIED_UPDATE_ALL, md, "QUERIED_UPDATE_ALL")
-
-        # Create & Update Fks
-        self.importer.create_all_fks()
-        self.importer.update_all_fks()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(CREATED_FK_UPDATE_ALL, md, "CREATED_FK_UPDATE_ALL")
-        assert Identifier.objects.count() == 15  # noqa: PLR2004
-
-        # Create & Update Comics
-        self.importer.update_comics()
-        self.importer.create_comics()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(CREATED_COMICS_UPDATE_ALL, md, "CREATED_COMICS_UPDATE_ALL")
-        comic = Comic.objects.get(path=PATH)
-        assert comic
-
-        # Link
-        self.importer.link_comic_m2m_fields()
-        md = MappingProxyType(self.importer.metadata)
-        _diff_assert(LINKED_COMICS_UPDATE_ALL, md, "LINKED_COMICS_UPDATE_ALL")
-
-        comic = _test_comic_creation(COMIC_VALUES_UPDATE_ALL)
+        comic = test_comic_creation(COMIC_VALUES_BASIC)
 
         # FTS
         self.importer.full_text_search()
         md = MappingProxyType(self.importer.metadata)
-        _diff_assert(FTSED_UPDATE_ALL, md, "FTSED_UPDATE_ALL")
-        _test_fts_creation(FTS_FINAL_UPDATE_ALL, comic)
+        diff_assert(FTSED, md, "FTSED")
+
+        test_fts_creation(FTS_FINAL_BASIC, comic)
