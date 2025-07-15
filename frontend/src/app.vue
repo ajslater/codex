@@ -20,15 +20,15 @@ export default {
     user(to) {
       if (to) {
         this.setTimezone();
+        // If the user changes resubscribe to channels.
+        this.$socket.close();
       }
     },
   },
   async created() {
     this.loadAdminFlags();
     this.loadProfile().then(() => {
-      if (this.user) {
-        this.setTimezone();
-      }
+      this.setTimezone();
     });
   },
   methods: {
