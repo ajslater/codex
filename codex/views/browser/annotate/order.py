@@ -243,7 +243,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             order_value = F(order_key)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
-            # These are annotated in browser_annotaions
+            # These are annotated in browser_annotations
             order_value = F(self.order_key)
         else:
             agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
