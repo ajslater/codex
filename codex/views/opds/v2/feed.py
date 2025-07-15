@@ -164,8 +164,7 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
         groups += self._create_links_section(GROUPS, TOP_NAV_GROUP_SECTION_DATA)
 
         # Regular Groups
-        group_nav_dict = {"title": title, "links": group_qs}
-        tup = (NavigationGroup(**group_nav_dict),)
+        tup = (NavigationGroup(title=title, links=group_qs),)
         groups += self._create_links_section(tup, GROUPS_SECTION_DATA)
 
         # Publications
