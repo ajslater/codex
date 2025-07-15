@@ -1310,8 +1310,6 @@ def test_comic_creation(values_const: MappingProxyType):
 
 def test_fts_creation(values_const: MappingProxyType, comic: Comic):
     """FTS Values."""
-    ic(comic.pk, comic)
-    ic(ComicFTS.objects.all().values("comic_id"))
     qs = ComicFTS.objects.filter(comic_id=comic.pk).values()
     comicfts = qs[0]
     fts_values = deepcopy(dict(values_const))
