@@ -42,10 +42,10 @@ class BrowserParamsView(SessionView):
             serializer.is_valid(raise_exception=True)
 
             params = mapping_to_dict(self.SESSION_DEFAULTS[self.SESSION_KEY])
-            if serializer.validated_data:
-                params.update(serializer.validated_data)
             if order_defaults := self._get_order_defaults():
                 params.update(order_defaults)
+            if serializer.validated_data:
+                params.update(serializer.validated_data)
             self.save_params_to_session(params)
             self._params = MappingProxyType(params)
         return self._params
