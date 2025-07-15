@@ -98,7 +98,9 @@ export const useAuthStore = defineStore("auth", {
         .catch(commonStore.setErrors);
     },
     async setTimezone() {
-      await API.updateTimezone().catch(console.error);
+      if (this.adminFlags.nonUsers || this.user) {
+        await API.updateTimezone().catch(console.error);
+      }
     },
   },
 });
