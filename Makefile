@@ -65,7 +65,7 @@ build-choices:
 .PHONY: build-frontend
 ## Build frontend
 ## @category Build
-build-frontend:
+build-frontend: build-choices
 	cd frontend && make build
 
 .PHONY: build-icons
@@ -77,7 +77,7 @@ build-icons:
 .PHONY: collectstatic
 ## Collect static files for django
 ## @category Build
-collectstatic:
+collectstatic: build-icons build-frontend
 	bin/collectstatic.sh
 
 .PHONE: django-check
@@ -89,13 +89,13 @@ django-check:
 .PHONY: build-backend
 ## Build python package
 ## @category Build
-build-backend:
+build-backend: collectstatic
 	uv build
 
 .PHONY: build
 ## Build python package
 ## @category Build
-build: build-frontend build-backend
+build: build-backend
 
 .PHONY: publish
 ## Publish package to pypi
@@ -171,13 +171,13 @@ cycle:
 ## Run frontend tests
 ## Test
  ## @category Test
-test-frontend:
+test-frontend: build-choices
 	cd frontend && make test
 
 .PHONY: test-backend
 ## Run backend tests
 ## @category Test
-test-backend: django-check
+test-backend: django-check collectstatic
 	./bin/test-backend.sh
 
 .PHONY: test
