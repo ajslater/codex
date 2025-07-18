@@ -2,7 +2,6 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
-from datetime import datetime, timezone
 
 from typing_extensions import override
 
@@ -127,6 +126,5 @@ class ScribeThread(QueuedThread):
             self.log.debug("Import abort signal given.")
             return
         priority = get_task_priority(task)
-        now = datetime.now(tz=timezone.utc).timestamp()
-        item = (priority, now, task)
+        item = (priority, task)
         self.queue.put(item)
