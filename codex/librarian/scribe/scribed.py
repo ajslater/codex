@@ -2,6 +2,7 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
+from datetime import datetime, timezone
 
 from typing_extensions import override
 
@@ -61,7 +62,7 @@ class ScribeThread(QueuedThread):
     @override
     def process_item(self, item):
         """Run the updater."""
-        task = item[1]
+        task = item[-1]
         match task:
             case ImportTask():
                 importer = ComicImporter(
@@ -126,5 +127,6 @@ class ScribeThread(QueuedThread):
             self.log.debug("Import abort signal given.")
             return
         priority = get_task_priority(task)
-        item = (priority, task)
+        now = datetime.now(tz=timezone.utc).timestamp()
+        item = (priority, now, task)
         self.queue.put(item)
