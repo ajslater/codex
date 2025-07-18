@@ -1,11 +1,12 @@
 """Bookmark Tasks."""
 
+from abc import ABC
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 
-class BookmarkTask:
+class BookmarkTask(ABC):  # noqa: B024
     """Bookmark Base Class."""
 
 

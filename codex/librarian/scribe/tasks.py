@@ -1,10 +1,11 @@
 """DB Import Tasks."""
 
+from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
 
 
-class ScribeTask:
+class ScribeTask(ABC):  # noqa: B024
     """Tasks for scribed."""
 
 
