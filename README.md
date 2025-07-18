@@ -26,7 +26,7 @@ border-radius: 128px;
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Runs in 1GB of RAM, faster with more.
 
-### Examples
+#### Examples
 
 - _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event
   reading list.
@@ -42,6 +42,10 @@ feel for Codex.
 ## 📜 News
 
 Codex has a [NEWS file](NEWS.md) to summarize changes that affect users.
+
+## 🕸️ HTML Docs
+
+[HTML formatted docs are available here](https://codex-reader.app)
 
 ## 📦 Installation
 
