@@ -94,13 +94,13 @@ docker logs -f codex
 Container version number
 
 ```sh
-docker inspect -f '{{ index .Config.Labels "build_version" }}' codex
+docker inspect -f '{{ index .Config.Labels "version" }}' codex
 ```
 
 Image version number
 
 ```sh
-docker inspect -f '{{ index .Config.Labels "build_version" }}' ajslater/codex
+docker inspect -f '{{ index .Config.Labels "version" }}' ajslater/codex
 ```
 
 ## Docker Image
