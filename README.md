@@ -325,11 +325,11 @@ proxy_http_version 1.1;
 proxy_set_header   Upgrade $http_upgrade;
 
 proxy_set_header Connection "Upgrade" location /codex {
-  proxy_pass       http://codex:9810;
-  # Codex reads http basic authentication.
-  # If the nginx credentials are different than codex credentials use this line to
-  #   not forward the authorization.
-  proxy_set_header Authorization "";
+    proxy_pass       http://codex:9810;
+    # Codex reads http basic authentication.
+    # If the nginx credentials are different than codex credentials use this line to
+    #   not forward the authorization.
+    proxy_set_header Authorization "";
 }
 ```
 

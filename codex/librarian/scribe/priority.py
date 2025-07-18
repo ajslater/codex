@@ -1,5 +1,7 @@
 """Priority for Scribe tasks in the PriorityQueue."""
 
+from datetime import datetime, timezone
+
 from codex.librarian.scribe.importer.tasks import (
     ImportTask,
 )
@@ -60,6 +62,8 @@ _SCRIBE_TASK_PRIORITY = (
 )
 
 
-def get_task_priority(task: ScribeTask):
+def get_task_priority(task: ScribeTask) -> tuple[int, float]:
     """Get task priority by index."""
-    return _SCRIBE_TASK_PRIORITY.index(type(task))
+    now = datetime.now(tz=timezone.utc).timestamp()
+    priority = _SCRIBE_TASK_PRIORITY.index(type(task))
+    return priority, now

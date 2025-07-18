@@ -1,12 +1,13 @@
 """Watchdog Tasks."""
 
+from abc import ABC
 from dataclasses import dataclass
 
 from watchdog.events import FileSystemEvent
 
 
 @dataclass
-class WatchdogTask:
+class WatchdogTask(ABC):  # noqa: B024
     """Watchdog tasks."""
 
 

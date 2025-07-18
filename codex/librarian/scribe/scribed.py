@@ -61,7 +61,7 @@ class ScribeThread(QueuedThread):
     @override
     def process_item(self, item):
         """Run the updater."""
-        task = item[1]
+        task = item[-1]
         match task:
             case ImportTask():
                 importer = ComicImporter(
