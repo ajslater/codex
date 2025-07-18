@@ -177,7 +177,7 @@ test-frontend: build-choices
 .PHONY: test-backend
 ## Run backend tests
 ## @category Test
-test-backend: django-check collectstatic
+test-backend: collectstatic django-check
 	./bin/test-backend.sh
 
 .PHONY: test
