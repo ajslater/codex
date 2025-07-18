@@ -1,0 +1,21 @@
+/* readthedocs */
+.wy-nav-content-wrap,
+.wy-nav-side,
+.wy-side-nav-search,
+.wy-nav-content,
+.wy-menu,
+.wy-menu-vertical,
+.toctree-l1,
+.toctree-l1 > a.internal,
+.toctree-l2,
+.toctree-l2 > a.internal,
+.toctree-l3,
+.toctree-l3 > a.internal,
+.toctree-l4,
+.toctree-l4 > a.internal,
+.wymenu-vertical li.current > a,
+.wymenu-vertical li.on > a,
+.toctree-expand {
+  background-color: #222 !important;
+  color: #d3d3d3;
+}
