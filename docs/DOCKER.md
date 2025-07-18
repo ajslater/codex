@@ -15,46 +15,46 @@ this image.
 
 ```sh
 docker create \
-  --name=codex \
-  -p 9810:9810 \
-  -e PUID=501 \
-  -e PGID=20 \
-  -v /host/path/to/config:/config \
-  -v /host/path/to/comics:/comics \
-  --restart unless-stopped \
-  docker.io/ajslater/codex
+    --name=codex \
+    -p 9810:9810 \
+    -e PUID=501 \
+    -e PGID=20 \
+    -v /host/path/to/config:/config \
+    -v /host/path/to/comics:/comics \
+    --restart unless-stopped \
+    docker.io/ajslater/codex
 ```
 
 ### docker-compose.yaml
 
 ```yaml
 services:
-  codex:
-    image: docker.io/ajslater/codex
-    container_name: codex
-    env_file: .env
-    volumes:
-      - /host/path/to/config:/config
-      - /host/path/to/comics:/comics:ro
-    ports:
-      - "9810:9810"
-    restart: on-failure
+    codex:
+        image: docker.io/ajslater/codex
+        container_name: codex
+        env_file: .env
+        volumes:
+            - /host/path/to/config:/config
+            - /host/path/to/comics:/comics:ro
+        ports:
+            - "9810:9810"
+        restart: on-failure
 ```
 
 Special volume setup for a CIFS share:
 
 ```yaml
 services:
-  my-service:
-    volumes:
-      - nas-share:/container-path
+    my-service:
+        volumes:
+            - nas-share:/container-path
 
 volumes:
-  nas-share:
-    driver_opts:
-      type: cifs
-      o: "username=[username],password=[password]"
-      device: //my-nas-network-name/share
+    nas-share:
+        driver_opts:
+            type: cifs
+            o: "username=[username],password=[password]"
+            device: //my-nas-network-name/share
 ```
 
 ### Environment Variables Unique to Docker

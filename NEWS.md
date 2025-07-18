@@ -9,7 +9,6 @@ border-radius: 128px;
 ## v1.8.0
 
 - Features
-
     - Support
       [MetronInfo.xml v1.0 Schema](https://metron-project.github.io/docs/category/metroninfo)
       for comic metadata.
@@ -33,7 +32,6 @@ border-radius: 128px;
     - Add manual Import Abort task for admins.
 
 - Fix
-
     - Reading Order in reader was not always defaulting to your last Browser Top
       Group.
     - Fixed filtering on Critical Rating and FileType
@@ -61,7 +59,6 @@ border-radius: 128px;
 ## v1.7.13
 
 - Fixes
-
     - Fix Reader Reading Order dropdown unable to change reading order.
     - Fix loading root browser pages greater than 1 as a new route.
     - Missing books error screen had no toolbars, could not close it.
@@ -76,7 +73,6 @@ border-radius: 128px;
 ## v1.7.12
 
 - Fixes
-
     - Crash downloading comics when user is in a group.
     - User last active activity was often not recorded.
 
@@ -101,7 +97,6 @@ border-radius: 128px;
 ## v1.7.8
 
 - Features
-
     - Tags page layout changes with more notes from @beville.
 
 - Fixes
@@ -121,7 +116,6 @@ border-radius: 128px;
 ## v1.7.6
 
 - Features
-
     - Always Show Filenames setting for browser cards.
     - Tags page layout changes with notes from @beville.
 
@@ -152,7 +146,6 @@ border-radius: 128px;
 ## v1.7.3
 
 - Features
-
     - Browser Order By Child Count.
     - Customized site title option in Admin Flags.
     - Codex logs are now compressed when rotated.
@@ -171,7 +164,6 @@ border-radius: 128px;
 ## v1.7.2
 
 - Features
-
     - Download entire groups of comics from the browser and metadata screens.
 
 - Fixes
@@ -180,7 +172,6 @@ border-radius: 128px;
 ## v1.7.1
 
 - Features
-
     - Always display filename for comics on browser cards in Folder View
     - Detect .jxl extension (JPEG XL) as a comic page.
 
@@ -191,7 +182,6 @@ border-radius: 128px;
 ## v1.7.0
 
 - Features
-
     - Search
     - Use SQLite Full Text Search v5 for search engine.
     - Search syntax has changed. See the help popup at the end of the search
@@ -231,7 +221,6 @@ border-radius: 128px;
 ## v1.6.17
 
 - Features
-
     - Admin Action buttons now responsive to view size.
 
 - Fixes
@@ -270,7 +259,6 @@ border-radius: 128px;
 ## v1.6.12
 
 - Features
-
     - Native Windows installation instructions in the README thanks to
       @professionaltart.
     - Anonymously send stats to improve Codex. See admin/flags for description
@@ -335,7 +323,6 @@ border-radius: 128px;
 ## v1.6.1
 
 - Features
-
     - Add a retry button on book load error and page load error pages.
 
 - Fixes
@@ -1042,7 +1029,6 @@ border-radius: 128px;
 ## v0.10.10
 
 - Features
-
     - Reader nav toolbar shows position in series.
 
 - Fixes
@@ -1053,7 +1039,6 @@ border-radius: 128px;
 ## v0.10.9
 
 - Fixes
-
     - Fix null bookmark and count fields in metadata
     - Fix indeterminate finished state when children have bookmark progress.
     - Fix maintenance running inappropriately on first run. Crashed xapian
@@ -1061,7 +1046,6 @@ border-radius: 128px;
     - Fix reader metadata keymap
 
 - Features
-
     - Progressive Web App support
     - Reader "Shrink to" settings replaced by "Fit to"
 
@@ -1072,7 +1056,6 @@ border-radius: 128px;
 ## v0.10.8
 
 - Fixes
-
     - Fixed reader nav clicks always showing the toolbars.
     - Attempt to fix unwanted browser toolbars when treated as mobile app
     - Wait half a second before displaying reader placeholder spinner.
@@ -1085,7 +1068,6 @@ border-radius: 128px;
 ## v0.10.7
 
 - Features
-
     - Browser tries to scroll to closed book to keep your place.
 
 - Fixes
@@ -1099,7 +1081,6 @@ border-radius: 128px;
 ## v0.10.5
 
 - Features
-
     - Reader shrink to screen setting becomes fit to screen and embiggens small
       images.
     - Reader changing to the next book now has visual feedback and requires two
@@ -1112,7 +1093,6 @@ border-radius: 128px;
 ## v0.10.4
 
 - Fixes
-
     - Fix double tap for non-iOS touch devices.
 
 - Features
@@ -1145,7 +1125,6 @@ border-radius: 128px;
 ### Portable Document Format
 
 - Features
-
     - PDF support. Optional poppler-utils binary package needed to generate PDF
       cover thumbnails.
     - CBT support. Tarball comic archives.
@@ -1168,7 +1147,6 @@ border-radius: 128px;
 ## v0.9.14
 
 - Fixes
-
     - Fix comicbox config crash.
     - Use codex config namespace (\~/.config/codex) so codex doesn't interfere
       with standalone comicbox configs.
@@ -1189,7 +1167,6 @@ border-radius: 128px;
 ## v0.9.12
 
 - Fixes
-
     - Fix setting global reader settings.
     - Fixed reader settings not applying due to caching.
     - Bust reader caches when library updates.
@@ -1202,7 +1179,6 @@ border-radius: 128px;
 ## v0.9.11
 
 - Fixes
-
     - Fixed covers not creating on import.
     - Covers update in browser when updated on disk.
     - Create missing covers on startup.
@@ -1224,7 +1200,6 @@ Yanked. Crash loading admin page.
 ## v0.9.9
 
 - Fixes
-
     - Fixed combining CBI credits with other format credits
     - Failed imports notification appears only for new failed imports.
 
@@ -1235,7 +1210,6 @@ Yanked. Crash loading admin page.
 ## v0.9.8
 
 - Fixes
-
     - Fixed search index update crash while database is still updating.
     - Fixed issues larger than 99 bug.
     - Fixed issue not imported due to metadata cleaning bug.
@@ -1253,7 +1227,6 @@ Yanked. Crash loading admin page.
 ## v0.9.7
 
 - Fixes
-
     - Coerce decimal values into valid ranges and precision before importing.
 
 - Features
@@ -1263,7 +1236,6 @@ Yanked. Crash loading admin page.
 ## v0.9.6
 
 - Fixes
-
     - Don't open browser when a library changes when reading a comic.
     - Fixed crash creating illegal dates on import.
 
@@ -1373,12 +1345,10 @@ Yanked. Crash loading admin page.
 ### Feels Snappier
 
 - Database Migration
-
     - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not
       run on previous versions of codex.
 
 - Features
-
     - Big speed up to importing comics for large imports.
     - Speed up creating comic covers on large imports.
     - Admin Panel options for polling (formerly "scanning") and watching events
@@ -1498,7 +1468,6 @@ Yanked. Crash loading admin page.
 ## v0.5.14
 
 - Features
-
     - Metadata view for browse containers. Also observes filters.
     - Covers now regenerate on re-import.
 
@@ -1557,7 +1526,6 @@ Yanked. Crash loading admin page.
 ## v0.5.7
 
 - Fixes
-
     - Fix import crashes
     - Remove scan locks on startup
 
