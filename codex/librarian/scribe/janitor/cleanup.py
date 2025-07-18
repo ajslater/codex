@@ -84,7 +84,7 @@ def _create_reverse_rel_map():
             if not field.auto_created:
                 continue
             if hasattr(field, "get_accessor_name") and (
-                an := field.get_accessor_name()  # pyright: ignore[reportAttributeAccessIssue]
+                an := field.get_accessor_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[call-non-callable]
             ):
                 rel = an
             elif field.name:

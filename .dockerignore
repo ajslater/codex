@@ -24,6 +24,7 @@ config
 dev*
 docker-compose*
 docker*
+docs/site
 MANIFEST
 mock_comics
 monkeytype.sqlite3

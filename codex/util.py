@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 def max_none(*args):
     """None aware math.max."""
-    return max(filter(None.__ne__, args), default=None)
+    return max(filter(None.__ne__, args), default=None)  # ty: ignore[no-matching-overload]
 
 
 def mapping_to_dict(data):

@@ -30,7 +30,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
         current_route = Route(group=group, pks=pks, page=page)
         for crumb in reversed(breadcrumbs):
             if not level:
-                crumb_route = Route(**crumb)
+                crumb_route = Route(**crumb)  # ty: ignore[missing-argument]
                 level = current_route & crumb_route
                 continue
             new_breadcrumbs = [crumb, *new_breadcrumbs]

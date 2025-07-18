@@ -34,7 +34,7 @@ services:
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
-    command: make build-choices test-frontend
+    command: make test-frontend
     volumes:
       - ./frontend/src/choices:/app/frontend/src/choices
       - ./test-results/:/app/test-results/
@@ -44,22 +44,21 @@ services:
     volumes:
       - ./frontend/src/choices:/app/frontend/src/choices:ro
       - ./codex/static_build:/app/codex/static_build
-    command: make build-frontend
+    command: make build-frontend -o build-choices
   codex-backend-test:
     <<: *codex-dist-builder
     container_name: codex-backend-test
     volumes:
-      - ./codex/static_root:/app/codex/static_root
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
-    command: make build-icons collectstatic test-backend
+    command: make test-backend -o build-frontend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
     volumes:
       - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
-    command: make build-backend
+    command: make build-backend -o collectstatic
   codex-arch:
     build:
       context: .

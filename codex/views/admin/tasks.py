@@ -140,9 +140,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             task = NotifierTask(Notifications.BOOKMARK.value, group)
         else:
             task = _TASK_MAP.get(name)
-        if pk and isinstance(
-            task, WatchdogPollLibrariesTask | WatchdogPollLibrariesTask
-        ):
+        if pk and isinstance(task, WatchdogPollLibrariesTask):
             task.library_ids = frozenset({pk})
         return task
 

@@ -49,7 +49,7 @@ class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler, ABC):
 
     @staticmethod
     def _match_image_suffix(path: Path) -> bool:
-        return path and len(path.suffix) > 1 and path.suffix[1:] in _IMAGE_EXTS
+        return bool(path and path.suffix[1:] in _IMAGE_EXTS)
 
     @classmethod
     @abstractmethod

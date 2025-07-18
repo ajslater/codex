@@ -27,8 +27,8 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     """Query the missing foreign keys methods."""
 
     def query_existing_mds(self, model: type[BaseModel], batch_proposed_key_tuples):
-        """Query existing metatata tables."""
-        key_rels: tuple[str, ...] = MODEL_REL_MAP[model][0]  # pyright:ignore[reportAssignmentType]
+        """Query existing metadata tables."""
+        key_rels: tuple[str, ...] = MODEL_REL_MAP[model][0]  # pyright:ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         fk_filter = self.query_missing_model_filter(
             model,
             key_rels,

@@ -85,6 +85,7 @@ def _get_model(table_name) -> type[BaseModel]:
         from_rel_model_name, to_rel_model_name = model_name.split("_", 1)
     except ValueError:
         from_rel_model_name = to_rel_model_name = ""
+    model: type[BaseModel]
     if from_rel_model_name in ("comic", "library"):
         # Use the from model to create an m2m through model because I don't know a simpler way.
         from_model = app_config.get_model(from_rel_model_name)
@@ -93,8 +94,8 @@ def _get_model(table_name) -> type[BaseModel]:
     else:
         # Not an m2m through model.
         model_name = model_name.replace("_", "")
-        model = app_config.get_model(model_name)
-    return model  # pyright: ignore[reportReturnType]
+        model = app_config.get_model(model_name)  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+    return model
 
 
 def _null_bad_fk_rels_table(table_name, bad_rows, log):
@@ -185,7 +186,7 @@ def _mark_comics_for_update(fix_comic_pks, log):
     """Mark comics with altered foreign keys for update."""
     if not fix_comic_pks:
         return
-    comic_model: type[Comic] = apps.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType]
+    comic_model: type[Comic] = apps.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
     outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
         pk__in=fix_comic_pks
     ).only(  # type: ignore[reportAssignmentType]

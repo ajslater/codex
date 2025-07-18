@@ -57,6 +57,7 @@ develop-eggs/
 dist/
 dmypy.json
 docs/_build/
+docs/site
 downloads/
 eggs/
 env.bak/
@@ -76,6 +77,5 @@ node_modules
 nosetests.xml
 pip-delete-this-directory.txt
 pip-log.txt
-requirements.txt
 test-results
 TODO.md

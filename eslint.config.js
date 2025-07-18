@@ -89,14 +89,15 @@ export default [
       "frontend/",
       "node_modules/",
       "package-lock.json",
-      "uv.lock",
+      "site/",
       "test-results/",
       "typings/",
+      "uv.lock",
     ],
   },
   eslintPluginPrettierRecommended,
   eslintPluginSecurity.configs.recommended,
-  eslintPluginStylistic.configs["all-flat"],
+  eslintPluginStylistic.configs.all,
   {
     languageOptions: {
       globals: {

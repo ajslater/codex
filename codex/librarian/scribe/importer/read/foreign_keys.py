@@ -125,7 +125,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         for field_name, related_field in COMIC_FK_FIELD_NAMES_FIELD_MAP.items():
             # No identifiers on many2one fks yet
             # md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field_name, field_name) if they ever diverge
-            model: type[BaseModel] = related_field.model  # pyright: ignore[reportAssignmentType]
+            model: type[BaseModel] = related_field.model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
             md_key = field_name
             value = md.pop(md_key, None)
             if value is None and not issubclass(model, BrowserGroupModel):

@@ -1,6 +1,6 @@
 # 📜 Codex News
 
-<img src="codex/static_src/img/logo.svg" style="
+<img src="codex/img/logo.svg" style="
 height: 128px;
 width: 128px;
 border-radius: 128px;
@@ -177,21 +177,19 @@ border-radius: 128px;
 
 - Features
   - Search
-    - Use SQLite Full Text Search v5 for search engine.
-    - Search syntax has changed. See the help popup at the end of the search
-      bar.
-    - Use faster db column lookups for some search bar queries. Thanks
-      @bmfrosty.
-    - You may remove the directory `config/whoosh_index`.
+  - Use SQLite Full Text Search v5 for search engine.
+  - Search syntax has changed. See the help popup at the end of the search bar.
+  - Use faster db column lookups for some search bar queries. Thanks @bmfrosty.
+  - You may remove the directory `config/whoosh_index`.
   - Integrity Checks
-    - Faster more comprehensive db integrity checks run every night instead of
-      at startup.
-    - Integrity checks can run on startup with environment variables documented
-      in README.
+  - Faster more comprehensive db integrity checks run every night instead of at
+    startup.
+  - Integrity checks can run on startup with environment variables documented in
+    README.
 
 - Fixes
   - Actually fix browser opening reader at correct bookmark.
-    - Also fixes progress calculation on browser cards.
+  - Also fixes progress calculation on browser cards.
   - Fixed crashes when the upstream codex version is not accessible.
   - Fixed possible race conditions with nightly maintenance.
 
@@ -534,7 +532,7 @@ border-radius: 128px;
 - Features
   - Story Arc Top Group in Web & OPDS Browsers
   - Support multiple Story Arcs per comic.
-    - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
+  - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
   - Show only filter options that affect the current browse level.
   - Reader has a Series/Folder/Story Arc order selector.
   - Reader shows filename instead of metadata title if you've been browsing in
@@ -617,11 +615,11 @@ border-radius: 128px;
   - Crash when moving comics.
   - Container memory limits weren't detected for Linux kernels before 4.5
   - Reader
-    - Horizontal Reader was slow for comics with high page counts.
-    - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
+  - Horizontal Reader was slow for comics with high page counts.
+  - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
   - Validation error detecting child and parent library paths incorrectly.
   - Dev
-    - Django 4.2
+  - Django 4.2
 
 ## v1.3.6
 
@@ -643,9 +641,9 @@ border-radius: 128px;
   - Total child pages of folders and groups sometimes overcounted, displaying
     half unread folders.
   - Reader: Vertical Scroll
-    - Remove black bottom margin from images.
-    - Was loading every page in a comic at once.
-    - Page tracking did not work with images larger than viewport width.
+  - Remove black bottom margin from images.
+  - Was loading every page in a comic at once.
+  - Page tracking did not work with images larger than viewport width.
 
 ## v1.3.3
 
@@ -675,27 +673,27 @@ border-radius: 128px;
   - Codex stable in 1GB RAM environments. Faster with more.
   - Codex uses unrar-cffi if available. Not required.
   - Browser
-    - Navigate to top button.
-    - Filter by File Type.
+  - Navigate to top button.
+  - Filter by File Type.
   - OPDS
-    - Top links display only at catalog root.
-    - Extended metadata moved to alternate links.
+  - Top links display only at catalog root.
+  - Extended metadata moved to alternate links.
   - Admin
-    - Search Indexer Remove Stale Records task much faster.
-    - Comic import speedups.
-    - Fancier sortable admin tables.
-    - Removed `max_db_ops` config variable.
+  - Search Indexer Remove Stale Records task much faster.
+  - Comic import speedups.
+  - Fancier sortable admin tables.
+  - Removed `max_db_ops` config variable.
 - Fixes
   - Reader vertical scroll lost its place in Fit To Width or Orig mode.
   - OPDS downloaded files all had the same name.
   - Search Index
-    - More robust against bad data.
-    - Some search fields were case sensitive.
+  - More robust against bad data.
+  - Some search fields were case sensitive.
   - Admin
-    - Graceful shutdown when Docker container stops.
-    - Codex was backing up on every startup.
-    - Status for batched imports (large imports or low memory) now reflects
-      total instead of single batch.
+  - Graceful shutdown when Docker container stops.
+  - Codex was backing up on every startup.
+  - Status for batched imports (large imports or low memory) now reflects total
+    instead of single batch.
 
 ## v1.2.9
 
@@ -713,18 +711,17 @@ border-radius: 128px;
 
 - Features
   - Search Index
-    - Improved search indexing times.
-    - Admin Flag to adjust nightly full optimization.
+  - Improved search indexing times.
+  - Admin Flag to adjust nightly full optimization.
   - OPDS
-    - "Newest Issues" Link replaced by "Recently Added" after user feedback.
+  - "Newest Issues" Link replaced by "Recently Added" after user feedback.
 - Fixes
   - Volume tags were often not scanned. Recommend using Force Reimport on all
     libraries.
   - OPDS
-    - Fix navigation links not inheriting view settings of current page.
-    - Removed populating categories in OPDS to experiment with performance
-      issues.
-    - Fix OPDS pse lastRead tag.
+  - Fix navigation links not inheriting view settings of current page.
+  - Removed populating categories in OPDS to experiment with performance issues.
+  - Fix OPDS pse lastRead tag.
   - Block library polling during database updates, fixes reindexing.
 
 ## v1.2.7
@@ -754,22 +751,22 @@ border-radius: 128px;
 - Features
   - User configurable 24 hour time format.
   - Reader
-    - Displays covers as one page even in two page mode.
-    - Read in Reverse mode.
-    - Keymaps for adjusting page by one page in two page mode.
-    - Previous and Next book navigation buttons and keymaps.
+  - Displays covers as one page even in two page mode.
+  - Read in Reverse mode.
+  - Keymaps for adjusting page by one page in two page mode.
+  - Previous and Next book navigation buttons and keymaps.
 - Fixes
   - OPDS:
-    - Fix acquisition feed timeouts on large libraries by removing most m2m
-      fields that populated OPDS categories
-    - Fix pagination
-    - Show series name in comic title.
-    - Experiment: don't show top links or entry facets on pages > 1
+  - Fix acquisition feed timeouts on large libraries by removing most m2m fields
+    that populated OPDS categories
+  - Fix pagination
+  - Show series name in comic title.
+  - Experiment: don't show top links or entry facets on pages > 1
   - Reader:
-    - Two pages mode would skip pages.
-    - Next/prev book goes to correct page for Right To Left tagged books.
-    - Fix occasional error setting reader settings.
-    - Fixed noop poll event happening on comic cover creation.
+  - Two pages mode would skip pages.
+  - Next/prev book goes to correct page for Right To Left tagged books.
+  - Fix occasional error setting reader settings.
+  - Fixed noop poll event happening on comic cover creation.
 
 ## v1.2.3
 
@@ -809,7 +806,7 @@ border-radius: 128px;
 - Development
   - The multiprocessing method is now S P A W N 💀 on all platforms.
   - Websockets are now handled by customized Django channels
-    - aioprocessing Queue communicates between librarian and channels.
+  - aioprocessing Queue communicates between librarian and channels.
 
 ## v1.1.6
 
@@ -831,7 +828,7 @@ border-radius: 128px;
 
 - Fixes
   - Multiprocessing speedup for large search engine indexing jobs
-    - Writes search engine data in segments.
+  - Writes search engine data in segments.
   - Search engine segment combiner optimizer runs nightly (and manually).
 
 ## v1.1.3
@@ -850,7 +847,7 @@ border-radius: 128px;
 
 - Features
   - Switch to Whoosh Search Engine.
-    - You may delete `config/xapian_index`.
+  - You may delete `config/xapian_index`.
   - May run on Windows now?
   - Moved db backups to `config/backups`.
   - Backup database before migrations.
@@ -956,12 +953,12 @@ border-radius: 128px;
   - Single Page Admin Panel.
   - Users may now change their own passwords.
   - OPDS
-    - Use facets for known User Agents that support them. Default to using entry
-      links.
-    - Gain a Newest Issues facet, a Start top link and a Featured / Oldest
-      Unread link.
-    - More metadata tags.
-    - Special thanks to @beville for UX research and suggestions
+  - Use facets for known User Agents that support them. Default to using entry
+    links.
+  - Gain a Newest Issues facet, a Start top link and a Featured / Oldest Unread
+    link.
+  - More metadata tags.
+  - Special thanks to @beville for UX research and suggestions
   - HTTP Basic auth only used for OPDS.
   - Frontend components do lazy loading, should see some speedups.
 - Fixes
@@ -994,9 +991,8 @@ border-radius: 128px;
 - Features
   - OPDS v1, OPDS Streaming & OPDS Search support.
   - Codex now accepts HTTP Basic authentication.
-    - If you run Codex behind a proxy that accepts HTTP Basic credentials that
-      are different than those for Codex, be sure to disable authorization
-      forwarding.
+  - If you run Codex behind a proxy that accepts HTTP Basic credentials that are
+    different than those for Codex, be sure to disable authorization forwarding.
   - Larger browser covers.
   - Sort by name ignores leading articles in 11 languages.
 - Fixes
@@ -1092,7 +1088,7 @@ border-radius: 128px;
 
 - Fixes
   - Fix PDF going blank when settings change.
-  - Remove vestigal browser scrollbars when they're not needed. Thanks to
+  - Remove vestigial browser scrollbars when they're not needed. Thanks to
     ToxicFrog.
   - Fix cover cleanup maintenance task.
 

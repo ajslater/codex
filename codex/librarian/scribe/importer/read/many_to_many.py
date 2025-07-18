@@ -53,7 +53,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
         if sub_sub_md_key == IDENTIFIERS_KEY and sub_sub_value:
             field = Comic._meta.get_field(field_name)
-            model: type[BaseModel] = field.related_model  # pyright: ignore[reportAssignmentType]
+            model: type[BaseModel] = field.related_model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
             clean_sub_sub_values = self.get_identifier_tuple(model, sub_sub_value)
         elif sub_sub_md_key == ROLES_KEY and sub_sub_value:
             clean_sub_sub_values = set()

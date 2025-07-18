@@ -1,4 +1,4 @@
-# Codex
+# 🐳 Codex Docker Image
 
 Codex is a web server comic book browser and reader.
 
@@ -79,15 +79,29 @@ More environment variables documented in the
 
 ### Support Info
 
-- Shell access whilst the container is running:
-  - docker exec -it codex /bin/sh
-- Monitor the logs of the container in realtime:
-  - docker logs -f codex
-- Container version number
-  - docker inspect -f '{{ index .Config.Labels "build\_version" }}' codex
-- Image version number
-  - docker inspect -f '{{ index .Config.Labels "build\_version" }}'
-    ajslater/codex
+Shell access whilst the container is running:
+
+```sh
+docker exec -it codex /bin/bash
+```
+
+Monitor the logs of the container in realtime:
+
+```sh
+docker logs -f codex
+```
+
+Container version number
+
+```sh
+docker inspect -f '{{ index .Config.Labels "version" }}' codex
+```
+
+Image version number
+
+```sh
+docker inspect -f '{{ index .Config.Labels "version" }}' ajslater/codex
+```
 
 ## Docker Image
 

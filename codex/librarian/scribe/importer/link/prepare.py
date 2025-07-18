@@ -68,7 +68,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         if not values:
             return
         self._add_complex_link_to_fts(comic_pk, field_name, values)
-        model: type[BaseModel] = Comic._meta.get_field(field_name).related_model  # pyright: ignore[reportAssignmentType]
+        model: type[BaseModel] = Comic._meta.get_field(field_name).related_model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]│
         m2m_filter = link_filter_method(field_name, values)
         pks = model.objects.filter(m2m_filter).values_list("pk", flat=True).distinct()
         if result := tuple(pks):

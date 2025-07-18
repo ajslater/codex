@@ -66,7 +66,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
             return total_field_count
         status.subtitle = f"Delete stale {field_name} links"
         self.status_controller.update(status)
-        field: ManyToManyField = Comic._meta.get_field(field_name)  # pyright:ignore[reportAssignmentType]
+        field: ManyToManyField = Comic._meta.get_field(field_name)  # pyright:ignore[reportAssignmentType], # ty: ignore[invalid-assignment]│
         related_model = field.related_model
         table_name = related_model._meta.db_table
         column_name = table_name.removeprefix("codex_") + "_id"

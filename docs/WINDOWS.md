@@ -1,4 +1,4 @@
-# Codex Native Windows Installation
+# 🪟 Codex Native Windows Installation
 
 Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
@@ -152,7 +152,7 @@ this works for you please report it so I can update this documentation.
 
 ## Run Codex
 
-Return to the Main <a href="README.md#run">README</a> for help running and
+Return to the Main [README](README.md#administration) for help running and
 administering Codex.
 
 ## Special Thanks

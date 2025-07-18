@@ -1,0 +1,13 @@
+/* material */
+
+[data-md-color-scheme="codex"] {
+  --md-primary-fg-color: rgb(204, 123, 25);
+  --md-primary-bg-color: rgb(18, 18, 18);
+  --md-accent-fg-color: #d3d3d3;
+  --md-accent-bg-color: #965b13;
+}
+
+.md-header,
+.md-tabs {
+  --md-primary-fg-color: #965b13;
+}
