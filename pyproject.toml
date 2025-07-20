@@ -18,7 +18,7 @@ dependencies = [
   "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=2.0.0a32",
+  "comicbox[pdf]~=2.0.0a33",
   "dateparser~=1.2",
   "django~=5.2.4",
   "djangorestframework~=3.16.0",
@@ -52,7 +52,7 @@ name = "codex"
 license = { text = "GPL-3.0-only" }
 readme = "README.md"
 requires-python = "<4.0,>=3.10"
-version = "1.8.0a9"
+version = "1.8.0a10"
 
 [project.urls]
 News = "https://github.com/ajslater/codex/blob/main/NEWS.md"
@@ -222,6 +222,8 @@ extend-exclude = [
   "**/.*",
   "**/__pycache__",
   "codex/_vendor",
+  "codex/static_build",
+  "codex/static_root",
   "dist",
   "frontend",
   "site",

@@ -456,7 +456,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.8.0a9"
+version = "1.8.0a10"
 source = { editable = "." }
 dependencies = [
     { name = "aioprocessing" },
@@ -527,7 +527,7 @@ requires-dist = [
     { name = "ansicolors", specifier = "~=1.1" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=2.0.0a32" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=2.0.0a33" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=5.2.4" },
     { name = "django-cachalot", specifier = "~=2.7.dev0" },
@@ -596,7 +596,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.0a32"
+version = "2.0.0a33"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -622,9 +622,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/f6/a75297f89303809ec96c48924328aa321c254466f7d8bf39dec6beebf395/comicbox-2.0.0a32.tar.gz", hash = "sha256:da80159a16662c465180ca5228886145d3fbcd8abd97be912ba696dde12b17fb", size = 70902682, upload-time = "2025-07-15T01:19:44.38Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/51/fab019b379f0ad1d6f8875d1d9cbdd8e1f82d4272c7ed16bd4489e440d88/comicbox-2.0.0a33.tar.gz", hash = "sha256:7bc025a22a407e5dbaf9eb8cf0a725bdaaabf167e451c4a07d4972d124a93d85", size = 70901257, upload-time = "2025-07-20T21:21:25.474Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/6f/f910f74424b0657c81ad443faf19b5c3b354e4f0c05f3559079751430262/comicbox-2.0.0a32-py3-none-any.whl", hash = "sha256:524a29e90fce803b246c112b8170816dc4d545ff6b5fc33f74e19bd2fddcdc49", size = 156045, upload-time = "2025-07-15T01:19:41.03Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/16/c918b078ff4b4c337d22ae8ab7df528e57a7c776b00d00c3e050127541da/comicbox-2.0.0a33-py3-none-any.whl", hash = "sha256:f13c953e94b50fb89c6a4a1b15081cd5c25b02ec27720aaffdb9982acd93659b", size = 154418, upload-time = "2025-07-20T21:21:22.185Z" },
 ]
 
 [package.optional-dependencies]

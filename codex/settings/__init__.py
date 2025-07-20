@@ -417,7 +417,6 @@ CACHALOT_UNCACHABLE_TABLES = frozenset(
 
 COMICBOX_CONFIG = get_config(
     {
-        "compute_pages": False,
         "loglevel": LOGLEVEL,
         "delete_keys": frozenset({"pages", "reprints"}),
     }
