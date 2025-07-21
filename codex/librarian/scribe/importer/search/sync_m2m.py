@@ -59,7 +59,10 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
     def sync_fts_for_m2m_updates(self, already_updated_comicfts_pks: tuple[int, ...]):
         """Update fts entries for foreign keys."""
         count = 0
-        update_field_names = tuple(self.metadata[FTS_UPDATED_M2MS].keys())
+        update_field_names = tuple(self.metadata.get(FTS_UPDATED_M2MS, {}).keys())
+        if not update_field_names:
+            self.metadata.pop(FTS_UPDATED_M2MS)
+            return
 
         update_objs = []
         for field_name in update_field_names:

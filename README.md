@@ -45,7 +45,7 @@ Codex has a [NEWS file](NEWS.md) to summarize changes that affect users.
 
 ## 🕸️ HTML Docs
 
-[HTML formatted docs are available here](https://codex-reader.app)
+[HTML formatted docs are available here](https://codex-comic-reader.readthedocs.io)
 
 ## 📦 Installation
 
