@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.1
+
+- Fixes
+    - Fix minor search update exception.
+
 ## v1.8.0
 
 - Features
