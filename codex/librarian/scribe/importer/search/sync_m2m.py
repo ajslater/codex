@@ -43,7 +43,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         fts_value = self._get_fts_m2m_concat(field_name)
         model_pks = self.metadata[FTS_UPDATED_M2MS].pop(field_name)
         self.log.debug(
-            "Preparing {len(model_pks)} search entries for {field_name} updates."
+            f"Preparing {len(model_pks)} search entries for {field_name} updates."
         )
         comicftss = (
             ComicFTS.objects.filter(**{rel: model_pks})
