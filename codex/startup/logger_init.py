@@ -28,14 +28,14 @@ def init_logging():
 
     log_format = _log_format()
     kwargs: dict[str, Any] = {
-        "level": LOGLEVEL,
         "backtrace": True,
-        "enqueue": True,
         "catch": True,
+        "enqueue": True,
         "format": log_format,
+        "level": LOGLEVEL,
     }
     logger.remove()  # Default "sys.stderr" sink is not picklable
-    logger.add(sys.stdout, **kwargs)
+    logger.add(sys.stdout, **kwargs, colorize=True)
     logger.add(
         LOG_PATH,
         **kwargs,
