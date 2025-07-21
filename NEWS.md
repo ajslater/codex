@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.2
+
+- Fixes
+    - Force docker logs (all stdout logs) to colorize output.
+
 ## v1.8.1
 
 - Fixes
