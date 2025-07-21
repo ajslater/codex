@@ -122,27 +122,6 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         status.increment_complete()
         self.status_controller.update(status)
 
-    def _update_search_index_create_or_update(
-        self,
-        obj_list: list[ComicFTS],
-        status,
-        *,
-        create: bool,
-    ):
-        if not obj_list or self.abort_event.is_set():
-            return
-        verb = "create" if create else "update"
-        verbing = (verb[:-1] + "ing").capitalize()
-        num_comic_fts = len(obj_list)
-
-        batch_position = f"({status.complete}/{status.total})"
-        self.log.debug(f"{verbing} {num_comic_fts} {batch_position} search entries...")
-        if create:
-            ComicFTS.objects.bulk_create(obj_list)
-        else:
-            ComicFTS.objects.bulk_update(obj_list, COMICFTS_UPDATE_FIELDS)
-        obj_list.clear()
-
     def _update_search_index_operate_get_status(
         self, total_entries: int, *, create: bool
     ) -> ImporterFTSStatus:
@@ -151,20 +130,19 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
 
     def _update_search_index_operate_create(
         self, obj_list: list, status: ImporterFTSStatus
-    ):
+    ) -> tuple[int, ...]:
         entries = self.metadata.pop(FTS_CREATE, {})
         pks = tuple(entries.keys())
         for pk in pks:
             if self.abort_event.is_set():
                 return ()
-
             entry = entries.pop(pk)
             self._create_comicfts_entry(pk, entry, obj_list, status)
         return pks
 
     def _update_search_index_operate_update(
         self, obj_list: list, status: ImporterFTSStatus
-    ):
+    ) -> tuple[int, ...]:
         if pks := tuple(self.metadata.get(FTS_UPDATE, {}).keys()):
             comicftss = ComicFTS.objects.filter(comic_id__in=pks)
             for comicfts in comicftss:
@@ -179,18 +157,41 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         self.metadata.pop(FTS_UPDATE)
         return pks
 
-    def _update_search_index_operate(self, *, create: bool) -> tuple[int, ...]:
+    def _update_search_index_create_or_update(
+        self,
+        obj_list: list[ComicFTS],
+        status,
+        *,
+        create: bool,
+    ) -> int:
+        if not obj_list or self.abort_event.is_set():
+            return 0
+        verb = "create" if create else "update"
+        verbing = (verb[:-1] + "ing").capitalize()
+        num_comic_fts = len(obj_list)
+
+        batch_position = f"({status.complete}/{status.total})"
+        self.log.debug(f"{verbing} {num_comic_fts} {batch_position} search entries...")
+        if create:
+            ComicFTS.objects.bulk_create(obj_list)
+        else:
+            ComicFTS.objects.bulk_update(obj_list, COMICFTS_UPDATE_FIELDS)
+        count = len(obj_list)
+        obj_list.clear()
+        return count
+
+    def _update_search_index_operate(self, *, create: bool) -> int:
         key = FTS_CREATE if create else FTS_UPDATE
         total_entries = len(self.metadata.get(key, {}))
         status = self._update_search_index_operate_get_status(
             total_entries, create=create
         )
-        updated_pks = ()
+        count = 0
         try:
             verb = "create" if create else "update"
             if not total_entries:
                 self.log.debug(f"No search entries to {verb}.")
-                return updated_pks
+                return count
             self.status_controller.start(status)
             verbing = "creating" if create else "updating"
             self.log.debug(
@@ -199,35 +200,34 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
 
             obj_list = []
             if create:
-                updated_pks = self._update_search_index_operate_create(obj_list, status)
+                update_pks = self._update_search_index_operate_create(obj_list, status)
             else:
-                updated_pks = self._update_search_index_operate_update(obj_list, status)
+                update_pks = self._update_search_index_operate_update(obj_list, status)
             self.log.debug(
                 f"Prepared {len(obj_list)} comics for search index {verbing}..."
             )
             if self.abort_event.is_set():
-                return updated_pks
+                return count
 
-            self._update_search_index_create_or_update(
+            count = self._update_search_index_create_or_update(
                 obj_list,
                 status,
                 create=create,
             )
+            if create:
+                self.sync_fts_for_m2m_updates(update_pks)
 
         finally:
             self.status_controller.finish(status)
-        return updated_pks
+        return count
 
-    def _update_search_index_update(self):
+    def _update_search_index_update(self) -> int:
         """Update out of date search entries."""
-        self._update_search_index_operate(create=False)
+        return self._update_search_index_operate(create=False)
 
-    def _update_search_index_create(self):
+    def _update_search_index_create(self) -> int:
         """Create missing search entries."""
-        pks = self._update_search_index_operate(create=True)
-        if self.abort_event.is_set():
-            return
-        self.sync_fts_for_m2m_updates(pks)
+        return self._update_search_index_operate(create=True)
 
     def _update_search_index(self, cleaned_count: int):
         """Update or Rebuild the search index."""
