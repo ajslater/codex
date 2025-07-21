@@ -59,23 +59,25 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
     def sync_fts_for_m2m_updates(self, already_updated_comicfts_pks: tuple[int, ...]):
         """Update fts entries for foreign keys."""
         count = 0
-        field_names = tuple(self.metadata[FTS_UPDATED_M2MS].keys())
+        update_field_names = tuple(self.metadata[FTS_UPDATED_M2MS].keys())
 
-        update_fields = field_names  # tuple(sorted(model.__name__.lower() + "s" for model in models))
         update_objs = []
-        for field_name in field_names:
+        for field_name in update_field_names:
             if self.abort_event.is_set():
                 return
             self._sync_fts_for_m2m_updates_model(
-                field_name, already_updated_comicfts_pks, update_fields, update_objs
+                field_name,
+                already_updated_comicfts_pks,
+                update_field_names,
+                update_objs,
             )
         count += len(update_objs)
-        tags = ", ".join(update_fields)
+        tags = ", ".join(update_field_names)
         self.log.debug(
             f"Updating {count} search index entries for comics linked to updated tags: {tags}"
         )
         if count:
-            ComicFTS.objects.bulk_update(update_objs, update_fields)
+            ComicFTS.objects.bulk_update(update_objs, update_field_names)
         level = "INFO" if count else "DEBUG"
         self.log.log(
             level,
