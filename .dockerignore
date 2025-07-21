@@ -24,11 +24,11 @@ config
 dev*
 docker-compose*
 docker*
-docs/site
+docs/NEWS.md
 MANIFEST
 mock_comics
 monkeytype.sqlite3
-NEWS
+NEWS.md
 node_modules
 strange.jpg
 test-results

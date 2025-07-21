@@ -7,7 +7,6 @@ from loguru import logger
 
 from codex.serializers.fields.reader import VALID_ARC_GROUPS
 from codex.serializers.reader import ReaderViewInputSerializer
-from codex.util import mapping_to_dict
 from codex.views.session import SessionView
 
 
@@ -59,7 +58,7 @@ class ReaderParamsView(SessionView):
                 serializer = self.input_serializer_class(data=self.request.GET)
                 serializer.is_valid(raise_exception=True)
 
-                params = mapping_to_dict(dict(self.SESSION_DEFAULTS[self.SESSION_KEY]))
+                params = self.load_params_from_session()
                 if serializer.validated_data:
                     params.update(serializer.validated_data)
                 self._ensure_arc(params)

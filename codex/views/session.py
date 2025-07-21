@@ -10,6 +10,7 @@ from codex.choices.browser import BROWSER_DEFAULTS
 from codex.choices.reader import READER_DEFAULTS
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
+from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 from codex.views.util import pop_name
 
 CREDIT_PERSON_UI_FIELD = "credits"
@@ -107,10 +108,22 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                 )
         return result
 
-    def load_params_from_session(self, session_key=None, only=None):
-        """Get session settings with defaults."""
-        if not session_key:
-            session_key = self.SESSION_KEY
+    def _get_browser_order_defaults(self) -> dict:
+        if group := self.kwargs.get("group"):
+            # order_by has a dynamic group based default
+            order_by = (
+                "filename"
+                if group == FOLDER_GROUP
+                else "story_arc_number"
+                if group == STORY_ARC_GROUP
+                else "sort_name"
+            )
+            order_defaults = {"order_by": order_by}
+        else:
+            order_defaults = {}
+        return order_defaults
+
+    def _get_param_defaults(self, session_key: str, only: list[str] | None = None):
         if only:
             defaults = {}
             for key in only:
@@ -120,7 +133,20 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                     )
         else:
             defaults = mapping_to_dict(self.SESSION_DEFAULTS[session_key])
+        if session_key == self.BROWSER_SESSION_KEY:
+            # There's no BrowserSession so conditional on session key
+            order_defaults = self._get_browser_order_defaults()
+            defaults.update(order_defaults)
+        return defaults
 
+    def load_params_from_session(
+        self, session_key: str | None = None, only: list[str] | None = None
+    ):
+        """Get session settings with defaults."""
+        if not session_key:
+            session_key = self.SESSION_KEY
+
+        defaults = self._get_param_defaults(session_key, only)
         session = self.request.session.get(session_key, defaults)
         return self._get_source_values_or_set_defaults(defaults, session, {})
 
