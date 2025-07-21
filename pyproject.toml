@@ -52,7 +52,7 @@ name = "codex"
 license = { text = "GPL-3.0-only" }
 readme = "README.md"
 requires-python = "<4.0,>=3.10"
-version = "1.8.3"
+version = "1.8.4"
 
 [project.urls]
 News = "https://github.com/ajslater/codex/blob/main/NEWS.md"
