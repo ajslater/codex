@@ -2,9 +2,7 @@
 
 from types import MappingProxyType
 
-from django.db.models import (
-    CharField,
-)
+from django.db.models import CharField
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
 from codex.models.comic import Comic

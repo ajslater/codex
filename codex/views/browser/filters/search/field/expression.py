@@ -167,7 +167,9 @@ def parse_expression(rel, rel_class, exp) -> dict:
     else:
         if ".." in exp:
             q_dict = _parse_operator_range(rel, rel_class, exp)
-        elif rel_class in (CharField, TextField) and not rel.startswith("volume"):
+        elif (
+            issubclass(rel_class, CharField) or issubclass(rel_class, TextField)
+        ) and not rel.startswith("volume"):
             q_dict = _parse_operator_text(rel, exp)
         else:
             q_dict = _parse_operator_numeric(rel, rel_class, exp)
