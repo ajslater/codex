@@ -47,8 +47,8 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         md = {}
         failed_import = {}
         try:
-            if import_metadata:
-                with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
+            with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
+                if import_metadata:
                     new_md_mtime = cb.get_metadata_mtime()
                     if self.task.check_metadata_mtime:
                         old_md_mtime = self._metadata_mtime(path)
@@ -60,8 +60,10 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
                             return md
                     md = cb.to_dict()
                     md = md.get("comicbox", {})
-                    md["file_type"] = cb.get_file_type()
                     md["metadata_mtime"] = new_md_mtime
+                else:
+                    md["page_count"] = cb.get_page_count()
+                md["file_type"] = cb.get_file_type()
             md["path"] = path
         except (
             UnsupportedArchiveTypeError,

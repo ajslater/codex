@@ -9,6 +9,8 @@ border-radius: 128px;
 ## v1.8.4
 
 - Fixes
+    - Fix not importing page_count when import metadata is off, leads to
+      unreadable books.
     - Fix persistent settings.
 
 ## v1.8.3
