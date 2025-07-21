@@ -9,7 +9,6 @@ border-radius: 128px;
 ## v1.8.4
 
 - Fixes
-
     - Fix persistent settings.
 
 ## v1.8.3
