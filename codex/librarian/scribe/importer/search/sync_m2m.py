@@ -61,6 +61,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         count = 0
         update_field_names = tuple(self.metadata.get(FTS_UPDATED_M2MS, {}).keys())
         if not update_field_names:
+            self.metadata.pop(FTS_UPDATED_M2MS)
             return
 
         update_objs = []
