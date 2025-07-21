@@ -61,7 +61,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         count = 0
         update_field_names = tuple(self.metadata.get(FTS_UPDATED_M2MS, {}).keys())
         if not update_field_names:
-            self.metadata.pop(FTS_UPDATED_M2MS)
+            self.metadata.pop(FTS_UPDATED_M2MS, None)
             return
 
         update_objs = []
@@ -86,4 +86,4 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
             level,
             f"Updated {count} search indexes entries for comics linked to updated tags: {tags}.",
         )
-        self.metadata.pop(FTS_UPDATED_M2MS)
+        self.metadata.pop(FTS_UPDATED_M2MS, None)

@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.3
+
+- Fixes
+    - Fix searching by string like fields in the search bar like 'path'.
+    - Fix minor search update exception when there's nothing search related to
+      update on import.
+
 ## v1.8.2
 
 - Fixes
