@@ -175,10 +175,11 @@ test-frontend: build-choices
 	cd frontend && make test
 
 .PHONY: test-backend
-## Run backend tests
+## Run backend tests. Use T variable to run specific tests
 ## @category Test
+T := 
 test-backend: collectstatic django-check
-	./bin/test-backend.sh
+	./bin/test-backend.sh $(T)
 
 .PHONY: test
 ## Run Tests.
