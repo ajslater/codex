@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.views import exception_handler
 
-from codex.exceptions import SeeOtherRedirectError
+from codex.views.exceptions import SeeOtherRedirectError
 
 _OPDS_PREFIX = "opds/v"
 

@@ -1,13 +1,16 @@
-"""Browser Group Field."""
+"""Browse Group Field."""
 
-from rest_framework.fields import ChoiceField
+from codex.choices.browser import BROWSER_ROUTE_CHOICES, BROWSER_TOP_GROUP_CHOICES
+from codex.serializers.fields.base import CodexChoiceField
 
-from codex.choices.browser import BROWSER_GROUP_CHOICES
+
+class BrowseGroupField(CodexChoiceField):
+    """Valid Top Groups Only."""
+
+    class_choices = tuple(BROWSER_TOP_GROUP_CHOICES.keys())
 
 
-class BrowseGroupField(ChoiceField):
-    """BrowseGroup Field."""
+class BrowserRouteGroupField(CodexChoiceField):
+    """Valid Top Groups Only."""
 
-    def __init__(self, *args, **kwargs):
-        """Add choices."""
-        super().__init__(*args, choices=tuple(BROWSER_GROUP_CHOICES.keys()), **kwargs)
+    class_choices = tuple(BROWSER_ROUTE_CHOICES.keys())

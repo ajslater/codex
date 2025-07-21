@@ -2,12 +2,12 @@
 
 import json
 from base64 import a85decode
-from logging import getLogger
 from lzma import compress
 from uuid import uuid4
 
 from requests import Session
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import AdminFlag, Timestamp
 
@@ -28,12 +28,10 @@ _HEADERS = {"Content-Type": "application/xz"}
 _POST = _BASE + f"/stats/{_APP_NAME}/{_VERSION}"
 _TIMEOUT = 5
 
-LOG = getLogger(__name__)
-
 
 def get_telemeter_timestamp():
     """Get or create timestamp."""
-    key = Timestamp.TimestampChoices.TELEMETER_SENT.value
+    key = Timestamp.Choices.TELEMETER_SENT.value
     defaults = {"key": key}
     ts, _ = Timestamp.objects.get_or_create(defaults=defaults, key=key)
     if not ts.version:
@@ -54,21 +52,29 @@ def _post_stats(data):
         response.raise_for_status()
 
 
-def _send_telemetry():
+def _send_telemetry(uuid):
     """Send telemetry to server."""
-    if not AdminFlag.objects.get(key=AdminFlag.FlagChoices.SEND_TELEMETRY.value).on:
+    if (
+        not AdminFlag.objects.only("on")
+        .get(key=AdminFlagChoices.SEND_TELEMETRY.value)
+        .on
+    ):
         reason = "Send Telemetry flag is off."
         raise ValueError(reason)
-    ts = get_telemeter_timestamp()
     stats = CodexStats().get()
-    data = {"stats": stats, "uuid": ts.version}
+    data = {"stats": stats, "uuid": uuid}
     _post_stats(data)
-    ts.save()  # update updated_at
 
 
 def send_telemetry(log):
     """Send anonymous telemetry during one window per week."""
     try:
-        _send_telemetry()
+        ts = get_telemeter_timestamp()
+        try:
+            _send_telemetry(ts.version)
+        except Exception as exc:
+            log.debug(f"Failed to send anonyomous stats: {exc}")
+        # update updated_at, even on failure to prevent rapid rescheudling.
+        ts.save()
     except Exception as exc:
-        log.debug(f"Failed to send anonyomous stats: {exc}")
+        log.debug(f"Failed to get or set telemeter timestamp: {exc}")

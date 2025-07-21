@@ -13,7 +13,7 @@ import prettyBytes from "pretty-bytes";
 
 import { DATE_FORMAT, getDateTime, NUMBER_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
-const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
+const STAR_SORT_BY = new Set(["critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
 const TIME_SORT_BY = new Set([
   "bookmark_updated_at",

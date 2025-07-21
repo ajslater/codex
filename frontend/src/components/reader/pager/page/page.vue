@@ -8,14 +8,11 @@
   >
     <ErrorPage
       v-if="error"
-      :two-pages="settings.twoPages"
+      :two-pages="twoPages"
       :type="error"
       @retry="onRetry"
     />
-    <LoadingPage
-      v-else-if="showProgress && !loaded"
-      :two-pages="settings.twoPages"
-    />
+    <LoadingPage v-else-if="showProgress && !loaded" :two-pages="twoPages" />
     <component
       :is="component"
       v-else
@@ -31,7 +28,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapState, mapActions } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
@@ -43,7 +40,7 @@ const PDFDoc = markRaw(
 import ErrorPage from "@/components/reader/pager/page/page-error.vue";
 import ImgPage from "@/components/reader/pager/page/page-img.vue";
 
-const PROGRESSS_DELAY_MS = 333;
+const PROGRESS_DELAY_MS = 333;
 
 export default {
   name: "BookPage",
@@ -96,15 +93,22 @@ export default {
     component() {
       return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
     },
+    bookSettings() {
+      return this.getBookSettings(this.book);
+    },
+    twoPages() {
+      return this.bookSettings.twoPages;
+    },
   },
   mounted() {
     setTimeout(function () {
       if (!this.loaded) {
         this.loading = true;
       }
-    }, PROGRESSS_DELAY_MS);
+    }, PROGRESS_DELAY_MS);
   },
   methods: {
+    ...mapActions(useReaderStore, ["getBookSettings"]),
     onLoad() {
       this.showProgress = false;
       this.loaded = true;

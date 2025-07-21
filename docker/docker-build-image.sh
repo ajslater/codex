@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Generic image builder script
 set -xeuo pipefail
+if [ "$1" == "amd64" ]; then
+  shift
+  MACHINE=$(uname -m)
+  if [ "$MACHINE" != "x86_64" ]; then
+    echo Skipping wrong platform: "$MACHINE" - "$1"
+    exit 0
+  fi
+fi
 REPO=docker.io/ajslater/$1
 SERVICE=$1${2-} # the docker compose service to build
 VERSION_VAR=${SERVICE^^}
@@ -47,7 +55,6 @@ BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
 ######################
 pwd
 ls -a || true
-ls ./dist || true
 cat .dockerignore || true
 #####################
 docker buildx bake \

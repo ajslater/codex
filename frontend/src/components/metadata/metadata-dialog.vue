@@ -1,14 +1,10 @@
 <template>
   <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
-    <template #activator="{ props }">
-      <v-btn
-        aria-label="tags"
-        class="tagButton cardControlButton"
-        :variant="buttonVariant"
-        :icon="mdiTagOutline"
-        title="Tags"
-        v-bind="props"
-        @click.prevent
+    <template #activator="{ props: activatorProps }">
+      <MetadataActivator
+        v-bind="activatorProps"
+        :book="book"
+        :toolbar="toolbar"
       />
     </template>
     <CloseButton
@@ -21,8 +17,8 @@
       id="metadataContainer"
       @keyup.esc="dialog = false"
     >
-      <MetadataHeader :group="group" />
-      <MetadataBody :book="book" :group="group" />
+      <MetadataHeader :group="book.group" />
+      <MetadataBody :book="book" />
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
@@ -36,18 +32,18 @@
 </template>
 
 <script>
-import { mdiTagOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
 import MetadataBody from "@/components/metadata/metadata-body.vue";
 import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import { useMetadataStore } from "@/stores/metadata";
 
 /*
  * Progress circle
- * Can take 19 seconds for 22k children on huge collections
+ * Can take 19 seconds for 22k children
  */
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
@@ -57,6 +53,7 @@ export default {
   name: "MetadataButton",
   components: {
     CloseButton,
+    MetadataActivator,
     MetadataBody,
     MetadataHeader,
     PlaceholderLoading,
@@ -66,14 +63,6 @@ export default {
       type: Object,
       required: true,
     },
-    children: {
-      type: Number,
-      default: 1,
-    },
-    group: {
-      type: String,
-      required: true,
-    },
     toolbar: {
       type: Boolean,
       default: false,
@@ -81,7 +70,6 @@ export default {
   },
   data() {
     return {
-      mdiTagOutline,
       dialog: false,
       progress: 0,
     };
@@ -93,8 +81,8 @@ export default {
     showContainer() {
       return this.md?.loaded || false;
     },
-    buttonVariant() {
-      return this.toolbar ? "plain" : "text";
+    children() {
+      return this.book.childCount || 0;
     },
   },
   watch: {
@@ -111,7 +99,7 @@ export default {
     dialogOpened() {
       const pks = this.book.ids || [this.book.pk];
       const data = {
-        group: this.group,
+        group: this.book.group,
         pks,
       };
       this.loadMetadata(data);

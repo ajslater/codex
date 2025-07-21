@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 import django.db.models.deletion
 import pycountry
-from comicbox.identifiers import parse_identifier
+from comicbox.identifiers.urns import parse_string_identifier
 from django.db import migrations, models
 
 MIGRATE_GTIN = True
@@ -132,16 +132,16 @@ def _migrate_gtin_to_ids_scan(comics):
     comic_identifiers = {}
     for comic in comics:
         try:
-            identifier_type, code = parse_identifier(comic.gtin)
+            nid, _, nss = parse_string_identifier(comic.gtin)
         except Exception:
-            identifier_type = None
-            code = None
-        if not code:
+            nid = None
+            nss = None
+        if not nss:
             continue
-        if identifier_type not in identifiers:
-            identifiers[identifier_type] = set()
-        identifiers[identifier_type].add(code)
-        comic_identifiers[comic] = (identifier_type, code)
+        if nid not in identifiers:
+            identifiers[nid] = set()
+        identifiers[nid].add(nss)
+        comic_identifiers[comic] = (nid, nss)
     return identifiers, comic_identifiers
 
 

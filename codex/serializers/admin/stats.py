@@ -73,13 +73,13 @@ class StatsComicMetadataSerializer(Serializer):
 
     age_rating_count = IntegerField(required=False, read_only=True)
     character_count = IntegerField(required=False, read_only=True)
-    contributor_count = IntegerField(required=False, read_only=True)
-    contributor_person_count = IntegerField(required=False, read_only=True)
-    contributor_role_count = IntegerField(required=False, read_only=True)
+    credit_count = IntegerField(required=False, read_only=True)
+    credit_person_count = IntegerField(required=False, read_only=True)
+    credit_role_count = IntegerField(required=False, read_only=True)
     country_count = IntegerField(required=False, read_only=True)
     genre_count = IntegerField(required=False, read_only=True)
     identifier_count = IntegerField(required=False, read_only=True)
-    identifier_type_count = IntegerField(required=False, read_only=True)
+    identifier_source_count = IntegerField(required=False, read_only=True)
     language_count = IntegerField(required=False, read_only=True)
     location_count = IntegerField(required=False, read_only=True)
     original_format_count = IntegerField(required=False, read_only=True)
@@ -90,6 +90,7 @@ class StatsComicMetadataSerializer(Serializer):
     tag_count = IntegerField(required=False, read_only=True)
     tagger_count = IntegerField(required=False, read_only=True)
     team_count = IntegerField(required=False, read_only=True)
+    universe_count = IntegerField(required=False, read_only=True)
 
 
 class StatsSerializer(Serializer):

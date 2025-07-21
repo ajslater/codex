@@ -2,7 +2,7 @@
   <v-progress-circular
     v-if="progressEnabled"
     class="progress"
-    :indeterminate="progress == null"
+    :indeterminate="!progress"
     :model-value="progress"
     aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
   />

@@ -29,38 +29,36 @@ services:
     command: make lint-backend
   codex-frontend-lint:
     <<: *codex-dist-builder
-    container_name: codex-frontent-lint
-    command: make choices lint-frontend
-    volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices
+    container_name: codex-frontend-lint
+    command: make lint-frontend
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
     command: make test-frontend
     volumes:
+      - ./frontend/src/choices:/app/frontend/src/choices
       - ./test-results/:/app/test-results/
-      - ./frontend/src/choices:/app/frontend/src/choices:ro
   codex-frontend-build:
     <<: *codex-dist-builder
     container_name: codex-frontend-build
     volumes:
-      - ./codex/static_build:/app/codex/static_build
       - ./frontend/src/choices:/app/frontend/src/choices:ro
-    command: make build-frontend
+      - ./codex/static_build:/app/codex/static_build
+    command: make build-frontend -o build-choices
   codex-backend-test:
     <<: *codex-dist-builder
     container_name: codex-backend-test
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
-      - ./test-results/:/app/test-results/
-    command: make test-backend
+      - ./codex/static_root:/app/codex/static_root
+    command: make test-backend -o build-frontend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
     volumes:
-      - ./codex/static_build:/app/codex/static_build:ro
+      - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
-    command: make build-backend
+    command: make build-backend -o collectstatic
   codex-arch:
     build:
       context: .

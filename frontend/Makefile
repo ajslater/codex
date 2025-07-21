@@ -1,5 +1,5 @@
 .PHONY: install
-## Upgrade pip and poetry
+## Upgrade npm
 ## @category Install
 install:
 	npm install

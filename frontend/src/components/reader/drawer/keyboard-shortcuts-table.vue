@@ -4,47 +4,36 @@
     <tbody>
       <tr>
         <td>
-          <v-icon class="keyIcon" density="compact"> {{ mdiMenuLeft }} </v-icon
-          >, j,
-          <div>
-            <v-icon class="keyIcon" density="compact">
-              {{ mdiAppleKeyboardShift }}
-            </v-icon>
-            <v-icon class="keyIcon" density="compact">
-              {{ mdiKeyboardSpace }}
-            </v-icon>
-          </div>
+          <v-hotkey keys="j" />, <v-hotkey keys="arrowleft" />,
+          <v-hotkey keys="shift+space" />
         </td>
         <td>Previous page</td>
       </tr>
       <tr>
         <td>
-          <v-icon class="keyIcon" density="compact"> {{ mdiMenuRight }} </v-icon
-          >, k,
-          <v-icon class="keyIcon" density="compact">
-            {{ mdiKeyboardSpace }}
-          </v-icon>
+          <v-hotkey keys="k" />, <v-hotkey keys="arrowright" />,
+          <v-hotkey keys="space" />
         </td>
         <td>Next page</td>
       </tr>
       <tr>
-        <td>,</td>
+        <td><v-hotkey keys="," /></td>
         <td>Next <em>only</em> one page in two page mode.</td>
       </tr>
       <tr>
-        <td>.</td>
+        <td><v-hotkey keys="." /></td>
         <td>Previous <em>only</em> one page in two page mode.</td>
       </tr>
       <tr>
-        <td>p</td>
+        <td><v-hotkey keys="p" /></td>
         <td>Previous Book</td>
       </tr>
       <tr>
-        <td>n</td>
+        <td><v-hotkey keys="n" /></td>
         <td>Next Book</td>
       </tr>
       <tr>
-        <td>esc</td>
+        <td><v-hotkey keys="esc" /></td>
         <td>Close book</td>
       </tr>
     </tbody>
@@ -53,39 +42,41 @@
   <table class="highlight-table">
     <tbody>
       <tr>
-        <td>s</td>
+        <td><v-hotkey keys="s" /></td>
         <td>screen</td>
       </tr>
       <tr>
-        <td>h</td>
+        <td>
+          <v-hotkey keys="h" />
+        </td>
         <td>screen height</td>
       </tr>
       <tr>
-        <td>w</td>
+        <td><v-hotkey keys="w" /></td>
         <td>screen width</td>
       </tr>
       <tr>
-        <td>o</td>
+        <td><v-hotkey keys="o" /></td>
         <td>Show page at original size</td>
       </tr>
       <tr>
-        <td>2</td>
+        <td><v-hotkey keys="2" /></td>
         <td>Toggle two page view</td>
       </tr>
       <tr>
-        <td>r</td>
+        <td><v-hotkey keys="r" /></td>
         <td>Read Right to Left</td>
       </tr>
       <tr>
-        <td>l</td>
+        <td><v-hotkey keys="l" /></td>
         <td>Read Left to Right</td>
       </tr>
       <tr>
-        <td>t</td>
+        <td><v-hotkey keys="t" /></td>
         <td>Read Top to Bottom</td>
       </tr>
       <tr>
-        <td>b</td>
+        <td><v-hotkey keys="b" /></td>
         <td>Read in Bottom to Top</td>
       </tr>
     </tbody>
@@ -94,11 +85,11 @@
   <table class="highlight-table">
     <tbody>
       <tr>
-        <td>m</td>
+        <td><v-hotkey keys="m" /></td>
         <td>Show comic's metadata</td>
       </tr>
       <tr>
-        <td>double click</td>
+        <td><v-hotkey keys="doubleclick" /></td>
         <td>Zoom page</td>
       </tr>
     </tbody>
@@ -111,9 +102,10 @@ import {
   mdiMenuLeft,
   mdiMenuRight,
 } from "@mdi/js";
-
+import { VHotkey } from "vuetify/labs/VHotkey";
 export default {
   name: "KeyboardShortcutsTable",
+  components: { VHotkey },
   data() {
     return {
       mdiMenuLeft,

@@ -6,6 +6,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse_lazy
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
 
@@ -58,7 +59,7 @@ _DOC = MappingProxyType(
 class OPDSAuthentication1View(GenericAPIView):
     """Authentication document."""
 
-    serializer_class = OPDSAuthentication1Serializer
+    serializer_class: type[BaseSerializer] | None = OPDSAuthentication1Serializer
 
     def get(self, *args, **kwargs):
         """Fill in the authentication dict."""

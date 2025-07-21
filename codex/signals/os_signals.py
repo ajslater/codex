@@ -4,9 +4,8 @@ import asyncio
 import signal
 from asyncio import Event
 
-from codex.logger.logger import get_logger
+from loguru import logger
 
-LOG = get_logger(__name__)
 STOP_SIGNAL_NAMES = (
     "SIGABRT",
     "SIGBREAK",
@@ -27,7 +26,7 @@ def _shutdown_signal_handler(*_args):
     """Initiate Codex Shutdown."""
     if SHUTDOWN_EVENT.is_set():
         return
-    LOG.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
+    logger.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
     SHUTDOWN_EVENT.set()
 
 
@@ -35,7 +34,7 @@ def _restart_signal_handler(*_args):
     """Initiate Codex Restart."""
     if RESTART_EVENT.is_set():
         return
-    LOG.info("Restart signal received.")
+    logger.info("Restart signal received.")
     RESTART_EVENT.set()
     _shutdown_signal_handler()
 
@@ -49,4 +48,4 @@ def bind_signals_to_loop():
                 loop.add_signal_handler(sig, _shutdown_signal_handler)
         loop.add_signal_handler(signal.SIGUSR1, _restart_signal_handler)
     except NotImplementedError:
-        LOG.info("Shutdown and restart signal handling not implemented on windows.")
+        logger.info("Shutdown and restart signal handling not implemented on windows.")

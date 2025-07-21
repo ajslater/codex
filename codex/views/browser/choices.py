@@ -1,5 +1,6 @@
 """View for marking comics read and unread."""
 
+from itertools import chain
 from types import MappingProxyType
 from typing import Any
 
@@ -7,79 +8,79 @@ from caseconverter import snakecase
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
 from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
-from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
-    ContributorPerson,
+    CreditPerson,
     StoryArc,
 )
-from codex.models.named import IdentifierType
+from codex.models.identifier import IdentifierSource
+from codex.models.named import Universe
 from codex.serializers.browser.choices import (
     BrowserChoicesFilterSerializer,
     BrowserFilterChoicesSerializer,
 )
-from codex.serializers.browser.settings import BrowserFilterChoicesInputSerilalizer
+from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.session import (
-    CONTRIBUTOR_PERSON_UI_FIELD,
+    CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,
 )
 
-LOG = get_logger(__name__)
-
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
-        CONTRIBUTOR_PERSON_UI_FIELD: (
-            "contributors__person",
-            ContributorPerson,
+        CREDIT_PERSON_UI_FIELD: (
+            "credits__person",
+            CreditPerson,
+        ),
+        IDENTIFIER_TYPE_UI_FIELD: (
+            "identifiers__source",
+            IdentifierSource,
         ),
         STORY_ARC_UI_FIELD: (
             "story_arc_numbers__story_arc",
             StoryArc,
         ),
-        IDENTIFIER_TYPE_UI_FIELD: (
-            "identifiers__identifier_type",
-            IdentifierType,
-        ),
     }
 )
 _BACK_REL_MAP = MappingProxyType(
     {
-        ContributorPerson: "contributor__",
+        CreditPerson: "credit__",
         StoryArc: "storyarcnumber__",
-        IdentifierType: "identifier__",
+        IdentifierSource: "identifier__",
     }
 )
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
+_NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
 
 
 class BrowserChoicesViewBase(BrowserFilterView):
     """Get choices for filter dialog."""
 
-    input_serializer_class = BrowserFilterChoicesInputSerilalizer
-    TARGET = "choices"
+    input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
+        BrowserFilterChoicesInputSerializer
+    )
+    TARGET: str = "choices"
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
         """Get distinct values for the field."""
-        return (
-            comic_qs.exclude(**{field_name: None})
-            .values_list(field_name, flat=True)
-            .distinct()
-        )
+        return comic_qs.exclude(**{f"{field_name}__isnull": True}).distinct()
 
     def get_m2m_field_query(self, model, comic_qs: QuerySet):
         """Get distinct m2m value objects for the relation."""
         back_rel = _BACK_REL_MAP.get(model, "")
         m2m_filter = {f"{back_rel}comic__in": comic_qs}
-        return model.objects.filter(**m2m_filter).values("pk", "name").distinct()
+        return model.objects.filter(**m2m_filter).distinct()
 
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):
         """Get if comics exist in the filter without values exists for an m2m field."""
+        # Detect if there are null choices. Regretably with another query.
         return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
 
     def get_rel_and_model(self, field_name):
@@ -96,6 +97,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
 
         return rel, model
 
+    @override
     def get_object(self) -> QuerySet:
         """Get the comic subquery use for the choices."""
         return self.get_filtered_queryset(Comic)
@@ -111,51 +113,56 @@ class BrowserChoicesViewBase(BrowserFilterView):
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
-    serializer_class = BrowserFilterChoicesSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserFilterChoicesSerializer
 
     @classmethod
-    def _get_field_choices_count(cls, comic_qs, field_name):
+    def _is_field_choices_exists(cls, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""
         qs = cls.get_field_choices_query(comic_qs, field_name)
-        return qs.count()
+        return qs.exists()
 
-    def _get_m2m_field_choices_count(self, model, comic_qs, rel):
+    def _is_m2m_field_choices_exists(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
-        m2m_qs = self.get_m2m_field_query(model, comic_qs)
-        m2m_qs = m2m_qs.values("pk")
-        count = m2m_qs.count()
+        qs = self.get_m2m_field_query(model, comic_qs)
+        qs = qs[:2]
+        count = qs.count()
+        if count > 1:
+            # There are choices
+            return True
+        if count == 1:
+            # There are only choices if a null exists
+            return self.does_m2m_null_exist(comic_qs, rel)
+        # There is only one or no choices.
+        return False
 
-        # Detect if there are null choices.
-        # Regretabbly with another query, but doing a forward query
-        # on the comic above restricts all results to only the filtered
-        # rows. :(
-        if self.does_m2m_null_exist(comic_qs, rel):
-            count += 1
+    def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str):
+        rel, m2m_model = self.get_rel_and_model(field_name)
 
-        return count
+        if m2m_model:
+            exists = self._is_m2m_field_choices_exists(m2m_model, qs, rel)
+        else:
+            exists = self._is_field_choices_exists(qs, field_name)
+        try:
+            flag = exists
+        except TypeError:
+            flag = False
+        return flag
 
-    def get_object(self) -> dict[str, Any]:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Get choice counts."""
-        qs = super().get_object()
+        qs: QuerySet = super().get_object()
         filters = self.params.get("filters", {})
         data = {}
-        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # type: ignore[reportOptionalCall, reportAssignmentType]
+        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # pyright: ignore[reportOptionalCall, reportAssignmentType]
         for field_name in serializer.get_fields():
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
-            rel, m2m_model = self.get_rel_and_model(field_name)
-
-            if m2m_model:
-                count = self._get_m2m_field_choices_count(m2m_model, qs, rel)
+            if bool(filters.get(field_name)):
+                flag = True
             else:
-                count = self._get_field_choices_count(qs, rel)
-
-            try:
-                is_filter_set = bool(filters.get(field_name))
-                flag = is_filter_set or count > 1
-            except TypeError:
-                flag = False
+                flag = self._is_filter_field_choices_exists(qs, field_name)
             data[field_name] = flag
         return data
 
@@ -163,28 +170,33 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 class BrowserChoicesView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
-    serializer_class = BrowserChoicesFilterSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserChoicesFilterSerializer
 
     def _get_m2m_field_choices(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
-        qs = self.get_m2m_field_query(model, comic_qs)
+        iterables = []
 
-        # Detect if there are null choices.
-        # Regretabbly with another query, but doing a forward query
-        # on the comic above restrcts all results to only the filtered
-        # rows. :(
+        # Choices
+        qs = self.get_m2m_field_query(model, comic_qs)
+        values = ["pk", "name"]
+        if qs.model == Universe:
+            values.append("designation")
+        qs = qs.values(*values)
+
+        # Add null if it exists
         if self.does_m2m_null_exist(comic_qs, rel):
-            choices = list(qs)
-            choices.append(_NULL_NAMED_ROW)
-        else:
-            choices = qs
-        return choices
+            iterables.append(_NULL_NAMED_ROW_ITERABLE)
+
+        iterables.append(qs)
+
+        return chain.from_iterable(iterables)
 
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
 
-    def get_object(self) -> dict[str, Any]:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]··
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()
@@ -194,6 +206,10 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             choices = self._get_m2m_field_choices(m2m_model, qs, rel)
         else:
             choices = self.get_field_choices_query(qs, field_name)
+            choices = choices.values_list(field_name, flat=True)
+
+        if field_name in ("critical_rating", "file_type"):
+            choices = tuple({"pk": choice, "name": choice} for choice in choices)
 
         return {
             "field_name": field_name,

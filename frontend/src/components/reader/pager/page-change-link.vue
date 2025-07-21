@@ -11,7 +11,7 @@
   />
 </template>
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -24,7 +24,7 @@ export default {
     return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isFirstPage", "isLastPage"]),
+    ...mapState(useReaderStore, ["isFirstPage", "isLastPage"]),
     ...mapState(useReaderStore, {
       params(state) {
         return state.routes[this.computedDirection];

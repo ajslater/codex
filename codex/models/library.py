@@ -8,14 +8,15 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db.models import (
     BooleanField,
-    CharField,
     DateTimeField,
     DurationField,
     ManyToManyField,
 )
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import override
 
 from codex.models.base import MAX_PATH_LEN, BaseModel
+from codex.models.fields import CleaningCharField
 
 __all__ = ("Library", "validate_dir_exists")
 
@@ -39,7 +40,7 @@ class Library(BaseModel):
         }
     )
     covers_only = BooleanField(db_index=True, default=False)
-    path = CharField(
+    path = CleaningCharField(
         unique=True,
         db_index=True,
         max_length=MAX_PATH_LEN,
@@ -52,7 +53,8 @@ class Library(BaseModel):
     update_in_progress = BooleanField(default=False)
     groups = ManyToManyField(Group, blank=True)
 
-    def __str__(self) -> str:
+    @override
+    def __repr__(self) -> str:
         """Return the path."""
         return str(self.path)
 
@@ -60,3 +62,15 @@ class Library(BaseModel):
         """Pluralize."""
 
         verbose_name_plural = "Libraries"
+
+    def _save_update_in_progress(self, *, value: bool):
+        self.update_in_progress = value
+        self.save(update_fields=["update_in_progress"])
+
+    def start_update(self):
+        """Start a library update."""
+        self._save_update_in_progress(value=True)
+
+    def end_update(self):
+        """Finish a library update."""
+        self._save_update_in_progress(value=False)

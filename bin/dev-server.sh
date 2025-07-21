@@ -9,4 +9,4 @@ export PYTHONDEVMODE="$DEBUG"
 export PYTHONDONTWRITEBYTECODE=1
 #export CODEX_THROTTLE_OPDS=10
 #export CODEX_THROTTLE_USER=10
-poetry run python3 ./codex/run.py
+uv run python3 ./codex/run.py

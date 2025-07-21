@@ -4,15 +4,15 @@ import re
 from types import MappingProxyType
 
 from django.db.models.query import Q
+from loguru import logger
 
-from codex.logger.logger import get_logger
+from codex.choices.admin import AdminFlagChoices
+from codex.choices.search import FIELDMAP
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
-from codex.settings.settings import MAX_OBJ_PER_PAGE
-from codex.views.browser.filters.search.aliases import ALIAS_FIELD_MAP
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
 
-LOG = get_logger(__name__)
 _FTS_COLUMNS = frozenset(
     {field.name for field in ComicFTS._meta.get_fields()}
     - {"comic", "updated_at", "created_at"}
@@ -20,6 +20,7 @@ _FTS_COLUMNS = frozenset(
 _NON_FTS_COLUMNS = frozenset(
     {
         "volume",
+        "volume_to",
         "created_at",
         "updated_at",
         "issue_number",
@@ -27,16 +28,13 @@ _NON_FTS_COLUMNS = frozenset(
         "year",
         "month",
         "day",
-        "community_rating",
-        "criticial_rating",
+        "critical_rating",
         "page_count",
         "monochrome",
         "date",
         "decade",
         "size",
         "path",
-        "identifier",
-        "identifier_type",
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)
@@ -55,16 +53,15 @@ _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
 _TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?"  # noqa: S105
 _TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
+_ALIAS_FIELD_MAP = MappingProxyType(
+    {value: key for key, values in FIELDMAP.items() for value in values}
+)
 
 
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
-    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
-        {
-            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
-        }
-    )
+    ADMIN_FLAGS: tuple[AdminFlagChoices, ...] = (AdminFlagChoices.FOLDER_VIEW,)
 
     def __init__(self, *args, **kwargs):
         """Initialize search variables."""
@@ -78,15 +75,15 @@ class SearchFilterView(BrowserFTSFilter):
     def admin_flags(self) -> MappingProxyType[str, bool]:
         """Set browser relevant admin flags."""
         if self._admin_flags is None:
-            if self.ADMIN_FLAG_VALUE_KEY_MAP:
+            if self.ADMIN_FLAGS:
                 admin_pairs = AdminFlag.objects.filter(
-                    key__in=self.ADMIN_FLAG_VALUE_KEY_MAP.keys()
+                    key__in=(enum.value for enum in self.ADMIN_FLAGS)
                 ).values_list("key", "on")
             else:
                 admin_pairs = ()
             admin_flags = {}
             for key, on in admin_pairs:
-                export_key = self.ADMIN_FLAG_VALUE_KEY_MAP[key]
+                export_key = AdminFlagChoices(key).name.lower()
                 admin_flags[export_key] = on
             self._admin_flags = MappingProxyType(admin_flags)
         return self._admin_flags
@@ -104,7 +101,7 @@ class SearchFilterView(BrowserFTSFilter):
         return False
 
     def _parse_column_match(self, preop, col, exp, field_tokens):  # , fts_tokens):
-        col = ALIAS_FIELD_MAP.get(col, col)
+        col = _ALIAS_FIELD_MAP.get(col.lower(), col)
         if col not in _VALID_COLUMNS:
             return True
         if col == "path" and not self._is_path_column_allowed():
@@ -114,20 +111,24 @@ class SearchFilterView(BrowserFTSFilter):
                 preop = "and"
             if preop not in field_tokens:
                 field_tokens[preop] = set()
-            field_tokens[preop].add((col, exp))
+            field_token = (col, exp)
+            field_tokens[preop].add(field_token)
             return True
-
         return False
 
     @staticmethod
     def _add_fts_token(fts_tokens, token):
         token = _FTS_OPERATOR_RE.sub(lambda op: op.group("operator").upper(), token)
-        if (
-            token.lower() not in _FTS_OPERATORS
-            and not (token.startswith('"') and token.endswith('"'))
-            and ":" not in token
+
+        if ":" in token:
+            col, value = token.split(":")
+            col = _ALIAS_FIELD_MAP.get(col.lower(), col)
+            token = f"{col}:{value}"
+        elif token.lower() not in _FTS_OPERATORS and not (
+            token.startswith('"') and token.endswith('"')
         ):
             token = f'"{token}"'
+
         fts_tokens.append(token)
 
     def _preparse_search_query_token(self, match, field_tokens, fts_tokens):
@@ -160,10 +161,9 @@ class SearchFilterView(BrowserFTSFilter):
                 self._preparse_search_query_token(match, field_tokens, fts_tokens)
             except Exception as exc:
                 tok = match.group(0) if match else "<unmatched>"
-                LOG.debug(f"Error preparsing search query token {tok}: {exc}")
+                logger.debug(f"Error preparsing search query token {tok}: {exc}")
                 self.search_error = "Syntax error"
         text = " ".join(fts_tokens)
-
         return field_tokens, text
 
     def _create_search_filters(self, model):
@@ -221,7 +221,7 @@ class SearchFilterView(BrowserFTSFilter):
 
         except Exception as exc:
             msg = "Creating search filters"
-            LOG.exception(msg)
+            logger.exception(msg)
             msg = f"{msg} - {exc}"
             self.search_error = msg
 

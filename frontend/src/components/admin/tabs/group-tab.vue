@@ -108,7 +108,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
@@ -148,7 +148,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["normalLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,

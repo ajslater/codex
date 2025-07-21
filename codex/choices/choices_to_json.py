@@ -10,12 +10,13 @@ from caseconverter import camelcase
 
 from codex.choices.admin import (
     ADMIN_FLAG_CHOICES,
-    ADMIN_STATUS_TITLES,
     ADMIN_TASK_GROUPS,
 )
 from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
 from codex.choices.notifications import Notifications
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
+from codex.choices.search import SEARCH_FIELDS
+from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.serializers.route import RouteSerializer
 
 _DEFAULTS = MappingProxyType(
@@ -37,6 +38,7 @@ _MAP_DUMPS = MappingProxyType(
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
         "reader-map.json": READER_CHOICES,
+        "search-map.json": SEARCH_FIELDS,
     }
 )
 
@@ -61,16 +63,17 @@ def _json_key(key: str):
     return key if key.upper() == key else camelcase(key)
 
 
-def _make_json_serializable(data):
+def _make_json_serializable(data, *, jsonize_keys: bool = True):
     """Convert nested Mapping objects to dicts."""
     if isinstance(data, Mapping):
         json_dict = {}
         for key, value in data.items():
             if key == "breadcrumbs":
-                json_value = tuple(RouteSerializer(dict(route)).data for route in value)
+                json_value = tuple(RouteSerializer(dict(route)).data for route in value)  #  pyright: ignore[reportGeneralTypeIssues]
             else:
                 json_value = _make_json_serializable(value)
-            json_dict[_json_key(key)] = json_value
+            json_key = _json_key(key) if jsonize_keys else key
+            json_dict[json_key] = json_value
         return json_dict
     if isinstance(data, list | tuple | frozenset | set):
         return [_make_json_serializable(item) for item in data]
@@ -90,10 +93,12 @@ def _to_vuetify_dict(fn: str, data):
     return vuetify_data
 
 
-def _dump(parent_path: Path, fn: str, data, vuetify: bool):
+def _dump(parent_path: Path, fn: str, data, *, vuetify: bool, jsonize_keys: bool):
     """Dump data to json file."""
     vuetify_data = (
-        _to_vuetify_dict(fn, data) if vuetify else _make_json_serializable(data)
+        _to_vuetify_dict(fn, data)
+        if vuetify
+        else _make_json_serializable(data, jsonize_keys=jsonize_keys)
     )
     path = parent_path / fn
     with path.open("w") as json_file:
@@ -115,13 +120,20 @@ def main():
     parent_path = Path(parent_path)
     parent_path.mkdir(exist_ok=True)
     for fn, data in _DUMPS.items():
-        _dump(parent_path, fn, data, vuetify=True)
+        _dump(parent_path, fn, data, vuetify=True, jsonize_keys=True)
 
     for fn, data in _MAP_DUMPS.items():
-        _dump(parent_path, fn, data, vuetify=False)
+        jsonize_keys = fn != "search-map.json"
+        _dump(parent_path, fn, data, vuetify=False, jsonize_keys=jsonize_keys)
 
     ws_messages = _make_websocket_messages()
-    _dump(parent_path, "websocket-messages.json", ws_messages, vuetify=False)
+    _dump(
+        parent_path,
+        "websocket-messages.json",
+        ws_messages,
+        vuetify=False,
+        jsonize_keys=True,
+    )
 
 
 if __name__ == "__main__":

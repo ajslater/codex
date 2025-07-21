@@ -6,7 +6,10 @@ import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
-import { topGroup as GROUP_NAMES } from "@/choices/browser-map.json";
+import {
+  topGroup as GROUP_NAMES,
+  identifierSources as IDENTIFIER_SOURCES,
+} from "@/choices/browser-map.json";
 import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
@@ -62,7 +65,7 @@ export const useBrowserStore = defineStore("browser", {
         groupNames: GROUP_NAMES,
         settingsGroup: BROWSER_CHOICES.settingsGroup,
         readingDirection: READING_DIRECTION,
-        identifierType: BROWSER_CHOICES.identifierTypes,
+        identifierSources: IDENTIFIER_SOURCES,
       }),
       dynamic: undefined,
     },
@@ -218,7 +221,7 @@ export const useBrowserStore = defineStore("browser", {
       const settings = this._filterSettings(state, keys);
       const pks = params.pks;
       if (!dc && group !== "r" && pks) {
-        settings["parent"] = {
+        settings["parentRoute"] = {
           group,
           pks,
         };
@@ -269,13 +272,24 @@ export const useBrowserStore = defineStore("browser", {
       }
       return maxLen;
     },
-    identifierTypeTitle(idType) {
-      if (!idType) {
-        return idType;
+    identifierSourceTitle(idSource) {
+      if (!idSource) {
+        return idSource;
       }
-      const lowerIdType = idType.toLowerCase();
-      const longName = this.choices.static.identifierType[lowerIdType];
-      return longName || idType;
+      const lowerIdSource = idSource.toLowerCase();
+      const longName = this.choices.static.identifierSources[lowerIdSource];
+      return longName || idSource;
+    },
+    fixUniverseTitles(universes) {
+      const items = [];
+      for (const oldItem of universes) {
+        const item = { ...oldItem };
+        if (item.designation) {
+          item.name += ` (${item.designation})`;
+        }
+        items.push(item);
+      }
+      return items;
     },
     setIsSearchOpen(value) {
       this.isSearchOpen = value;
@@ -325,8 +339,8 @@ export const useBrowserStore = defineStore("browser", {
       const currentGroup = currentParams?.group;
       const newTopGroup = data.topGroup;
       if (currentGroup === "r" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
-        // r group can have any top groups?
         return redirect;
+        // r group can have any top groups?
       }
 
       const oldTopGroup = this.settings.topGroup;
@@ -368,7 +382,7 @@ export const useBrowserStore = defineStore("browser", {
         } else {
           /*
            * New top group is a child (REVERSED)
-           * Redrect to the new root.
+           * Redirect to the new root.
            */
           params = { group: "r", pks: "0", page: "1" };
         }

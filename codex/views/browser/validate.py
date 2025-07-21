@@ -5,11 +5,10 @@ from copy import deepcopy
 from types import MappingProxyType
 from typing import Any
 
+from loguru import logger
 from rest_framework.exceptions import NotFound
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
-from codex.exceptions import SeeOtherRedirectError
-from codex.logger.logger import get_logger
 from codex.models.groups import BrowserGroupModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
@@ -20,8 +19,7 @@ from codex.views.const import (
     ROOT_GROUP,
     STORY_ARC_GROUP,
 )
-
-LOG = get_logger(__name__)
+from codex.views.exceptions import SeeOtherRedirectError
 
 
 class BrowserValidateView(SearchFilterView):
@@ -58,7 +56,7 @@ class BrowserValidateView(SearchFilterView):
             if model is None:
                 group = self.kwargs["group"]
                 detail = f"Cannot browse {group=}"
-                LOG.debug(detail)
+                logger.debug(detail)
                 raise NotFound(detail=detail)
             self._model = model
         return self._model
@@ -74,10 +72,10 @@ class BrowserValidateView(SearchFilterView):
         self, reason, route_mask=None, settings_mask: Mapping | None = None
     ):
         """Redirect the client to a valid group url."""
-        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)  # type:ignore[reportAssignmentType]
+        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)
         if route_mask:
             route["params"].update(route_mask)
-        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))  # type: ignore[reportAssignmentType]
+        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}
@@ -104,7 +102,7 @@ class BrowserValidateView(SearchFilterView):
         nav_group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
         if top_group not in valid_top_groups:
-            reason = f"top_group {top_group} not in valid nav groups, changed to "
+            reason = f"top_group {top_group} not in valid nav groups {valid_top_groups}, changed to "
             if nav_group in valid_top_groups:
                 valid_top_group = nav_group
                 reason += "nav group: "

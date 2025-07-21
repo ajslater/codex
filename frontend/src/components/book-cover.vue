@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { mapGetters } from "pinia";
+import { mapState } from "pinia";
 
 import { getCoverSrc } from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
@@ -46,7 +46,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["coverSettings"]),
+    ...mapState(useBrowserStore, ["coverSettings"]),
     coverSrc() {
       return getCoverSrc(
         { group: this.group, pks: this.pks },

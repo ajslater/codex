@@ -3,12 +3,10 @@
 from enum import Enum
 
 from channels.generic.websocket import AsyncWebsocketConsumer
-
-from codex.logger.logger import get_logger
+from loguru import logger
+from typing_extensions import override
 
 ChannelGroups = Enum("ChannelGroups", "ALL ADMIN")
-
-LOG = get_logger(__name__)
 
 
 class NotifierConsumer(AsyncWebsocketConsumer):
@@ -31,15 +29,17 @@ class NotifierConsumer(AsyncWebsocketConsumer):
             groups += [ChannelGroups.ADMIN.name]
         return groups
 
+    @override
     async def websocket_connect(self, message):
         """Authorize with user and connect websocket to groups."""
         # Authorization
         # Set groups for user.
-        self.groups = self._get_groups()
+        self.groups: list[str] | None = self._get_groups()
 
         await super().websocket_connect(message)
-        LOG.debug(f"Websocket connected to {self.groups}")
+        logger.trace(f"Websocket connected to {self.groups}")
 
+    @override
     async def disconnect(self, code):
         """Close channels after WebSocket disconnect."""
         await self.close(code)
@@ -48,6 +48,6 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         """Send message to client."""
         text = event.get("text")
         if not text:
-            LOG.warning(f"No text in websockets message: {event}")
+            logger.warning(f"No text in websockets message: {event}")
             return
         await self.send(text)

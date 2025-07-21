@@ -5,36 +5,18 @@ from typing import TYPE_CHECKING
 
 from django.db.models.query_utils import Q
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.response import Response
 
 from codex.choices.notifications import Notifications
+from codex.librarian.bookmark.tasks import (
+    ClearLibrarianStatusTask,
+    CodexLatestVersionTask,
+)
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
-)
-from codex.librarian.importer.tasks import (
-    AdoptOrphanFoldersTask,
-    UpdateGroupsTask,
-)
-from codex.librarian.janitor.tasks import (
-    ForceUpdateAllFailedImportsTask,
-    JanitorBackupTask,
-    JanitorCleanCoversTask,
-    JanitorCleanFKsTask,
-    JanitorCleanupBookmarksTask,
-    JanitorCleanupSessionsTask,
-    JanitorClearStatusTask,
-    JanitorForeignKeyCheck,
-    JanitorFTSIntegrityCheck,
-    JanitorFTSRebuildTask,
-    JanitorIntegrityCheck,
-    JanitorLatestVersionTask,
-    JanitorNightlyTask,
-    JanitorRestartTask,
-    JanitorShutdownTask,
-    JanitorUpdateTask,
-    JanitorVacuumTask,
 )
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import (
@@ -47,18 +29,38 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
-from codex.librarian.search.tasks import (
-    SearchIndexAbortTask,
+from codex.librarian.restarter.tasks import CodexRestartTask, CodexShutdownTask
+from codex.librarian.scribe.janitor.tasks import (
+    JanitorAdoptOrphanFoldersTask,
+    JanitorBackupTask,
+    JanitorCleanCoversTask,
+    JanitorCleanFKsTask,
+    JanitorCleanupBookmarksTask,
+    JanitorCleanupSessionsTask,
+    JanitorCodexUpdateTask,
+    JanitorForeignKeyCheckTask,
+    JanitorFTSIntegrityCheckTask,
+    JanitorFTSRebuildTask,
+    JanitorImportForceAllFailedTask,
+    JanitorIntegrityCheckTask,
+    JanitorNightlyTask,
+    JanitorVacuumTask,
+)
+from codex.librarian.scribe.search.tasks import (
+    SearchIndexCleanStaleTask,
     SearchIndexClearTask,
     SearchIndexOptimizeTask,
-    SearchIndexRemoveStaleTask,
-    SearchIndexUpdateTask,
+    SearchIndexSyncTask,
+)
+from codex.librarian.scribe.tasks import (
+    ImportAbortTask,
+    SearchIndexSyncAbortTask,
+    UpdateGroupsTask,
 )
 from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.logger.logger import get_logger
 from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
@@ -69,29 +71,29 @@ from codex.views.const import EPOCH_START
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-LOG = get_logger(__name__)
 
 _TASK_MAP = MappingProxyType(
     {
         "purge_comic_covers": CoverRemoveAllTask(),
         "create_all_comic_covers": CoverCreateAllTask(),
-        "search_index_update": SearchIndexUpdateTask(rebuild=False),
-        "search_index_rebuild": SearchIndexUpdateTask(rebuild=True),
-        "search_index_remove_stale": SearchIndexRemoveStaleTask(),
-        "search_index_abort": SearchIndexAbortTask(),
-        "search_index_optimize": SearchIndexOptimizeTask(janitor=False),
+        "search_index_update": SearchIndexSyncTask(rebuild=False),
+        "search_index_rebuild": SearchIndexSyncTask(rebuild=True),
+        "search_index_remove_stale": SearchIndexCleanStaleTask(),
+        "import_abort": ImportAbortTask(),
+        "search_index_abort": SearchIndexSyncAbortTask(),
+        "search_index_optimize": SearchIndexOptimizeTask(),
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
-        "db_foreign_key_check": JanitorForeignKeyCheck(),
-        "db_integrity_check": JanitorIntegrityCheck(),
-        "db_fts_integrity_check": JanitorFTSIntegrityCheck(),
+        "db_foreign_key_check": JanitorForeignKeyCheckTask(),
+        "db_integrity_check": JanitorIntegrityCheckTask(),
+        "db_fts_integrity_check": JanitorFTSIntegrityCheckTask(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
         "watchdog_sync": WatchdogSyncTask(),
-        "codex_latest_version": JanitorLatestVersionTask(force=True),
-        "codex_update": JanitorUpdateTask(force=False),
-        "codex_shutdown": JanitorShutdownTask(),
-        "codex_restart": JanitorRestartTask(),
+        "codex_latest_version": CodexLatestVersionTask(force=True),
+        "codex_update": JanitorCodexUpdateTask(force=False),
+        "codex_shutdown": CodexShutdownTask(),
+        "codex_restart": CodexRestartTask(),
         "notify_admin_flags_changed": ADMIN_FLAGS_CHANGED_TASK,
         "notify_covers_changed": COVERS_CHANGED_TASK,
         "notify_failed_imports_changed": FAILED_IMPORTS_CHANGED_TASK,
@@ -104,13 +106,13 @@ _TASK_MAP = MappingProxyType(
         "cleanup_sessions": JanitorCleanupSessionsTask(),
         "cleanup_bookmarks": JanitorCleanupBookmarksTask(),
         "cleanup_covers": CoverRemoveOrphansTask(),
-        "librarian_clear_status": JanitorClearStatusTask(),
-        "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
+        "librarian_clear_status": ClearLibrarianStatusTask(),
+        "force_update_all_failed_imports": JanitorImportForceAllFailedTask(),
         "poll": WatchdogPollLibrariesTask(frozenset(), force=False),
         "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
-        "adopt_folders": AdoptOrphanFoldersTask(),
+        "adopt_folders": JanitorAdoptOrphanFoldersTask(),
     }
 )
 
@@ -138,9 +140,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             task = NotifierTask(Notifications.BOOKMARK.value, group)
         else:
             task = _TASK_MAP.get(name)
-        if pk and isinstance(
-            task, WatchdogPollLibrariesTask | WatchdogPollLibrariesTask
-        ):
+        if pk and isinstance(task, WatchdogPollLibrariesTask):
             task.library_ids = frozenset({pk})
         return task
 
@@ -159,7 +159,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             LIBRARIAN_QUEUE.put(task)
         else:
             reason = f"Unknown admin library task_name: {task_name}"
-            LOG.warning(reason)
+            logger.warning(reason)
             raise ValueError(reason)
 
         serializer = self.serializer_class()

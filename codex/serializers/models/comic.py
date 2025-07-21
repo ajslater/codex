@@ -15,7 +15,7 @@ from codex.serializers.models.groups import (
 from codex.serializers.models.named import (
     AgeRatingSerializer,
     CharacterSerializer,
-    ContributorSerializer,
+    CreditSerializer,
     GenreSerializer,
     IdentifierSeralizer,
     LocationSerializer,
@@ -27,6 +27,7 @@ from codex.serializers.models.named import (
     TaggerSerializer,
     TagSerializer,
     TeamSerializer,
+    UniverseSerializer,
 )
 from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
@@ -56,9 +57,12 @@ class ComicSerializer(BaseModelSerializer):
     original_format = OriginalFormatSerializer(allow_null=True)
     scan_info = ScanInfoSerializer(allow_null=True)
     tagger = TaggerSerializer(allow_null=True)
+    main_character = CharacterSerializer(allow_null=True)
+    main_team = TeamSerializer(allow_null=True)
 
     # ManyToMany
     characters = CharacterSerializer(many=True, allow_null=True)
+    credits = CreditSerializer(many=True, allow_null=True)
     genres = GenreSerializer(many=True, allow_null=True)
     identifiers = IdentifierSeralizer(many=True, allow_null=True)
     locations = LocationSerializer(many=True, allow_null=True)
@@ -70,7 +74,7 @@ class ComicSerializer(BaseModelSerializer):
     )
     tags = TagSerializer(many=True, allow_null=True)
     teams = TeamSerializer(many=True, allow_null=True)
-    contributors = ContributorSerializer(many=True, allow_null=True)
+    universes = UniverseSerializer(many=True, allow_null=True)
 
     class Meta(BaseModelSerializer.Meta):
         """Configure the model."""

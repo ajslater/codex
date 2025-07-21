@@ -64,7 +64,7 @@ class OPDS2TopLinksView(OPDS2LinksView):
 
     def get_links(self, up_route):
         """Get the top links section of the feed."""
-        page = self.kwargs.get("page")
+        page = self.kwargs.get("page", 0)
         top_href_data = HrefData(self._top_route())
         top_link_data = LinkData(Rel.TOP, top_href_data)
         up_href_data = HrefData(up_route)
@@ -73,7 +73,12 @@ class OPDS2TopLinksView(OPDS2LinksView):
             self.link_self(),
             *self._get_static_links(),
             self._link_page("first", 1),
-            self._link_page("previous", page - 1),
+        ]
+        if page > 1:
+            links_data += [
+                self._link_page("previous", page - 1),
+            ]
+        links_data += [
             self._link_page("next", page + 1),
             self._link_page("last", self.num_pages),
             self.link(top_link_data),

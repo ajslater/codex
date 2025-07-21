@@ -6,17 +6,19 @@ from types import MappingProxyType
 from django.db.models import Max
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
 
-from codex.logger.logger import get_logger
+from codex.choices.admin import AdminFlagChoices
 from codex.models import (
-    AdminFlag,
     Comic,
     Folder,
     Library,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
-from codex.settings.settings import MAX_OBJ_PER_PAGE
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -24,27 +26,24 @@ from codex.views.const import (
     STORY_ARC_GROUP,
 )
 
-LOG = get_logger(__name__)
-
 
 class BrowserView(BrowserTitleView):
     """Browse comics with a variety of filters and sorts."""
 
-    serializer_class = BrowserPageSerializer
+    serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
 
-    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
-        {
-            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
-            AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
-        }
+    ADMIN_FLAGS = (
+        AdminFlagChoices.FOLDER_VIEW,
+        AdminFlagChoices.IMPORT_METADATA,
     )
-    TARGET = "browser"
+    TARGET: str = "browser"
 
     ########
     # Init #
     ########
 
     @property
+    @override
     def model_group(self):
         """Get the group of the models to browse."""
         # the model group shown must be:
@@ -144,11 +143,11 @@ class BrowserView(BrowserTitleView):
     def _debug_queries(self, group_count, book_count, group_qs, book_qs):
         """Log query details."""
         if group_count:
-            LOG.debug(group_qs.explain())
-            LOG.debug(group_qs.query)
+            logger.debug(group_qs.explain())
+            logger.debug(group_qs.query)
         if book_count:
-            LOG.debug(book_qs.explain())
-            LOG.debug(book_qs.query)
+            logger.debug(book_qs.explain())
+            logger.debug(book_qs.query)
 
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
@@ -179,6 +178,7 @@ class BrowserView(BrowserTitleView):
         mtime = self._get_page_mtime()
         return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
+    @override
     def get_object(self):
         """Validate settings and get the querysets."""
         group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (

@@ -2,7 +2,8 @@
   <v-dialog
     v-model="showDialog"
     transition="fab-transition"
-    max-width="20em"
+    min-width="20em"
+    width="auto"
     overlay-opacity="0.5"
   >
     <template #activator="{ props }">

@@ -2,25 +2,23 @@
 
 from django.db.models import (
     CASCADE,
-    CharField,
     ForeignKey,
-    PositiveIntegerField,
-    URLField,
 )
+from typing_extensions import override
 
-from codex.models.base import MAX_NAME_LEN, BaseModel
+from codex.models.base import MAX_NAME_LEN, BaseModel, NamedModel
+from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
 from codex.models.groups import BrowserGroupModel
+from codex.models.identifier import Identifier
 
 __all__ = (
     "AgeRating",
     "Character",
-    "Contributor",
-    "ContributorPerson",
-    "ContributorRole",
     "Country",
+    "Credit",
+    "CreditPerson",
+    "CreditRole",
     "Genre",
-    "Identifier",
-    "IdentifierType",
     "Language",
     "Location",
     "OriginalFormat",
@@ -32,51 +30,64 @@ __all__ = (
     "Tag",
     "Tagger",
     "Team",
+    "Universe",
 )
 
 
-class NamedModel(BaseModel):
-    """A for simple named tables."""
+class IdentifiedNamedModel(NamedModel):
+    """
+    For NamedModels with Identifiers.
 
-    name = CharField(db_index=True, max_length=MAX_NAME_LEN)
+    Comicbox objects can have multiple identifiers, but if I let NamedModels have them
+    then it would impossible to unlink a second level m2m relationship when comics are
+    deleted. So I choose the highest priority one in import.
+    """
 
-    class Meta(BaseModel.Meta):
+    identifier = ForeignKey(Identifier, on_delete=CASCADE, null=True)
+
+    class Meta(NamedModel.Meta):
         """Defaults to uniquely named, must be overridden."""
 
         abstract = True
-        unique_together = ("name",)
 
-    def __str__(self):
+    @override
+    def __repr__(self):
         """Return the name."""
-        return self.name
+        suffix = ":" + str(self.identifier) if self.identifier else ""
+        return self.name + suffix
 
 
 class AgeRating(NamedModel):
     """The Age Rating the comic was intended for."""
 
 
-class Character(NamedModel):
+class Character(IdentifiedNamedModel):
     """A character that appears in the comic."""
 
 
-class ContributorPerson(NamedModel):
+class CreditPerson(IdentifiedNamedModel):
     """Credited persons."""
 
 
-class ContributorRole(NamedModel):
+class CreditRole(IdentifiedNamedModel):
     """A role for the credited person. Writer, Inker, etc."""
 
 
-class Contributor(BaseModel):
-    """A contributor credit."""
+class Credit(BaseModel):
+    """A credit."""
 
-    person = ForeignKey(ContributorPerson, on_delete=CASCADE)
-    role = ForeignKey(ContributorRole, on_delete=CASCADE, null=True)
+    person = ForeignKey(CreditPerson, on_delete=CASCADE)
+    role = ForeignKey(CreditRole, on_delete=CASCADE, null=True)
 
     class Meta(BaseModel.Meta):
         """Constraints."""
 
         unique_together = ("person", "role")
+
+    @override
+    def __repr__(self):
+        """Return the strings of parts."""
+        return str(self.person) + ":" + str(self.role)
 
 
 class Country(NamedModel):
@@ -88,7 +99,7 @@ class Country(NamedModel):
         verbose_name_plural = "Countries"
 
 
-class Genre(NamedModel):
+class Genre(IdentifiedNamedModel):
     """The genre the comic belongs to."""
 
 
@@ -96,7 +107,7 @@ class Language(NamedModel):
     """The two letter language code."""
 
 
-class Location(NamedModel):
+class Location(IdentifiedNamedModel):
     """A location that appears in the comic."""
 
 
@@ -112,19 +123,19 @@ class SeriesGroup(NamedModel):
     """A series group the series is part of."""
 
 
-class Story(NamedModel):
+class Story(IdentifiedNamedModel):
     """A story in a commic."""
 
-    class Meta(NamedModel.Meta):
+    class Meta(IdentifiedNamedModel.Meta):
         """Constraints."""
 
         verbose_name_plural = "Stories"
 
 
-class StoryArc(NamedModel, BrowserGroupModel):
+class StoryArc(IdentifiedNamedModel, BrowserGroupModel):
     """A story arc the comic is part of."""
 
-    class Meta(NamedModel.Meta, BrowserGroupModel.Meta):
+    class Meta(IdentifiedNamedModel.Meta, BrowserGroupModel.Meta):
         """Fix Meta inheritance."""
 
 
@@ -132,7 +143,7 @@ class StoryArcNumber(BaseModel):
     """A story arc number the comic represents."""
 
     story_arc = ForeignKey(StoryArc, db_index=True, on_delete=CASCADE)
-    number = PositiveIntegerField(null=True, default=None)
+    number = CoercingPositiveSmallIntegerField(null=True, default=None)
 
     class Meta(BaseModel.Meta):
         """Declare constraints and indexes."""
@@ -146,7 +157,7 @@ class StoryArcNumber(BaseModel):
         return self.story_arc.name + suffix
 
 
-class Tag(NamedModel):
+class Tag(IdentifiedNamedModel):
     """Arbitrary Metadata Tag."""
 
 
@@ -154,34 +165,20 @@ class Tagger(NamedModel):
     """Tagger program."""
 
 
-class Team(NamedModel):
+class Team(IdentifiedNamedModel):
     """A team that appears in the comic."""
 
 
-class IdentifierType(NamedModel):
-    """A type of identifier."""
+class Universe(IdentifiedNamedModel):
+    """Universe the comic appears in."""
 
+    designation = CleaningCharField(max_length=MAX_NAME_LEN)
 
-class Identifier(BaseModel):
-    """A method of identifying the comic."""
-
-    identifier_type = ForeignKey(
-        IdentifierType, db_index=True, on_delete=CASCADE, null=True
-    )
-    nss = CharField(max_length=MAX_NAME_LEN)
-    url = URLField(default="")
-
-    class Meta(BaseModel.Meta):
-        """Declare constraints and indexes."""
-
-        unique_together = ("identifier_type", "nss")
-
-    @property
-    def name(self):
+    @override
+    def __repr__(self):
         """Provide a name to imitate a NamedModel."""
-        prefix = f"{self.identifier_type.name}:" if self.identifier_type else ""
-        return prefix + self.nss
+        name = self.name + ":" + str(self.designation)
+        if self.identifier:
+            name += ":" + str(self.identifier)
 
-    def __str__(self):
-        """Represent as a string."""
-        return self.name + " " + self.url
+        return name

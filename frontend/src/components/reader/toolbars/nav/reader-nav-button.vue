@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -33,7 +33,7 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
+    ...mapState(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
       toRoute(state) {

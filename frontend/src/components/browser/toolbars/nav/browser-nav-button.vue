@@ -17,7 +17,7 @@
 
 <script>
 import { mdiChevronLeft, mdiMagnify } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -45,7 +45,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useBrowserStore, ["isSearchMode"]),
+    ...mapState(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       numPages: (state) => state.page.numPages,
     }),

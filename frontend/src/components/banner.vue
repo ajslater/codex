@@ -9,13 +9,13 @@
   />
 </template>
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 export default {
   name: "AppBanner",
   computed: {
-    ...mapGetters(useAuthStore, ["isBanner"]),
+    ...mapState(useAuthStore, ["isBanner"]),
     ...mapState(useAuthStore, {
       banner: (state) => state.adminFlags.bannerText,
     }),
@@ -24,6 +24,7 @@ export default {
 </script>
 <style scoped lang="scss">
 #banner {
+  padding-top: max(env(safe-area-inset-top), 5px);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   width: 100%;

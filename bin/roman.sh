@@ -1,6 +1,6 @@
 #!/bin/bash
 # Find all shell scripts without a first line comment.
-# Created due to working with @defunctzombie
+# Inspired by @defunctzombie
 set -uo pipefail
 
 # set options

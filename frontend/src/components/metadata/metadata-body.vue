@@ -4,7 +4,11 @@
       <MetadataText :value="md.summary" :max-height="100" />
       <MetadataText :value="md.review" label="Review" :max-height="100" />
     </section>
-    <MetadataTagsTable :tag-map="contributors" class="mdSection" />
+    <MetadataTagsTable
+      :key-map="roleMap"
+      :tag-map="credits"
+      class="mdSection"
+    />
     <section class="mdSection">
       <div class="quarterRow">
         <MetadataText
@@ -24,7 +28,10 @@
       </div>
       <div class="thirdRow">
         <MetadataText label="Reading Direction" :value="readingDirectionText" />
-        <MetadataText :value="md.original_format" label="Original Format" />
+        <MetadataText
+          :value="md.originalFormat?.name"
+          label="Original Format"
+        />
         <MetadataText
           :value="Boolean(md.monochrome).toString()"
           label="Monochrome"
@@ -39,8 +46,8 @@
       </div>
     </section>
     <section v-if="md?.country || md?.language" class="halfRow mdSection">
-      <MetadataText :value="md.country" label="Country" />
-      <MetadataText :value="md.language" label="Language" />
+      <MetadataText :value="md.country?.name" label="Country" />
+      <MetadataText :value="md.language?.name" label="Language" />
     </section>
     <MetadataRatings class="mdSection" />
     <MetadataTagsTable :tag-map="tags" class="mdSection" />
@@ -57,7 +64,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
@@ -75,23 +82,20 @@ export default {
     MetadataText,
   },
   props: {
-    group: {
-      type: String,
-      required: true,
-    },
     book: {
       type: Object,
       required: true,
     },
   },
   computed: {
-    ...mapGetters(useMetadataStore, ["contributors", "ratings", "tags"]),
+    ...mapState(useMetadataStore, ["credits", "ratings", "tags"]),
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
+      roleMap: (state) => state.roleMap,
     }),
     readingDirectionText() {
       if (!this.md) {

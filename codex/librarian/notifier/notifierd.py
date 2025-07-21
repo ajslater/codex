@@ -1,16 +1,19 @@
 """Sends notifications to connections, reading from a queue."""
 
-from codex.threads import AggregateMessageQueuedThread
+from typing_extensions import override
+
+from codex.librarian.threads import AggregateMessageQueuedThread
 
 
 class NotifierThread(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
-    def __init__(self, broadcast_queue, *args, **kwargs):
+    def __init__(self, *args, broadcast_queue, **kwargs):
         """Initialize local send url."""
-        super().__init__(*args, **kwargs)
         self.broadcast_queue = broadcast_queue
+        super().__init__(*args, **kwargs)
 
+    @override
     def aggregate_items(self, item):
         """Aggregate messages into cache."""
         self.cache[item.text] = item
@@ -31,6 +34,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         }
         self.broadcast_queue.put(item)
 
+    @override
     def send_all_items(self):
         """Send all messages waiting in the message cache to client."""
         if not self.cache:
@@ -45,6 +49,7 @@ class NotifierThread(AggregateMessageQueuedThread):
             sent_keys.add(task.text)
         self.cleanup_cache(sent_keys)
 
+    @override
     def stop(self):
         """Send the consumer stop broadcast and stop the thread."""
         self.broadcast_queue.put(None)

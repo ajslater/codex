@@ -140,7 +140,7 @@
 
 <script>
 import { mdiEye, mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { getPDFInBrowserURL } from "@/api/v3/reader";
 import CodexListItem from "@/components/codex-list-item.vue";
@@ -165,8 +165,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthDialogOpen"]),
-    ...mapGetters(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
+    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
+    ...mapState(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
     ...mapState(useReaderStore, {
       choices: (state) => state.choices,
       validBook: (state) => Boolean(state.books?.current),

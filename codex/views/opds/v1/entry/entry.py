@@ -3,24 +3,23 @@
 import json
 from contextlib import suppress
 from datetime import datetime, timezone
-from urllib.parse import urlencode
 
 from dateutil import parser
 from django.urls import reverse
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.models import Comic
 from codex.views.opds.const import (
     AUTHOR_ROLES,
     BLANK_TITLE,
 )
 from codex.views.opds.util import (
-    get_contributor_people,
+    get_credit_people,
     get_m2m_objects,
 )
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
 
-LOG = get_logger(__name__)
+_SERIES_ROUTE_KWARGS = {"group": "s", "pks": {}, "page": 1}
 
 
 class OPDS1Entry(OPDS1EntryLinksMixin):
@@ -59,7 +58,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
 
             result = " ".join(filter(None, parts))
         except Exception:
-            LOG.exception("Getting OPDS1 title")
+            logger.exception("Getting OPDS1 title")
 
         if not result:
             result = BLANK_TITLE
@@ -120,13 +119,11 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @staticmethod
     def _add_url_to_obj(objs, filter_key):
         """Add filter urls to objects."""
-        kwargs = {"group": "s", "pks": {}, "page": 1}
-        url_base = reverse("opds:v1:feed", kwargs=kwargs)
         result = []
         for obj in objs:
-            qp = {"filters": json.dumps({filter_key: [obj.pk]})}
-            qp = urlencode(qp)
-            obj.url = url_base + "?" + qp
+            filters = json.dumps({filter_key: [obj.pk]})
+            query = {"filters": filters}
+            obj.url = reverse("opds:v1:feed", kwargs=_SERIES_ROUTE_KWARGS, query=query)
             result.append(obj)
         return result
 
@@ -135,16 +132,16 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=False)
-        return self._add_url_to_obj(people, "contributors")
+        people = get_credit_people(self.obj.ids, AUTHOR_ROLES, exclude=False)
+        return self._add_url_to_obj(people, "credits")
 
     @property
     def contributors(self):
-        """Get Contributor names."""
+        """Get Credit names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
-        return self._add_url_to_obj(people, "contributors")
+        people = get_credit_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
+        return self._add_url_to_obj(people, "credits")
 
     @property
     def category_groups(self):

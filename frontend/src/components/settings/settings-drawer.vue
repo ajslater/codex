@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import AuthMenu from "@/components/auth/auth-menu.vue";
@@ -66,7 +66,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isUserAdmin", "isAuthorized"]),
+    ...mapState(useAuthStore, ["isUserAdmin", "isAuthorized"]),
     ...mapState(useCommonStore, {
       isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),

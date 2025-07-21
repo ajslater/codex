@@ -6,17 +6,17 @@ LABEL version $CODEX_DIST_BUILDER_VERSION
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
- && apt-get update \
- && apt-get install --no-install-recommends -y \
-  shellcheck \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+  && apt-get update \
+  && apt-get install --no-install-recommends -y \
+    shellcheck \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
-COPY pyproject.toml poetry.lock ./
-RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 poetry sync --no-root --without dev
+COPY pyproject.toml uv.lock ./
+RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 uv sync --no-install-project --no-dev
 
 # *** install node lint & test dependency packages ***
 COPY package.json package-lock.json ./

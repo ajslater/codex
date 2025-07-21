@@ -9,4 +9,4 @@ make collectstatic
 echo "*** build and package application ***"
 PIP_CACHE_DIR=$(pip3 cache dir)
 export PIP_CACHE_DIR
-poetry build
+uv build

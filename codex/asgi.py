@@ -12,13 +12,12 @@ from django.core.asgi import get_asgi_application
 
 from codex.applications.lifespan import LifespanApplication
 from codex.applications.websocket import WEBSOCKET_APPLICATION
-from codex.logger.mp_queue import LOG_QUEUE
 from codex.websockets.aio_queue import BROADCAST_QUEUE
 
 application = ProtocolTypeRouter(
     {
         "http": get_asgi_application(),
         "websocket": WEBSOCKET_APPLICATION,
-        "lifespan": LifespanApplication(LOG_QUEUE, BROADCAST_QUEUE),
+        "lifespan": LifespanApplication(BROADCAST_QUEUE),
     }
 )

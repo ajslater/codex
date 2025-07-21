@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BrowserHeader from "@/components/browser/browser-header.vue";
 import BrowserSettingsDrawer from "@/components/browser/drawer/browser-settings-drawer.vue";
@@ -32,7 +32,7 @@ export default {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapState(useAuthStore, ["isAuthorized"]),
   },
   watch: {
     $route(to) {

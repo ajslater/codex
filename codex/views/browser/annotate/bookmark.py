@@ -11,14 +11,11 @@ from django.db.models.fields import BooleanField, PositiveSmallIntegerField
 from django.db.models.functions import Least
 from django.db.models.functions.comparison import Coalesce, Greatest
 
-from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
 )
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.order import BrowserAnnotateOrderView
-
-LOG = get_logger(__name__)
 
 
 class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):

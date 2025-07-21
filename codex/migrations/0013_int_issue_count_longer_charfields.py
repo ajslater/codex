@@ -17,10 +17,11 @@ def cast_issue_count(apps, _schema_editor):
             volume.issue_count = round(volume.issue_count_decimal)
             update_volumes.append(volume)
         except Exception:
-            print(
+            reason = (
                 f"unable to cast volume {volume.name} "
                 f"issue_count {volume.old_issue_count} to int"
             )
+            print(reason)
 
     volume_model.objects.bulk_update(update_volumes, ("issue_count",))
 

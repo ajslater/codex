@@ -1,14 +1,11 @@
 """Pycountry Model Serializers."""
 
-from codex.logger.logger import get_logger
 from codex.models import (
     Country,
     Language,
 )
 from codex.serializers.fields.browser import CountryField, LanguageField
 from codex.serializers.models.named import NamedModelSerializer
-
-LOG = get_logger(__name__)
 
 
 class CountrySerializer(NamedModelSerializer):

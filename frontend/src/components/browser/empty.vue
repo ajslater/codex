@@ -25,7 +25,7 @@ import {
   mdiOpenInNew,
   mdiShieldCrownOutline,
 } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import EmptyState from "@/components/empty.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -42,11 +42,11 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthorized", "isUserAdmin"]),
+    ...mapState(useAuthStore, ["isAuthorized", "isUserAdmin"]),
     ...mapState(useAuthStore, {
       registration: (state) => state.adminFlags.registration,
     }),
-    ...mapGetters(useBrowserStore, ["isFiltersClearable"]),
+    ...mapState(useBrowserStore, ["isFiltersClearable"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
     }),

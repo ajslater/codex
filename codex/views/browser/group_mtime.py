@@ -1,18 +1,20 @@
 """Group Mtime Function."""
 
-from logging import DEBUG, WARNING
+from typing import TYPE_CHECKING
 
 from django.db.models.aggregates import Aggregate, Max
 from django.db.models.functions import Greatest
 from django.db.utils import OperationalError
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.models.functions import JsonGroupArray
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.const import EPOCH_START, EPOCH_START_DATETIMEFIELD, NONE_DATETIMEFIELD
 
+if TYPE_CHECKING:
+    from django.db.models import Q, Value
+
 _FTS5_PREFIX = "fts5: "
-LOG = get_logger(__name__)
 
 
 class BrowserGroupMtimeView(BrowserFilterView):
@@ -35,12 +37,13 @@ class BrowserGroupMtimeView(BrowserFilterView):
     def _handle_operational_error(self, err):
         msg = err.args[0] if err.args else ""
         if msg.startswith(_FTS5_PREFIX):
-            level = DEBUG
+            level = "DEBUG"
             self.search_error = msg.removeprefix(_FTS5_PREFIX)
         else:
-            level = WARNING
+            level = "WARNING"
             msg = str(err)
-        LOG.log(level, f"Query Error: {msg}")
+        logger.log(level, f"Query Error: {msg}")
+        # logger.exception(f"Query Error: {msg}") debug
 
     def get_max_bookmark_updated_at_aggregate(
         self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
@@ -49,12 +52,12 @@ class BrowserGroupMtimeView(BrowserFilterView):
         bm_rel = self.get_bm_rel(model)
         bm_filter = self.get_my_bookmark_filter(bm_rel)
         bmua_rel = f"{bm_rel}__updated_at"
-        args = {"default": default, "filter": bm_filter}
+        kwargs: dict[str, bool | Value | Q] = {"default": default, "filter": bm_filter}
         if agg_func is JsonGroupArray:
-            args["distinct"] = True
-        return agg_func(bmua_rel, **args)
+            kwargs["distinct"] = True
+        return agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType]
 
-    def get_group_mtime(self, model, group=None, pks=None, page_mtime=False):  # noqa: FBT002
+    def get_group_mtime(self, model, group=None, pks=None, *, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""
         qs = self.get_filtered_queryset(
             model,
