@@ -22,16 +22,16 @@ border-radius: 128px;
           search index when it starts.
     - Fewer database updates when comics change metadata or don't change
       metadata at all means fewer and faster update imports.
-    - Metadata:
+    - New Tags:
         - Add Universes. Main Characters, and Main Team marked with a ★.
-        - Metron metadata provides links to web databases for tags.
-    - New Import Metadata on Demand Flag.
+        - Metron tags can provide links to web databases for each tag.
+    - New Import Metadata on Demand Admin Flag.
+    - Add manual Import Abort task for admins.
     - Browser tab titles show route and page title, no longer show custom
       banner.
     - Logging format changed.
-    - Add manual Import Abort task for admins.
 
-- Fix
+- Fixes
     - Reading Order in reader was not always defaulting to your last Browser Top
       Group.
     - Fixed filtering on Critical Rating and FileType
