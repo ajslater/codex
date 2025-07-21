@@ -3,9 +3,15 @@
 set -euo pipefail
 VERSION="${1:-}"
 if [ "$VERSION" = "" ]; then
-  poetry version | awk '{print $2};'
+  uv version
+  if [ -d frontend ]; then
+    cd frontend
+    node -e "const {name, version} =  require('./package.json'); console.log(name, version);"
+  fi
 else
-  poetry version "$VERSION"
-  cd frontend
-  npm version --allow-same-version "$VERSION"
+  uv version "$VERSION"
+  if [ -d frontend ]; then
+    cd frontend
+    npm version --allow-same-version "$VERSION"
+  fi
 fi

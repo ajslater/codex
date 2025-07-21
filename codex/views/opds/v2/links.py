@@ -7,8 +7,9 @@ from datetime import datetime
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
+from typing_extensions import override
 
-from codex.settings.settings import FALSY
+from codex.settings import FALSY
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
@@ -52,6 +53,7 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
         return self._group_and_books
 
     @property
+    @override
     def num_pages(self) -> int:
         """Memoize num_pages."""
         if self._num_pages is None:

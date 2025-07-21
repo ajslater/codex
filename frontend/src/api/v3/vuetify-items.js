@@ -39,16 +39,19 @@ const toVuetifyItem = function (item) {
 };
 
 const vuetifyItemCompare = function (itemA, itemB) {
-  if (itemA.title < itemB.title) return -1;
-  if (itemA.title > itemB.title) return 1;
-  return 0;
+  return itemA.title.localeCompare(itemB.title);
 };
 
 const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
 };
 
-export const toVuetifyItems = function (items, filter, numeric = false) {
+export const toVuetifyItems = function ({
+  items,
+  filter,
+  numeric = false,
+  sort = true,
+}) {
   /*
    * Takes a value (can be a list) and a list of items and
    * Returns a list of valid items with items arg having preference.
@@ -69,8 +72,11 @@ export const toVuetifyItems = function (items, filter, numeric = false) {
       computedItems.push(vuetifyItem);
     }
   }
-  const sortFunc = numeric ? vuetifyItemCompareNumeric : vuetifyItemCompare;
-  return computedItems.sort(sortFunc);
+  if (sort) {
+    const sortFunc = numeric ? vuetifyItemCompareNumeric : vuetifyItemCompare;
+    computedItems = computedItems.sort(sortFunc);
+  }
+  return computedItems;
 };
 
 export default {

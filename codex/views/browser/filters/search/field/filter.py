@@ -1,13 +1,11 @@
 """Parse the browser query by removing field queries and doing them with the ORM."""
 
 from django.db.models import Q
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.browser.filters.search.field.column import parse_field
 from codex.views.browser.filters.search.field.parse import get_field_query
-
-LOG = get_logger(__name__)
 
 
 class BrowserFieldQueryFilter(ComicFieldFilterView):
@@ -52,7 +50,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         except Exception as exc:
             token = f"{col}:{exp}"
             msg = f"Parsing field query {token} - {exc}"
-            LOG.warning(msg)
+            logger.warning(msg)
             self.search_error = msg
 
     def get_search_field_filters(self, model, field_token_pairs):

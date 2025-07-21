@@ -2,6 +2,7 @@
 
 from django.urls import reverse
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.serializers.opds.urls import OPDSURLsSerializer
@@ -14,7 +15,7 @@ _OPDS_VERSIONS = (1, 2)
 class OPDSURLsView(AuthGenericAPIView):
     """OPDS URLs."""
 
-    serializer_class = OPDSURLsSerializer
+    serializer_class: type[BaseSerializer] | None = OPDSURLsSerializer
 
     def get(self, *args, **kwargs):
         """Resolve the urls."""

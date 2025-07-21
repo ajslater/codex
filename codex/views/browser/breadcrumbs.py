@@ -3,9 +3,10 @@
 from contextlib import suppress
 from dataclasses import asdict
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from codex.logger.logger import get_logger
+from loguru import logger
+
 from codex.models import (
     BrowserGroupModel,
     Comic,
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
 
     from codex.models.groups import Folder
 
-LOG = get_logger(__name__)
 _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
     type[BrowserGroupModel], tuple[str | None, ...]
 ] = MappingProxyType(
@@ -46,6 +46,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
+        # Use 0 to indicate unmemoized because None is a valid value
         self._group_instance: BrowserGroupModel | None | int = 0
 
     def _get_group_query(self, model):
@@ -99,7 +100,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         breadcrumbs: tuple[Mapping[str, str | tuple[int, ...] | int], ...] = tuple(
             self.params.get("breadcrumbs", ())
         )
-        old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]
+        old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]  # ty: ignore[missing-argument]
         invalid = not old_breadcrumbs or old_breadcrumbs[-1].group not in valid_groups
         if invalid:
             old_breadcrumbs = []
@@ -110,7 +111,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         params = dict(self.params)
         params["breadcrumbs"] = tuple(asdict(crumb) for crumb in breadcrumbs)
         # The only place I rewrite params
-        self._params = MappingProxyType(params)
+        self._params: MappingProxyType[str, Any] | None = MappingProxyType(params)
 
     def _breadcrumbs_graft_or_create_story_arc(self) -> tuple[tuple[Route, ...], bool]:
         """Graft or create story_arc breadcrumbs."""
@@ -152,7 +153,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        folder: Folder | None = self.group_instance  # type: ignore[reportAssignmentType]
+        folder: Folder | None = self.group_instance  # pyright: ignore[reportAssignmentType]
         name = folder.name if folder and pks else ""
         group_crumb = Route(FOLDER_GROUP, pks, page, name)
         new_breadcrumbs = []
@@ -267,7 +268,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 if done:
                     break
             except Exception:
-                LOG.exception("group loop")
+                logger.exception("group loop")
 
         return tuple(new_breadcrumbs), changed
 

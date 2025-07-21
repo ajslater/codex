@@ -1,12 +1,6 @@
 <template>
   <v-table v-if="show">
     <tbody>
-      <tr v-if="md.communityRating">
-        <td class="key">Community Rating</td>
-        <td>
-          <MetadataText :value="md.communityRating" />
-        </td>
-      </tr>
       <tr v-if="md.criticalRating">
         <td class="key">Critical Rating</td>
         <td>
@@ -16,7 +10,7 @@
       <tr v-if="md.ageRating">
         <td class="key">Age Rating</td>
         <td>
-          <MetadataText :value="md.ageRating" />
+          <MetadataText :value="md.ageRating.name" />
         </td>
       </tr>
     </tbody>
@@ -38,9 +32,7 @@ export default {
       md: (state) => state.md,
     }),
     show() {
-      return (
-        this.md?.communityRating || this.md?.criticRating || this.md?.ageRating
-      );
+      return this.md?.criticRating !== undefined || this.md?.ageRating;
     },
   },
 };

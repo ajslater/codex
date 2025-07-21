@@ -2,17 +2,17 @@
 
 A comic archive browser and reader.
 
-<img src="codex/static_src/img/logo.svg" style="
+<img src="codex/img/logo.svg" style="
 height: 128px;
 width: 128px;
 border-radius: 128px;
 " />
 
-## <a name="features">✨ Features</a>
+## ✨ Features
 
 - Codex is a web server.
-- GPLv3 Licenced.
 - Full text search of metadata and bookmarks.
+- GPLv3 Licenced.
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
   hierarchy, or by tagged Story Arc.
@@ -26,7 +26,7 @@ border-radius: 128px;
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Runs in 1GB of RAM, faster with more.
 
-### Examples
+#### Examples
 
 - _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event
   reading list.
@@ -34,17 +34,20 @@ border-radius: 128px;
 - _Search by_ your favorite character to find their appearances across different
   comics.
 
-## <a name="demonstration">👀 Demonstration</a>
+## 👀 Demonstration
 
 You may browse a [live demo server](https://demo.codex-reader.app/) to get a
 feel for Codex.
 
-## <a name="news">📜 News</a>
+## 📜 News
 
-Codex has a <a href="NEWS.md">NEWS file</a> to summarize changes that affect
-users.
+Codex has a [NEWS file](NEWS.md) to summarize changes that affect users.
 
-## <a name="installation">📦 Installation</a>
+## 🕸️ HTML Docs
+
+[HTML formatted docs are available here](https://codex-reader.app)
+
+## 📦 Installation
 
 ### Install & Run with Docker
 
@@ -55,7 +58,7 @@ the recommended way to run Codex.
 You'll then want to read the [Administration](#administration) section of this
 document.
 
-### Install & Run on <a href="homeassistant">HomeAssistant</a> server
+### Install & Run on HomeAssistant server
 
 If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
 be installed with the following steps :
@@ -77,7 +80,7 @@ before installing Codex.
 
 ##### Linux Dependencies
 
-###### <a href="#debian">Debian</a> Dependencies
+###### Debian Dependencies
 
 ...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
@@ -94,7 +97,7 @@ above are not available, try searching for ones that are with `apt-cache` or
 apt-cache search libjpeg-turbo
 ```
 
-###### <a href="alpine">Alpine</a> Dependencies
+###### Alpine Dependencies
 
 ```sh
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sqlite yaml-dev zlib-dev
@@ -116,14 +119,6 @@ Using [Homebrew](https://brew.sh/):
 brew install jpeg libffi libyaml libzip openssl python sqlite unrar webp
 ```
 
-##### <a href="#windows">Windows</a> Dependencies
-
-Windows users are encouraged to use Docker to run Codex, but it will also run
-natively on the Windows Subsystem for Linux.
-
-Installation instructions are in the <a href="/WINDOWS.md">Native Windows
-Dependencies Installation Document</a>.
-
 #### Installing Codex on Linux on ARM (AARCH64) with Python 3.13
 
 Pymupdf has no pre-built wheels for AARCH64 so pip must build it and the build
@@ -136,7 +131,15 @@ PYMUPDF_SETUP_PY_LIMITED_API=0 pip install codex
 You will also have to have the `build-essential` and `python3-dev` or equivalent
 packages installed on on your Linux.
 
-#### <a href="#run">Run</a> Codex Natively
+#### Windows Installation
+
+Windows users are encouraged to use Docker to run Codex, but it will also run
+natively on the Windows Subsystem for Linux.
+
+Installation instructions are in the
+[Native Windows Dependencies Installation Document](WINDOWS.md).
+
+#### Run Codex Natively
 
 Once you have installed codex, the codex binary should be on your path. To start
 codex, run:
@@ -149,7 +152,7 @@ codex
 
 Once installed and running you may navigate to <http://localhost:9810/>
 
-## <a name="administration">👑 Administration</a>
+## 👑 Administration
 
 ### Navigate to the Admin Panel
 
@@ -237,7 +240,7 @@ fashion, so you likely won't find it unless you've added it yourself.
 Codex has a limited number of API endpoints available with API Key Access. The
 API Key is available on the admin/stats tab.
 
-## <a name="configuration">🎛️ Configuration</a>
+## 🎛️ Configuration
 
 ### Config Dir
 
@@ -322,11 +325,11 @@ proxy_http_version 1.1;
 proxy_set_header   Upgrade $http_upgrade;
 
 proxy_set_header Connection "Upgrade" location /codex {
-  proxy_pass       http://codex:9810;
-  # Codex reads http basic authentication.
-  # If the nginx credentials are different than codex credentials use this line to
-  #   not forward the authorization.
-  proxy_set_header Authorization "";
+    proxy_pass       http://codex:9810;
+    # Codex reads http basic authentication.
+    # If the nginx credentials are different than codex credentials use this line to
+    #   not forward the authorization.
+    proxy_set_header Authorization "";
 }
 ```
 
@@ -355,7 +358,7 @@ If you must run Codex in an admin restricted memory environment you might want
 to temporarily give Codex a lot of memory to run a very large import job and
 then restrict it for normal operation.
 
-## <a name="use">📖 Use</a>
+## 📖 Use
 
 ### 👤 Sessions & Accounts
 
@@ -415,7 +418,7 @@ authentication. In that case the OPDS url will look like:
 - [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
 - [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
 
-## <a name="troubleshooting">🩺 Troubleshooting</a>
+## [🩺 Troubleshooting](#troubleshooting)
 
 ### 📒 Logs
 
@@ -470,7 +473,7 @@ This is a known warning and does not represent anything bad happening. It's an
 artifact of the Django framework slowly supporting asynchronous server endpoints
 and unfortunately isn't practical to remove yet.
 
-## <a name="alternatives-to-codex">📚Alternatives</a>
+## 📚Alternatives to Codex
 
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing,
   supports comics, eBooks, and features for manga.
@@ -481,20 +484,16 @@ and unfortunately isn't practical to remove yet.
 - [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
   editor. It comes with a powerful command line and desktop GUI.
 
-## <a name="contributing">🤝 Contributing</a>
+## 🤝 Contributing
 
-### <a name="bug_reports">🐛 Bug Reports</a>
+### 🐛 Bug Reports
 
 Issues and feature requests are best filed on the
 [Github issue tracker](https://github.com/ajslater/codex/issues).
 
-### <a name="out-of-scope">🚫 Out of Scope</a>
+### 🛠 Develop
 
-- I have no intention of making this an eBook reader.
-- I think metadata editing would be better placed in a comic manager than a
-  reader.
-
-### <a name="develop-codex">🛠 Develop</a>
+Codex's git repo is mirrored on [Github](https://github.com/ajslater/codex/)
 
 Codex is a Django Python webserver with a VueJS front end.
 
@@ -506,20 +505,20 @@ database.
 Most of Codex development is now controlled through the Makefile. Type `make`
 for a list of commands.
 
-## <a name="discord">💬 Support</a>
+## 💬 Support
 
 By the generosity of the good people of
 [Mylar](https://github.com/mylar3/mylar3), I and other Codex users answer
 questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
 `#codex-support` channel to ask for help with Codex.
 
-## <a name="links">🔗 Links</a>
+## 🔗 Links
 
 - [Docker Image](https://hub.docker.com/r/ajslater/codex)
 - [PyPi Package](https://pypi.org/project/codex/)
 - [GitHub Project](https://github.com/ajslater/codex/)
 
-## <a name="special-thanks">🙏🏻 Special Thanks</a>
+## 🙏🏻 Thanks
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me
   to use the PyPi name 'codex'.
@@ -529,6 +528,6 @@ questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
   [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for
   continuous feedback and comic ecosystem education.
 
-## <a name="enjoy">😊 Enjoy</a>
+## 😊 Enjoy
 
 ![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)

@@ -3,27 +3,25 @@
 from datetime import datetime, timezone
 from itertools import chain
 
+from loguru import logger
 from rest_framework.serializers import (
     BooleanField,
     DecimalField,
     IntegerField,
     ListField,
-    Serializer,
+    SerializerMetaclass,
     SerializerMethodField,
 )
 
-from codex.logger.logger import get_logger
-from codex.serializers.fields.browser import TopGroupField
+from codex.serializers.fields.group import BrowseGroupField
 from codex.util import max_none
 from codex.views.const import EPOCH_START
 
-LOG = get_logger(__name__)
 
-
-class BrowserAggregateSerializerMixin(Serializer):
+class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser, opds & metadata serializers."""
 
-    group = TopGroupField(read_only=True)
+    group = BrowseGroupField(read_only=True)
     ids = ListField(child=IntegerField(), read_only=True)
 
     # Aggregate Annotations
@@ -48,7 +46,7 @@ class BrowserAggregateSerializerMixin(Serializer):
                     tzinfo=timezone.utc
                 )
             except ValueError:
-                LOG.warning(
+                logger.warning(
                     f"computing group mtime: {dt_str} is not a valid datetime string."
                 )
                 continue

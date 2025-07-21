@@ -11,7 +11,7 @@
 
 <script>
 import { mdiDownload, mdiFileImage } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { getDownloadIOSPWAFix } from "@/api/v3/common";
 import { getDownloadPageURL } from "@/api/v3/reader";
@@ -33,7 +33,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["activeTitle", "routeParams"]),
+    ...mapState(useReaderStore, ["activeTitle", "routeParams"]),
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current,
       fileType: (state) => state.books?.current?.fileType,

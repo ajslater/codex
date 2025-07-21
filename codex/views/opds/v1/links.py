@@ -7,17 +7,14 @@ from types import MappingProxyType
 
 import simplejson as json
 from django.urls import reverse
+from loguru import logger
 
-from codex.logger.logger import get_logger
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
 from codex.views.util import pop_name
-
-LOG = get_logger(__name__)
 
 
 class TopRoutes:
@@ -130,8 +127,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         if query_params is None:
             query_params = self.request.GET
         kwargs = pop_name(kwargs)
-        href = reverse("opds:v1:feed", kwargs=kwargs)
-        href = update_href_query_params(href, query_params)
+        href = reverse("opds:v1:feed", kwargs=kwargs, query=query_params)
         return OPDS1Link(rel, href, mime_type)
 
     def _top_link(self, top_link):
@@ -182,7 +178,7 @@ class OPDS1LinksView(OPDS1FacetsView):
                 if facets := self.facets(entries=False, root=True):
                     links += facets
         except Exception:
-            LOG.exception("Getting OPDS v1 links")
+            logger.exception("Getting OPDS v1 links")
         return links
 
     def _top_link_entry(self, top_link):

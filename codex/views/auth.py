@@ -1,15 +1,16 @@
 """Views authorization bases."""
 
+from collections.abc import Sequence
+
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.views import APIView
+from typing_extensions import override
 
-from codex.logger.logger import get_logger
+from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag, Comic, Folder, StoryArc
-
-LOG = get_logger(__name__)
 
 
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
@@ -17,10 +18,11 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
 
     code = 403
 
+    @override
     def has_permission(self, request, view):
         """Return True if ENABLE_NON_USERS is true or user authenticated."""
         enu_flag = AdminFlag.objects.only("on").get(
-            key=AdminFlag.FlagChoices.NON_USERS.value
+            key=AdminFlagChoices.NON_USERS.value
         )
         if enu_flag.on:
             return True
@@ -30,25 +32,31 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
 class AuthMixin:
     """General Auth Policy."""
 
-    permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
+    permission_classes: Sequence[type[BasePermission]] = (
+        IsAuthenticatedOrEnabledNonUsers,
+    )
 
 
-class AuthAPIView(AuthMixin, APIView):
+class AuthAPIView(AuthMixin, APIView):  # pyright: ignore[reportIncompatibleVariableOverride]
     """Auth Policy APIView."""
 
 
-class AuthGenericAPIView(AuthMixin, GenericAPIView):
+class AuthGenericAPIView(AuthMixin, GenericAPIView):  # pyright: ignore[reportIncompatibleVariableOverride]
     """Auth Policy GenericAPIView."""
 
 
-class GroupACLMixin(APIView):
-    """Filter group ACLS for views."""
+class GroupACLMixin:
+    """Filter group mixin for views and threads."""
+
+    def init_group_acl(self):
+        """Initialize properties."""
+        self._is_admin: bool | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
 
     @property
     def is_admin(self):
         """Is the current user an admin."""
         if self._is_admin is None:
-            user = self.request.user
+            user = self.request.user  # pyright: ignore[reportAttributeAccessIssue]
             self._is_admin = user and getattr(user, "is_staff", False)
         return self._is_admin
 
@@ -99,6 +107,16 @@ class GroupACLMixin(APIView):
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):
     """Auth Enabled GenericAPIView."""
 
+    def __init__(self, *args, **kwargs):
+        """Iniit acl properties."""
+        super().__init__(*args, **kwargs)
+        self.init_group_acl()
+
 
 class AuthFilterAPIView(AuthAPIView, GroupACLMixin):
     """Auth Enabled APIView."""
+
+    def __init__(self, *args, **kwargs):
+        """Iniit acl properties."""
+        super().__init__(*args, **kwargs)
+        self.init_group_acl()

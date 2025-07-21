@@ -6,21 +6,19 @@ from urllib.parse import quote_plus
 
 from comicbox.box import Comicbox
 from django.urls import reverse
+from loguru import logger
 
-from codex.logger.logger import get_logger
+from codex.settings import COMICBOX_CONFIG
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.util import update_href_query_params
 from codex.views.opds.v1.data import OPDS1Link
 from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
-
-LOG = get_logger(__name__)
 
 
 class OPDS1EntryLinksMixin:
     """OPDS v1 Entry Links Methods."""
 
     def __init__(
-        self, obj, query_params, data: OPDS1EntryData, title_filename_fallback: bool
+        self, obj, query_params, data: OPDS1EntryData, *, title_filename_fallback: bool
     ):
         """Initialize params."""
         self.obj = obj
@@ -43,18 +41,17 @@ class OPDS1EntryLinksMixin:
                 "dynamicCovers": False,
                 "ts": ts,
             }
-            href = reverse("opds:bin:cover", kwargs=kwargs)
-            href = update_href_query_params(href, query_params)
+            href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)
             return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
-            LOG.exception("create thumb")
+            logger.exception("create thumb")
 
-    def _nav_href(self, metadata: bool):
+    def _nav_href(self, *, metadata: bool):
         try:
             pks = sorted(self.obj.ids)
             kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
-            href = reverse("opds:v1:feed", kwargs=kwargs)
             qps = {}
+            qps.update(self.query_params)
             if (
                 self.obj.group == "a"
                 and self.obj.ids
@@ -65,14 +62,14 @@ class OPDS1EntryLinksMixin:
                 qps.update({"orderBy": "story_arc_number"})
             if metadata:
                 qps.update({"opdsMetadata": 1})
-            return update_href_query_params(href, self.query_params, qps)
+            return reverse("opds:v1:feed", kwargs=kwargs, query=qps)
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
-            LOG.exception(msg)
+            logger.exception(msg)
             raise
 
-    def _nav_link(self, metadata: bool):
-        href = self._nav_href(metadata)
+    def _nav_link(self, *, metadata: bool):
+        href = self._nav_href(metadata=metadata)
 
         group = self.obj.group
         if group in self.acquision_groups:
@@ -101,10 +98,10 @@ class OPDS1EntryLinksMixin:
         """Get barebones metadata lazily to make pse work for chunky-like readers."""
         if self.obj.page_count and self.obj.file_type:
             return False
-        with Comicbox(self.obj.path) as cb:
+        with Comicbox(self.obj.path, config=COMICBOX_CONFIG, logger=logger) as cb:
             self.obj.page_count = cb.get_page_count()
             self.obj.file_type = cb.get_file_type()
-        LOG.debug(f"Got lazy opds pse metadata for {self.obj.path}")
+        logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")
         return True
 
     def _stream_link(self):
@@ -113,8 +110,7 @@ class OPDS1EntryLinksMixin:
             return None
         kwargs = {"pk": pk, "page": 0}
         qps = {"bookmark": 1}
-        href = reverse("opds:bin:page", kwargs=kwargs)
-        href = update_href_query_params(href, {}, qps)
+        href = reverse("opds:bin:page", kwargs=kwargs, query=qps)
         href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
         # extra stupid pse chunky fix for no metadata
@@ -158,5 +154,5 @@ class OPDS1EntryLinksMixin:
 
         except Exception:
             msg = f"Getting entry links for {self.obj}"
-            LOG.exception(msg)
+            logger.exception(msg)
         return result

@@ -10,17 +10,8 @@ from io import BytesIO
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
-from comicbox.identifiers import (
-    ASIN_NID,
-    COMICVINE_NID,
-    COMIXOLOGY_NID,
-    GCD_NID,
-    IDENTIFIER_URL_MAP,
-    ISBN_NID,
-    LCG_NID,
-    METRON_NID,
-    UPC_NID,
-)
+from comicbox.identifiers import IdSources
+from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32
 from PIL import Image
@@ -33,7 +24,7 @@ PATH_STEP = 2
 CHANCE_OF_NULL = 0.1
 CHANCE_OF_BAD_TYPE = 0.2
 CHOICES_STR = string.ascii_uppercase + string.digits
-CONTRIBUTOR_TAGS = (
+CREDIT_TAGS = (
     "Colorist",
     "CoverArtist",
     "Editor",
@@ -42,8 +33,20 @@ CONTRIBUTOR_TAGS = (
     "Penciller",
     "Writer",
 )
-FIELDS = {
+TEXT_FIELDS = {
     "TEXT": ("Summary", "Notes", "ScanInformation"),
+    "NAME_LISTS": (
+        "Genre",
+        "Characters",
+        "Tags",
+        "Teams",
+        "Locations",
+        "StoryArc",
+        "SeriesGroup",
+    ),
+    "ROLES": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
+}
+RANGED_FIELDS = {
     "INTS": {
         "Number": 1024,
         "AlternateNumber": 1024,
@@ -72,31 +75,34 @@ FIELDS = {
         "Web": 64,
     },
     "DECIMALS": {"CommunityRating": 100.0},
-    "NAME_LISTS": (
-        "Genre",
-        "Characters",
-        "Tags",
-        "Teams",
-        "Locations",
-        "StoryArc",
-        "SeriesGroup",
-    ),
-    "contributorS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
 }
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
 NUM_M2M_NAMES = 20
-NUM_CONTRIBUTORS = 15
+NUM_CREDITS = 15
 STATUS_DELAY = 5
-LANG_LIST = []
-for lang in languages:
-    try:
-        LANG_LIST.append(lang.alpha_2)  # type: ignore[reportAttributeAccessIssue]
-    except AttributeError:
-        LANG_LIST.append(lang.alpha_3)  # type: ignore[reportAttributeAccessIssue]
+LANG_KEYS = ("alpha_2", "alpha_3", "alpha_4", "name")
+
+
+def _get_all_language_codes():
+    langs = []
+    for lang in languages:
+        for key in LANG_KEYS:
+            if code := getattr(lang, key, None):
+                break
+        else:
+            continue
+        langs.append(code)
+    return tuple(langs)
+
+
+LANG_LIST = _get_all_language_codes()
 COVER_RATIO = 1.5372233400402415
 COVER_WIDTH = 250
 COVER_HEIGHT = int(COVER_RATIO * COVER_WIDTH)
+FIVE_BY_FIVE_NIDS = frozenset(
+    {enum.value for enum in (IdSources.METRON, IdSources.GCD, IdSources.LCG)}
+)
 
 
 def is_valid():
@@ -152,23 +158,24 @@ def create_web(md, key, _limit):
     """Create a valid parsable web key."""
     if is_valid() is None:
         return
-    nid = random.choice(tuple(IDENTIFIER_URL_MAP.keys()))
-    if nid == COMICVINE_NID:
-        suffix = "4000-" + rand_digits(6)
-    elif nid in (METRON_NID, GCD_NID, LCG_NID):
-        suffix = rand_string(5) + "/" + rand_string(5)
-    elif nid == ASIN_NID:
-        suffix = rand_string(10)
-    elif nid == COMIXOLOGY_NID:
-        suffix = "x/x/" + rand_string(10)
-    elif nid == ISBN_NID:
-        suffix = rand_digits(10)
-    elif nid == UPC_NID:
-        suffix = rand_digits(12)
+    nid = random.choice(tuple(IDENTIFIER_PARTS_MAP.keys()))
+    if nid == IdSources.COMICVINE:
+        id_key = "4000-" + rand_digits(6)
+    elif nid in FIVE_BY_FIVE_NIDS:
+        id_key = rand_string(5) + "/" + rand_string(5)
+    elif nid == IdSources.ASIN:
+        id_key = rand_string(10)
+    elif nid == IdSources.COMIXOLOGY:
+        id_key = "x/x/" + rand_string(10)
+    elif nid == IdSources.ISBN:
+        id_key = rand_digits(10)
+    elif nid == IdSources.UPC:
+        id_key = rand_digits(12)
     else:
         return
 
-    url = IDENTIFIER_URL_MAP[nid] + suffix
+    id_parts = IDENTIFIER_PARTS_MAP[nid]
+    url = id_parts.unparse_url("issue", id_key)
 
     md[key] = url
 
@@ -209,13 +216,13 @@ def create_manga(md):
     md["Manga"] = value
 
 
-def create_contributors(md):
-    """Add contributors to the metadata."""
+def create_credits(md):
+    """Add credits to the metadata."""
     v = is_valid()
     if v is None:
         return
-    for _ in range(random.randint(0, NUM_CONTRIBUTORS)):
-        role = random.choices(CONTRIBUTOR_TAGS, k=1)[0]
+    for _ in range(random.randint(0, NUM_CREDITS)):
+        role = random.choices(CREDIT_TAGS, k=1)[0]
         person = rand_string(round(64 * 1.1))
         md[role] = person
 
@@ -224,13 +231,13 @@ def create_metadata():
     """Create ranomized metadata."""
     md = {}
 
-    for key, limit in FIELDS["INTS"].items():
+    for key, limit in RANGED_FIELDS["INTS"].items():
         create_int(md, key, limit)
 
-    for key in FIELDS["TEXT"]:
+    for key in TEXT_FIELDS["TEXT"]:
         create_str(md, key, 100)
 
-    for key, limit in FIELDS["VARCHARS"].items():
+    for key, limit in RANGED_FIELDS["VARCHARS"].items():
         if key == "LanguageISO":
             create_lang(md, key, limit)
         elif key == "Web":
@@ -238,17 +245,17 @@ def create_metadata():
         else:
             create_str(md, key, limit)
 
-    for key, limit in FIELDS["DECIMALS"].items():
+    for key, limit in RANGED_FIELDS["DECIMALS"].items():
         create_float(md, key, limit)
 
-    for key in FIELDS["NAME_LISTS"]:
+    for key in TEXT_FIELDS["NAME_LISTS"]:
         create_name_list(md, key)
 
     create_bool(md, "BlackAndWhite")
     create_manga(md)
-    create_contributors(md)
+    create_credits(md)
 
-    root = Element(ComicInfoSchema.ROOT_TAGS[0])
+    root = Element(ComicInfoSchema.ROOT_TAG)
     root.attrib["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
     root.attrib["xmlns:xsd"] = "http://www.w3.org/2001/XMLSchema"
 

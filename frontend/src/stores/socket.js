@@ -82,9 +82,11 @@ export const useSocketStore = defineStore("socket", {
           break;
         case messages.GROUPS:
           this.groupsNotified();
+          this.libraryNotified();
           break;
         case messages.USERS:
           this.usersNotified();
+          this.libraryNotified();
           break;
         case messages.LIBRARY:
           this.libraryNotified();
@@ -152,9 +154,6 @@ export const useSocketStore = defineStore("socket", {
           break;
         case "reader":
           useReaderStore().loadMtimes();
-          break;
-        case "admin-groups":
-          this.adminLoadTables(["Library"]);
           break;
         case "admin-libraries":
           this.adminLoadTables(["Library", "FailedImport"]);

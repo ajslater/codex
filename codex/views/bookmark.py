@@ -4,26 +4,26 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 from django.db.models import Q
+from loguru import logger
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
 from codex.views.auth import AuthAPIView, GroupACLMixin
 
 if TYPE_CHECKING:
-    from codex.models import BrowserGroupModel
+    from rest_framework.request import Request
 
-LOG = get_logger(__name__)
+    from codex.models import BrowserGroupModel
 
 
 class BookmarkFilterMixin(GroupACLMixin, ABC):
     """Bookmark filter methods."""
 
-    def __init__(self, *args, **kwargs):
+    def init_bookmark_filter(self):
         """Initialize the bm_annotation_data."""
-        super().__init__(*args, **kwargs)
+        if TYPE_CHECKING:
+            self.request: Request
         self._bm_rels: dict[BrowserGroupModel, str] = {}
         self._bm_filters: dict[BrowserGroupModel, Q] = {}
 
@@ -46,37 +46,48 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
         return Q(**my_bookmarks_kwargs)
 
 
-class BookmarkAuthMixin(APIView):
+class BookmarkAuthMixin:
     """Base class for Bookmark Views."""
 
     def get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
         """Filter only the user's bookmarks."""
+        if TYPE_CHECKING:
+            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
         if self.request.user.is_authenticated:
             key = "user_id"
             value = self.request.user.pk
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.debug("no session, make one")
+                logger.debug("no session, make one")
                 self.request.session.save()
             key = "session_id"
             value = self.request.session.session_key
         return {key: value}
 
 
-class BookmarkPageView(BookmarkAuthMixin, AuthAPIView):
-    """Display a comic page from the archive itself."""
+class BookmarkPageMixin(BookmarkAuthMixin):
+    """Update the bookmark if the bookmark param was passed."""
 
-    def _update_bookmark(self):
+    def update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""
+        if TYPE_CHECKING:
+            self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
         auth_filter = self.get_bookmark_auth_filter()
-        comic_pks = (self.kwargs.get("pk"),)
+        comic_pks = []
+        if comic_pk := self.kwargs.get("pk"):
+            comic_pk.append(comic_pk)
+        comic_pks = tuple(comic_pks)
         page = self.kwargs.get("page")
         updates = {"page": page}
 
         task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
+
+class BookmarkPageView(BookmarkPageMixin, AuthAPIView):
+    """Display a comic page from the archive itself."""
+
     def put(self, *_args, **_kwargs):
-        """Get the comic page from the archive."""
-        self._update_bookmark()
+        """Update the bookmark."""
+        self.update_bookmark()
         return Response()

@@ -1,10 +1,11 @@
 """Covers Tasks."""
 
+from abc import ABC
 from dataclasses import dataclass
 
 
 @dataclass
-class CoverTask:
+class CoverTask(ABC):  # noqa: B024
     """Handle with the CoverThread."""
 
 

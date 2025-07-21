@@ -13,6 +13,7 @@ export const useAuthStore = defineStore("auth", {
       registration: undefined,
       nonUsers: undefined,
       bannerText: undefined,
+      lazyImportMetadata: undefined,
     },
     user: undefined,
     MIN_PASSWORD_LENGTH: 4,
@@ -97,7 +98,9 @@ export const useAuthStore = defineStore("auth", {
         .catch(commonStore.setErrors);
     },
     async setTimezone() {
-      await API.updateTimezone().catch(console.error);
+      if (this.adminFlags.nonUsers || this.user) {
+        await API.updateTimezone().catch(console.error);
+      }
     },
   },
 });

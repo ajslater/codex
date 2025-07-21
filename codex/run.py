@@ -2,30 +2,26 @@
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 
 import asyncio
-import logging
 from os import execv
 
 from django.db import connection
 from hypercorn.asyncio import serve
+from loguru import logger
 
 from codex.asgi import application
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.logger import get_logger
-from codex.logger.loggerd import CodexLogQueueListener
-from codex.logger.mp_queue import LOG_QUEUE
-from codex.settings.settings import HYPERCORN_CONFIG
+from codex.settings import HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
+from codex.startup.logger_init import init_logging
 from codex.version import VERSION
 from codex.websockets.aio_queue import BROADCAST_QUEUE
-
-LOG = get_logger(__name__)
 
 
 def codex_startup():
     """Start up codex."""
-    LOG.info(f"Starting Codex v{VERSION}")
+    logger.info(f"Starting Codex v{VERSION}")
     return codex_init()
 
 
@@ -33,7 +29,7 @@ def _database_checkpoint():
     """Write wal to disk and truncate it."""
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
-    LOG.debug("checkpointed and truncated database wal")
+    logger.debug("checkpointed and truncated database wal")
 
 
 def restart():
@@ -44,20 +40,19 @@ def restart():
     execv(__file__, argv)  # noqa: S606
 
 
-def codex_shutdown(loggerd):
+def codex_shutdown():
     """Shutdown for codex."""
     _database_checkpoint()
-    LOG.info("Goodbye.")
-    logging.shutdown()
-    loggerd.stop()
+    logger.success("Goodbye.")
+    logger.complete()
     if RESTART_EVENT.is_set():
         restart()
 
 
 def run():
     """Run Codex."""
-    LOG.info(f"Running Codex v{VERSION}")
-    librarian = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE, BROADCAST_QUEUE)
+    logger.success(f"Running Codex v{VERSION}")
+    librarian = LibrarianDaemon(logger, LIBRARIAN_QUEUE, BROADCAST_QUEUE)
     librarian.start()
     asyncio.run(
         serve(
@@ -71,11 +66,10 @@ def run():
 
 def main():
     """Set up and run Codex."""
-    loggerd = CodexLogQueueListener(LOG_QUEUE)
-    loggerd.start()
+    init_logging()
     if codex_startup():
         run()
-    codex_shutdown(loggerd)
+    codex_shutdown()
 
 
 if __name__ == "__main__":

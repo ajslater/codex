@@ -5,28 +5,23 @@ from abc import ABC
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.serializers.settings import SettingsSerializer
+from codex.serializers.settings import SettingsInputSerializer
 from codex.views.session import SessionView
-from codex.views.util import reparse_json_query_params
-
-_GET_JSON_PARAMS = frozenset({"only"})
 
 
 class SettingsView(SessionView, ABC):
     """Settings View."""
 
-    input_serializer_class = SettingsSerializer
+    input_serializer_class: type[SettingsInputSerializer] = SettingsInputSerializer
 
     def validate_settings_get(self, _validated_data, params: dict) -> dict:
         """Change bad settings."""
         return params
 
-    @extend_schema(parameters=[SettingsSerializer])
+    @extend_schema(parameters=[SettingsInputSerializer])
     def get(self, *args, **kwargs):
         """Get session settings."""
-        data = self.request.GET
-        data = reparse_json_query_params(data, _GET_JSON_PARAMS)
-        serializer = self.input_serializer_class(data=data)
+        serializer = self.input_serializer_class(data=self.request.GET)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
         only = validated_data.get("only") if validated_data else None

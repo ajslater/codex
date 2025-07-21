@@ -3,33 +3,36 @@
 import asyncio
 from contextlib import suppress
 
-from codex.logger_base import LoggerBaseMixin
+from loguru import logger
+
 from codex.signals.os_signals import bind_signals_to_loop
+from codex.startup.logger_init import init_logging
 from codex.websockets.listener import BroadcastListener
 
 
-class LifespanApplication(LoggerBaseMixin):
+class LifespanApplication:
     """Lifespan AGSI App."""
 
     SCOPE_TYPE = "lifespan"
 
-    def __init__(self, log_queue, broadcast_queue):
+    def __init__(self, broadcast_queue):
         """Create logger and librarian."""
-        self.init_logger(log_queue)
+        init_logging()
         self.broadcast_queue = broadcast_queue
-        self.broadcast_listener = BroadcastListener(broadcast_queue, log_queue)
+        self.broadcast_listener = BroadcastListener(logger, broadcast_queue)
+        self.broadcast_listener_task = None
 
     async def _event(self, event, send):
         """Process a lifespan event."""
         try:
-            self.log.debug(f"Lifespan {event} started.")
+            logger.debug(f"Lifespan {event} started.")
             func = getattr(self, "_" + event)
             await func()
             await send({"type": f"lifespan.{event}.complete"})
-            self.log.debug(f"Lifespan {event} complete.")
+            logger.debug(f"Lifespan {event} complete.")
         except Exception:
             await send({"type": f"lifespan.{event}.failed"})
-            self.log.exception(f"Lifespan {event} failed.")
+            logger.exception(f"Lifespan {event} failed.")
             raise
 
     async def _startup(self):
@@ -44,13 +47,14 @@ class LifespanApplication(LoggerBaseMixin):
         with suppress(ValueError):
             # Depending on timing this can be closed already
             self.broadcast_queue.put(None)
-        await self.broadcast_listener_task
+        if self.broadcast_listener_task:
+            await self.broadcast_listener_task
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""
         if scope["type"] != self.SCOPE_TYPE:
             return
-        self.log.debug("Lifespan application started.")
+        logger.debug("Lifespan application started.")
         while True:
             try:
                 message = await receive()
@@ -60,5 +64,5 @@ class LifespanApplication(LoggerBaseMixin):
                     await self._event("shutdown", send)
                     break
             except Exception:
-                self.log.exception("Lifespan application")
-        self.log.debug("Lifespan application stopped.")
+                logger.exception("Lifespan application")
+        logger.debug("Lifespan application stopped.")

@@ -15,10 +15,9 @@ class UserActiveMixin:
     # only hit the disk to record user activity every so often
     USER_ACTIVE_RESOLUTION = timedelta(hours=1)
 
-    def __init__(self, *args, **kwargs):
+    def init_user_active(self):
         """Init the last recorded dict."""
-        super().__init__(*args, **kwargs)
-        self._user_active_recorded = {}
+        self._user_active_recorded = {}  # pyright: ignore[reportUninitializedInstanceVariable]
 
     def update_user_active(self, pk: int, log):
         """Update user active."""

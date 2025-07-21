@@ -1,5 +1,7 @@
 """Functions for dealing with comic cover thumbnails."""
 
+from typing_extensions import override
+
 from codex.librarian.covers.purge import CoverPurgeThread
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
@@ -13,6 +15,7 @@ from codex.librarian.covers.tasks import (
 class CoverThread(CoverPurgeThread):
     """Create comic covers in it's own thread."""
 
+    @override
     def process_item(self, item):
         """Run the task method."""
         task = item
@@ -21,7 +24,7 @@ class CoverThread(CoverPurgeThread):
         elif isinstance(task, CoverRemoveAllTask):
             self.purge_all_comic_covers(self.librarian_queue)
         elif isinstance(task, CoverRemoveTask):
-            self.purge_comic_covers(task.pks, task.custom)
+            self.purge_comic_covers(task.pks, custom=task.custom)
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
         elif isinstance(task, CoverCreateAllTask):

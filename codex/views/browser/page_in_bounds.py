@@ -1,10 +1,9 @@
 """Browser Page Bounds Checking."""
 
-from codex.logger.logger import get_logger
+from loguru import logger
+
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
 from codex.views.util import Route
-
-LOG = get_logger(__name__)
 
 
 class BrowserPageInBoundsView(BrowserAnnotateCardView):
@@ -12,7 +11,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
 
     def _get_back_one_page_route(self, num_pages):
         """Get max page if oob or 1."""
-        LOG.debug("Redirect back one page.")
+        logger.debug("Redirect back one page.")
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
@@ -31,7 +30,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
         current_route = Route(group=group, pks=pks, page=page)
         for crumb in reversed(breadcrumbs):
             if not level:
-                crumb_route = Route(**crumb)
+                crumb_route = Route(**crumb)  # ty: ignore[missing-argument]
                 level = current_route & crumb_route
                 continue
             new_breadcrumbs = [crumb, *new_breadcrumbs]
@@ -49,14 +48,14 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
             up_breadcrumbs = self._get_up_breadcrumbs()
             route_mask = up_breadcrumbs[-1]
             settings_mask = {"breadcrumbs": up_breadcrumbs}
-            LOG.debug("Redirect up a level.")
+            logger.debug("Redirect up a level.")
         except IndexError:
             group = self.kwargs.get("group")
             pks = "0"
             new_page = 1
             route_mask = {"group": group, "pks": pks, "page": new_page}
             settings_mask = {"breadcrumbs": [route_mask]}
-            LOG.debug("Redirect to all at current group.")
+            logger.debug("Redirect to all at current group.")
         return route_mask, settings_mask
 
     def _handle_page_out_of_bounds(self, num_pages):

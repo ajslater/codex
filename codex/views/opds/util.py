@@ -3,54 +3,36 @@
 from django.db.models import F
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.http import urlencode
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
-    Contributor,
-    ContributorPerson,
+    Credit,
+    CreditPerson,
 )
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS
 
 
-def update_href_query_params(href, old_query_params, new_query_params=None):
-    """Update an href by masking query params on top of the ones it has."""
-    query_params = {}
-    for key, value in old_query_params.items():
-        # qps are sometimes encapsulated in a list for when there's multiples.
-        if isinstance(value, list):
-            if len(value):
-                query_params[key] = value[0]
-        else:
-            query_params[key] = value
-    if new_query_params:
-        query_params.update(new_query_params)
-    if query_params:
-        href += "?" + urlencode(query_params, doseq=True)
-    return href
-
-
-def get_contributor_people(comic_pks, roles, exclude):
-    """Get contributors that are not authors."""
-    people = ContributorPerson.objects.filter(
-        contributor__comic__in=comic_pks,
+def get_credit_people(comic_pks, roles, exclude):
+    """Get credits that are not authors."""
+    people = CreditPerson.objects.filter(
+        credit__comic__in=comic_pks,
     )
     if exclude:
-        people = people.exclude(contributor__role__name__in=roles)
+        people = people.exclude(credit__role__name__in=roles)
     else:
-        people = people.filter(contributor__role__name__in=roles)
+        people = people.filter(credit__role__name__in=roles)
     return people.distinct().only("name")
 
 
-def get_contributors(comic_pks, roles, exclude):
+def get_credits(comic_pks, roles, exclude):
     """Get credits that are not part of other roles."""
-    contributors = Contributor.objects.filter(comic__in=comic_pks)
+    credit_qs = Credit.objects.filter(comic__in=comic_pks)
     if exclude:
-        contributors = contributors.exclude(role__name__in=roles)
+        credit_qs = credit_qs.exclude(role__name__in=roles)
     else:
-        contributors = contributors.filter(role__name__in=roles)
-    return contributors.annotate(name=F("person__name"), role_name=F("role__name"))
+        credit_qs = credit_qs.filter(role__name__in=roles)
+    return credit_qs.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
 def get_m2m_objects(pks) -> dict:
@@ -72,16 +54,7 @@ def full_redirect_view(url_name):
     def func(request):
         """Redirect to view, forwarding query strings and auth."""
         kwargs = dict(DEFAULT_BROWSER_ROUTE)
-        url = reverse(url_name, kwargs=kwargs)
-
-        # Forward the query string.
-        path = request.get_full_path()
-        if path:
-            parts = path.split("?")
-            if len(parts) >= 2:  # noqa: PLR2004
-                parts[0] = url
-                url = "?".join(parts)
-
+        url = reverse(url_name, kwargs=kwargs, query=request.GET)
         response = HttpResponseRedirect(url)
 
         # Forward authorization.

@@ -1,0 +1,38 @@
+/* mkdocs */
+body,
+body::before {
+  --bs-body-color: rgb(200, 200, 200);
+  --bs-body-bg: rgb(25, 25, 25);
+}
+
+a {
+  text-decoration: none;
+  color: rgb(204, 123, 25);
+}
+
+.nav-link {
+  --bs-nav-link-color: rgb(204, 123, 25);
+}
+
+.navbar .nav-link {
+  --bs-nav-link-color: #d3d3d3;
+}
+
+a:hover,
+.nav-link:hover,
+.navbar .nav-link:hover {
+  color: white;
+}
+
+.navbar.bg-primary {
+  background-image: none;
+}
+
+.bg-primary {
+  background-color: #965b13 !important;
+}
+
+.form-control:focus {
+  border-color: rgb(204, 123, 25);
+  box-shadow: 0 0 0 0.25rem rgba(204, 123, 25, 0.25);
+}

@@ -5,7 +5,7 @@ import eslintPluginStylistic from "@stylistic/eslint-plugin";
 import eslintPluginConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginDepend from "eslint-plugin-depend";
-import eslintPluginImport from "eslint-plugin-import";
+import eslintPluginImport from "eslint-plugin-import-x";
 import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
@@ -49,6 +49,13 @@ export const CONFIGS = {
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
+      "depend/ban-dependencies": [
+        "error",
+        {
+          // unicorn-x dev's initial reasoning seems to rely on trivia, microoptimizations, and his own DX.
+          allowed: ["eslint-plugin-unicorn"],
+        },
+      ],
       "no-console": "warn",
       "no-debugger": "warn",
       "no-secrets/no-secrets": "error",
@@ -82,14 +89,15 @@ export default [
       "frontend/",
       "node_modules/",
       "package-lock.json",
-      "poetry.lock",
+      "site/",
       "test-results/",
       "typings/",
+      "uv.lock",
     ],
   },
   eslintPluginPrettierRecommended,
   eslintPluginSecurity.configs.recommended,
-  eslintPluginStylistic.configs["all-flat"],
+  eslintPluginStylistic.configs.all,
   {
     languageOptions: {
       globals: {

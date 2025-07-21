@@ -13,14 +13,14 @@ from codex.models import (
     BrowserGroupModel,
     Character,
     Comic,
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
     Country,
+    Credit,
+    CreditPerson,
+    CreditRole,
     Folder,
     Genre,
     Identifier,
-    IdentifierType,
+    IdentifierSource,
     Imprint,
     Language,
     Library,
@@ -35,9 +35,10 @@ from codex.models import (
     Tag,
     Tagger,
     Team,
+    Universe,
     Volume,
 )
-from codex.settings.settings import CODEX_PATH
+from codex.settings import CODEX_PATH
 
 ROOT_GROUP = "r"
 FOLDER_GROUP = "f"
@@ -124,9 +125,12 @@ METADATA_MODELS = (
     AgeRating,
     Character,
     Country,
+    Credit,
+    CreditPerson,
+    CreditRole,
     Genre,
     Identifier,
-    IdentifierType,
+    IdentifierSource,
     Language,
     Location,
     OriginalFormat,
@@ -137,9 +141,7 @@ METADATA_MODELS = (
     Team,
     Tag,
     Tagger,
-    Contributor,
-    ContributorPerson,
-    ContributorRole,
+    Universe,
 )
 CONFIG_MODELS = (
     Library,

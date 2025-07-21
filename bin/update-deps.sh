@@ -1,9 +1,9 @@
 #!/bin/bash
 # Update python and npm dependencies
 set -euo pipefail
-poetry update
-poetry show --outdated
+uv sync --no-install-project --all-extras --upgrade
+# uv tree --outdated | grep "^├.*latest" || true
+uv lock --upgrade --dry-run
 npm update
-bash -c "cd frontend && npm update"
 npm outdated
-bash -c "cd frontend && npm outdated"
+bash -c "cd frontend && bin/update-deps.sh"

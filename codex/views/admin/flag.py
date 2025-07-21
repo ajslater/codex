@@ -1,22 +1,22 @@
 """Admin Flag View."""
 
+from typing_extensions import override
+
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
 from codex.librarian.tasks import WakeCronTask
-from codex.logger.logger import get_logger
 from codex.models import AdminFlag
-from codex.registration import patch_registration_setting
 from codex.serializers.admin.flags import AdminFlagSerializer
+from codex.startup.registration import patch_registration_setting
 from codex.views.admin.auth import AdminModelViewSet
-
-LOG = get_logger(__name__)
 
 _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value
     for flag in (
-        AdminFlag.FlagChoices.FOLDER_VIEW,
-        AdminFlag.FlagChoices.NON_USERS,
-        AdminFlag.FlagChoices.BANNER_TEXT,
+        AdminFlagChoices.FOLDER_VIEW,
+        AdminFlagChoices.NON_USERS,
+        AdminFlagChoices.BANNER_TEXT,
     )
 )
 
@@ -31,9 +31,9 @@ class AdminFlagViewSet(AdminModelViewSet):
     def _on_change(self):
         """Signal UI that its out of date."""
         key = self.kwargs.get("key")
-        if key == AdminFlag.FlagChoices.REGISTRATION.value:
+        if key == AdminFlagChoices.REGISTRATION.value:
             patch_registration_setting()
-        elif key == AdminFlag.FlagChoices.SEND_TELEMETRY.value:
+        elif key == AdminFlagChoices.SEND_TELEMETRY.value:
             LIBRARIAN_QUEUE.put(WakeCronTask())
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide
@@ -41,6 +41,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         if key in _REFRESH_LIBRARY_FLAGS:
             LIBRARIAN_QUEUE.put(ADMIN_FLAGS_CHANGED_TASK)
 
+    @override
     def perform_update(self, serializer):
         """Perform update and hook for change."""
         super().perform_update(serializer)

@@ -6,6 +6,7 @@ from django.db.models import Manager
 from django.db.models.query import QuerySet
 from django.db.models.sql.compiler import SQLCompiler
 from django.db.models.sql.query import Query
+from typing_extensions import override
 
 
 class GroupBySQLCompiler(SQLCompiler):
@@ -22,6 +23,7 @@ class GroupBySQLCompiler(SQLCompiler):
         self.force_group_by_table = table
         self.force_group_by_fields = fields
 
+    @override
     def get_group_by(self, *args, **kwargs):
         """If force group_by set, force it."""
         if self.force_group_by_table and self.force_group_by_fields:
@@ -45,7 +47,8 @@ class GroupByQuery(Query):
         self.force_group_by_table = ""
         self.force_group_by_fields = ()
 
-    def get_compiler(self, using=None, connection=None, elide_empty=True):  # noqa: FBT002
+    @override
+    def get_compiler(self, using=None, connection=None, elide_empty=True):
         """Use the custom compiler instead of SQLCompiler."""
         if self.compiler == "SQLCompiler":
             if using is None and connection is None:
@@ -58,11 +61,10 @@ class GroupByQuery(Query):
                 self.force_group_by_table, self.force_group_by_fields
             )
         else:
-            # Normal super() operation.
             compiler = super().get_compiler(
                 using=using,
                 connection=connection,
-                elide_empty=elide_empty,  # type: ignore[reportCallIssue]
+                elide_empty=elide_empty,  # pyright: ignore[reportCallIssue]
             )
 
         return compiler
@@ -86,13 +88,13 @@ class GroupByQuerySet(QuerySet):
 
     def group_by(self, *fields, model=None):
         """Force group_by operator."""
-        obj = self._chain()  # type: ignore[reportAttributeAccessIssue]
+        obj = self._chain()  # pyright: ignore[reportAttributeAccessIssue]
         obj.query.set_force_group_by(fields, model=model)
         return obj
 
     def demote_joins(self, tables):
         """Force INNER JOINS."""
-        obj = self._chain()  # type: ignore[reportAttributeAccessIssue]
+        obj = self._chain()  # pyright: ignore[reportAttributeAccessIssue]
         obj.query.demote_joins(tables)
         return obj
 

@@ -1,7 +1,9 @@
 """Generic Codex Template View."""
 
+from collections.abc import Sequence
+
 from rest_framework import status
-from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.renderers import BaseRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -29,12 +31,14 @@ class CodexAPIView(APIView):
 class CodexTemplateView(CodexAPIView):
     """HTML Template View."""
 
-    renderer_classes = (TemplateHTMLRenderer,)
+    renderer_classes: Sequence[type[BaseRenderer]] = (TemplateHTMLRenderer,)
+
     content_type = "text/html"
 
 
-class CodexXMLTemplateView(CodexAPIView):
+class CodexXMLTemplateMixin:
     """XML Template View."""
 
-    renderer_classes = (TemplateXMLRenderer,)
+    renderer_classes: Sequence[type[BaseRenderer]] = (TemplateXMLRenderer,)
+
     content_type = "application/xml"

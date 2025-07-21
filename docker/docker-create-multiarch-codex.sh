@@ -6,10 +6,11 @@ REPO=docker.io/ajslater/codex
 #ARCH_REPO=docker.io/ajslater/codex-arch
 ARCH_REPO=$REPO
 ARCHES=(x86_64 aarch64) # aarch32)
-
+./docker/install-uv.sh
+PATH=$PATH:"$HOME/.local/bin"
+export PATH
 pip3 install --upgrade pip
-pip3 install --requirement builder-requirements.txt
-PKG_VERSION=$(./bin/version.sh)
+PKG_VERSION=$(uv version --short)
 VERSION_TAG=$REPO:$PKG_VERSION
 echo "Creating $VERSION_TAG"
 AMEND_TAGS=()

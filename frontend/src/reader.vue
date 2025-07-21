@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BooksWindow from "@/components/reader/books-window.vue";
 import ReaderSettingsDrawer from "@/components/reader/drawer/reader-settings-drawer.vue";
@@ -41,13 +41,12 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAuthStore, ["isAuthorized"]),
+    ...mapState(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
     ...mapState(useReaderStore, {
       empty: (state) => state.empty,
-      arc: (state) => state.arc,
     }),
   },
   watch: {

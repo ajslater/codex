@@ -18,26 +18,30 @@ class BrowserTitleView(BrowserBreadcrumbsView):
         return plural.capitalize(), 0
 
     def _get_group_name(self):
+        group_number_to = None
         group_count = 0
+        group_name = ""
         if gi := self.group_instance:
+            group_name = gi.name
             if isinstance(gi, Volume):
+                group_number_to = gi.number_to
                 group_count = gi.series.volume_count
             elif isinstance(gi, Comic):
+                group_number_to = gi.volume.number_to
                 group_count = gi.volume.issue_count
-            group_name = gi.name
-        else:
-            group_name = ""
-        return group_name, group_count
+        return group_name, group_number_to, group_count
 
     def get_browser_page_title(self):
         """Get the proper title for this browse level."""
         pks = self.kwargs.get("pks")
         if not pks:
             group_name, group_count = self._get_root_group_name()
+            group_number_to = None
         else:
-            group_name, group_count = self._get_group_name()
+            group_name, group_number_to, group_count = self._get_group_name()
 
         return {
             "group_name": group_name,
+            "group_number_to": group_number_to,
             "group_count": group_count,
         }

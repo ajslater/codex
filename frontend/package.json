@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.7.15",
+  "version": "1.8.0",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -15,7 +15,7 @@
     "test:ci": "vitest run --reporter verbose --update"
   },
   "dependencies": {
-    "@unhead/vue": "^2.0.0-rc.5",
+    "@unhead/vue": "^2.0.8",
     "axios": "^1.4.0",
     "change-case-all": "^2.1.0",
     "core-js": "^3.31",
@@ -23,23 +23,25 @@
     "dequal": "^2.0.3",
     "pinia": "^3.0.1",
     "pretty-bytes": "^7.0.0",
-    "vue": "^3.5.2",
+    "temporal-polyfill": "^0.3.0",
+    "vue": "^3.5.12",
     "vue-drag-scroller": "^1.8.6",
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
-    "vuetify": "^3.7.1"
+    "vuetify": "^3.9.0"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
     "@mdi/js": "^7.0.96",
-    "@nabla/vite-plugin-eslint": "github:ArnaudBarre/vite-plugin-eslint#vite-7",
+    "@nabla/vite-plugin-eslint": "github:nabla/vite-plugin-eslint#db7e2a397277532a7558065da17be5190af85155",
     "@pinia/testing": "^1.0.0",
     "@types/node": "^24.0.3",
     "@unhead/addons": "^2.0.0-rc.5",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vitest/eslint-plugin": "^1.1.7",
     "@vue/test-utils": "^2.2.1",
+    "@vue/typescript-plugin": "^3.0.1",
     "eslint-plugin-vue": "^10.0.0",
     "eslint-plugin-vue-scoped-css": "^2.2.0",
     "jsdom-global": "^3.0.2",

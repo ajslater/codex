@@ -25,7 +25,7 @@
   </v-navigation-drawer>
 </template>
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -43,7 +43,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isBTT"]),
+    ...mapState(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       computedDirection() {
         return this.normalizeDirection(this.direction);

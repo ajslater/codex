@@ -1,4 +1,5 @@
-#!/bin/sh
-# Convenience script for running django manage tasks under poetry
+#!/bin/bash
+# Convenience script for running django manage tasks with uv
+set -euo pipefail
 export PYTHONPATH=.
-poetry run python3 bin/manage.py "$@"
+uv run python3 bin/manage.py "$@"

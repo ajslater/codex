@@ -13,7 +13,6 @@ from django.db.models.aggregates import Avg, Count, Max, Min, Sum
 from django.db.models.fields import CharField
 from django.db.models.functions import Reverse, Right, StrIndex
 
-from codex.logger.logger import get_logger
 from codex.models import (
     Comic,
     Folder,
@@ -34,7 +33,6 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     {
         "age_rating": Avg,
         "child_count": Min,
-        "community_rating": Avg,
         "created_at": Min,
         "critical_rating": Avg,
         "date": Min,
@@ -54,8 +52,6 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
         "story_arc_number",
     }
 )
-
-LOG = get_logger(__name__)
 
 
 class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
@@ -131,8 +127,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return Right(
             path_rel,
-            StrIndex(
-                Reverse(F(path_rel)),  # type: ignore[reportArgumentType]
+            StrIndex(  # pyright: ignore[reportArgumentType]
+                Reverse(F(path_rel)),
                 Value(sep),
             )
             - 1,
@@ -247,7 +243,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             order_value = F(order_key)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
-            # These are annotated in browser_annotaions
+            # These are annotated in browser_annotations
             order_value = F(self.order_key)
         else:
             agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]

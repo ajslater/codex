@@ -1,0 +1,29 @@
+site_name: Codex
+site_author: AJ
+site_description: Codex Comicbook Reader Admin Guide
+theme:
+  name: mkdocs
+  color_mode: dark
+  logo: codex/img/logo.svg
+  strict: true
+
+plugins:
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+      css_files:
+        - style.css
+  - search
+markdown_extensions:
+  - smarty
+  - toc:
+      permalink: true
+extra_css:
+  - style.css
+nav:
+  - NEWS.md
+  - DOCKER.md

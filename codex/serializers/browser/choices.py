@@ -14,10 +14,14 @@ from codex.serializers.fields import (
     VuetifyBooleanField,
     VuetifyCharField,
     VuetifyDecadeField,
-    VuetifyFloatField,
+    VuetifyDecimalField,
     VuetifyIntegerField,
 )
 from codex.serializers.fields.browser import BookmarkFilterField
+from codex.serializers.fields.vuetify import (
+    VuetifyFileTypeChoiceField,
+    VuetifyReadingDirectionChoiceField,
+)
 from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
 
@@ -25,15 +29,14 @@ class BrowserFilterChoicesSerializer(Serializer):
     """All dynamic filters."""
 
     age_rating = BooleanField(read_only=True)
-    community_rating = BooleanField(read_only=True)
     characters = BooleanField(read_only=True)
     country = BooleanField(read_only=True)
     critical_rating = BooleanField(read_only=True)
-    contributors = BooleanField(read_only=True)
+    credits = BooleanField(read_only=True)
     decade = BooleanField(read_only=True)
     genres = BooleanField(read_only=True)
     file_type = BooleanField(read_only=True)
-    identifier_type = BooleanField(read_only=True)
+    identifier_source = BooleanField(read_only=True)
     monochrome = BooleanField(read_only=True)
     language = BooleanField(read_only=True)
     locations = BooleanField(read_only=True)
@@ -45,6 +48,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     tagger = BooleanField(read_only=True)
     tags = BooleanField(read_only=True)
     teams = BooleanField(read_only=True)
+    universes = BooleanField(read_only=True)
     year = BooleanField(read_only=True)
 
 
@@ -55,20 +59,19 @@ class BrowserSettingsFilterSerializer(Serializer):
     # Dynamic filters
     age_rating = ListField(child=VuetifyCharField(), required=False, read_only=True)
     characters = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    community_rating = ListField(
-        child=VuetifyFloatField(), required=False, read_only=True
-    )
     country = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    contributors = ListField(
-        child=VuetifyIntegerField(), required=False, read_only=True
-    )
+    credits = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     critical_rating = ListField(
-        child=VuetifyFloatField(), required=False, read_only=True
+        child=VuetifyDecimalField(max_digits=5, decimal_places=2),
+        required=False,
+        read_only=True,
     )
     decade = ListField(child=VuetifyDecadeField(), required=False, read_only=True)
-    file_type = ListField(child=VuetifyCharField(), required=False, read_only=True)
+    file_type = ListField(
+        child=VuetifyFileTypeChoiceField(), required=False, read_only=True
+    )
     genres = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    identifier_type = ListField(
+    identifier_source = ListField(
         child=VuetifyCharField(), required=False, read_only=True
     )
     language = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
@@ -78,7 +81,7 @@ class BrowserSettingsFilterSerializer(Serializer):
         child=VuetifyCharField(), required=False, read_only=True
     )
     reading_direction = ListField(
-        child=VuetifyCharField(), required=False, read_only=True
+        child=VuetifyReadingDirectionChoiceField(), required=False, read_only=True
     )
     series_groups = ListField(
         child=VuetifyIntegerField(), required=False, read_only=True
@@ -88,6 +91,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     tagger = ListField(child=VuetifyCharField(), required=False, read_only=True)
     tags = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     teams = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
+    universes = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
     year = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
 
 
@@ -98,17 +102,32 @@ class BrowserChoicesIntegerPkSerializer(Serializer):
     name = CharField(read_only=True)
 
 
+class BrowserChoicesUniversePkSerializer(Serializer):
+    """Universes Only."""
+
+    designation = CharField(read_only=True)
+
+
 class BrowserChoicesCharPkSerializer(BrowserChoicesIntegerPkSerializer):
     """Named Model Serailizer with pk = char hack for languages & countries."""
 
     pk = VuetifyCharField(read_only=True)
 
 
+class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
+    """Named Model Serailizer with pk = char hack for languages & countries."""
+
+    pk = VuetifyDecimalField(max_digits=5, decimal_places=2, read_only=True)
+
+
 _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     {
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
+        "critical_rating": BrowserChoicesDecimalPkSerializer,
+        "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
+        "universe": BrowserChoicesUniversePkSerializer,
     }
 )
 _LIST_FIELDS = frozenset({"decade", "monochrome", "reading_direction", "year"})
@@ -128,10 +147,8 @@ class BrowserChoicesFilterSerializer(Serializer):
         if serializer_class:
             value = serializer_class(choices, many=True).data
         elif not serializer_class and field_name in _LIST_FIELDS:
-            field: ListField = (  # type: ignore[reportAssignmentType]
-                BrowserSettingsFilterSerializer().get_fields().get(field_name)
-            )
-            value = field.to_representation(choices)
+            field = BrowserSettingsFilterSerializer().get_fields().get(field_name)
+            value = field.to_representation(choices)  #  pyright: ignore[reportOptionalMemberAccess], #ty: ignore[possibly-unbound-attribute]
         else:
             value = BrowserChoicesIntegerPkSerializer(choices, many=True).data
         return value

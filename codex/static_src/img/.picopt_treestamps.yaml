@@ -1,4 +1,4 @@
-.: 1715731925.021083
+.: 1753115109.84332
 config:
   bigger: false
   convert_to:
@@ -15,5 +15,5 @@ config:
   recurse: true
   symlinks: true
 treestamps_config:
-  ignore: []
+  ignore: !!set {}
   symlinks: true

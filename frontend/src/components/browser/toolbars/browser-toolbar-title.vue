@@ -13,7 +13,7 @@
 
 <script>
 import { mdiReload } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import { useAuthStore } from "@/stores/auth";
@@ -27,14 +27,14 @@ export default {
     };
   },
   head() {
-    const names = [
-      "browse comics",
-      this.longBrowserTitlePrefix,
-      this.longBrowseTitleMain,
-      this.longBrowseTitleSuffix,
-    ];
+    const titleSuffix = this.subtitle ? this.subtitle : this.title;
+    const title = "Browse / " + titleSuffix;
+    const names = ["browse comics", this.title, this.subtitle];
     const content = names.filter(Boolean).join(" ");
-    return { meta: [{ hid: "description", name: "description", content }] };
+    return {
+      title,
+      meta: [{ hid: "description", name: "description", content }],
+    };
   },
   computed: {
     ...mapState(useBrowserStore, {
@@ -42,17 +42,19 @@ export default {
       groupNames: (state) => state.choices.static.groupNames,
       modelGroup: (state) => state.page.modelGroup,
     }),
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     title() {
       let title;
       if (Number(this.$route.params.pks) === 0) {
         title = "All";
       } else if (this.browserTitle) {
         let names = [];
-        const { groupName, groupCount } = this.browserTitle;
+        const { groupName, groupNumberTo, groupCount } = this.browserTitle;
         const group = this.$route.params.group;
         const formattedGroupName =
-          group === "v" ? formattedVolumeName(groupName) : groupName;
+          group === "v"
+            ? formattedVolumeName(groupName, groupNumberTo)
+            : groupName;
         if (formattedGroupName) {
           names.push(formattedGroupName);
         }

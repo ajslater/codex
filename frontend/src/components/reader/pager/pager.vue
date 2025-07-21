@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
@@ -30,7 +30,7 @@ export default {
     return this.prefetchBook(this.book);
   },
   computed: {
-    ...mapGetters(useReaderStore, ["cacheBook"]),
+    ...mapState(useReaderStore, ["cacheBook"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),

@@ -1,12 +1,12 @@
 """Codex Serializers for the metadata box."""
 
 from rest_framework.fields import CharField
-from rest_framework.serializers import IntegerField, ListField, Serializer
+from rest_framework.serializers import IntegerField, ListField, Serializer, URLField
 
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
 from codex.serializers.models.named import (
-    ContributorSerializer,
+    CreditSerializer,
     IdentifierSeralizer,
     StoryArcNumberSerializer,
 )
@@ -19,6 +19,8 @@ class GroupSerializer(Serializer):
 
     ids = ListField(child=IntegerField(), read_only=True)
     name = CharField(read_only=True)
+    number_to = CharField(read_only=True)
+    url = URLField(read_only=True)
 
 
 class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
@@ -35,16 +37,16 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     volume_list = GroupSerializer(many=True, required=False)
     folder_list = GroupSerializer(many=True, required=False)
     story_arc_list = GroupSerializer(many=True, required=False)
-    publisher = None
-    imprint = None
-    series = None
-    volume = None
+    publisher = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    imprint = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    volume = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
+    credits = CreditSerializer(
+        source=f"{PREFETCH_PREFIX}credits", many=True, allow_null=True
+    )
     identifiers = IdentifierSeralizer(
         source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
-    )
-    contributors = ContributorSerializer(
-        source=f"{PREFETCH_PREFIX}contributors", many=True, allow_null=True
     )
     story_arc_numbers = StoryArcNumberSerializer(
         source=f"{PREFETCH_PREFIX}story_arc_numbers", many=True, allow_null=True
@@ -53,7 +55,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     class Meta(ComicSerializer.Meta):
         """Configure the model."""
 
-        exclude = (
+        exclude = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]
             *ComicSerializer.Meta.exclude,
             "publisher",
             "imprint",

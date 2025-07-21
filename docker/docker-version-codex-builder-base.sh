@@ -10,7 +10,6 @@ DEPS=(
   "$0"
   .dockerignore
   docker/builder-base.Dockerfile
-  builder-requirements.txt
 )
 
 source ./docker/docker-version-checksum.sh

@@ -15,7 +15,7 @@ class DownloadView(AuthFilterAPIView):
 
     content_type = "application/vnd.comicbook+zip"
 
-    AS_ATTACHMENT = True
+    AS_ATTACHMENT: bool = True
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *_args, **kwargs):
@@ -55,4 +55,4 @@ class DownloadView(AuthFilterAPIView):
 class FileView(DownloadView):
     """View a single comic in the browser."""
 
-    AS_ATTACHMENT = False
+    AS_ATTACHMENT: bool = False

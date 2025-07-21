@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { TABS, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
@@ -24,8 +24,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["doNormalComicLibrariesExist"]),
-    ...mapGetters(useAuthStore, ["isBanner"]),
+    ...mapState(useAdminStore, ["doNormalComicLibrariesExist"]),
+    ...mapState(useAuthStore, ["isBanner"]),
     ...mapState(useAdminStore, {
       librariesLoaded: (state) => Boolean(state.libraries),
       activeTab: (state) => state.activeTab,

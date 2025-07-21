@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
 import Pager from "@/components/reader/pager/pager.vue";
@@ -42,7 +42,7 @@ export default {
     Pager,
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isBTT"]),
+    ...mapState(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       books: (state) =>
         [state.books.prev, state.books.current, state.books.next].filter(

@@ -2,7 +2,7 @@
 
 from codex.models.comic import Comic
 from codex.serializers.browser.metadata import PREFETCH_PREFIX
-from codex.views.browser.metadata.annotate import (
+from codex.views.browser.metadata.const import (
     COMIC_VALUE_FIELDS_CONFLICTING,
     COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
     PATH_GROUPS,
@@ -10,6 +10,8 @@ from codex.views.browser.metadata.annotate import (
 from codex.views.browser.metadata.query_intersections import (
     MetadataQueryIntersectionsView,
 )
+
+_PREFETCH_DICT_FIELDS = frozenset({"identifiers", "credits", "story_arc_numbers"})
 
 
 class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
@@ -42,17 +44,12 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         # It might even be faster to copy everything to a dict and not use the obj.
         for key, qs in m2m_intersections.items():
             serializer_key = (
-                f"{PREFETCH_PREFIX}{key}"
-                if key in ("identifiers", "contributors", "story_arc_numbers")
-                else key
+                f"{PREFETCH_PREFIX}{key}" if key in _PREFETCH_DICT_FIELDS else key
             )
             if hasattr(obj, serializer_key):
                 # real db fields need to use their special set method.
                 field = getattr(obj, serializer_key)
-                field.set(
-                    qs,
-                    clear=True,
-                )
+                field.set(qs, clear=True)
             else:
                 # fake db field is just a queryset attached.
                 setattr(obj, serializer_key, qs)
@@ -63,6 +60,11 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
             setattr(obj, field + "_list", group_qs)
 
     @staticmethod
+    def _copy_fks(obj, fks):
+        for field, fk_qs in fks.items():
+            setattr(obj, field, fk_qs.first())
+
+    @staticmethod
     def _copy_conflicting_simple_fields(obj):
         for field in COMIC_VALUE_FIELDS_CONFLICTING:
             """Copy conflicting fields over naturral fields."""
@@ -70,11 +72,14 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
             val = getattr(obj, conflict_field, None)
             setattr(obj, field, val)
 
-    def copy_intersections_into_comic_fields(self, obj, groups, m2m_intersections):
+    def copy_intersections_into_comic_fields(
+        self, obj, groups, fk_intersections, m2m_intersections
+    ):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
         self._path_security(obj)
         self._highlight_current_group(obj)
         self._copy_groups(obj, groups)
+        self._copy_fks(obj, fk_intersections)
         self._copy_m2m_intersections(obj, m2m_intersections)
         if self.model is not Comic:
             self._copy_conflicting_simple_fields(obj)

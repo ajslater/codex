@@ -14,7 +14,7 @@ from codex.serializers.fields.vuetify import (
     VuetifyBooleanField,
     VuetifyCharField,
     VuetifyDecadeField,
-    VuetifyFloatField,
+    VuetifyDecimalField,
     VuetifyIntegerField,
 )
 
@@ -32,6 +32,6 @@ __all__ = (
     "VuetifyBooleanField",
     "VuetifyCharField",
     "VuetifyDecadeField",
-    "VuetifyFloatField",
+    "VuetifyDecimalField",
     "VuetifyIntegerField",
 )

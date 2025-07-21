@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group
 from rest_framework.serializers import (
     BooleanField,
 )
+from typing_extensions import override
 
 from codex.models.admin import GroupAuth
 from codex.serializers.models.base import BaseModelSerializer
@@ -21,6 +22,7 @@ class GroupSerializer(BaseModelSerializer):
         fields = ("pk", "name", "library_set", "user_set", "exclude")
         read_only_fields = ("pk",)
 
+    @override
     def update(self, instance, validated_data):
         """Update with nested GroupAuth."""
         exclude = validated_data.pop("groupauth", {}).get("exclude")
@@ -30,6 +32,7 @@ class GroupSerializer(BaseModelSerializer):
             groupauth.save()
         return super().update(instance, validated_data)
 
+    @override
     def create(self, validated_data):
         """Create with nested GroupAuth."""
         exclude = validated_data.pop("groupauth", {}).get("exclude", False)

@@ -42,7 +42,7 @@
 
 <script>
 import deepClone from "deep-clone";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
@@ -117,7 +117,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["normalLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
     }),

@@ -8,22 +8,21 @@ from rest_framework.serializers import (
     CharField,
     IntegerField,
 )
-
-from codex.logger.logger import get_logger
-
-LOG = get_logger(__name__)
+from typing_extensions import override
 
 
 class TimestampField(IntegerField):
     """IntegerTimestampField."""
 
+    @override
     def to_representation(self, value) -> int:
         """Convert to Jascript millisecond int timestamp from datetime, or castable."""
         if isinstance(value, datetime):
             value = value.timestamp()
         return int(float(value) * 1000)
 
-    def to_internal_value(self, data) -> datetime:  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def to_internal_value(self, data) -> datetime:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Convert from castable, likely string to datetime."""
         return datetime.fromtimestamp(float(data) / 1000, tz=timezone.utc)
 
