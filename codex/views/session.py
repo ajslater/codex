@@ -138,7 +138,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
         else:
             defaults = mapping_to_dict(self.SESSION_DEFAULTS[session_key])
         if session_key == self.BROWSER_SESSION_KEY:
-            # There's no BrowserSession so conditional on session key
+            # There's no BrowserSession so conditional on session key.
             order_defaults = self._get_browser_order_defaults()
             defaults.update(order_defaults)
         return defaults
