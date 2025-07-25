@@ -52,6 +52,9 @@ class BrowserSettingsView(SettingsView):
     @override
     def validate_settings_get(self, validated_data, params):
         """Change bad settings."""
+        # This is a micro version of browser/validate.py
+        # It would be ideal to combine them but browser validate does redirects so maybe later.
+        # Bookmark is also a browser view, but it's patch() doesn't actually use top group, I think.
         top_group = params["top_group"]
         group = validated_data.get("group", "r") if validated_data else "r"
         self._validate_top_group(params, group, top_group)
