@@ -58,7 +58,7 @@ class ReaderParamsView(SessionView):
                 serializer = self.input_serializer_class(data=self.request.GET)
                 serializer.is_valid(raise_exception=True)
 
-                params = self.load_params_from_session()
+                params = self.get_param_defaults()
                 if serializer.validated_data:
                     params.update(serializer.validated_data)
                 self._ensure_arc(params)
