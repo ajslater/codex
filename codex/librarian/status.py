@@ -28,7 +28,7 @@ class Status(ABC):
 
     @classmethod
     def title(cls):
-        """Return createed title."""
+        """Return created title."""
         if not cls._title:
             title_parts = (cls.VERB, *cls.ITEM_NAME.split(" "))
             title_parts = (part.capitalize() for part in title_parts)

@@ -153,7 +153,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         """Determine if we should take a snapshot."""
         with self._poll_cond:
             if timeout:
-                self.log.info(
+                self.log.debug(
                     f"Polling {self.watch.path} again in {naturaldelta(timeout)}."
                 )
             self._poll_cond.wait(timeout)
@@ -241,12 +241,11 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             library = Library.objects.get(path=self.watch.path)
             library.last_poll = Now()
             library.save()
-            self.log.info(f"Polled {self.watch.path}")
         except Exception:
             self.log.exception("poll for watchdog events and queue them")
             raise
         finally:
-            self.status_controller.finish(status)
+            self.status_controller.finish(status, clear_subtitle=False)
             # Reset on poll()
             self._force = False
 
