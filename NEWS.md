@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.5
+
+- Fixes
+    - Better fix for persistent settings. Old fix could lead to settings that
+      never clear.
+
 ## v1.8.4
 
 - Fixes

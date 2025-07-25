@@ -22,19 +22,6 @@ class BrowserSettingsView(SettingsView):
     SESSION_KEY: str = SettingsView.BROWSER_SESSION_KEY
 
     @staticmethod
-    def _strip_breadcrumb_names(params):
-        """Remove names from breadcrumbs."""
-        breadcrumbs = params.get("breadcrumbs")
-        if not breadcrumbs:
-            return params
-        nameless_breadcrumbs = []
-        for crumb in breadcrumbs:
-            crumb.pop("name", None)
-            nameless_breadcrumbs.append(crumb)
-        params["breadcrumbs"] = nameless_breadcrumbs
-        return params
-
-    @staticmethod
     def _validate_browse_top_group(params, group, top_group):
         """Validate top group for browse groups."""
         show = params["show"]
@@ -65,13 +52,12 @@ class BrowserSettingsView(SettingsView):
     @override
     def validate_settings_get(self, validated_data, params):
         """Change bad settings."""
+        # This is a micro version of browser/validate.py
+        # It would be ideal to combine them but browser validate does redirects so maybe later.
+        # Bookmark is also a browser view, but it's patch() doesn't actually use top group, I think.
         top_group = params["top_group"]
         group = validated_data.get("group", "r") if validated_data else "r"
         self._validate_top_group(params, group, top_group)
-
-        if not validated_data.get("breadcrumb_names", True):
-            params = self._strip_breadcrumb_names(params)
-
         return params
 
     @override

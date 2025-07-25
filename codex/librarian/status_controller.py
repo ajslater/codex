@@ -111,7 +111,7 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
-    def _log_finish(self, status: Status):
+    def _log_finish(self, status: Status, *, clear_subtitle: bool):
         """Log finish of status with stats."""
         level = "INFO"
         suffix = ""
@@ -130,10 +130,12 @@ class StatusController:
         if status.log_success:
             level = "SUCCESS"
 
-        prefix_parts = [status.verbed()]
-        if count:
-            prefix_parts.append(count)
-        prefix_parts.append(status.ITEM_NAME)
+        if clear_subtitle:
+            status.subtitle = ""
+
+        prefix_parts = filter(
+            None, (status.verbed(), count, status.ITEM_NAME, status.subtitle)
+        )
         prefix = " ".join(prefix_parts)
 
         self.log.log(level, f"{prefix}{suffix}.")
@@ -164,7 +166,11 @@ class StatusController:
         return update_ls, log_statii
 
     def finish_many(
-        self, statii: Iterable[Status | type[Status] | None], *, notify: bool = True
+        self,
+        statii: Iterable[Status | type[Status] | None],
+        *,
+        notify: bool = True,
+        clear_subtitle=True,
     ):
         """Finish all librarian statuses."""
         positive_statii: MappingProxyType[str, Status | type[Status]] = (
@@ -184,13 +190,15 @@ class StatusController:
             if not positive_statii:
                 self.log.info("Cleared all librarian statuses")
             for status in log_statii:
-                self._log_finish(status)
+                self._log_finish(status, clear_subtitle=clear_subtitle)
         except Exception as exc:
             self.log.warning(f"Finish status {positive_statii}: {exc}")
 
-    def finish(self, status: Status | None, *, notify: bool = True):
+    def finish(
+        self, status: Status | None, *, notify: bool = True, clear_subtitle=True
+    ):
         """Finish a librarian status."""
         try:
-            self.finish_many((status,), notify=notify)
+            self.finish_many((status,), notify=notify, clear_subtitle=clear_subtitle)
         except Exception as exc:
             self.log.warning(exc)

@@ -104,4 +104,3 @@ class BrowserSettingsInputSerializer(SettingsInputSerializer):
     """Browser Set Settings Input Serializer."""
 
     group = BrowserRouteGroupField(required=False)
-    breadcrumb_names = BooleanField(required=False, default=True)

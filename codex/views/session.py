@@ -3,6 +3,7 @@
 from abc import ABC
 from copy import deepcopy
 from types import MappingProxyType
+from typing import Any
 
 from loguru import logger
 
@@ -123,9 +124,12 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             order_defaults = {}
         return order_defaults
 
-    def _get_param_defaults(self, session_key: str, only: list[str] | None = None):
+    def get_param_defaults(self, session_key: str = "", only: list[str] | None = None):
+        """Get default params."""
+        if not session_key:
+            session_key = self.SESSION_KEY
         if only:
-            defaults = {}
+            defaults: dict[str, Any] = {}
             for key in only:
                 if key:
                     defaults[key] = mapping_to_dict(
@@ -134,7 +138,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
         else:
             defaults = mapping_to_dict(self.SESSION_DEFAULTS[session_key])
         if session_key == self.BROWSER_SESSION_KEY:
-            # There's no BrowserSession so conditional on session key
+            # There's no BrowserSession so conditional on session key.
             order_defaults = self._get_browser_order_defaults()
             defaults.update(order_defaults)
         return defaults
@@ -146,7 +150,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
         if not session_key:
             session_key = self.SESSION_KEY
 
-        defaults = self._get_param_defaults(session_key, only)
+        defaults = self.get_param_defaults(session_key, only)
         session = self.request.session.get(session_key, defaults)
         return self._get_source_values_or_set_defaults(defaults, session, {})
 
