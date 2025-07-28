@@ -307,7 +307,7 @@ class SearchIndexerSync(SearchIndexerRemove):
                 # Not using standard iterator chunking to control memory and really
                 # do this in batches.
                 self.log.debug(
-                    f"Preparing up to {search_index_batch_size} comics for search indexing..."
+                    f"Preparing up to {chunk_human_size} comics for search indexing..."
                 )
                 comics = comics_filtered_qs
                 comics = self._select_related_fts_query(comics)
