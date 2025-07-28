@@ -337,8 +337,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         self.log.info(f"Looking for search entries to update since {since}...")
         fts_watermark = fts_watermark or _MIN_UTC_DATE
         out_of_date_comics = Comic.objects.filter(
-            pk__in=ComicFTS.objects.values('comic_id'),
-            updated_at__gt=fts_watermark
+            pk__in=ComicFTS.objects.values("comic_id"), updated_at__gt=fts_watermark
         )
         return self._update_search_index_operate(out_of_date_comics, create=False)
 
