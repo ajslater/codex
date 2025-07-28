@@ -336,17 +336,13 @@ class SearchIndexerSync(SearchIndexerRemove):
         since = fts_watermark or "the fracturing of the multiverse"
         self.log.info(f"Looking for search entries to update since {since}...")
         fts_watermark = fts_watermark or _MIN_UTC_DATE
-        out_of_date_comics = (
-            Comic.objects.select_related("comicfts")
-            .exclude(comicfts__isnull=True)
-            .filter(updated_at__gt=fts_watermark)
-        )
+        out_of_date_comics = Comic.objects.filter(comicfts__isnull=False, updated_at__gt=fts_watermark)
         return self._update_search_index_operate(out_of_date_comics, create=False)
 
     def _update_search_index_create(self):
         """Create missing search entries."""
         self.log.info("Looking for missing search entries to create...")
-        missing_comics = Comic.objects.filter(comicfts__isnull=True)
+        missing_comics = Comic.objects.exclude(pk__in=ComicFTS.objects.values('comic_id'))
         return self._update_search_index_operate(missing_comics, create=True)
 
     def _update_search_index(self, *, rebuild: bool):
