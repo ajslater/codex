@@ -42,10 +42,11 @@ SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", "0.5"))
 LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
 # Search indexing memory controls
 MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", "240"))
-WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", "0.6"))
-CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", "1.25"))
-CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", "250"))
 MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", "1000"))
+SEARCH_INDEX_BATCH_MEMORY_RATIO = float(
+    environ.get("CODEX_SEARCH_INDEX_BATCH_MEMORY_RATIO", "3.2")
+)
+
 # sqlite parser breaks with more than 1000 variables in a query and
 # django only fixes this in the bulk_create & bulk_update functions.
 # So for complicated queries I gotta batch them myself. These batch sizes
@@ -55,7 +56,6 @@ FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
 LINK_FK_BATCH_SIZE = int(environ.get("CODEX_LINK_FK_BATCH_SIZE", "20000"))
 LINK_M2M_BATCH_SIZE = int(environ.get("CODEX_LINK_M2M_BATCH_SIZE", "20000"))
 VITE_HOST = environ.get("VITE_HOST")
-SEARCH_INDEX_BATCH_SIZE = int(environ.get("CODEX_SEARCH_INDEX_BATCH_SIZE", "10000"))
 LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
 MAX_OBJ_PER_PAGE = int(environ.get("CODEX_BROWSER_MAX_OBJ_PER_PAGE", "100"))
 

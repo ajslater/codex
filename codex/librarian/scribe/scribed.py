@@ -29,22 +29,11 @@ from codex.librarian.scribe.tasks import (
 )
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import QueuedThread
-from codex.settings import SEARCH_INDEX_BATCH_SIZE
 
-_ABORT_SEARCH_UPDATE_TASKS = (
+ABORT_SEARCH_UPDATE_TASKS = (
     SearchIndexClearTask,
     SearchIndexSyncAbortTask,
     JanitorFTSRebuildTask,
-)
-_ABORT_SEARCH_UPDATE_ON_IMPORT_TASKS = (
-    ImportTask,
-    JanitorAdoptOrphanFoldersTask,
-)
-_ABORT_SEARCH_UPDATE_ON_IMPORT_BATCH_SIZE = 1000
-ABORT_SEARCH_UPDATE_TASKS = (
-    _ABORT_SEARCH_UPDATE_TASKS + _ABORT_SEARCH_UPDATE_ON_IMPORT_TASKS
-    if SEARCH_INDEX_BATCH_SIZE <= _ABORT_SEARCH_UPDATE_ON_IMPORT_BATCH_SIZE
-    else _ABORT_SEARCH_UPDATE_TASKS
 )
 
 

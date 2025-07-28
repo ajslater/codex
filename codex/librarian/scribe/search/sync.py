@@ -1,6 +1,7 @@
 """Search Index update."""
 
 from datetime import datetime
+from math import floor
 from time import time
 from zoneinfo import ZoneInfo
 
@@ -12,6 +13,7 @@ from django.db.models.functions.datetime import Now
 from django.db.models.query import QuerySet
 from humanize import intcomma, naturaldelta
 
+from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.search.remove import SearchIndexerRemove
 from codex.librarian.scribe.search.status import (
     SEARCH_INDEX_STATII,
@@ -25,7 +27,7 @@ from codex.models import Comic
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
 from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
-from codex.settings import SEARCH_INDEX_BATCH_SIZE
+from codex.settings import SEARCH_INDEX_BATCH_MEMORY_RATIO
 
 _COMICFTS_ATTRIBUTES = (
     "collection_title",
@@ -69,7 +71,6 @@ _COMICFTS_UPDATE_FIELDS = (
     *_COMICFTS_M2MS,
 )
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
-_CHUNK_HUMAN_SIZE = intcomma(SEARCH_INDEX_BATCH_SIZE)
 
 
 class SearchIndexerSync(SearchIndexerRemove):
@@ -266,12 +267,12 @@ class SearchIndexerSync(SearchIndexerRemove):
         self.status_controller.update(status)
 
     def _update_search_index_operate_get_status(
-        self, total_comics: int, *, create: bool
+        self, total_comics: int, chunk_human_size: str, *, create: bool
     ):
         status_class = (
             SearchIndexSyncCreateStatus if create else SearchIndexSyncUpdateStatus
         )
-        subtitle = f"Chunks of {_CHUNK_HUMAN_SIZE}" if total_comics else ""
+        subtitle = f"Chunks of {chunk_human_size}" if total_comics else ""
         return status_class(total=total_comics, subtitle=subtitle)
 
     def _update_search_index_operate(
@@ -279,23 +280,21 @@ class SearchIndexerSync(SearchIndexerRemove):
     ):
         total_comics = comics_filtered_qs.count()
 
+        # Smaller systems may run out of virtual memory unless this is auto governed.
+        mem_limit_gb = get_mem_limit("g")
+        search_index_batch_size = floor(
+            (mem_limit_gb / SEARCH_INDEX_BATCH_MEMORY_RATIO) * 1000
+        )
+        chunk_human_size = intcomma(search_index_batch_size)
+
         verb = "create" if create else "update"
         status = self._update_search_index_operate_get_status(
-            total_comics, create=create
+            total_comics, chunk_human_size, create=create
         )
 
         try:
-            if total_comics:
-                reason = (
-                    f"Batching this search engine {verb} operation in to chunks of {_CHUNK_HUMAN_SIZE}."
-                    f" Search engine {verb}s run much faster as one large batch but then there's no progress updates."
-                    " You may adjust the batch size with the environment variable CODEX_SEARCH_INDEX_BATCH_SIZE."
-                )
-            else:
-                reason = f"No search entries to {verb}."
-            self.log.debug(reason)
             if not total_comics:
-                return total_comics
+                self.log.debug(f"No search entries to {verb}.")
 
             self.status_controller.start(status)
             comics = self._select_related_fts_query(comics_filtered_qs)
@@ -304,13 +303,13 @@ class SearchIndexerSync(SearchIndexerRemove):
             comics = comics.order_by("pk")
 
             obj_list = []
-            prep_num = min(SEARCH_INDEX_BATCH_SIZE, total_comics)
+            prep_num = min(search_index_batch_size, total_comics)
             self.log.debug(f"Preparing {prep_num} comics for search indexing...")
-            for comic in comics.iterator(chunk_size=SEARCH_INDEX_BATCH_SIZE):
+            for comic in comics.iterator(chunk_size=search_index_batch_size):
                 if self.abort_event.is_set():
                     break
                 self._create_comicfts_entry(comic, obj_list, status, create=create)
-                if len(obj_list) >= SEARCH_INDEX_BATCH_SIZE:
+                if len(obj_list) >= search_index_batch_size:
                     self._update_search_index_create_or_update(
                         obj_list,
                         status,
@@ -318,7 +317,7 @@ class SearchIndexerSync(SearchIndexerRemove):
                     )
                     complete = status.complete or 0
                     if prep_num := min(
-                        SEARCH_INDEX_BATCH_SIZE, total_comics - complete
+                        search_index_batch_size, total_comics - complete
                     ):
                         self.log.debug(
                             f"Preparing {prep_num} comics for search indexing..."

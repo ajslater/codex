@@ -14,6 +14,7 @@ from types import MappingProxyType
 from typing_extensions import override
 from watchdog.events import EVENT_TYPE_MOVED, FileSystemEvent
 
+from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.threads import AggregateMessageQueuedThread
 from codex.librarian.watchdog.const import EVENT_CLASS_DIFF_ALL_MAP
@@ -21,7 +22,6 @@ from codex.librarian.watchdog.events import (
     EVENT_TYPE_FINISH_POLL,
     EVENT_TYPE_START_POLL,
 )
-from codex.librarian.watchdog.memory import get_mem_limit
 
 _IMPORT_TASK_PARAMS = MappingProxyType(
     {
