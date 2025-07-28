@@ -188,25 +188,14 @@ class SearchIndexerSync(SearchIndexerRemove):
                 names.append(long_name)
         return ",".join(names)
 
-    def _update_search_index_create_or_update(
-        self,
-        obj_list: list[ComicFTS],
-        status,
-        *,
-        create: bool,
+    def _update_search_index_operate_get_status(
+        self, total_comics: int, chunk_human_size: str, *, create: bool
     ):
-        if self.abort_event.is_set():
-            return
-        verb = "create" if create else "update"
-        verbing = (verb[:-1] + "ing").capitalize()
-        num_comic_fts = len(obj_list)
-
-        batch_position = f"({status.complete}/{status.total})"
-        self.log.debug(f"{verbing} {num_comic_fts} {batch_position} search entries...")
-        if create:
-            ComicFTS.objects.bulk_create(obj_list)
-        else:
-            ComicFTS.objects.bulk_update(obj_list, _COMICFTS_UPDATE_FIELDS)
+        status_class = (
+            SearchIndexSyncCreateStatus if create else SearchIndexSyncUpdateStatus
+        )
+        subtitle = f"Chunks of {chunk_human_size}" if total_comics else ""
+        return status_class(total=total_comics, subtitle=subtitle)
 
     def _create_comicfts_entry(
         self,
@@ -265,21 +254,34 @@ class SearchIndexerSync(SearchIndexerRemove):
 
         obj_list.append(comicfts)
 
-    def _update_search_index_operate_get_status(
-        self, total_comics: int, chunk_human_size: str, *, create: bool
+    def _update_search_index_create_or_update(
+        self,
+        obj_list: list[ComicFTS],
+        status,
+        *,
+        create: bool,
     ):
-        status_class = (
-            SearchIndexSyncCreateStatus if create else SearchIndexSyncUpdateStatus
-        )
-        subtitle = f"Chunks of {chunk_human_size}" if total_comics else ""
-        return status_class(total=total_comics, subtitle=subtitle)
+        if self.abort_event.is_set():
+            return
+        verb = "create" if create else "update"
+        verbing = (verb[:-1] + "ing").capitalize()
+        num_comic_fts = len(obj_list)
+
+        batch_position = f"({status.complete}/{status.total})"
+        self.log.debug(f"{verbing} {num_comic_fts} {batch_position} search entries...")
+        if create:
+            ComicFTS.objects.bulk_create(obj_list)
+        else:
+            ComicFTS.objects.bulk_update(obj_list, _COMICFTS_UPDATE_FIELDS)
+
+        status.increment_complete(num_comic_fts)
+        self.status_controller.update(status, notify=True)
 
     def _update_search_index_operate(
         self, comics_filtered_qs: QuerySet, *, create: bool
     ):
-        total_comics = comics_filtered_qs.count()
-
         # Smaller systems may run out of virtual memory unless this is auto governed.
+        self.log.debug("Determining search query chunk size based on RAM...")
         mem_limit_gb = get_mem_limit("g")
         search_index_batch_size = floor(
             (mem_limit_gb / SEARCH_SYNC_BATCH_MEMORY_RATIO) * 1000
@@ -287,6 +289,8 @@ class SearchIndexerSync(SearchIndexerRemove):
         chunk_human_size = intcomma(search_index_batch_size)
 
         verb = "create" if create else "update"
+        self.log.debug("Counting total search index entries to {verb}...")
+        total_comics = comics_filtered_qs.count()
         status = self._update_search_index_operate_get_status(
             total_comics, chunk_human_size, create=create
         )
@@ -297,11 +301,12 @@ class SearchIndexerSync(SearchIndexerRemove):
 
             self.status_controller.start(status)
             while True:
+                obj_list = []
                 if self.abort_event.is_set():
                     break
                 # Not using standard iterator chunking to control memory and really
                 # do this in batches.
-                comics = comics_filtered_qs[:search_index_batch_size]
+                comics = comics_filtered_qs.order_by("pk")[:search_index_batch_size]
                 if not comics.count():
                     break
 
@@ -309,20 +314,16 @@ class SearchIndexerSync(SearchIndexerRemove):
                 comics = self._prefetch_related_fts_query(comics)
                 comics = self._annotate_fts_query(comics)
 
-                obj_list = []
                 prep_num = min(search_index_batch_size, total_comics)
                 self.log.debug(f"Preparing {prep_num} comics for search indexing...")
                 for comic in comics:
                     self._create_comicfts_entry(comic, obj_list, create=create)
 
-                num = len(obj_list)
                 self._update_search_index_create_or_update(
                     obj_list,
                     status,
                     create=create,
                 )
-                status.increment_complete(num)
-                self.status_controller.update(status, notify=True)
 
         finally:
             self.status_controller.finish(status)
