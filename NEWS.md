@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.6
+
+- Fixes
+    - Scale search index sync batch size with memory. Large search sync query
+      was preventing search sync of large databases on small machines.
+
 ## v1.8.5
 
 - Fixes
