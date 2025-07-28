@@ -3,6 +3,7 @@
 from datetime import datetime
 from math import floor
 from time import time
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
@@ -22,12 +23,14 @@ from codex.librarian.scribe.search.status import (
     SearchIndexSyncCreateStatus,
     SearchIndexSyncUpdateStatus,
 )
-from codex.librarian.status import Status
 from codex.models import Comic
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
 from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
 from codex.settings import SEARCH_SYNC_BATCH_MEMORY_RATIO
+
+if TYPE_CHECKING:
+    from codex.librarian.status import Status
 
 _COMICFTS_ATTRIBUTES = (
     "collection_title",
@@ -204,13 +207,11 @@ class SearchIndexerSync(SearchIndexerRemove):
             ComicFTS.objects.bulk_create(obj_list)
         else:
             ComicFTS.objects.bulk_update(obj_list, _COMICFTS_UPDATE_FIELDS)
-        obj_list.clear()
 
     def _create_comicfts_entry(
         self,
         comic,
         obj_list: list[ComicFTS],
-        status: Status,
         *,
         create: bool,
     ):
@@ -263,8 +264,6 @@ class SearchIndexerSync(SearchIndexerRemove):
             comicfts.created_at = now
 
         obj_list.append(comicfts)
-        status.increment_complete()
-        self.status_controller.update(status)
 
     def _update_search_index_operate_get_status(
         self, total_comics: int, chunk_human_size: str, *, create: bool
@@ -297,37 +296,33 @@ class SearchIndexerSync(SearchIndexerRemove):
                 self.log.debug(f"No search entries to {verb}.")
 
             self.status_controller.start(status)
-            comics = self._select_related_fts_query(comics_filtered_qs)
-            comics = self._prefetch_related_fts_query(comics)
-            comics = self._annotate_fts_query(comics)
-            comics = comics.order_by("pk")
-
-            obj_list = []
-            prep_num = min(search_index_batch_size, total_comics)
-            self.log.debug(f"Preparing {prep_num} comics for search indexing...")
-            for comic in comics.iterator(chunk_size=search_index_batch_size):
+            while True:
                 if self.abort_event.is_set():
                     break
-                self._create_comicfts_entry(comic, obj_list, status, create=create)
-                if len(obj_list) >= search_index_batch_size:
-                    self._update_search_index_create_or_update(
-                        obj_list,
-                        status,
-                        create=create,
-                    )
-                    complete = status.complete or 0
-                    if prep_num := min(
-                        search_index_batch_size, total_comics - complete
-                    ):
-                        self.log.debug(
-                            f"Preparing {prep_num} comics for search indexing..."
-                        )
+                # Not using standard iterator chunking to control memory and really
+                # do this in batches.
+                comics = comics_filtered_qs[:search_index_batch_size]
+                if not comics.count():
+                    break
 
-            self._update_search_index_create_or_update(
-                obj_list,
-                status,
-                create=create,
-            )
+                comics = self._select_related_fts_query(comics)
+                comics = self._prefetch_related_fts_query(comics)
+                comics = self._annotate_fts_query(comics)
+
+                obj_list = []
+                prep_num = min(search_index_batch_size, total_comics)
+                self.log.debug(f"Preparing {prep_num} comics for search indexing...")
+                for comic in comics:
+                    self._create_comicfts_entry(comic, obj_list, create=create)
+
+                num = len(obj_list)
+                self._update_search_index_create_or_update(
+                    obj_list,
+                    status,
+                    create=create,
+                )
+                status.increment_complete(num)
+                self.status_controller.update(status, notify=True)
 
         finally:
             self.status_controller.finish(status)
