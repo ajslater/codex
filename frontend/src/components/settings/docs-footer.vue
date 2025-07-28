@@ -5,7 +5,9 @@
     title="Codex Documentation"
     target="_blank"
   >
-    <v-icon id="repoIcon" size="x-small">{{ mdiBookOpenVariantOutline }}</v-icon>
+    <v-icon id="repoIcon" size="x-small">{{
+      mdiBookOpenVariantOutline
+    }}</v-icon>
     documentation<v-icon
       :color="$vuetify.theme.current.colors.iconsInactive"
       size="x-small"
