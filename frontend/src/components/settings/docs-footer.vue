@@ -1,12 +1,12 @@
 <template>
   <a
     id="repo"
-    href="https://github.com/ajslater/codex"
-    title="Codex Source Repository"
+    href="https://codex-comic-reader.readthedocs.io/"
+    title="Codex Documentation"
     target="_blank"
   >
-    <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
-    repository<v-icon
+    <v-icon id="repoIcon" size="x-small">{{ mdiBookOpenVariantOutline }}</v-icon>
+    documentation<v-icon
       :color="$vuetify.theme.current.colors.iconsInactive"
       size="x-small"
       >{{ mdiOpenInNew }}</v-icon
@@ -15,14 +15,14 @@
 </template>
 
 <script>
-import { mdiOpenInNew, mdiSourceRepository } from "@mdi/js";
+import { mdiBookOpenVariantOutline, mdiOpenInNew } from "@mdi/js";
 
 export default {
-  name: "RepoFooter",
+  name: "DocsFooter",
   data() {
     return {
+      mdiBookOpenVariantOutline,
       mdiOpenInNew,
-      mdiSourceRepository,
     };
   },
 };
