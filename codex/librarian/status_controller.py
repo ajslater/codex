@@ -111,6 +111,29 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
+    @staticmethod
+    def _finish_status_prepare(
+        positive_statii: MappingProxyType[str, Status | type[Status]],
+        updates: dict[str, Any],
+    ):
+        # Filter all active or preactive statii
+        ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
+        if positive_statii:
+            ls_filter_dict: dict[str, Any] = {"status_type__in": positive_statii.keys()}
+            # Filter on status codes
+            ls_filter &= Q(**ls_filter_dict)
+        lses = LibrarianStatus.objects.filter(ls_filter)
+        update_ls = []
+        log_statii = []
+        for ls in lses.iterator():
+            for key, value in updates.items():
+                setattr(ls, key, value)
+            update_ls.append(ls)
+            status = positive_statii[ls.status_type]
+            if isinstance(status, Status):
+                log_statii.append(status)
+        return update_ls, log_statii
+
     def _log_finish(self, status: Status, *, clear_subtitle: bool):
         """Log finish of status with stats."""
         level = "INFO"
@@ -140,31 +163,6 @@ class StatusController:
 
         self.log.log(level, f"{prefix}{suffix}.")
 
-    @staticmethod
-    def _finish_status_prepare(
-        positive_statii: MappingProxyType[str, Status | type[Status]],
-        updates: dict[str, Any],
-    ):
-        # Filter on submitted codes or all statii if nothing.
-        ls_filter_dict: dict[str, Any] = (
-            {"status_type__in": positive_statii.keys()} if positive_statii else {}
-        )
-        # Filter all active or preactive statii
-        ls_filter = (Q(active__isnull=False) | Q(preactive__isnull=False)) & Q(
-            **ls_filter_dict
-        )
-        lses = LibrarianStatus.objects.filter(ls_filter)
-        update_ls = []
-        log_statii = []
-        for ls in lses.iterator():
-            for key, value in updates.items():
-                setattr(ls, key, value)
-            update_ls.append(ls)
-            status = positive_statii[ls.status_type]
-            if isinstance(status, Status):
-                log_statii.append(status)
-        return update_ls, log_statii
-
     def finish_many(
         self,
         statii: Iterable[Status | type[Status] | None],
@@ -191,8 +189,8 @@ class StatusController:
                 self.log.info("Cleared all librarian statuses")
             for status in log_statii:
                 self._log_finish(status, clear_subtitle=clear_subtitle)
-        except Exception as exc:
-            self.log.warning(f"Finish status {positive_statii}: {exc}")
+        except Exception:
+            self.log.exception(f"Finish status {positive_statii}")
 
     def finish(
         self, status: Status | None, *, notify: bool = True, clear_subtitle=True

@@ -19,7 +19,7 @@
       </div>
       <div id="scrollFooter" class="footer">
         <OPDSDialog v-if="isAuthorized" />
-        <RepoFooter />
+        <DocsFooter />
       </div>
     </div>
     <template #append>
@@ -36,7 +36,7 @@ import { defineAsyncComponent, markRaw } from "vue";
 
 import AuthMenu from "@/components/auth/auth-menu.vue";
 import OPDSDialog from "@/components/settings/opds-dialog.vue";
-import RepoFooter from "@/components/settings/repo-footer.vue";
+import DocsFooter from "@/components/settings/docs-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -50,8 +50,8 @@ export default {
   name: "SettingsDrawer",
   components: {
     AuthMenu,
+    DocsFooter,
     OPDSDialog,
-    RepoFooter,
     VersionFooter,
   },
   props: {

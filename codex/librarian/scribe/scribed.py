@@ -29,22 +29,11 @@ from codex.librarian.scribe.tasks import (
 )
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import QueuedThread
-from codex.settings import SEARCH_INDEX_BATCH_SIZE
 
-_ABORT_SEARCH_UPDATE_TASKS = (
+ABORT_SEARCH_UPDATE_TASKS = (
     SearchIndexClearTask,
     SearchIndexSyncAbortTask,
     JanitorFTSRebuildTask,
-)
-_ABORT_SEARCH_UPDATE_ON_IMPORT_TASKS = (
-    ImportTask,
-    JanitorAdoptOrphanFoldersTask,
-)
-_ABORT_SEARCH_UPDATE_ON_IMPORT_BATCH_SIZE = 1000
-ABORT_SEARCH_UPDATE_TASKS = (
-    _ABORT_SEARCH_UPDATE_TASKS + _ABORT_SEARCH_UPDATE_ON_IMPORT_TASKS
-    if SEARCH_INDEX_BATCH_SIZE <= _ABORT_SEARCH_UPDATE_ON_IMPORT_BATCH_SIZE
-    else _ABORT_SEARCH_UPDATE_TASKS
 )
 
 
@@ -118,7 +107,7 @@ class ScribeThread(QueuedThread):
                 self.log.debug("Abort cleanup db signal given.")
             elif isinstance(task, SearchIndexSyncAbortTask):
                 self.log.debug(
-                    "Search Index Update abort signal given. May take a bit for the current import subtask to finish."
+                    "Search Index Sync abort signal given. It may take a while for the current import chunk to finish."
                 )
                 return
         elif isinstance(task, ImportAbortTask):
