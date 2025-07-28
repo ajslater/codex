@@ -4,7 +4,7 @@ from codex.librarian.scribe.importer.const import ALL_COMIC_GROUP_FIELD_NAMES
 from codex.librarian.scribe.importer.delete.covers import DeletedCoversImporter
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveComicsStatus
 from codex.models import Comic, Folder, StoryArc
-from codex.settings import MAX_CHUNK_SIZE
+from codex.settings import DELETE_MAX_CHUNK_SIZE
 
 
 class DeletedComicsImporter(DeletedCoversImporter):
@@ -29,7 +29,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
         comics_deleted_qs = delete_qs.only(
             *ALL_COMIC_GROUP_FIELD_NAMES
         ).prefetch_related("story_arc_numbers__story_arc")
-        for comic in comics_deleted_qs.iterator(chunk_size=MAX_CHUNK_SIZE):
+        for comic in comics_deleted_qs.iterator(chunk_size=DELETE_MAX_CHUNK_SIZE):
             for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
                 if field_name == "story_arc_numbers":
                     for san in comic.story_arc_numbers.select_related("story_arc").only(

@@ -27,7 +27,7 @@ from codex.models import Comic
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
 from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
-from codex.settings import SEARCH_INDEX_BATCH_MEMORY_RATIO
+from codex.settings import SEARCH_SYNC_BATCH_MEMORY_RATIO
 
 _COMICFTS_ATTRIBUTES = (
     "collection_title",
@@ -283,7 +283,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         # Smaller systems may run out of virtual memory unless this is auto governed.
         mem_limit_gb = get_mem_limit("g")
         search_index_batch_size = floor(
-            (mem_limit_gb / SEARCH_INDEX_BATCH_MEMORY_RATIO) * 1000
+            (mem_limit_gb / SEARCH_SYNC_BATCH_MEMORY_RATIO) * 1000
         )
         chunk_human_size = intcomma(search_index_batch_size)
 
