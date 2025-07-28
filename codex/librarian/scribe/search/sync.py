@@ -281,7 +281,6 @@ class SearchIndexerSync(SearchIndexerRemove):
         self, comics_filtered_qs: QuerySet, *, create: bool
     ):
         # Smaller systems may run out of virtual memory unless this is auto governed.
-        self.log.debug("Determining search query chunk size based on RAM...")
         mem_limit_gb = get_mem_limit("g")
         search_index_batch_size = floor(
             (mem_limit_gb / SEARCH_SYNC_BATCH_MEMORY_RATIO) * 1000
@@ -289,7 +288,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         chunk_human_size = intcomma(search_index_batch_size)
 
         verb = "create" if create else "update"
-        self.log.debug("Counting total search index entries to {verb}...")
+        self.log.debug(f"Counting total search index entries to {verb}...")
         total_comics = comics_filtered_qs.count()
         status = self._update_search_index_operate_get_status(
             total_comics, chunk_human_size, create=create
@@ -298,27 +297,29 @@ class SearchIndexerSync(SearchIndexerRemove):
         try:
             if not total_comics:
                 self.log.debug(f"No search entries to {verb}.")
+                return total_comics
 
-            self.status_controller.start(status)
+            self.status_controller.start(status, notify=True)
             while True:
                 obj_list = []
                 if self.abort_event.is_set():
                     break
                 # Not using standard iterator chunking to control memory and really
                 # do this in batches.
-                comics = comics_filtered_qs.order_by("pk")[:search_index_batch_size]
-                if not comics.count():
-                    break
-
+                self.log.debug(
+                    f"Preparing up to {search_index_batch_size} comics for search indexing..."
+                )
+                comics = comics_filtered_qs
                 comics = self._select_related_fts_query(comics)
                 comics = self._prefetch_related_fts_query(comics)
+                comics = comics.order_by("pk")
+                comics = comics[:search_index_batch_size]
                 comics = self._annotate_fts_query(comics)
-
-                prep_num = min(search_index_batch_size, total_comics)
-                self.log.debug(f"Preparing {prep_num} comics for search indexing...")
                 for comic in comics:
                     self._create_comicfts_entry(comic, obj_list, create=create)
 
+                if not obj_list:
+                    break
                 self._update_search_index_create_or_update(
                     obj_list,
                     status,
