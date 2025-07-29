@@ -47,10 +47,12 @@ class DeletedComicsImporter(DeletedCoversImporter):
 
     def bulk_comics_deleted(self, **kwargs) -> tuple[int, dict]:
         """Bulk delete comics found missing from the filesystem."""
+        count = 0
+        deleted_comic_groups = {}
         status = ImporterRemoveComicsStatus(0, len(self.task.files_deleted))
         try:
             if not self.task.files_deleted:
-                return 0, {}
+                return count, deleted_comic_groups
             self.status_controller.start(status)
             delete_qs = Comic.objects.filter(
                 library=self.library, path__in=self.task.files_deleted
@@ -60,7 +62,8 @@ class DeletedComicsImporter(DeletedCoversImporter):
             deleted_comic_groups = self._populate_deleted_comic_groups(delete_qs)
 
             delete_comic_pks = frozenset(delete_qs.values_list("pk", flat=True))
-            count, _ = delete_qs.delete()
+            delete_qs.delete()
+            count = len(delete_comic_pks)
 
             self.remove_covers(delete_comic_pks, custom=False)
         finally:
