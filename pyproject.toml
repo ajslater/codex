@@ -55,12 +55,12 @@ requires-python = "<4.0,>=3.10"
 version = "1.8.6"
 
 [project.urls]
-News = "https://github.com/ajslater/codex/blob/main/NEWS.md"
+News = "https://codex-comic-reader.readthedocs.io/NEWS/"
 "Docker Image" = "https://hub.docker.com/r/ajslater/codex"
 "Report Issues" = "https://github.com/ajslater/codex/issues"
+documentation = "https://codex-comic-reader.readthedocs.io"
+demo = "https://demo.codex-reader.app/"
 repository = "https://github.com/ajslater/codex"
-documentation = "https://github.com/ajslater/codex"
-homepage = "https://github.com/ajslater/codex"
 
 [project.scripts]
 codex = "codex.run:main"
