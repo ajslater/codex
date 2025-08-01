@@ -6,15 +6,16 @@ from time import time
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
+from django.db.models import Q
 from django.db.models.aggregates import Max
 from django.db.models.expressions import F, Value
 from django.db.models.functions import Concat
-from django.db.models.functions.datetime import Now
 from django.db.models.query import QuerySet
 from humanize import intcomma, naturaldelta
 
 from codex.librarian.memory import get_mem_limit
+from codex.librarian.scribe.search.const import COMICFTS_UPDATE_FIELDS
+from codex.librarian.scribe.search.prepare import SearchEntryPrepare
 from codex.librarian.scribe.search.remove import SearchIndexerRemove
 from codex.librarian.scribe.search.status import (
     SEARCH_INDEX_STATII,
@@ -26,54 +27,13 @@ from codex.librarian.scribe.search.status import (
 from codex.models import Comic
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
-from codex.serializers.fields.browser import CountryField, LanguageField, PyCountryField
 from codex.settings import SEARCH_SYNC_BATCH_MEMORY_RATIO
 
 if TYPE_CHECKING:
     from codex.librarian.status import Status
 
-_COMICFTS_ATTRIBUTES = (
-    "collection_title",
-    "file_type",
-    "issue",
-    "name",
-    "notes",
-    "reading_direction",
-    "review",
-    "summary",
-    "updated_at",
-)
-_COMICFTS_FKS = (
-    "publisher",
-    "imprint",
-    "series",
-    "age_rating",
-    "country",
-    "language",
-    "original_format",
-    "scan_info",
-    "tagger",
-)
-_COMICFTS_M2MS = (
-    "characters",
-    "credits",
-    "genres",
-    "identifiers",
-    "locations",
-    "series_groups",
-    "sources",
-    "stories",
-    "story_arcs",
-    "tags",
-    "teams",
-    "universes",
-)
-_COMICFTS_UPDATE_FIELDS = (
-    *_COMICFTS_ATTRIBUTES,
-    *_COMICFTS_FKS,
-    *_COMICFTS_M2MS,
-)
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+_ALL_FTS_COMIC_IDS_QUERY = Q(pk__in=ComicFTS.objects.values_list("comic_id", flat=True))
 
 
 class SearchIndexerSync(SearchIndexerRemove):
@@ -171,23 +131,6 @@ class SearchIndexerSync(SearchIndexerRemove):
             ),
         )
 
-    @staticmethod
-    def _get_pycountry_fts_field(field: PyCountryField, iso_code) -> str:
-        if not iso_code:
-            return ""
-        return ",".join((iso_code, field.to_representation(iso_code)))
-
-    @staticmethod
-    def _get_sources_fts_field(sources) -> str | None:
-        names = []
-        if not sources:
-            return None
-        for source in sources.split(","):
-            names.append(source)
-            if long_name := ID_SOURCE_NAME_MAP.get(source):
-                names.append(long_name)
-        return ",".join(names)
-
     def _update_search_index_operate_get_status(
         self, total_comics: int, chunk_human_size: str, *, create: bool
     ):
@@ -196,63 +139,6 @@ class SearchIndexerSync(SearchIndexerRemove):
         )
         subtitle = f"Chunks of {chunk_human_size}" if total_comics else ""
         return status_class(total=total_comics, subtitle=subtitle)
-
-    def _create_comicfts_entry(
-        self,
-        comic,
-        obj_list: list[ComicFTS],
-        *,
-        create: bool,
-    ):
-        country_field: PyCountryField = CountryField()  # pyright: ignore[reportAssignmentType]
-        language_field: PyCountryField = LanguageField()  # pyright: ignore[reportAssignmentType]
-
-        country = self._get_pycountry_fts_field(country_field, comic.fts_country)
-        language = self._get_pycountry_fts_field(language_field, comic.fts_language)
-        sources = self._get_sources_fts_field(comic.fts_sources)
-
-        now = Now()
-        comicfts = ComicFTS(
-            comic_id=comic.pk,
-            # Attributes
-            collection_title=comic.collection_title,
-            file_type=comic.file_type,
-            issue=comic.issue(),
-            name=comic.name,
-            notes=comic.notes,
-            reading_direction=comic.reading_direction,
-            review=comic.review,
-            summary=comic.summary,
-            updated_at=now,
-            # Group FKs
-            publisher=comic.fts_publisher,
-            imprint=comic.fts_imprint,
-            series=comic.fts_series,
-            # FKS
-            age_rating=comic.fts_age_rating,
-            country=country,
-            language=language,
-            original_format=comic.fts_original_format,
-            scan_info=comic.fts_scan_info,
-            tagger=comic.fts_tagger,
-            # ManyToMany
-            characters=comic.fts_characters,
-            credits=comic.fts_credits,
-            genres=comic.fts_genres,
-            identifiers=comic.fts_identifiers,
-            sources=sources,  # comic.fts_sources,
-            locations=comic.fts_locations,
-            series_groups=comic.fts_series_groups,
-            stories=comic.fts_stories,
-            story_arcs=comic.fts_story_arcs,
-            tags=comic.fts_tags,
-            teams=comic.fts_teams,
-            universes=comic.fts_universes,
-        )
-        if create:
-            comicfts.created_at = now
-
-        obj_list.append(comicfts)
 
     def _update_search_index_create_or_update(
         self,
@@ -272,10 +158,16 @@ class SearchIndexerSync(SearchIndexerRemove):
         if create:
             ComicFTS.objects.bulk_create(obj_list)
         else:
-            ComicFTS.objects.bulk_update(obj_list, _COMICFTS_UPDATE_FIELDS)
+            ComicFTS.objects.bulk_update(obj_list, COMICFTS_UPDATE_FIELDS)
 
         status.increment_complete(num_comic_fts)
         self.status_controller.update(status, notify=True)
+
+    @staticmethod
+    def _get_operation_comics_query(qs, *, create: bool):
+        if create and not ComicFTS.objects.exists():
+            qs = Comic.objects.all()
+        return qs
 
     def _update_search_index_operate(
         self, comics_filtered_qs: QuerySet, *, create: bool
@@ -289,7 +181,10 @@ class SearchIndexerSync(SearchIndexerRemove):
 
         verb = "create" if create else "update"
         self.log.debug(f"Counting total search index entries to {verb}...")
-        total_comics = comics_filtered_qs.count()
+        total_comics = self._get_operation_comics_query(
+            comics_filtered_qs, create=create
+        )
+        total_comics = total_comics.count()
         status = self._update_search_index_operate_get_status(
             total_comics, chunk_human_size, create=create
         )
@@ -300,7 +195,8 @@ class SearchIndexerSync(SearchIndexerRemove):
                 return total_comics
 
             self.status_controller.start(status, notify=True)
-            while True:
+            start = 0
+            while start < total_comics:
                 obj_list = []
                 if self.abort_event.is_set():
                     break
@@ -309,14 +205,19 @@ class SearchIndexerSync(SearchIndexerRemove):
                 self.log.debug(
                     f"Preparing up to {chunk_human_size} comics for search indexing..."
                 )
-                comics = comics_filtered_qs
-                comics = self._select_related_fts_query(comics)
+                # This query is supposed to get only comics that don't need creating but it doesn't
+                # So the start total exit assists it with that.
+                comics = self._get_operation_comics_query(
+                    comics_filtered_qs, create=create
+                )
                 comics = self._prefetch_related_fts_query(comics)
                 comics = comics.order_by("pk")
                 comics = comics[:search_index_batch_size]
                 comics = self._annotate_fts_query(comics)
-                for comic in comics:
-                    self._create_comicfts_entry(comic, obj_list, create=create)
+                for comic in comics.values():
+                    SearchEntryPrepare.prepare_sync_fts_entry(
+                        comic, obj_list, create=create
+                    )
 
                 if not obj_list:
                     break
@@ -325,6 +226,7 @@ class SearchIndexerSync(SearchIndexerRemove):
                     status,
                     create=create,
                 )
+                start += search_index_batch_size
 
         finally:
             self.status_controller.finish(status)
@@ -332,25 +234,36 @@ class SearchIndexerSync(SearchIndexerRemove):
 
     def _update_search_index_update(self):
         """Update out of date search entries."""
+        out_of_date_comics = Comic.objects.filter(_ALL_FTS_COMIC_IDS_QUERY)
+        self.log.debug("Looking for search index watermark...")
         fts_watermark = ComicFTS.objects.aggregate(max=Max("updated_at"))["max"]
-        since = fts_watermark or "the fracturing of the multiverse"
+        if fts_watermark:
+            since = fts_watermark
+            out_of_date_comics = out_of_date_comics.filter(updated_at__gt=fts_watermark)
+        else:
+            since = "the fracturing of the multiverse"
+            fts_watermark = fts_watermark or _MIN_UTC_DATE
         self.log.info(f"Looking for search entries to update since {since}...")
-        fts_watermark = fts_watermark or _MIN_UTC_DATE
-        out_of_date_comics = Comic.objects.filter(
-            pk__in=ComicFTS.objects.values("comic_id"), updated_at__gt=fts_watermark
-        )
+        count = out_of_date_comics.count()
+        self.log.debug(f"Found {count} comics with out of date search entries.")
+
         return self._update_search_index_operate(out_of_date_comics, create=False)
 
     def _update_search_index_create(self):
         """Create missing search entries."""
         self.log.info("Looking for missing search entries to create...")
-        missing_comics = Comic.objects.exclude(
-            pk__in=ComicFTS.objects.values("comic_id")
-        )
+        missing_comics = Comic.objects.all()
+        count = None if ComicFTS.objects.exists() else missing_comics.count()
+        missing_comics = missing_comics.exclude(_ALL_FTS_COMIC_IDS_QUERY)
+        if count is None:
+            count = missing_comics.count()
+
+        self.log.debug(f"Found {count} comics missing from the search index.")
         return self._update_search_index_operate(missing_comics, create=True)
 
     def _update_search_index(self, *, rebuild: bool):
         """Update or Rebuild the search index."""
+        self.log.debug("In update search index before init statii.")
         start_time = time()
         self._init_statuses(rebuild)
 

@@ -61,5 +61,5 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             group=group,
             pks=pks,
         )
-        # Distinct necissary for folder view with search
+        # Distinct necessary for folder view with search
         return model.objects.filter(query_filters).distinct()

@@ -34,9 +34,6 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             if field_name not in NON_FTS_FIELDS:
                 self.metadata[key][sub_key][field_name] = (value,)
 
-        issue = (str(md.get("issue_number", "")) + md.get("issue_suffix", ""),)
-        self.metadata[key][sub_key]["issue"] = issue
-
     def _update_comic_values(self, comic: Comic, update_comics: list, comic_pks: list):
         md = self.metadata[UPDATE_COMICS].pop(comic.pk, {})
         for field_name, value in md.items():

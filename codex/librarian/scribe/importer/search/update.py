@@ -1,21 +1,13 @@
 """Search Index update."""
 
-from contextlib import suppress
 from time import time
 
-from comicbox.enums.comicbox import IdSources
-from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
-from django.db.models.functions.datetime import Now
 from humanize import naturaldelta
 
 from codex.librarian.scribe.importer.const import (
     FTS_CREATE,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
-)
-from codex.librarian.scribe.importer.search.const import (
-    COMICFTS_UPDATE_FIELDS,
-    PYCOUNTRY_FIELDS,
 )
 from codex.librarian.scribe.importer.search.sync_m2m import (
     SearchIndexSyncManyToManyImporter,
@@ -25,6 +17,8 @@ from codex.librarian.scribe.importer.statii.search import (
     ImporterFTSStatus,
     ImporterFTSUpdateStatus,
 )
+from codex.librarian.scribe.search.const import COMICFTS_UPDATE_FIELDS
+from codex.librarian.scribe.search.prepare import SearchEntryPrepare
 from codex.librarian.status import Status
 from codex.models.comic import ComicFTS
 
@@ -32,73 +26,17 @@ from codex.models.comic import ComicFTS
 class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
     """Search Index update methods."""
 
-    @staticmethod
-    def _get_pycountry_fts_field(entry, field_name) -> str:
-        iso_code = entry.get(field_name)
-        if not iso_code:
-            return ""
-        field = PYCOUNTRY_FIELDS[field_name]
-        return ",".join((iso_code, field.to_representation(iso_code)))
-
-    @staticmethod
-    def _get_sources_fts_field(entry) -> tuple[str, ...]:
-        sources = entry.get("sources", ())
-        names = []
-        for source_str in sources:
-            names.append(source_str)
-            with suppress(ValueError):
-                id_source = IdSources(source_str)
-                if long_name := ID_SOURCE_NAME_MAP.get(id_source):
-                    names.append(long_name)
-        return tuple(names)
-
-    @staticmethod
-    def _create_comicfts_entry_attributes(entry, *, create: bool):
-        now = Now()
-        entry["updated_at"] = now
-        if create:
-            entry["created_at"] = now
-
-    @classmethod
-    def _create_comicfts_entry_fks(cls, entry):
-        entry["country"] = cls._get_pycountry_fts_field(entry, "country")
-        entry["language"] = cls._get_pycountry_fts_field(entry, "language")
-
-    @staticmethod
-    def _to_fts_values(value):
-        """Create a tuple of fts value strings."""
-        return tuple(
-            subvalue
-            for values_tuple in value
-            for subvalue in values_tuple
-            if isinstance(subvalue, str)
-        )
-
-    def _create_comicfts_entry_m2ms(self, pk: int, entry):
-        if sources := self._get_sources_fts_field(entry):
-            entry["sources"] = sources
-        if existing_values := self.metadata[FTS_EXISTING_M2MS].get(pk):
-            for field_name in tuple(existing_values.keys()):
-                if values := existing_values.get(field_name):
-                    entry[field_name] = entry.get(field_name, ()) + values
-
     def _create_comicfts_entry(
         self,
-        pk,
-        entry,
+        pk: int,
+        entry: dict,
         obj_list: list[ComicFTS],
         status: Status,
     ):
-        self._create_comicfts_entry_m2ms(pk, entry)
-        for field_name in entry:
-            value = entry[field_name]
-            if isinstance(value, tuple):
-                entry[field_name] = ",".join(sorted(value))
-        self._create_comicfts_entry_attributes(entry, create=True)
-        self._create_comicfts_entry_fks(entry)
-        comicfts = ComicFTS(comic_id=pk, **entry)
-        obj_list.append(comicfts)
-        status.increment_complete()
+        existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(pk)
+        SearchEntryPrepare.prepare_import_fts_entry(
+            pk, entry, existing_m2m_values, None, obj_list, status, create=True
+        )
         self.status_controller.update(status)
 
     def _update_comicfts_entry(
@@ -109,17 +47,16 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
     ):
         comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         entry = self.metadata[FTS_UPDATE].pop(comic_id)
-        self._create_comicfts_entry_m2ms(comic_id, entry)
-        for field_name in entry:
-            value = entry[field_name]
-            if isinstance(value, tuple):
-                entry[field_name] = ",".join(sorted(value))
-        self._create_comicfts_entry_attributes(entry, create=True)
-        self._create_comicfts_entry_fks(entry)
-        for field_name, value in entry.items():
-            setattr(comicfts, field_name, value)
-        obj_list.append(comicfts)
-        status.increment_complete()
+        existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(comic_id)
+        SearchEntryPrepare.prepare_import_fts_entry(
+            comic_id,
+            entry,
+            existing_m2m_values,
+            comicfts,
+            obj_list,
+            status,
+            create=False,
+        )
         self.status_controller.update(status)
 
     def _update_search_index_operate_get_status(

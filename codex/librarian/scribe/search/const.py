@@ -1,16 +1,8 @@
-"""Search import consts."""
-
-from types import MappingProxyType
-
-from codex.serializers.fields.browser import CountryField, LanguageField
+"""FTS constants."""
 
 _COMICFTS_ATTRIBUTES = (
     "collection_title",
-    "file_type",
-    "issue",
     "name",
-    "notes",
-    "reading_direction",
     "review",
     "summary",
     "updated_at",
@@ -30,7 +22,6 @@ _COMICFTS_M2MS = (
     "characters",
     "credits",
     "genres",
-    "identifiers",
     "locations",
     "series_groups",
     "sources",
@@ -44,7 +35,4 @@ COMICFTS_UPDATE_FIELDS = (
     *_COMICFTS_ATTRIBUTES,
     *_COMICFTS_FKS,
     *_COMICFTS_M2MS,
-)
-PYCOUNTRY_FIELDS = MappingProxyType(
-    {"country": CountryField(), "language": LanguageField()}
 )

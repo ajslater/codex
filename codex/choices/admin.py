@@ -109,6 +109,7 @@ ADMIN_TASK_GROUPS: MappingProxyType[
                         "value": "search_index_clear",
                         "title": "Clear Search Index",
                         "desc": "of all entries",
+                        "confirm": "Are you sure? Resyncing the search index can take a while.",
                     },
                     {
                         "value": "db_fts_integrity_check",

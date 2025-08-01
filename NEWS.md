@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.7
+
+- Fixes
+    - Make Full Text Search table smaller. Some irrelevant fields and data were
+      causing exponential bloat, crippling large libraries.
+    - Fix search by field for string fields, identifiers and issue
+
 ## v1.8.6
 
 - Fixes

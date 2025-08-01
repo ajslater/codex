@@ -52,24 +52,29 @@ PARENT_FOLDER_FIELD_NAME = "parent_folder"
 VOLUME_COUNT_FIELD_NAME = "volume_count"
 ISSUE_COUNT_FIELD_NAME = "issue_count"
 PATH_FIELD_NAME = "path"
+IDENTIFIERS_FIELD_NAME = "identifiers"
 NON_FTS_FIELDS = frozenset(
     {
         # Attributes
         "critical_rating",
         "day",
+        "file_type",
+        "issue_number",
+        "issue_suffix",
         "metadata_mtime",
         "monochrome",
         "month",
+        "notes",
         "page_count",
         "path",
+        "reading_direction",
         "year",
-        "issue_number",
-        "issue_suffix",
         # FKs
         PARENT_FOLDER_FIELD_NAME,
         VOLUME_FIELD_NAME,
         # M2Ms
         FOLDERS_FIELD_NAME,
+        IDENTIFIERS_FIELD_NAME,
     }
 )
 
@@ -127,7 +132,6 @@ CREDIT_ROLE_FIELD_NAME = "role"
 STORY_ARC_NUMBERS_FIELD_NAME = "story_arc_numbers"
 STORY_ARC_FIELD_NAME = "story_arc"
 NUMBER_FIELD_NAME = "number"
-IDENTIFIERS_FIELD_NAME = "identifiers"
 IDENTIFIER_SOURCE_FIELD_NAME = "source"
 IDENTIFIER_TYPE_FIELD_NAME = "id_type"
 IDENTIFIER_ID_KEY_FIELD_NAME = "key"
