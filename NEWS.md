@@ -11,7 +11,8 @@ border-radius: 128px;
 - Fixes
     - Make Full Text Search table smaller. Some irrelevant fields and data were
       causing exponential bloat, crippling large libraries.
-    - Fix search by field for string fields, identifiers and issue
+    - Fix search by field for string fields, identifiers and issue.
+    - Fix overflow on browser card titles.
 
 ## v1.8.6
 

@@ -120,6 +120,7 @@ export default {
 .cardSubtitle {
   width: 100%;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .seriesCaption,
@@ -131,11 +132,6 @@ export default {
 .headerName {
   padding-top: 5px;
   color: rgb(var(--v-theme-textDisabled));
-}
-
-.headerName,
-.displayName {
-  overflow-wrap: break-word;
 }
 
 .displayName {
