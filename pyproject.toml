@@ -18,7 +18,7 @@ dependencies = [
   "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=2.0.1",
+  "comicbox[pdf]~=2.0.2",
   "dateparser~=1.2",
   "django~=5.2.4",
   "djangorestframework~=3.16.0",
@@ -52,15 +52,15 @@ name = "codex"
 license = { text = "GPL-3.0-only" }
 readme = "README.md"
 requires-python = "<4.0,>=3.10"
-version = "1.8.6"
+version = "1.8.7"
 
 [project.urls]
-News = "https://github.com/ajslater/codex/blob/main/NEWS.md"
+News = "https://codex-comic-reader.readthedocs.io/NEWS/"
 "Docker Image" = "https://hub.docker.com/r/ajslater/codex"
 "Report Issues" = "https://github.com/ajslater/codex/issues"
+documentation = "https://codex-comic-reader.readthedocs.io"
+demo = "https://demo.codex-reader.app/"
 repository = "https://github.com/ajslater/codex"
-documentation = "https://github.com/ajslater/codex"
-homepage = "https://github.com/ajslater/codex"
 
 [project.scripts]
 codex = "codex.run:main"

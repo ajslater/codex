@@ -25,7 +25,8 @@ class DeletedFoldersImporter(DeletedComicsImporter):
                 .distinct()
                 .values_list("pk", flat=True)
             )
-            count, _ = folders.delete()
+            folders.delete()
+            count = len(delete_comic_pks)
 
             self.remove_covers(delete_comic_pks, custom=False)
         finally:

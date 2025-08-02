@@ -11,8 +11,8 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
         "role": "credits__role__name",
         "credits": "credits__person__name",
-        "identifier": "identifier__key",
-        "identifier_source": "identifier__source__name",
+        "identifiers": "identifiers__key",
+        "sources": "identifiers__source__name",
         "story_arcs": "story_arc_number__story_arc__name",
     }
 )
@@ -32,7 +32,7 @@ def _parse_field_rel(field_name, rel_class):
         # This must be after the special span maps
         rel = f"{field_name}__name"
 
-    if rel.endswith("name"):
+    if rel.endswith(("name", "key")):
         rel_class = CharField
 
     if not rel:

@@ -326,23 +326,12 @@ class Comic(WatchedPathBrowserGroup):
         """Most common text representation for logging."""
         return self.get_title(self, volume=True, name=True, filename_fallback=True)
 
-    def issue(self) -> str:
-        """Combine issue parts for search."""
-        res = ""
-        if self.issue_number is not None:
-            res += str(self.issue_number.normalize())
-        if self.issue_suffix:
-            res += self.issue_suffix
-        return res
-
 
 class ComicFTS(BaseModel):
     comic = OneToOneField(primary_key=True, to=Comic, on_delete=CASCADE)
     # Attributes
     collection_title = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    issue = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    notes = TextField(db_collation="nocase")
     review = TextField(db_collation="nocase")
     summary = TextField(db_collation="nocase")
     # FK groups
@@ -352,7 +341,6 @@ class ComicFTS(BaseModel):
     # FK
     age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     country = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    file_type = CharField(db_collation="nocase", max_length=max_choices_len(FileType))
     language = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     original_format = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     scan_info = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
@@ -361,12 +349,8 @@ class ComicFTS(BaseModel):
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     genres = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    identifiers = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     sources = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     locations = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    reading_direction = CharField(
-        db_collation="nocase", max_length=max_choices_len(ReadingDirection)
-    )
     series_groups = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     stories = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     story_arcs = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

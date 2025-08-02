@@ -52,8 +52,8 @@ export const CONFIGS = {
       "depend/ban-dependencies": [
         "error",
         {
-          // unicorn-x dev's initial reasoning seems to rely on trivia, microoptimizations, and his own DX.
-          allowed: ["eslint-plugin-unicorn"],
+          // Replacing axios will be a big refactor.
+          allowed: ["axios"],
         },
       ],
       "no-console": "warn",

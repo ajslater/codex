@@ -1,6 +1,6 @@
 """Extract metadata from comic archive."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from tarfile import TarError
 from zipfile import BadZipFile, LargeZipFile
 
@@ -29,7 +29,10 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             comic = Comic.objects.get(path=path)
         except Comic.DoesNotExist:
             return None
-        return comic.metadata_mtime
+        mtime = comic.metadata_mtime
+        if mtime and (mtime.tzinfo is None or mtime.tzinfo.utcoffset(mtime) is None):
+            mtime = mtime.replace(tzinfo=timezone.utc)
+        return mtime
 
     def _set_import_metadata_flag(self):
         """Set import_metadata flag."""
@@ -50,17 +53,17 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
                 if import_metadata:
                     new_md_mtime = cb.get_metadata_mtime()
-                    if self.task.check_metadata_mtime:
-                        old_md_mtime = self._metadata_mtime(path)
-                        if (
-                            old_md_mtime
-                            and new_md_mtime
-                            and new_md_mtime <= old_md_mtime
-                        ):
-                            return md
-                    md = cb.to_dict()
-                    md = md.get("comicbox", {})
-                    md["metadata_mtime"] = new_md_mtime
+                    if (
+                        not self.task.check_metadata_mtime
+                        or not new_md_mtime
+                        or not (old_md_mtime := self._metadata_mtime(path))
+                        or (new_md_mtime > old_md_mtime)
+                    ):
+                        md = cb.to_dict()
+                        md = md.get("comicbox", {})
+                        md["metadata_mtime"] = new_md_mtime
+                    else:
+                        md["page_count"] = cb.get_page_count()
                 else:
                     md["page_count"] = cb.get_page_count()
                 md["file_type"] = cb.get_file_type()

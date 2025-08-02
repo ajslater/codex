@@ -1012,20 +1012,11 @@ CREATED_COMICS = MappingProxyType(
                 "age_rating": ("Everyone",),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
-                "file_type": ("CBZ",),
                 "imprint": ("TestImprint",),
-                "issue": ("1.2S",),
                 "language": ("en",),
                 "name": ("The Beginning",),
-                "notes": (
-                    (
-                        "Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] "
-                        "urn:comicvine:4000-145269"
-                    ),
-                ),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
-                "reading_direction": ("ltr",),
                 "review": ("It wasn't all bad.",),
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
@@ -1078,19 +1069,9 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
                 "age_rating": ("Adult",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
-                "issue": ("2.2XXX",),
                 "language": ("fr",),
                 "name": ("The Beginning; The End",),
-                "notes": (
-                    (
-                        "Tagged with comicbox dev on "
-                        "1970-01-01T00:00:00 [Issue ID "
-                        "145269] "
-                        "urn:comicvine:4000-145265"
-                    ),
-                ),
                 "original_format": ("Hardcover",),
-                "reading_direction": ("rtl",),
                 "review": ("Actually unreadable.",),
                 "scan_info": ("Digital",),
                 "summary": ("Captain Science's many adult adventures",),
@@ -1110,23 +1091,13 @@ LINKED_COMICS = MappingProxyType(
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
                 "credits": ("Joe Orlando", "Wally Wood"),
-                "file_type": ("CBZ",),
                 "genres": ("Science Fiction",),
-                "identifiers": ("145269",),
                 "imprint": ("TestImprint",),
-                "issue": ("1.2S",),
                 "language": ("en",),
                 "locations": ("The Moon",),
                 "name": ("The Beginning",),
-                "notes": (
-                    (
-                        "Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] "
-                        "urn:comicvine:4000-145269"
-                    ),
-                ),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
-                "reading_direction": ("ltr",),
                 "review": ("It wasn't all bad.",),
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
@@ -1166,19 +1137,10 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "genres": ("Mystery",),
-                "identifiers": ("145265", "999"),
-                "issue": ("2.2XXX",),
                 "language": ("fr",),
                 "locations": ("Mars",),
                 "name": ("The Beginning; The End",),
-                "notes": (
-                    (
-                        "Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] "
-                        "urn:comicvine:4000-145265"
-                    ),
-                ),
                 "original_format": ("Hardcover",),
-                "reading_direction": ("rtl",),
                 "review": ("Actually unreadable.",),
                 "scan_info": ("Digital",),
                 "series_groups": ("adult comics",),

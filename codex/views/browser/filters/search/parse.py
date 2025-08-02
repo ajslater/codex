@@ -19,22 +19,27 @@ _FTS_COLUMNS = frozenset(
 )
 _NON_FTS_COLUMNS = frozenset(
     {
-        "volume",
-        "volume_to",
         "created_at",
-        "updated_at",
+        "critical_rating",
+        "date",
+        "day",
+        "decade",
+        "file_type",
+        "identifiers",
+        "issue",
         "issue_number",
         "issue_suffix",
-        "year",
         "month",
-        "day",
-        "critical_rating",
-        "page_count",
         "monochrome",
-        "date",
-        "decade",
-        "size",
+        "notes",
         "path",
+        "page_count",
+        "reading_direction",
+        "size",
+        "updated_at",
+        "volume",
+        "volume_to",
+        "year",
     }
 )
 _VALID_COLUMNS = frozenset(_FTS_COLUMNS | _NON_FTS_COLUMNS)

@@ -580,19 +580,9 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
                 "age_rating": ("Adult",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
-                "issue": ("2.2XXX",),
                 "language": ("fr",),
                 "name": ("The Beginning; The End",),
-                "notes": (
-                    (
-                        "Tagged with comicbox dev on "
-                        "1970-01-01T00:00:00 [Issue ID "
-                        "145269] "
-                        "urn:comicvine:4000-145265"
-                    ),
-                ),
                 "original_format": ("Hardcover",),
-                "reading_direction": ("rtl",),
                 "review": ("Actually unreadable.",),
                 "scan_info": ("Digital",),
                 "summary": ("Captain Science's many adult adventures",),
@@ -620,19 +610,10 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "genres": ("Mystery",),
-                "identifiers": ("145265", "999"),
-                "issue": ("2.2XXX",),
                 "language": ("fr",),
                 "locations": ("Mars",),
                 "name": ("The Beginning; The End",),
-                "notes": (
-                    (
-                        "Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] "
-                        "urn:comicvine:4000-145265"
-                    ),
-                ),
                 "original_format": ("Hardcover",),
-                "reading_direction": ("rtl",),
                 "review": ("Actually unreadable.",),
                 "scan_info": ("Digital",),
                 "series_groups": ("adult comics",),

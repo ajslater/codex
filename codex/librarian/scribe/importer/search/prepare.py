@@ -6,7 +6,6 @@ from codex.librarian.scribe.importer.const import (
     FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
-    IDENTIFIERS_FIELD_NAME,
     NON_FTS_FIELDS,
     STORY_ARC_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
@@ -25,8 +24,6 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         """Only store the fts relevant parts of complex links."""
         if field_name == CREDITS_FIELD_NAME:
             values = tuple(subvalues[0] for subvalues in values)
-        if field_name == IDENTIFIERS_FIELD_NAME:
-            values = tuple(subvalues[-1] for subvalues in values)
         elif field_name == STORY_ARC_NUMBERS_FIELD_NAME:
             field_name = STORY_ARC_FIELD_NAME + "s"
         return field_name, tuple(values)
@@ -41,10 +38,6 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         """Add the existing values for creating a changed search entry."""
         if field_name in NON_FTS_FIELDS or not values:
             return
-        if field_name == IDENTIFIERS_FIELD_NAME:
-            # sources extracton must come before identifiers is minified
-            sources = tuple(subvalues[0] for subvalues in values)
-            self.add_to_fts_existing(pk, "sources", sources)
         field_name, values = self.minify_complex_link_to_fts_tuple(field_name, values)
         fts_values = self._to_fts_tuple(values)
         if not fts_values:

@@ -52,7 +52,8 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
             .only(*update_fields)
         )
         for comicfts in comicftss:
-            setattr(comicfts, field_name, comicfts.fts_value)  # pyright: ignore[reportAttributeAccessIssue]
+            value = comicfts.fts_value.strip(",")  # pyright: ignore[reportAttributeAccessIssue]
+            setattr(comicfts, field_name, value)
             comicfts.updated_at = Now()
             update_objs.append(comicfts)
 
