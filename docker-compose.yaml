@@ -51,7 +51,7 @@ services:
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
-    command: make test-backend -o build-frontend
+    command: make test-backend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
