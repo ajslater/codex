@@ -76,9 +76,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(
-                    2025, 6, 15, 18, 13, 44, tzinfo=timezone.utc
-                ),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -407,9 +405,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(
-                    2025, 6, 15, 18, 13, 44, tzinfo=timezone.utc
-                ),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -519,9 +515,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(
-                    2025, 6, 15, 18, 13, 44, tzinfo=timezone.utc
-                ),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",

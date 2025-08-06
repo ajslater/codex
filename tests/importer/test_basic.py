@@ -190,7 +190,7 @@ AGGREGATED = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 5, 24, 0, 33, 26, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -279,9 +279,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(
-                    2025, 6, 15, 18, 13, 44, tzinfo=timezone.utc
-                ),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -514,7 +512,7 @@ QUERIED = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 5, 24, 0, 33, 26, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -669,7 +667,7 @@ CREATED_FK = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 5, 24, 0, 33, 26, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -853,9 +851,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(
-                    2025, 6, 15, 18, 13, 44, tzinfo=timezone.utc
-                ),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -965,9 +961,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(
-                    2025, 6, 15, 18, 13, 44, tzinfo=timezone.utc
-                ),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",

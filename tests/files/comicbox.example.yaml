@@ -49,6 +49,9 @@ comicbox:
     comicvine:
       key: "145269"
       url: https://comicvine.gamespot.com/c/4000-145269/
+  identifier_primary_source:
+    source: metron
+    url: "https://metron.cloud/"
   imprint:
     name: TestImprint
   issue:

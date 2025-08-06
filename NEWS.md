@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.8
+
+- Fixes
+    - Fix import crash on some Metron tagged comics with a primary identifier
+      source.
+
 ## v1.8.7
 
 - Fixes
