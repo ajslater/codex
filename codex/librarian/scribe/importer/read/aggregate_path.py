@@ -28,6 +28,7 @@ _UNUSED_COMICBOX_FIELDS = (
     "bookmark",
     "credit_primaries",
     "ext",
+    "identifier_primary_source",
     "manga",
     "pages",
     "prices",
