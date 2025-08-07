@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.9
+
+- Fixes
+    - Attempt to fix import bug where update metadata is disposed of before it
+      can be applied.
+
 ## v1.8.8
 
 - Fixes
