@@ -8,7 +8,6 @@ from django.db.models.query import Q
 from codex.librarian.scribe.importer.const import (
     FIELD_NAME_KEYS_REL_MAP,
     FOLDERS_FIELD_NAME,
-    FTS_CREATED_M2MS,
     IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
     NON_FTS_FIELDS,
@@ -132,6 +131,5 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
                 )
             for field, names in md.items():
                 self._link_prepare_named_m2ms(all_m2m_links, comic_pk, field, names)
-        self.metadata.pop(LINK_M2MS)
-        self.metadata.pop(FTS_CREATED_M2MS)
+        self.metadata.pop(LINK_M2MS, None)
         return all_m2m_links

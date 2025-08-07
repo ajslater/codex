@@ -618,9 +618,78 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
+        FTS_CREATED_M2MS: {},
     }
 )
-FTSED_UPDATE_ALL = MappingProxyType({FIS: {}})
+FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
+    {
+        FTS_CREATED_M2MS: {},
+        FTS_EXISTING_M2MS: {
+            1: {
+                "characters": ("Captain Science",),
+                "genres": ("Science Fiction",),
+                "stories": ("The Beginning",),
+                "story_arcs": ("c", "d", "e"),
+                "tags": ("a", "c"),
+            }
+        },
+        FTS_UPDATE: {
+            1: {
+                "age_rating": ("Adult",),
+                "collection_title": ("The Big Omnibus Part 2",),
+                "country": ("GB",),
+                "genres": ("Mystery",),
+                "language": ("fr",),
+                "locations": ("Mars",),
+                "name": ("The Beginning; The End",),
+                "original_format": ("Hardcover",),
+                "review": ("Actually unreadable.",),
+                "scan_info": ("Digital",),
+                "series_groups": ("adult comics",),
+                "sources": ("comicvine", "metron"),
+                "stories": ("The End",),
+                "story_arcs": ("g",),
+                "summary": ("Captain Science's many adult adventures",),
+            }
+        },
+        FTS_UPDATED_M2MS: {"universes": {1}},
+    }
+)
+DELETED_COMICS_UPDATE_ALL = MappingProxyType(
+    {
+        FTS_CREATED_M2MS: {},
+        FTS_EXISTING_M2MS: {
+            1: {
+                "characters": ("Captain Science",),
+                "genres": ("Science Fiction",),
+                "stories": ("The Beginning",),
+                "story_arcs": ("c", "d", "e"),
+                "tags": ("a", "c"),
+            }
+        },
+        FTS_UPDATE: {
+            1: {
+                "age_rating": ("Adult",),
+                "collection_title": ("The Big Omnibus Part 2",),
+                "country": ("GB",),
+                "genres": ("Mystery",),
+                "language": ("fr",),
+                "locations": ("Mars",),
+                "name": ("The Beginning; The End",),
+                "original_format": ("Hardcover",),
+                "review": ("Actually unreadable.",),
+                "scan_info": ("Digital",),
+                "series_groups": ("adult comics",),
+                "sources": ("comicvine", "metron"),
+                "stories": ("The End",),
+                "story_arcs": ("g",),
+                "summary": ("Captain Science's many adult adventures",),
+            }
+        },
+        FTS_UPDATED_M2MS: {"universes": {1}},
+    }
+)
+FTSED_UPDATE_ALL = MappingProxyType({})
 _FK_VALUE_POS = MappingProxyType(
     {
         "volume": -2,
@@ -685,6 +754,16 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         diff_assert(LINKED_COMICS_UPDATE_ALL, md, "LINKED_COMICS_UPDATE_ALL")
 
         comic = test_comic_creation(COMIC_VALUES_UPDATE_ALL)
+
+        # Fail imports
+        self.importer.fail_imports()
+        md = MappingProxyType(self.importer.metadata)
+        diff_assert(FAILED_IMPORTS_UPDATE_ALL, md, "FAILED_IMPORTS_UPDATE_ALL")
+
+        # Delete
+        self.importer.delete()
+        md = MappingProxyType(self.importer.metadata)
+        diff_assert(DELETED_COMICS_UPDATE_ALL, md, "DELETED_COMICS_UPDATE_ALL")
 
         # FTS
         self.importer.full_text_search()

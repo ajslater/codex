@@ -79,7 +79,6 @@ CREATED_COMICS_UPDATE_NONE = MappingProxyType(
 )
 LINKED_COMICS_UPDATE_NONE = MappingProxyType(
     {
-        DELETE_M2MS: {},
         FIS: {},
         FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
@@ -87,12 +86,23 @@ LINKED_COMICS_UPDATE_NONE = MappingProxyType(
         FTS_UPDATED_M2MS: {},
     }
 )
-FTSED_UPDATE_NONE = MappingProxyType(
+FAILED_IMPORTS_UPDATE_NONE = MappingProxyType(
     {
-        DELETE_M2MS: {},
         FTS_CREATED_M2MS: {},
+        FTS_EXISTING_M2MS: {},
+        FTS_UPDATE: {1: {}},
+        FTS_UPDATED_M2MS: {},
     }
 )
+DELETED_COMICS_UPDATE_NONE = MappingProxyType(
+    {
+        FTS_CREATED_M2MS: {},
+        FTS_EXISTING_M2MS: {},
+        FTS_UPDATE: {1: {}},
+        FTS_UPDATED_M2MS: {},
+    }
+)
+FTSED_UPDATE_NONE = MappingProxyType({})
 
 
 class BaseTestImporterUpdate(BaseTestImporter, ABC):
@@ -140,9 +150,13 @@ class TestImporterUpdateNone(BaseTestImporterUpdate):
 
         # Fail imports
         self.importer.fail_imports()
+        md = MappingProxyType(self.importer.metadata)
+        diff_assert(FAILED_IMPORTS_UPDATE_NONE, md, "FAILED_IMPORTS_UPDATE_NONE")
 
         # Delete
         self.importer.delete()
+        md = MappingProxyType(self.importer.metadata)
+        diff_assert(DELETED_COMICS_UPDATE_NONE, md, "DELETED_COMICS_UPDATE_NONE")
 
         # FTS
         self.importer.full_text_search()
