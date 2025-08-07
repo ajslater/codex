@@ -2,10 +2,11 @@
   <PaginationToolbar v-if="numPages > 1">
     <BrowserNavButton :back="true" />
     <PaginationSlider
-      :model-value="+$route.params.page"
+      :key="key"
+      :model-value="page"
       :min="+1"
       :max="numPages"
-      :step="1"
+      :step="+1"
       @update:model-value="routeToPage($event)"
     />
     <BrowserNavButton :back="false" :more="true" />
@@ -31,6 +32,13 @@ export default {
     ...mapState(useBrowserStore, {
       numPages: (state) => state.page.numPages,
     }),
+    key() {
+      const params = this.$route.params;
+      return `${params.group}:${params.pk}:${params.page}`;
+    },
+    page() {
+      return +this.$route.params.page;
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["routeToPage"]),

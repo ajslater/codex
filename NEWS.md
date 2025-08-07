@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fixes
     - Attempt to fix import bug where update metadata is disposed of before it
       can be applied.
+    - Attempt to fix browser page slider not updating to match the current
+      folder.
 
 ## v1.8.8
 
