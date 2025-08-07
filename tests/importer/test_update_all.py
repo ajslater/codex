@@ -654,7 +654,7 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         super().setUp()
         shutil.copy(UPDATE_PATH, PATH)
 
-    def test_import(self):
+    def test_update_all(self):
         self.importer.read()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(AGGREGATED_UPDATE_ALL, md, "AGGREGATED_UPDATE_ALL")

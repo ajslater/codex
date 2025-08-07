@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.9
+
+- Fixes
+    - Attempt to fix not saving new stat values if update doesn't update comic
+      metadata.
+    - Attempt to fix import bug where update metadata is disposed of before it
+      can be applied.
+    - Attempt to fix browser page slider not updating to match the current
+      folder.
+
 ## v1.8.8
 
 - Fixes

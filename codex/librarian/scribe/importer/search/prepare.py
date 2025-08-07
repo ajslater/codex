@@ -65,7 +65,7 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
                 self.metadata[key] = {}
             if sub_key not in self.metadata[key]:
                 self.metadata[key][sub_key] = {}
-            self.log.warning(
+            self.log.debug(
                 f"FTS import anomaly, attempting FTS update for comic {sub_key} {field_name}"
             )
             # Alternative might be kicking off an FTS sync

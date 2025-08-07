@@ -84,5 +84,6 @@ class LinkManyToManyImporter(LinkSumImporter):
                 except Exception:
                     self.log.exception(f"Error recreating m2m field: {field_name}")
         finally:
+            self.metadata.pop(LINK_M2MS, None)
             self.status_controller.finish(status)
         return created_total + del_total
