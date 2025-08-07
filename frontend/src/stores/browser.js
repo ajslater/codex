@@ -237,6 +237,10 @@ export const useBrowserStore = defineStore("browser", {
     metadataSettings(state) {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
     },
+    routeKey() {
+      const params = router.currentRoute.value.params;
+      return `${params.group}:${params.pk}:${params.page}`;
+    },
   },
   actions: {
     /*

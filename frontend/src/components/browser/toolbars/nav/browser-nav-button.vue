@@ -1,6 +1,6 @@
 <template>
   <PaginationNavButton
-    :key="toRoute"
+    :key="routeKey"
     :class="classes"
     :disabled="disabled"
     :title="title"
@@ -40,28 +40,32 @@ export default {
     return {
       mdiChevronLeft,
       mdiMagnify,
-      routeParams: this.$route.params,
-      page: +this.$route.params.page,
     };
   },
   computed: {
     ...mapState(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       numPages: (state) => state.page.numPages,
+      routeKey: (state) => state.routeKey,
     }),
     increment() {
       return this.back ? -1 : 1;
     },
+    page() {
+      return +this.$route.params.page;
+    },
+    routeParams() {
+      return this.$route.params;
+    },
     toPage() {
       return this.page + this.increment;
     },
+    toRoute() {
+      const params = { ...this.routeParams, page: this.toPage };
+      return { params };
+    },
     title() {
       return this.showMore ? "Search for More" : "Page " + this.toPage;
-    },
-    toRoute() {
-      const page = this.toPage;
-      const params = { ...this.routeParams, page };
-      return { params };
     },
     classes() {
       return {
@@ -70,20 +74,14 @@ export default {
       };
     },
     disabled() {
-      return (
-        (this.back && this.page <= 1) ||
-        (!this.back && this.page >= this.numPages)
-      );
+      if (this.back) {
+        return this.toPage < 1;
+      } else {
+        return this.toPage > this.numPages;
+      }
     },
     showMore() {
       return this.more && this.isSearchMode && this.toPage === this.numPages;
-      // && this.isSearchLimitedMode
-    },
-  },
-  watch: {
-    $route(to) {
-      this.params = to.params;
-      this.page = +to.params.page;
     },
   },
 };

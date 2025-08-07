@@ -9,8 +9,9 @@ border-radius: 128px;
 ## v1.8.10
 
 - Fixes
-    - Restarting Codex with Codex would crash.
-    - Fix universes not being search indexed (rare).
+    - Restarting Codex with Codex would crash. Sorry non-docker homies!
+    - Fix universes not being search indexed (very rare).
+    - More reliable re-render for browser page slider and navigation buttons.
 
 ## v1.8.9
 
