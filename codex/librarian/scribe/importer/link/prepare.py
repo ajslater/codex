@@ -11,6 +11,7 @@ from codex.librarian.scribe.importer.const import (
     FTS_CREATED_M2MS,
     IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
+    NON_FTS_FIELDS,
 )
 from codex.librarian.scribe.importer.link.const import COMPLEX_MODEL_FIELD_NAMES
 from codex.librarian.scribe.importer.link.covers import (
@@ -47,8 +48,12 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
     ):
         if field_name == IDENTIFIERS_FIELD_NAME:
             # sources extracton must come before identifiers is minified
-            sources = tuple(subvalues[0] for subvalues in values)
+            # but now identifiers is not indexed at all, yet sources are.
+            sources = tuple(sorted({subvalues[0] for subvalues in values}))
             self.add_links_to_fts(comic_pk, "sources", sources)
+
+        if field_name in NON_FTS_FIELDS:
+            return
 
         field_name, fts_values = self.minify_complex_link_to_fts_tuple(
             field_name, values
