@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.10
+
+- Fixes
+    - Fix universes not being search indexed (rare).
+
 ## v1.8.9
 
 - Fixes
