@@ -2,12 +2,12 @@
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.tasks import ImportTask
-from codex.librarian.worker import WorkerMixin
+from codex.librarian.worker import WorkerBase
 from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
 
 
-class LazyImporter(WorkerMixin):
+class LazyImporter(WorkerBase):
     """Kick off an import task for just these books."""
 
     def lazy_import(self, task):
@@ -45,7 +45,3 @@ class LazyImporter(WorkerMixin):
                     force_import_metadata=True,
                 )
                 self.librarian_queue.put(task)
-
-    def __init__(self, *args, **kwargs):
-        """Initialize Worker."""
-        self.init_worker(*args, **kwargs)

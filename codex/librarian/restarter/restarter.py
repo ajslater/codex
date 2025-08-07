@@ -13,10 +13,10 @@ from codex.librarian.restarter.tasks import (
 )
 from codex.librarian.status import Status
 from codex.librarian.tasks import LibrarianShutdownTask
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusBase
 
 
-class CodexRestarter(WorkerStatusMixin):
+class CodexRestarter(WorkerStatusBase):
     """Codex restarter."""
 
     def _shutdown_codex(self, status, name, sig):
@@ -49,7 +49,3 @@ class CodexRestarter(WorkerStatusMixin):
                 self.shutdown_codex()
             case _:
                 self.log.warning(f"Unknown Codex RestarterTask: f{task}")
-
-    def __init__(self, *args, **kwargs):
-        """Init worker."""
-        self.init_worker(*args, **kwargs)
