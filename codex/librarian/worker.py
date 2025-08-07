@@ -30,3 +30,30 @@ class WorkerStatusMixin(WorkerMixin):
         self.status_controller = StatusController(  # pyright: ignore[reportUninitializedInstanceVariable]
             logger_, librarian_queue
         )
+
+
+class WorkerBase(WorkerMixin):
+    """Base for Worker."""
+
+    def __init__(self, logger_, librarian_queue: Queue, db_write_lock):
+        """Initialize Worker."""
+        super().__init__()
+        self.init_worker(logger_, librarian_queue, db_write_lock)
+
+
+class WorkerStatusBase(WorkerStatusMixin):
+    """Base for Status Worker."""
+
+    def __init__(self, logger_, librarian_queue: Queue, db_write_lock):
+        """Initialize Worker."""
+        super().__init__()
+        self.init_worker(logger_, librarian_queue, db_write_lock)
+
+
+class WorkerStatusAbortableBase(WorkerStatusBase):
+    """Base for Abortable Status Worker."""
+
+    def __init__(self, logger_, librarian_queue: Queue, db_write_lock, event):
+        """Initialize Abortable Worker."""
+        super().__init__(logger_, librarian_queue, db_write_lock)
+        self.abort_event = event

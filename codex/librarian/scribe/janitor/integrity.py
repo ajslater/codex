@@ -1,6 +1,6 @@
 """Database integrity checks and remedies."""
-# Uses app.get_model() because functions may also be called before the models are ready on startup.
 
+# Uses app.get_model() because functions may also be called before the models are ready on startup.
 import re
 from typing import TYPE_CHECKING
 
@@ -16,7 +16,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDBIntegrityStatus,
 )
 from codex.librarian.scribe.janitor.tasks import JanitorFTSRebuildTask
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models.base import BaseModel
 from codex.settings import (
     CONFIG_PATH,
@@ -323,13 +323,8 @@ def fts_integrity_check(log):
     return success
 
 
-class JanitorIntegrity(WorkerStatusMixin):
+class JanitorIntegrity(WorkerStatusAbortableBase):
     """Integrity Check Mixin."""
-
-    def __init__(self, *args, event, **kwargs):
-        """Init self.log."""
-        self.abort_event = event
-        self.init_worker(*args, **kwargs)
 
     def foreign_key_check(self):
         """Foreign Key Check task."""

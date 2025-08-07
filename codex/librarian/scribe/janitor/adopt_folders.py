@@ -8,11 +8,11 @@ from codex.librarian.scribe.importer.statii.moved import ImporterMoveFoldersStat
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.status import JanitorAdoptOrphanFoldersStatus
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models import Folder, Library
 
 
-class OrphanFolderAdopter(WorkerStatusMixin):
+class OrphanFolderAdopter(WorkerStatusAbortableBase):
     """A worker to handle all bulk database updates."""
 
     def _adopt_orphan_folders_for_library(self, library):
@@ -74,8 +74,3 @@ class OrphanFolderAdopter(WorkerStatusMixin):
                 self.log.debug("Adopt Orphan Folders aborted early.")
 
             self.abort_event.clear()
-
-    def __init__(self, *args, event, **kwargs):
-        """Initialize Worker."""
-        self.abort_event = event
-        self.init_worker(*args, **kwargs)

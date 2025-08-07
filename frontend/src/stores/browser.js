@@ -186,13 +186,6 @@ export const useBrowserStore = defineStore("browser", {
     isSearchMode(state) {
       return Boolean(state.settings.q);
     },
-    /*
-     *isSearchLimitedMode(state) {
-     *  return (
-     *    Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
-     *  );
-     *},
-     */
     lastRoute(state) {
       const bc = state.settings.breadcrumbs;
       const params = bc.at(-1);
@@ -236,6 +229,10 @@ export const useBrowserStore = defineStore("browser", {
     },
     metadataSettings(state) {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
+    },
+    routeKey() {
+      const params = router.currentRoute.value.params;
+      return `${params.group}:${params.pk}:${params.page}`;
     },
   },
   actions: {

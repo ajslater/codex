@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from codex.librarian.scribe.janitor.status import JanitorCodexLatestVersionStatus
 from codex.librarian.scribe.janitor.tasks import JanitorCodexUpdateTask
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusBase
 from codex.models import Timestamp
 from codex.version import PACKAGE_NAME
 
@@ -18,7 +18,7 @@ _CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=5)
 _REPO_TIMEOUT = 5
 
 
-class CodexLatestVersionUpdater(WorkerStatusMixin):
+class CodexLatestVersionUpdater(WorkerStatusBase):
     """Methods for fetching the latest version."""
 
     @staticmethod
@@ -59,7 +59,3 @@ class CodexLatestVersionUpdater(WorkerStatusMixin):
             self.log.log(level, log_txt)
         finally:
             self.status_controller.finish(status)
-
-    def __init__(self, *args, **kwargs):
-        """Init Worker."""
-        self.init_worker(*args, **kwargs)

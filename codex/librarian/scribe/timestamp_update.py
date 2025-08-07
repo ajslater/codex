@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusBase
 from codex.models import StoryArc, Volume
 from codex.models.groups import BrowserGroupModel
 from codex.models.library import Library
@@ -20,7 +20,7 @@ from codex.views.const import GROUP_MODELS
 _UPDATE_FIELDS = ("updated_at",)
 
 
-class TimestampUpdater(WorkerStatusMixin):
+class TimestampUpdater(WorkerStatusBase):
     """Update Groups timestamp for cover cache busting."""
 
     @staticmethod
@@ -129,7 +129,3 @@ class TimestampUpdater(WorkerStatusMixin):
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Updated timestamps for {count} groups.")
         self.librarian_queue.put(LIBRARY_CHANGED_TASK)
-
-    def __init__(self, log, librarian_queue, db_write_lock):
-        """Initialize Worker."""
-        self.init_worker(log, librarian_queue, db_write_lock)

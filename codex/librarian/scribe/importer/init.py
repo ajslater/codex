@@ -1,4 +1,4 @@
-"""Initiale Importer."""
+"""Initialize Importer."""
 
 from dataclasses import asdict, dataclass
 from multiprocessing.queues import Queue
@@ -47,7 +47,7 @@ from codex.librarian.scribe.importer.statii.search import (
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.search.status import SearchIndexCleanStatus
 from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import WorkerStatusBase
 from codex.models import Library
 from codex.settings import LOGLEVEL
 
@@ -94,14 +94,14 @@ class Counts:
         )
 
 
-class InitImporter(WorkerStatusMixin):
+class InitImporter(WorkerStatusBase):
     """Initial Importer."""
 
     def __init__(
         self, task: ImportTask, logger_, librarian_queue: Queue, db_write_lock, event
     ):
         """Initialize the import."""
-        self.init_worker(logger_, librarian_queue, db_write_lock)
+        super().__init__(logger_, librarian_queue, db_write_lock)
         self.task: ImportTask = task
         self.metadata: dict[str, Any] = {}
         self.counts = Counts()

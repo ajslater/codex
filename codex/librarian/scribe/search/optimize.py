@@ -3,19 +3,16 @@
 from django.db import connection
 
 from codex.librarian.scribe.search.status import SearchIndexOptimizeStatus
-from codex.librarian.worker import WorkerStatusMixin
+from codex.librarian.worker import (
+    WorkerStatusAbortableBase,
+)
 
 _TABLE = "codex_comicfts"
 _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 
 
-class SearchIndexerOptimize(WorkerStatusMixin):
+class SearchIndexerOptimize(WorkerStatusAbortableBase):
     """Search Index optimize methods."""
-
-    def __init__(self, *args, event, **kwargs):
-        """Initialize search engine."""
-        self.abort_event = event
-        self.init_worker(*args, **kwargs)
 
     def optimize(self):
         """Remove records not in the database from the index, trapping exceptions."""
