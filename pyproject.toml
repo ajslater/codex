@@ -52,7 +52,7 @@ name = "codex"
 license = { text = "GPL-3.0-only" }
 readme = "README.md"
 requires-python = "<4.0,>=3.10"
-version = "1.8.10"
+version = "1.8.11"
 
 [project.urls]
 News = "https://codex-comic-reader.readthedocs.io/NEWS/"
@@ -155,13 +155,10 @@ reportUnusedParameter = false # ruff does this
 reportMissingTypeStubs = false
 
 [tool.codespell]
-skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./site,./test-results,/uv.lock"
-
 builtin = 'clear,rare,code'
 check-hidden = true
-# Remove 'coverd' when this issue is resolved
-# https://github.com/codespell-project/codespell/issues/1212
 ignore-words-list = 'thead,ro,coverd,searchd,ws,falsy,versio'
+skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./site,./test-results,/uv.lock"
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -372,6 +369,11 @@ exclude = [
   "typings",
   "vulture_ignorelist.py",
 ]
+
+[tool.typos.default.extend-words]
+bookmarkd = "bookmarkd"
+coverd = "coverd"
+versio = "versio"
 
 [tool.vulture]
 exclude = [

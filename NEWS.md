@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.11
+
+- Fixes
+    - Restarting Codex with Codex would still crash. More comprehensive fix.
+
 ## v1.8.10
 
 - Fixes
