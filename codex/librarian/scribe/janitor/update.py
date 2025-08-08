@@ -85,4 +85,4 @@ class JanitorCodexUpdate(JanitorCleanup):
                 "Codex updated to the same version that was previously"
                 f" installed: {VERSION}."
             )
-            self.log.warning(reason)
+            self.log.info(reason)

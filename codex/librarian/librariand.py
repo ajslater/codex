@@ -10,9 +10,9 @@ from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
 from typing_extensions import override
 
-from codex.librarian.bookmark.bookmarkd import BookmarkThread  # typos: ignore
+from codex.librarian.bookmark.bookmarkd import BookmarkThread  # typos:ignore
 from codex.librarian.bookmark.tasks import BookmarkTask
-from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos: ignore
+from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ignore
     CoverThread,
 )
 from codex.librarian.covers.tasks import CoverTask
@@ -97,7 +97,7 @@ class LibrarianDaemon(Process):
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():
-                restarter = CodexRestarter(self.log, self.queue, None)
+                restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
                 restarter.handle_task(task)
             case LibrarianShutdownTask():
                 self.log.info(f"Shutting down {self.name}...")

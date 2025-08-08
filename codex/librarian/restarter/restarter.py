@@ -5,13 +5,13 @@ import signal
 
 from codex.librarian.restarter.status import (
     CodexRestarterRestartStatus,
+    CodexRestarterStatus,
     CodexRestarterStopStatus,
 )
 from codex.librarian.restarter.tasks import (
     CodexRestartTask,
     CodexShutdownTask,
 )
-from codex.librarian.status import Status
 from codex.librarian.tasks import LibrarianShutdownTask
 from codex.librarian.worker import WorkerStatusBase
 
@@ -19,9 +19,10 @@ from codex.librarian.worker import WorkerStatusBase
 class CodexRestarter(WorkerStatusBase):
     """Codex restarter."""
 
-    def _shutdown_codex(self, status, name, sig):
+    def _shutdown_codex(
+        self, status: CodexRestarterStatus, name: str, sig: signal.Signals
+    ):
         """Send a system signal as handled in run.py."""
-        status = Status(status)
         try:
             self.status_controller.start(status)
             self.log.info(f"Sending {name} signal.")
