@@ -155,13 +155,10 @@ reportUnusedParameter = false # ruff does this
 reportMissingTypeStubs = false
 
 [tool.codespell]
-skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./site,./test-results,/uv.lock"
-
-builtin = 'clear,rare,code,coverd,versio'
+builtin = 'clear,rare,code'
 check-hidden = true
-# Remove 'coverd' when this issue is resolved
-# https://github.com/codespell-project/codespell/issues/1212
 ignore-words-list = 'thead,ro,coverd,searchd,ws,falsy,versio'
+skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./site,./test-results,/uv.lock"
 
 [tool.coverage.html]
 directory = "test-results/coverage"
