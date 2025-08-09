@@ -95,28 +95,60 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build~=0.8.7"]
+build-backend = "uv_build"
 
-[tool.hatch.build]
-ignore-vcs = true
-skip-excluded-dirs = true
-
-[tool.hatch.build.targets.wheel]
-artifacts = ["codex/static_root/**"]
-exclude = [
-  "**/*~",
+[tool.uv.build-backend]
+module-root = ""
+source-include = [
+  ".circlci/**",
+  ".env.platforms",
+  ".*ignore",
+  ".picopt_treestamps.yaml",
+  ".readthedocs.yaml",
+  ".remarkignore",
+  ".shellcheckrc",
+  "bin/**",
+  "docker/**",
+  "docker-compose.yaml",
+  "docs/codex/img/logo.svg",
+  "docs/DOCKER.md",
+  "docs/NEWS",
+  "docs/NEWS.md",
+  "docs/README.md",
+  "docs/requirements.txt",
+  "docs/strange.jpg",
+  "docs/style.css",
+  "docs/style.material.css",
+  "docs/style.mkdocs.css",
+  "docs/style.readthedocs.css",
+  "docs/WINDOWS.md",
+  "eslint.config.js",
+  "frontend/**",
+  "Makefile",
+  "mkdocks.yml",
+  "mock_comics/**",
+  "package-lock.json",
+  "package.json",
+  "strange.jpg",
+  "tests/**",
+  "uv.lock",
+  "vulture_ignorelist.py",
+]
+source-exclude = [
+  "**/*\\~",
+  "**/.DS_Store",
+  "codex/frontend/node_modules",
+  "codex/static_build",
+]
+wheel-exclude = [
+  "**/*\\~",
+  "**/.DS_Store",
   "codex/**/README.md",
   "codex/img",
+  "codex/static_build",
   "codex/static_src",
-  "docker",
-  "site",
 ]
-packages = ["codex"]
-
-[tool.hatch.build.targets.sdist]
-exclude = ["**/*~"]
-packages = ["codex", "tests"]
 
 [tool.basedpyright]
 exclude = [
