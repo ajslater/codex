@@ -1,0 +1,25 @@
+services:
+  codex-dev:
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    image: codex-dev
+    # mem_limit: 1g
+    container_name: codex-dev
+    environment:
+      - VITE_HOST=localhost
+    ports:
+      - "9810:9810"
+    volumes:
+      - .:/app
+      - ./comics:/comics
+    # init: true
+    command: tail -f /dev/null
+  # nginx:
+  #  image: lscr.io/linuxserver/nginx
+  #  container_name: nginx
+  #  restart: unless-stopped
+  #  ports:
+  #    - "80:9811"
+  #  volumes:
+  #   - ./docker/nginx/http.d/codex:/etc/nginx/http.d/codex:ro
