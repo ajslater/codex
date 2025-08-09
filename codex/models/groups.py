@@ -76,7 +76,7 @@ class IdentifiedBrowserGroupModel(BrowserGroupModel):
     then it would impossible to unlink a second level m2m relationship when comics are
     deleted. So I choose the highest priority one in import.
     Additionally, Browser groups will update to the highest priority identifier by
-    source instead of creating duplicate groups to keep the hierarchy consolitated.
+    source instead of creating duplicate groups to keep the hierarchy consolidated.
     """
 
     identifier = ForeignKey(Identifier, on_delete=CASCADE, null=True)
