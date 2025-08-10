@@ -112,12 +112,21 @@ export const useMetadataStore = defineStore("metadata", {
     },
     _sortedRoles(state) {
       // Sort the roles by special known order and then alphabetically.
-      const roles = new Set(Object.keys(state._mappedCredits));
+      const roles = Object.keys(state._mappedCredits);
+      const lowercaseRoleMap = {};
+      for (const originalRole of roles) {
+        lowercaseRoleMap[originalRole.toLowerCase()] = originalRole;
+      }
+
       const sortedRoles = [];
       for (const role of HEAD_ROLES) {
-        if (roles.has(role)) {
-          sortedRoles.push(role);
-          roles.delete(role);
+        const originalRole = lowercaseRoleMap[role];
+        if (originalRole) {
+          sortedRoles.push(originalRole);
+          delete lowercaseRoleMap[role];
+          if (!roles.length) {
+            break;
+          }
         }
       }
       const tailRoles = [...roles].sort();

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.12
+
+- Fixes
+    - Fix credit role order in tags screen.
+
 ## v1.8.11
 
 - Fixes
