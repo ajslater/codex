@@ -121,16 +121,18 @@ export const useMetadataStore = defineStore("metadata", {
       const sortedRoles = [];
       for (const role of HEAD_ROLES) {
         const originalRole = lowercaseRoleMap[role];
-        if (originalRole) {
-          sortedRoles.push(originalRole);
-          delete lowercaseRoleMap[role];
-          if (!roles.length) {
-            break;
-          }
+        if (!originalRole) {
+          continue;
+        }
+        sortedRoles.push(originalRole);
+        delete lowercaseRoleMap[role];
+        if (!Object.keys(lowercaseRoleMap).length) {
+          break;
         }
       }
-      const tailRoles = [...roles].sort();
-      return [...sortedRoles, ...tailRoles];
+      roles.sort();
+      sortedRoles.push(roles);
+      return sortedRoles;
     },
     credits(state) {
       return this.mapTag(state._mappedCredits, state._sortedRoles);
