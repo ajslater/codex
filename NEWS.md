@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fixes
     - Fix credit role order in tags screen.
+- Docker
+    - Image is now based on Debian Trixie
 
 ## v1.8.11
 
