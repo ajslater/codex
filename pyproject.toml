@@ -49,7 +49,7 @@ dependencies = [
 description = "A comic archive web server."
 keywords = ["comic", "cbz", "cbr", "cb7", "cbt", "pdf"]
 name = "codex"
-license = { text = "GPL-3.0-only" }
+license = "GPL-3.0-only"
 readme = "README.md"
 requires-python = "<4.0,>=3.10"
 version = "1.8.12"
