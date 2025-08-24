@@ -24,8 +24,9 @@
 </template>
 
 <script>
-import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import { mdiOpenInNew } from "@mdi/js";
+
+import MetadataTags from "@/components/metadata/metadata-tags.vue";
 
 export default {
   name: "MetadataTagsTable",

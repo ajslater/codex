@@ -7,8 +7,8 @@ import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import {
-  topGroup as GROUP_NAMES,
   identifierSources as IDENTIFIER_SOURCES,
+  topGroup as GROUP_NAMES,
 } from "@/choices/browser-map.json";
 import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";

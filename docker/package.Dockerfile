@@ -17,8 +17,9 @@ RUN apt-get clean \
 RUN pip3 install --upgrade --no-cache-dir \
   pip
 ENV WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
+WORKDIR /
 COPY dist/${WHEEL} .
-RUN pip3 install ./${WHEEL}
+RUN pip3 install --no-cache-dir ./${WHEEL}
 
 VOLUME /comics
 VOLUME /config

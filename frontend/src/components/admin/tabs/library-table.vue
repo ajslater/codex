@@ -94,7 +94,7 @@ import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { NUMBER_FORMAT, getDateTime } from "@/datetime";
+import { getDateTime, NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";

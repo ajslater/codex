@@ -35,10 +35,10 @@
 import { mapActions, mapState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
+import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import MetadataBody from "@/components/metadata/metadata-body.vue";
 import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
-import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import { useMetadataStore } from "@/stores/metadata";
 
 /*
