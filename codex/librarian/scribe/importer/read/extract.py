@@ -54,14 +54,13 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self,
         path: str,
         old_comic_values: MappingProxyType,
-        md: dict,
         *,
         import_metadata: bool,
     ):
         old_file_type, old_page_count, old_mtime = self._old_comic_values(
             old_comic_values, path
         )
-
+        md = {}
         with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
             if import_metadata:
                 new_md_mtime = cb.get_metadata_mtime()
@@ -87,6 +86,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
 
         if md:
             md["path"] = path
+        return md
 
     def _extract_path(
         self, path: str, old_comic_values: MappingProxyType, *, import_metadata: bool
@@ -95,8 +95,8 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         md = {}
         failed_import = {}
         try:
-            self._extract_path_comicbox(
-                path, old_comic_values, md, import_metadata=import_metadata
+            md = self._extract_path_comicbox(
+                path, old_comic_values, import_metadata=import_metadata
             )
         except (
             UnsupportedArchiveTypeError,
