@@ -73,7 +73,6 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "collection_title": "The Big Omnibus Part 2",
                 "critical_rating": Decimal("5.00"),
                 "day": 20,
-                "file_type": "CBZ",
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
                 "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
