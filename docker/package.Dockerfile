@@ -8,8 +8,8 @@ LABEL version=$PKG_VERSION
 RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
-  htop \
-  neovim \
+    htop \
+    neovim \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
