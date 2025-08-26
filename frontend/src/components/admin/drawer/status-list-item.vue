@@ -28,7 +28,7 @@
 
 <script>
 import STATUS_TITLES from "@/choices/admin-status-titles.json";
-import { NUMBER_FORMAT, getFormattedDuration } from "@/datetime";
+import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
 
 export default {
   name: "AdminStatusListItem",

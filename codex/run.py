@@ -34,7 +34,7 @@ def _database_checkpoint():
 
 def restart():
     """Restart this process."""
-    from sys import argv  # noqa: PLC0415
+    from sys import argv
 
     print("Restarting Codex. Hold on to your butts...", flush=True)  # noqa: T201
     execv(__file__, argv)  # noqa: S606
@@ -56,7 +56,7 @@ def run():
     librarian.start()
     asyncio.run(
         serve(
-            application,
+            application,  # pyright: ignore[reportArgumentType]
             HYPERCORN_CONFIG,
             shutdown_trigger=SHUTDOWN_EVENT.wait,
         )

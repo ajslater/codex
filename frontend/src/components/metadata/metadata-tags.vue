@@ -22,10 +22,11 @@
 </template>
 
 <script>
+import { mapActions } from "pinia";
+
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import MetadataChip from "@/components/metadata/metadata-chip.vue";
 import { useBrowserStore } from "@/stores/browser";
-import { mapActions } from "pinia";
 
 export default {
   name: "MetadataTags",

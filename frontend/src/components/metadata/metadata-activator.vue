@@ -12,8 +12,9 @@
 <script>
 import { mdiTagOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
-import { useMetadataStore } from "../../stores/metadata";
+
 import { useAuthStore } from "../../stores/auth";
+import { useMetadataStore } from "../../stores/metadata";
 
 export default {
   name: "MetadataActivator",

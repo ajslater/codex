@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from contextlib import suppress
 
+from comicbox.fields.number_fields import PAGE_COUNT_KEY
 from comicbox.identifiers import IdSources
 from comicbox.schemas.comicbox import (
     ID_KEY_KEY,
@@ -27,6 +28,8 @@ from codex.models.base import BaseModel
 from codex.models.groups import BrowserGroupModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
+
+_MINIMAL_KEYS = frozenset({"file_type", PAGE_COUNT_KEY, "path"})
 
 
 class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
@@ -128,7 +131,12 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             model: type[BaseModel] = related_field.model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
             md_key = field_name
             value = md.pop(md_key, None)
-            if value is None and not issubclass(model, BrowserGroupModel):
+
+            if value is None and (
+                not issubclass(model, BrowserGroupModel)
+                # prevents skipped metadata from destroying browser group links
+                or not frozenset(set(md.keys()) - _MINIMAL_KEYS)
+            ):
                 continue
 
             if issubclass(model, BrowserGroupModel):

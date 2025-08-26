@@ -24,13 +24,10 @@ config
 dev*
 docker-compose*
 docker*
-docs/NEWS.md
 MANIFEST
 mock_comics
 monkeytype.sqlite3
-NEWS.md
 node_modules
-strange.jpg
 test-results
 TODO.md
 update-builder-requirement.sh

@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";

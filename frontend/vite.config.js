@@ -2,13 +2,13 @@ import eslintPlugin from "@nabla/vite-plugin-eslint";
 import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
 import fs from "fs";
+import { hostname } from "os";
 import path from "path";
 import toml from "toml";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
-import { hostname } from "os";
 
 import package_json from "./package.json";
 

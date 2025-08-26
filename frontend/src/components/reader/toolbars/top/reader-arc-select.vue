@@ -41,9 +41,9 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import { topGroup as GROUP_LABELS } from "@/choices/browser-map";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
-import { topGroup as GROUP_LABELS } from "@/choices/browser-map";
 
 const ARC_ICONS = {
   a: mdiRedo,

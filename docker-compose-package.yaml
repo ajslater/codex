@@ -1,0 +1,23 @@
+services:
+  codex-package:
+    build:
+      context: .
+      dockerfile: docker/package.Dockerfile
+    image: codex-package
+    container_name: codex-package
+    env_file:
+      - .env.package
+    ports:
+      - "9810:9810"
+    volumes:
+      - ./dist:/dist
+      - ./comics:/comics
+      - ./config:/config
+  # nginx:
+  #  image: lscr.io/linuxserver/nginx
+  #  container_name: nginx
+  #  restart: unless-stopped
+  #  ports:
+  #    - "80:9811"
+  #  volumes:
+  #   - ./docker/nginx/http.d/codex:/etc/nginx/http.d/codex:ro

@@ -11,9 +11,9 @@ WEBSOCKET_APPLICATION = AllowedHostsOriginValidator(
     AuthMiddlewareStack(
         URLRouter(
             [
-                path(
+                path(  # pyright:ignore[reportCallIssue]
                     "api/v3/ws",
-                    NotifierConsumer.as_asgi(),
+                    NotifierConsumer.as_asgi(),  # pyright: ignore[reportArgumentType]
                     name="websocket",
                 ),
             ]

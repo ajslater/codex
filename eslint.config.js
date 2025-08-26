@@ -2,10 +2,12 @@ import eslintJs from "@eslint/js";
 import eslintJson from "@eslint/json";
 import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintPluginStylistic from "@stylistic/eslint-plugin";
-import eslintPluginConfigPrettier from "eslint-config-prettier";
+import { defineConfig } from "eslint/config";
+import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
+import eslintPluginCompat from "eslint-plugin-compat";
 import eslintPluginDepend from "eslint-plugin-depend";
-import eslintPluginImport from "eslint-plugin-import-x";
+import eslintPluginImport from "eslint-plugin-import";
 import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
@@ -29,13 +31,14 @@ export const CONFIGS = {
     ...eslintJs.configs.recommended,
     ...eslintPluginArrayFunc.configs.all,
     ...eslintPluginComments.recommended,
+    ...eslintPluginCompat.configs[FLAT_RECOMMENDED],
     ...eslintPluginDepend.configs[FLAT_RECOMMENDED],
     ...eslintPluginImport.flatConfigs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
     ...eslintPluginPromise.configs[FLAT_RECOMMENDED],
     ...eslintPluginRegexp.configs[FLAT_RECOMMENDED],
     ...eslintPluginSonarjs.configs.recommended,
-    ...eslintPluginUnicorn.configs.all,
+    ...eslintPluginUnicorn.configs.recommended,
     plugins: {
       depend: eslintPluginDepend,
       "no-secrets": eslintPluginNoSecrets,
@@ -49,30 +52,36 @@ export const CONFIGS = {
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
-      "depend/ban-dependencies": [
-        "error",
-        {
-          // Replacing axios will be a big refactor.
-          allowed: ["axios"],
-        },
-      ],
+      "max-params": ["warn", 4],
       "no-console": "warn",
       "no-debugger": "warn",
       "no-secrets/no-secrets": "error",
       "security/detect-object-injection": "off",
+      "simple-import-sort/exports": "warn",
+      "simple-import-sort/imports": "warn",
+      "space-before-function-paren": "off",
+      "unicorn/filename-case": [
+        "error",
+        { case: "kebabCase", ignore: [".*.md"] },
+      ],
+      "unicorn/prefer-node-protocol": "off",
+      "unicorn/prevent-abbreviations": "off",
       "unicorn/switch-case-braces": ["warn", "avoid"],
     },
   },
 };
 Object.freeze(CONFIGS);
 
-export default [
+export default defineConfig([
   {
+    name: "globalIgnores",
     ignores: [
       "!.circleci",
-      "**/__pycache__/",
       "**/*min.css",
       "**/*min.js",
+      "**/__pycache__/",
+      "**/node_modules/",
+      "**/package-lock.json",
       "*~",
       ".git/",
       ".*cache/",
@@ -83,13 +92,8 @@ export default [
       "codex/templates/*.html", // Handled by djlint
       "codex/templates/**/*.html", // Handled by djlint
       "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
-      "comics/",
-      "config/",
       "dist/",
-      "frontend/",
-      "node_modules/",
-      "package-lock.json",
-      "site/",
+      "frontend",
       "test-results/",
       "typings/",
       "uv.lock",
@@ -173,5 +177,5 @@ export default [
       "yml/no-empty-mapping-value": "off",
     },
   },
-  eslintPluginConfigPrettier, // Best if last
-];
+  eslintConfigPrettier, // Best if last
+]);

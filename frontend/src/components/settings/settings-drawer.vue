@@ -35,8 +35,8 @@ import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import AuthMenu from "@/components/auth/auth-menu.vue";
-import OPDSDialog from "@/components/settings/opds-dialog.vue";
 import DocsFooter from "@/components/settings/docs-footer.vue";
+import OPDSDialog from "@/components/settings/opds-dialog.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";

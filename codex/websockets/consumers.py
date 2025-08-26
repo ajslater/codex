@@ -12,7 +12,7 @@ ChannelGroups = Enum("ChannelGroups", "ALL ADMIN")
 class NotifierConsumer(AsyncWebsocketConsumer):
     """Base Notifier Consumer."""
 
-    def _get_groups(self):
+    def _get_groups(self) -> list[str]:
         """Dynamic groups by user type."""
         groups = [ChannelGroups.ALL.name]
         user = self.scope.get("user") if self.scope else None
@@ -32,9 +32,8 @@ class NotifierConsumer(AsyncWebsocketConsumer):
     @override
     async def websocket_connect(self, message):
         """Authorize with user and connect websocket to groups."""
-        # Authorization
         # Set groups for user.
-        self.groups: list[str] | None = self._get_groups()
+        self.groups = self._get_groups()
 
         await super().websocket_connect(message)
         logger.trace(f"Websocket connected to {self.groups}")

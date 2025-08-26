@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.8.11",
+  "version": "1.8.12",
   "private": true,
   "description": "ui for codex api",
   "type": "module",

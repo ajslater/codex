@@ -114,7 +114,7 @@ def _make_websocket_messages():
 
 def main():
     """Dump all files."""
-    import sys  # noqa: PLC0415
+    import sys
 
     parent_path = sys.argv[1] if len(sys.argv) > 1 else "."
     parent_path = Path(parent_path)
