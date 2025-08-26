@@ -125,6 +125,7 @@ source-include = [
   "eslint.config.js",
   "frontend/**",
   "Makefile",
+  "NEWS.md",
   "mkdocks.yml",
   "mock_comics/**",
   "package-lock.json",
@@ -137,7 +138,7 @@ source-include = [
 source-exclude = [
   "**/*\\~",
   "**/.DS_Store",
-  "codex/frontend/node_modules",
+  "frontend/node_modules",
   "codex/static_build",
 ]
 wheel-exclude = [
