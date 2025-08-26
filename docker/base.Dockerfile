@@ -1,4 +1,4 @@
-FROM ajslater/python-debian:3.13.7-slim-trixie_0
+FROM ajslater/python-debian:3.13.7-slim-bookworm_0
 ARG CODEX_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BASE_VERSION
