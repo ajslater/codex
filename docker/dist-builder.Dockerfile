@@ -30,6 +30,10 @@ RUN npm install
 WORKDIR /app
 # **** copying source for dev build ****
 COPY . .
+RUN ln -sf /app/NEWS.md /app/docs/NEWS.md \
+  && ln -sf /app/README.md /app/docs/README.md \
+  && ln -sf /app/strange.jpg /app/docs/strange.jpg \
+  && ln -sf /app/style.css /app/docs/style.css
 
 VOLUME /app/codex/static_build
 VOLUME /app/codex/static_root
