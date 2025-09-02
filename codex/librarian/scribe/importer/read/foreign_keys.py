@@ -18,18 +18,23 @@ from django.db.models import Field
 from django.db.models.base import Model
 
 from codex.librarian.scribe.importer.const import (
+    GROUP_FIELD_NAMES,
+    GROUP_FIELD_NAMES_SET,
     GROUP_MODEL_COUNT_FIELDS,
     LINK_FKS,
     QUERY_MODELS,
 )
 from codex.librarian.scribe.importer.query import QueryForeignKeysImporter
-from codex.librarian.scribe.importer.read.const import COMIC_FK_FIELD_NAMES_FIELD_MAP
+from codex.librarian.scribe.importer.read.const import (
+    COMIC_FK_FIELD_NAMES,
+    COMIC_FK_FIELD_NAMES_FIELD_MAP,
+)
 from codex.models.base import BaseModel
 from codex.models.groups import BrowserGroupModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
 
-_MINIMAL_KEYS = frozenset({"file_type", PAGE_COUNT_KEY, "path"})
+_MINIMAL_KEYS = frozenset({"file_type", PAGE_COUNT_KEY, "path"} | GROUP_FIELD_NAMES_SET)
 
 
 class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
@@ -74,11 +79,13 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         id_key = id_obj.get(ID_KEY_KEY)
         if not id_key:
             return None
-        id_url = id_obj.get(ID_URL_KEY)
 
+        identifier_tuple_keys = None
+        if id_source:
+            self.add_query_model(IdentifierSource, (id_source,))
         identifier_tuple_keys = (id_source, id_type, id_key)
+        id_url = id_obj.get(ID_URL_KEY)
         identifier_tuple_extra = frozenset([(id_url,)])
-        self.add_query_model(IdentifierSource, (id_source,))
         self.add_query_model(Identifier, identifier_tuple_keys, identifier_tuple_extra)
 
         return identifier_tuple_keys
@@ -125,29 +132,28 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
     def get_fk_metadata(self, md, path):
         """Aggregate Simple Foreign Keys."""
         group_list = []
-        for field_name, related_field in COMIC_FK_FIELD_NAMES_FIELD_MAP.items():
+        # prevents skipped metadata from destroying browser group links
+        field_names = tuple(GROUP_FIELD_NAMES) + tuple(
+            sorted((set(md.keys()) - _MINIMAL_KEYS) & COMIC_FK_FIELD_NAMES)
+        )
+        for field_name in field_names:
+            related_field = COMIC_FK_FIELD_NAMES_FIELD_MAP[field_name]
             # No identifiers on many2one fks yet
             # md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field_name, field_name) if they ever diverge
             model: type[BaseModel] = related_field.model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
             md_key = field_name
             value = md.pop(md_key, None)
 
-            if value is None and (
-                not issubclass(model, BrowserGroupModel)
-                # prevents skipped metadata from destroying browser group links
-                or not frozenset(set(md.keys()) - _MINIMAL_KEYS)
-            ):
-                continue
-
             if issubclass(model, BrowserGroupModel):
                 key_values, extra_values = self._set_group_tree_group(
                     model, related_field, value, group_list
                 )
+            elif value is None:
+                continue
             else:
                 key_values, extra_values = self._set_simple_fk(related_field, value)
             if not key_values and not extra_values:
                 continue
-
             if md_key != PROTAGONIST_KEY:
                 self.add_query_model(model, key_values, extra_values)
             self.metadata[LINK_FKS][path][field_name] = key_values

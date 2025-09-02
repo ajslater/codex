@@ -51,6 +51,7 @@ export const CONFIGS = {
       ecmaVersion: "latest",
     },
     rules: {
+      "@stylistic/multiline-comment-style": "off", // https://github.com/eslint-stylistic/eslint-stylistic/issues/968
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
       "max-params": ["warn", 4],
       "no-console": "warn",

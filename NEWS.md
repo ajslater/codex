@@ -6,13 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.13
+
+- Fixes
+    - Fix import crash when metadata import is disabled.
+
 ## v1.8.12
 
 - Fixes
-    - Fix skipped imports unlinking browser group tags.
+    - Fix publishers and series tags disappearing. Use Library Force Update to
+      restore them.
     - Fix credit role order in tags screen.
-- Docker
-    - Image is now based on Debian Trixie
 
 ## v1.8.11
 
