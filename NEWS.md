@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.13
+
+- Fixes
+    - Fix import crash when metadata import is disabled.
+
 ## v1.8.12
 
 - Fixes

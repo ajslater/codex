@@ -154,9 +154,10 @@ COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
     and field.related_model
     and not issubclass(field.related_model, BrowserGroupModel)
 )
-_GROUP_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
+GROUP_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
+GROUP_FIELD_NAMES_SET = frozenset(GROUP_FIELD_NAMES)
 _COMIC_GROUP_FIELDS: tuple[Field, ...] = tuple(
-    Comic._meta.get_field(field_name) for field_name in _GROUP_FIELD_NAMES
+    Comic._meta.get_field(field_name) for field_name in GROUP_FIELD_NAMES
 )
 ALL_COMIC_FK_FIELDS = (*_COMIC_GROUP_FIELDS, *COMIC_FK_FIELDS)
 COMIC_FK_FIELD_NAMES: tuple[str, ...] = tuple(
@@ -359,7 +360,7 @@ CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group"
 # DELETED #
 ###########
 ALL_COMIC_GROUP_FIELD_NAMES = (
-    *_GROUP_FIELD_NAMES,
+    *GROUP_FIELD_NAMES,
     "story_arc_numbers",
     "folders",
 )

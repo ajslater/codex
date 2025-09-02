@@ -69,6 +69,7 @@ COMIC_FK_FIELD_NAMES_FIELD_MAP: MappingProxyType[str, Field] = MappingProxyType(
         ),
     }
 )
+COMIC_FK_FIELD_NAMES: frozenset[str] = frozenset(COMIC_FK_FIELD_NAMES_FIELD_MAP.keys())
 
 #######
 # M2M #
