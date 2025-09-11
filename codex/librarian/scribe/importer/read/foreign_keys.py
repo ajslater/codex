@@ -154,6 +154,6 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
                 key_values, extra_values = self._set_simple_fk(related_field, value)
             if not key_values and not extra_values:
                 continue
-            if md_key != PROTAGONIST_KEY:
+            if md_key != PROTAGONIST_KEY:  # pyright: ignore[reportUnnecessaryComparison]
                 self.add_query_model(model, key_values, extra_values)
             self.metadata[LINK_FKS][path][field_name] = key_values
