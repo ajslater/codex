@@ -28,6 +28,7 @@ export const FLAT_RECOMMENDED = "flat/recommended";
 
 export const CONFIGS = {
   js: {
+    /* eslint-disable security/detect-object-injection */
     ...eslintJs.configs.recommended,
     ...eslintPluginArrayFunc.configs.all,
     ...eslintPluginComments.recommended,
@@ -39,6 +40,7 @@ export const CONFIGS = {
     ...eslintPluginRegexp.configs[FLAT_RECOMMENDED],
     ...eslintPluginSonarjs.configs.recommended,
     ...eslintPluginUnicorn.configs.recommended,
+    /* eslint-enable */
     plugins: {
       depend: eslintPluginDepend,
       "no-secrets": eslintPluginNoSecrets,
@@ -47,26 +49,16 @@ export const CONFIGS = {
       unicorn: eslintPluginUnicorn,
     },
     languageOptions: {
-      // eslint-plugin-import sets this to 2018.
+      // eslint-plugin-import recommended sets this to 2018.
       ecmaVersion: "latest",
     },
     rules: {
-      "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
       "max-params": ["warn", 4],
       "no-console": "warn",
       "no-debugger": "warn",
       "no-secrets/no-secrets": "error",
-      "security/detect-object-injection": "off",
       "simple-import-sort/exports": "warn",
       "simple-import-sort/imports": "warn",
-      "space-before-function-paren": "off",
-      "unicorn/filename-case": [
-        "error",
-        { case: "kebabCase", ignore: [".*.md"] },
-      ],
-      "unicorn/prefer-node-protocol": "off",
-      "unicorn/prevent-abbreviations": "off",
-      "unicorn/switch-case-braces": ["warn", "avoid"],
     },
   },
 };
@@ -150,6 +142,7 @@ export default defineConfig([
       "prettier/prettier": ["warn", { parser: "markdown" }],
     },
   },
+  /* eslint-disable security/detect-object-injection */
   ...eslintPluginToml.configs[FLAT_BASE],
   {
     files: ["**/*.toml", "**/*.md/*.toml"],
@@ -167,6 +160,7 @@ export default defineConfig([
       "prettier/prettier": ["error", { parser: "yaml" }],
     },
   },
+  /* eslint-enable */
   {
     files: [
       "**/certbot.yaml",
