@@ -28,19 +28,17 @@ export const FLAT_RECOMMENDED = "flat/recommended";
 
 export const CONFIGS = {
   js: {
-    /* eslint-disable security/detect-object-injection */
-    ...eslintJs.configs.recommended,
+    ...eslintJs.configs.all,
     ...eslintPluginArrayFunc.configs.all,
     ...eslintPluginComments.recommended,
     ...eslintPluginCompat.configs[FLAT_RECOMMENDED],
     ...eslintPluginDepend.configs[FLAT_RECOMMENDED],
-    ...eslintPluginImport.flatConfigs.recommended,
+    ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginNoUnsanitized.configs.recommended,
-    ...eslintPluginPromise.configs[FLAT_RECOMMENDED],
-    ...eslintPluginRegexp.configs[FLAT_RECOMMENDED],
-    ...eslintPluginSonarjs.configs.recommended,
-    ...eslintPluginUnicorn.configs.recommended,
-    /* eslint-enable */
+    ...eslintPluginPromise.configs[FLAT_ALL],
+    ...eslintPluginRegexp.configs[FLAT_ALL],
+    ...eslintPluginSonarjs.configs.all,
+    ...eslintPluginUnicorn.configs.all,
     plugins: {
       depend: eslintPluginDepend,
       "no-secrets": eslintPluginNoSecrets,
@@ -53,10 +51,12 @@ export const CONFIGS = {
       ecmaVersion: "latest",
     },
     rules: {
+      "@stylistic/multiline-comment-style": "off", // Multiple bugs with this rule
       "max-params": ["warn", 4],
       "no-console": "warn",
       "no-debugger": "warn",
       "no-secrets/no-secrets": "error",
+      "security/detect-object-injection": "off",
       "simple-import-sort/exports": "warn",
       "simple-import-sort/imports": "warn",
     },
@@ -91,9 +91,9 @@ export default defineConfig([
       "uv.lock",
     ],
   },
-  eslintPluginPrettierRecommended,
   eslintPluginSecurity.configs.recommended,
   eslintPluginStylistic.configs.all,
+  eslintPluginPrettierRecommended,
   {
     languageOptions: {
       globals: {
@@ -142,7 +142,6 @@ export default defineConfig([
       "prettier/prettier": ["warn", { parser: "markdown" }],
     },
   },
-  /* eslint-disable security/detect-object-injection */
   ...eslintPluginToml.configs[FLAT_BASE],
   {
     files: ["**/*.toml", "**/*.md/*.toml"],
@@ -160,7 +159,6 @@ export default defineConfig([
       "prettier/prettier": ["error", { parser: "yaml" }],
     },
   },
-  /* eslint-enable */
   {
     files: [
       "**/certbot.yaml",

@@ -9,8 +9,8 @@
     "coverage": "vitest run --coverage",
     "dev": "vite dev",
     "devBuild": "vite build --mode development",
-    "fix": "eslint_d --fix . && prettier --write .",
-    "lint": "eslint_d . && prettier --check .",
+    "fix": "eslint_d --cache --fix . && prettier --write .",
+    "lint": "eslint_d --cache . && prettier --check .",
     "test": "vitest --reporter verbose --update",
     "test:ci": "vitest run --reporter verbose --update"
   },
