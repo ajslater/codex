@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.8.13",
+  "version": "1.8.14",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -9,8 +9,8 @@
     "coverage": "vitest run --coverage",
     "dev": "vite dev",
     "devBuild": "vite build --mode development",
-    "fix": "eslint_d --fix . && prettier --write .",
-    "lint": "eslint_d . && prettier --check .",
+    "fix": "eslint_d --cache --fix . && prettier --write .",
+    "lint": "eslint_d --cache . && prettier --check .",
     "test": "vitest --reporter verbose --update",
     "test:ci": "vitest run --reporter verbose --update"
   },
@@ -29,7 +29,7 @@
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
-    "vuetify": "^3.9.0"
+    "vuetify": "^3.10.0"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",

@@ -391,7 +391,7 @@ export const useBrowserStore = defineStore("browser", {
       return { params };
     },
     getTopGroup(group) {
-      // Very similar to browser store logic, could possibly combine.
+      // Similar to browser store logic.
       let topGroup;
       if (this.settings.topGroup === group || NON_BROWSE_GROUPS.has(group)) {
         topGroup = group;

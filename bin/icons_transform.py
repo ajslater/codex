@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generate prodution icons from svg sources."""
+"""Generate production icons from svg sources."""
 
 import shutil
 import subprocess
@@ -9,7 +9,7 @@ from types import MappingProxyType
 from cairosvg import svg2png
 
 TOP_PATH = Path(__file__).parent.parent
-SRC_IMG_PATH = TOP_PATH / Path("codex/img")
+SRC_IMG_PATH = TOP_PATH / Path("img")
 STATIC_IMG_PATH = TOP_PATH / Path("codex/static_src/img")
 INKSCAPE_PATH = Path("/Applications/Inkscape.app/Contents/MacOS/inkscape")
 _COVER_RATIO = 1.5372233400402415

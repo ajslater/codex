@@ -52,7 +52,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = "<4.0,>=3.10"
-version = "1.8.13"
+version = "1.8.14"
 
 [project.urls]
 News = "https://codex-comic-reader.readthedocs.io/NEWS/"
@@ -124,8 +124,7 @@ source-include = [
   "docs/WINDOWS.md",
   "eslint.config.js",
   "frontend/**",
-  "Makefile",
-  "NEWS.md",
+  "img/**",
   "mkdocks.yml",
   "mock_comics/**",
   "package-lock.json",
@@ -134,6 +133,9 @@ source-include = [
   "tests/**",
   "uv.lock",
   "vulture_ignorelist.py",
+  "Makefile",
+  "NEWS.md",
+
 ]
 source-exclude = [
   "**/*\\~",

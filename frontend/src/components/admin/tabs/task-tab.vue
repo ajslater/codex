@@ -36,9 +36,12 @@
               confirm-text="Confirm"
               @confirm="librarianTask(item.value, item.title)"
             />
-            <v-btn v-else block @click="librarianTask(item.value, item.title)">
-              {{ item.title }}
-            </v-btn>
+            <v-btn
+              v-else
+              block
+              @click="librarianTask(item.value, item.title)"
+              :text="item.title"
+            />
             <div class="taskDesc">
               {{ item.desc }}
             </div>
@@ -59,9 +62,8 @@
               selectAttr(group.title, 'title'),
             )
           "
-        >
-          {{ selectAttr(group.title, "title") }}
-        </v-btn>
+          :text="selectAttr(group.title, 'title')"
+        />
         <div class="taskDesc">
           {{ selectAttr(group.title, "desc") }}
         </div>

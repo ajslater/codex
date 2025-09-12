@@ -11,8 +11,7 @@ border-radius: 128px;
 ## ✨ Features
 
 - Codex is a web server.
-- Full text search of metadata and bookmarks.
-- GPLv3 Licenced.
+- Full text search of comic metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
   hierarchy, or by tagged Story Arc.
@@ -25,6 +24,7 @@ border-radius: 128px;
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Runs in 1GB of RAM, faster with more.
+- GPLv3 Licenced.
 
 ### Examples
 
