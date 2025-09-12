@@ -7,7 +7,7 @@
     :density="density"
   />
   <v-btn v-else v-bind="$attrs" :size="size" :density="density">
-    <span>+ {{ table }}</span>
+    + {{ table }}
   </v-btn>
 </template>
 
