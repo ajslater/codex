@@ -323,22 +323,15 @@ export const useReaderStore = defineStore("reader", {
     /*
      * MUTATIONS
      */
-    _updateSettings(updates, local) {
+    _updateGlobalSettings(updates) {
       // Doing this with $patch breaks reactivity
       this.$patch((state) => {
-        if (local) {
-          state.books.current.settings = {
-            ...state.books.current.settings,
-            ...updates,
-          };
-          ensureNoTwoPageVertical(state.books.current.settings);
-        } else {
-          state.readerSettings = {
-            ...state.readerSettings,
-            ...updates,
-          };
-        }
+        state.readerSettings = {
+          ...state.readerSettings,
+          ...updates,
+        };
         state.bookSettings = {};
+        state.empty = false;
       });
     },
     toggleToolbars() {
@@ -427,8 +420,7 @@ export const useReaderStore = defineStore("reader", {
       READER_API.getReaderSettings()
         .then((response) => {
           const data = response.data;
-          this._updateSettings(data, false);
-          this.empty = false;
+          this._updateGlobalSettings(data);
         })
         .catch(console.error);
     },
@@ -520,15 +512,18 @@ export const useReaderStore = defineStore("reader", {
       }
       await BROWSER_API.updateGroupBookmarks(groupParams, {}, updates);
     },
-    async setSettingsLocal(data) {
-      this._updateSettings(data, true);
-
+    async setSettingsLocal(updates) {
+      const newBookSettings = {
+        ...this.books.current.settings,
+        ...updates,
+      };
+      ensureNoTwoPageVertical(newBookSettings);
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await BROWSER_API.updateGroupBookmarks(
-        groupParams,
-        {},
-        this.books.current.settings,
-      );
+      await BROWSER_API.updateGroupBookmarks(groupParams, {}, newBookSettings)
+        .then(() => {
+          this.books.current.settings = newBookSettings;
+        })
+        .catch(console.error);
     },
     setSettingsClient(updates) {
       this.clientSettings = {
@@ -540,10 +535,18 @@ export const useReaderStore = defineStore("reader", {
       await this.setSettingsLocal(NULL_READER_SETTINGS);
       this.setSettingsClient(NULL_CLIENT_SETTINGS);
     },
-    async setSettingsGlobal(data) {
-      this._updateSettings(data, false);
-      await READER_API.updateReaderSettings(this.readerSettings);
-      await this.clearSettingsLocal();
+    async setSettingsGlobal(updates) {
+      const newReaderSettings = {
+        ...this.readerSettings,
+        ...updates,
+      };
+      await READER_API.updateReaderSettings(newReaderSettings)
+        .then((response) => {
+          const data = response.data;
+          this._updateGlobalSettings(data);
+          this.clearSettingsLocal();
+        })
+        .catch(console.error);
     },
     setBookChangeFlag(direction) {
       direction = this.normalizeDirection(direction);

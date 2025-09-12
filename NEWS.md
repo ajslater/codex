@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.8.14
 
 - Fixes
+    - Fix settings not saving in reader and sometimes in browser.
     - Fix shutdown and restart signals on Windows.
 
 ## v1.8.13
