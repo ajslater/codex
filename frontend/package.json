@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@unhead/vue": "^2.0.8",
-    "axios": "^1.4.0",
     "change-case-all": "^2.1.0",
     "core-js": "^3.31",
     "deep-clone": "^4.0.0",
@@ -29,7 +28,8 @@
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
-    "vuetify": "^3.10.0"
+    "vuetify": "^3.10.0",
+    "xior": "^0.7.8"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
