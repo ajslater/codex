@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.15
+
+- Performance
+    - Replace axios with xior AJAX library.
+
 ## v1.8.14
 
 - Fixes
