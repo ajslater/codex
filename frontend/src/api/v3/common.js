@@ -55,7 +55,7 @@ const _filterEmptyParams = (obj) => {
 };
 
 const _jsonSerialize = (params) => {
-  // Since axios 1.0 I have to manually serialize complex objects
+  // Since axios 1.0 I had to manually serialize complex objects. Also with xior.
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === "object" || Array.isArray(value)) {
       params[key] = JSON.stringify(value);

@@ -493,7 +493,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.8.14"
+version = "1.8.15"
 source = { editable = "." }
 dependencies = [
     { name = "aioprocessing" },
@@ -3479,11 +3479,11 @@ wheels = [
 
 [[package]]
 name = "xmltodict"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8b/79/1b8215b967eb66b92ba323a2d70ff820188b5dd18c8975326fa06e7d50ef/xmltodict-1.0.0.tar.gz", hash = "sha256:f50eb9020d28c673b40bbe3f43458ee165f0267c67f8ad8df0d70d9a4f3ac824", size = 71681, upload-time = "2025-09-12T18:48:45.93Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/38/ef8e9bedc88707e0c481bd4a1ee3a59509d4c7a1d07da41b3333e903d603/xmltodict-1.0.1.tar.gz", hash = "sha256:43f06e35e03f0f3ce622b9bd5e9652570a923db2906d5d4b830b76eafcafddcb", size = 109348, upload-time = "2025-09-17T06:31:23.447Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/89/e1/719fc59777227614641f3103964c58c6c10203c72633ef0d5cdcb2d7f676/xmltodict-1.0.0-py3-none-any.whl", hash = "sha256:64316adb5e30ca21ad5cf391f4f0f6b34f673d96b79574f1db1e32b13b43ee34", size = 13292, upload-time = "2025-09-12T18:48:44.544Z" },
+    { url = "https://files.pythonhosted.org/packages/57/14/84b0d94be8ac72999c7ae7fee71bce5bcd849f40d90b4b2cacb5220ee7d4/xmltodict-1.0.1-py3-none-any.whl", hash = "sha256:47b370ca0bf049bfad9e12ab27b2bb81c9d4d0ac2f58901810f3acc1c06987a5", size = 14041, upload-time = "2025-09-17T06:31:22.15Z" },
 ]
 
 [[package]]
