@@ -12,7 +12,7 @@ import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 
 const NULL_READER_SETTINGS = {
-  // Must be null so axios doesn't throw them out when sending.
+  // Must be null so xior doesn't throw them out when sending.
   fitTo: "",
   twoPages: null,
   readingDirection: "",

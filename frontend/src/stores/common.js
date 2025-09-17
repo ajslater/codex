@@ -13,10 +13,10 @@ const ERROR_KEYS = [
 ];
 Object.freeze(ERROR_KEYS);
 
-const getErrors = (axiosError) => {
+const getErrors = (xiorError) => {
   let errors = [];
-  if (axiosError && axiosError.response && axiosError.response.data) {
-    let data = axiosError.response.data;
+  if (xiorError && xiorError.response && xiorError.response.data) {
+    let data = xiorError.response.data;
     for (const key of ERROR_KEYS) {
       if (key in data) {
         data = data[key];
@@ -25,7 +25,7 @@ const getErrors = (axiosError) => {
     }
     errors = Array.isArray(data) ? data.flat() : [data];
   } else {
-    console.warn("Unable to parse error", axiosError);
+    console.warn("Unable to parse error", xiorError);
   }
   if (errors.length === 0) {
     errors = ["Unknown error"];
@@ -59,8 +59,8 @@ export const useCommonStore = defineStore("common", {
         })
         .catch(console.error);
     },
-    setErrors(axiosError) {
-      const errors = getErrors(axiosError);
+    setErrors(xiorError) {
+      const errors = getErrors(xiorError);
       this.$patch((state) => {
         state.form.errors = errors;
         state.form.success = "";
