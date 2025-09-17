@@ -7,16 +7,17 @@ export const HTTP = xior.create(CONFIG);
 
 // Default Django CSRF token
 const COOKIE_NAME = "csrftoken";
-const CSRF_COOKIE_REGEX = RegExp('(?:^|;\\s*)(?:' + COOKIE_NAME + ')=([^;]*)');
+const CSRF_HEADER = "X-CSRFToken";
+const CSRF_COOKIE_REGEX = RegExp("(?:^|;)\\s*" + COOKIE_NAME + "=([^;]*)");
 
 HTTP.interceptors.request.use((config) => {
-  const match = document.cookie.match(CSRF_COOKIE_REGEX)
+  const match = document.cookie.match(CSRF_COOKIE_REGEX);
   const token = match ? match[1] : "";
   if (!token) return config;
 
   return merge(config, {
     headers: {
-      "X-CSRFToken": token,
+      [CSRF_HEADER]: token,
     },
   });
 });
