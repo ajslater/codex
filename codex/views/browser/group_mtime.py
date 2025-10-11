@@ -55,7 +55,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
         kwargs: dict[str, bool | Value | Q] = {"default": default, "filter": bm_filter}
         if agg_func is JsonGroupArray:
             kwargs["distinct"] = True
-        return agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType]
+        return agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
 
     def get_group_mtime(self, model, group=None, pks=None, *, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""

@@ -43,13 +43,6 @@ export default [
   {
     files: ["**/*.js", "**/*.vue"],
     rules: {
-      "depend/ban-dependencies": [
-        "error",
-        {
-          // Replacing axios will be a big refactor.
-          allowed: ["axios"],
-        },
-      ],
       "no-console": [
         "warn",
         { allow: ["clear", "debug", "info", "warn", "error"] },

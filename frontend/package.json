@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.8.14",
+  "version": "1.8.16",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@unhead/vue": "^2.0.8",
-    "axios": "^1.4.0",
     "change-case-all": "^2.1.0",
     "core-js": "^3.31",
     "deep-clone": "^4.0.0",
@@ -29,7 +28,8 @@
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
-    "vuetify": "^3.10.0"
+    "vuetify": "^3.10.0",
+    "xior": "^0.7.8"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
@@ -49,7 +49,7 @@
     "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^7.0.2",
-    "vite-plugin-checker": "^0.10.0",
+    "vite-plugin-checker": "^0.11.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-run": "^0.6.0",
     "vite-plugin-vuetify": "^2.0.1",

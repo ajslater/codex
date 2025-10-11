@@ -35,10 +35,10 @@ def init_logging():
         "level": LOGLEVEL,
     }
     logger.remove()  # Default "sys.stderr" sink is not picklable
-    logger.add(sys.stdout, **kwargs, colorize=True)
+    logger.add(sys.stdout, **kwargs, colorize=True)  # ty: ignore[no-matching-overload]
     logger.add(
         LOG_PATH,
-        **kwargs,
+        **kwargs,  # ty: ignore[invalid-argument-type]
         rotation=LOG_ROTATION,
         retention=LOG_RETENTION,
         compression="xz",

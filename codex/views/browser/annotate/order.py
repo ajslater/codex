@@ -127,7 +127,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return Right(
             path_rel,
-            StrIndex(  # pyright: ignore[reportArgumentType]
+            StrIndex(  # pyright: ignore[reportArgumentType],# ty: ignore[invalid-argument-type]
                 Reverse(F(path_rel)),
                 Value(sep),
             )

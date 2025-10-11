@@ -24,8 +24,8 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
     @staticmethod
     def get_through_model(field: ManyToManyField) -> type[BaseModel]:
         """Get the through model for a m2m field."""
-        remote_field: ManyToManyRel = field.remote_field  # pyright: ignore[reportAssignmentType]
-        return remote_field.through  #  pyright: ignore[reportReturnType]
+        remote_field: ManyToManyRel = field.remote_field  # pyright: ignore[reportAssignmentType],# ty: ignore[invalid-assignment]
+        return remote_field.through  #  pyright: ignore[reportReturnType],# ty: ignore[invalid-return-type]
 
     def _delete_m2m_field_batch(
         self,

@@ -27,7 +27,7 @@ if DEBUG:
 urlpatterns += [
     path(
         "favicon.ico",
-        RedirectView.as_view(url=staticfiles_storage.url("img/logo-32.webp")),
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo.svg")),
         name="favicon",
     ),
     path(
