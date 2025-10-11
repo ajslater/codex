@@ -7,7 +7,7 @@ from django import setup
 from codex.signals.django_signals import connect_signals
 
 if environ.get("PYTHONDEVMODE"):
-    from icecream import install
+    from icecream.builtins import install
 
     install()
 

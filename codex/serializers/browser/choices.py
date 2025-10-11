@@ -148,7 +148,7 @@ class BrowserChoicesFilterSerializer(Serializer):
             value = serializer_class(choices, many=True).data
         elif not serializer_class and field_name in _LIST_FIELDS:
             field = BrowserSettingsFilterSerializer().get_fields().get(field_name)
-            value = field.to_representation(choices)  #  pyright: ignore[reportOptionalMemberAccess], #ty: ignore[possibly-unbound-attribute]
+            value = field.to_representation(choices)  #  pyright: ignore[reportOptionalMemberAccess],# ty: ignore[possibly-missing-attribute]
         else:
             value = BrowserChoicesIntegerPkSerializer(choices, many=True).data
         return value
