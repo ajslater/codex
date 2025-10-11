@@ -6,6 +6,10 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.16
+
+- Don't support Python 3.14 until dependencies do.
+
 ## v1.8.15
 
 - Performance
