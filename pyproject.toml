@@ -18,7 +18,7 @@ dependencies = [
   "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]<3.0,>=2.0.4",
+  "comicbox[pdf]<3.0,>=2.0.5",
   "dateparser~=1.2",
   "django~=5.2",
   "djangorestframework~=3.16",
@@ -43,7 +43,7 @@ dependencies = [
   "whitenoise[brotli]~=6.0",
   "versio~=0.5",
   "zipstream-ng~=1.8",
-  "Pillow~=11.3",
+  "Pillow~=12.0",
   "loguru~=0.7.3",
 ]
 description = "A comic archive web server."
