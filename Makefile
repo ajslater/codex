@@ -138,6 +138,12 @@ fix: fix-backend fix-frontend
 typecheck:
 	uv run basedpyright .
 
+.PHONY: ty
+## Static typecheck with ty
+## @category Lint
+ty:
+	uv run ty check .
+
 .PHONY: lint-frontend
 ## Lint the frontend
 ## @category Lint
