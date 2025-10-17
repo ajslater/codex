@@ -32,8 +32,8 @@ target "codex-builder-base" {
     ]
     dockerfile = "docker/builder-base.Dockerfile"
     tags = [
-      "codex-builder-base:${CODEX_BUILDER_BASE_VERSION}",
-      "codex-builder-base:latest"
+      "docker.io/ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}",
+      "docker.io/ajslater/codex-builder-base:latest"
     ]
     outputs = [ "registry" ]
 }
