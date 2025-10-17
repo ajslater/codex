@@ -1,5 +1,5 @@
 variable "CODEX_BASE_VERSION" {}
-variable "CODEX_BUILDER_BASE_VERSION" {}
+variable "CODEX_BUILDER_BASE_VERSION" { default = ""}
 variable "CODEX_DIST_BUILDER_VERSION" {}
 variable "CODEX_ARCH_VERSION" {}
 variable "ARCH" {}
