@@ -7,8 +7,8 @@ if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   CODEX_LATEST=1
 fi
 
-#docker image pull --platform amd64 "ajslater/codex-arch:${PKG_VERSION}-amd64"
-#docker image pull --platform arm64 "ajslater/codex-arch:${PKG_VERSION}-arm64"
+#docker image pull --platform x86_64 "ajslater/codex-arch:${PKG_VERSION}-x86_64"
+#docker image pull --platform aarch64 "ajslater/codex-arch:${PKG_VERSION}-aarch64"
 
 docker image load -i codex-x86_64.tar
 docker image load -i codex-aarch64.tar
@@ -21,8 +21,8 @@ fi
 
 docker buildx imagetools create \
   "${TAG_ARGS[@]}" \
-  "${ARCH_IMAGE}-amd64" \
-  "${ARCH_IMAGE}-arm64"
+  "${ARCH_IMAGE}-x86_64" \
+  "${ARCH_IMAGE}-aarch64"
 
 docker buildx imagetools inspect "$IMAGE:$PKG_VERSION"
 if [[ -v $CODEX_LATEST ]]; then
