@@ -35,7 +35,7 @@ jobs:
   build-base-arm64:
     <<: *build-base
     executor: arm64-medium-executor
-  test-amd64:
+  test-and-build-dist-amd64:
     executor: amd64-medium-executor
     steps:
       - checkout:
@@ -152,7 +152,7 @@ workflows:
                 - pre-release
                 - main
                 - /.*-ci/
-      - test-amd64:
+      - test-and-build-dist-amd64:
           <<: *filters-all
           requires:
             - build-base-amd64
@@ -160,12 +160,12 @@ workflows:
           <<: *filters-release
           requires:
             - build-base-amd64
-            - test-amd64
+            - test-and-build-dist-amd64
       - build-arm64:
           <<: *filters-release
           requires:
             - build-base-arm64
-            - test-amd64
+            - test-and-build-dist-amd64
       - deploy:
           <<: *filters-release
           requires:
