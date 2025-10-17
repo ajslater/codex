@@ -2,16 +2,6 @@
 # Generic image builder script
 set -xeuo pipefail
 
-# Assert correct platform
-#if [ "$1" == "amd64" ]; then
-#  MACHINE=$(uname -m)
-#  shift
-#  if [ "$MACHINE" != "x86_64" ]; then
-#    echo Skipping wrong platform: "$MACHINE" - "$1"
-#    exit 0
-#  fi
-#fi
-
 # Set env
 TARGET=$1 # the docker bake target to build
 REPO=docker.io/ajslater/$1
@@ -40,11 +30,11 @@ fi
 # Build
 ARCH=$(./docker/docker-arch.sh)
 export ARCH
-#export CODEX_BASE_VERSION
+export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
-#export CODEX_DIST_BUILDER_VERSION
-#export CODEX_WHEEL
-#export PKG_VERSION
+export CODEX_DIST_BUILDER_VERSION
+export CODEX_WHEEL
+export PKG_VERSION
 docker buildx bake \
   --builder codex-builder \
   --file docker-bake.hcl \

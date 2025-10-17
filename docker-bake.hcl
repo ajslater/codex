@@ -40,6 +40,9 @@ target "codex-builder-base" {
 
 target "codex-dist-builder" {
     inherits = ["codex-builder-base"]
+    args = {
+      CODEX_BUILDER_BASE_VERSION = CODEX_BUILDER_BASE_VERSION
+    }
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:buildcache",
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:latest"
