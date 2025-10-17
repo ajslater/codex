@@ -53,15 +53,15 @@ target "codex-arch" {
     inherits = ["codex-base"]
     cache-from = [
       "type=docker,ref=docker.io/ajslater/codex-arch:buildcache",
-      "type=docker,ref=docker.io/ajslater/codex-arch:${CODEX_ARCH_LATEST}"
+      #"type=docker,ref=docker.io/ajslater/codex-arch:${CODEX_ARCH_LATEST}"
     ]
     cache-to = [
       "type=docker,ref=docker.io/ajslater/codex-arch:buildcache,mode=max"
     ]
     dockerfile = "Dockerfile"
     tags = [
-      "docker.io/ajslate/codex-arch:${CODEX_ARCH_VERSION}"
-      "docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
+      "docker.io/ajslate/codex-arch:${CODEX_ARCH_VERSION}",
+      #"docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
     ]
     outputs = [ "docker" ]
   }
