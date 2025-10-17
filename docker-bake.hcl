@@ -61,7 +61,8 @@ target "codex-dist-builder" {
 target "codex-arch" {
     inherits = ["codex-builder-base"]
     cache-from = []
-    cache-to = []
+      "type=registry,ref=docker.io/ajslater/codex:latest"
+    ]
     dockerfile = "docker/Dockerfile"
     tags = [
       "docker.io/ajslate/codex-arch:${CODEX_ARCH_VERSION}",
