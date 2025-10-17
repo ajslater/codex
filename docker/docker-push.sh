@@ -10,8 +10,8 @@ fi
 #docker image pull --platform amd64 "ajslater/codex-arch:${PKG_VERSION}-amd64"
 #docker image pull --platform arm64 "ajslater/codex-arch:${PKG_VERSION}-arm64"
 
-docker image load -i codex-amd64.tar
-docker image load -i codex-arm64.tar
+docker image load -i codex-x86_64.tar
+docker image load -i codex-aarch64.tar
 
 TAG_ARGS=(-t "$IMAGE:$PKG_VERSION")
 if [[ -v $CODEX_LATEST ]]; then
