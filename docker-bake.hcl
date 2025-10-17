@@ -1,8 +1,4 @@
 target "codex-base" {
-    args = {
-        BUILDX_EXPERIMENTAL = 1,
-        CODEX_BASE_VERSION
-    }
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex-base:buildcache",
       "type=registry,ref=docker.io/ajslater/codex-base:latest"
@@ -21,10 +17,6 @@ target "codex-base" {
 
 target "codex-builder-base" {
     inherits = ["codex-base"]
-    args = {
-        BUILDX_EXPERIMENTAL = 1,
-        CODEX_BUILDER_BASE_VERSION
-    }
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex-builder-base:buildcache",
       "type=registry,ref=docker.io/ajslater/codex-builder-base:latest"
@@ -50,10 +42,6 @@ target "codex-dist-builder" {
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:buildcache,mode=max"
     ]
     dockerfile = "dist-builder.Dockerfile"
-    args = {
-        BUILDX_EXPERIMENTAL = 1,
-        CODEX_DIST_BUILDER_VERSION
-    }
     tags = [
       "docker.io/ajslater/codex-dist-builder:${CODEX_DIST_BUILDER_VERSION}",
       "docker.io/ajslater/codex-dist-builder:latest"
@@ -63,10 +51,6 @@ target "codex-dist-builder" {
 
 target "codex-arch" {
     inherits = ["codex-base"]
-    args = {
-        BUILDX_EXPERIMENTAL = 1,
-        CODEX_ARCH_VERSION
-    }
     cache-from = [
       "type=docker,ref=docker.io/ajslater/codex-arch:buildcache",
       "type=docker,ref=docker.io/ajslater/codex-arch:${CODEX_ARCH_LATEST}"
