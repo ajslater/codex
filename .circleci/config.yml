@@ -16,7 +16,7 @@ jobs:
       - checkout:
           depth: 1
       - run:
-          command: . ./docker/machine-init.sh base builder
+          command: . ./docker/machine-init.sh base builder-base
           name: Update packages & docker, produce env file.
       - run:
           command: . ./docker/machine-env.sh
