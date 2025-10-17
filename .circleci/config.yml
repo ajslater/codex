@@ -13,7 +13,8 @@ jobs:
   build-base-amd64: &build-base
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - run:
           command: . ./docker/machine-init.sh base builder
           name: Update packages & docker, produce env file.
@@ -40,7 +41,8 @@ jobs:
   test-amd64:
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - attach_workspace:
           at: .
       - run:
@@ -90,7 +92,8 @@ jobs:
   build-amd64: &build
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - attach_workspace:
           at: .
       - run:
@@ -120,7 +123,8 @@ jobs:
   deploy:
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - attach_workspace:
           at: .
       - setup_remote_docker
