@@ -17,9 +17,9 @@ TARGET=$1 # the docker bake target to build
 REPO=docker.io/ajslater/$1
 VERSION_VAR=${TARGET^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
-#ENV_FN=$(./docker/docker-env-filename.sh)
+ENV_FN=$(./docker/docker-env-filename.sh)
 # shellcheck disable=SC1090
-#source "$ENV_FN"
+. "$ENV_FN"
 IMAGE="${REPO}:${!VERSION_VAR}"
 
 if [ "${1-}" == "-f" ]; then
