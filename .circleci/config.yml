@@ -19,9 +19,6 @@ jobs:
           command: . ./docker/machine-init.sh base builder-base
           name: Update packages & docker, produce env file.
       - run:
-          command: . ./docker/machine-env.sh
-          name: Update env
-      - run:
           command: ./docker/docker-build-image.sh codex-base
           name: Build Base Image
       - run:
@@ -48,9 +45,6 @@ jobs:
       - run:
           command: ./docker/machine-init.sh dist-builder
           name: Update packages & docker, produce env file.
-      - run:
-          command: . ./docker/machine-env.sh
-          name: Update env
       - run:
           command: ./docker/docker-build-image.sh codex-dist-builder pull
           name: Build Builder Base Image
@@ -100,9 +94,6 @@ jobs:
           command: ./docker/machine-init.sh arch wheel
           name: Update packages & docker, produce env file.
       - run:
-          command: . ./docker/machine-env.sh
-          name: Update env
-      - run:
           command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
       - run:
@@ -131,9 +122,6 @@ jobs:
       - run:
           command: ./docker/machine-init.sh
           name: Update packages & docker, produce env file.
-      - run:
-          command: . ./docker/machine-env.sh
-          name: Update env
       - run:
           command: ./docker/docker-push.sh
           name: Push multi-arch images to Docker Hub

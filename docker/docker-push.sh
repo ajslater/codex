@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euxo pipefail
+. ./docker/machine-env.sh
 IMAGE=docker.io/ajslater/codex
 ARCH_IMAGE="ajslater/codex-arch:${PKG_VERSION}"
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
