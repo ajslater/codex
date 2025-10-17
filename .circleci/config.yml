@@ -46,7 +46,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh
+          command: ./docker/machine-init.sh dist-builder
           name: Update packages & docker, produce env file.
       - run:
           command: . ./docker/machine-env.sh
