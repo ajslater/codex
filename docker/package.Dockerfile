@@ -1,5 +1,5 @@
-FROM ajslater/codex-base:d2b25dec7625b7ed07bf14e79097c44c-aarch64
-ARG PKG_VERSION=1.8.12
+FROM ajslater/codex-base:latest-aarch64
+ARG PKG_VERSION
 ENV PKG_VERSION=${PKG_VERSION}
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$PKG_VERSION
