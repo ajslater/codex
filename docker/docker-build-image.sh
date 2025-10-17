@@ -26,11 +26,6 @@ fi
 # Build
 ARCH=$(./docker/docker-arch.sh)
 export ARCH
-#export CODEX_BASE_VERSION
-#export CODEX_BUILDER_BASE_VERSION
-#export CODEX_DIST_BUILDER_VERSION
-#export CODEX_WHEEL
-#export PKG_VERSION
 docker buildx bake \
   --builder codex-builder \
   --file docker-bake.hcl \

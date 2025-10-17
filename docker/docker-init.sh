@@ -10,8 +10,6 @@ EMULATORS=
 if [[ ${PLATFORMS-} == "linux/armhf" ]]; then
   # this is the only arch i need to cross compile on circleci
   EMULATORS=arm
-#elif [[ "$(uname -m)" == "aarch64" ]]; then
-#  EMULATORS=aarch64
 fi
 if [[ -n ${EMULATORS-} ]]; then
   docker run --rm --privileged tonistiigi/binfmt:latest --install "$EMULATORS"
