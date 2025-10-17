@@ -39,7 +39,10 @@ target "codex-builder-base" {
 }
 
 target "codex-dist-builder" {
-    inherits = ["codex-base"]
+    inherits = ["codex-builder-base"]
+    args = [
+      CODEX_BUILDER_BASE_VERSION = "${CODEX_BUILDER_BASE_VERSION}"
+    ]
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:buildcache",
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:latest"
@@ -56,7 +59,7 @@ target "codex-dist-builder" {
 }
 
 target "codex-arch" {
-    inherits = ["codex-base"]
+    inherits = ["codex-builder-base"]
     cache-from = [
       "type=docker,ref=docker.io/ajslater/codex-arch:buildcache",
       #"type=docker,ref=docker.io/ajslater/codex-arch:${CODEX_ARCH_LATEST}"
