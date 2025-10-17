@@ -59,12 +59,6 @@ target "codex-arch" {
       "type=docker,ref=docker.io/ajslater/codex-arch:buildcache,mode=max"
     ]
     dockerfile = "Dockerfile"
-    args = {
-        BUILDX_EXPERIMENTAL = 1,
-        CODEX_BUILDER_FINAL_VERSION,
-        CODEX_WHEEL,
-        PKG_VERSION
-    }
     tags = [
       "docker.io/ajslate/codex-arch:${CODEX_ARCH_VERSION}"
       "docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
