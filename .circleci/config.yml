@@ -108,6 +108,7 @@ jobs:
       - persist_to_workspace:
           paths:
             - codex-*.tar
+          root: .
       - discord/status:
           fail_only: true
           webhook: "${DISCORD_STATUS_WEBHOOK}"
