@@ -8,7 +8,7 @@ LABEL version=${CODEX_DIST_BUILDER_VERSION}
 RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
-  shellcheck \
+    shellcheck \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
