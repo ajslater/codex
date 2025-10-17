@@ -18,8 +18,10 @@ REPO=docker.io/ajslater/$1
 VERSION_VAR=${TARGET^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 ENV_FN=$(./docker/docker-env-filename.sh)
+set -a
 # shellcheck disable=SC1090
 . "$ENV_FN"
+set +a
 IMAGE="${REPO}:${!VERSION_VAR}"
 
 if [ "${1-}" == "-f" ]; then
@@ -37,11 +39,11 @@ fi
 
 # Build
 #export ARCH=$1
-export CODEX_BASE_VERSION
-export CODEX_BUILDER_BASE_VERSION
-export CODEX_DIST_BUILDER_VERSION
-export CODEX_WHEEL
-export PKG_VERSION
+#export CODEX_BASE_VERSION
+#export CODEX_BUILDER_BASE_VERSION
+#export CODEX_DIST_BUILDER_VERSION
+#export CODEX_WHEEL
+#export PKG_VERSION
 docker buildx bake \
   --builder codex-builder \
   --file docker-bake.hcl \
