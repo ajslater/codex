@@ -144,6 +144,13 @@ typecheck:
 ty:
 	uv run ty check .
 
+.PHONY: zuban
+## Static typecheck with zuban
+## @category Lint
+zuban:
+	uv run zuban check
+
+
 .PHONY: lint-frontend
 ## Lint the frontend
 ## @category Lint

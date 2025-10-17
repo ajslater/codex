@@ -6,7 +6,6 @@ REPO=docker.io/ajslater/codex
 #ARCH_REPO=docker.io/ajslater/codex-arch
 ARCH_REPO=$REPO
 ARCHES=(x86_64 aarch64) # aarch32)
-./docker/install-uv.sh
 PATH=$PATH:"$HOME/.local/bin"
 export PATH
 pip3 install --upgrade pip

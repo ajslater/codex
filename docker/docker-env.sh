@@ -1,21 +1,25 @@
 #!/bin/bash
-# create the docker .env firl for this architecture
+# create the docker .env for this architecture
 set -euo pipefail
-./docker/install-uv.sh
-PATH=$PATH:"$HOME/.local/bin"
-export PATH
-PKG_VERSION=$(uv version --short)
-pip3 install --upgrade pip
 ENV_FN=$(./docker/docker-env-filename.sh)
-rm -f "$ENV_FN"
-# shellcheck disable=SC1091,SC2129
-cat << EOF >> "$ENV_FN"
-PKG_VERSION=${PKG_VERSION}
-CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)
-EOF
-echo "CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)" >> "$ENV_FN"
-echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >> "$ENV_FN"
-cat << EOF >> "$ENV_FN"
-CODEX_ARCH_VERSION=$(./docker/docker-version-codex-arch.sh)
-CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
-EOF
+
+if [[ $* == *base* ]]; then
+  echo "CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)" > "$ENV_FN"
+fi
+
+if [[ $* == *builder* ]]; then
+  echo "CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)" >> "$ENV_FN"
+fi
+
+if [[ $* == *dist* ]]; then
+  echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >> "$ENV_FN"
+fi
+
+if [[ $* == *arch* ]]; then
+  echo "CODEX_ARCH_VERSION=$(./docker/docker-version-codex-arch.sh)" >> "$ENV_FN"
+fi
+
+if [[ $* == *wheel* ]]; then
+  PKG_VERSION=$(uv version --short)
+  echo "CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl" >> "$ENV_FN"
+fi

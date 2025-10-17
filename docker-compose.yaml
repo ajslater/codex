@@ -1,28 +1,6 @@
 services:
-  codex-base:
-    build:
-      context: .
-      dockerfile: docker/base.Dockerfile
-      args:
-        CODEX_BASE_VERSION:
-    image: docker.io/ajslater/codex-base
-  codex-builder-base:
-    build:
-      context: .
-      dockerfile: docker/builder-base.Dockerfile
-      args:
-        CODEX_BASE_VERSION:
-        CODEX_BUILDER_BASE_VERSION:
-    image: docker.io/ajslater/codex-builder-base
   codex-dist-builder: &codex-dist-builder
-    build:
-      context: .
-      dockerfile: docker/dist-builder.Dockerfile
-      args:
-        CODEX_BUILDER_BASE_VERSION:
-        CODEX_DIST_BUILDER_VERSION:
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
-    container_name: codex-dist-builder
   codex-backend-lint:
     <<: *codex-dist-builder
     container_name: codex-backend-lint
@@ -59,18 +37,6 @@ services:
       - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
     command: make build-backend -o collectstatic
-  codex-arch:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      args:
-        CODEX_BUILDER_BASE_VERSION:
-        CODEX_BASE_VERSION:
-        CODEX_BUILDER_FINAL_VERSION:
-        CODEX_WHEEL:
-        PKG_VERSION:
-    image: docker.io/ajslater/codex-arch
-    container_name: codex-arch
   codex:
     build:
       context: .

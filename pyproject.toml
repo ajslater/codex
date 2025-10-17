@@ -91,6 +91,7 @@ dev = [
   "ty>=0.0.1a19",
   "types-python-dateutil~=2.9",
   "vulture~=2.3",
+  "zuban>=0.1.1",
 ]
 
 [build-system]
@@ -182,6 +183,7 @@ reportMissingTypeStubs = false
 reportPrivateUsage = false # ruff does this
 reportUnannotatedClassAttribute = false
 reportUnknownArgumentType = false
+reportUnknownLambdaType = "hint"
 reportUnknownMemberType = false
 reportUnknownParameterType = false
 reportUnknownVariableType = false
@@ -368,8 +370,12 @@ ignore-overlong-task-comments = true
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
 "codex/settings/*" = ["T201"]
+"docker/cleanup-repo.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 "tests/*" = ["D101", "D102", "T203"]
+
+[tool.ruff.lint.pylint]
+max-args = 8
 
 [tool.ty.environment]
 python = "./.venv"

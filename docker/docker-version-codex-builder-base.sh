@@ -10,6 +10,13 @@ DEPS=(
   "$0"
   .dockerignore
   docker/builder-base.Dockerfile
+  docker/debian.sources
+  docker/docker-arch.sh
+  docker/docker-build-image.sh
+  docker/docker-env.sh
+  docker/docker-env-filename.sh
+  docker/docker-version-checksum.sh
+  docker-compose.yaml
 )
 
 source ./docker/docker-version-checksum.sh

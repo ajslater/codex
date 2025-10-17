@@ -1,8 +1,4 @@
 executors:
-  amd64-large-executor:
-    machine:
-      image: ubuntu-2404:current
-      resource_class: large
   amd64-medium-executor:
     machine:
       image: ubuntu-2404:current
@@ -19,20 +15,17 @@ jobs:
     steps:
       - checkout
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt Platform, Create the buildx Builder
+          command: . ./docker/machine-init.sh base builder
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-env.sh
-          name: Generate image versions
+          command: . ./docker/machine-env.sh
+          name: Update env
       - run:
           command: ./docker/docker-build-image.sh codex-base
           name: Build Base Image
       - run:
           command: ./docker/docker-build-image.sh codex-builder-base
           name: Build Builder Base Image
-      - run:
-          command: ./docker/docker-build-image.sh amd64 codex-dist-builder
-          name: Build Distribution Builder Image
       - persist_to_workspace:
           paths:
             - ./.env-*
@@ -51,8 +44,14 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, install binfmt platform, & create the buildx builder
+          command: ./docker/machine-init.sh
+          name: Update packages & docker, produce env file.
+      - run:
+          command: . ./docker/machine-env.sh
+          name: Update env
+      - run:
+          command: ./docker/docker-build-image.sh codex-dist-builder pull
+          name: Build Builder Base Image
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"
@@ -64,41 +63,25 @@ jobs:
           name: "Frontend: Test"
       - store_test_results:
           path: test-results/jest
+      - store_artifacts:
+          path: frontend/coverage
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-build
           name: "Frontend: Build"
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-test
           name: "Backend: Test"
-      - persist_to_workspace:
-          paths:
-            - ./codex/static_root
-          root: .
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
           path: test-results/coverage
-      - store_artifacts:
-          path: frontend/coverage
-      - discord/status:
-          fail_only: false
-          webhook: "${DISCORD_STATUS_WEBHOOK}"
-          failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
-  build-dist:
-    executor: amd64-medium-executor
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
       - persist_to_workspace:
           paths:
             - ./dist
+            - ./.env-*
           root: .
       - discord/status:
           fail_only: false
@@ -111,11 +94,20 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
+          command: ./docker/machine-init.sh arch wheel
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-build-image.sh codex -arch
+          command: . ./docker/machine-env.sh
+          name: Update env
+      - run:
+          command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
+      - run:
+          command: ./docker/docker-save-arch-image.sh
+          name: Save the arch image.
+      - persist_to_workspace:
+          paths:
+            - codex-*.tar
       - discord/status:
           fail_only: true
           webhook: "${DISCORD_STATUS_WEBHOOK}"
@@ -130,15 +122,16 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - setup_remote_docker
       - run:
-          command: ./docker/docker-install-api-deps.sh
-          name: Install docker API dependencies
+          command: ./docker/machine-init.sh
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-login.sh
-          name: Login to Docker Hub
+          command: . ./docker/machine-env.sh
+          name: Update env
       - run:
-          command: ./docker/docker-create-multiarch-codex.sh
-          name: Create multi-arch images
+          command: ./docker/docker-push.sh
+          name: Push multi-arch images to Docker Hub
       - run:
           command: make publish
           name: Publish Codex Package to PyPi
@@ -165,24 +158,21 @@ workflows:
               only:
                 - pre-release
                 - main
+                - /.*-ci/
       - test-amd64:
           <<: *filters-all
           requires:
             - build-base-amd64
-      - build-dist:
-          <<: *filters-all
-          requires:
-            - test-amd64
       - build-amd64:
           <<: *filters-release
           requires:
             - build-base-amd64
-            - build-dist
+            - test-amd64
       - build-arm64:
           <<: *filters-release
           requires:
             - build-base-arm64
-            - build-dist
+            - test-amd64
       - deploy:
           <<: *filters-release
           requires:
