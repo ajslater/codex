@@ -1,7 +1,8 @@
+variable "CODEX_ARCH_VERSION" {}
 variable "CODEX_BASE_VERSION" {}
 variable "CODEX_BUILDER_BASE_VERSION" {}
 variable "CODEX_DIST_BUILDER_VERSION" {}
-variable "CODEX_ARCH_VERSION" {}
+variable "CODEX_WHEEL" {}
 variable "ARCH" {}
 
 target "codex-base" {
@@ -60,6 +61,11 @@ target "codex-dist-builder" {
 
 target "codex-arch" {
     inherits = ["codex-builder-base"]
+    args = {
+      CODEX_BASE_VERSION = CODEX_BASE_VERSION
+      CODEX_BUILDER_BASE_VERSION = CODEX_BUILDER_BASE_VERSION
+      CODEX_WHEEL = CODEX_WHEEL
+    }
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex:latest"
     ]
