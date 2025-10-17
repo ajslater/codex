@@ -2,6 +2,7 @@ variable "CODEX_BASE_VERSION" {}
 variable "CODEX_BUILDER_BASE_VERSION" {}
 variable "CODEX_DIST_BUILDER_VERSION" {}
 variable "CODEX_ARCH_VERSION" {}
+variable "ARCH" {}
 
 target "codex-base" {
     cache-from = [
@@ -16,7 +17,7 @@ target "codex-base" {
       "docker.io/ajslater/codex-base:${CODEX_BASE_VERSION}",
       "docker.io/ajslater/codex-base:latest"
     ]
-    platforms = ["$ARCH"]
+    platforms = ["${ARCH}"]
     outputs = [ "registry" ]
 }
 

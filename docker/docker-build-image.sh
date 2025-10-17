@@ -38,7 +38,8 @@ else
 fi
 
 # Build
-#export ARCH=$1
+ARCH=$(./docker/docker-arch.sh)
+export ARCH
 #export CODEX_BASE_VERSION
 #export CODEX_BUILDER_BASE_VERSION
 #export CODEX_DIST_BUILDER_VERSION
