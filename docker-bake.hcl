@@ -1,3 +1,8 @@
+variable "CODEX_BASE_VERSION" {}
+variable "CODEX_BUILDER_BASE_VERSION" {}
+variable "CODEX_DIST_BUILDER_VERSION" {}
+variable "CODEX_ARCH_VERSION" {}
+
 target "codex-base" {
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex-base:buildcache",
