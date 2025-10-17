@@ -1,5 +1,5 @@
 variable "CODEX_BASE_VERSION" {}
-variable "CODEX_BUILDER_BASE_VERSION" { default = ""}
+variable "CODEX_BUILDER_BASE_VERSION" {}
 variable "CODEX_DIST_BUILDER_VERSION" {}
 variable "CODEX_ARCH_VERSION" {}
 variable "ARCH" {}
@@ -18,7 +18,7 @@ target "codex-base" {
       "docker.io/ajslater/codex-base:latest"
     ]
     platforms = ["${ARCH}"]
-    outputs = [ "type=registry" ]
+    output = [ "type=registry" ]
 }
 
 target "codex-builder-base" {
@@ -35,14 +35,11 @@ target "codex-builder-base" {
       "docker.io/ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}",
       "docker.io/ajslater/codex-builder-base:latest"
     ]
-    outputs = [ "type=registry" ]
+    output = [ "type=registry" ]
 }
 
 target "codex-dist-builder" {
     inherits = ["codex-builder-base"]
-    args = {
-      CODEX_BUILDER_BASE_VERSION = "${CODEX_BUILDER_BASE_VERSION}"
-    }
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:buildcache",
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:latest"
@@ -55,7 +52,7 @@ target "codex-dist-builder" {
       "docker.io/ajslater/codex-dist-builder:${CODEX_DIST_BUILDER_VERSION}",
       "docker.io/ajslater/codex-dist-builder:latest"
     ]
-    outputs = [ "type=docker", "type=registry" ]
+    output = [ "type=docker", "type=registry" ]
 }
 
 target "codex-arch" {
@@ -72,5 +69,5 @@ target "codex-arch" {
       "docker.io/ajslate/codex-arch:${CODEX_ARCH_VERSION}",
       #"docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
     ]
-    outputs = [ "type=docker" ]
+    output = [ "type=docker" ]
   }
