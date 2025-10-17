@@ -1,10 +1,7 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-builder-base
 set -euo pipefail
-
-ENV_FN=$(./docker/docker-env-filename.sh)
-# shellcheck disable=SC1090
-source "$ENV_FN"
+. docker/machine-env.sh
 EXTRA_MD5S=("$CODEX_BASE_VERSION  codex-base-version")
 DEPS=(
   "$0"
