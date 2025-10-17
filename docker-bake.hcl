@@ -1,9 +1,10 @@
+variable "ARCH" {}
 variable "CODEX_ARCH_VERSION" {}
 variable "CODEX_BASE_VERSION" {}
 variable "CODEX_BUILDER_BASE_VERSION" {}
 variable "CODEX_DIST_BUILDER_VERSION" {}
 variable "CODEX_WHEEL" {}
-variable "ARCH" {}
+variable "PKG_VERSION" {}
 
 target "codex-base" {
     cache-from = [
@@ -65,6 +66,7 @@ target "codex-arch" {
       CODEX_BASE_VERSION = CODEX_BASE_VERSION
       CODEX_BUILDER_BASE_VERSION = CODEX_BUILDER_BASE_VERSION
       CODEX_WHEEL = CODEX_WHEEL
+      PKG_VERSION = PKG_VERSION
     }
     cache-from = [
       "type=registry,ref=docker.io/ajslater/codex:latest"
