@@ -16,7 +16,7 @@ else
   # Check if image is already built
   if docker manifest inspect "$IMAGE"; then
     echo "$IMAGE" is already built.
-    if [ "$2" == "pull" ]; then
+    if [[ $* == *pull* ]]; then
       docker image pull "$IMAGE"
     fi
     exit 0
@@ -30,3 +30,7 @@ docker buildx bake \
   --builder codex-builder \
   --file docker-bake.hcl \
   "$TARGET"
+
+if [[ $* == *clean* ]]; then
+  ./docker/cleanup-repo.py "$DOCKER_USER" "$DOCKER_PASS" ajslater "$TARGET"
+fi

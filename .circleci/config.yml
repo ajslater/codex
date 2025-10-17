@@ -19,10 +19,10 @@ jobs:
           command: . ./docker/machine-init.sh base builder-base
           name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-build-image.sh codex-base
+          command: ./docker/docker-build-image.sh codex-base clean
           name: Build Base Image
       - run:
-          command: ./docker/docker-build-image.sh codex-builder-base
+          command: ./docker/docker-build-image.sh codex-builder-base clean
           name: Build Builder Base Image
       - persist_to_workspace:
           paths:
@@ -43,7 +43,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh dist-builder
+          command: ./docker/machine-init.sh dist-builder clean
           name: Update packages & docker, produce env file.
       - run:
           command: ./docker/docker-build-image.sh codex-dist-builder pull
