@@ -16,4 +16,4 @@ DEPS=(
   docker-bake.hcl
 )
 
-source ./docker/docker-version-checksum.sh
+. ./docker/docker-version-checksum.sh
