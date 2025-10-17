@@ -8,3 +8,4 @@ export PATH=$PATH:$HOME/.local/bin
 if [ $# -ne 0 ]; then
   ./docker/docker-env.sh "$@"
 fi
+. ./docker/machine-env.sh
