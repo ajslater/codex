@@ -13,6 +13,7 @@ set -xeuo pipefail
 #fi
 
 # Set env
+TARGET=$1 # the docker bake target to build
 REPO=docker.io/ajslater/$1
 VERSION_VAR=${TARGET^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
@@ -36,7 +37,6 @@ fi
 
 # Build
 #export ARCH=$1
-TARGET=$1 # the docker bake target to build
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
