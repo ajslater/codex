@@ -8,7 +8,7 @@ source "$ENV_FN"
 EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
 
 # shellcheck disable=SC2046
-readarray -d '' SOURCE_DEPS < <(find codex frontend -type f \( \
+readarray -d '' SOURCE_DEPS < <(find codex frontend tests -type f \( \
   ! -path "*node_modules*" \
   ! -path "*codex/static_build*" \
   ! -path "*codex/static_root*" \
@@ -20,7 +20,6 @@ readarray -d '' SOURCE_DEPS < <(find codex frontend -type f \( \
   \))
 DEPS=(
   "$0"
-  .dockerignore
   .prettierignore
   .shellcheckrc
   docker/dist-builder.Dockerfile
@@ -31,6 +30,8 @@ DEPS=(
   bin/manage.py
   bin/pm
   bin/test-backend.sh
+  frontend/lint.sh
+  frontend/test.sh
   package.json
   package-lock.json
   pyproject.toml
