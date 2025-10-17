@@ -102,6 +102,7 @@ jobs:
       - persist_to_workspace:
           paths:
             - codex-*.tar
+            - ./.env-*
           root: .
       - discord/status:
           fail_only: true
