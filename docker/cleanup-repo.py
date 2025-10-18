@@ -61,8 +61,7 @@ def get_args():
     parser.add_argument("repository", help="Repository name")
     parser.add_argument(
         "--no-confirm",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Do not confirm deletion with input prompt",
     )
     parser.add_argument(
