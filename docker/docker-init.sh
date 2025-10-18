@@ -27,4 +27,4 @@ else
 fi
 
 # optional
-docker buildx inspect --bootstrap
+# docker buildx inspect --bootstrap
