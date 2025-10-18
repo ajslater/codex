@@ -74,7 +74,7 @@ target "codex-arch" {
     cache-to = []
     dockerfile = "docker/Dockerfile"
     tags = [
-      "docker.io/ajslate/codex-arch:${CODEX_ARCH_VERSION}",
+      "docker.io/ajslater/codex-arch:${CODEX_ARCH_VERSION}",
       #"docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
     ]
     output = [ "type=docker" ]
