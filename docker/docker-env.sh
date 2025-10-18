@@ -21,5 +21,6 @@ fi
 
 if [[ $* == *wheel* ]]; then
   PKG_VERSION=$(uv version --short)
+  echo "PKG_VERSION=${PKG_VERSION}" >> "$ENV_FN"
   echo "CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl" >> "$ENV_FN"
 fi
