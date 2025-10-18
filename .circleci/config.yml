@@ -43,7 +43,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh dist-builder clean
+          command: ./docker/machine-init.sh dist-builder arch wheel
           name: Update packages & docker, produce env file.
       - run:
           command: ./docker/docker-build-image.sh codex-dist-builder pull
@@ -91,7 +91,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh arch wheel
+          command: ./docker/machine-init.sh
           name: Update packages & docker, produce env file.
       - run:
           command: ./docker/docker-build-image.sh codex-arch
@@ -102,7 +102,6 @@ jobs:
       - persist_to_workspace:
           paths:
             - codex-*.tar
-            - ./.env-*
           root: .
       - discord/status:
           fail_only: true
