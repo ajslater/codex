@@ -113,7 +113,7 @@ def main():
         print("\nDry run mode. No tags will be deleted.")
         return
 
-    if not args.yes:
+    if not args.no_confirm:
         confirm = input("\nProceed with deletion? (y/N) ").strip().lower()
         if confirm != "y":
             print("Aborted.")
