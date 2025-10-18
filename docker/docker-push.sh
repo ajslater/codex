@@ -14,7 +14,7 @@ docker image load -i codex-x86_64.tar
 docker image load -i codex-aarch64.tar
 
 TAG_ARGS=(-t "$IMAGE:$PKG_VERSION")
-if [[ -v $CODEX_LATEST ]]; then
+if [ "${CODEX_LATEST:-}" != "" ]; then
   # If the version is just numbers push it as latest
   TAG_ARGS+=(-t "$IMAGE":latest)
 fi
@@ -25,6 +25,6 @@ docker buildx imagetools create \
   "${ARCH_IMAGE}-aarch64"
 
 docker buildx imagetools inspect "$IMAGE:$PKG_VERSION"
-if [[ -v $CODEX_LATEST ]]; then
+if [ "${CODEX_LATEST:-}" != "" ]; then
   docker buildx imagetools inspect "$IMAGE:latest"
 fi
