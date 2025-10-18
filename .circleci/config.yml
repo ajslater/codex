@@ -119,7 +119,6 @@ jobs:
           depth: 1
       - attach_workspace:
           at: .
-      - setup_remote_docker
       - run:
           command: ./docker/machine-init.sh
           name: Update packages & docker, produce env file.
