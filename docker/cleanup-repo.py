@@ -60,6 +60,12 @@ def get_args():
     parser.add_argument("namespace", help="Namespace or user of the repository")
     parser.add_argument("repository", help="Repository name")
     parser.add_argument(
+        "--no-confirm",
+        type=bool,
+        default=False,
+        help="Do not confirm deletion with input prompt",
+    )
+    parser.add_argument(
         "--keep",
         type=int,
         default=10,
@@ -108,10 +114,11 @@ def main():
         print("\nDry run mode. No tags will be deleted.")
         return
 
-    confirm = input("\nProceed with deletion? (y/N) ").strip().lower()
-    if confirm != "y":
-        print("Aborted.")
-        return
+    if not args.yes:
+        confirm = input("\nProceed with deletion? (y/N) ").strip().lower()
+        if confirm != "y":
+            print("Aborted.")
+            return
 
     for t in to_delete:
         success = delete_tag(args.namespace, args.repository, t["name"], token)
