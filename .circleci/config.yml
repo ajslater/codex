@@ -16,7 +16,7 @@ jobs:
       - checkout:
           depth: 1
       - run:
-          command: . ./docker/machine-init.sh base builder-base
+          command: . ./docker/machine-init.sh base builder-base arch wheel
           name: Update packages & docker, produce env file.
       - run:
           command: ./docker/docker-build-image.sh codex-base clean
@@ -43,7 +43,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh dist-builder arch wheel
+          command: ./docker/machine-init.sh dist-builder
           name: Update packages & docker, produce env file.
       - run:
           command: ./docker/docker-build-image.sh codex-dist-builder pull
