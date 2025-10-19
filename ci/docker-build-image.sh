@@ -34,5 +34,5 @@ docker buildx bake \
 # Clean Repo
 if [[ $* == *clean* ]]; then
   export UV_NO_DEV=1
-  echo "$DOCKER_PASS" | uv run --only-group ci ./ci/cleanup-repo.py --password-stdin --no-confirm "$DOCKER_USER" ajslater "$TARGET"
+  echo "$DOCKER_PASS" | uv run --only-group ci ./ci/cleanup-repo.py --no-confirm "$DOCKER_USER" ajslater "$TARGET"
 fi
