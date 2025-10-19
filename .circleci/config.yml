@@ -77,7 +77,6 @@ jobs:
       - persist_to_workspace:
           paths:
             - ./dist
-            - ./.env-*
           root: .
       - discord/status:
           fail_only: false
