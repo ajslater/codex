@@ -3,6 +3,10 @@ executors:
     machine:
       image: ubuntu-2404:current
       resource_class: medium
+  amd64-small-executor:
+    machine:
+      image: ubuntu-2404:current
+      resource_class: small
   arm64-medium-executor:
     machine:
       image: ubuntu-2404:current
@@ -27,6 +31,7 @@ jobs:
       - persist_to_workspace:
           paths:
             - ./.env-*
+            - ./.venv
           root: .
       - discord/status:
           fail_only: true
@@ -104,7 +109,7 @@ jobs:
     <<: *build
     executor: arm64-medium-executor
   deploy:
-    executor: amd64-medium-executor
+    executor: amd64-small-executor
     steps:
       - checkout:
           depth: 1
