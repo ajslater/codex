@@ -12,9 +12,9 @@ COPY ./dist/$CODEX_WHEEL ./dist/$CODEX_WHEEL
 RUN PYMUPDF_SETUP_PY_LIMITED_API=0 pip3 install --no-cache-dir ./dist/$CODEX_WHEEL
 
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
-ARG PKG_VERSION
+ARG CODEX_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
-LABEL version=$PKG_VERSION
+LABEL version=$CODEX_VERSION
 
 # Create the comics directory
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME

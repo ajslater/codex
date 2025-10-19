@@ -16,9 +16,9 @@ STOP_SIGNAL_NAMES = (
     "SIGQUIT",
     "SIGSEGV",
     "SIGTERM",
-    "SIGUSR1",
     "SIGUSR2",
 )
+RESTART_SIGNAL_NAMES = ("SIGUSR1",)
 RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()
 
@@ -40,6 +40,13 @@ def _restart_signal_handler(*_args):
     _shutdown_signal_handler()
 
 
+def bind_signals_to_loop_aux(sig_add, signal_names, handler):
+    """Bind signal names to a handler."""
+    for name in signal_names:
+        if sig := getattr(signal, name, None):
+            sig_add(sig, handler)
+
+
 def bind_signals_to_loop():
     """Binds signals to the handlers."""
     try:
@@ -48,9 +55,7 @@ def bind_signals_to_loop():
         else:
             loop = asyncio.get_running_loop()
             sig_add = loop.add_signal_handler
-        for name in STOP_SIGNAL_NAMES:
-            if sig := getattr(signal, name, None):
-                sig_add(sig, _shutdown_signal_handler)
-        sig_add(signal.SIGUSR1, _restart_signal_handler)
+        bind_signals_to_loop_aux(sig_add, STOP_SIGNAL_NAMES, _shutdown_signal_handler)
+        bind_signals_to_loop_aux(sig_add, RESTART_SIGNAL_NAMES, _restart_signal_handler)
     except NotImplementedError:
         logger.info("Shutdown and restart signal handling not implemented on windows.")

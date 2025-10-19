@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 # Compute the version tag for ajslater/codex-dist-builder
 set -euo pipefail
-
-ENV_FN=$(./docker/docker-env-filename.sh)
-# shellcheck disable=SC1090
-source "$ENV_FN"
+. ./ci/machine-env.sh
 EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
 
 # shellcheck disable=SC2046
-readarray -d '' SOURCE_DEPS < <(find codex frontend -type f \( \
+readarray -d '' SOURCE_DEPS < <(find codex frontend tests -type f \( \
   ! -path "*node_modules*" \
   ! -path "*codex/static_build*" \
   ! -path "*codex/static_root*" \
@@ -20,10 +17,9 @@ readarray -d '' SOURCE_DEPS < <(find codex frontend -type f \( \
   \))
 DEPS=(
   "$0"
-  .dockerignore
   .prettierignore
   .shellcheckrc
-  docker/dist-builder.Dockerfile
+  ci/dist-builder.Dockerfile
   eslint.config.js
   bin/build-dist.sh
   bin/collectstatic.sh
@@ -39,4 +35,4 @@ DEPS=(
   "${SOURCE_DEPS[@]}"
 )
 
-source ./docker/docker-version-checksum.sh
+. ./ci/version-checksum.sh

@@ -2,7 +2,7 @@ ARG CODEX_BUILDER_BASE_VERSION
 FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}
 ARG CODEX_DIST_BUILDER_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
-LABEL version $CODEX_DIST_BUILDER_VERSION
+LABEL version=${CODEX_DIST_BUILDER_VERSION}
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
@@ -16,7 +16,7 @@ WORKDIR /app
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
 COPY pyproject.toml uv.lock ./
-RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 uv sync --no-install-project --no-dev
+RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 uv sync --no-install-project --no-dev --group lint --group test
 
 # *** install node lint & test dependency packages ***
 COPY package.json package-lock.json ./

@@ -162,6 +162,7 @@ export default defineConfig([
   {
     files: [
       "**/certbot.yaml",
+      "**/compose*.yaml",
       "**/docker-compose*.yaml",
       "**/.*_treestamps.yaml",
     ],
