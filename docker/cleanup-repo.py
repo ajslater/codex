@@ -59,7 +59,7 @@ def read_password(args):
     if not sys.stdin.isatty():
         # user piped input
         return sys.stdin.read().strip()
-    if args.password_stdin:
+    if args.password_prompt:
         # flag for interactive prompt
         return getpass("Docker Hub password or access token: ")
     return args.password
@@ -67,15 +67,18 @@ def read_password(args):
 
 def get_args():
     """Get Args."""
-    parser = argparse.ArgumentParser(description="Cleanup old Docker Hub tags")
+    parser = argparse.ArgumentParser(
+        description="Cleanup old Docker Hub tags",
+        epilog="password is preferentially read from stdin",
+    )
     parser.add_argument("username", help="Docker Hub username")
     parser.add_argument(
         "--password", help="Password or access token (not recommended for security)"
     )
     parser.add_argument(
-        "--password-stdin",
+        "--password-prompt",
         action="store_true",
-        help="Read password securely from stdin or prompt (preferred)",
+        help="Read password securely from prompt",
     )
     parser.add_argument("namespace", help="Namespace or user of the repository")
     parser.add_argument("repository", help="Repository name")
