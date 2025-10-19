@@ -25,7 +25,7 @@ else
 fi
 # get files
 fns=$(find "$@" -type f -name "*.sh")
-if [[ ${ignorefile:-} != "" ]]; then
+if [ "${ignorefile:-}" != "" ]; then
   fns=$(echo "$fns" | "$GREP_CMD" -vf "$ignorefile")
 fi
 
