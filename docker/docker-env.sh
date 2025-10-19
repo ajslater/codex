@@ -10,7 +10,7 @@ if [[ $* == *base* ]]; then
     echo "CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)"
     echo "CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)"
     echo "CODEX_VERSION=${CODEX_VERSION}"
-    echo "CODEX_ARCH_VERSION=${CODEX_VERSION}-${ARCH})"
+    echo "CODEX_ARCH_VERSION=${CODEX_VERSION}-${ARCH}"
     echo "CODEX_WHEEL=codex-${CODEX_VERSION}-py3-none-any.whl"
   ) > "$ENV_FN"
 fi
