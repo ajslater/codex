@@ -25,7 +25,7 @@ docker create \
     docker.io/ajslater/codex
 ```
 
-### docker-compose.yaml
+### compose.yaml
 
 ```yaml
 services:
