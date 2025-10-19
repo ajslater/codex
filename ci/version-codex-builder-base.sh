@@ -8,4 +8,4 @@ DEPS=(
   ci/builder-base.Dockerfile
 )
 
-. ./ci/docker-version-checksum.sh
+. ./ci/version-checksum.sh

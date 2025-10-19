@@ -6,6 +6,6 @@ export PATH=$PATH:$HOME/.local/bin
 ./ci/machine-packages.sh
 ./ci/docker-init.sh
 if [ $# -ne 0 ]; then
-  ./ci/docker-env.sh "$@"
+  ./ci/versions-create-env.sh "$@"
 fi
 . ./ci/machine-env.sh

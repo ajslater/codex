@@ -24,7 +24,7 @@ else
 fi
 
 # Build
-ARCH=$(./ci/docker-arch.sh)
+ARCH=$(./ci/machine-arch.sh)
 export ARCH
 docker buildx bake \
   --builder codex-builder \

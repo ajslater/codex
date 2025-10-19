@@ -13,6 +13,6 @@ VERSION=$(
     | md5sum \
     | awk '{print $1}'
 )
-ARCH=$(./ci/docker-arch.sh)
+ARCH=$(./ci/machine-arch.sh)
 VERSION="${VERSION}-$ARCH"
 echo "$VERSION"

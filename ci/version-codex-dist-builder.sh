@@ -35,4 +35,4 @@ DEPS=(
   "${SOURCE_DEPS[@]}"
 )
 
-. ./ci/docker-version-checksum.sh
+. ./ci/version-checksum.sh
