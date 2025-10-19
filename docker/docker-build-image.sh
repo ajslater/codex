@@ -13,7 +13,7 @@ IMAGE="${REPO}:${!VERSION_VAR}"
 if [ "${1-}" == "-f" ]; then
   shift
 else
-  # Check if image is already built
+  # Skip build if image is already built. Optionally pull it.
   if docker manifest inspect "$IMAGE"; then
     echo "$IMAGE" is already built.
     if [[ $* == *pull* ]]; then
@@ -31,6 +31,7 @@ docker buildx bake \
   --file docker-bake.hcl \
   "$TARGET"
 
+# Clean Repo
 if [[ $* == *clean* ]]; then
   echo "$DOCKER_PASS" | uv run ./docker/cleanup-repo.py --password-stdin --no-confirm "$DOCKER_USER" ajslater "$TARGET"
 fi
