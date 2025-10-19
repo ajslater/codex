@@ -95,13 +95,6 @@ jobs:
       - run:
           command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
-      - run:
-          command: ./docker/docker-save-arch-image.sh
-          name: Save the arch image.
-      - persist_to_workspace:
-          paths:
-            - codex-*.tar
-          root: .
       - discord/status:
           fail_only: true
           webhook: "${DISCORD_STATUS_WEBHOOK}"

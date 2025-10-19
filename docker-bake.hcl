@@ -77,5 +77,5 @@ target "codex-arch" {
       "docker.io/ajslater/codex-arch:${CODEX_ARCH_VERSION}",
       #"docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
     ]
-    output = [ "type=docker" ]
+    output = [ "type=registry" ]
   }

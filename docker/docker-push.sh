@@ -17,9 +17,8 @@ fi
 IMAGE_ARGS=()
 IMAGE_TAGS=()
 for arch in "${ARCHES[@]}"; do
-  docker image load --input codex-"$arch".tar
+  # docker image load --input codex-"$arch".tar
   IMAGE_ARCH="$ARCH_IMAGE:$CODEX_VERSION-${arch}"
-  docker push "$IMAGE_ARCH"
   IMAGE_ARGS+=("$IMAGE_ARCH")
   IMAGE_TAGS+=("${CODEX_VERSION}-${arch}")
 done
@@ -33,4 +32,4 @@ if [ "${CODEX_LATEST:-}" != "" ]; then
   docker buildx imagetools inspect "$IMAGE:latest"
 fi
 
-cat "$DOCKER_PASS" | uv run ./docker/del_repo_tags.py --password-stdin "$DOCKER_USER" ajslater codex "${IMAGE_TAGS[@]}"
+echo "$DOCKER_PASS" | uv run ./docker/cleanup-repo.py --password-stdin --keep 0 --no-confirm "$DOCKER_USER" ajslater codex-arch
