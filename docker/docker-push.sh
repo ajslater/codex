@@ -28,4 +28,5 @@ if [ "${CODEX_LATEST:-}" != "" ]; then
   docker buildx imagetools inspect "$IMAGE:latest"
 fi
 
+export UV_NO_DEV=1
 echo "$DOCKER_PASS" | uv run --only-group ci ./docker/cleanup-repo.py --password-stdin --keep 0 --no-confirm "$DOCKER_USER" ajslater codex-arch

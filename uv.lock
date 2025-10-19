@@ -517,34 +517,44 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "cairosvg" },
+]
 ci = [
     { name = "requests" },
 ]
 dev = [
-    { name = "basedpyright" },
-    { name = "cairosvg" },
-    { name = "codespell" },
-    { name = "coverage", extra = ["toml"] },
     { name = "django-schema-graph" },
-    { name = "django-types" },
-    { name = "djangorestframework-types" },
-    { name = "djlint" },
     { name = "icecream" },
-    { name = "mkdocs" },
-    { name = "mkdocs-minify-plugin" },
     { name = "neovim" },
     { name = "nplusone" },
     { name = "picopt" },
+    { name = "toml-cli" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-minify-plugin" },
+]
+lint = [
+    { name = "basedpyright" },
+    { name = "codespell" },
+    { name = "django-types" },
+    { name = "djangorestframework-types" },
+    { name = "djlint" },
+    { name = "radon", extra = ["toml"] },
+    { name = "ruff" },
+    { name = "types-python-dateutil" },
+    { name = "vulture" },
+]
+test = [
+    { name = "coverage", extra = ["toml"] },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "pytest-gitignore" },
-    { name = "radon", extra = ["toml"] },
-    { name = "ruff" },
-    { name = "toml-cli" },
+]
+typecheck = [
     { name = "ty" },
-    { name = "types-python-dateutil" },
-    { name = "vulture" },
     { name = "zuban" },
 ]
 
@@ -584,32 +594,40 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+build = [{ name = "cairosvg", specifier = "~=2.8" }]
 ci = [{ name = "requests", specifier = "~=2.32" }]
 dev = [
-    { name = "basedpyright", specifier = "~=1.30" },
-    { name = "cairosvg", specifier = "~=2.8" },
-    { name = "codespell", specifier = "~=2.4" },
-    { name = "coverage", extras = ["toml"], specifier = "~=7.0" },
     { name = "django-schema-graph", specifier = "~=3.1" },
-    { name = "django-types", specifier = "~=0.21" },
-    { name = "djangorestframework-types", specifier = "~=0.9" },
-    { name = "djlint", specifier = "~=1.36" },
     { name = "icecream", specifier = "~=2.1" },
-    { name = "mkdocs", specifier = "~=1.6" },
-    { name = "mkdocs-minify-plugin", specifier = "~=0.8" },
     { name = "neovim", specifier = "~=0.3" },
     { name = "nplusone", specifier = "~=1.0" },
     { name = "picopt", specifier = "~=5.2" },
+    { name = "toml-cli", specifier = "~=0.7" },
+]
+docs = [
+    { name = "mkdocs", specifier = "~=1.6" },
+    { name = "mkdocs-minify-plugin", specifier = "~=0.8" },
+]
+lint = [
+    { name = "basedpyright", specifier = "~=1.30" },
+    { name = "codespell", specifier = "~=2.4" },
+    { name = "django-types", specifier = "~=0.21" },
+    { name = "djangorestframework-types", specifier = "~=0.9" },
+    { name = "djlint", specifier = "~=1.36" },
+    { name = "radon", extras = ["toml"], specifier = "~=6.0" },
+    { name = "ruff", specifier = "~=0.12" },
+    { name = "types-python-dateutil", specifier = "~=2.9" },
+    { name = "vulture", specifier = "~=2.3" },
+]
+test = [
+    { name = "coverage", extras = ["toml"], specifier = "~=7.0" },
     { name = "pytest-asyncio", specifier = "~=1.0" },
     { name = "pytest-cov", specifier = "~=7.0" },
     { name = "pytest-django", specifier = "~=4.1" },
     { name = "pytest-gitignore", specifier = "~=1.3" },
-    { name = "radon", extras = ["toml"], specifier = "~=6.0" },
-    { name = "ruff", specifier = "~=0.12" },
-    { name = "toml-cli", specifier = "~=0.7" },
+]
+typecheck = [
     { name = "ty", specifier = ">=0.0.1a19" },
-    { name = "types-python-dateutil", specifier = "~=2.9" },
-    { name = "vulture", specifier = "~=2.3" },
     { name = "zuban", specifier = ">=0.1.1" },
 ]
 
