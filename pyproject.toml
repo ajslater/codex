@@ -93,6 +93,7 @@ dev = [
   "vulture~=2.3",
   "zuban>=0.1.1",
 ]
+ci = ["requests=~2.32"]
 
 [build-system]
 requires = ["uv_build~=0.8.7"]
