@@ -12,9 +12,9 @@ if [[ $* == *base* ]]; then
     echo "CODEX_VERSION=${CODEX_VERSION}"
     echo "CODEX_ARCH_VERSION=${CODEX_VERSION}-${ARCH})"
     echo "CODEX_WHEEL=codex-${CODEX_VERSION}-py3-none-any.whl"
-  ) >"$ENV_FN"
+  ) > "$ENV_FN"
 fi
 
 if [[ $* == *dist-builder* ]]; then
-  echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >>"$ENV_FN"
+  echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >> "$ENV_FN"
 fi
