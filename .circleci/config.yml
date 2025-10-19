@@ -117,7 +117,7 @@ jobs:
           command: ./docker/docker-push.sh
           name: Push multi-arch images to Docker Hub
       - run:
-          command: make publish
+          command: ./docker/python-publish.sh
           name: Publish Codex Package to PyPi
       - discord/status:
           fail_only: false
