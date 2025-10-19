@@ -15,12 +15,8 @@ if [ "${CODEX_LATEST:-}" != "" ]; then
   TAG_ARGS+=(-t "$IMAGE":latest)
 fi
 IMAGE_ARGS=()
-IMAGE_TAGS=()
 for arch in "${ARCHES[@]}"; do
-  # docker image load --input codex-"$arch".tar
-  IMAGE_ARCH="$ARCH_IMAGE:$CODEX_VERSION-${arch}"
-  IMAGE_ARGS+=("$IMAGE_ARCH")
-  IMAGE_TAGS+=("${CODEX_VERSION}-${arch}")
+  IMAGE_ARGS+=("$ARCH_IMAGE:${CODEX_VERSION}-${arch}")
 done
 
 docker buildx imagetools create \
