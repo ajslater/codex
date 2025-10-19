@@ -3,7 +3,7 @@
 set -euxo pipefail
 . ./docker/machine-env.sh
 IMAGE=docker.io/ajslater/codex
-ARCH_IMAGE="docker.io/ajslater/codex-arch"
+ARCH_IMAGE="ajslater/codex-arch"
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   # If the version is just numbers push it as latest
   CODEX_LATEST=1
