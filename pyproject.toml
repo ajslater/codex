@@ -371,6 +371,7 @@ ignore-overlong-task-comments = true
 "codex/models/__init__.py" = ["F403"]
 "codex/settings/*" = ["T201"]
 "docker/cleanup-repo.py" = ["T201"]
+"docker/del-repo-tags.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 "tests/*" = ["D101", "D102", "T203"]
 
