@@ -517,6 +517,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+ci = [
+    { name = "requests" },
+]
 dev = [
     { name = "basedpyright" },
     { name = "cairosvg" },
@@ -581,6 +584,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+ci = [{ name = "requests", specifier = "~=2.32" }]
 dev = [
     { name = "basedpyright", specifier = "~=1.30" },
     { name = "cairosvg", specifier = "~=2.8" },
