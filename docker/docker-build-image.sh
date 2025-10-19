@@ -32,5 +32,5 @@ docker buildx bake \
   "$TARGET"
 
 if [[ $* == *clean* ]]; then
-  uv run ./docker/cleanup-repo.py --no-confirm "$DOCKER_USER" "$DOCKER_PASS" ajslater "$TARGET"
+  echo "$DOCKER_PASS" | uv run ./docker/cleanup-repo.py --password-stdin --no-confirm "$DOCKER_USER" ajslater "$TARGET"
 fi

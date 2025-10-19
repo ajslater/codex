@@ -2,8 +2,10 @@
 """Remove old tags from a docker repo."""
 
 import argparse
+import sys
 import time
 from datetime import datetime
+from getpass import getpass
 
 import requests
 
@@ -52,11 +54,29 @@ def delete_tag(namespace, repo, tag, token, retries=3, delay=2):
     return False
 
 
+def read_password(args):
+    """Read password/token securely from stdin or prompt."""
+    if not sys.stdin.isatty():
+        # user piped input
+        return sys.stdin.read().strip()
+    if args.password_stdin:
+        # flag for interactive prompt
+        return getpass("Docker Hub password or access token: ")
+    return args.password
+
+
 def get_args():
     """Get Args."""
     parser = argparse.ArgumentParser(description="Cleanup old Docker Hub tags")
     parser.add_argument("username", help="Docker Hub username")
-    parser.add_argument("password", help="Docker Hub password or token")
+    parser.add_argument(
+        "--password", help="Password or access token (not recommended for security)"
+    )
+    parser.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="Read password securely from stdin or prompt (preferred)",
+    )
     parser.add_argument("namespace", help="Namespace or user of the repository")
     parser.add_argument("repository", help="Repository name")
     parser.add_argument(
@@ -82,7 +102,13 @@ def main():
     """Run the Program."""
     args = get_args()
 
-    token = login(args.username, args.password)
+    password = read_password(args)
+    if not password:
+        sys.exit(
+            "❌ No password provided. Use --password, --password-stdin, or pipe it in."
+        )
+
+    token = login(args.username, password)
     print(f"Logged in as {args.username}")
 
     tags = fetch_all_tags(args.namespace, args.repository, token)
