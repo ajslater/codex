@@ -1,4 +1,5 @@
 #!/bin/bash
+# install and upgrade system packages.
 set -euo pipefail
 # uv
 if which uv; then

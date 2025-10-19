@@ -1,3 +1,5 @@
+#
+# export env variables
 export PATH=$PATH:"$HOME/.local/bin"
 . ./docker/docker-env-filename.sh
 set -a
