@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 # Publish distribution to pypi
-. ./docker/machine-env.sh
+. ./ci/machine-env.sh
 make publish

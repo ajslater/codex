@@ -1,7 +1,7 @@
 #!/bin/bash
 # Load arch images and push all archs as one image to docker.io
 set -euxo pipefail
-. ./docker/machine-env.sh
+. ./ci/machine-env.sh
 IMAGE=docker.io/ajslater/codex
 ARCH_IMAGE="ajslater/codex-arch"
 ARCHES=(x86_64 aarch64)
@@ -29,4 +29,4 @@ if [ "${CODEX_LATEST:-}" != "" ]; then
 fi
 
 export UV_NO_DEV=1
-echo "$DOCKER_PASS" | uv run --only-group ci ./docker/cleanup-repo.py --password-stdin --keep 0 --no-confirm "$DOCKER_USER" ajslater codex-arch
+echo "$DOCKER_PASS" | uv run --only-group ci ./ci/cleanup-repo.py --password-stdin --keep 0 --no-confirm "$DOCKER_USER" ajslater codex-arch

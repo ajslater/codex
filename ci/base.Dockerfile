@@ -1,10 +1,9 @@
-FROM nikolaik/python-nodejs:python3.13-nodejs24
-ARG CODEX_BUILDER_BASE_VERSION
+FROM ajslater/python-debian:3.13.9-slim-trixie_0
+ARG CODEX_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
-LABEL version=${CODEX_BUILDER_BASE_VERSION}
+LABEL version=$CODEX_BASE_VERSION
 
-# **** install codex system build dependency packages ****"
-COPY docker/debian.sources /etc/apt/sources.list.d/
+COPY ci/debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
@@ -20,14 +19,8 @@ RUN apt-get clean \
     ruamel.yaml.clib \
     unrar \
     zlib1g \
-    bash \
-    build-essential \
-    git \
-    python3-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
 
 # hadolint ignore=DL3013,DL3042
 RUN pip3 install --no-cache --upgrade pip

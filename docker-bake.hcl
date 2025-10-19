@@ -14,7 +14,7 @@ target "codex-base" {
     cache-to = [
       "type=registry,ref=docker.io/ajslater/codex-base:buildcache,mode=max"
     ]
-    dockerfile = "docker/base.Dockerfile"
+    dockerfile = "ci/base.Dockerfile"
     tags = [
       "docker.io/ajslater/codex-base:${CODEX_BASE_VERSION}",
       "docker.io/ajslater/codex-base:latest-${ARCH}"
@@ -32,7 +32,7 @@ target "codex-builder-base" {
     cache-to = [
       "type=registry,ref=docker.io/ajslater/codex-builder-base:buildcache,mode=max"
     ]
-    dockerfile = "docker/builder-base.Dockerfile"
+    dockerfile = "ci/builder-base.Dockerfile"
     tags = [
       "docker.io/ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}",
       "docker.io/ajslater/codex-builder-base:latest-${ARCH}"
@@ -52,7 +52,7 @@ target "codex-dist-builder" {
     cache-to = [
       "type=registry,ref=docker.io/ajslater/codex-dist-builder:buildcache,mode=max"
     ]
-    dockerfile = "docker/dist-builder.Dockerfile"
+    dockerfile = "ci/dist-builder.Dockerfile"
     tags = [
       "docker.io/ajslater/codex-dist-builder:${CODEX_DIST_BUILDER_VERSION}",
       "docker.io/ajslater/codex-dist-builder:latest-${ARCH}"
@@ -72,10 +72,9 @@ target "codex-arch" {
       "type=registry,ref=docker.io/ajslater/codex:latest"
     ]
     cache-to = []
-    dockerfile = "docker/Dockerfile"
+    dockerfile = "ci/Dockerfile"
     tags = [
       "docker.io/ajslater/codex-arch:${CODEX_ARCH_VERSION}",
-      #"docker.io/ajslate/codex-arch:${CODEX_ARCH_LATEST}"
     ]
     output = [ "type=registry" ]
   }

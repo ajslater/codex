@@ -40,7 +40,7 @@ services:
   codex:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: ci/Dockerfile
     image: docker.io/ajslater/codex
     container_name: codex
     ports:
@@ -51,7 +51,7 @@ services:
   codex-dev:
     build:
       context: .
-      dockerfile: docker/dev.Dockerfile
+      dockerfile: ci/dev.Dockerfile
     image: codex-dev
     # mem_limit: 1g
     container_name: codex-dev
@@ -67,7 +67,7 @@ services:
   codex-package:
     build:
       context: .
-      dockerfile: docker/package.Dockerfile
+      dockerfile: ci/package.Dockerfile
     image: codex-package
     container_name: codex-package
     env_file:

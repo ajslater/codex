@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Generic image builder script
 set -xeuo pipefail
-. ./docker/machine-env.sh
+. ./ci/machine-env.sh
 
 # Set env
 TARGET=$1 # the docker bake target to build
@@ -24,7 +24,7 @@ else
 fi
 
 # Build
-ARCH=$(./docker/docker-arch.sh)
+ARCH=$(./ci/docker-arch.sh)
 export ARCH
 docker buildx bake \
   --builder codex-builder \

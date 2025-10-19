@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compute the version tag for ajslater/codex-dist-builder
 set -euo pipefail
-. ./docker/machine-env.sh
+. ./ci/machine-env.sh
 EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
 
 # shellcheck disable=SC2046
@@ -19,7 +19,7 @@ DEPS=(
   "$0"
   .prettierignore
   .shellcheckrc
-  docker/dist-builder.Dockerfile
+  ci/dist-builder.Dockerfile
   eslint.config.js
   bin/build-dist.sh
   bin/collectstatic.sh
@@ -35,4 +35,4 @@ DEPS=(
   "${SOURCE_DEPS[@]}"
 )
 
-. ./docker/docker-version-checksum.sh
+. ./ci/docker-version-checksum.sh

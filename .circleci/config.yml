@@ -20,13 +20,13 @@ jobs:
       - checkout:
           depth: 1
       - run:
-          command: . ./docker/machine-init.sh base
+          command: . ./ci/machine-init.sh base
           name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-build-image.sh codex-base clean
+          command: ./ci/docker-build-image.sh codex-base clean
           name: Build Base Image
       - run:
-          command: ./docker/docker-build-image.sh codex-builder-base clean
+          command: ./ci/docker-build-image.sh codex-builder-base clean
           name: Build Builder Base Image
       - persist_to_workspace:
           paths:
@@ -48,36 +48,36 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh dist-builder
+          command: ./ci/machine-init.sh dist-builder
           name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-build-image.sh codex-dist-builder pull
+          command: ./ci/docker-build-image.sh codex-dist-builder pull
           name: Build Builder Base Image
       - run:
-          command: ./docker/docker-compose-exit.sh codex-backend-lint
+          command: ./ci/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-frontend-lint
+          command: ./ci/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-frontend-test
+          command: ./ci/docker-compose-exit.sh codex-frontend-test
           name: "Frontend: Test"
       - store_test_results:
           path: test-results/jest
       - store_artifacts:
           path: frontend/coverage
       - run:
-          command: ./docker/docker-compose-exit.sh codex-frontend-build
+          command: ./ci/docker-compose-exit.sh codex-frontend-build
           name: "Frontend: Build"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-backend-test
+          command: ./ci/docker-compose-exit.sh codex-backend-test
           name: "Backend: Test"
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
           path: test-results/coverage
       - run:
-          command: ./docker/docker-compose-exit.sh codex-build-dist
+          command: ./ci/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
       - persist_to_workspace:
           paths:
@@ -95,10 +95,10 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh
+          command: ./ci/machine-init.sh
           name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-build-image.sh codex-arch
+          command: ./ci/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
       - discord/status:
           fail_only: true
@@ -116,13 +116,13 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/machine-init.sh
+          command: ./ci/machine-init.sh
           name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-push.sh
+          command: ./ci/docker-push.sh
           name: Push multi-arch images to Docker Hub
       - run:
-          command: ./docker/python-publish.sh
+          command: ./ci/python-publish.sh
           name: Publish Codex Package to PyPi
       - discord/status:
           fail_only: false

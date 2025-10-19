@@ -113,7 +113,7 @@ source-include = [
   ".shellcheckrc",
   "bin/**",
   "compose.yaml",
-  "docker/**",
+  "ci/**",
   "docs/codex/img/logo.svg",
   "docs/DOCKER.md",
   "docs/NEWS",
@@ -373,8 +373,7 @@ ignore-overlong-task-comments = true
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
 "codex/settings/*" = ["T201"]
-"docker/cleanup-repo.py" = ["T201"]
-"docker/old/del-repo-tags.py" = ["T201"]
+"ci/cleanup-repo.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 "tests/*" = ["D101", "D102", "T203"]
 
