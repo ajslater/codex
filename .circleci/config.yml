@@ -109,7 +109,7 @@ jobs:
     <<: *build
     executor: arm64-medium-executor
   deploy:
-    executor: amd64-small-executor
+    executor: amd64-medium-executor
     steps:
       - checkout:
           depth: 1
