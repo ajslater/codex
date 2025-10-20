@@ -3,10 +3,6 @@ executors:
     machine:
       image: ubuntu-2404:current
       resource_class: medium
-  amd64-small-executor:
-    machine:
-      image: ubuntu-2404:current
-      resource_class: small
   arm64-medium-executor:
     machine:
       image: ubuntu-2404:current
