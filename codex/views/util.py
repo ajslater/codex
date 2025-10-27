@@ -5,9 +5,6 @@ from dataclasses import dataclass
 
 from typing_extensions import override
 
-# Maximum cover size is around 24 Kb
-DEFAULT_CHUNK_SIZE = 64 * 1024  # 64 Kb
-
 
 @dataclass
 class Route:
@@ -44,13 +41,3 @@ def pop_name(kwargs: Mapping):
     kwargs = dict(kwargs)
     kwargs.pop("name", None)
     return kwargs
-
-
-def chunker(open_file, chunk_size=DEFAULT_CHUNK_SIZE):
-    """Asynchronous iterator for serving files."""
-    with open_file:
-        while True:
-            if chunk := open_file.read(chunk_size):
-                yield chunk
-            else:
-                break

@@ -17,12 +17,21 @@ from codex.models.comic import Comic, FileType
 from codex.settings import COMICBOX_CONFIG, FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
-from codex.views.util import chunker
 
 _PDF_MIME_TYPE = "application/pdf"
 # Most pages seem to be 2.5 Mb
 # largest pages I've seen were 9 Mb
 _PAGE_CHUNK_SIZE = (1024**2) * 3  # 3 Mb
+
+
+def chunker(data: bytes):
+    """Asynchronous iterator for serving large images."""
+    with BytesIO(data) as buffer:
+        while True:
+            if chunk := buffer.read(_PAGE_CHUNK_SIZE):
+                yield chunk
+            else:
+                break
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -122,5 +131,4 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             logger.warning(exc)
             raise NotFound(detail="comic page not found") from exc
         else:
-            page_chunker = chunker(BytesIO(page_image), _PAGE_CHUNK_SIZE)
-            return StreamingHttpResponse(page_chunker, content_type=content_type)
+            return StreamingHttpResponse(chunker(page_image), content_type=content_type)
