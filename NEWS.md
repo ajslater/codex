@@ -8,6 +8,9 @@ border-radius: 128px;
 
 ## v1.8.17
 
+- Features
+    - Python 3.14 support.
+
 - Fixes
     - Fix for codex sometimes shutting when asked to restart.
 
