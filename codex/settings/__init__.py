@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+import sqlite3
+import warnings
 from os import environ
 from pathlib import Path
 from types import MappingProxyType
@@ -84,9 +86,16 @@ CODEX_PATH = BASE_DIR / "codex"
 CUSTOM_COVERS_SUBDIR = "custom-covers"
 CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
 CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
-for group_dir in CUSTOM_COVERS_GROUP_DIRS:
-    custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
-    custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
+
+
+def create_custom_cover_group_dirs():
+    """Create custom cover group dirs."""
+    for group_dir in CUSTOM_COVERS_GROUP_DIRS:
+        custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
+        custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
+
+
+create_custom_cover_group_dirs()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
