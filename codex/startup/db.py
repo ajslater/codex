@@ -86,8 +86,7 @@ def _rebuild_db():
     logger.warning("REBUILDING DATABASE!!")
     _REBUILT_DB_PATH.unlink(missing_ok=True)
     recover_proc = subprocess.Popen(_REPAIR_ARGS, stdout=subprocess.PIPE)  # noqa: S603
-    with sqlite3.connect(_REBUILT_DB_PATH) as new_db_conn:
-        new_db_cur = new_db_conn.cursor()
+    with sqlite3.connect(_REBUILT_DB_PATH) as new_db_conn, new_db_conn as new_db_cur:
         if recover_proc.stdout:
             for line in recover_proc.stdout:
                 row = line.decode().strip()
@@ -97,7 +96,6 @@ def _rebuild_db():
                     else row
                 )
                 new_db_cur.execute(replaced_row)
-        new_db_cur.close()
     if recover_proc.stdout:
         recover_proc.stdout.close()
         recover_proc.wait(timeout=15)
