@@ -1,4 +1,4 @@
-FROM nikolaik/python-nodejs:python3.13-nodejs24
+FROM nikolaik/python-nodejs:python3.14-nodejs25
 ARG CODEX_BUILDER_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
