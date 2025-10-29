@@ -602,7 +602,7 @@ requires-dist = [
     { name = "ansicolors", specifier = "~=1.1" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.5,<3.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = ">=2.0.6,<3.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=5.2" },
     { name = "django-cachalot", specifier = "~=2.8" },
@@ -680,7 +680,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.0.5"
+version = "2.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -706,9 +706,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8c/e4/0173ac218ef2b14466273926dd0e81382562583a6509aa015c946fbe0326/comicbox-2.0.5.tar.gz", hash = "sha256:865ff64ffcd46dcfd67cfaf390dce81d7416fcefa2d1eb5a8373515ea57bf26b", size = 71095895, upload-time = "2025-10-13T20:18:25.096Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/61/a7d8270957944ef1c3acdef672458390a05f08864fe8a91e96b6c0c19005/comicbox-2.0.6.tar.gz", hash = "sha256:b4ab7d8bf2532042979241c695f90d2d32c07cf36c5051427ee3ac5738f2a512", size = 71118858, upload-time = "2025-10-29T01:49:49.702Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/92/5b/65f4ad2933c144be44126778b0c8af99fc29105830a9f327eca9012fac73/comicbox-2.0.5-py3-none-any.whl", hash = "sha256:0c1372b4dcc59801568ca24f6995ce164e8ba8968d894b3f9c41413d3c32198a", size = 155591, upload-time = "2025-10-13T20:18:22.143Z" },
+    { url = "https://files.pythonhosted.org/packages/67/25/13b1f58de909e26eb119b6f1b6088dbfc4de7034d8d43943613728465413/comicbox-2.0.6-py3-none-any.whl", hash = "sha256:52feba7d28d0bd207deff6ffb52248f0ad09870ba25f8cef3111fff9e0a81361", size = 155613, upload-time = "2025-10-29T01:49:46.812Z" },
 ]
 
 [package.optional-dependencies]
@@ -2012,7 +2012,7 @@ wheels = [
 
 [[package]]
 name = "picopt"
-version = "5.2.1"
+version = "5.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "confuse" },
@@ -2030,9 +2030,9 @@ dependencies = [
     { name = "treestamps" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/36/3d/ace7dbc237092c5eae6e29ebb8cda8203448618e6ba4703377bd10d30af9/picopt-5.2.1.tar.gz", hash = "sha256:f8ee4ed5ffb8948fa8ef9a54ac40e8046c63156bae26eeb4bc01dfbc5797d3cf", size = 9891937, upload-time = "2025-10-11T01:33:00.318Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1f/31/ab5c544ccf4a3f7fff477a00fddd478ec4d6c75894ef8f6841c646afa58f/picopt-5.2.2.tar.gz", hash = "sha256:5c160d912965ab617fb20f1c10332b6d9e6ae36149baf45219730618d3719748", size = 9910103, upload-time = "2025-10-27T22:45:15.475Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/12/74f049a7dd5881da1bf0786b7c96273784378921520d8653468bd05b9e87/picopt-5.2.1-py3-none-any.whl", hash = "sha256:5f12062064f6e9b467886d7ed1bde1c71786747194cf33cf6ff45360703e1d97", size = 64409, upload-time = "2025-10-11T01:32:58.906Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/99/ffb0dc73d17cf9620bb9812b11338c010f6c95f2e5d45cbe4dff8e915795/picopt-5.2.2-py3-none-any.whl", hash = "sha256:1635466edc42774e94419f4b08f055ac5008e6a7244688c05193f25e392af885", size = 63055, upload-time = "2025-10-27T22:45:13.743Z" },
 ]
 
 [[package]]
