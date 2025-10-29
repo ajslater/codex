@@ -8,6 +8,7 @@ from typing import Any, NamedTuple
 
 from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
+from django.db import close_old_connections
 from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread  # typos:ignore
@@ -181,6 +182,7 @@ class LibrarianDaemon(Process):
             while self.run_loop:
                 try:
                     task = self.queue.get()
+                    close_old_connections()
                     self._process_task(task)
                 except Exception:
                     self.log.exception(f"In {self.name} loop")
