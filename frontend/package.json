@@ -12,7 +12,7 @@
     "fix": "eslint_d --cache --fix . && prettier --write .",
     "lint": "eslint_d --cache . && prettier --check .",
     "test": "vitest --reporter verbose --update",
-    "test:ci": "vitest run --reporter verbose --update --localstorage-file=./localstorage-data.json"
+    "test:ci": "vitest run --reporter verbose --update"
   },
   "dependencies": {
     "@unhead/vue": "^2.0.8",
