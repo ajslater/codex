@@ -52,7 +52,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             existing_mds[key] = value
         return existing_mds
 
-    def _query_missing_models_batch(  # noqa: PLR0913
+    def _query_missing_models_batch(
         self,
         model: type[BaseModel],
         start: int,

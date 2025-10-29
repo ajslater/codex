@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 from django.db import OperationalError
 from django.db.models.query import Q
-from django.http.response import StreamingHttpResponse
+from django.http import FileResponse, HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from loguru import logger
@@ -26,7 +26,6 @@ from codex.views.const import (
     MISSING_COVER_NAME_MAP,
     STATIC_IMG_PATH,
 )
-from codex.views.util import chunker
 
 
 class WEBPRenderer(BaseRenderer):
@@ -127,7 +126,7 @@ class CoverView(BrowserAnnotateOrderView):
         return cover_path, content_type
 
     def _get_cover_data(self, pk, *, custom: bool):
-        thumb_buffer = None
+        thumb_buffer = False
         content_type = "image/webp"
 
         cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
@@ -140,8 +139,7 @@ class CoverView(BrowserAnnotateOrderView):
         elif cover_path.stat().st_size == 0:
             cover_path, content_type = self._get_missing_cover_path()
 
-        cover_file = thumb_buffer if thumb_buffer else cover_path.open("rb")
-        return cover_file, content_type
+        return thumb_buffer, cover_path, content_type
 
     @extend_schema(
         parameters=[BrowserAnnotateOrderView.input_serializer_class],
@@ -156,7 +154,11 @@ class CoverView(BrowserAnnotateOrderView):
                 self._handle_operational_error(exc)
                 pk = 0
                 custom = False
-            cover_file, content_type = self._get_cover_data(pk, custom=custom)
-            return StreamingHttpResponse(chunker(cover_file), content_type=content_type)
+            cover_buffer, cover_path, content_type = self._get_cover_data(
+                pk, custom=custom
+            )
+            if cover_buffer:
+                return HttpResponse(cover_buffer, content_type=content_type)
+            return FileResponse(cover_path.open("rb"), content_type=content_type)
         except Exception:
             logger.exception("Get cover")

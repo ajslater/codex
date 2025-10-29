@@ -1,8 +1,4 @@
 executors:
-  amd64-large-executor:
-    machine:
-      image: ubuntu-2404:current
-      resource_class: large
   amd64-medium-executor:
     machine:
       image: ubuntu-2404:current
@@ -17,25 +13,21 @@ jobs:
   build-base-amd64: &build-base
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt Platform, Create the buildx Builder
+          command: . ./ci/machine-init.sh base
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-env.sh
-          name: Generate image versions
-      - run:
-          command: ./docker/docker-build-image.sh codex-base
+          command: ./ci/docker-build-image.sh codex-base clean
           name: Build Base Image
       - run:
-          command: ./docker/docker-build-image.sh codex-builder-base
+          command: ./ci/docker-build-image.sh codex-builder-base clean
           name: Build Builder Base Image
-      - run:
-          command: ./docker/docker-build-image.sh amd64 codex-dist-builder
-          name: Build Distribution Builder Image
       - persist_to_workspace:
           paths:
             - ./.env-*
+            - ./.venv
           root: .
       - discord/status:
           fail_only: true
@@ -44,57 +36,44 @@ jobs:
   build-base-arm64:
     <<: *build-base
     executor: arm64-medium-executor
-  test-amd64:
+  test-and-build-dist-amd64:
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, install binfmt platform, & create the buildx builder
+          command: ./ci/machine-init.sh dist-builder
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-compose-exit.sh codex-backend-lint
+          command: ./ci/docker-build-image.sh codex-dist-builder pull
+          name: Build Builder Base Image
+      - run:
+          command: ./ci/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-frontend-lint
+          command: ./ci/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-frontend-test
+          command: ./ci/docker-compose-exit.sh codex-frontend-test
           name: "Frontend: Test"
       - store_test_results:
           path: test-results/jest
+      - store_artifacts:
+          path: frontend/coverage
       - run:
-          command: ./docker/docker-compose-exit.sh codex-frontend-build
+          command: ./ci/docker-compose-exit.sh codex-frontend-build
           name: "Frontend: Build"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-backend-test
+          command: ./ci/docker-compose-exit.sh codex-backend-test
           name: "Backend: Test"
-      - persist_to_workspace:
-          paths:
-            - ./codex/static_root
-          root: .
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
           path: test-results/coverage
-      - store_artifacts:
-          path: frontend/coverage
-      - discord/status:
-          fail_only: false
-          webhook: "${DISCORD_STATUS_WEBHOOK}"
-          failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
-  build-dist:
-    executor: amd64-medium-executor
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
-      - run:
-          command: ./docker/docker-compose-exit.sh codex-build-dist
+          command: ./ci/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
       - persist_to_workspace:
           paths:
@@ -107,14 +86,15 @@ jobs:
   build-amd64: &build
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/docker-init.sh
-          name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
+          command: ./ci/machine-init.sh
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-build-image.sh codex -arch
+          command: ./ci/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
       - discord/status:
           fail_only: true
@@ -127,20 +107,18 @@ jobs:
   deploy:
     executor: amd64-medium-executor
     steps:
-      - checkout
+      - checkout:
+          depth: 1
       - attach_workspace:
           at: .
       - run:
-          command: ./docker/docker-install-api-deps.sh
-          name: Install docker API dependencies
+          command: ./ci/machine-init.sh
+          name: Update packages & docker, produce env file.
       - run:
-          command: ./docker/docker-login.sh
-          name: Login to Docker Hub
+          command: ./ci/docker-push.sh
+          name: Push multi-arch images to Docker Hub
       - run:
-          command: ./docker/docker-create-multiarch-codex.sh
-          name: Create multi-arch images
-      - run:
-          command: make publish
+          command: ./ci/python-publish.sh
           name: Publish Codex Package to PyPi
       - discord/status:
           fail_only: false
@@ -165,24 +143,21 @@ workflows:
               only:
                 - pre-release
                 - main
-      - test-amd64:
+                - /.*-ci/
+      - test-and-build-dist-amd64:
           <<: *filters-all
           requires:
             - build-base-amd64
-      - build-dist:
-          <<: *filters-all
-          requires:
-            - test-amd64
       - build-amd64:
           <<: *filters-release
           requires:
             - build-base-amd64
-            - build-dist
+            - test-and-build-dist-amd64
       - build-arm64:
           <<: *filters-release
           requires:
             - build-base-arm64
-            - build-dist
+            - test-and-build-dist-amd64
       - deploy:
           <<: *filters-release
           requires:

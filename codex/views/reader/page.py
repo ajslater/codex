@@ -1,9 +1,7 @@
 """Views for reading comic books."""
 
-from io import BytesIO
-
 from comicbox.box import Comicbox
-from django.http.response import StreamingHttpResponse
+from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from loguru import logger
@@ -17,12 +15,8 @@ from codex.models.comic import Comic, FileType
 from codex.settings import COMICBOX_CONFIG, FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
-from codex.views.util import chunker
 
 _PDF_MIME_TYPE = "application/pdf"
-# Most pages seem to be 2.5 Mb
-# largest pages I've seen were 9 Mb
-_PAGE_CHUNK_SIZE = (1024**2) * 3  # 3 Mb
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -122,5 +116,4 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             logger.warning(exc)
             raise NotFound(detail="comic page not found") from exc
         else:
-            page_chunker = chunker(BytesIO(page_image), _PAGE_CHUNK_SIZE)
-            return StreamingHttpResponse(page_chunker, content_type=content_type)
+            return HttpResponse(page_image, content_type=content_type)

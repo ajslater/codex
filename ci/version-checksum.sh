@@ -13,8 +13,6 @@ VERSION=$(
     | md5sum \
     | awk '{print $1}'
 )
-if [[ ${CIRCLECI-} ]]; then
-  ARCH=$(./docker/docker-arch.sh)
-  VERSION="${VERSION}-$ARCH"
-fi
+ARCH=$(./ci/machine-arch.sh)
+VERSION="${VERSION}-$ARCH"
 echo "$VERSION"

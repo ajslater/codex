@@ -72,7 +72,7 @@ build-frontend: build-choices
 ## Build all icons from source
 ## @category Build
 build-icons:
-	uv run bin/icons_transform.py
+	uv run --group build bin/icons_transform.py
 
 .PHONY: collectstatic
 ## Collect static files for django
@@ -136,7 +136,20 @@ fix: fix-backend fix-frontend
 ## Static typecheck
 ## @category Lint
 typecheck:
-	uv run basedpyright .
+	uv run --group lint --no-dev basedpyright .
+
+.PHONY: ty
+## Static typecheck with ty
+## @category Lint
+ty:
+	uv run --group typecheck --no-dev ty check .
+
+.PHONY: zuban
+## Static typecheck with zuban
+## @category Lint
+zuban:
+	uv run --group typecheck --no-dev zuban check
+
 
 .PHONY: lint-frontend
 ## Lint the frontend
@@ -253,13 +266,13 @@ news:
 ## Build doc site
 ## @category Docs
 docs:
-	uv run mkdocs build --strict --site-dir docs/site
+	uv run --only-group docs --no-dev mkdocs build --strict --site-dir docs/site
 
 .PHONY: docs-server
 ## Build doc site
 ## @category Docs
 docs-server:
-	uv run mkdocs serve --open --dirty
+	uv run --only-group docs mkdocs serve --open --dirty
 
 
 .PHONY: all

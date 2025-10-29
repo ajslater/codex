@@ -10,9 +10,10 @@ bin/sortignore.sh
 ####################
 ###### Python ######
 ###################
-uv run ruff check --fix .
-uv run ruff format .
-uv run djlint codex/templates/*.html codex/templates/pwa/*.html --reformat
+export UV_NO_DEV=1
+uv run --group lint ruff check --fix .
+uv run --group lint ruff format .
+uv run --group lint djlint codex/templates/*.html codex/templates/pwa/*.html --reformat
 
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####

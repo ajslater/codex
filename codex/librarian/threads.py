@@ -6,6 +6,7 @@ from multiprocessing.queues import Queue
 from queue import Empty, SimpleQueue
 from threading import Thread
 
+from django.db import close_old_connections
 from loguru._logger import Logger
 from typing_extensions import override
 
@@ -76,6 +77,7 @@ class QueuedThread(NamedThread, ABC):
         self.run_start()
         while True:
             try:
+                close_old_connections()
                 self._check_item()
             except BreakLoopError:
                 break

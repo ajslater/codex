@@ -57,7 +57,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         i = (st.st_ino, st.st_dev)
         self._inode_to_path[i] = path
 
-    def __init__(  # noqa: PLR0913 # pyright: ignore[reportMissingSuperCall]
+    def __init__(  # pyright: ignore[reportMissingSuperCall]
         self,
         path,
         *,

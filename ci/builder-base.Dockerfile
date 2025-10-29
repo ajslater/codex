@@ -1,29 +1,31 @@
-FROM nikolaik/python-nodejs:python3.13-nodejs24
+FROM nikolaik/python-nodejs:python3.14-nodejs24
+# nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
 ARG CODEX_BUILDER_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
 # **** install codex system build dependency packages ****"
-COPY docker/debian.sources /etc/apt/sources.list.d/
+COPY ci/debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
-  libimagequant0 \
-  libjpeg62-turbo \
-  libopenjp2-7 \
-  libssl3 \
-  libyaml-0-2 \
-  libtiff6 \
-  libwebp7 \
-  ruamel.yaml.clib \
-  unrar \
-  zlib1g \
-  bash \
-  build-essential \
-  git \
-  python3-dev \
+    bash \
+    build-essential \
+    cmake \
+    git \
+    libimagequant0 \
+    libjpeg62-turbo \
+    libopenjp2-7 \
+    libssl3 \
+    libyaml-0-2 \
+    libtiff6 \
+    libwebp7 \
+    python3-dev \
+    ruamel.yaml.clib \
+    unrar \
+    zlib1g \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

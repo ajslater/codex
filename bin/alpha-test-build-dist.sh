@@ -1,11 +1,11 @@
 #!/bin/bash
 # Run CI test & build for a local alpha release
 set -euxo pipefail
-./docker/docker-build-image.sh codex-dist-builder
-./docker/docker-compose-exit.sh codex-save-cache
-./docker/docker-compose-exit.sh codex-frontend-lint
-./docker/docker-compose-exit.sh codex-frontend-test
-./docker/docker-compose-exit.sh codex-frontend-build
-./docker/docker-compose-exit.sh codex-backend-test
-./docker/docker-compose-exit.sh codex-backend-lint
-./docker/docker-compose-exit.sh codex-build-dist
+./ci/docker-build-image.sh codex-dist-builder
+./ci/docker-compose-exit.sh codex-save-cache
+./ci/docker-compose-exit.sh codex-frontend-lint
+./ci/docker-compose-exit.sh codex-frontend-test
+./ci/docker-compose-exit.sh codex-frontend-build
+./ci/docker-compose-exit.sh codex-backend-test
+./ci/docker-compose-exit.sh codex-backend-lint
+./ci/docker-compose-exit.sh codex-build-dist

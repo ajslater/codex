@@ -106,7 +106,7 @@ class SearchEntryPrepare:
                     entry[field_name] = entry.get(field_name, ()) + values
 
     @classmethod
-    def prepare_import_fts_entry(  # noqa: PLR0913
+    def prepare_import_fts_entry(
         cls,
         comic_id: int,
         entry: dict,
