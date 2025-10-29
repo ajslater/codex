@@ -1,4 +1,5 @@
-FROM nikolaik/python-nodejs:python3.14-nodejs25
+FROM nikolaik/python-nodejs:python3.14-nodejs24
+# nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
 ARG CODEX_BUILDER_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
