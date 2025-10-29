@@ -11,8 +11,7 @@ import { useReaderStore } from "@/stores/reader";
 const BTN_DISABLED = "v-btn--disabled";
 
 // workaround for https://github.com/nodejs/node/issues/60303
-if (!globalThis.localStorage.getItem)
-  globalThis.localStorage = undefined; //ts  as never
+if (!globalThis.localStorage.getItem) globalThis.localStorage = undefined; // as never
 
 const setupRouter = function () {
   return createRouter({
