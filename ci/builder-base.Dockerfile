@@ -11,6 +11,10 @@ COPY ci/debian.sources /etc/apt/sources.list.d/
 RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
+    bash \
+    build-essential \
+    cmake \
+    git \
     libimagequant0 \
     libjpeg62-turbo \
     libopenjp2-7 \
@@ -18,13 +22,10 @@ RUN apt-get clean \
     libyaml-0-2 \
     libtiff6 \
     libwebp7 \
+    python3-dev \
     ruamel.yaml.clib \
     unrar \
     zlib1g \
-    bash \
-    build-essential \
-    git \
-    python3-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
