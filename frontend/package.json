@@ -29,7 +29,7 @@
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
     "vuetify": "^3.10.0",
-    "xior": "^0.7.8"
+    "xior": "^0.8.0"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
