@@ -1,18 +1,9 @@
 <template>
-  <a
-    id="repo"
-    href="https://codex-comic-reader.readthedocs.io/"
-    title="Codex Documentation"
-    target="_blank"
-  >
+  <a id="repo" href="https://codex-comic-reader.readthedocs.io/" title="Codex Documentation" target="_blank">
     <v-icon id="repoIcon" size="x-small">{{
       mdiBookOpenVariantOutline
     }}</v-icon>
-    documentation<v-icon
-      :color="$vuetify.theme.current.colors.iconsInactive"
-      size="x-small"
-      >{{ mdiOpenInNew }}</v-icon
-    >
+    documentation<v-icon size="x-small">{{ mdiOpenInNew }}</v-icon>
   </a>
 </template>
 
@@ -36,13 +27,12 @@ export default {
   width: 100%;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 #repo:hover {
   color: rgb(var(--v-theme-textPrimary));
 }
+
 #repoIcon {
   margin-right: 0px;
-}
-#repo:hover > #repoIcon {
-  color: rgb(var(--v-theme-textPrimary)) !important;
 }
 </style>
