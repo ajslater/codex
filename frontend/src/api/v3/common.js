@@ -71,12 +71,14 @@ const _deepClone = (obj, filterEmpty = false) => {
 };
 
 const _jsonSerialize = (params) => {
-  // Since axios 1.0 I had to manually serialize complex objects. Also with xior.
+  // Since axios 1.0 I've had to manually serialize complex objects. Also with xior.
   for (const [key, value] of Object.entries(params)) {
-    if (typeof value === "object" || Array.isArray(value)) {
-      params[key] = JSON.stringify(value);
+    switch (value?.constructor) {
+      case Array:
+      case Object:
+        params[key] = JSON.stringify(value);
     }
-  }
+  };
 };
 
 const _addTimestamp = (params, ts) => {
@@ -87,7 +89,7 @@ const _addTimestamp = (params, ts) => {
 };
 
 export const serializeParams = (data, ts, filterEmpty = true) => {
-  const params = _deepClone(data, filterEmpty);
+  const params = _deepClone(data, filterEmpty) || {};
   _jsonSerialize(params);
   _addTimestamp(params, ts);
   return params;
