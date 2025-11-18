@@ -44,9 +44,7 @@ const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
 };
 
 const getBrowserPage = ({ group, pks, page }, data, ts) => {
-  console.debug(data);
   const params = serializeParams(data, ts, false);
-  console.debug(params);
   return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
