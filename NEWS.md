@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.18
+
+- Fixes
+    - Filter and Search parameters were being applied after clearing.
+
 ## v1.8.17
 
 - Features
