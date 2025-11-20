@@ -1,5 +1,10 @@
 <template>
-  <a id="repo" href="https://codex-comic-reader.readthedocs.io/" title="Codex Documentation" target="_blank">
+  <a
+    id="repo"
+    href="https://codex-comic-reader.readthedocs.io/"
+    title="Codex Documentation"
+    target="_blank"
+  >
     <v-icon id="repoIcon" size="x-small">{{
       mdiBookOpenVariantOutline
     }}</v-icon>

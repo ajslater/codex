@@ -78,7 +78,7 @@ const _jsonSerialize = (params) => {
       case Object:
         params[key] = JSON.stringify(value);
     }
-  };
+  }
 };
 
 const _addTimestamp = (params, ts) => {

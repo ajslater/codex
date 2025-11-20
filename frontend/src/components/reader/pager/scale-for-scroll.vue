@@ -1,5 +1,10 @@
 <template>
-  <div v-drag-scroller.onlyX="" class="scaleForScroll" :style="style" @dblclick="onDoubleClick">
+  <div
+    v-drag-scroller.onlyX=""
+    class="scaleForScroll"
+    :style="style"
+    @dblclick="onDoubleClick"
+  >
     <slot />
     <v-icon v-if="showReset" class="resetIcon" @click.stop="scaleReset">
       {{ mdiMagnifyMinusOutline }}
@@ -10,8 +15,7 @@
 <script>
 import { mdiMagnifyMinusOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
-import { dragScroller as vDragScroller } from "vue-drag-scroller"
-
+import { dragScroller as vDragScroller } from "vue-drag-scroller";
 
 import { SCALE_DEFAULT, useReaderStore } from "@/stores/reader";
 

@@ -1,11 +1,10 @@
 <template>
   <v-footer id="version-footer" :title="versionTitle">
     <a id="version" href="https://github.com/ajslater/codex/">
-      <v-icon id="repoIcon" size="x-small">{{
-        mdiSourceRepository
-      }}</v-icon>
-      codex v{{ versions.installed }}<v-icon size="x-small">{{
-        mdiOpenInNew }}</v-icon></a>
+      <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
+      codex v{{ versions.installed
+      }}<v-icon size="x-small">{{ mdiOpenInNew }}</v-icon></a
+    >
     <div v-if="outdated" id="latest">
       codex v{{ versions.latest }} is available
     </div>
@@ -13,7 +12,7 @@
 </template>
 
 <script>
-import { mdiSourceRepository, mdiOpenInNew } from "@mdi/js";
+import { mdiOpenInNew, mdiSourceRepository } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
@@ -23,7 +22,7 @@ export default {
   data() {
     return {
       mdiOpenInNew,
-      mdiSourceRepository
+      mdiSourceRepository,
     };
   },
   computed: {
