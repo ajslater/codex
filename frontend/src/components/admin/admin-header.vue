@@ -26,8 +26,8 @@
   </header>
 </template>
 <script>
-import { capitalCase } from "change-case-all";
 import { mapWritableState } from "pinia";
+import { capitalCase } from "text-case";
 
 import AppBanner from "@/components/banner.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -80,6 +80,7 @@ export default {
 .invisible {
   visibility: hidden;
 }
+
 #buttonSpacer {
   width: 48px;
 }

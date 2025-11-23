@@ -1,5 +1,5 @@
-import { capitalCase } from "change-case-all";
 import { defineStore } from "pinia";
+import { capitalCase } from "text-case";
 
 import API from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";

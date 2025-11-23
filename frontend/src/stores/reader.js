@@ -1,7 +1,7 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { capitalCase, snakeCase } from "change-case-all";
 import deepClone from "deep-clone";
 import { defineStore } from "pinia";
+import { capitalCase } from "text-case";
 
 import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";

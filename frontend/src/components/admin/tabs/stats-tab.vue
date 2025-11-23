@@ -32,8 +32,8 @@
 
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
-import { capitalCase, snakeCase } from "change-case-all";
 import { mapActions, mapState } from "pinia";
+import { capitalCase, snakeCase } from "text-case";
 
 import StatsTable from "@/components/admin/tabs/stats-table.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
