@@ -1,3 +1,5 @@
+import { toRaw } from "vue";
+
 import { useCommonStore } from "@/stores/common";
 
 import { HTTP } from "./base";
@@ -30,35 +32,51 @@ const filter = (obj, func) => {
   }
 };
 
-const keep = (obj) => {
-  // Remove empty strings, arrays, and objects.
-  switch (obj?.constructor) {
+const _keepIfNotEmpty = (val) => {
+  // Keep flag for filter
+  if (val === undefined) return false;
+  switch (val?.constructor) {
     case Array:
     case String:
-      return obj.length > 0;
+      return val.length > 0;
     case Object:
-      return Object.keys(obj).length > 0;
+      return Object.keys(val).length > 0;
     default:
-      return obj !== undefined;
+      return true;
   }
 };
 
-const _filterEmptyParams = (obj) => {
-  // Deep copy params without empty params.
+const _deepClone = (obj, filterEmpty = false) => {
+  // Deep clone vue proxyObjects and optionally filter empty elements.
+  obj = toRaw(obj);
+
+  const _keep = (val) => {
+    // Keep flag for filter, closure for filterEmpty flag.
+    return !filterEmpty || _keepIfNotEmpty(val);
+  };
+
   switch (obj?.constructor) {
     case Array:
+      return obj.map((v) => _deepClone(v, filterEmpty)).filter(_keep);
     case Object:
-      return filter(map(obj, _filterEmptyParams), keep);
+      const result = {};
+      for (const [key, val] of Object.entries(obj)) {
+        const clonedVal = _deepClone(val, filterEmpty);
+        if (_keep(clonedVal)) result[key] = clonedVal;
+      }
+      return result;
     default:
-      return keep(obj) ? obj : undefined;
+      return obj;
   }
 };
 
 const _jsonSerialize = (params) => {
-  // Since axios 1.0 I had to manually serialize complex objects. Also with xior.
+  // Since axios 1.0 I've had to manually serialize complex objects. Also with xior.
   for (const [key, value] of Object.entries(params)) {
-    if (typeof value === "object" || Array.isArray(value)) {
-      params[key] = JSON.stringify(value);
+    switch (value?.constructor) {
+      case Array:
+      case Object:
+        params[key] = JSON.stringify(value);
     }
   }
 };
@@ -70,8 +88,8 @@ const _addTimestamp = (params, ts) => {
   params.ts = ts;
 };
 
-export const serializeParams = (data, ts) => {
-  const params = _filterEmptyParams(data) || {};
+export const serializeParams = (data, ts, filterEmpty = true) => {
+  const params = _deepClone(data, filterEmpty) || {};
   _jsonSerialize(params);
   _addTimestamp(params, ts);
   return params;

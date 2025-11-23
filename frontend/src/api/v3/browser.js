@@ -44,7 +44,7 @@ const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
 };
 
 const getBrowserPage = ({ group, pks, page }, data, ts) => {
-  const params = serializeParams(data, ts);
+  const params = serializeParams(data, ts, false);
   return HTTP.get(`/${group}/${pks}/${page}`, { params });
 };
 
@@ -53,7 +53,7 @@ const getMetadata = ({ group, pks }, settings) => {
   const mtime = settings.mtime;
   const data = deepClone(settings);
   delete data.mtime;
-  const params = serializeParams(data, mtime);
+  const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
@@ -63,7 +63,7 @@ const getSettings = (data) => {
 };
 
 const updateSettings = (settings) => {
-  const params = serializeParams(settings);
+  const params = serializeParams(settings, undefined, false);
   return HTTP.patch("/r/settings", { params });
 };
 

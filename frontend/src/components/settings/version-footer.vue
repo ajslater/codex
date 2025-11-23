@@ -1,6 +1,10 @@
 <template>
   <v-footer id="version-footer" :title="versionTitle">
-    <div id="version">codex v{{ versions.installed }}</div>
+    <a id="version" href="https://github.com/ajslater/codex/">
+      <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
+      codex v{{ versions.installed
+      }}<v-icon size="x-small">{{ mdiOpenInNew }}</v-icon></a
+    >
     <div v-if="outdated" id="latest">
       codex v{{ versions.latest }} is available
     </div>
@@ -8,7 +12,7 @@
 </template>
 
 <script>
-import { mdiContentCopy, mdiOpenInNew } from "@mdi/js";
+import { mdiOpenInNew, mdiSourceRepository } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
@@ -18,7 +22,7 @@ export default {
   data() {
     return {
       mdiOpenInNew,
-      mdiContentCopy,
+      mdiSourceRepository,
     };
   },
   computed: {
@@ -71,6 +75,20 @@ export default {
   width: 100%;
   color: rgb(var(--v-theme-textDisabled));
 }
+
+#version {
+  display: block;
+  color: rgb(var(--v-theme-textDisabled));
+}
+
+#version:hover {
+  color: rgb(var(--v-theme-textPrimary)) !important;
+}
+
+#repoIcon {
+  margin-right: 0px;
+}
+
 #latest {
   color: rgb(var(--v-theme-textSecondary));
 }

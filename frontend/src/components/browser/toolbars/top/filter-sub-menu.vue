@@ -84,8 +84,8 @@ import {
   mdiChevronRightCircle,
   mdiCloseCircleOutline,
 } from "@mdi/js";
-import { capitalCase } from "change-case-all";
 import { mapActions, mapState, mapWritableState } from "pinia";
+import { capitalCase } from "text-case";
 
 import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";

@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
-    "@eslint/json": "^0.13.0",
+    "@eslint/json": "^0.14.0",
     "@fsouza/prettierd": "^0.26.0",
     "@prettier/plugin-xml": "^3.0.0",
     "@stylistic/eslint-plugin": "^5.3.1",

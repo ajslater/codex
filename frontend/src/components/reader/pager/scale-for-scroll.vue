@@ -15,6 +15,7 @@
 <script>
 import { mdiMagnifyMinusOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
+import { dragScroller as vDragScroller } from "vue-drag-scroller";
 
 import { SCALE_DEFAULT, useReaderStore } from "@/stores/reader";
 
@@ -65,7 +66,7 @@ export default {
 <style scoped lang="scss">
 .scaleForScroll {
   overflow: scroll;
-  // one finger horizontal scrollling for mobile safari
+  // one finger horizontal scrolling for mobile safari
   -webkit-overflow-scrolling: touch;
 }
 
