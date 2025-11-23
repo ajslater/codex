@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fixes
     - Filter and Search parameters were being applied after clearing.
+- Features
+    - Read metadata from PDF embedded files.
 
 ## v1.8.17
 
