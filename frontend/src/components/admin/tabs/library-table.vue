@@ -9,7 +9,7 @@
       {{ formatNumber(item.comicCount) }}
     </template>
     <template v-if="isFailedImports" #[`item.failedCount`]="{ item }">
-      <span class="failedComics">
+      <span :class="failedComicsClasses(item)">
         {{ formatNumber(item.failedCount) }}
       </span>
     </template>
@@ -28,50 +28,18 @@
       <DateTimeColumn :dttm="item.lastPoll" />
     </template>
     <template v-if="isGroups" #[`item.groups`]="{ item }">
-      <RelationChips
-        :pks="item.groups"
-        :objs="groups"
-        group-type
-        title-key="name"
-      />
+      <RelationChips :pks="item.groups" :objs="groups" group-type title-key="name" />
     </template>
     <template #[`item.actions`]="{ item }">
       <span class="actionButtonCell">
-        <ConfirmDialog
-          :icon="mdiDatabaseClockOutline"
-          :title-text="`Poll for updated ${itemName}`"
-          :text="item.path"
-          :confirm-text="pollConfirmText(item)"
-          :size="iconSize"
-          density="compact"
-          @confirm="poll(item)"
-        />
-        <ConfirmDialog
-          :icon="mdiDatabaseSyncOutline"
-          :title-text="`Force update ${itemName}`"
-          :text="item.path"
-          confirm-text="Force Update"
-          :size="iconSize"
-          density="compact"
-          @confirm="forcePoll(item)"
-        />
-        <AdminCreateUpdateDialog
-          table="Library"
-          :old-row="item"
-          :inputs="AdminLibraryCreateUpdateInputs"
-          :label="updateLabel"
-          max-width="22em"
-          :size="iconSize"
-          density="compact"
-        />
-        <AdminDeleteRowDialog
-          v-if="!item.coversOnly"
-          table="Library"
-          :pk="item.pk"
-          :name="item.path"
-          :size="iconSize"
-          density="compact"
-        />
+        <ConfirmDialog :icon="mdiDatabaseClockOutline" :title-text="`Poll for updated ${itemName}`" :text="item.path"
+          :confirm-text="pollConfirmText(item)" :size="iconSize" density="compact" @confirm="poll(item)" />
+        <ConfirmDialog :icon="mdiDatabaseSyncOutline" :title-text="`Force update ${itemName}`" :text="item.path"
+          confirm-text="Force Update" :size="iconSize" density="compact" @confirm="forcePoll(item)" />
+        <AdminCreateUpdateDialog table="Library" :old-row="item" :inputs="AdminLibraryCreateUpdateInputs"
+          :label="updateLabel" max-width="22em" :size="iconSize" density="compact" />
+        <AdminDeleteRowDialog v-if="!item.coversOnly" table="Library" :pk="item.pk" :name="item.path" :size="iconSize"
+          density="compact" />
       </span>
     </template>
   </AdminTable>
@@ -94,7 +62,7 @@ import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { getDateTime, NUMBER_FORMAT } from "@/datetime";
+import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -245,6 +213,14 @@ export default {
       const label = this.libraryLabel(item, false);
       return `Poll ${label}`;
     },
+    failedComicsClasses(item) {
+      const classes = {};
+      if (item?.failedCount) {
+        classes["failedComics"] = true;
+      }
+      return classes;
+
+    }
   },
 };
 </script>
