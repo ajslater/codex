@@ -9,7 +9,7 @@
       {{ formatNumber(item.comicCount) }}
     </template>
     <template v-if="isFailedImports" #[`item.failedCount`]="{ item }">
-      <span class="failedComics">
+      <span :class="failedComicsClasses(item)">
         {{ formatNumber(item.failedCount) }}
       </span>
     </template>
@@ -94,7 +94,7 @@ import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { getDateTime, NUMBER_FORMAT } from "@/datetime";
+import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -244,6 +244,13 @@ export default {
     pollConfirmText(item) {
       const label = this.libraryLabel(item, false);
       return `Poll ${label}`;
+    },
+    failedComicsClasses(item) {
+      const classes = {};
+      if (item?.failedCount) {
+        classes["failedComics"] = true;
+      }
+      return classes;
     },
   },
 };

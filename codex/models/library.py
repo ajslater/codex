@@ -8,6 +8,7 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db.models import (
     BooleanField,
+    CharField,
     DateTimeField,
     DurationField,
     ManyToManyField,
@@ -16,7 +17,6 @@ from django.utils.translation import gettext_lazy as _
 from typing_extensions import override
 
 from codex.models.base import MAX_PATH_LEN, BaseModel
-from codex.models.fields import CleaningCharField
 
 __all__ = ("Library", "validate_dir_exists")
 
@@ -40,7 +40,7 @@ class Library(BaseModel):
         }
     )
     covers_only = BooleanField(db_index=True, default=False)
-    path = CleaningCharField(
+    path = CharField(
         unique=True,
         db_index=True,
         max_length=MAX_PATH_LEN,

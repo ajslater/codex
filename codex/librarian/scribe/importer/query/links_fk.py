@@ -65,7 +65,13 @@ class QueryPruneLinksFKs(QueryUpdateComics):
 
     def _query_prune_comic_fk_links_comic(self, comic, status):
         path = comic.path
-        field_names = tuple(self.metadata[LINK_FKS].get(path).keys())
+        path_link_fks = self.metadata[LINK_FKS].get(path)
+        if path_link_fks is None:
+            self.log.error(
+                f"Tried to link foreign keys to path that's not in the LINK_FKS metadata {path}"
+            )
+            return
+        field_names = tuple(path_link_fks.keys())
         for field_name in field_names:
             self._query_prune_comic_fk_links_field(comic, path, field_name)
             status.increment_complete()

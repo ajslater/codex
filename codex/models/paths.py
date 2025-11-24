@@ -7,7 +7,6 @@ from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoi
 from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel, max_choices_len
-from codex.models.fields import CleaningCharField
 from codex.models.library import Library
 from codex.models.util import get_sort_name
 
@@ -23,7 +22,7 @@ class WatchedPath(BaseModel):
         on_delete=CASCADE,
         null=True,
     )
-    path = CleaningCharField(max_length=MAX_PATH_LEN, db_index=True)
+    path = CharField(max_length=MAX_PATH_LEN, db_index=True)
     stat = JSONField(null=True)
     ZERO_STAT = (0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0)
 

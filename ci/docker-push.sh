@@ -29,4 +29,4 @@ if [ "${CODEX_LATEST:-}" != "" ]; then
 fi
 
 export UV_NO_DEV=1
-echo "$DOCKER_PASS" | uv run --only-group ci ./ci/cleanup-repo.py --keep 0 --no-confirm "$DOCKER_USER" ajslater codex-arch
+echo "$DOCKER_PASS" | uv run --only-group ci ./ci/cleanup-repo.py --keep 0 --no-confirm "$DOCKER_USER" ajslater codex-arch || true

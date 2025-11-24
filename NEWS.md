@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.19
+
+- Fixes
+    - Do not sanitize Library and Comic path names. Fixes an import crash on
+      paths with dangerous looking strings in them.
+    - Fix a crash when moving comics.
+
 ## v1.8.18
 
 - Fixes

@@ -22,7 +22,7 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
             if path.parent != Path(self.library.path):
                 reason = (
                     f"Can't find parent folder {parent_path} for {path} in library"
-                    " {self.library.path}"
+                    f" {self.library.path}"
                 )
                 self.log.warning(reason)
         return parent
