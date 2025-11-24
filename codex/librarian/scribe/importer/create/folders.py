@@ -64,7 +64,8 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
         # group folder paths by depth
         folder_path_dict = {}
         for path_strs in folder_paths:
-            for path_str in path_strs:
+            for path_str_tuple in path_strs:
+                path_str = path_str_tuple[0]
                 path = Path(path_str)
                 path_length = len(path.parts)
                 if path_length not in folder_path_dict:

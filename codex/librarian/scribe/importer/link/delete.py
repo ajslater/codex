@@ -50,9 +50,9 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
             "story_arcs" if field_name == "story_arc_numbers" else field_name
         )
         for comic_id in comic_ids:
-            if not self.metadata[FTS_UPDATE].get(comic_id, {}).get(
+            if not self.metadata.get(FTS_UPDATE, {}).get(comic_id, {}).get(
                 fts_field_name
-            ) and not self.metadata[FTS_EXISTING_M2MS].get(comic_id, {}).get(
+            ) and not self.metadata.get(FTS_EXISTING_M2MS, {}).get(comic_id, {}).get(
                 fts_field_name
             ):
                 self.add_links_to_fts(comic_id, fts_field_name, ())

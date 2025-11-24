@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.19
+
+- Fixes
+    - Fix a crash when moving comics.
+
 ## v1.8.18
 
 - Fixes
