@@ -9,6 +9,8 @@ border-radius: 128px;
 ## v1.8.19
 
 - Fixes
+    - Do not sanitize Library and Comic names. Fixes crash on paths with
+      dangerous looking strings in them.
     - Fix a crash when moving comics.
 
 ## v1.8.18
