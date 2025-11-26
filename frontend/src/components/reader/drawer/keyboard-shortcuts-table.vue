@@ -102,10 +102,8 @@ import {
   mdiMenuLeft,
   mdiMenuRight,
 } from "@mdi/js";
-import { VHotkey } from "vuetify/labs/VHotkey";
 export default {
   name: "KeyboardShortcutsTable",
-  components: { VHotkey },
   data() {
     return {
       mdiMenuLeft,
