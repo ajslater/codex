@@ -153,7 +153,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        folder: Folder | None = self.group_instance  # pyright: ignore[reportAssignmentType]
+        folder: Folder | None = self.group_instance  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         name = folder.name if folder and pks else ""
         group_crumb = Route(FOLDER_GROUP, pks, page, name)
         new_breadcrumbs = []

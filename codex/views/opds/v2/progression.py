@@ -50,7 +50,7 @@ class OPDS2ProgressionView(
     @property
     def modified(self):
         """Get modified from bookmark."""
-        return self._obj.bookmark_updated_at  # pyright: ignore[reportAttributeAccessIssue]
+        return self._obj.bookmark_updated_at  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
 
     @property
     def device(self):
@@ -61,16 +61,16 @@ class OPDS2ProgressionView(
     @property
     def title(self):
         """The locator title is the page number."""
-        return f"Page {self._obj.page}"  # pyright: ignore[reportAttributeAccessIssue]
+        return f"Page {self._obj.page}"  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
 
     @property
     def _progression_href(self):
         """Build a Progression HRef."""
         acq_kwargs = {
             "pk": self._obj.pk,
-            "page": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue]
+            "page": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue],  #ty: ignore[unresolved-attribute]
         }
-        max_page = max_none(self._obj.page_count - 1, 0)  # pyright: ignore[reportAttributeAccessIssue]
+        max_page = max_none(self._obj.page_count - 1, 0)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
         data = HrefData(
             acq_kwargs,
             url_name="opds:bin:page",
@@ -83,9 +83,9 @@ class OPDS2ProgressionView(
     def _locations(self):
         """Build the Locations object."""
         return {
-            "position": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue]
-            "progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue]
-            "total_progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue]
+            "position": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            "progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            "total_progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         }
 
     @property

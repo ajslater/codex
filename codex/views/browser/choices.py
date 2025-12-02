@@ -149,12 +149,12 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         return flag
 
     @override
-    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
         """Get choice counts."""
-        qs: QuerySet = super().get_object()
+        qs = super().get_object()
         filters = self.params.get("filters", {})
         data = {}
-        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # pyright: ignore[reportOptionalCall, reportAssignmentType]
+        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # pyright: ignore[reportOptionalCall, reportAssignmentType], # ty: ignore[call-non-callable, invalid-assignment]
         for field_name in serializer.get_fields():
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
@@ -196,7 +196,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         return snakecase(field_name)
 
     @override
-    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]··
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()

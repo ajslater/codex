@@ -64,7 +64,7 @@ class GroupByQuery(Query):
             compiler = super().get_compiler(
                 using=using,
                 connection=connection,
-                elide_empty=elide_empty,  # pyright: ignore[reportCallIssue]
+                elide_empty=elide_empty,  # pyright: ignore[reportCallIssue], # ty: ignore[unknown-argument]
             )
 
         return compiler
