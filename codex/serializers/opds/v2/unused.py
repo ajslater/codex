@@ -1,8 +1,9 @@
 """Unused OPDS v2 Serializers."""
 
+from typing import override
+
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
-from typing_extensions import override
 
 from codex.serializers.opds.v2.links import OPDS2LinkListField
 

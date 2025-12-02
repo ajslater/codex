@@ -22,6 +22,7 @@ def login(username, password):
         timeout=API_TIMEOUT,
     )
     resp.raise_for_status()
+
     return resp.json()["token"]
 
 
@@ -121,7 +122,7 @@ def main():
 
     # Sort tags by last_updated descending
     tags.sort(
-        key=lambda t: datetime.fromisoformat(t["last_updated"].replace("Z", "+00:00")),
+        key=lambda t: datetime.fromisoformat(t["last_updated"]),
         reverse=True,
     )
     to_delete = tags[args.keep :]

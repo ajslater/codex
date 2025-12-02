@@ -1,6 +1,6 @@
 """Admin Flag View."""
 
-from typing_extensions import override
+from typing import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE

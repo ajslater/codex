@@ -2,7 +2,7 @@
 # https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
@@ -12,7 +12,6 @@ from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.models.comic import Comic
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer

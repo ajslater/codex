@@ -1,5 +1,7 @@
 """Codex Reader Serializers."""
 
+from typing import override
+
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -9,7 +11,6 @@ from rest_framework.fields import (
     ListField,
 )
 from rest_framework.serializers import Serializer
-from typing_extensions import override
 
 from codex.serializers.fields import (
     FitToField,

@@ -1,6 +1,6 @@
 """Serializer mixins."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from itertools import chain
 
 from loguru import logger
@@ -43,7 +43,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
                 continue
             try:
                 dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").replace(
-                    tzinfo=timezone.utc
+                    tzinfo=UTC
                 )
             except ValueError:
                 logger.warning(

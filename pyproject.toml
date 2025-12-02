@@ -20,7 +20,7 @@ dependencies = [
   "channels~=4.2",
   "comicbox[pdf]~=2.1.0",
   "dateparser~=1.2",
-  "django~=5.2",
+  "django~=6.0rc1",
   "djangorestframework~=3.16",
   "djangorestframework-camel-case~=1.4",
   "django-cachalot~=2.8",
@@ -51,7 +51,7 @@ keywords = ["comic", "cbz", "cbr", "cb7", "cbt", "pdf"]
 license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 version = "1.8.19"
 
 [project.urls]
@@ -174,7 +174,7 @@ exclude = [
   "typings",
   "vulture_ignorelist.py",
 ]
-pythonVersion = "3.10"
+pythonVersion = "3.12"
 failOnWarnings = false
 reportAny = false
 reportExplicitAny = false
@@ -268,7 +268,7 @@ extend-exclude = [
   "vulture_ignorelist.py",
 ]
 show-fixes = true
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 extend-ignore = [
@@ -382,7 +382,7 @@ max-args = 8
 
 [tool.ty.environment]
 python = "./.venv"
-python-version = "3.10"
+python-version = "3.12"
 
 [tool.ty.src]
 exclude = [

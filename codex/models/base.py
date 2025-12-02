@@ -1,8 +1,9 @@
 """Base model."""
 
+from typing import override
+
 from django.db.models import DateTimeField, Model
 from django.db.models.base import ModelBase
-from typing_extensions import override
 
 from codex.models.fields import CleaningCharField
 from codex.models.query import GroupByManager

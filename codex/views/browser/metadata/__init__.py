@@ -1,12 +1,13 @@
 """Aggregate Group and Comic Metadata View."""
 
+from typing import override
+
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.serializers.browser.metadata import MetadataSerializer

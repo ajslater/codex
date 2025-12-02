@@ -1,5 +1,7 @@
 """Views for reading comic books."""
 
+from typing import override
+
 from comicbox.box import Comicbox
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
@@ -7,7 +9,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from loguru import logger
 from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
-from typing_extensions import override
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE

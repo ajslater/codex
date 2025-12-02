@@ -4,10 +4,10 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
+from typing import override
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
-from typing_extensions import override
 
 from codex.settings import FALSY
 from codex.views.browser.browser import BrowserView

@@ -5,6 +5,7 @@ import math
 import re
 from datetime import MAXYEAR, MINYEAR, date
 from pathlib import Path
+from typing import override
 
 from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
 from django.db.models import (
@@ -20,7 +21,6 @@ from django.db.models import (
     TextChoices,
     TextField,
 )
-from typing_extensions import override
 
 from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,

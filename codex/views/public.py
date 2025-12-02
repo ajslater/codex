@@ -1,9 +1,10 @@
 """Public non-authenticated views."""
 
+from typing import override
+
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag

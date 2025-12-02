@@ -2,9 +2,9 @@
 
 from pathlib import Path
 from types import MappingProxyType
+from typing import override
 
 from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoices
-from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel, max_choices_len
 from codex.models.library import Library

@@ -1,11 +1,11 @@
 """Bookmark view."""
 
 from types import MappingProxyType
+from typing import override
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.models.comic import Comic

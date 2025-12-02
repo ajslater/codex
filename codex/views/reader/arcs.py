@@ -1,7 +1,7 @@
 """Reader get Arcs methods."""
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import MappingProxyType
 
 from codex.choices.admin import AdminFlagChoices
@@ -126,9 +126,7 @@ class ReaderArcsView(ReaderParamsView):
             arc = {"name": sa.name}
             ids = tuple(sorted(set(sa.ids)))
             updated_ats = (
-                datetime.strptime(ua, _UPDATED_ATS_DATE_FORMAT_STR).replace(
-                    tzinfo=timezone.utc
-                )
+                datetime.strptime(ua, _UPDATED_ATS_DATE_FORMAT_STR).replace(tzinfo=UTC)
                 for ua in sa.updated_ats
             )
             mtime = max_none(EPOCH_START, *updated_ats)

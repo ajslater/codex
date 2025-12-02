@@ -2,6 +2,7 @@
 
 from decimal import ROUND_DOWN, Decimal
 from html import unescape
+from typing import override
 
 from django.db.models.fields import (
     CharField,
@@ -11,7 +12,6 @@ from django.db.models.fields import (
     TextField,
 )
 from nh3 import clean
-from typing_extensions import override
 
 
 class CleaningStringFieldMixin:

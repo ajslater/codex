@@ -1,8 +1,9 @@
 """Custom Vuetify fields."""
 
+from typing import override
+
 from rest_framework.fields import DictField, IntegerField
 from rest_framework.serializers import MultipleChoiceField
-from typing_extensions import override
 
 
 class StringListMultipleChoiceField(MultipleChoiceField):

@@ -1,12 +1,12 @@
 """Custom fields."""
 
 from abc import ABC
+from typing import override
 
 import pycountry
 from loguru import logger
 from pycountry.db import Database
 from rest_framework.serializers import ListField
-from typing_extensions import override
 
 from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,

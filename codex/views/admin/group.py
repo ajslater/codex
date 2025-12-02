@@ -1,8 +1,9 @@
 """Group View."""
 
+from typing import override
+
 from django.contrib.auth.models import Group
 from django.core.cache import cache
-from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import GROUPS_CHANGED_TASK

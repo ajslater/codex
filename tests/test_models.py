@@ -3,9 +3,9 @@
 import datetime
 import shutil
 from pathlib import Path
+from typing import override
 
 from django.test import TestCase
-from typing_extensions import override
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
