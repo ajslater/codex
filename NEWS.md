@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.20
+
+- Fixes
+    - Fix dragging when zoomed in.
+
 ## v1.8.19
 
 - Fixes
