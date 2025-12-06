@@ -490,6 +490,10 @@ export const useReaderStore = defineStore("reader", {
           arcs.push(arc);
         }
       }
+      if (!arcs.length) {
+        // No arcs is a 500 from the mtime api
+        arcs.push({ "r": "0" })
+      }
       return await COMMON_API.getMtime(arcs, {})
         .then((response) => {
           const newMtime = response.data.maxMtime;

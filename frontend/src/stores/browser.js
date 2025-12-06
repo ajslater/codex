@@ -415,7 +415,7 @@ export const useBrowserStore = defineStore("browser", {
         for (let [key, value] of Object.entries(data)) {
           const newValue =
             typeof state.settings[key] === "object" &&
-            !Array.isArray(state.settings[key])
+              !Array.isArray(state.settings[key])
               ? { ...state.settings[key], ...value }
               : value;
           if (!dequal(state.settings[key], newValue)) {
@@ -656,8 +656,9 @@ export const useBrowserStore = defineStore("browser", {
       const group =
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
       const pks = params?.pks || "0";
+      const arcs = [{ group, pks }];
       return await COMMON_API.getMtime(
-        [{ group, pks }],
+        arcs,
         this.filterOnlySettings,
       )
         .then((response) => {
