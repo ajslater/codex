@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.20
+
+- Fixes
+    - Fix dragging when zoomed in in reader when using mouse left button.
+    - Fix weird spacing and borders on browser and reader toolbars.
+    - Attempt to make Close Book route in reader more accurate.
+
 ## v1.8.19
 
 - Fixes

@@ -11,6 +11,6 @@ class CodexChoiceField(ChoiceField, ABC):
 
     class_choices: Sequence[str] = ()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         """Initialize with choices."""
-        super().__init__(*args, choices=self.class_choices, **kwargs)
+        super().__init__(choices=self.class_choices, **kwargs)

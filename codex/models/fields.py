@@ -19,8 +19,8 @@ class CleaningStringFieldMixin:
 
     def get_prep_value(self, value):
         """Truncate, sanitize and unescape."""
-        if value := super().get_prep_value(value):  # pyright: ignore[reportAttributeAccessIssue]
-            value = value[: self.max_length]  # pyright: ignore[reportAttributeAccessIssue]
+        if value := super().get_prep_value(value):  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            value = value[: self.max_length]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             value = clean(value)
             value = unescape(value)
         return value
@@ -42,7 +42,7 @@ class CoercingSmallIntegerFieldMixin:
 
     def get_prep_value(self, value):
         """Coerce int into range before insertion."""
-        value = super().get_prep_value(value)  # pyright: ignore[reportAttributeAccessIssue]
+        value = super().get_prep_value(value)  # pyright: ignore[reportAttributeAccessIssue],  # ty: ignore[unresolved-attribute]
         if value is not None:
             value = max(min(value, self.COERCE_MAX), self.COERCE_MIN)
         return value

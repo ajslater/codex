@@ -203,7 +203,7 @@ class LibraryPollingObserver(UatuObserver):
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
-                polling_emitter: DatabasePollingEmitter = emitter  # pyright: ignore[reportAssignmentType]
+                polling_emitter: DatabasePollingEmitter = emitter  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
                 if emitter.watch.path in paths:
                     polling_emitter.poll(force=force)
         except Exception:

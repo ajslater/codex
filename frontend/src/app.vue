@@ -67,6 +67,7 @@ a {
   color: rgb(var(--v-theme-textDisabled)) !important;
 }
 
+// Eventually replace with VTableStriped in Vuetify 4
 .highlight-table tbody > tr > td {
   border: 0;
 }
@@ -74,17 +75,5 @@ a {
 .highlight-table thead > tr > th,
 .highlight-table tbody > tr:nth-child(even) {
   background-color: rgb(var(--v-theme-background)) !important;
-}
-
-.codexToolbar {
-  position: fixed !important;
-}
-
-.codexToolbarTitle {
-  margin-inline-start: 0 !important;
-}
-
-.codexToolbarTitle > .v-toolbar-title__placeholder {
-  text-align: center;
 }
 </style>

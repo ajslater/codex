@@ -191,7 +191,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         self,
         md_key: str,
         field: ManyToManyField,
-        values: Mapping | list | tuple | set | frozenset,
+        values: Mapping[str, Mapping | None] | list | tuple | set | frozenset,
     ):
         # Process values dict for a field
         # {story_arc_name_a: { number: 1, identifiers: {} }, ...}
@@ -199,13 +199,16 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         clean_values_map: dict[tuple, frozenset[tuple]] = {}
         if not isinstance(values, Mapping):
             values = dict.fromkeys(values)
-        related_model: type[BaseModel] = field.related_model
         for sub_key_name, sub_value in values.items():
             clean_sub_map = self._get_m2m_metadata_dict_model_aggregate_sub_values(
-                md_key, field, sub_key_name, sub_value
+                md_key,
+                field,
+                sub_key_name,  # ty: ignore[invalid-argument-type]
+                sub_value,  # ty: ignore[invalid-argument-type]
             )
             clean_values_map.update(clean_sub_map)
 
+        related_model: type[BaseModel] = field.related_model
         if related_model != Folder:
             for key, value in clean_values_map.items():
                 self.add_query_model(related_model, key, value)

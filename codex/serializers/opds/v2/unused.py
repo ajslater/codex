@@ -16,7 +16,7 @@ class RecursiveField(Serializer):
     """
 
     @override
-    def to_representation(self, instance):
+    def to_representation(self, instance):  # ty: ignore[invalid-method-override]
         """Represent with own class."""
         parent = self.parent
         # Should not be ignored but is currently unused

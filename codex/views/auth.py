@@ -56,7 +56,7 @@ class GroupACLMixin:
     def is_admin(self):
         """Is the current user an admin."""
         if self._is_admin is None:
-            user = self.request.user  # pyright: ignore[reportAttributeAccessIssue]
+            user = self.request.user  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             self._is_admin = user and getattr(user, "is_staff", False)
         return self._is_admin
 

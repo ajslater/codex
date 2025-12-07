@@ -66,7 +66,7 @@ class SeeOtherRedirectError(APIException):
         """Change OPDS settings like the frontend does with error.detail."""
         query_params = {}
         settings = (
-            self.detail.get("settings", {}) if isinstance(self.detail, Mapping) else {}
+            self.detail.get("settings", {}) if isinstance(self.detail, Mapping) else {}  # ty: ignore[no-matching-overload]
         )
         for key in _OPDS_REDIRECT_SETTINGS_KEYS:
             value = settings.get(key)

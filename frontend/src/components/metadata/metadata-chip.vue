@@ -83,7 +83,7 @@ export default {
         (this.groupMode &&
           this.filter === this.mdGroup &&
           this.mdIds.includes(this.item.value)) ||
-          this.filterValues?.includes(this.item.value),
+        this.filterValues?.includes(this.item.value),
       );
     },
     variant() {

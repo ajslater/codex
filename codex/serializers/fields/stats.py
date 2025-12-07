@@ -13,19 +13,19 @@ class StringListMultipleChoiceField(MultipleChoiceField):
         """Convert comma delimited strings to sets."""
         if isinstance(data, str):
             data = frozenset(data.split(","))
-        return super().to_internal_value(data)  # pyright: ignore[reportArgumentType]
+        return super().to_internal_value(data)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
 
 
 class SerializerChoicesField(StringListMultipleChoiceField):
     """A String List Multiple Choice Field limited to a specified serializer's fields."""
 
-    def __init__(self, *args, serializer=None, **kwargs):
+    def __init__(self, serializer=None, **kwargs):
         """Limit choices to fields from serializers."""
         if not serializer:
             reason = "serializer required for this field."
             raise ValueError(reason)
         choices = serializer().get_fields().keys()
-        super().__init__(*args, choices=choices, **kwargs)
+        super().__init__(choices=choices, **kwargs)
 
 
 class CountDictField(DictField):
