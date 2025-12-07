@@ -67,6 +67,7 @@ a {
   color: rgb(var(--v-theme-textDisabled)) !important;
 }
 
+// Eventually replace with VTableStriped in Vuetify 4
 .highlight-table tbody > tr > td {
   border: 0;
 }
