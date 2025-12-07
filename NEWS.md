@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - Fix dragging when zoomed in.
+    - Fix weird spacing and borders on browser and reader toolbars.
     - Attempt to make Close Book route in reader more accurate.
 
 ## v1.8.19
