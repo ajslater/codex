@@ -3,9 +3,7 @@
     <AppBanner />
     <v-toolbar id="titleBar" flat density="compact">
       <span id="buttonSpacer" />
-      <v-toolbar-title class="codexToolbarTitle">
-        Codex Administration
-      </v-toolbar-title>
+      <v-toolbar-title id="adminTitle"> Codex Administration </v-toolbar-title>
       <SettingsDrawerButton
         :key="mdAndDown"
         class="adminSettingsButton"
@@ -88,6 +86,10 @@ export default {
 #titleBar {
   padding-left: env(safe-area-inset-left);
   padding-right: 0px; // given to settings button.
+}
+
+#adminTitle {
+  text-align: center;
 }
 
 .adminSettingsButton {

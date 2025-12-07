@@ -75,16 +75,4 @@ a {
 .highlight-table tbody > tr:nth-child(even) {
   background-color: rgb(var(--v-theme-background)) !important;
 }
-
-.codexToolbar {
-  position: fixed !important;
-}
-
-.codexToolbarTitle {
-  margin-inline-start: 0 !important;
-}
-
-.codexToolbarTitle > .v-toolbar-title__placeholder {
-  text-align: center;
-}
 </style>
