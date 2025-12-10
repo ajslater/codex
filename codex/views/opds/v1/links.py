@@ -139,7 +139,7 @@ class OPDS1LinksView(OPDS1FacetsView):
     def _root_links(self):
         """Navigation Root Links."""
         links = []
-        if up_route := self.get_last_route(name=True):
+        if up_route := self.get_last_route():
             links += [self._link(up_route, Rel.UP)]
         page = self.kwargs.get("page", 1)
         if page > 1:

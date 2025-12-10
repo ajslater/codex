@@ -186,7 +186,7 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
         title = self._title(title)
         number_of_items = total_count
         current_page = self.kwargs.get("page")
-        up_route = self.get_last_route(name=True)
+        up_route = self.get_last_route()
         links = self.get_links(up_route)
         facets = self._get_facets()
 

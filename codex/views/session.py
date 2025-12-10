@@ -1,6 +1,7 @@
 """Manage user sessions with appropriate defaults."""
 
 from abc import ABC
+from collections.abc import MutableMapping
 from copy import deepcopy
 from types import MappingProxyType
 from typing import Any
@@ -12,7 +13,6 @@ from codex.choices.reader import READER_DEFAULTS
 from codex.util import mapping_to_dict
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
-from codex.views.util import pop_name
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -80,19 +80,18 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             default = self.SESSION_DEFAULTS[session_key][key]
         return session.get(key, default)
 
-    def get_last_route(self, *, name: bool):
-        """Get the last route from the breadcrumbs."""
-        breadcrumbs: tuple
-        breadcrumbs = self.get_from_session(
-            "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
-        )
-        if not breadcrumbs:
-            breadcrumbs = BROWSER_DEFAULTS["breadcrumbs"]  # pyright: ignore[reportAssignmentType]
-        last_route = breadcrumbs[-1]
-        if not name:
-            last_route = pop_name(last_route)
+    def get_last_route(self):
+        """Get the last route from the session."""
+        return self.get_from_session("last_route", session_key=self.BROWSER_SESSION_KEY)
 
-        return last_route
+    def save_last_route(self, data: MutableMapping):
+        """Save last route to data."""
+        last_route = {
+            "group": self.kwargs.get("group", "r"),
+            "pks": self.kwargs.get("pks", (0,)),
+            "page": self.kwargs.get("page", 1),
+        }
+        data["last_route"].update(last_route)
 
     @classmethod
     def _get_source_values_or_set_defaults(cls, defaults_dict, source_dict, data):
