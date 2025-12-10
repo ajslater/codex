@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.21
+
+- Fixes
+    - Fix Close Book button linking to parent of desired route.
+
 ## v1.8.20
 
 - Fixes
