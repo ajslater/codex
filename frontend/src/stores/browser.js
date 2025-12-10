@@ -187,8 +187,8 @@ export const useBrowserStore = defineStore("browser", {
       return Boolean(state.settings.q);
     },
     lastRoute(state) {
-      const bc = state.settings.breadcrumbs;
-      const params = bc.at(-1);
+      const params =
+        state.settings?.breadcrumbs?.at(-1) || globalThis.CODEX.LAST_ROUTE;
       const route = {};
       if (params) {
         route.name = "browser";

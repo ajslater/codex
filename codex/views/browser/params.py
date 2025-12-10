@@ -26,6 +26,7 @@ class BrowserParamsView(SessionView):
             params = self.load_params_from_session()
             if serializer.validated_data:
                 params.update(serializer.validated_data)
+            self.save_last_route(params)
             self.save_params_to_session(params)
             self._params = MappingProxyType(params)
         return self._params

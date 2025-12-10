@@ -101,8 +101,7 @@ def get_args():
     return parser.parse_args()
 
 
-def main():
-    """Run the Program."""
+def _init():
     args = get_args()
 
     password = read_password(args)
@@ -110,14 +109,15 @@ def main():
         sys.exit(
             "❌ No password provided. Use --password, --password-stdin, or pipe it in."
         )
+    return args, password
 
-    token = login(args.username, password)
-    print(f"Logged in as {args.username}")
 
+def _get_tags_to_delete(args, token):
+    """Get deletebale tags."""
     tags = fetch_all_tags(args.namespace, args.repository, token)
     if not tags:
         print("No tags found.")
-        return
+        return None
 
     # Sort tags by last_updated descending
     tags.sort(
@@ -125,10 +125,9 @@ def main():
         reverse=True,
     )
     to_delete = tags[args.keep :]
-
     if not to_delete:
         print(f"Nothing to delete (<= {args.keep} tags).")
-        return
+        return None
 
     print(f"Keeping {args.keep} most recent tags:")
     for t in tags[: args.keep]:
@@ -137,6 +136,20 @@ def main():
     print(f"\nTags to delete ({len(to_delete)}):")
     for t in to_delete:
         print(f"  {t['name']}  ({t['last_updated']})")
+
+    return to_delete
+
+
+def main():
+    """Run the Program."""
+    args, password = _init()
+
+    token = login(args.username, password)
+    print(f"Logged in as {args.username}")
+
+    to_delete = _get_tags_to_delete(args, token)
+    if not to_delete:
+        return
 
     if args.dry_run:
         print("\nDry run mode. No tags will be deleted.")

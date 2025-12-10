@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.8.20",
+  "version": "1.8.21",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -49,7 +49,7 @@
     "sass-loader": "^16.0",
     "typeface-roboto": "^1.1.13",
     "vite": "^7.1.11",
-    "vite-plugin-checker": "^0.11.0",
+    "vite-plugin-checker": "^0.12.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-run": "^0.6.0",
     "vite-plugin-vuetify": "^2.0.1",

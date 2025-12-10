@@ -117,7 +117,7 @@ class CustomCover(WatchedPath):
         path = Path(self.path)
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            self.group = self.GroupChoice.F.value
+            self.group = self.GroupChoice.F.value  # ty: ignore[invalid-assignment]
         else:
             self.group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)

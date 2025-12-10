@@ -22,7 +22,7 @@ class IndexView(SessionView, UserActiveMixin):
 
     def _get_last_route(self):
         """Get the last route from the session."""
-        last_route = self.get_last_route(name=False)
+        last_route = self.get_last_route()
         serializer = RouteSerializer(last_route)
         return serializer.data
 
