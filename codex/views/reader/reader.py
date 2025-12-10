@@ -20,14 +20,16 @@ class ReaderView(ReaderBooksView):
     @override
     def get_object(self):
         """Get the previous and next comics in a group or story arc."""
+        # get_arcs & get_book_collection populates those arc self valirables.
+        # So order is important.
         arcs, mtime = self.get_arcs()
+        books = self.get_book_collection()
         arc = {
             "group": self._selected_arc_group,
             "ids": self._selected_arc_ids,
             "index": self._selected_arc_index,
             "count": self._selected_arc_count,
         }
-        books = self.get_book_collection()
         close_route = self.get_last_route()
 
         return {

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.22
+
+- Fixes
+    - Fix reading books crash that crept into the last release.
+
 ## v1.8.21
 
 - Fixes
