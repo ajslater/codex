@@ -104,7 +104,10 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         created_fts_values = {}
         for values_tuple in create_tuples:
             key_args, update_args = self._get_create_update_args(
-                model, key_args_map, update_args_map, values_tuple
+                model,
+                key_args_map,
+                update_args_map,
+                values_tuple,  # ty: ignore[invalid-argument-type]
             )
             obj = model(**key_args, **update_args)
             obj.presave()
@@ -178,7 +181,10 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         fts_update_pks = set()
         for values_tuple in update_tuples:
             key_args, update_args = self._get_create_update_args(
-                model, key_args_map, update_args_map, values_tuple
+                model,
+                key_args_map,
+                update_args_map,
+                values_tuple,  # ty: ignore[invalid-argument-type]
             )
             obj = model.objects.get(**key_args)
             for key, value in update_args.items():

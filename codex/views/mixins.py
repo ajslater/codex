@@ -78,7 +78,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
     def annotate_group_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
-        target = cls.TARGET  #  pyright: ignore[reportAttributeAccessIssue]
+        target = cls.TARGET  #  pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if target not in _GROUP_NAME_TARGETS:
             return qs
         group_names = {}
