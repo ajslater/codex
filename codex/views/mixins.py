@@ -24,19 +24,28 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
     """Cross view annotation methods."""
 
     @staticmethod
-    def _get_order_groups(parent_group, pks, show):
+    def _get_order_group(nav_group, show, parent_group, index, pks, order_groups):
+        do_break = False
+        if (
+            nav_group not in _VARIABLE_SHOW or show.get(nav_group)
+        ) and nav_group == parent_group:
+            watermark = index
+            if pks and len(pks) == 1:
+                watermark += 1
+            order_groups = _SHOW_GROUPS[watermark:]
+            do_break = True
+        return order_groups, do_break
+
+    @classmethod
+    def _get_order_groups(cls, parent_group, pks, show):
         """Annotate sort_name."""
-        if parent_group == "c":
-            order_groups = ()
-        else:
+        order_groups = ()
+        if parent_group != "c":
             for index, nav_group in enumerate(_SHOW_GROUPS):
-                if nav_group in _VARIABLE_SHOW and not show.get(nav_group):
-                    continue
-                if nav_group == parent_group:
-                    watermark = index
-                    if pks and len(pks) == 1:
-                        watermark += 1
-                    order_groups = _SHOW_GROUPS[watermark:]
+                order_groups, do_break = cls._get_order_group(
+                    nav_group, show, parent_group, index, pks, order_groups
+                )
+                if do_break:
                     break
             else:
                 order_groups = _SHOW_GROUPS

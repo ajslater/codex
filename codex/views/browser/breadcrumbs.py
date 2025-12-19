@@ -235,7 +235,33 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             done = False
         return done, changed
 
-    def _breadcrumbs_graft_or_create_group(self) -> tuple[tuple[Route, ...], bool]:
+    def _breadcrumbs_graft_or_create_group(
+        self,
+        level,
+        group,
+        browser_group_index,
+        old_breadcrumbs,
+        new_breadcrumbs,
+        changed,
+        done,
+    ):
+        with suppress(ValueError):
+            level = level or GROUP_ORDER.index(group) <= browser_group_index
+        if level:
+            done, changed = self._breadcrumbs_graft_or_create_group_crumb(
+                group, old_breadcrumbs, new_breadcrumbs, changed
+            )
+        try:
+            if old_breadcrumbs and GROUP_ORDER.index(
+                old_breadcrumbs[-1].group
+            ) >= GROUP_ORDER.index(group):
+                # Trim old_breadcrumbs to match to group
+                old_breadcrumbs.pop(-1)
+        except ValueError:
+            old_breadcrumbs.clear()
+        return done
+
+    def _breadcrumbs_graft_or_create_groups(self) -> tuple[tuple[Route, ...], bool]:
         """Graft or create browse group breadcrumbs."""
         old_breadcrumbs, changed = self._init_breadcrumbs(GROUP_ORDER)
 
@@ -250,22 +276,15 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         for group in test_groups:
             try:
-                with suppress(ValueError):
-                    level = level or GROUP_ORDER.index(group) <= browser_group_index
-                if level:
-                    done, changed = self._breadcrumbs_graft_or_create_group_crumb(
-                        group, old_breadcrumbs, new_breadcrumbs, changed
-                    )
-                try:
-                    if old_breadcrumbs and GROUP_ORDER.index(
-                        old_breadcrumbs[-1].group
-                    ) >= GROUP_ORDER.index(group):
-                        # Trim old_breadcrumbs to match to group
-                        old_breadcrumbs.pop(-1)
-                except ValueError:
-                    old_breadcrumbs = []
-
-                if done:
+                if done := self._breadcrumbs_graft_or_create_group(
+                    level,
+                    group,
+                    browser_group_index,
+                    old_breadcrumbs,
+                    new_breadcrumbs,
+                    changed,
+                    done,
+                ):
                     break
             except Exception:
                 logger.exception("group loop")
@@ -282,7 +301,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         elif group == STORY_ARC_GROUP:
             breadcrumbs, changed = self._breadcrumbs_graft_or_create_story_arc()
         else:
-            breadcrumbs, changed = self._breadcrumbs_graft_or_create_group()
+            breadcrumbs, changed = self._breadcrumbs_graft_or_create_groups()
 
         if changed:
             self._breadcrumbs_save(breadcrumbs)

@@ -122,39 +122,45 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
             qps["orderBy"] = "story_arc_number"
         return qps
 
+    def _create_links_section_link_spec(self, link_spec, data, group_spec, link_dict):
+        if not self._is_allowed(link_spec):
+            return
+
+        kwargs = self._create_link_kwargs(data, link_spec)
+
+        qps = self._create_link_query_params(group_spec, link_spec, kwargs)
+
+        title = getattr(link_spec, "title", "")
+        if not title:
+            title = getattr(link_spec, "name", "")
+
+        href_data = HrefData(kwargs, qps)
+
+        rel = data.rel if data.rel else link_spec.rel
+        link_data = LinkData(rel, href_data, title=title)
+        link = self.link(link_data)
+        self.link_aggregate(link_dict, link)
+
+    def _create_links_section_group_spec(self, group_spec, data, groups):
+        link_dict = {}
+        for link_spec in group_spec.links:
+            self._create_links_section_link_spec(link_spec, data, group_spec, link_dict)
+        links = self.get_links_from_dict(link_dict)
+        if links:
+            metadata = {"title": group_spec.title}
+            if data.subtitle:
+                metadata["subtitle"] = data.subtitle
+            group = {
+                "metadata": metadata,
+                data.links_key: links,
+            }
+            groups.append(group)
+
     def _create_links_section(self, group_specs, data):
         """Create links sections for groups and facets."""
         groups = []
         for group_spec in group_specs:
-            link_dict = {}
-            for link_spec in group_spec.links:
-                if not self._is_allowed(link_spec):
-                    continue
-
-                kwargs = self._create_link_kwargs(data, link_spec)
-
-                qps = self._create_link_query_params(group_spec, link_spec, kwargs)
-
-                title = getattr(link_spec, "title", "")
-                if not title:
-                    title = getattr(link_spec, "name", "")
-
-                href_data = HrefData(kwargs, qps)
-
-                rel = data.rel if data.rel else link_spec.rel
-                link_data = LinkData(rel, href_data, title=title)
-                link = self.link(link_data)
-                self.link_aggregate(link_dict, link)
-            links = self.get_links_from_dict(link_dict)
-            if links:
-                metadata = {"title": group_spec.title}
-                if data.subtitle:
-                    metadata["subtitle"] = data.subtitle
-                group = {
-                    "metadata": metadata,
-                    data.links_key: links,
-                }
-                groups.append(group)
+            self._create_links_section_group_spec(group_spec, data, groups)
         return groups
 
     def _get_groups(self, group_qs, book_qs, title, zero_pad):

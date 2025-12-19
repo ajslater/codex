@@ -102,6 +102,25 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             # zero length file is code for missing.
             cover_path.touch()
 
+    def _bulk_create_comic_cover(self, pk, custom, status):
+        # Create one cover
+        cover_path = self.get_cover_path(pk, custom)
+        if cover_path.exists():
+            status.decrement_total()
+        else:
+            # bulk credit creates covers inline
+            data = self.create_cover_from_path(
+                pk,
+                str(cover_path),
+                self.log,
+                self.librarian_queue,
+                custom=False,
+            )
+            if data:
+                data.close()
+            status.increment_complete()
+        self.status_controller.update(status)
+
     def _bulk_create_comic_covers(self, pks, custom) -> int:
         """Create bulk comic covers."""
         num_comics = len(pks)
@@ -112,27 +131,9 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             start_time = time()
             self.log.debug(f"Creating {num_comics} comic covers...")
             self.status_controller.start(status)
-
-            # Get comic objects
             for pk in pks:
                 # Create all covers.
-                cover_path = self.get_cover_path(pk, custom)
-                if cover_path.exists():
-                    status.decrement_total()
-                else:
-                    # bulk credit creates covers inline
-                    data = self.create_cover_from_path(
-                        pk,
-                        str(cover_path),
-                        self.log,
-                        self.librarian_queue,
-                        custom=False,
-                    )
-                    if data:
-                        data.close()
-                    status.increment_complete()
-                self.status_controller.update(status)
-
+                self._bulk_create_comic_cover(pk, custom, status)
             desc = "custom" if custom else "comic"
             count = status.complete
             level = "INFO" if count else "DEBUG"

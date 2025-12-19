@@ -163,6 +163,12 @@ lint-frontend:
 lint-backend:
 	./bin/lint-backend.sh
 
+.PHONY: complexity
+## Lint backend complexity
+## @category Lint
+complexity:
+	./bin/lint-backend-complexity.sh
+
 .PHONY: lint
 ## Lint front and back end
 ## @category Lint

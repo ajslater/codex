@@ -75,29 +75,33 @@ _FK_MODELS = (
 _TOTAL_NUM_FK_CLASSES = len(_FK_MODELS)
 
 
+def _create_reverse_rel_map_for_model(model, rel_map):
+    rev_rels = []
+    filter_dict = {}
+    for field in model._meta.get_fields():
+        if not field.auto_created:
+            continue
+        if hasattr(field, "get_accessor_name") and (
+            an := field.get_accessor_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[call-non-callable]
+        ):
+            rel = an
+        elif field.name:
+            rel = field.name
+        else:
+            continue
+        if rel == "id":
+            continue
+        rel = rel.removesuffix("_set")
+        rev_rels.append(rel)
+        filter_dict[f"{rel}__isnull"] = True
+    if filter_dict:
+        rel_map[model] = filter_dict
+
+
 def _create_reverse_rel_map():
     rel_map = {}
     for model in _FK_MODELS:
-        rev_rels = []
-        filter_dict = {}
-        for field in model._meta.get_fields():
-            if not field.auto_created:
-                continue
-            if hasattr(field, "get_accessor_name") and (
-                an := field.get_accessor_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[call-non-callable]
-            ):
-                rel = an
-            elif field.name:
-                rel = field.name
-            else:
-                continue
-            if rel == "id":
-                continue
-            rel = rel.removesuffix("_set")
-            rev_rels.append(rel)
-            filter_dict[f"{rel}__isnull"] = True
-        if filter_dict:
-            rel_map[model] = filter_dict
+        _create_reverse_rel_map_for_model(model, rel_map)
     return MappingProxyType(rel_map)
 
 

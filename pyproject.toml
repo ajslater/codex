@@ -45,6 +45,7 @@ dependencies = [
   "zipstream-ng~=1.8",
   "Pillow~=12.0",
   "loguru~=0.7.3",
+  "complexipy>=5.1.0",
 ]
 description = "A comic archive web server."
 keywords = ["comic", "cbz", "cbr", "cb7", "cbt", "pdf"]
@@ -198,6 +199,10 @@ builtin = 'clear,rare,code'
 check-hidden = true
 ignore-words-list = 'thead,ro,coverd,searchd,ws,falsy,versio'
 skip = ".*,*~,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./package-lock.json,./site,./test-results,/uv.lock"
+
+[tool.complexipy]
+failed = true
+paths = ["codex", "tests"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
