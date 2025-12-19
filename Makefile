@@ -142,14 +142,7 @@ typecheck:
 ## Static typecheck with ty
 ## @category Lint
 ty:
-	uv run --group typecheck --no-dev ty check .
-
-.PHONY: zuban
-## Static typecheck with zuban
-## @category Lint
-zuban:
-	uv run --group typecheck --no-dev zuban check
-
+	uv run --group lint --no-dev ty check .
 
 .PHONY: lint-frontend
 ## Lint the frontend
