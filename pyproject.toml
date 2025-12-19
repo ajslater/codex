@@ -45,7 +45,6 @@ dependencies = [
   "zipstream-ng~=1.8",
   "Pillow~=12.0",
   "loguru~=0.7.3",
-  "complexipy>=5.1.0",
 ]
 description = "A comic archive web server."
 keywords = ["comic", "cbz", "cbr", "cb7", "cbt", "pdf"]
@@ -79,12 +78,14 @@ build = ["cairosvg~=2.8"]
 lint = [
   "basedpyright~=1.30",
   "codespell~=2.4",
+  "complexipy~=5.1",
   "djangorestframework-types~=0.9",
   "django-types~=0.21",
   "djlint~=1.36",
   "radon[toml]~=6.0",
   "ruff~=0.12",
   "types-python-dateutil~=2.9",
+  "ty~=0.0.4",
   "vulture~=2.3",
 ]
 test = [
