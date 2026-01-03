@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from caseconverter import camelcase
 from django.urls import reverse
 
 from codex.views.util import pop_name
@@ -40,9 +41,15 @@ class OPDS2HrefMixin:
         query = {}
         if not data.absolute_query_params and hasattr(self, "request"):
             # if request link and not init static links
-            query.update(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue]
+            camel_qps = {}
+            for key, val in self.request.GET.items():  # pyright: ignore[reportAttributeAccessIssue]
+                camel_qps[camelcase(key)] = val
+            query.update(camel_qps)
         if data.query_params:
-            query.update(data.query_params)
+            camel_qps = {}
+            for key, val in data.query_params.items():
+                camel_qps[camelcase(key)] = val
+            query.update(camel_qps)
         return query
 
     def href(self, data):

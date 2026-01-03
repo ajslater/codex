@@ -16,7 +16,7 @@ from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.route import RouteSerializer
 from codex.views.util import pop_name
 
-_OPDS_REDIRECT_SETTINGS_KEYS = ("order_by", "top_group")
+_OPDS_REDIRECT_SETTINGS_KEYS = ("orderBy", "topGroup")
 _REDIRECT_SETTINGS_KEYS = ("breadcrumbs", *_OPDS_REDIRECT_SETTINGS_KEYS)
 
 
