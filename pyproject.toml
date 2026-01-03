@@ -52,7 +52,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "1.8.22"
+version = "1.8.23"
 
 [project.urls]
 News = "https://codex-comic-reader.readthedocs.io/NEWS/"

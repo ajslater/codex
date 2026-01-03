@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.8.23
+
+- Fixes
+    - Fix crash in OPDS 2.0 feed.
+
 ## v1.8.22
 
 - Fixes

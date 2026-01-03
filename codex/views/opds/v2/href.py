@@ -7,9 +7,6 @@ from django.urls import reverse
 
 from codex.views.util import pop_name
 
-if TYPE_CHECKING:
-    from rest_framework.request import Request
-
 
 @dataclass
 class HrefData:
@@ -41,13 +38,10 @@ class OPDS2HrefMixin:
     def _href_update_query_params(self, data):
         """Update the query params."""
         query = {}
-        if data.absolute_query_params and data.query_params:
-            query.update(data.query_params)
-        elif hasattr(self, "request"):
+        if not data.absolute_query_params and hasattr(self, "request"):
             # if request link and not init static links
-            if TYPE_CHECKING:
-                self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
-            query.update(self.request.GET)
+            query.update(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue]
+        if data.query_params:
             query.update(data.query_params)
         return query
 
