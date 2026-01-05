@@ -42,7 +42,7 @@ class OPDS2HrefMixin:
         if not data.absolute_query_params and hasattr(self, "request"):
             # if request link and not init static links
             camel_qps = {}
-            for key, val in self.request.GET.items():  # pyright: ignore[reportAttributeAccessIssue]
+            for key, val in self.request.GET.items():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
                 camel_qps[camelcase(key)] = val
             query.update(camel_qps)
         if data.query_params:
