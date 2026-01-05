@@ -49,7 +49,7 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
         """Create the feed title."""
         result = ""
         if browser_title:
-            parent_name = browser_title.get("parent_name", "All")
+            parent_name = browser_title.get("parent_name", None)
             pks = self.kwargs["pks"]
             if not parent_name and not pks:
                 parent_name = "All"
