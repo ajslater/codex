@@ -1,6 +1,6 @@
 """codex:opds:v1 URL Configuration."""
 
-from django.urls import path
+from django.urls import include, path
 from django.views.decorators.cache import cache_page
 
 from codex.urls.const import BROWSER_TIMEOUT
@@ -11,6 +11,12 @@ from codex.views.opds.v2.progression import OPDS2ProgressionView
 app_name = "v2"
 
 urlpatterns = [
+    # Auth
+    path(
+        "auth",
+        include("codex.urls.opds.authentication"),
+        name="authentication",
+    ),
     #
     # Browser
     path(
