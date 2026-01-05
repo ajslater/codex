@@ -1,6 +1,8 @@
 """OPDS v2.0 Feed."""
 
+from copy import copy
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -26,6 +28,9 @@ from codex.views.opds.v2.const import (
 from codex.views.opds.v2.href import HrefData
 from codex.views.opds.v2.links import LinkData
 from codex.views.opds.v2.publications import OPDS2PublicationView
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
@@ -150,10 +155,12 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
             metadata = {"title": group_spec.title}
             if data.subtitle:
                 metadata["subtitle"] = data.subtitle
-            group = {
+            group: dict[str, Mapping | list] = {
                 "metadata": metadata,
-                data.links_key: links,
             }
+            if data.add_self_link:
+                group["links"] = [self.link_self()]
+            group[data.links_key] = links
             groups.append(group)
 
     def _create_links_section(self, group_specs, data):
@@ -171,7 +178,12 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
 
         # Regular Groups
         tup = (NavigationGroup(title=title, links=group_qs),)
-        groups += self._create_links_section(tup, GROUPS_SECTION_DATA)
+        groups_section_data = copy(GROUPS_SECTION_DATA)
+        subtitle = group_qs.model.__name__ if group_qs.model else "UnknownGroup"
+        if subtitle != "Series":
+            subtitle += "s"
+        groups_section_data.subtitle = subtitle
+        groups += self._create_links_section(tup, groups_section_data)
 
         # Publications
         groups += self.get_publications(book_qs, zero_pad, title)
