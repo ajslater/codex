@@ -15,7 +15,7 @@ _DOC = MappingProxyType(
     {
         "id": reverse_lazy("opds:authentication:v1"),
         "title": "Codex",
-        "description": "Codex OPDS Syndication",
+        "description": "Enter your username and password to authenticate",
         "links": [
             {
                 "rel": "logo",
@@ -26,7 +26,7 @@ _DOC = MappingProxyType(
             },
             {
                 "rel": "help",
-                "href": "https://github.com/ajslater/codex",
+                "href": "https://codex-comic-reader.readthedocs.io/",
                 "type": "text/html",
             },
             {
