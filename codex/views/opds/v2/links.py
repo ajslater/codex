@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
+from types import MappingProxyType
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
@@ -33,6 +34,10 @@ class LinkData:
 
 class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
     """Links methods for OPDS 2.0 Feed."""
+
+    DEFAULT_ROUTE = MappingProxyType(
+        {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
+    )
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""

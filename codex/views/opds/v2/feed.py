@@ -36,9 +36,6 @@ if TYPE_CHECKING:
 class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
     """OPDS 2.0 Feed."""
 
-    DEFAULT_ROUTE = MappingProxyType(
-        {**OPDS2PublicationView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
-    )
     TARGET: str = "opds2"
     throttle_scope = "opds"
 
