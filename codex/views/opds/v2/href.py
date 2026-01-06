@@ -1,7 +1,6 @@
 """Href methods for OPDS v2.0 Feed."""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from caseconverter import camelcase
 from django.urls import reverse
@@ -55,9 +54,7 @@ class OPDS2HrefMixin:
     def href(self, data):
         """Create an href."""
         url_name = data.url_name if data.url_name else "opds:v2:feed"
-        if TYPE_CHECKING:
-            self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
-        kwargs = data.kwargs if data.kwargs is not None else self.kwargs
+        kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue]
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
