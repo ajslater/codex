@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from pprint import pformat
 
+from caseconverter import camelcase
 from django.core.validators import EMPTY_VALUES
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -16,7 +17,7 @@ from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.route import RouteSerializer
 from codex.views.util import pop_name
 
-_OPDS_REDIRECT_SETTINGS_KEYS = ("orderBy", "topGroup")
+_OPDS_REDIRECT_SETTINGS_KEYS = ("order_by", "top_group", "orderBy", "topGroup")
 _REDIRECT_SETTINGS_KEYS = ("breadcrumbs", *_OPDS_REDIRECT_SETTINGS_KEYS)
 
 
@@ -55,7 +56,7 @@ class SeeOtherRedirectError(APIException):
                 continue
             if key == "breadcrumbs":
                 value = BreadcrumbsField().to_representation(value)
-            filtered_settings[key] = value
+            filtered_settings[camelcase(key)] = value
         detail["settings"] = filtered_settings
 
         self.detail = detail
