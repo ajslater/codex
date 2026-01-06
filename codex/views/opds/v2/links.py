@@ -12,7 +12,8 @@ from typing_extensions import override
 
 from codex.settings import FALSY
 from codex.views.browser.browser import BrowserView
-from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.const import MimeType, Rel, UserAgentNames
+from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
 
 
@@ -47,6 +48,7 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
         self._group_and_books: (
             tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
         ) = None
+        self._user_agent_name: str | None = None
 
     @property
     def group_and_books(
@@ -65,6 +67,13 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
         if self._num_pages is None:
             self._num_pages = self.group_and_books[2]
         return self._num_pages
+
+    @property
+    def user_agent_name(self) -> str:
+        """Memoize user agent name."""
+        if self._user_agent_name is None:
+            self._user_agent_name = get_user_agent_name(self.request)
+        return self._user_agent_name
 
     @staticmethod
     def _link_attributes(data, link):
@@ -97,6 +106,8 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
             href = self.href(data.href_data)
             if not href:
                 return None
+        if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
+            href = self.request.build_absolute_uri(href)
         mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
         link = {"href": href, "rel": data.rel, "type": mime_type}
         self._link_attributes(data, link)
