@@ -135,6 +135,8 @@ class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
         title = getattr(link_spec, "title", "")
         if not title:
             title = getattr(link_spec, "name", "")
+        if not title and data.links_key == "navigation":
+            title = self.EMPTY_TITLE
 
         href_data = HrefData(kwargs, qps)
 

@@ -38,6 +38,7 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
     DEFAULT_ROUTE = MappingProxyType(
         {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
+    EMPTY_TITLE = "(Empty)"
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
