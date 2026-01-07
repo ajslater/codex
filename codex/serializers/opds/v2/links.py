@@ -8,22 +8,33 @@ from rest_framework.fields import (
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
+from typing_extensions import override
 
 
 class OPSD2AuthenticateSerializer(Serializer):
     """Minimal Link Serializer for Authenticate."""
 
     href = CharField(read_only=True)
-    rel = SerializerMethodField(read_only=True)
+    rel = SerializerMethodField(read_only=True, required=False)
     type = CharField(read_only=True, required=False)
 
-    def get_rel(self, obj) -> str | None:
+    def get_rel(self, obj) -> str | list[str] | None:
         """Allow for SanitizedCharField or CharListField types."""
-        rel = obj.get("rel")
-        if not isinstance(rel, list | str):
+        rel: str | list[str] | None = obj.get("rel")
+        if rel and not isinstance(rel, list | str):
             reason = "OPDS2LinkSerializer.rel is not a list or a string."
             raise TypeError(reason)
-        return obj.get("rel")
+        return rel
+
+    @override
+    def to_representation(self, instance):  # ty: ignore[invalid-method-override]
+        """Clean complex rel field if None."""
+        ret = super().to_representation(instance)
+
+        if "rel" in ret and not ret["rel"]:
+            del ret["rel"]
+
+        return ret
 
 
 class OPDS2LinkPropertiesSerializer(Serializer):
@@ -35,7 +46,7 @@ class OPDS2LinkPropertiesSerializer(Serializer):
 
     number_of_items = IntegerField(read_only=True, required=False)
     # price = OPDS2PriceSerializer(read_only=True, required=False) unused
-    # indirect_aquisition = OPDS2AcquisitionObjectSerializer( unused
+    # indirect_acquisition = OPDS2AcquisitionObjectSerializer( unused
     #    read_only=True, many=True, required=False unused
     # ) unused
     # holds = OPDS2HoldsSerializer(read_only=True, required=False) unused
