@@ -107,7 +107,11 @@ class OPDS2PublicationDivinaManifestSerializer(OPDS2PublicationSerializer):
     https://readium.org/webpub-manifest/profiles/divina
     """
 
+    vars()["context"] = CharField(
+        read_only=True, default="https://readium.org/webpub-manifest/context.jsonld"
+    )
     reading_order = OPDS2LinkListField(read_only=True, required=False)
+    resources = OPDS2LinkListField(read_only=True, required=False)
     toc = OPDS2LinkListField(read_only=True, required=False)
     landmarks = OPDS2LinkListField(read_only=True, required=False)
     page_list = OPDS2LinkListField(read_only=True, required=False)
