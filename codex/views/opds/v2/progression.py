@@ -21,6 +21,7 @@ from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
+from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
 
 if TYPE_CHECKING:
@@ -47,6 +48,14 @@ class OPDS2ProgressionView(
         self.init_bookmark_filter()
         super().__init__(*args, **kwargs)
         self._obj: BrowserGroupModel = Comic()
+        self._user_agent_name: str | None = None
+
+    @property
+    def user_agent_name(self) -> str:
+        """Memoize user agent name."""
+        if self._user_agent_name is None:
+            self._user_agent_name = get_user_agent_name(self.request)
+        return self._user_agent_name
 
     @property
     def modified(self):
@@ -78,7 +87,7 @@ class OPDS2ProgressionView(
             min_page=0,
             max_page=max_page,
         )
-        return self.href(data)
+        return self.href(data, self.user_agent_name, self.request)
 
     @property
     def _locations(self):

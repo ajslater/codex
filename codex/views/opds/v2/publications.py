@@ -5,7 +5,6 @@ from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
 
-from django.urls import reverse
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
@@ -214,7 +213,7 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             # Full image.
             pk = obj.ids[0]
             kwargs = {"pk": pk, "page": 0}
-            query_params = {"ts": ts}
+            query_params = {"ts": ts, "bookmark": False, "pixmap": True}
 
             image_href_data = HrefData(
                 kwargs,
@@ -270,7 +269,7 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
                 min_page=0,
                 max_page=obj.page_count,
             )
-            href = self.href(href_data)
+            href = self.href(href_data, self.user_agent_name, self.request)
             page = {
                 "href": href,
                 "type": "image/jpeg",
@@ -286,7 +285,16 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
         name = series.name if series.name else self.EMPTY_TITLE
         pks = [series.pk]
         number = obj.issue_number
-        href = reverse("opds:v2:feed", kwargs={"group": "s", "pks": pks, "page": 1})
+        kwargs = {"group": "s", "pks": pks, "page": 1}
+        ts = floor(datetime.timestamp(obj.updated_at))
+        query_params = {"ts": ts, "bookmark": False, "pixmap": True}
+        href_data = HrefData(
+            kwargs,
+            query_params,
+            absolute_query_params=True,
+            url_name="opds:v2:feed",
+        )
+        href = self.href(href_data, self.user_agent_name, self.request)
         return {
             "series": [
                 {
