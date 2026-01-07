@@ -182,52 +182,60 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
 
         return pub
 
-    def _images(self, obj, auth_link):
+    def _images(self, obj, auth_link, *, thumb=True):
         # Images
-        kwargs = {"group": obj.group, "pks": obj.ids}
+        images = []
         ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {
-            "customCovers": True,
-            "dynamicCovers": False,
-            "ts": ts,
-        }
-        thumb_href_data = HrefData(
-            kwargs, query_params, absolute_query_params=True, url_name="opds:bin:cover"
-        )
-        thumb_link_data = LinkData(
-            Rel.THUMBNAIL,
-            thumb_href_data,
-            mime_type=MimeType.WEBP,
-            height=THUMBNAIL_HEIGHT,
-            width=THUMBNAIL_WIDTH,
-            authenticate=auth_link,
-        )
+        if thumb:
+            kwargs = {"group": obj.group, "pks": obj.ids}
+            query_params = {
+                "customCovers": True,
+                "dynamicCovers": False,
+                "ts": ts,
+            }
+            thumb_href_data = HrefData(
+                kwargs,
+                query_params,
+                absolute_query_params=True,
+                url_name="opds:bin:cover",
+            )
+            thumb_link_data = LinkData(
+                Rel.THUMBNAIL,
+                thumb_href_data,
+                mime_type=MimeType.WEBP,
+                height=THUMBNAIL_HEIGHT,
+                width=THUMBNAIL_WIDTH,
+                authenticate=auth_link,
+            )
 
-        cover_link = self.link(thumb_link_data)
+            thumb_link = self.link(thumb_link_data)
+            images.append(thumb_link)
+        else:
+            # Full image.
+            pk = obj.ids[0]
+            kwargs = {"pk": pk, "page": 0}
+            query_params = {"ts": ts}
 
-        # Full image.
-        pk = obj.ids[0]
-        kwargs = {"pk": pk, "page": 0}
-        query_params = {"ts": ts}
+            image_href_data = HrefData(
+                kwargs,
+                query_params,
+                absolute_query_params=True,
+                url_name="opds:bin:page",
+                min_page=0,
+            )
+            image_link_data = LinkData(
+                Rel.IMAGE,
+                image_href_data,
+                mime_type=MimeType.JPEG,
+                # Include dummy heights just to pass client validation
+                height=0,
+                width=0,
+                authenticate=auth_link,
+            )
+            image_link = self.link(image_link_data)
+            images.append(image_link)
 
-        image_href_data = HrefData(
-            kwargs, query_params, absolute_query_params=True, url_name="opds:bin:page"
-        )
-        image_link_data = LinkData(
-            Rel.IMAGE,
-            image_href_data,
-            mime_type=MimeType.JPEG,
-            # Include dummy heights just to pass client validation
-            height=0,
-            width=0,
-            authenticate=auth_link,
-        )
-        image_link = self.link(image_link_data)
-
-        return [
-            cover_link,
-            image_link,
-        ]
+        return images
 
 
 class OPDS2PublicationtEntryView(OPDS2PublicationBaseView):
@@ -250,14 +258,25 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
         This part of the spec is redundant, but required.
         """
         reading_order = []
+        ts = floor(datetime.timestamp(obj.updated_at))
+        query_params = {"ts": ts}
         for page_num in range(obj.page_count):
+            kwargs = {"pk": obj.pk, "page": page_num}
+            href_data = HrefData(
+                kwargs,
+                query_params,
+                absolute_query_params=True,
+                url_name="opds:bin:page",
+                min_page=0,
+                max_page=obj.page_count,
+            )
+            href = self.href(href_data)
             page = {
-                "href": reverse(
-                    "opds:bin:page", kwargs={"pk": obj.pk, "page": page_num}
-                ),
+                "href": href,
                 "type": "image/jpeg",
-                "height": 254,
-                "width": 160,
+                # Fake page dimensions just to work
+                "height": 926,
+                "width": 656,
             }
             reading_order.append(page)
         return reading_order
@@ -288,7 +307,8 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
         if belongs_to:
             pub["metadata"]["belongs_to"] = belongs_to
         pub["reading_order"] = self._publication_reading_order(obj)
-        pub["images"] = self._images(obj, self.auth_link)
+        pub["images"] = []  # self._images(obj, self.auth_link)
+        pub["resources"] = self._images(obj, self.auth_link, thumb=False)
         pub["toc"] = []
         pub["landmarks"] = []
         pub["page_list"] = []

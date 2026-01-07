@@ -30,7 +30,7 @@ class OPDS2HrefMixin:
 
     def _href_page_validate(self, kwargs, data):
         """Validate the page bounds."""
-        min_page = 0 if data.min_page is None else data.min_page
+        min_page = 1 if data.min_page is None else data.min_page
         max_page = self.num_pages if data.max_page is None else data.max_page
         page = int(kwargs["page"])
         return page >= min_page and page <= max_page
