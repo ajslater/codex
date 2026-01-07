@@ -1,38 +1,34 @@
 """codex:opds:v1 URL Configuration."""
 
-from django.urls import include, path
+from django.urls import path
 from django.views.decorators.cache import cache_page
 
 from codex.urls.const import BROWSER_TIMEOUT
 from codex.views.opds.util import full_redirect_view
 from codex.views.opds.v2.feed import OPDS2FeedView
 from codex.views.opds.v2.progression import OPDS2ProgressionView
+from codex.views.opds.v2.publications import OPDS2ManifestView
 
 app_name = "v2"
 
 urlpatterns = [
-    # Auth
-    path(
-        "auth",
-        include("codex.urls.opds.authentication"),
-        name="authentication",
-    ),
     #
     # Browser
     path(
-        "<group:group>/<int_list:pks>/<int:page>",
-        cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
-        name="feed",
-    ),
-    path(
-        "c/<str:pk>/<int:page>",
-        cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
-        name="acq",
+        "c/<int_list:pks>/1",
+        cache_page(BROWSER_TIMEOUT)(OPDS2ManifestView.as_view()),
+        {"group": "c", "page": 1},
+        name="manifest",
     ),
     path(
         "<group:group>/<int:pk>/position",
         cache_page(BROWSER_TIMEOUT)(OPDS2ProgressionView.as_view()),
         name="position",
+    ),
+    path(
+        "<group:group>/<int_list:pks>/<int:page>",
+        cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
+        name="feed",
     ),
     #
     # Catch All

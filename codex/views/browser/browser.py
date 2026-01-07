@@ -149,6 +149,17 @@ class BrowserView(BrowserTitleView):
             logger.debug(book_qs.explain())
             logger.debug(book_qs.query)
 
+    def get_book_qs(self):
+        """Only get the book queryset."""
+        book_qs, book_count = self._get_book_queryset()
+        if book_count:
+            zero_pad = self._get_zero_pad(book_qs)
+            book_qs = self.annotate_card_aggregates(book_qs)
+            book_qs = self.force_inner_joins(book_qs)
+        else:
+            zero_pad = 0
+        return book_qs, zero_pad
+
     def _get_group_and_books(self):
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()

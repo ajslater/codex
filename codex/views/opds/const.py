@@ -48,6 +48,7 @@ class MimeType:
 
     ATOM = "application/atom+xml"
     _PROFILE_CATALOG = "profile=opds-catalog"
+    DIVINA = "application/divina+json"
     NAV = f"{ATOM};{_PROFILE_CATALOG};kind=navigation"
     ACQUISITION = f"{ATOM};{_PROFILE_CATALOG};kind=acquisition"
     ENTRY_CATALOG = f"{ATOM};type=entry;{_PROFILE_CATALOG}"

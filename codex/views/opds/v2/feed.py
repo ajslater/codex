@@ -27,13 +27,13 @@ from codex.views.opds.v2.const import (
 )
 from codex.views.opds.v2.href import HrefData
 from codex.views.opds.v2.links import LinkData
-from codex.views.opds.v2.publications import OPDS2PublicationView
+from codex.views.opds.v2.publications import OPDS2PublicationsView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationView):
+class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationsView):
     """OPDS 2.0 Feed."""
 
     TARGET: str = "opds2"

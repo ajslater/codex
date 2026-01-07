@@ -5,8 +5,15 @@ from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
 
+from django.urls import reverse
+from rest_framework.serializers import BaseSerializer
+from typing_extensions import override
+
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
+from codex.serializers.opds.v2.publication import (
+    OPDS2PublicationDivinaManifestSerializer,
+)
 from codex.settings import FALSY
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
@@ -31,60 +38,19 @@ _MD_CREDIT_MAP = MappingProxyType(
 _CREDIT_ROLES = frozenset({x for s in _MD_CREDIT_MAP.values() for x in s})
 
 
-class OPDS2PublicationView(OPDS2TopLinksView):
-    """Publication Methods for OPDS 2.0 feed."""
+class OPDS2PublicationBaseView(OPDS2TopLinksView):
+    """Base view for publication entries."""
 
-    def _images(self, obj):
-        # Images
-        kwargs = {"group": obj.group, "pks": obj.ids}
-        ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {
-            "customCovers": True,
-            "dynamicCovers": False,
-            "ts": ts,
-        }
-        href_data = HrefData(
-            kwargs, query_params, absolute_query_params=True, url_name="opds:bin:cover"
-        )
-        link_data = LinkData(
-            Rel.THUMBNAIL,
-            href_data,
-            mime_type=MimeType.WEBP,
-            height=THUMBNAIL_HEIGHT,
-            width=THUMBNAIL_WIDTH,
-        )
-
-        cover_link = self.link(link_data)
-
-        link_data.rel = Rel.IMAGE
-
-        image_link = self.link(link_data)
-
-        return [
-            cover_link,
-            image_link,
-        ]
+    def __init__(self, *args, **kwargs):
+        """Initialize vars."""
+        self._auth_link = None
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     def _add_credits(md, pks, key, roles):
         """Add credits to metadata."""
         if credit_objs := get_credits(pks, roles, exclude=False):
             md[key] = credit_objs
-
-    def _publication_optional_metadata(self, md, obj):
-        """Add optional Publication Metadtata."""
-        if subtitle := obj.name:
-            md["subtitle"] = subtitle
-        if desc := obj.summary:
-            md["description"] = desc
-        if lang := obj.language:
-            md["language"] = str(lang)
-        if publisher := obj.publisher_name:
-            md["publisher"] = publisher
-        if imprint := obj.imprint_name:
-            md["imprint"] = imprint
-        if nop := obj.page_count:
-            md["number_of_pages"] = nop
 
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
@@ -98,12 +64,28 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             # https://readium.org/webpub-manifest/schema/subject-object.schema.json
             md["subject"] = [subj.name for subjs in m2m_objs.values() for subj in subjs]
 
+    def _publication_optional_metadata(self, md, obj):
+        """Add optional Publication Metadtata."""
+        if subtitle := obj.name:
+            md["subtitle"] = subtitle
+        if desc := obj.summary:
+            md["description"] = desc
+        if lang := obj.language:
+            md["language"] = lang.name
+        if publisher := obj.publisher_name:
+            md["publisher"] = publisher
+        if imprint := obj.imprint_name:
+            md["imprint"] = imprint
+        if nop := obj.page_count:
+            md["number_of_pages"] = nop
+
     def _publication_metadata(self, obj, zero_pad):
+        title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         title = Comic.get_title(
             obj,
             volume=False,
             name=False,
-            filename_fallback=self.title_filename_fallback,
+            filename_fallback=title_filename_fallback,
             zero_pad=zero_pad,
         )
         md = {
@@ -117,72 +99,209 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             self._publication_extended_metadata(md, obj)
         return md
 
-    def _publication(self, obj, zero_pad):
-        pub = {}
-        pub["metadata"] = self._publication_metadata(obj, zero_pad)
+    @property
+    def auth_link(self):
+        """Create a reusable authentication link dict."""
+        if self._auth_link is None:
+            auth_href_data = HrefData({}, url_name="opds:authentication:v1")
+            auth_link_data = LinkData(
+                Rel.AUTHENTICATION,
+                auth_href_data,
+                mime_type=MimeType.AUTHENTICATION,
+            )
+            self._auth_link = self.link(auth_link_data)
+        return self._auth_link
 
-        fn = quote_plus(obj.get_filename())
-
-        download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
-        self_kwargs = {"pk": obj.pk, "page": 1}
+    def _publication_alt(self, obj):
+        self_kwargs = {"group": "c", "pks": [obj.pk], "page": 1}
 
         alt_kwargs = self_kwargs
         alt_href_data = HrefData(
             alt_kwargs,
             {"opdsMetadata": 1},
             absolute_query_params=True,
-            url_name="opds:v2:acq",
+            url_name="opds:v2:feed",
         )
-        alt_link_data = LinkData(
-            Rel.ALTERNATE, alt_href_data, mime_type=MimeType.OPDS_PUB
+        return LinkData(
+            Rel.ALTERNATE,
+            alt_href_data,
+            mime_type=MimeType.OPDS_PUB,
+            authenticate=self.auth_link,
         )
 
+    def _publication(self, obj, zero_pad):
+        pub = {}
+        pub["metadata"] = self._publication_metadata(obj, zero_pad)
+
+        fn = quote_plus(obj.get_filename())
         acq_kwargs = {"pk": obj.pk, "filename": fn}
         acq_href_data = HrefData(
             acq_kwargs,
             url_name="opds:bin:download",
             absolute_query_params=True,
         )
+        download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
 
         acq_link_data = LinkData(
             Rel.ACQUISITION,
             acq_href_data,
             mime_type=download_mime_type,
+            authenticate=self.auth_link,
         )
         prog_kwargs = {"group": "c", "pk": obj.pk}
         prog_href_data = HrefData(prog_kwargs, url_name="opds:v2:position")
-
-        auth_href_data = HrefData({}, url_name="opds:authentication:v1")
-        auth_link_data = LinkData(
-            Rel.AUTHENTICATION,
-            auth_href_data,
-            mime_type=MimeType.AUTHENTICATION,
-        )
-        auth_link = self.link(auth_link_data)
 
         prog_link_data = LinkData(
             Rel.PROGRESSION,
             prog_href_data,
             mime_type=MimeType.PROGRESSION,
-            authenticate=auth_link,
+            authenticate=self.auth_link,
         )
+
+        manifest_kwargs = {"pks": [obj.pk]}
+        manifest_href_data = HrefData(
+            manifest_kwargs,
+            url_name="opds:v2:manifest",
+            query_params={"opdsMetadata": 1},
+        )
+
+        manifest_link_data = LinkData(
+            Rel.SELF,
+            manifest_href_data,
+            mime_type=MimeType.DIVINA,
+            authenticate=self.auth_link,
+        )
+
         links = [
-            self.link(alt_link_data),
+            # X self.link(self._publication_alt(obj)),
             self.link(acq_link_data),
             self.link(prog_link_data),
+            self.link(manifest_link_data),
         ]
         pub["links"] = links
 
-        images = self._images(obj)
-        pub["images"] = images
-
         return pub
+
+    def _images(self, obj, auth_link):
+        # Images
+        kwargs = {"group": obj.group, "pks": obj.ids}
+        ts = floor(datetime.timestamp(obj.updated_at))
+        query_params = {
+            "customCovers": True,
+            "dynamicCovers": False,
+            "ts": ts,
+        }
+        thumb_href_data = HrefData(
+            kwargs, query_params, absolute_query_params=True, url_name="opds:bin:cover"
+        )
+        thumb_link_data = LinkData(
+            Rel.THUMBNAIL,
+            thumb_href_data,
+            mime_type=MimeType.WEBP,
+            height=THUMBNAIL_HEIGHT,
+            width=THUMBNAIL_WIDTH,
+            authenticate=auth_link,
+        )
+
+        cover_link = self.link(thumb_link_data)
+
+        # Full image.
+        pk = obj.ids[0]
+        kwargs = {"pk": pk, "page": 0}
+        query_params = {"ts": ts}
+
+        image_href_data = HrefData(
+            kwargs, query_params, absolute_query_params=True, url_name="opds:bin:page"
+        )
+        image_link_data = LinkData(
+            Rel.IMAGE,
+            image_href_data,
+            mime_type=MimeType.JPEG,
+            # Include dummy heights just to pass client validation
+            height=0,
+            width=0,
+            authenticate=auth_link,
+        )
+        image_link = self.link(image_link_data)
+
+        return [
+            cover_link,
+            image_link,
+        ]
+
+
+class OPDS2PublicationtEntryView(OPDS2PublicationBaseView):
+    """Publication feed entry."""
+
+    @override
+    def _publication(self, obj, zero_pad):
+        pub = super()._publication(obj, zero_pad)
+        pub["images"] = self._images(obj, self.auth_link)
+        return pub
+
+
+class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
+    """Publication Manifest."""
+
+    def _publication_reading_order(self, obj):
+        """
+        Reader manifest for OPDS 2.0.
+
+        This part of the spec is redundant, but required.
+        """
+        reading_order = []
+        for page_num in range(obj.page_count):
+            page = {
+                "href": reverse(
+                    "opds:bin:page", kwargs={"pk": obj.pk, "page": page_num}
+                ),
+                "type": "image/jpeg",
+                "height": 254,
+                "width": 160,
+            }
+            reading_order.append(page)
+        return reading_order
+
+    def _publication_belongs_to(self, obj):
+        series = obj.series
+        name = series.name if series.name else self.EMPTY_TITLE
+        pks = [series.pk]
+        number = obj.issue_number
+        href = reverse("opds:v2:feed", kwargs={"group": "s", "pks": pks, "page": 1})
+        return {
+            "series": [
+                {
+                    "name": name,
+                    "position": number,
+                    "links": [{"href": href, "type": "application/opds+json"}],
+                }
+            ]
+        }
+
+    @override
+    def _publication(self, obj, zero_pad):
+        pub = super()._publication(obj, zero_pad)
+        belongs_to = self._publication_belongs_to(obj)
+        pub["metadata"]["conformsTo"] = (
+            "https://readium.org/webpub-manifest/profiles/divina"
+        )
+        if belongs_to:
+            pub["metadata"]["belongs_to"] = belongs_to
+        pub["reading_order"] = self._publication_reading_order(obj)
+        pub["images"] = self._images(obj, self.auth_link)
+        pub["toc"] = []
+        pub["landmarks"] = []
+        pub["page_list"] = []
+        return pub
+
+
+class OPDS2PublicationsView(OPDS2PublicationtEntryView):
+    """Publication Methods for OPDS 2.0 feed."""
 
     def get_publications(self, book_qs, zero_pad, title):
         """Get publications section."""
         groups = []
         publications = []
-        self.title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         for obj in book_qs:
             pub = self._publication(obj, zero_pad)
             publications.append(pub)
@@ -198,3 +317,20 @@ class OPDS2PublicationView(OPDS2TopLinksView):
             }
             groups.append(pub_group)
         return groups
+
+
+class OPDS2ManifestView(OPDS2PublicationManifestView):
+    """Single publication manifest view."""
+
+    TARGET: str = "opds2"
+    throttle_scope = "opds"
+    serializer_class: type[BaseSerializer] | None = (
+        OPDS2PublicationDivinaManifestSerializer
+    )
+
+    @override
+    def get_object(self):
+        """Get one publication object."""
+        book_qs, zero_pad = self.get_book_qs()
+        obj = book_qs.first()
+        return MappingProxyType(self._publication(obj, zero_pad))
