@@ -8,6 +8,7 @@ from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least
 from django.db.models.query_utils import FilteredRelation
+from django.http import HttpResponse
 from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -129,6 +130,9 @@ class OPDS2ProgressionView(
             progress=progress,
         )
         self._obj = qs.only("page_count").distinct().get(pk=pk)
+
+        if not self._obj.bookmark_updated_at:  # pyright: ignore[reportAttributeAccessIssue]
+            HttpResponse(status=204)
 
         return {
             "modified": self.modified,
