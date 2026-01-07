@@ -40,7 +40,7 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
             key = f"{bm_rel}__user"
             value = self.request.user
         else:
-            key = f"{bm_rel}__session__session_key"
+            key = f"{bm_rel}__session"
             value = self.request.session.session_key
         my_bookmarks_kwargs = {key: value}
         return Q(**my_bookmarks_kwargs)
