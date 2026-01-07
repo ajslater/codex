@@ -30,6 +30,26 @@ class OPDS2CreditObjectSerializer(Serializer):
     # role = CharListField(read_only=True)  unused
     # position = IntegerField(read_only=True, required=False)  unused
     # links = LinkListField(read_only=True)  unused
+    #
+    #
+
+
+class OPDS2BelongsToSeriesSerializer(Serializer):
+    """BelongsTo Series Field."""
+
+    name = CharField(read_only=True)
+    position = IntegerField(read_only=True, required=False)
+    links = OPDS2LinkListField(read_only=True)
+
+
+class OPDS2BelongsToMetadata(Serializer):
+    """BelongsTo metadata field."""
+
+    series = ListField(
+        child=OPDS2BelongsToSeriesSerializer(read_only=True),
+        read_only=True,
+        required=False,
+    )
 
 
 class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
@@ -63,6 +83,9 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     inker = OPDS2CreditObjectSerializer(many=True, required=False)
     credit = OPDS2CreditObjectSerializer(many=True, required=False)
 
+    # Manifest metadata
+    belongs_to = OPDS2BelongsToMetadata(required=False)
+
 
 class OPDS2PublicationSerializer(OPDS2FacetSerializer):
     """
@@ -71,6 +94,20 @@ class OPDS2PublicationSerializer(OPDS2FacetSerializer):
     https://drafts.opds.io/schema/publication.schema.json
     """
 
+    conforms_to = CharField(read_only=True)
     metadata = OPDS2PublicationMetadataSerializer(read_only=True)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     links = OPDS2LinkListField(read_only=True)
     images = OPDS2LinkListField(read_only=True, required=False)
+
+
+class OPDS2PublicationDivinaManifestSerializer(OPDS2PublicationSerializer):
+    """
+    Divina Visual Narratives Profile.
+
+    https://readium.org/webpub-manifest/profiles/divina
+    """
+
+    reading_order = OPDS2LinkListField(read_only=True, required=False)
+    toc = OPDS2LinkListField(read_only=True, required=False)
+    landmarks = OPDS2LinkListField(read_only=True, required=False)
+    page_list = OPDS2LinkListField(read_only=True, required=False)
