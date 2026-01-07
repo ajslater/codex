@@ -59,10 +59,10 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     https://readium.org/webpub-manifest/schema/metadata.schema.json
     """
 
-    # possibly change to @ on output if this is really needed
-    # @type = CharField(read_only=True, required=False)
+    vars()["@type"] = CharField(read_only=True, default="https://schema.org/ComicIssue")
     publisher = CharField(read_only=True, required=False)
     imprint = CharField(read_only=True, required=False)
+    identifier = CharField(read_only=True, required=False)
     language = CharField(read_only=True, required=False)
     published = DateField(read_only=True, required=False)
     number_of_pages = IntegerField(read_only=True, required=False)
@@ -107,7 +107,7 @@ class OPDS2PublicationDivinaManifestSerializer(OPDS2PublicationSerializer):
     https://readium.org/webpub-manifest/profiles/divina
     """
 
-    vars()["context"] = CharField(
+    vars()["@context"] = CharField(
         read_only=True, default="https://readium.org/webpub-manifest/context.jsonld"
     )
     reading_order = OPDS2LinkListField(read_only=True, required=False)
