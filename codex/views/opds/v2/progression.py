@@ -21,6 +21,7 @@ from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
+from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
 
@@ -37,7 +38,11 @@ _EMPTY_DEVICE = MappingProxyType(
 
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
-    BookmarkFilterMixin, OPDS2HrefMixin, BookmarkPageMixin, AuthFilterGenericAPIView
+    OPDSAuthMixin,
+    BookmarkFilterMixin,
+    OPDS2HrefMixin,
+    BookmarkPageMixin,
+    AuthFilterGenericAPIView,
 ):
     """OPDS 2 Progression view."""
 
