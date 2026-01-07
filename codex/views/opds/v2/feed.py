@@ -15,7 +15,6 @@ from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.mixins import UserActiveMixin
-from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
     FACETS,
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class OPDS2FeedView(OPDSAuthMixin, UserActiveMixin, OPDS2PublicationsView):
+class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
     """OPDS 2.0 Feed."""
 
     TARGET: str = "opds2"

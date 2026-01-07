@@ -11,7 +11,7 @@ class OPDS2TopLinksView(OPDS2LinksView):
     def _link_auth(self):
         href_data = HrefData(
             {},
-            url_name="opds:authentication:v1",
+            url_name="opds:auth:v1",
             absolute_query_params=True,
         )
         link_data = LinkData(

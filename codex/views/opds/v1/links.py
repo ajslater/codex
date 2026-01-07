@@ -162,7 +162,7 @@ class OPDS1LinksView(OPDS1FacetsView):
                 OPDS1Link("self", self.request.get_full_path(), mime_type),
                 OPDS1Link(
                     Rel.AUTHENTICATION,
-                    reverse("opds:authentication:v1"),
+                    reverse("opds:auth:v1"),
                     MimeType.AUTHENTICATION,
                 ),
                 OPDS1Link(Rel.START, reverse("opds:v1:start"), MimeType.NAV),

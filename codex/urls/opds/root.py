@@ -10,9 +10,9 @@ opds_v1_start_view = full_redirect_view("opds:v1:feed")
 
 urlpatterns = (
     path(
-        "auth",
+        "auth/",
         include("codex.urls.opds.authentication"),
-        name="authentication",
+        name="auth",
     ),
     path("bin/", include("codex.urls.opds.binary")),
     path("v1.2/", include("codex.urls.opds.v1")),

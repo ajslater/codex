@@ -102,7 +102,7 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
     def auth_link(self):
         """Create a reusable authentication link dict."""
         if self._auth_link is None:
-            auth_href_data = HrefData({}, url_name="opds:authentication:v1")
+            auth_href_data = HrefData({}, url_name="opds:auth:v1")
             auth_link_data = LinkData(
                 Rel.AUTHENTICATION,
                 auth_href_data,
