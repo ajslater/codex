@@ -93,7 +93,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 group_query = model.objects.none()
             group_instance: BrowserGroupModel | None = group_query.first()
             self._group_instance = group_instance
-        return self._group_instance  # pyright: ignore[reportReturnType]
+        return self._group_instance  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
 
     def _init_breadcrumbs(self, valid_groups):
         """Load breadcrumbs and determine if they should be searched for a graft."""
