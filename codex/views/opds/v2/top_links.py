@@ -44,12 +44,20 @@ class OPDS2TopLinksView(OPDS2LinksView):
             mime_type=MimeType.HTML,
         )
 
-        return (
+        static_links = [
             self._link_auth(),
             self._link_search(),
+        ]
+
+        static_links += [
             self.link(start_link_data),
-            self.link(register_link_data),
-        )
+        ]
+        if not self.request.user:
+            static_links += [
+                self.link(register_link_data),
+            ]
+
+        return static_links
 
     def _top_route(self):
         group = "f" if self.kwargs.get("group") == "f" else "r"
@@ -72,19 +80,26 @@ class OPDS2TopLinksView(OPDS2LinksView):
         links_data = [
             self.link_self(),
             *self._get_static_links(),
-            self._link_page("first", 1),
         ]
+        if page != 1:
+            links_data += [
+                self._link_page("first", 1),
+            ]
         if page > 1:
             links_data += [
                 self._link_page("previous", page - 1),
             ]
-        links_data += [
-            self._link_page("next", page + 1),
-            self._link_page("last", self.num_pages),
-            self.link(top_link_data),
-        ]
-        if up_route:
+        if page != self.num_pages:
             links_data += [
+                self._link_page("next", page + 1),
+                self._link_page("last", self.num_pages),
+            ]
+
+        group = self.kwargs.get("group")
+        top_group = self.params["top_group"]
+        if group not in {top_group, "r"}:
+            links_data += [
+                self.link(top_link_data),
                 self.link(up_link_data),
             ]
 
