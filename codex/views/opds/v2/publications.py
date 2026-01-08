@@ -337,7 +337,7 @@ class OPDS2PublicationsView(OPDS2PublicationtEntryView):
                 "subtitle": "Books",
                 "current_page": current_page,
                 "items_per_page": MAX_OBJ_PER_PAGE,
-                "number_of_items": self._opds_number_of_items,
+                "number_of_items": self._opds_number_of_books,
             }
             links = [self.link_self()]
             pub_group = {

@@ -119,6 +119,8 @@ class LinksSectionData:
 
 TOP_NAV_GROUP_SECTION_DATA = LinksSectionData(group_kwarg=True)
 GROUPS_SECTION_DATA = LinksSectionData(
-    rel=Rel.SUB, group_kwarg=True, add_self_link=True
+    rel=Rel.SUB,
+    group_kwarg=True,
+    add_self_link=True,
 )
 FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET, links_key="links")

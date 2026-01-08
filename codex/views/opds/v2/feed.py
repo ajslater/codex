@@ -144,7 +144,9 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         link = self.link(link_data)
         self.link_aggregate(link_dict, link)
 
-    def _create_links_section_group_spec(self, group_spec, data, groups):
+    def _create_links_section_group_spec(
+        self, group_spec, data, groups, *, paginate: bool = False
+    ):
         link_dict = {}
         for link_spec in group_spec.links:
             self._create_links_section_link_spec(link_spec, data, group_spec, link_dict)
@@ -153,6 +155,15 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             metadata = {"title": group_spec.title}
             if data.subtitle:
                 metadata["subtitle"] = data.subtitle
+
+            current_page = self.kwargs.get("page", 1)
+            if paginate:
+                pagination = {
+                    "current_page": current_page,
+                    "items_per_page": MAX_OBJ_PER_PAGE,
+                    "number_of_items": self._opds_number_of_groups,
+                }
+                metadata.update(pagination)
             group: dict[str, Mapping | list] = {
                 "metadata": metadata,
             }
@@ -161,11 +172,13 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             group[data.links_key] = links
             groups.append(group)
 
-    def _create_links_section(self, group_specs, data):
+    def _create_links_section(self, group_specs, data, *, paginate: bool = False):
         """Create links sections for groups and facets."""
         groups = []
         for group_spec in group_specs:
-            self._create_links_section_group_spec(group_spec, data, groups)
+            self._create_links_section_group_spec(
+                group_spec, data, groups, paginate=paginate
+            )
         return groups
 
     def _get_groups(self, group_qs, book_qs, title, zero_pad):
@@ -181,7 +194,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         if subtitle != "Series":
             subtitle += "s"
         groups_section_data.subtitle = subtitle
-        groups += self._create_links_section(tup, groups_section_data)
+        groups += self._create_links_section(tup, groups_section_data, paginate=True)
 
         # Publications
         groups += self.get_publications(book_qs, zero_pad, title)
