@@ -57,6 +57,8 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         """Paginate the queryset into a group and book object lists."""
         page_group_qs = self._paginate_groups(group_qs)
         page_group_count = page_group_qs.count()
+        if self._is_opds_acquisition:
+            self._opds_number_of_items = book_qs.count()
         page_book_qs = self._paginate_books(book_qs, group_count, page_group_count)
         page_book_count = page_book_qs.count()
 

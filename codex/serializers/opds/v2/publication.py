@@ -65,7 +65,6 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     identifier = CharField(read_only=True, required=False)
     language = CharField(read_only=True, required=False)
     published = DateField(read_only=True, required=False)
-    number_of_pages = IntegerField(read_only=True, required=False)
     # reading_progression = ChoiceField() unused
 
     #####################

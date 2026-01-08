@@ -13,7 +13,7 @@ from codex.models import Comic
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
-from codex.settings import FALSY
+from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
 from codex.views.opds.v2.href import HrefData
@@ -53,6 +53,8 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
 
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
+        # TODO: annotate these on the regular query
+        # TODO: Add identifier too
         for key, roles in _MD_CREDIT_MAP.items():
             self._add_credits(md, obj.ids, key, roles)
         if credit_objs := get_credits(obj.ids, _CREDIT_ROLES, exclude=True):
@@ -75,8 +77,8 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             md["publisher"] = publisher
         if imprint := obj.imprint_name:
             md["imprint"] = imprint
-        if nop := obj.page_count:
-            md["number_of_pages"] = nop
+        if page_count := obj.page_count:
+            md["number_of_pages"] = page_count
 
     def _publication_metadata(self, obj, zero_pad):
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
@@ -329,12 +331,18 @@ class OPDS2PublicationsView(OPDS2PublicationtEntryView):
             publications.append(pub)
 
         if publications:
+            current_page = self.kwargs.get("page", 1)
+            metadata = {
+                "title": title,
+                "subtitle": "Books",
+                "current_page": current_page,
+                "items_per_page": MAX_OBJ_PER_PAGE,
+                "number_of_items": self._opds_number_of_items,
+            }
+            links = [self.link_self()]
             pub_group = {
-                "metadata": {
-                    "title": title,
-                    "subtitle": "Books",
-                },
-                "links": [self.link_self()],
+                "metadata": metadata,
+                "links": links,
                 "publications": publications,
             }
             groups.append(pub_group)
