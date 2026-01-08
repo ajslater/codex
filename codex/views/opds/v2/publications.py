@@ -281,29 +281,21 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
         return reading_order
 
     def _publication_belongs_to(self, obj):
-        series = obj.series
-        name = series.name if series.name else self.EMPTY_TITLE
-        pks = [series.pk]
+        name = obj.series_name if obj.series.name else self.EMPTY_TITLE
+        pks = [obj.series.pk]
         number = obj.issue_number
         kwargs = {"group": "s", "pks": pks, "page": 1}
         ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {"ts": ts, "bookmark": False, "pixmap": True}
+        query_params = {"ts": ts}
         href_data = HrefData(
             kwargs,
             query_params,
             absolute_query_params=True,
             url_name="opds:v2:feed",
         )
-        href = self.href(href_data, self.user_agent_name, self.request)
-        return {
-            "series": [
-                {
-                    "name": name,
-                    "position": number,
-                    "links": [{"href": href, "type": "application/opds+json"}],
-                }
-            ]
-        }
+        link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)
+        link = self.link(link_data)
+        return {"series": [{"name": name, "position": number, "links": [link]}]}
 
     @override
     def _publication(self, obj, zero_pad):
