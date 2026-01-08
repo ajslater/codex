@@ -96,8 +96,8 @@ class OPDS2TopLinksView(OPDS2LinksView):
             ]
 
         group = self.kwargs.get("group")
-        top_group = self.params["top_group"]
-        if group not in {top_group, "r"}:
+        pks = self.kwargs.get("pks")
+        if group not in {"r", "f", "a"} and 0 not in pks:
             links_data += [
                 self.link(top_link_data),
                 self.link(up_link_data),

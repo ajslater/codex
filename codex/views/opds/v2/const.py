@@ -25,10 +25,13 @@ class FacetGroup:
 
 FACETS = (
     FacetGroup(
-        "Order By", "orderBy", "➠", (Facet("date", "Date"), Facet("sort_name", "Name"))
+        "➠ Order By",
+        "orderBy",
+        "➠",
+        (Facet("date", "Date"), Facet("sort_name", "Name")),
     ),
     FacetGroup(
-        "Order Direction",
+        "⇕ Order Direction",
         "orderReverse",
         "⇕",
         (
@@ -37,7 +40,7 @@ FACETS = (
         ),
     ),
     FacetGroup(
-        "Top Group",
+        "⊙ Top Group",
         "topGroup",
         "⊙",
         (

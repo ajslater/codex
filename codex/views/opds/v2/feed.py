@@ -181,11 +181,20 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             )
         return groups
 
+    def _get_facets(self):
+        return self._create_links_section(FACETS, FACETS_SECTION_DATA)
+
+    def _get_top_groups(self):
+        # Top Nav Groups
+        group = self.kwargs.get("group")
+        pks = self.kwargs.get("pks")
+        if group not in {"r", "f", "a"} and 0 not in pks:
+            return []
+
+        return self._create_links_section(GROUPS, TOP_NAV_GROUP_SECTION_DATA)
+
     def _get_groups(self, group_qs, book_qs, title, zero_pad):
         groups = []
-
-        # Top Nav Groups
-        groups += self._create_links_section(GROUPS, TOP_NAV_GROUP_SECTION_DATA)
 
         # Regular Groups
         tup = (NavigationGroup(title=title, links=group_qs),)
@@ -201,9 +210,6 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
         return groups
 
-    def _get_facets(self):
-        return self._create_links_section(FACETS, FACETS_SECTION_DATA)
-
     @override
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
@@ -217,12 +223,12 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         current_page = self.kwargs.get("page")
         up_route = self.get_last_route()
         links = self.get_links(up_route)
-        facets = self._get_facets()
 
         # opds groups
-        page_groups = group_qs
-        page_books = book_qs
-        groups = self._get_groups(page_groups, page_books, title, zero_pad)
+        groups = []
+        groups += self._get_top_groups()
+        groups += self._get_facets()
+        groups += self._get_groups(group_qs, book_qs, title, zero_pad)
 
         return MappingProxyType(
             {
@@ -234,7 +240,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
                     "current_page": current_page,
                 },
                 "links": links,
-                "groups": facets + groups,
+                "groups": groups,
             }
         )
 
