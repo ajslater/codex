@@ -9,6 +9,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
+from codex.views.opds.const import MimeType
 
 _LOGO_SIZE = 180
 _DOC = MappingProxyType(
@@ -20,7 +21,7 @@ _DOC = MappingProxyType(
             {
                 "rel": "logo",
                 "href": staticfiles_storage.url("img/logo-maskable-180.webp"),
-                "type": "image/webp",
+                "type": MimeType.WEBP,
                 "width": _LOGO_SIZE,
                 "height": _LOGO_SIZE,
             },
