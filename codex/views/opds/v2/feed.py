@@ -19,8 +19,11 @@ from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
     FACETS,
     FACETS_SECTION_DATA,
-    GROUPS,
     GROUPS_SECTION_DATA,
+    ORDERED_GROUPS,
+    START_GROUPS,
+    START_SECTION_DATA,
+    TOP_GROUPS,
     TOP_NAV_GROUP_SECTION_DATA,
     NavigationGroup,
 )
@@ -181,17 +184,32 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             )
         return groups
 
-    def _get_facets(self):
-        return self._create_links_section(FACETS, FACETS_SECTION_DATA)
-
     def _get_top_groups(self):
         # Top Nav Groups
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
-        if group not in {"r", "f", "a"} and 0 not in pks:
-            return []
+        if group in {"r", "f", "a"} and (not pks or 0 in pks):
+            return self._create_links_section(TOP_GROUPS, TOP_NAV_GROUP_SECTION_DATA)
+        return []
 
-        return self._create_links_section(GROUPS, TOP_NAV_GROUP_SECTION_DATA)
+    def _get_ordered_groups(self):
+        # Top Nav Groups
+        group = self.kwargs.get("group")
+        pks = self.kwargs.get("pks")
+        if group in {"r", "f", "a"} and (not pks or 0 in pks):
+            return self._create_links_section(
+                ORDERED_GROUPS, TOP_NAV_GROUP_SECTION_DATA
+            )
+
+        return []
+
+    def _get_start_groups(self):
+        # Top Nav Groups
+        group = self.kwargs.get("group")
+        pks = self.kwargs.get("pks")
+        if group in {"r", "f", "a"} and (not pks or 0 in pks):
+            return []
+        return self._create_links_section(START_GROUPS, START_SECTION_DATA)
 
     def _get_groups(self, group_qs, book_qs, title, zero_pad):
         groups = []
@@ -210,6 +228,9 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
         return groups
 
+    def _get_facets(self):
+        return self._create_links_section(FACETS, FACETS_SECTION_DATA)
+
     @override
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
@@ -224,11 +245,18 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         up_route = self.get_last_route()
         links = self.get_links(up_route)
 
+        # Called "Browse"" in Stump
+        regular_groups = self._get_groups(group_qs, book_qs, title, zero_pad)
+        first_regular_groups = next(iter(regular_groups), {})
+        navigation = first_regular_groups.pop("navigation", [])
+
         # opds groups
         groups = []
+        groups += regular_groups
+        groups += self._get_ordered_groups()
         groups += self._get_top_groups()
         groups += self._get_facets()
-        groups += self._get_groups(group_qs, book_qs, title, zero_pad)
+        groups += self._get_start_groups()
 
         return MappingProxyType(
             {
@@ -240,6 +268,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
                     "current_page": current_page,
                 },
                 "links": links,
+                "navigation": navigation,
                 "groups": groups,
             }
         )

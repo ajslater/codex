@@ -72,7 +72,7 @@ class NavigationGroup:
     links: tuple[NavigationLink, ...]
 
 
-GROUPS = (
+ORDERED_GROUPS = (
     NavigationGroup(
         "Ordered Groups",
         (
@@ -96,14 +96,30 @@ GROUPS = (
             ),
         ),
     ),
+)
+TOP_GROUPS = (
     NavigationGroup(
         "Top Groups",
         (
-            NavigationLink(Rel.SUB, "Root", "r", None),
-            NavigationLink(Rel.SUB, "Publishers", "p", None),
-            NavigationLink(Rel.SUB, "Series", "s", None),
+            NavigationLink(Rel.START, "Publishers", "r", {"topGroup": "p"}),
+            NavigationLink(Rel.SUB, "Series", "p", {"topGroup": "p"}),
+            NavigationLink(Rel.SUB, "Issues", "s", {"topGroup": "p"}),
             NavigationLink(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
             NavigationLink(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+        ),
+    ),
+)
+
+START_GROUPS = (
+    NavigationGroup(
+        "Start",
+        (
+            NavigationLink(
+                Rel.START,
+                "Start",
+                "r",
+                {"topGroup": "p", "orderBy": "sort_name", "orderReverse": False},
+            ),
         ),
     ),
 )
@@ -120,10 +136,10 @@ class LinksSectionData:
     add_self_link: bool = False
 
 
+START_SECTION_DATA = LinksSectionData(rel=Rel.START, group_kwarg=True)
 TOP_NAV_GROUP_SECTION_DATA = LinksSectionData(group_kwarg=True)
 GROUPS_SECTION_DATA = LinksSectionData(
     rel=Rel.SUB,
     group_kwarg=True,
-    add_self_link=True,
 )
 FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET)
