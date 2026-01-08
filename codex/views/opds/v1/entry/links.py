@@ -24,7 +24,7 @@ class OPDS1EntryLinksMixin:
         self.obj = obj
         self.fake = isinstance(self.obj, OPDS1EntryObject)
         self.query_params = query_params
-        self.acquision_groups = data.acquisition_groups
+        self.acquisition_groups = data.acquisition_groups
         self.zero_pad = data.zero_pad
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
@@ -72,7 +72,7 @@ class OPDS1EntryLinksMixin:
         href = self._nav_href(metadata=metadata)
 
         group = self.obj.group
-        if group in self.acquision_groups:
+        if group in self.acquisition_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
