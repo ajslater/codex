@@ -234,8 +234,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
                     "current_page": current_page,
                 },
                 "links": links,
-                "facets": facets,
-                "groups": groups,
+                "groups": facets + groups,
             }
         )
 

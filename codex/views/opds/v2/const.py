@@ -123,4 +123,4 @@ GROUPS_SECTION_DATA = LinksSectionData(
     group_kwarg=True,
     add_self_link=True,
 )
-FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET, links_key="links")
+FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET)
