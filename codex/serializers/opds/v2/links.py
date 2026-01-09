@@ -64,10 +64,13 @@ class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
 
     templated = BooleanField(read_only=True, required=False)
     title = CharField(read_only=True, required=False)
+    properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
-    # Uncommon
+    # Images
     height = IntegerField(read_only=True, required=False)
     width = IntegerField(read_only=True, required=False)
+
+    # Uncommon
     # bitrate = IntegerField(read_only=True, required=False) unused
     # duration = IntegerField(read_only=True, required=False) unused
     # language = CharField(many=True, read_only=True, required=False) unused
@@ -77,7 +80,6 @@ class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
     children = ListField(
         child=CharField(read_only=True), read_only=True, required=False
     )
-    properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
 
 class OPDS2LinkListField(ListField):

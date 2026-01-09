@@ -60,16 +60,16 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     """
 
     vars()["@type"] = CharField(read_only=True, default="https://schema.org/ComicIssue")
-    publisher = CharField(read_only=True, required=False)
-    imprint = CharField(read_only=True, required=False)
-    identifier = CharField(read_only=True, required=False)
-    language = CharField(read_only=True, required=False)
     published = DateField(read_only=True, required=False)
     # reading_progression = ChoiceField() unused
 
     #####################
     # Extended metadata #
     #####################
+    publisher = CharField(read_only=True, required=False)
+    imprint = CharField(read_only=True, required=False)
+    identifier = CharField(read_only=True, required=False)
+    language = CharField(read_only=True, required=False)
     subject = ListField(child=CharField(read_only=True), read_only=True, required=False)
     author = OPDS2CreditObjectSerializer(many=True, required=False)
     # translator = OPDS2CreditObjectSerializer(many=True, required=False) unused
@@ -81,8 +81,6 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     colorist = OPDS2CreditObjectSerializer(many=True, required=False)
     inker = OPDS2CreditObjectSerializer(many=True, required=False)
     credit = OPDS2CreditObjectSerializer(many=True, required=False)
-
-    # Manifest metadata
     belongs_to = OPDS2BelongsToMetadata(required=False)
 
 
