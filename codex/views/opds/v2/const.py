@@ -1,5 +1,6 @@
 """OPDS v2 consts."""
 
+import json
 from dataclasses import dataclass
 
 from codex.views.opds.const import Rel
@@ -23,9 +24,13 @@ class FacetGroup:
     links: tuple[Facet, ...]
 
 
+_UNREAD_FILTERS = json.dumps({"bookmark": "UNREAD"})
+_IN_PROGRESS_FILTERS = json.dumps({"bookmark": "IN_PROGRESS"})
+_READ_FILTERS = json.dumps({"bookmark": "READ"})
+
 FACETS = (
     FacetGroup(
-        "➠ Order By",
+        "⬄ Order By",
         "orderBy",
         "➠",
         (Facet("date", "Date"), Facet("sort_name", "Name")),
@@ -40,7 +45,7 @@ FACETS = (
         ),
     ),
     FacetGroup(
-        "⊙ Top Group",
+        "⊙  Top Group",
         "topGroup",
         "⊙",
         (
@@ -48,6 +53,16 @@ FACETS = (
             Facet("s", "Series View"),
             Facet("f", "Folder View"),
             Facet("a", "Story Arc View"),
+        ),
+    ),
+    FacetGroup(
+        "🔖 Read State",
+        "filters",
+        "🔖",
+        (
+            Facet(_UNREAD_FILTERS, title="Unread"),
+            Facet(_IN_PROGRESS_FILTERS, title="In Progress"),
+            Facet(_READ_FILTERS, title="Read"),
         ),
     ),
     # Could add Filters as well.
@@ -70,6 +85,7 @@ class NavigationGroup:
 
     title: str
     links: tuple[NavigationLink, ...]
+    add_preview: bool = False
 
 
 ORDERED_GROUPS = (
@@ -77,24 +93,40 @@ ORDERED_GROUPS = (
         "Ordered Groups",
         (
             NavigationLink(
-                Rel.SORT_NEW,
-                "New",
+                Rel.FEATURED,
+                "Keep Reading",
                 "s",
-                {"orderBy": "created_at", "orderReverse": True},
+                {
+                    "topGroup": "s",
+                    "filters": _UNREAD_FILTERS,
+                    "orderBy": "bookmark_updated_at",
+                    "orderReverse": True,
+                },
             ),
             NavigationLink(
-                Rel.FEATURED,
+                Rel.SORT_NEW,
+                "Latest Unread",
+                "s",
+                {
+                    "topGroup": "s",
+                    "filters": _UNREAD_FILTERS,
+                    "orderBy": "created_at",
+                    "orderReverse": True,
+                },
+            ),
+            NavigationLink(
+                Rel.SORT_NEW,
                 "Oldest Unread",
                 "s",
-                {"orderBy": "date", "orderReverse": False},
-            ),
-            NavigationLink(
-                Rel.POPULAR,
-                "Last Read",
-                "s",
-                {"orderBy": "bookmark_updated_at", "orderReverse": True},
+                {
+                    "topGroup": "s",
+                    "filters": _UNREAD_FILTERS,
+                    "orderBy": "date",
+                    "orderReverse": False,
+                },
             ),
         ),
+        add_preview=True,
     ),
 )
 TOP_GROUPS = (
