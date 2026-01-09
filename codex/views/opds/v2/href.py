@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 
 from caseconverter import camelcase
-from django.http import HttpRequest
 from django.urls import reverse
 
 from codex.views.opds.const import UserAgentNames
@@ -40,7 +39,7 @@ class OPDS2HrefMixin:
     def _href_update_query_params(self, data):
         """Update the query params."""
         query = {}
-        if not data.absolute_query_params and hasattr(self, "request"):
+        if not data.absolute_query_params:
             # if request link and not init static links
             camel_qps = {}
             for key, val in self.request.GET.items():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -53,7 +52,7 @@ class OPDS2HrefMixin:
             query.update(camel_qps)
         return query
 
-    def href(self, data, user_agent_name: str, request: HttpRequest):
+    def href(self, data):
         """Create an href."""
         url_name = data.url_name if data.url_name else "opds:v2:feed"
         kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -63,6 +62,6 @@ class OPDS2HrefMixin:
         kwargs = pop_name(kwargs)
         query = self._href_update_query_params(data)
         href = reverse(url_name, kwargs=kwargs, query=query)
-        if user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
-            href = request.build_absolute_uri(href)
+        if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return href

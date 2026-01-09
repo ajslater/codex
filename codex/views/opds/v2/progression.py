@@ -91,8 +91,9 @@ class OPDS2ProgressionView(
             url_name="opds:bin:page",
             min_page=0,
             max_page=max_page,
+            absolute_query_params=True,
         )
-        return self.href(data, self.user_agent_name, self.request)
+        return self.href(data)
 
     @property
     def _locations(self):

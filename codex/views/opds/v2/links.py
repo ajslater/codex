@@ -104,7 +104,7 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
         if data.href:
             href = data.href
         else:
-            href = self.href(data.href_data, self.user_agent_name, self.request)
+            href = self.href(data.href_data)
             if not href:
                 return None
         if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:

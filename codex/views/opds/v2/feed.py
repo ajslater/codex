@@ -1,9 +1,11 @@
 """OPDS v2.0 Feed."""
 
+import json
 from copy import copy
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
+from caseconverter import snakecase
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -14,6 +16,7 @@ from codex.models import AdminFlag
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import MAX_OBJ_PER_PAGE
+from codex.views.browser.browser import BrowserView
 from codex.views.mixins import UserActiveMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
@@ -33,6 +36,8 @@ from codex.views.opds.v2.publications import OPDS2PublicationsView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+PUBLICATION_PREVIEW_LIMIT = 5
 
 
 class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
@@ -120,6 +125,31 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             qps["orderBy"] = "story_arc_number"
         return qps
 
+    def _create_publications_preview(self, link_spec, group_spec):
+        browser_view = BrowserView()
+        browser_view.request = self.request
+        browser_view.kwargs = {"group": link_spec.group, "pks": [0], "page": 1}
+        params = {
+            snakecase(key): value for key, value in link_spec.query_params.items()
+        }
+        params["filters"] = json.loads(params["filters"])
+        params["show"] = {"p": True, "s": True}
+        params["limit"] = PUBLICATION_PREVIEW_LIMIT
+
+        browser_view.set_params(params)
+        book_qs, book_count, zero_pad = browser_view.get_book_qs()
+
+        link_spec = next(iter(group_spec.links))
+        return self.get_publications(
+            book_qs,
+            zero_pad,
+            group_spec.title,
+            "",
+            PUBLICATION_PREVIEW_LIMIT,
+            link_spec,
+            number_of_items=book_count,
+        )
+
     def _create_links_section_link_spec(self, link_spec, data, group_spec, link_dict):
         if not self._is_allowed(link_spec):
             return
@@ -142,8 +172,9 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         self.link_aggregate(link_dict, link)
 
     def _create_links_section_group_spec(
-        self, group_spec, data, groups, *, paginate: bool = False
+        self, group_spec, data, *, paginate: bool = False
     ):
+        groups = []
         link_dict = {}
         for link_spec in group_spec.links:
             self._create_links_section_link_spec(link_spec, data, group_spec, link_dict)
@@ -164,17 +195,17 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             group: dict[str, Mapping | list] = {
                 "metadata": metadata,
             }
-            if data.add_self_link:
-                group["links"] = [self.link_self()]
             group[data.links_key] = links
-            groups.append(group)
+            groups += [group]
+
+        return groups
 
     def _create_links_section(self, group_specs, data, *, paginate: bool = False):
         """Create links sections for groups and facets."""
         groups = []
         for group_spec in group_specs:
-            self._create_links_section_group_spec(
-                group_spec, data, groups, paginate=paginate
+            groups += self._create_links_section_group_spec(
+                group_spec, data, paginate=paginate
             )
         return groups
 
@@ -191,9 +222,16 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         if group in {"r", "f", "a"} and (not pks or 0 in pks):
-            return self._create_links_section(
-                ORDERED_GROUPS, TOP_NAV_GROUP_SECTION_DATA
-            )
+            groups = []
+            for group_spec in ORDERED_GROUPS:
+                # explode into individual groups
+                for nav_link in group_spec.links:
+                    group_spec.title = nav_link.title
+                    pub_section = self._create_publications_preview(
+                        nav_link, group_spec
+                    )
+                    groups += pub_section
+            return groups
 
         return []
 
@@ -218,7 +256,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         groups += self._create_links_section(tup, groups_section_data, paginate=True)
 
         # Publications
-        groups += self.get_publications(book_qs, zero_pad, title)
+        groups += self.get_publications(book_qs, zero_pad, title, subtitle=subtitle)
 
         return groups
 
@@ -246,26 +284,29 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
         # opds groups
         groups = []
-        groups += regular_groups
-        groups += self._get_ordered_groups()
+        if first_regular_groups.get("publications"):
+            groups += regular_groups
+        og = self._get_ordered_groups()
+        groups += og
         groups += self._get_top_groups()
         groups += self._get_facets()
         groups += self._get_start_groups()
 
-        return MappingProxyType(
-            {
-                "metadata": {
-                    "title": title,
-                    "modified": mtime,
-                    "number_of_items": number_of_items,
-                    "items_per_page": MAX_OBJ_PER_PAGE,
-                    "current_page": current_page,
-                },
-                "links": links,
-                "navigation": navigation,
-                "groups": groups,
-            }
-        )
+        feed = {
+            "metadata": {
+                "title": title,
+                "modified": mtime,
+                "number_of_items": number_of_items,
+                "items_per_page": MAX_OBJ_PER_PAGE,
+                "current_page": current_page,
+            },
+            "links": links,
+        }
+        # if navigation:
+        feed["navigation"] = navigation
+        feed["groups"] = groups
+
+        return MappingProxyType(feed)
 
     @override
     @extend_schema(parameters=[input_serializer_class])

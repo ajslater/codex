@@ -22,6 +22,7 @@ class FacetGroup:
     query_param_key: str
     glyph: str
     links: tuple[Facet, ...]
+    add_preview: bool = False
 
 
 _UNREAD_FILTERS = json.dumps({"bookmark": "UNREAD"})
@@ -56,7 +57,7 @@ FACETS = (
         ),
     ),
     FacetGroup(
-        "🔖 Read State",
+        "⏿ Read State",
         "filters",
         "🔖",
         (
@@ -170,6 +171,7 @@ class LinksSectionData:
 
 START_SECTION_DATA = LinksSectionData(rel=Rel.START, group_kwarg=True)
 TOP_NAV_GROUP_SECTION_DATA = LinksSectionData(group_kwarg=True)
+ORDERED_GROUP_SECTION_DATA = LinksSectionData(rel=Rel.FACET, group_kwarg=True)
 GROUPS_SECTION_DATA = LinksSectionData(
     rel=Rel.SUB,
     group_kwarg=True,

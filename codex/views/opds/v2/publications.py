@@ -1,5 +1,6 @@
 """Publication Methods for OPDS v2.0 feed."""
 
+from collections.abc import Iterable
 from datetime import datetime
 from math import floor
 from types import MappingProxyType
@@ -53,8 +54,14 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
 
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
-        # TODO: annotate these on the regular query
-        # TODO: Add identifier too
+        if desc := obj.summary:
+            md["description"] = desc
+        if lang := obj.language:
+            md["language"] = lang.name
+        if publisher := obj.publisher_name:
+            md["publisher"] = publisher
+        if imprint := obj.imprint_name:
+            md["imprint"] = imprint
         for key, roles in _MD_CREDIT_MAP.items():
             self._add_credits(md, obj.ids, key, roles)
         if credit_objs := get_credits(obj.ids, _CREDIT_ROLES, exclude=True):
@@ -64,21 +71,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             # Subjects can also have links
             # https://readium.org/webpub-manifest/schema/subject-object.schema.json
             md["subject"] = [subj.name for subjs in m2m_objs.values() for subj in subjs]
-
-    def _publication_optional_metadata(self, md, obj):
-        """Add optional Publication Metadtata."""
-        if subtitle := obj.name:
-            md["subtitle"] = subtitle
-        if desc := obj.summary:
-            md["description"] = desc
-        if lang := obj.language:
-            md["language"] = lang.name
-        if publisher := obj.publisher_name:
-            md["publisher"] = publisher
-        if imprint := obj.imprint_name:
-            md["imprint"] = imprint
-        if page_count := obj.page_count:
-            md["number_of_pages"] = page_count
 
     def _publication_metadata(self, obj, zero_pad):
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
@@ -95,7 +87,11 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             "published": obj.date,
             "title": title,
         }
-        self._publication_optional_metadata(md, obj)
+        if subtitle := obj.name:
+            md["subtitle"] = subtitle
+        if page_count := obj.page_count:
+            md["number_of_pages"] = page_count
+
         if self.request.GET.get("opdsMetadata", "").lower() not in FALSY:
             self._publication_extended_metadata(md, obj)
         return md
@@ -104,7 +100,9 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
     def auth_link(self):
         """Create a reusable authentication link dict."""
         if self._auth_link is None:
-            auth_href_data = HrefData({}, url_name="opds:auth:v1")
+            auth_href_data = HrefData(
+                {}, url_name="opds:auth:v1", absolute_query_params=True
+            )
             auth_link_data = LinkData(
                 Rel.AUTHENTICATION,
                 auth_href_data,
@@ -150,7 +148,9 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             authenticate=self.auth_link,
         )
         prog_kwargs = {"group": "c", "pk": obj.pk}
-        prog_href_data = HrefData(prog_kwargs, url_name="opds:v2:position")
+        prog_href_data = HrefData(
+            prog_kwargs, url_name="opds:v2:position", absolute_query_params=True
+        )
 
         prog_link_data = LinkData(
             Rel.PROGRESSION,
@@ -164,6 +164,7 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             manifest_kwargs,
             url_name="opds:v2:manifest",
             query_params={"opdsMetadata": 1},
+            absolute_query_params=True,
         )
 
         manifest_link_data = LinkData(
@@ -271,7 +272,7 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
                 min_page=0,
                 max_page=obj.page_count,
             )
-            href = self.href(href_data, self.user_agent_name, self.request)
+            href = self.href(href_data)
             page = {
                 "href": href,
                 "type": MimeType.JPEG,  # required, but not actually calculated
@@ -314,7 +315,24 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
 class OPDS2PublicationsView(OPDS2PublicationtEntryView):
     """Publication Methods for OPDS 2.0 feed."""
 
-    def get_publications(self, book_qs, zero_pad, title):
+    def _get_publications_links(self, link_spec):
+        if not link_spec:
+            return []
+        kwargs = {"group": link_spec.group, "pks": "0", "page": 1}
+        href_data = HrefData(kwargs, link_spec.query_params)
+        link_data = LinkData(Rel.SUB, href_data=href_data, title=link_spec.title)
+        return [self.link(link_data)]
+
+    def get_publications(
+        self,
+        book_qs: Iterable,
+        zero_pad: int,
+        title: str,
+        subtitle: str = "",
+        items_per_page=MAX_OBJ_PER_PAGE,
+        link_spec=None,
+        number_of_items: int | None = None,
+    ):
         """Get publications section."""
         groups = []
         publications = []
@@ -322,22 +340,27 @@ class OPDS2PublicationsView(OPDS2PublicationtEntryView):
             pub = self._publication(obj, zero_pad)
             publications.append(pub)
 
-        if publications:
-            current_page = self.kwargs.get("page", 1)
-            metadata = {
-                "title": title,
-                "subtitle": "Books",
-                "current_page": current_page,
-                "items_per_page": MAX_OBJ_PER_PAGE,
-                "number_of_items": self._opds_number_of_books,
-            }
-            links = [self.link_self()]
-            pub_group = {
-                "metadata": metadata,
-                "links": links,
-                "publications": publications,
-            }
-            groups.append(pub_group)
+        if not publications:
+            return groups
+
+        current_page = self.kwargs.get("page", 1)
+        if number_of_items is None:
+            number_of_items = self._opds_number_of_books
+        metadata = {
+            "title": title,
+            "current_page": current_page,
+            "items_per_page": items_per_page,
+            "number_of_items": number_of_items,
+        }
+        if subtitle:
+            metadata["subtitle"] = subtitle
+        pub_group: dict[str, list | dict] = {
+            "metadata": metadata,
+        }
+        if links := self._get_publications_links(link_spec):
+            pub_group["links"] = links
+        pub_group["publications"] = publications
+        groups.append(pub_group)
         return groups
 
 
