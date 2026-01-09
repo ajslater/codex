@@ -138,6 +138,8 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
         browser_view.set_params(params)
         book_qs, book_count, zero_pad = browser_view.get_book_qs()
+        if not book_count:
+            return []
 
         link_spec = next(iter(group_spec.links))
         return self.get_publications(
