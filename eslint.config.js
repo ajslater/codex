@@ -3,6 +3,7 @@ import eslintJson from "@eslint/json";
 import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintPluginStylistic from "@stylistic/eslint-plugin";
 import { defineConfig } from "eslint/config";
+import eslintPluginNoUseExtendNative from 'eslint-plugin-no-use-extend-native';
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
@@ -91,6 +92,7 @@ export default defineConfig([
       "uv.lock",
     ],
   },
+  eslintPluginNoUseExtendNative.configs.recommended,
   eslintPluginSecurity.configs.recommended,
   eslintPluginStylistic.configs.all,
   eslintPluginPrettierRecommended,

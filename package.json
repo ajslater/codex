@@ -97,6 +97,7 @@
     "remark-preset-lint-recommended": "^7.0.0",
     "remark-preset-prettier": "^2.0.1",
     "svgo": "^4.0.0",
-    "toml": "^3.0.0"
+    "toml": "^3.0.0",
+    "eslint-plugin-no-use-extend-native": "^0.7.2"
   }
 }
