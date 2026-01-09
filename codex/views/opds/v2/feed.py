@@ -59,12 +59,6 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             result = BLANK_TITLE
         return result
 
-    # def _detect_user_agent(self):
-    #    """Hacks for individual clients."""
-    #    user_agent = self.request.headers.get("User-Agent") # noqa: ERA001
-    #    if not user_agent:
-    #        return # noqa: ERA001
-
     @staticmethod
     def _is_allowed(link_spec):
         """Return if the link allowed."""
