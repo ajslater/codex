@@ -11,7 +11,7 @@ from rest_framework.serializers import Serializer
 from typing_extensions import override
 
 
-class OPSD2AuthenticateSerializer(Serializer):
+class OPDS2LinkBaseSerializer(Serializer):
     """Minimal Link Serializer for Authenticate."""
 
     href = CharField(read_only=True)
@@ -37,6 +37,12 @@ class OPSD2AuthenticateSerializer(Serializer):
         return ret
 
 
+class OPSD2AuthenticateSerializer(OPDS2LinkBaseSerializer):
+    """Authenticate Serializer."""
+
+    # TODO: where is this specified?
+
+
 class OPDS2LinkPropertiesSerializer(Serializer):
     """
     Link Properties.
@@ -52,37 +58,39 @@ class OPDS2LinkPropertiesSerializer(Serializer):
     # holds = OPDS2HoldsSerializer(read_only=True, required=False) unused
     # copies = OPDS2CopiesSerializer(read_only=True, required=False) unused
     # availability = OPDS2AvailabilitySerializer(read_only=True, required=False) unused
+    # TODO: where is this specified?
     authenticate = OPSD2AuthenticateSerializer(required=False)
 
 
-class OPDS2LinkSerializer(OPSD2AuthenticateSerializer):
+class OPDS2LinkSerializer(OPDS2LinkBaseSerializer):
     """
     Link.
 
     https://readium.org/webpub-manifest/schema/link.schema.json
     """
 
-    templated = BooleanField(read_only=True, required=False)
     title = CharField(read_only=True, required=False)
+
+    templated = BooleanField(read_only=True, required=False)
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
     # Images
     height = IntegerField(read_only=True, required=False)
     width = IntegerField(read_only=True, required=False)
+    size = IntegerField(read_only=True, required=False)
 
     # Uncommon
     # bitrate = IntegerField(read_only=True, required=False) unused
     # duration = IntegerField(read_only=True, required=False) unused
     # language = CharField(many=True, read_only=True, required=False) unused
-    alternate = ListField(
-        child=CharField(read_only=True), read_only=True, required=False
-    )
-    children = ListField(
-        child=CharField(read_only=True), read_only=True, required=False
-    )
+    # X alternate = ListField(
+    # X   child=CharField(read_only=True), read_only=True, required=False
+    # X )
+    # X children = OPDS2LinkListField(read_only=True, required=False
+    # X )
 
 
 class OPDS2LinkListField(ListField):
     """Link List."""
 
-    child = OPDS2LinkSerializer()
+    child = OPDS2LinkSerializer(read_only=True)

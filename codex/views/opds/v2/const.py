@@ -1,4 +1,5 @@
 """OPDS v2 consts."""
+# https://drafts.opds.io/opds-2.0.html
 
 import json
 from dataclasses import dataclass
