@@ -1,6 +1,7 @@
 """Href methods for OPDS v2.0 Feed."""
 
 from dataclasses import dataclass
+from re import DEBUG
 
 from caseconverter import camelcase
 from django.urls import reverse
@@ -62,6 +63,6 @@ class OPDS2HrefMixin:
         kwargs = pop_name(kwargs)
         query = self._href_update_query_params(data)
         href = reverse(url_name, kwargs=kwargs, query=query)
-        if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return href
