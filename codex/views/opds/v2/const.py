@@ -26,9 +26,14 @@ class FacetGroup:
     add_preview: bool = False
 
 
-_UNREAD_FILTERS = json.dumps({"bookmark": "UNREAD"})
-_IN_PROGRESS_FILTERS = json.dumps({"bookmark": "IN_PROGRESS"})
-_READ_FILTERS = json.dumps({"bookmark": "READ"})
+class BookmarkFilters:
+    """Bookmark Filters."""
+
+    UNREAD = json.dumps({"bookmark": "UNREAD"})
+    IN_PROGRESS = json.dumps({"bookmark": "IN_PROGRESS"})
+    READ = json.dumps({"bookmark": "READ"})
+    NONE = json.dumps({"bookmark": ""})
+
 
 FACETS = (
     FacetGroup(
@@ -62,9 +67,9 @@ FACETS = (
         "filters",
         "🔖",
         (
-            Facet(_UNREAD_FILTERS, title="Unread"),
-            Facet(_IN_PROGRESS_FILTERS, title="In Progress"),
-            Facet(_READ_FILTERS, title="Read"),
+            Facet(BookmarkFilters.UNREAD, title="Unread"),
+            Facet(BookmarkFilters.IN_PROGRESS, title="In Progress"),
+            Facet(BookmarkFilters.READ, title="Read"),
         ),
     ),
     # Could add Filters as well.
@@ -100,7 +105,7 @@ ORDERED_GROUPS = (
                 "s",
                 {
                     "topGroup": "s",
-                    "filters": _UNREAD_FILTERS,
+                    "filters": BookmarkFilters.UNREAD,
                     "orderBy": "bookmark_updated_at",
                     "orderReverse": True,
                     "limit": MAX_OBJ_PER_PAGE,
@@ -113,7 +118,7 @@ ORDERED_GROUPS = (
                 "s",
                 {
                     "topGroup": "s",
-                    "filters": _UNREAD_FILTERS,
+                    "filters": BookmarkFilters.UNREAD,
                     "orderBy": "created_at",
                     "orderReverse": True,
                     "limit": MAX_OBJ_PER_PAGE,
@@ -126,7 +131,7 @@ ORDERED_GROUPS = (
                 "s",
                 {
                     "topGroup": "s",
-                    "filters": _UNREAD_FILTERS,
+                    "filters": BookmarkFilters.UNREAD,
                     "orderBy": "date",
                     "orderReverse": False,
                     "limit": MAX_OBJ_PER_PAGE,
@@ -158,7 +163,12 @@ START_GROUPS = (
                 Rel.START,
                 "Start",
                 "r",
-                {"topGroup": "p", "orderBy": "sort_name", "orderReverse": False},
+                {
+                    "topGroup": "p",
+                    "filters": BookmarkFilters.NONE,
+                    "orderBy": "sort_name",
+                    "orderReverse": False,
+                },
             ),
         ),
     ),
