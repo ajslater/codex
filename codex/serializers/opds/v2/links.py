@@ -38,9 +38,11 @@ class OPDS2LinkBaseSerializer(Serializer):
 
 
 class OPSD2AuthenticateSerializer(OPDS2LinkBaseSerializer):
-    """Authenticate Serializer."""
+    """
+    Authenticate Serializer.
 
-    # TODO: where is this specified?
+    Discussion proto-spec https://github.com/opds-community/drafts/discussions/43
+    """
 
 
 class OPDS2LinkPropertiesSerializer(Serializer):
@@ -58,7 +60,8 @@ class OPDS2LinkPropertiesSerializer(Serializer):
     # holds = OPDS2HoldsSerializer(read_only=True, required=False) unused
     # copies = OPDS2CopiesSerializer(read_only=True, required=False) unused
     # availability = OPDS2AvailabilitySerializer(read_only=True, required=False) unused
-    # TODO: where is this specified?
+
+    # Discussion proto-spec https://github.com/opds-community/drafts/discussions/43
     authenticate = OPSD2AuthenticateSerializer(required=False)
 
 
