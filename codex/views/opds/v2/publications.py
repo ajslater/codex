@@ -376,6 +376,6 @@ class OPDS2ManifestView(OPDS2PublicationManifestView):
     @override
     def get_object(self):
         """Get one publication object."""
-        book_qs, book_count, zero_pad = self.get_book_qs()
+        book_qs, _, zero_pad = self.get_book_qs()
         obj = book_qs.first()
         return MappingProxyType(self._publication(obj, zero_pad))
