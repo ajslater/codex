@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 PUBLICATION_PREVIEW_LIMIT = 5
+_START_GROUPS = frozenset({"r", "f", "a"})
 
 
 class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
@@ -51,8 +52,8 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
     def _title(self, browser_title):
         """Create the feed title."""
-        result = ""
-        if browser_title:
+        result = self.request.GET.get("title", "")
+        if not result and browser_title:
             parent_name = browser_title.get("parent_name", None)
             pks = self.kwargs["pks"]
             if not parent_name and not pks:
@@ -211,20 +212,31 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             )
         return groups
 
+    @property
+    def is_start_page(self):
+        """Memoize if we're on the start page."""
+        if self._is_start_page is None:
+            group = self.kwargs.get("group")
+            pks = self.kwargs.get("pks")
+            self._is_start_page = (
+                group in _START_GROUPS
+                and (not pks or 0 in pks)
+                and not self.request.GET.get("filters")
+            )
+
+        return self._is_start_page
+
     def _get_top_groups(self):
-        # Top Nav Groups
-        group = self.kwargs.get("group")
-        pks = self.kwargs.get("pks")
-        if group in {"r", "f", "a"} and (not pks or 0 in pks):
-            return self._create_links_section(TOP_GROUPS, TOP_NAV_GROUP_SECTION_DATA)
-        return []
+        """Top Nav Groups."""
+        groups = []
+        if self.is_start_page:
+            groups += self._create_links_section(TOP_GROUPS, TOP_NAV_GROUP_SECTION_DATA)
+        return groups
 
     def _get_ordered_groups(self):
         # Top Nav Groups
-        group = self.kwargs.get("group")
-        pks = self.kwargs.get("pks")
-        if group in {"r", "f", "a"} and (not pks or 0 in pks):
-            groups = []
+        groups = []
+        if self.is_start_page:
             for group_spec in ORDERED_GROUPS:
                 # explode into individual groups
                 for nav_link in group_spec.links:
@@ -233,15 +245,11 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
                         nav_link, group_spec
                     )
                     groups += pub_section
-            return groups
-
-        return []
+        return groups
 
     def _get_start_groups(self):
         # Top Nav Groups
-        group = self.kwargs.get("group")
-        pks = self.kwargs.get("pks")
-        if group in {"r", "f", "a"} and (not pks or 0 in pks):
+        if self.is_start_page:
             return []
         return self._create_links_section(START_GROUPS, START_SECTION_DATA)
 

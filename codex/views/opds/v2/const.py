@@ -3,6 +3,7 @@
 import json
 from dataclasses import dataclass
 
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import Rel
 
 
@@ -102,6 +103,8 @@ ORDERED_GROUPS = (
                     "filters": _UNREAD_FILTERS,
                     "orderBy": "bookmark_updated_at",
                     "orderReverse": True,
+                    "limit": MAX_OBJ_PER_PAGE,
+                    "title": "Keep Reading",
                 },
             ),
             NavigationLink(
@@ -113,6 +116,8 @@ ORDERED_GROUPS = (
                     "filters": _UNREAD_FILTERS,
                     "orderBy": "created_at",
                     "orderReverse": True,
+                    "limit": MAX_OBJ_PER_PAGE,
+                    "title": "Latest Unread",
                 },
             ),
             NavigationLink(
@@ -124,6 +129,8 @@ ORDERED_GROUPS = (
                     "filters": _UNREAD_FILTERS,
                     "orderBy": "date",
                     "orderReverse": False,
+                    "limit": MAX_OBJ_PER_PAGE,
+                    "title": "Oldest Unread",
                 },
             ),
         ),

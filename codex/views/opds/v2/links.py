@@ -50,6 +50,7 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
             tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
         ) = None
         self._user_agent_name: str | None = None
+        self._is_start_page: bool | None = None
 
     @property
     def group_and_books(
