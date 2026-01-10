@@ -23,7 +23,10 @@ class OPDS2TopLinksView(OPDS2LinksView):
 
     def _link_search(self):
         kwargs = {"group": "s", "pks": (0,), "page": 1}
-        href_data = HrefData(kwargs, absolute_query_params=True, max_page=1)
+        query_params = {"q": ""}
+        href_data = HrefData(
+            kwargs, query_params=query_params, absolute_query_params=True, max_page=1
+        )
         link_data = LinkData(Rel.SEARCH, href_data, template="{?query}")
         return self.link(link_data)
 
