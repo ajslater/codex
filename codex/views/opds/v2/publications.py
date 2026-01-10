@@ -74,13 +74,16 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
 
     def _publication_metadata(self, obj, zero_pad):
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
-        title = Comic.get_title(
-            obj,
-            volume=False,
-            name=False,
-            filename_fallback=title_filename_fallback,
-            zero_pad=zero_pad,
-        )
+        if self.kwargs.get("group") == "f":
+            title = Comic.get_filename(obj)
+        else:
+            title = Comic.get_title(
+                obj,
+                volume=False,
+                name=False,
+                filename_fallback=title_filename_fallback,
+                zero_pad=zero_pad,
+            )
         md = {
             "type": MimeType.BOOK,
             "modified": obj.updated_at,
