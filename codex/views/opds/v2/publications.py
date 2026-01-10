@@ -301,11 +301,10 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
     @override
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
-        belongs_to = self._publication_belongs_to(obj)
         pub["metadata"]["conformsTo"] = (
             "https://readium.org/webpub-manifest/profiles/divina"
         )
-        if belongs_to:
+        if belongs_to := self._publication_belongs_to(obj):
             pub["metadata"]["belongs_to"] = belongs_to
         pub["resources"] = self._cover(obj)
         pub["reading_order"] = self._publication_reading_order(obj)
@@ -377,6 +376,6 @@ class OPDS2ManifestView(OPDS2PublicationManifestView):
     @override
     def get_object(self):
         """Get one publication object."""
-        book_qs, zero_pad = self.get_book_qs()
+        book_qs, book_count, zero_pad = self.get_book_qs()
         obj = book_qs.first()
         return MappingProxyType(self._publication(obj, zero_pad))
