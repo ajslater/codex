@@ -33,9 +33,9 @@ from codex.views.opds.v2.const import (
     LinkGroup,
     LinksSectionData,
 )
+from codex.views.opds.v2.feed.links import LinkData
+from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
 from codex.views.opds.v2.href import HrefData
-from codex.views.opds.v2.links import LinkData
-from codex.views.opds.v2.publications import OPDS2PublicationsView
 
 PUBLICATION_PREVIEW_LIMIT = 5
 _START_GROUPS = frozenset({"r", "f", "a"})

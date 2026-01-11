@@ -6,8 +6,8 @@ from django.views.decorators.cache import cache_page
 from codex.urls.const import BROWSER_TIMEOUT
 from codex.views.opds.util import full_redirect_view
 from codex.views.opds.v2.feed import OPDS2FeedView
+from codex.views.opds.v2.manifest import OPDS2ManifestView
 from codex.views.opds.v2.progression import OPDS2ProgressionView
-from codex.views.opds.v2.publications import OPDS2ManifestView
 
 app_name = "v2"
 

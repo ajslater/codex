@@ -6,20 +6,16 @@ from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
 
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
-from codex.serializers.opds.v2.publication import (
-    OPDS2PublicationDivinaManifestSerializer,
-)
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
+from codex.views.opds.v2.feed.links import LinkData
+from codex.views.opds.v2.feed.top_links import OPDS2TopLinksView
 from codex.views.opds.v2.href import HrefData
-from codex.views.opds.v2.links import LinkData
-from codex.views.opds.v2.top_links import OPDS2TopLinksView
 
 _MD_CREDIT_MAP = MappingProxyType(
     # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
@@ -234,77 +230,14 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         return images
 
 
-class OPDS2PublicationtEntryView(OPDS2PublicationBaseView):
-    """Publication feed entry."""
+class OPDS2PublicationsView(OPDS2PublicationBaseView):
+    """Publication Methods for OPDS 2.0 feed."""
 
     @override
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
         pub["images"] = self._thumb(obj)
         return pub
-
-
-class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
-    """Publication Manifest."""
-
-    def _publication_reading_order(self, obj):
-        """
-        Reader manifest for OPDS 2.0.
-
-        This part of the spec is redundant, but required.
-        """
-        reading_order = []
-        ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {"ts": ts}
-        for page_num in range(obj.page_count):
-            kwargs = {"pk": obj.pk, "page": page_num}
-            href_data = HrefData(
-                kwargs,
-                query_params,
-                url_name="opds:bin:page",
-                min_page=0,
-                max_page=obj.page_count,
-            )
-            href = self.href(href_data)
-            page = {
-                "href": href,
-                "type": MimeType.JPEG,  # required, but not actually calculated
-                # height and width not pre-calculated and fortunately not required by Stump
-            }
-            reading_order.append(page)
-        return reading_order
-
-    def _publication_belongs_to(self, obj):
-        name = obj.series_name if obj.series.name else self.EMPTY_TITLE
-        pks = [obj.series.pk]
-        number = obj.issue_number
-        kwargs = {"group": "s", "pks": pks, "page": 1}
-        ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {"ts": ts}
-        href_data = HrefData(
-            kwargs,
-            query_params,
-            url_name="opds:v2:feed",
-        )
-        link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)
-        link = self.link(link_data)
-        return {"series": [{"name": name, "position": number, "links": [link]}]}
-
-    @override
-    def _publication(self, obj, zero_pad):
-        pub = super()._publication(obj, zero_pad)
-        pub["metadata"]["conformsTo"] = (
-            "https://readium.org/webpub-manifest/profiles/divina"
-        )
-        if belongs_to := self._publication_belongs_to(obj):
-            pub["metadata"]["belongs_to"] = belongs_to
-        pub["resources"] = self._cover(obj)
-        pub["reading_order"] = self._publication_reading_order(obj)
-        return pub
-
-
-class OPDS2PublicationsView(OPDS2PublicationtEntryView):
-    """Publication Methods for OPDS 2.0 feed."""
 
     def _get_publications_links(self, link_spec):
         if not link_spec:
@@ -354,20 +287,3 @@ class OPDS2PublicationsView(OPDS2PublicationtEntryView):
         pub_group["publications"] = publications
         groups.append(pub_group)
         return groups
-
-
-class OPDS2ManifestView(OPDS2PublicationManifestView):
-    """Single publication manifest view."""
-
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
-    serializer_class: type[BaseSerializer] | None = (
-        OPDS2PublicationDivinaManifestSerializer
-    )
-
-    @override
-    def get_object(self):
-        """Get one publication object."""
-        book_qs, _, zero_pad = self.get_book_qs()
-        obj = book_qs.first()
-        return MappingProxyType(self._publication(obj, zero_pad))
