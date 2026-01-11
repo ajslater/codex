@@ -2,11 +2,11 @@
 
 import json
 from dataclasses import dataclass
-from re import DEBUG
 
 from caseconverter import camelcase
 from django.urls import reverse
 
+from codex.settings import DEBUG
 from codex.views.opds.const import UserAgentNames
 from codex.views.util import pop_name
 

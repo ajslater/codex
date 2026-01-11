@@ -94,4 +94,4 @@ class UserAgentNames:
     CLIENT_REORDERS = frozenset({"Chunky"})
     FACET_SUPPORT = frozenset({"yar"})  # kybooks
     SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
-    REQUIRE_ABSOLUTE_URL = frozenset({"Stump"})
+    REQUIRE_ABSOLUTE_URL = frozenset()
