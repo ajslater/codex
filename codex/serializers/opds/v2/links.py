@@ -64,6 +64,9 @@ class OPDS2LinkPropertiesSerializer(Serializer):
     # Discussion proto-spec https://github.com/opds-community/drafts/discussions/43
     authenticate = OPSD2AuthenticateSerializer(required=False)
 
+    # Divina Only
+    # X page = CharField(read_only=True, required=False)
+
 
 class OPDS2LinkSerializer(OPDS2LinkBaseSerializer):
     """
