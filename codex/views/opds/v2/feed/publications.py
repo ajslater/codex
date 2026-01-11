@@ -6,13 +6,17 @@ from math import floor
 from types import MappingProxyType
 from urllib.parse import quote_plus
 
+from caseconverter import snakecase
 from typing_extensions import override
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
+from codex.models.groups import BrowserGroupModel
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
+from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
+from codex.views.opds.v2.const import Link, LinkGroup
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.feed.top_links import OPDS2TopLinksView
 from codex.views.opds.v2.href import HrefData
@@ -32,6 +36,7 @@ _MD_CREDIT_MAP = MappingProxyType(
     }
 )
 _CREDIT_ROLES = frozenset({x for s in _MD_CREDIT_MAP.values() for x in s})
+_PUBLICATION_PREVIEW_LIMIT = 5
 
 
 class OPDS2PublicationBaseView(OPDS2TopLinksView):
@@ -287,3 +292,38 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         pub_group["publications"] = publications
         groups.append(pub_group)
         return groups
+
+    def get_publications_preview(
+        self, link_spec: Link | BrowserGroupModel, group_spec: LinkGroup
+    ):
+        """Get a limited preview of publications outside the main query."""
+        browser_view = BrowserView()
+        browser_view.request = self.request
+        group = (
+            link_spec.group
+            if isinstance(link_spec, Link)
+            else link_spec.__class__.__name__[0].lower()
+        )
+        browser_view.kwargs = {"group": group, "pks": [0], "page": 1}
+        params = {}
+        if isinstance(link_spec, Link) and link_spec.query_params:
+            for key, value in link_spec.query_params.items():
+                params[snakecase(key)] = value
+        params["show"] = {"p": True, "s": True}
+        params["limit"] = _PUBLICATION_PREVIEW_LIMIT
+
+        browser_view.set_params(params)
+        book_qs, book_count, zero_pad = browser_view.get_book_qs()
+        if not book_count:
+            return []
+
+        link_spec = next(iter(group_spec.links))
+        return self.get_publications(
+            book_qs,
+            zero_pad,
+            group_spec.title,
+            "",
+            _PUBLICATION_PREVIEW_LIMIT,
+            link_spec,
+            number_of_items=book_count,
+        )
