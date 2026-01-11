@@ -89,7 +89,7 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     publisher = CharField(read_only=True, required=False)
     imprint = CharField(read_only=True, required=False)
     subject = ListField(child=CharField(read_only=True), read_only=True, required=False)
-    # X layout = CharField(read_only=True, required=False)
+    layout = CharField(read_only=True, required=False)
     reading_progression = CharField(read_only=True, required=False)  # choice field
     # X duration = InteField(read_only=True, required=False)
     belongs_to = OPDS2BelongsTo(required=False)

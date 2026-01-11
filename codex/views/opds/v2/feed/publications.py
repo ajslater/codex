@@ -73,6 +73,9 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             # https://readium.org/webpub-manifest/schema/subject-object.schema.json
             md["subject"] = [subj.name for subjs in m2m_objs.values() for subj in subjs]
 
+        if layout := obj.reading_direction:
+            md["layout"] = layout if layout != "ttb" else "scrolled"
+
     def _publication_metadata(self, obj, zero_pad):
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         if self.kwargs.get("group") == "f":
