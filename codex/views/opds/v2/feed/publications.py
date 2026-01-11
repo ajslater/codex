@@ -140,16 +140,16 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             url_name="opds:bin:download",
         )
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
-
         acq_link_data = LinkData(
             Rel.ACQUISITION,
             acq_href_data,
             mime_type=download_mime_type,
             authenticate=self.auth_link,
+            size=obj.size,
         )
+
         prog_kwargs = {"group": "c", "pk": obj.pk}
         prog_href_data = HrefData(prog_kwargs, url_name="opds:v2:position")
-
         prog_link_data = LinkData(
             Rel.PROGRESSION,
             prog_href_data,

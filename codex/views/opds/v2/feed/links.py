@@ -33,6 +33,7 @@ class LinkData:
     template: str | None = None
     height: int | None = None
     width: int | None = None
+    size: int | None = None
     href: str | None = None
     num_items: int | None = None
     authenticate: Mapping | None = None
@@ -93,6 +94,8 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
             link["height"] = data.height
         if data.width:
             link["width"] = data.width
+        if data.size:
+            link["size"] = data.size
 
     @staticmethod
     def _link_properties(data, link):
