@@ -2,29 +2,31 @@
 # https://drafts.opds.io/opds-2.0.html
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
+
+from django.db.models.query import QuerySet
 
 from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import Rel
 
 
 @dataclass
-class Facet:
-    """OPDS Facet."""
+class Link:
+    """Groups Navigation Link."""
 
-    query_param_value: str | bool
+    rel: str
     title: str
+    group: str = ""
+    query_params: dict | None = None
 
 
 @dataclass
-class FacetGroup:
-    """opds:facetGroup."""
+class LinkGroup:
+    """Navigation Group."""
 
     title: str
-    query_param_key: str
-    glyph: str
-    links: tuple[Facet, ...]
-    add_preview: bool = False
+    links: Sequence[Link] | QuerySet
 
 
 class BookmarkFilters:
@@ -37,70 +39,47 @@ class BookmarkFilters:
 
 
 FACETS = (
-    FacetGroup(
+    LinkGroup(
         "⬄ Order By",
-        "orderBy",
-        "➠",
-        (Facet("date", "Date"), Facet("sort_name", "Name")),
+        (
+            Link(Rel.FACET, "Date", "", {"orderBy": "date"}),
+            Link(Rel.FACET, "Name", "", {"orderBy": "sort_name"}),
+        ),
     ),
-    FacetGroup(
+    LinkGroup(
         "⇕ Order Direction",
-        "orderReverse",
-        "⇕",
         (
-            Facet(query_param_value=False, title="Ascending"),
-            Facet(query_param_value=True, title="Descending"),
+            Link(Rel.FACET, "Ascending", "", {"orderReverse": False}),
+            Link(Rel.FACET, "Descending", "", {"orderReverse": True}),
         ),
     ),
-    FacetGroup(
+    LinkGroup(
         "⊙  Top Group",
-        "topGroup",
-        "⊙",
         (
-            Facet("p", "Publishers View"),
-            Facet("s", "Series View"),
-            Facet("f", "Folder View"),
-            Facet("a", "Story Arc View"),
+            Link(Rel.FACET, "Publishers View", "r", {"topGroup": "p"}),
+            Link(Rel.FACET, "Series View", "s", {"topGroup": "s"}),
+            Link(Rel.FACET, "Folder View", "f", {"topGroup": "f"}),
+            Link(Rel.FACET, "Story Arc View", "a", {"topGroup": "a"}),
         ),
     ),
-    FacetGroup(
+    LinkGroup(
         "⏿ Read State",
-        "filters",
-        "🔖",
         (
-            Facet(BookmarkFilters.UNREAD, title="Unread"),
-            Facet(BookmarkFilters.IN_PROGRESS, title="In Progress"),
-            Facet(BookmarkFilters.READ, title="Read"),
+            Link(Rel.FACET, "Unread", "", {"filters": BookmarkFilters.UNREAD}),
+            Link(
+                Rel.FACET, "In Progress", "", {"filters": BookmarkFilters.IN_PROGRESS}
+            ),
+            Link(Rel.FACET, "Read", "", {"filters": BookmarkFilters.READ}),
         ),
     ),
-    # Could add Filters as well.
 )
 
 
-@dataclass
-class NavigationLink:
-    """Groups Navigation Link."""
-
-    rel: str
-    title: str
-    group: str
-    query_params: dict | None
-
-
-@dataclass
-class NavigationGroup:
-    """Navigation Group."""
-
-    title: str
-    links: tuple[NavigationLink, ...]
-    add_preview: bool = False
-
-
 ORDERED_GROUPS = (
-    NavigationGroup(
+    LinkGroup(
         "Ordered Groups",
         (
-            NavigationLink(
+            Link(
                 Rel.FEATURED,
                 "Keep Reading",
                 "s",
@@ -113,7 +92,7 @@ ORDERED_GROUPS = (
                     "title": "Keep Reading",
                 },
             ),
-            NavigationLink(
+            Link(
                 Rel.SORT_NEW,
                 "Latest Unread",
                 "s",
@@ -126,7 +105,7 @@ ORDERED_GROUPS = (
                     "title": "Latest Unread",
                 },
             ),
-            NavigationLink(
+            Link(
                 Rel.SORT_NEW,
                 "Oldest Unread",
                 "s",
@@ -140,27 +119,26 @@ ORDERED_GROUPS = (
                 },
             ),
         ),
-        add_preview=True,
     ),
 )
 TOP_GROUPS = (
-    NavigationGroup(
+    LinkGroup(
         "Top Groups",
         (
-            NavigationLink(Rel.START, "Publishers", "r", {"topGroup": "p"}),
-            NavigationLink(Rel.SUB, "Series", "p", {"topGroup": "p"}),
-            NavigationLink(Rel.SUB, "Issues", "s", {"topGroup": "p"}),
-            NavigationLink(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
-            NavigationLink(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+            Link(Rel.START, "Publishers", "r", {"topGroup": "p"}),
+            Link(Rel.SUB, "Series", "p", {"topGroup": "p"}),
+            Link(Rel.SUB, "Issues", "s", {"topGroup": "p"}),
+            Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
+            Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
         ),
     ),
 )
 
 START_GROUPS = (
-    NavigationGroup(
+    LinkGroup(
         "Start",
         (
-            NavigationLink(
+            Link(
                 Rel.START,
                 "Start",
                 "r",
@@ -182,16 +160,12 @@ class LinksSectionData:
 
     subtitle: str | None = None
     rel: str | None = None
-    group_kwarg: bool = False
-    links_key: str = "navigation"
-    add_self_link: bool = False
 
 
-START_SECTION_DATA = LinksSectionData(rel=Rel.START, group_kwarg=True)
-TOP_NAV_GROUP_SECTION_DATA = LinksSectionData(group_kwarg=True)
-ORDERED_GROUP_SECTION_DATA = LinksSectionData(rel=Rel.FACET, group_kwarg=True)
+START_SECTION_DATA = LinksSectionData(rel=Rel.START)
+TOP_NAV_GROUP_SECTION_DATA = LinksSectionData()
+ORDERED_GROUP_SECTION_DATA = LinksSectionData(rel=Rel.FACET)
 GROUPS_SECTION_DATA = LinksSectionData(
     rel=Rel.SUB,
-    group_kwarg=True,
 )
 FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET)

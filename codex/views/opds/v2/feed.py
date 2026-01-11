@@ -1,9 +1,9 @@
 """OPDS v2.0 Feed."""
 
 import json
+from collections.abc import Mapping
 from copy import copy
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from caseconverter import snakecase
 from drf_spectacular.utils import extend_schema
@@ -13,6 +13,8 @@ from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
+from codex.models.groups import BrowserGroupModel, Folder
+from codex.models.named import StoryArc
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import MAX_OBJ_PER_PAGE
@@ -28,14 +30,13 @@ from codex.views.opds.v2.const import (
     START_SECTION_DATA,
     TOP_GROUPS,
     TOP_NAV_GROUP_SECTION_DATA,
-    NavigationGroup,
+    Link,
+    LinkGroup,
+    LinksSectionData,
 )
 from codex.views.opds.v2.href import HrefData
 from codex.views.opds.v2.links import LinkData
 from codex.views.opds.v2.publications import OPDS2PublicationsView
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 PUBLICATION_PREVIEW_LIMIT = 5
 _START_GROUPS = frozenset({"r", "f", "a"})
@@ -66,12 +67,18 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         return result
 
     @staticmethod
-    def _is_allowed(link_spec):
+    def _is_allowed(link_spec: Link | BrowserGroupModel):
         """Return if the link allowed."""
         if (
-            getattr(link_spec, "group", None) == "f"
-            or getattr(link_spec, "query_param_value", None) == "f"
-        ):
+            isinstance(link_spec, Link)
+            and (
+                link_spec.group == "f"
+                or (
+                    link_spec.query_params
+                    and link_spec.query_params.get("topGroup") == "f"
+                )
+            )
+        ) or isinstance(link_spec, Folder):
             # Folder perms
             efv_flag = (
                 AdminFlag.objects.only("on")
@@ -82,37 +89,24 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
                 return False
         return True
 
-    @staticmethod
-    def _create_link_kwargs(data, link_spec):
+    def _create_link_kwargs(self, link_spec: Link | BrowserGroupModel):
         """Create link kwargs."""
-        if data.group_kwarg:
-            # Nav Groups
-            pks = getattr(link_spec, "ids", (0,))
-            kwargs = {"group": link_spec.group, "pks": pks, "page": 1}
-        elif link_spec.query_param_value in ("f", "a"):
-            # Special Facets
-            kwargs = {
-                "group": link_spec.query_param_value,
-                "pks": (0,),
-                "page": 1,
-            }
+        if isinstance(link_spec, Link):
+            group = (
+                link_spec.group if link_spec.group else self.kwargs.get("group", "r")
+            )
+            pks = (0,)
         else:
-            # Regular Facets
-            kwargs = None
-        return kwargs
+            group = link_spec.__class__.__name__[0].lower()
+            pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        return {"group": group, "pks": pks, "page": 1}
 
     @staticmethod
-    def _create_link_query_params(group_spec, link_spec, kwargs):
+    def _create_link_query_params(link_spec: Link | BrowserGroupModel, kwargs: Mapping):
         """Create link query params."""
-        if qp_key := getattr(group_spec, "query_param_key", None):
-            # Facet shorthand with group
-            qps = {qp_key: link_spec.query_param_value}
-        elif ls_qps := getattr(link_spec, "query_params", None):
-            # Nav Group
-            qps = ls_qps
-        else:
-            # Regular Group
-            qps = None
+        if not isinstance(link_spec, Link | StoryArc):
+            return {}
+        qps = link_spec.query_params if isinstance(link_spec, Link) else {}
 
         # Special order by for story_arcs
         if (
@@ -126,13 +120,21 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             qps["orderBy"] = "story_arc_number"
         return qps
 
-    def _create_publications_preview(self, link_spec, group_spec):
+    def _create_publications_preview(
+        self, link_spec: Link | BrowserGroupModel, group_spec: LinkGroup
+    ):
         browser_view = BrowserView()
         browser_view.request = self.request
-        browser_view.kwargs = {"group": link_spec.group, "pks": [0], "page": 1}
-        params = {
-            snakecase(key): value for key, value in link_spec.query_params.items()
-        }
+        group = (
+            link_spec.group
+            if isinstance(link_spec, Link)
+            else link_spec.__class__.__name__[0].lower()
+        )
+        browser_view.kwargs = {"group": group, "pks": [0], "page": 1}
+        params = {}
+        if isinstance(link_spec, Link) and link_spec.query_params:
+            for key, value in link_spec.query_params.items():
+                params[snakecase(key)] = value
         params["filters"] = json.loads(params["filters"])
         params["show"] = {"p": True, "s": True}
         params["limit"] = PUBLICATION_PREVIEW_LIMIT
@@ -153,18 +155,23 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             number_of_items=book_count,
         )
 
-    def _create_links_section_link_spec(self, link_spec, data, group_spec, link_dict):
+    def _create_links_section_link_spec(
+        self,
+        link_spec: Link,
+        data: LinksSectionData,
+        link_dict: Mapping,
+    ):
         if not self._is_allowed(link_spec):
             return
 
-        kwargs = self._create_link_kwargs(data, link_spec)
+        kwargs = self._create_link_kwargs(link_spec)
 
-        qps = self._create_link_query_params(group_spec, link_spec, kwargs)
+        qps = self._create_link_query_params(link_spec, kwargs)
 
         title = getattr(link_spec, "title", "")
         if not title:
             title = getattr(link_spec, "name", "")
-        if not title and data.links_key == "navigation":
+        if not title:
             title = self.EMPTY_TITLE
 
         href_data = HrefData(kwargs, qps)
@@ -175,15 +182,15 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         self.link_aggregate(link_dict, link)
 
     def _create_links_section_group_spec(
-        self, group_spec, data, *, paginate: bool = False
+        self, group_spec: LinkGroup, data: LinksSectionData, *, paginate: bool = False
     ):
         groups = []
         link_dict = {}
         for link_spec in group_spec.links:
-            self._create_links_section_link_spec(link_spec, data, group_spec, link_dict)
+            self._create_links_section_link_spec(link_spec, data, link_dict)
         links = self.get_links_from_dict(link_dict)
         if links:
-            metadata = {"title": group_spec.title}
+            metadata: dict[str, str | int] = {"title": group_spec.title}
             if data.subtitle:
                 metadata["subtitle"] = data.subtitle
 
@@ -198,7 +205,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             group: dict[str, Mapping | list] = {
                 "metadata": metadata,
             }
-            group[data.links_key] = links
+            group["navigation"] = links
             groups += [group]
 
         return groups
@@ -239,10 +246,10 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         if self.is_start_page:
             for group_spec in ORDERED_GROUPS:
                 # explode into individual groups
-                for nav_link in group_spec.links:
-                    group_spec.title = nav_link.title
+                for link_spec in group_spec.links:
+                    group_spec.title = link_spec.title
                     pub_section = self._create_publications_preview(
-                        nav_link, group_spec
+                        link_spec, group_spec
                     )
                     groups += pub_section
         return groups
@@ -253,11 +260,11 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             return []
         return self._create_links_section(START_GROUPS, START_SECTION_DATA)
 
-    def _get_groups(self, group_qs, book_qs, title, zero_pad):
+    def _get_groups(self, group_qs, book_qs, title: str, zero_pad: int):
         groups = []
 
         # Regular Groups
-        tup = (NavigationGroup(title=title, links=group_qs),)
+        tup = (LinkGroup(title, group_qs),)
         groups_section_data = copy(GROUPS_SECTION_DATA)
         subtitle = group_qs.model.__name__ if group_qs.model else "UnknownGroup"
         if subtitle != "Series":
@@ -282,25 +289,28 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
         # opds page
         title = self._title(title)
-        number_of_items = total_count
-        current_page = self.kwargs.get("page")
-        up_route = self.get_last_route()
-        links = self.get_links(up_route)
+        zero_pad = zero_pad if zero_pad else 0
 
-        # Called "Browse"" in Stump
+        # Move the first group's navigation to become the feed navigation.
+        # The feed navigation is titled "Browse"" in Stump
         regular_groups = self._get_groups(group_qs, book_qs, title, zero_pad)
-        first_regular_groups = next(iter(regular_groups), {})
-        navigation = first_regular_groups.pop("navigation", [])
+        first_regular_group = next(iter(regular_groups), {})
+        navigation = first_regular_group.pop("navigation", [])
 
         # opds groups
         groups = []
-        if first_regular_groups.get("publications"):
+        if first_regular_group.get("publications"):
             groups += regular_groups
         og = self._get_ordered_groups()
         groups += og
         groups += self._get_top_groups()
         groups += self._get_facets()
         groups += self._get_start_groups()
+
+        number_of_items = total_count
+        current_page = self.kwargs.get("page")
+        up_route = self.get_last_route()
+        links = self.get_links(up_route)
 
         feed = {
             "metadata": {
@@ -312,9 +322,10 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
             },
             "links": links,
         }
-        # if navigation:
-        feed["navigation"] = navigation
-        feed["groups"] = groups
+        if navigation:
+            feed["navigation"] = navigation
+        if groups:
+            feed["groups"] = groups
 
         return MappingProxyType(feed)
 
