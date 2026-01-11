@@ -17,7 +17,7 @@ class HrefData:
 
     kwargs: dict | None = None
     query_params: dict | None = None
-    absolute_query_params: bool = False
+    inherit_query_params: bool = False
     url_name: str | None = None
     min_page: int | None = None
     max_page: int | None = None
@@ -41,7 +41,7 @@ class OPDS2HrefMixin:
     def _href_update_query_params(self, data):
         """Update the query params."""
         query = {}
-        if not data.absolute_query_params:
+        if data.inherit_query_params:
             # if request link and not init static links
             camel_qps = {}
             for key, val in self.request.GET.items():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]

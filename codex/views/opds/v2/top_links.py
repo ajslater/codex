@@ -12,7 +12,6 @@ class OPDS2TopLinksView(OPDS2LinksView):
         href_data = HrefData(
             {},
             url_name="opds:auth:v1",
-            absolute_query_params=True,
         )
         link_data = LinkData(
             Rel.AUTHENTICATION,
@@ -24,22 +23,17 @@ class OPDS2TopLinksView(OPDS2LinksView):
     def _link_search(self):
         kwargs = {"group": "s", "pks": (0,), "page": 1}
         query_params = {"q": ""}
-        href_data = HrefData(
-            kwargs, query_params=query_params, absolute_query_params=True, max_page=1
-        )
+        href_data = HrefData(kwargs, query_params=query_params, max_page=1)
         link_data = LinkData(Rel.SEARCH, href_data, template="{?query}")
         return self.link(link_data)
 
     def _get_static_links(self):
-        start_href_data = HrefData(
-            {}, url_name="opds:v2:start", absolute_query_params=True
-        )
+        start_href_data = HrefData({}, url_name="opds:v2:start")
         start_link_data = LinkData(Rel.START, start_href_data)
 
         register_href_data = HrefData(
             {},
             url_name="app:start",
-            absolute_query_params=True,
         )
         register_link_data = LinkData(
             Rel.REGISTER,
@@ -69,16 +63,16 @@ class OPDS2TopLinksView(OPDS2LinksView):
     def _link_page(self, rel, page):
         """Links to a page of results."""
         kwargs = {**self.kwargs, "page": page}
-        href_data = HrefData(kwargs)
+        href_data = HrefData(kwargs, inherit_query_params=True)
         link_data = LinkData(rel, href_data)
         return self.link(link_data)
 
     def get_links(self, up_route):
         """Get the top links section of the feed."""
         page = self.kwargs.get("page", 0)
-        top_href_data = HrefData(self._top_route())
+        top_href_data = HrefData(self._top_route(), inherit_query_params=True)
         top_link_data = LinkData(Rel.TOP, top_href_data)
-        up_href_data = HrefData(up_route)
+        up_href_data = HrefData(up_route, inherit_query_params=True)
         up_link_data = LinkData(Rel.UP, up_href_data)
         links_data = [
             self.link_self(),

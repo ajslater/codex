@@ -172,8 +172,6 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
 
     def link_self(self):
         """Create the self link for this page."""
-        href_data = HrefData(
-            self.kwargs, dict(self.request.GET), absolute_query_params=True
-        )
+        href_data = HrefData(self.kwargs, dict(self.request.GET))
         link_data = LinkData(Rel.SELF, href_data)
         return self.link(link_data)

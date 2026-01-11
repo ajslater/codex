@@ -87,11 +87,7 @@ class OPDS2ProgressionView(
         }
         max_page = max_none(self._obj.page_count - 1, 0)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
         data = HrefData(
-            acq_kwargs,
-            url_name="opds:bin:page",
-            min_page=0,
-            max_page=max_page,
-            absolute_query_params=True,
+            acq_kwargs, url_name="opds:bin:page", min_page=0, max_page=max_page
         )
         return self.href(data)
 

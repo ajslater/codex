@@ -103,9 +103,7 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
     def auth_link(self):
         """Create a reusable authentication link dict."""
         if self._auth_link is None:
-            auth_href_data = HrefData(
-                {}, url_name="opds:auth:v1", absolute_query_params=True
-            )
+            auth_href_data = HrefData({}, url_name="opds:auth:v1")
             auth_link_data = LinkData(
                 Rel.AUTHENTICATION,
                 auth_href_data,
@@ -121,7 +119,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         alt_href_data = HrefData(
             alt_kwargs,
             {"opdsMetadata": 1},
-            absolute_query_params=True,
             url_name="opds:v2:feed",
         )
         return LinkData(
@@ -140,7 +137,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         acq_href_data = HrefData(
             acq_kwargs,
             url_name="opds:bin:download",
-            absolute_query_params=True,
         )
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
 
@@ -151,9 +147,7 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             authenticate=self.auth_link,
         )
         prog_kwargs = {"group": "c", "pk": obj.pk}
-        prog_href_data = HrefData(
-            prog_kwargs, url_name="opds:v2:position", absolute_query_params=True
-        )
+        prog_href_data = HrefData(prog_kwargs, url_name="opds:v2:position")
 
         prog_link_data = LinkData(
             Rel.PROGRESSION,
@@ -167,7 +161,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             manifest_kwargs,
             url_name="opds:v2:manifest",
             query_params={"opdsMetadata": 1},
-            absolute_query_params=True,
         )
 
         manifest_link_data = LinkData(
@@ -199,7 +192,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         thumb_href_data = HrefData(
             kwargs,
             query_params,
-            absolute_query_params=True,
             url_name="opds:bin:cover",
         )
         thumb_link_data = LinkData(
@@ -225,7 +217,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         image_href_data = HrefData(
             kwargs,
             query_params,
-            absolute_query_params=True,
             url_name="opds:bin:page",
             min_page=0,
         )
@@ -270,7 +261,6 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
             href_data = HrefData(
                 kwargs,
                 query_params,
-                absolute_query_params=True,
                 url_name="opds:bin:page",
                 min_page=0,
                 max_page=obj.page_count,
@@ -294,7 +284,6 @@ class OPDS2PublicationManifestView(OPDS2PublicationBaseView):
         href_data = HrefData(
             kwargs,
             query_params,
-            absolute_query_params=True,
             url_name="opds:v2:feed",
         )
         link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)
@@ -321,7 +310,7 @@ class OPDS2PublicationsView(OPDS2PublicationtEntryView):
         if not link_spec:
             return []
         kwargs = {"group": link_spec.group, "pks": "0", "page": 1}
-        href_data = HrefData(kwargs, link_spec.query_params)
+        href_data = HrefData(kwargs, link_spec.query_params, inherit_query_params=True)
         # Must be rel="self" for Stump to add View All
         link_data = LinkData(Rel.SELF, href_data=href_data, title=link_spec.title)
         return [self.link(link_data)]

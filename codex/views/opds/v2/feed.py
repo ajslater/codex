@@ -172,7 +172,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         if not title:
             title = self.EMPTY_TITLE
 
-        href_data = HrefData(kwargs, qps)
+        href_data = HrefData(kwargs, qps, inherit_query_params=True)
 
         rel = data.rel if data.rel else link_spec.rel
         link_data = LinkData(rel, href_data, title=title)
