@@ -1,5 +1,6 @@
 """Href methods for OPDS v2.0 Feed."""
 
+import json
 from dataclasses import dataclass
 from re import DEBUG
 
@@ -51,6 +52,8 @@ class OPDS2HrefMixin:
             for key, val in data.query_params.items():
                 camel_qps[camelcase(key)] = val
             query.update(camel_qps)
+        if filters := query.get("filters"):  # and isinstance(filters, Mapping):
+            query["filters"] = json.dumps(dict(filters))
         return query
 
     def href(self, data):

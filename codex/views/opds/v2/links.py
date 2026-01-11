@@ -1,5 +1,6 @@
 """Links methods for OPDS v2.0 Feed."""
 
+import json
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
@@ -15,7 +16,10 @@ from codex.views.browser.browser import BrowserView
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.util import get_user_agent_name
+from codex.views.opds.v2.const import BookmarkFilters
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
+
+_BOOKMARK_FILTERS_NONE_STR = json.dumps(dict(BookmarkFilters.NONE))
 
 
 @dataclass
@@ -122,6 +126,8 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
             qps_dict.pop("orderBy", None)
         if qps_dict.get("orderReverse", "").lower() in FALSY:
             qps_dict.pop("orderReverse", None)
+        if qps_dict.get("filters", {}) == _BOOKMARK_FILTERS_NONE_STR:
+            qps_dict.pop("filters")
         return frozenset(qps_dict.items())
 
     def _is_self_link(self, href):

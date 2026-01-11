@@ -1,9 +1,9 @@
 """OPDS v2 consts."""
 # https://drafts.opds.io/opds-2.0.html
 
-import json
 from collections.abc import Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from django.db.models.query import QuerySet
 
@@ -32,10 +32,10 @@ class LinkGroup:
 class BookmarkFilters:
     """Bookmark Filters."""
 
-    UNREAD = json.dumps({"bookmark": "UNREAD"})
-    IN_PROGRESS = json.dumps({"bookmark": "IN_PROGRESS"})
-    READ = json.dumps({"bookmark": "READ"})
-    NONE = json.dumps({"bookmark": ""})
+    UNREAD = MappingProxyType({"bookmark": "UNREAD"})
+    IN_PROGRESS = MappingProxyType({"bookmark": "IN_PROGRESS"})
+    READ = MappingProxyType({"bookmark": "READ"})
+    NONE = MappingProxyType({"bookmark": ""})
 
 
 FACETS = (
@@ -70,6 +70,7 @@ FACETS = (
                 Rel.FACET, "In Progress", "", {"filters": BookmarkFilters.IN_PROGRESS}
             ),
             Link(Rel.FACET, "Read", "", {"filters": BookmarkFilters.READ}),
+            Link(Rel.FACET, "All", "", {"filters": BookmarkFilters.NONE}),
         ),
     ),
 )

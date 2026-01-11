@@ -1,6 +1,5 @@
 """OPDS v2.0 Feed."""
 
-import json
 from collections.abc import Mapping
 from copy import copy
 from types import MappingProxyType
@@ -135,7 +134,6 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         if isinstance(link_spec, Link) and link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 params[snakecase(key)] = value
-        params["filters"] = json.loads(params["filters"])
         params["show"] = {"p": True, "s": True}
         params["limit"] = PUBLICATION_PREVIEW_LIMIT
 
