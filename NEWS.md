@@ -6,10 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.8.23
+## v1.9.0 - OPDS 2.0 Redesign
 
 - Fixes
     - Fix crash in OPDS 2.0 feed.
+- Features
+    - Redesigned OPDS v2.0 to work with Stump Client
 
 ## v1.8.22
 
