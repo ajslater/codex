@@ -15,20 +15,38 @@ from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
 from codex.views.auth import GroupACLMixin
-from codex.views.opds.const import BLANK_TITLE, MimeType, Rel
+from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE, MimeType, Rel
+from codex.views.opds.util import get_credits, get_m2m_objects
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
 from codex.views.opds.v2.href import HrefData
 
+_MD_CREDIT_MAP = MappingProxyType(
+    # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
+    {
+        "author": AUTHOR_ROLES,
+        "translator": {"Translator"},
+        "editor": {"Editor"},
+        "artist": {"CoverArtist", "Cover", "Artist"},
+        "illustrator": {"Illustrator"},
+        "letterer": {"Letterer"},
+        "penciller": {"Penciller"},
+        "colorist": {"Colorist", "Colors"},
+        "inker": {"Inker", "Inks"},
+        "contributor": {"Contributor"},
+        "narrator": {"Narrator"},
+    }
+)
 
-class OPDS2ManifestView(OPDS2PublicationBaseView):
-    """Single publication manifest view."""
 
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
-    serializer_class: type[BaseSerializer] | None = (
-        OPDS2PublicationDivinaManifestSerializer
-    )
+class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
+    """Publication Manifest Divina Extended Metadata."""
+
+    @staticmethod
+    def _add_credits(md, pks, key, roles):
+        """Add credits to metadata."""
+        if credit_objs := get_credits(pks, roles, exclude=False):
+            md[key] = credit_objs
 
     def _publication_identifier(self, obj):
         rel = GroupACLMixin.get_rel_prefix(Identifier)
@@ -125,6 +143,47 @@ class OPDS2ManifestView(OPDS2PublicationBaseView):
 
         return belongs_to
 
+    @override
+    def _publication_metadata(self, obj, zero_pad):
+        md = super()._publication_metadata(obj, zero_pad)
+        md["conformsTo"] = "https://readium.org/webpub-manifest/profiles/divina"
+        if desc := obj.summary:
+            md["description"] = desc
+        if lang := obj.language:
+            md["language"] = lang.name
+        if publisher := obj.publisher_name:
+            md["publisher"] = publisher
+        if imprint := obj.imprint_name:
+            md["imprint"] = imprint
+        for key, roles in _MD_CREDIT_MAP.items():
+            self._add_credits(md, obj.ids, key, roles)
+
+        # Subjects can also have links
+        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
+        m2m_objs = get_m2m_objects(obj.ids)
+        subject = [subj.name for subjs in m2m_objs.values() for subj in subjs]
+        if subject:
+            md["subject"] = subject
+
+        if layout := obj.reading_direction:
+            md["layout"] = layout if layout != "ttb" else "scrolled"
+        if identifier := self._publication_identifier(obj):
+            md["identifier"] = identifier
+        if belongs_to := self._publication_belongs_to(obj):
+            md["belongs_to"] = belongs_to
+
+        return md
+
+
+class OPDS2ManifestView(OPDS2ManifestMetadataView):
+    """Single publication manifest view."""
+
+    TARGET: str = "opds2"
+    throttle_scope = "opds"
+    serializer_class: type[BaseSerializer] | None = (
+        OPDS2PublicationDivinaManifestSerializer
+    )
+
     def _publication_reading_order(self, obj):
         """
         Reader manifest for OPDS 2.0.
@@ -146,29 +205,43 @@ class OPDS2ManifestView(OPDS2PublicationBaseView):
             href = self.href(href_data)
             page = {
                 "href": href,
-                "type": MimeType.JPEG,  # required, but not actually calculated
+                # type is required, but not calculated for efficiency.
+                "type": MimeType.JPEG,
                 # height and width not pre-calculated and fortunately not required by Stump
             }
             reading_order.append(page)
         return reading_order
 
-    @override
-    def _publication_extended_metadata(self, md, obj):
-        super()._publication_extended_metadata(md, obj)
-        if identifier := self._publication_identifier(obj):
-            md["identifier"] = identifier
-        if belongs_to := self._publication_belongs_to(obj):
-            md["belongs_to"] = belongs_to
+    def _cover(self, obj):
+        images = []
+        ts = floor(datetime.timestamp(obj.updated_at))
+        pk = obj.ids[0]
+        kwargs = {"pk": pk, "page": 0}
+        query_params = {"ts": ts, "bookmark": False, "pixmap": True}
 
-    @override
-    def _publication_metadata(self, obj, zero_pad):
-        md = super()._publication_metadata(obj, zero_pad)
-        md["conformsTo"] = "https://readium.org/webpub-manifest/profiles/divina"
-        return md
+        image_href_data = HrefData(
+            kwargs,
+            query_params,
+            url_name="opds:bin:page",
+            min_page=0,
+        )
+        image_link_data = LinkData(
+            Rel.IMAGE,
+            image_href_data,
+            mime_type=MimeType.JPEG,
+            # Include dummy heights just to pass client validation
+            height=0,
+            width=0,
+            authenticate=self.auth_link,
+        )
+        image_link = self.link(image_link_data)
+        images.append(image_link)
+        return images
 
     @override
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
+        # DiViNa manifest uses resources instead of images
         pub["resources"] = self._cover(obj)
         pub["reading_order"] = self._publication_reading_order(obj)
         return pub

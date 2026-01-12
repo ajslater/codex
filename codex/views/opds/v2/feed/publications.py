@@ -3,7 +3,6 @@
 from collections.abc import Iterable
 from datetime import datetime
 from math import floor
-from types import MappingProxyType
 from urllib.parse import quote_plus
 
 from caseconverter import snakecase
@@ -13,31 +12,14 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import AdminFlag, Comic
 from codex.models.groups import BrowserGroupModel, Folder
-from codex.settings import FALSY, MAX_OBJ_PER_PAGE
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.browser import BrowserView
-from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
-from codex.views.opds.util import get_credits, get_m2m_objects
+from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.const import Link, LinkGroup
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.href import HrefData
 
-_MD_CREDIT_MAP = MappingProxyType(
-    # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
-    {
-        "author": AUTHOR_ROLES,
-        "translator": {"Translator"},
-        "editor": {"Editor"},
-        "artist": {"CoverArtist", "Cover", "Artist"},
-        "illustrator": {"Illustrator"},
-        "letterer": {"Letterer"},
-        "penciller": {"Penciller"},
-        "colorist": {"Colorist", "Colors"},
-        "inker": {"Inker", "Inks"},
-        "contributor": {"Contributor"},
-        "narrator": {"Narrator"},
-    }
-)
 _PUBLICATION_PREVIEW_LIMIT = 5
 
 
@@ -72,35 +54,6 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
                 return False
         return True
 
-    @staticmethod
-    def _add_credits(md, pks, key, roles):
-        """Add credits to metadata."""
-        if credit_objs := get_credits(pks, roles, exclude=False):
-            md[key] = credit_objs
-
-    def _publication_extended_metadata(self, md, obj):
-        """Publication m2m metadata only on the metadata alternate link."""
-        if desc := obj.summary:
-            md["description"] = desc
-        if lang := obj.language:
-            md["language"] = lang.name
-        if publisher := obj.publisher_name:
-            md["publisher"] = publisher
-        if imprint := obj.imprint_name:
-            md["imprint"] = imprint
-        for key, roles in _MD_CREDIT_MAP.items():
-            self._add_credits(md, obj.ids, key, roles)
-
-        # Subjects can also have links
-        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
-        m2m_objs = get_m2m_objects(obj.ids)
-        subject = [subj.name for subjs in m2m_objs.values() for subj in subjs]
-        if subject:
-            md["subject"] = subject
-
-        if layout := obj.reading_direction:
-            md["layout"] = layout if layout != "ttb" else "scrolled"
-
     def _publication_metadata(self, obj, zero_pad):
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         if self.kwargs.get("group") == "f":
@@ -123,9 +76,6 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
             md["subtitle"] = subtitle
         if page_count := obj.page_count:
             md["number_of_pages"] = page_count
-
-        if self.request.GET.get("opdsMetadata", "").lower() not in FALSY:
-            self._publication_extended_metadata(md, obj)
         return md
 
     @property
@@ -141,69 +91,45 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
             self._auth_link = self.link(auth_link_data)
         return self._auth_link
 
-    def _publication_alt(self, obj):
-        self_kwargs = {"group": "c", "pks": [obj.pk], "page": 1}
-
-        alt_kwargs = self_kwargs
-        alt_href_data = HrefData(
-            alt_kwargs,
-            {"opdsMetadata": 1},
-            url_name="opds:v2:feed",
+    def _publication_link(self, kwargs, url_name, rel, mime_type, size=None):
+        href_data = HrefData(kwargs, url_name=url_name)
+        link_data = LinkData(
+            rel, href_data, mime_type, authenticate=self.auth_link, size=size
         )
-        return LinkData(
-            Rel.ALTERNATE,
-            alt_href_data,
-            mime_type=MimeType.OPDS_PUB,
-            authenticate=self.auth_link,
-        )
+        return self.link(link_data)
 
     def _publication(self, obj, zero_pad):
         pub = {}
         pub["metadata"] = self._publication_metadata(obj, zero_pad)
 
+        # Acquisition/Download link
         fn = quote_plus(obj.get_filename())
         acq_kwargs = {"pk": obj.pk, "filename": fn}
-        acq_href_data = HrefData(
-            acq_kwargs,
-            url_name="opds:bin:download",
-        )
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
-        acq_link_data = LinkData(
+        acq_link = self._publication_link(
+            acq_kwargs,
+            "opds:bin:download",
             Rel.ACQUISITION,
-            acq_href_data,
-            mime_type=download_mime_type,
-            authenticate=self.auth_link,
+            download_mime_type,
             size=obj.size,
         )
 
+        # Progression Link
         prog_kwargs = {"group": "c", "pk": obj.pk}
-        prog_href_data = HrefData(prog_kwargs, url_name="opds:v2:position")
-        prog_link_data = LinkData(
-            Rel.PROGRESSION,
-            prog_href_data,
-            mime_type=MimeType.PROGRESSION,
-            authenticate=self.auth_link,
+        prog_link = self._publication_link(
+            prog_kwargs, "opds:v2:position", Rel.PROGRESSION, MimeType.PROGRESSION
         )
 
+        # Divina Manifest Link
         manifest_kwargs = {"pks": [obj.pk]}
-        manifest_href_data = HrefData(
-            manifest_kwargs,
-            url_name="opds:v2:manifest",
-            query_params={"opdsMetadata": 1},
-        )
-
-        manifest_link_data = LinkData(
-            Rel.SELF,
-            manifest_href_data,
-            mime_type=MimeType.DIVINA,
-            authenticate=self.auth_link,
+        manifest_link = self._publication_link(
+            manifest_kwargs, "opds:v2:manifest", Rel.SELF, MimeType.DIVINA
         )
 
         links = [
-            # X self.link(self._publication_alt(obj)),
-            self.link(acq_link_data),
-            self.link(prog_link_data),
-            self.link(manifest_link_data),
+            acq_link,
+            prog_link,
+            manifest_link,
         ]
         pub["links"] = links
 
@@ -236,32 +162,6 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         images.append(thumb_link)
         return images
 
-    def _cover(self, obj):
-        images = []
-        ts = floor(datetime.timestamp(obj.updated_at))
-        pk = obj.ids[0]
-        kwargs = {"pk": pk, "page": 0}
-        query_params = {"ts": ts, "bookmark": False, "pixmap": True}
-
-        image_href_data = HrefData(
-            kwargs,
-            query_params,
-            url_name="opds:bin:page",
-            min_page=0,
-        )
-        image_link_data = LinkData(
-            Rel.IMAGE,
-            image_href_data,
-            mime_type=MimeType.JPEG,
-            # Include dummy heights just to pass client validation
-            height=0,
-            width=0,
-            authenticate=self.auth_link,
-        )
-        image_link = self.link(image_link_data)
-        images.append(image_link)
-        return images
-
 
 class OPDS2PublicationsView(OPDS2PublicationBaseView):
     """Publication Methods for OPDS 2.0 feed."""
@@ -281,26 +181,9 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         link_data = LinkData(Rel.SELF, href_data=href_data, title=link_spec.title)
         return [self.link(link_data)]
 
-    def get_publications(
-        self,
-        book_qs: Iterable,
-        zero_pad: int,
-        title: str,
-        subtitle: str = "",
-        items_per_page=MAX_OBJ_PER_PAGE,
-        link_spec=None,
-        number_of_items: int | None = None,
+    def _get_publication_section_metadata(
+        self, title, subtitle, number_of_items, items_per_page
     ):
-        """Get publications section."""
-        groups = []
-        publications = []
-        for obj in book_qs:
-            pub = self._publication(obj, zero_pad)
-            publications.append(pub)
-
-        if not publications:
-            return groups
-
         current_page = self.kwargs.get("page", 1)
         if number_of_items is None:
             number_of_items = self._opds_number_of_books
@@ -312,6 +195,31 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         }
         if subtitle:
             metadata["subtitle"] = subtitle
+        return metadata
+
+    def get_publications(
+        self,
+        book_qs: Iterable,
+        zero_pad: int,
+        title: str,
+        subtitle: str = "",
+        items_per_page=MAX_OBJ_PER_PAGE,
+        link_spec=None,
+        number_of_items: int | None = None,
+    ):
+        """Get publications section."""
+        publications = []
+        for obj in book_qs:
+            pub = self._publication(obj, zero_pad)
+            publications.append(pub)
+
+        groups = []
+        if not publications:
+            return groups
+
+        metadata = self._get_publication_section_metadata(
+            title, subtitle, number_of_items, items_per_page
+        )
         pub_group: dict[str, list | dict] = {
             "metadata": metadata,
         }
