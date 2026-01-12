@@ -101,8 +101,10 @@ class OPDS2ManifestView(OPDS2PublicationBaseView):
 
     def _publication_belongs_to_story_arcs(self, obj):
         story_arcs = []
-        story_arc_numbers = StoryArcNumber.objects.filter(comic=obj).only(
-            "story_arc", "number"
+        story_arc_numbers = (
+            StoryArcNumber.objects.filter(comic=obj)
+            .only("story_arc", "number")
+            .order_by("story_arc__name")
         )
         for story_arc_number in story_arc_numbers:
             story_arc = story_arc_number.story_arc
