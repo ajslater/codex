@@ -47,7 +47,7 @@ class OPDS2HrefMixin:
         if data.inherit_query_params:
             qps_maps.append(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if data.query_params:
-            qps_maps.append(data.query_params)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            qps_maps.append(data.query_params)
         query = {}
         for key, val in chain(*(d.items() for d in qps_maps)):
             query[camelcase(key)] = val

@@ -81,9 +81,7 @@ def _create_reverse_rel_map_for_model(model, rel_map):
     for field in model._meta.get_fields():
         if not field.auto_created:
             continue
-        if hasattr(field, "get_accessor_name") and (
-            an := field.get_accessor_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[call-non-callable]
-        ):
+        if hasattr(field, "get_accessor_name") and (an := field.get_accessor_name()):
             rel = an
         elif field.name:
             rel = field.name
