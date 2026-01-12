@@ -1,5 +1,6 @@
 """OPDS v2.0 Feed."""
 
+import json
 from collections.abc import Mapping
 from copy import copy
 from types import MappingProxyType
@@ -13,7 +14,7 @@ from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
-from codex.settings import MAX_OBJ_PER_PAGE
+from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.mixins import UserActiveMixin
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
@@ -45,6 +46,22 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
     serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
 
+    def _subtitle(self):
+        """Subtitle for main feed."""
+        # Add filters and order
+        parts = []
+        qps = self.request.GET
+        if (filters := qps.get("filters")) and (
+            bf := json.loads(filters).get("bookmark", "")
+        ):
+            bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
+            parts.append(bf)
+        if (order_by := qps.get("orderBy")) and order_by != "sort_name":
+            parts.append(order_by)
+        if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
+            parts.append("desc")
+        return f" ({','.join(parts)})" if parts else ""
+
     def _title(self, browser_title):
         """Create the feed title."""
         result = self.request.GET.get("title", "")
@@ -58,6 +75,8 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
         if not result:
             result = BLANK_TITLE
+
+        result += self._subtitle()
         return result
 
     #########
