@@ -8,7 +8,7 @@ export UV_NO_DEV=1
 ####################
 uv run --group lint ruff check .
 uv run --group lint ruff format --check .
-uv run --group lint --group build --group ci --group test basedpyright
+uv run --group lint --group build --group ci --group test --group dev basedpyright
 uv run --group lint vulture .
 if [ "$(uname)" = "Darwin" ]; then
   # Complexity is only of interest to development
