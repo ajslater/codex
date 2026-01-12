@@ -43,13 +43,13 @@ class OPDS2HrefMixin:
     def _href_update_query_params(self, data):
         """Update the query params."""
         # Merge query_params and camelCase keys
-        qps = ()
+        qps_maps = []
         if data.inherit_query_params:
-            qps = chain(self.request.GET.items())  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            qps_maps.append(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if data.query_params:
-            qps = chain(qps, data.query_params.items())
+            qps_maps.append(data.query_params)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         query = {}
-        for key, val in qps:
+        for key, val in chain(*(d.items() for d in qps_maps)):
             query[camelcase(key)] = val
 
         # Stringify filters value
