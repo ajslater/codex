@@ -94,7 +94,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
     def _publication_link(self, kwargs, url_name, rel, mime_type, size=None):
         href_data = HrefData(kwargs, url_name=url_name)
         link_data = LinkData(
-            rel, href_data, mime_type, authenticate=self.auth_link, size=size
+            rel, href_data, mime_type=mime_type, authenticate=self.auth_link, size=size
         )
         return self.link(link_data)
 
