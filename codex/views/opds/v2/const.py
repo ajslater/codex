@@ -164,8 +164,8 @@ class LinksSectionData:
 
 
 START_SECTION_DATA = LinksSectionData(rel=Rel.START)
-TOP_NAV_GROUP_SECTION_DATA = LinksSectionData()
 ORDERED_GROUP_SECTION_DATA = LinksSectionData(rel=Rel.FACET)
+TOP_NAV_GROUP_SECTION_DATA = LinksSectionData()
 GROUPS_SECTION_DATA = LinksSectionData(
     rel=Rel.SUB,
 )

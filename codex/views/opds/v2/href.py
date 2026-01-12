@@ -3,6 +3,7 @@
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from itertools import chain
 
 from caseconverter import camelcase
 from django.urls import reverse
@@ -41,20 +42,20 @@ class OPDS2HrefMixin:
 
     def _href_update_query_params(self, data):
         """Update the query params."""
-        query = {}
+        # Merge query_params and camelCase keys
+        qps = ()
         if data.inherit_query_params:
-            # if request link and not init static links
-            camel_qps = {}
-            for key, val in self.request.GET.items():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-                camel_qps[camelcase(key)] = val
-            query.update(camel_qps)
+            qps = chain(self.request.GET.items())  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if data.query_params:
-            camel_qps = {}
-            for key, val in data.query_params.items():
-                camel_qps[camelcase(key)] = val
-            query.update(camel_qps)
+            qps = chain(qps, data.query_params.items())
+        query = {}
+        for key, val in qps:
+            query[camelcase(key)] = val
+
+        # Stringify filters value
         if (filters := query.get("filters")) and isinstance(filters, Mapping):
             query["filters"] = json.dumps(dict(filters))
+
         return query
 
     def href(self, data):
