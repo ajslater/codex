@@ -14,6 +14,7 @@ from codex.models import (
 
 BLANK_TITLE = "(Empty)"
 AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
+OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 
 
 class Rel:
@@ -85,9 +86,6 @@ class MimeType:
         }
     )
     OCTET = "application/octet-stream"
-
-
-OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 
 
 class UserAgentNames:

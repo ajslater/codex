@@ -1,4 +1,4 @@
-"""OPDS URLs."""
+"""OPDS URLs API for popup."""
 
 from django.urls import reverse
 from rest_framework.response import Response
