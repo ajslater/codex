@@ -92,10 +92,12 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         if credit_objs := get_credits(obj.ids, _CREDIT_ROLES, exclude=True):
             md["credit"] = credit_objs
 
-        if m2m_objs := get_m2m_objects(obj.ids):
-            # Subjects can also have links
-            # https://readium.org/webpub-manifest/schema/subject-object.schema.json
-            md["subject"] = [subj.name for subjs in m2m_objs.values() for subj in subjs]
+        # Subjects can also have links
+        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
+        m2m_objs = get_m2m_objects(obj.ids)
+        subject = [subj.name for subjs in m2m_objs.values() for subj in subjs]
+        if subject:
+            md["subject"] = subject
 
         if layout := obj.reading_direction:
             md["layout"] = layout if layout != "ttb" else "scrolled"
