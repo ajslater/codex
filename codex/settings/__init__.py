@@ -26,7 +26,7 @@ from codex.settings.whitenoise import immutable_file_test
 # Undocumented Environment Variables #
 ######################################
 # SECURITY WARNING: don't run with debug turned on in production!
-FALSY = {None, "", "false", "0", False}
+FALSY = frozenset({None, "", "false", "0", False, "False"})
 
 
 def not_falsy_env(name):
