@@ -1,6 +1,7 @@
 """Href methods for OPDS v2.0 Feed."""
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from caseconverter import camelcase
@@ -15,8 +16,8 @@ from codex.views.util import pop_name
 class HrefData:
     """Data for creating hrefs."""
 
-    kwargs: dict | None = None
-    query_params: dict | None = None
+    kwargs: Mapping[str, str | Sequence[int] | int] | None = None
+    query_params: Mapping[str, str | int | Mapping] | None = None
     inherit_query_params: bool = False
     url_name: str | None = None
     min_page: int | None = None

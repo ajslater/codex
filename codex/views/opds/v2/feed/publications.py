@@ -9,9 +9,10 @@ from urllib.parse import quote_plus
 from caseconverter import snakecase
 from typing_extensions import override
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
-from codex.models import Comic
-from codex.models.groups import BrowserGroupModel
+from codex.models import AdminFlag, Comic
+from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
@@ -46,6 +47,29 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
         """Initialize vars."""
         self._auth_link = None
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def is_allowed(link_spec: Link | BrowserGroupModel):
+        """Return if the link allowed."""
+        if (
+            isinstance(link_spec, Link)
+            and (
+                link_spec.group == "f"
+                or (
+                    link_spec.query_params
+                    and link_spec.query_params.get("topGroup") == "f"
+                )
+            )
+        ) or isinstance(link_spec, Folder):
+            # Folder perms
+            efv_flag = (
+                AdminFlag.objects.only("on")
+                .get(key=AdminFlagChoices.FOLDER_VIEW.value)
+                .on
+            )
+            if not efv_flag:
+                return False
+        return True
 
     @staticmethod
     def _add_credits(md, pks, key, roles):

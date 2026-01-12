@@ -9,9 +9,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
-from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag
-from codex.models.groups import BrowserGroupModel, Folder
+from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
@@ -46,29 +44,6 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
 
     serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
-
-    @staticmethod
-    def _is_allowed(link_spec: Link | BrowserGroupModel):
-        """Return if the link allowed."""
-        if (
-            isinstance(link_spec, Link)
-            and (
-                link_spec.group == "f"
-                or (
-                    link_spec.query_params
-                    and link_spec.query_params.get("topGroup") == "f"
-                )
-            )
-        ) or isinstance(link_spec, Folder):
-            # Folder perms
-            efv_flag = (
-                AdminFlag.objects.only("on")
-                .get(key=AdminFlagChoices.FOLDER_VIEW.value)
-                .on
-            )
-            if not efv_flag:
-                return False
-        return True
 
     def _title(self, browser_title):
         """Create the feed title."""
@@ -126,7 +101,7 @@ class OPDS2FeedView(UserActiveMixin, OPDS2PublicationsView):
         data: LinksSectionData,
         link_dict: Mapping,
     ):
-        if not self._is_allowed(link_spec):
+        if not self.is_allowed(link_spec):
             return
 
         kwargs = self._create_link_kwargs(link_spec)
