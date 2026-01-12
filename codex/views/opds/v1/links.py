@@ -1,11 +1,11 @@
 """OPDS v1 Links methods."""
 
+import json
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
-import simplejson as json
 from django.urls import reverse
 from loguru import logger
 
