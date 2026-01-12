@@ -5,7 +5,7 @@ from codex.views.opds.v2.feed.links import LinkData, OPDS2LinksView
 from codex.views.opds.v2.href import HrefData
 
 
-class OPDS2TopLinksView(OPDS2LinksView):
+class OPDS2FeedLinksView(OPDS2LinksView):
     """OPDS 2.0 top links section methods."""
 
     def _link_auth(self):

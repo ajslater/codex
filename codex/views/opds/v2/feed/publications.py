@@ -18,8 +18,8 @@ from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
 from codex.views.opds.v2.const import Link, LinkGroup
+from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 from codex.views.opds.v2.feed.links import LinkData
-from codex.views.opds.v2.feed.top_links import OPDS2TopLinksView
 from codex.views.opds.v2.href import HrefData
 
 _MD_CREDIT_MAP = MappingProxyType(
@@ -41,7 +41,7 @@ _MD_CREDIT_MAP = MappingProxyType(
 _PUBLICATION_PREVIEW_LIMIT = 5
 
 
-class OPDS2PublicationBaseView(OPDS2TopLinksView):
+class OPDS2PublicationBaseView(OPDS2FeedLinksView):
     """Base view for publication entries."""
 
     def __init__(self, *args, **kwargs):
