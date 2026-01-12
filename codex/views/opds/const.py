@@ -12,7 +12,7 @@ from codex.models import (
     Team,
 )
 
-BLANK_TITLE = "Unknown"
+BLANK_TITLE = "(Empty)"
 AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
 
 

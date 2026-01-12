@@ -12,7 +12,7 @@ from codex.models.named import StoryArcNumber
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
-from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.const import BLANK_TITLE, MimeType, Rel
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
 from codex.views.opds.v2.href import HrefData
@@ -74,7 +74,7 @@ class OPDS2ManifestView(OPDS2PublicationBaseView):
         return [belongs_to]
 
     def _publication_belongs_to_series(self, obj):
-        name = obj.series_name if obj.series.name else self.EMPTY_TITLE
+        name = obj.series_name if obj.series.name else BLANK_TITLE
         pks: list[int] = [obj.series.pk]
         kwargs: Mapping[str, str | Sequence[int] | int] = {
             "group": "s",
@@ -106,7 +106,7 @@ class OPDS2ManifestView(OPDS2PublicationBaseView):
         )
         for story_arc_number in story_arc_numbers:
             story_arc = story_arc_number.story_arc
-            name = story_arc.name if story_arc.name else self.EMPTY_TITLE
+            name = story_arc.name if story_arc.name else BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
             kwargs = {"group": "a", "pks": pks, "page": 1}
