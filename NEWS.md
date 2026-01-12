@@ -6,6 +6,10 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.0 - OPDS v2.0 fixes
+
+- Docker healthcheck endpoint. See docs.
+
 ## v1.8.23
 
 - Fixes

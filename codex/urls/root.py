@@ -10,6 +10,7 @@ from django.views.generic.base import RedirectView
 
 from codex.settings import DEBUG
 from codex.urls.converters import GroupConverter, IntListConverter
+from codex.views.healthcheck import health_check_view
 
 register_converter(GroupConverter, "group")
 register_converter(IntListConverter, "int_list")
@@ -37,6 +38,7 @@ urlpatterns += [
     ),
     path("api/", include("codex.urls.api.root")),
     path("opds/", include("codex.urls.opds.root")),
+    path("health", health_check_view, name="healthcheck"),
     path("", include("codex.urls.pwa")),
     # The app must be last because it includes a catch-all path
     path("", include("codex.urls.app")),
