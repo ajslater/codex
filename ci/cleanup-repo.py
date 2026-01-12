@@ -10,17 +10,22 @@ from getpass import getpass
 import requests
 
 API_BASE = "https://hub.docker.com/v2"
+HTTP_OK = 200
 HTTP_NO_CONTENT = 204
 API_TIMEOUT = 10
 
 
 def login(username, password):
     """Docker login."""
+    url = f"{API_BASE}/users/login/"
     resp = requests.post(
-        f"{API_BASE}/users/login/",
+        url,
         json={"username": username, "password": password},
         timeout=API_TIMEOUT,
     )
+    if resp.status_code != HTTP_OK:
+        print(f"Request {url} failed with status code {resp.status_code}:")
+        print(resp.text)
     resp.raise_for_status()
     return resp.json()["token"]
 
