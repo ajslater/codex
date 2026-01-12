@@ -34,9 +34,10 @@ _MD_CREDIT_MAP = MappingProxyType(
         "penciller": {"Penciller"},
         "colorist": {"Colorist", "Colors"},
         "inker": {"Inker", "Inks"},
+        "contributor": {"Contributor"},
+        "narrator": {"Narrator"},
     }
 )
-_CREDIT_ROLES = frozenset({x for s in _MD_CREDIT_MAP.values() for x in s})
 _PUBLICATION_PREVIEW_LIMIT = 5
 
 
@@ -89,8 +90,6 @@ class OPDS2PublicationBaseView(OPDS2TopLinksView):
             md["imprint"] = imprint
         for key, roles in _MD_CREDIT_MAP.items():
             self._add_credits(md, obj.ids, key, roles)
-        if credit_objs := get_credits(obj.ids, _CREDIT_ROLES, exclude=True):
-            md["credit"] = credit_objs
 
         # Subjects can also have links
         # https://readium.org/webpub-manifest/schema/subject-object.schema.json
