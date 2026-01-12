@@ -8,6 +8,7 @@ from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least
 from django.db.models.query_utils import FilteredRelation
+from django.http import HttpResponse
 from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -20,6 +21,8 @@ from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
+from codex.views.opds.auth import OPDSAuthMixin
+from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
 
 if TYPE_CHECKING:
@@ -35,7 +38,11 @@ _EMPTY_DEVICE = MappingProxyType(
 
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
-    BookmarkFilterMixin, OPDS2HrefMixin, BookmarkPageMixin, AuthFilterGenericAPIView
+    OPDSAuthMixin,
+    BookmarkFilterMixin,
+    OPDS2HrefMixin,
+    BookmarkPageMixin,
+    AuthFilterGenericAPIView,
 ):
     """OPDS 2 Progression view."""
 
@@ -46,6 +53,14 @@ class OPDS2ProgressionView(
         self.init_bookmark_filter()
         super().__init__(*args, **kwargs)
         self._obj: BrowserGroupModel = Comic()
+        self._user_agent_name: str | None = None
+
+    @property
+    def user_agent_name(self) -> str:
+        """Memoize user agent name."""
+        if self._user_agent_name is None:
+            self._user_agent_name = get_user_agent_name(self.request)
+        return self._user_agent_name
 
     @property
     def modified(self):
@@ -72,10 +87,7 @@ class OPDS2ProgressionView(
         }
         max_page = max_none(self._obj.page_count - 1, 0)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
         data = HrefData(
-            acq_kwargs,
-            url_name="opds:bin:page",
-            min_page=0,
-            max_page=max_page,
+            acq_kwargs, url_name="opds:bin:page", min_page=0, max_page=max_page
         )
         return self.href(data)
 
@@ -129,6 +141,9 @@ class OPDS2ProgressionView(
             progress=progress,
         )
         self._obj = qs.only("page_count").distinct().get(pk=pk)
+
+        if not self._obj.bookmark_updated_at:  # pyright: ignore[reportAttributeAccessIssue]
+            HttpResponse(status=204)
 
         return {
             "modified": self.modified,

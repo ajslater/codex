@@ -12,6 +12,16 @@ from codex.models import (
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS
 
+#################
+# M2M QuerySets #
+#################
+# These M2M queries could techinally be added to the main query, but
+# probably only if the desired output format was already known. Like a
+# json object of model_name-pk, name for opds v1 and a json list of
+# strings for opds v2. Its actually better from a code standpoint to
+# not optimize the query like that, I think, and send the several
+# querysets to the views and templates.
+
 
 def get_credit_people(comic_pks, roles, exclude):
     """Get credits that are not authors."""
@@ -46,6 +56,11 @@ def get_m2m_objects(pks) -> dict:
         cats[table] = qs
 
     return cats
+
+
+###################
+# Other Utilities #
+###################
 
 
 def full_redirect_view(url_name):

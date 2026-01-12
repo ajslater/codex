@@ -9,6 +9,7 @@ COPY ci/debian.sources /etc/apt/sources.list.d/
 RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
+    curl \
     libimagequant0 \
     libjpeg62-turbo \
     libopenjp2-7 \

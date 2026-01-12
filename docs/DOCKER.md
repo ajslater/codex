@@ -39,6 +39,12 @@ services:
         ports:
             - "9810:9810"
         restart: on-failure
+        healthcheck:
+            test: ["CMD", "curl", "--fail", "http://localhost:9810/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 15s
 ```
 
 Special volume setup for a CIFS share:

@@ -380,21 +380,26 @@ or
 
 `http(s)://host.tld(:9810)(/root_path)/opds/v2.0/`
 
-OPDS 2.0 support is experimental and not widely or well supported by clients.
-OPDS 2.0 book readers exist, but I am not yet aware of an OPDS 2.0 comic reader.
+#### OPDS v1 Clients
 
-#### Clients
+- iOS
+    - [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
+    - [KYBook 3](http://kybook-reader.com/)
+    - [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
+- Android
+    - [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
+    - [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
 
-- iOS has [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
-  [KYBook 3](http://kybook-reader.com/), and
-  [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
-- Android has
-  [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
-  and
-  [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
+Kybook 3 does not seem to support http basic authentication, so Codex users are
+not supported.
 
-Kybook 3 does not seem to support http basic authentication, so Cbbodex users
-are not supported.
+#### OPDS v2 Clients
+
+OPDS 2.0 is a newer protocol that is only just starting to be supported by new
+clients.
+
+- [Stump (Alpha Test)](https://www.stumpapp.dev/guides/mobile/app)
+- [Readest](https://readest.com/) (No page streaming yet, download only)
 
 #### HTTP Basic Authentication
 
@@ -411,12 +416,17 @@ authentication. In that case the OPDS url will look like:
 - [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
 - [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
 - [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
-- [OpenSearch 1.1](https://github.com/dewitt/opensearch)
 
 ##### OPDS v2
 
 - [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
+- [OPDS 2.0 Digital Visual Narratives Profile (DiViNa)](https://github.com/readium/webpub-manifest/blob/master/profiles/divina.md)
+- [OPDS 2.0 Authentication (proposal)](https://github.com/opds-community/drafts/discussions/43)
 - [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
+
+##### OpenSearch v1
+
+- [OpenSearch 1.1 (draft)](https://github.com/dewitt/opensearch)
 
 ## [🩺 Troubleshooting](#troubleshooting)
 

@@ -8,12 +8,11 @@ export UV_NO_DEV=1
 ####################
 uv run --group lint ruff check .
 uv run --group lint ruff format --check .
-uv run --group build --group lint --group ci test basedpyright
+uv run --group lint --group build --group ci --group test basedpyright
 uv run --group lint vulture .
 if [ "$(uname)" = "Darwin" ]; then
-  # Radon is only of interest to development
-  uv run --group lint radon mi --min B .
-  uv run --group lint radon cc --min C .
+  # Complexity is only of interest to development
+  bin/lint-backend-complexity.sh
 fi
 uv run --group lint djlint codex/templates/*.html codex/templates/pwa/*.html --lint
 

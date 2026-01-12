@@ -1,7 +1,7 @@
 __pycache__/
 __pypackages__/
 __snapshots__
-.cache
+.*cache
 .coverage
 .coverage.*
 .dmypy.json

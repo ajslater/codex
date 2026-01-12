@@ -11,6 +11,7 @@ import eslintPluginImport from "eslint-plugin-import";
 import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
+import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginPromise from "eslint-plugin-promise";
 import eslintPluginRegexp from "eslint-plugin-regexp";
@@ -91,6 +92,7 @@ export default defineConfig([
       "uv.lock",
     ],
   },
+  eslintPluginNoUseExtendNative.configs.recommended,
   eslintPluginSecurity.configs.recommended,
   eslintPluginStylistic.configs.all,
   eslintPluginPrettierRecommended,

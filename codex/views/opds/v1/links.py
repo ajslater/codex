@@ -1,11 +1,11 @@
 """OPDS v1 Links methods."""
 
+import json
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
-import simplejson as json
 from django.urls import reverse
 from loguru import logger
 
@@ -162,7 +162,7 @@ class OPDS1LinksView(OPDS1FacetsView):
                 OPDS1Link("self", self.request.get_full_path(), mime_type),
                 OPDS1Link(
                     Rel.AUTHENTICATION,
-                    reverse("opds:authentication:v1"),
+                    reverse("opds:auth:v1"),
                     MimeType.AUTHENTICATION,
                 ),
                 OPDS1Link(Rel.START, reverse("opds:v1:start"), MimeType.NAV),
