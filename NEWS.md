@@ -6,14 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.9.0 - OPDS v2.0 fixes
-
-- Docker healthcheck endpoint. See docs.
-
-## v1.8.23
+## v1.9.0 - vOPDS 2.0 Redesign
 
 - Fixes
     - Fix crash in OPDS 2.0 feed.
+- Features
+    - Redesigned OPDS v2.0 to work with Stump & Readest Clients
+    - Docker healthcheck endpoint. See docs.
 
 ## v1.8.22
 

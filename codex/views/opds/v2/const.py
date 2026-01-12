@@ -1,106 +1,155 @@
 """OPDS v2 consts."""
+# https://drafts.opds.io/opds-2.0.html
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 
+from django.db.models.query import QuerySet
+
+from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import Rel
 
 
 @dataclass
-class Facet:
-    """OPDS Facet."""
-
-    query_param_value: str | bool
-    title: str
-
-
-@dataclass
-class FacetGroup:
-    """opds:facetGroup."""
-
-    title: str
-    query_param_key: str
-    glyph: str
-    links: tuple[Facet, ...]
-
-
-FACETS = (
-    FacetGroup(
-        "Order By", "orderBy", "➠", (Facet("date", "Date"), Facet("sort_name", "Name"))
-    ),
-    FacetGroup(
-        "Order Direction",
-        "orderReverse",
-        "⇕",
-        (
-            Facet(query_param_value=False, title="Ascending"),
-            Facet(query_param_value=True, title="Descending"),
-        ),
-    ),
-    FacetGroup(
-        "Top Group",
-        "topGroup",
-        "⊙",
-        (
-            Facet("p", "Publishers View"),
-            Facet("s", "Series View"),
-            Facet("f", "Folder View"),
-            Facet("a", "Story Arc View"),
-        ),
-    ),
-    # Could add Filters as well.
-)
-
-
-@dataclass
-class NavigationLink:
+class Link:
     """Groups Navigation Link."""
 
     rel: str
     title: str
-    group: str
-    query_params: dict | None
+    group: str = ""
+    query_params: dict | None = None
 
 
 @dataclass
-class NavigationGroup:
+class LinkGroup:
     """Navigation Group."""
 
     title: str
-    links: tuple[NavigationLink, ...]
+    links: Sequence[Link] | QuerySet
 
 
-GROUPS = (
-    NavigationGroup(
+class BookmarkFilters:
+    """Bookmark Filters."""
+
+    UNREAD = MappingProxyType({"bookmark": "UNREAD"})
+    IN_PROGRESS = MappingProxyType({"bookmark": "IN_PROGRESS"})
+    READ = MappingProxyType({"bookmark": "READ"})
+    NONE = MappingProxyType({"bookmark": ""})
+
+
+FACETS = (
+    LinkGroup(
+        "⬄ Order By",
+        (
+            Link(Rel.FACET, "Date", "", {"orderBy": "date"}),
+            Link(Rel.FACET, "Name", "", {"orderBy": "sort_name"}),
+        ),
+    ),
+    LinkGroup(
+        "⇕ Order Direction",
+        (
+            Link(Rel.FACET, "Ascending", "", {"orderReverse": False}),
+            Link(Rel.FACET, "Descending", "", {"orderReverse": True}),
+        ),
+    ),
+    LinkGroup(
+        "⊙  Top Group",
+        (
+            Link(Rel.FACET, "Publishers View", "r", {"topGroup": "p"}),
+            Link(Rel.FACET, "Series View", "s", {"topGroup": "s"}),
+            Link(Rel.FACET, "Folder View", "f", {"topGroup": "f"}),
+            Link(Rel.FACET, "Story Arc View", "a", {"topGroup": "a"}),
+        ),
+    ),
+    LinkGroup(
+        "⏿ Read State",
+        (
+            Link(Rel.FACET, "Unread", "", {"filters": BookmarkFilters.UNREAD}),
+            Link(
+                Rel.FACET, "In Progress", "", {"filters": BookmarkFilters.IN_PROGRESS}
+            ),
+            Link(Rel.FACET, "Read", "", {"filters": BookmarkFilters.READ}),
+            Link(Rel.FACET, "All", "", {"filters": BookmarkFilters.NONE}),
+        ),
+    ),
+)
+
+
+ORDERED_GROUPS = (
+    LinkGroup(
         "Ordered Groups",
         (
-            NavigationLink(
-                Rel.SORT_NEW,
-                "New",
-                "s",
-                {"orderBy": "created_at", "orderReverse": True},
-            ),
-            NavigationLink(
+            Link(
                 Rel.FEATURED,
+                "Keep Reading",
+                "s",
+                {
+                    "topGroup": "s",
+                    "filters": BookmarkFilters.UNREAD,
+                    "orderBy": "bookmark_updated_at",
+                    "orderReverse": True,
+                    "limit": MAX_OBJ_PER_PAGE,
+                    "title": "Keep Reading",
+                },
+            ),
+            Link(
+                Rel.SORT_NEW,
+                "Latest Unread",
+                "s",
+                {
+                    "topGroup": "s",
+                    "filters": BookmarkFilters.UNREAD,
+                    "orderBy": "created_at",
+                    "orderReverse": True,
+                    "limit": MAX_OBJ_PER_PAGE,
+                    "title": "Latest Unread",
+                },
+            ),
+            Link(
+                Rel.SORT_NEW,
                 "Oldest Unread",
                 "s",
-                {"orderBy": "date", "orderReverse": False},
-            ),
-            NavigationLink(
-                Rel.POPULAR,
-                "Last Read",
-                "s",
-                {"orderBy": "bookmark_updated_at", "orderReverse": True},
+                {
+                    "topGroup": "s",
+                    "filters": BookmarkFilters.UNREAD,
+                    "orderBy": "date",
+                    "orderReverse": False,
+                    "limit": MAX_OBJ_PER_PAGE,
+                    "title": "Oldest Unread",
+                },
             ),
         ),
     ),
-    NavigationGroup(
+)
+TOP_GROUPS = (
+    LinkGroup(
         "Top Groups",
         (
-            NavigationLink(Rel.SUB, "Root", "r", None),
-            NavigationLink(Rel.SUB, "Publishers", "p", None),
-            NavigationLink(Rel.SUB, "Series", "s", None),
-            NavigationLink(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
-            NavigationLink(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+            Link(Rel.START, "Publishers", "r", {"topGroup": "p"}),
+            Link(Rel.SUB, "Series", "p", {"topGroup": "p"}),
+            Link(Rel.SUB, "Issues", "s", {"topGroup": "p"}),
+            Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
+            Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+        ),
+    ),
+)
+
+START_GROUPS = (
+    LinkGroup(
+        "Start",
+        (
+            Link(
+                Rel.START,
+                "Start",
+                "r",
+                {
+                    "topGroup": "p",
+                    "filters": BookmarkFilters.NONE,
+                    "orderBy": "sort_name",
+                    "orderReverse": False,
+                },
+            ),
         ),
     ),
 )
@@ -112,10 +161,12 @@ class LinksSectionData:
 
     subtitle: str | None = None
     rel: str | None = None
-    group_kwarg: bool = False
-    links_key: str = "navigation"
 
 
-TOP_NAV_GROUP_SECTION_DATA = LinksSectionData(group_kwarg=True)
-GROUPS_SECTION_DATA = LinksSectionData("Groups", Rel.SUB, group_kwarg=True)
-FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET, links_key="links")
+START_SECTION_DATA = LinksSectionData(rel=Rel.START)
+ORDERED_GROUP_SECTION_DATA = LinksSectionData(rel=Rel.FACET)
+TOP_NAV_GROUP_SECTION_DATA = LinksSectionData()
+GROUPS_SECTION_DATA = LinksSectionData(
+    rel=Rel.SUB,
+)
+FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET)

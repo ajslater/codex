@@ -16,7 +16,7 @@ from codex.models import AdminFlag, Comic, Folder, StoryArc
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
     """Custom DRF Authentication class."""
 
-    code = 403
+    code = 401
 
     @override
     def has_permission(self, request, view):
