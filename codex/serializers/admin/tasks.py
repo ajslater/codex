@@ -10,7 +10,7 @@ from codex.choices.admin import ADMIN_TASK_GROUPS
 
 _ADMIN_TASK_CHOICES = tuple(
     sorted(
-        item["value"]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type, call-non-callable]
+        item["value"]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         for group in ADMIN_TASK_GROUPS["tasks"]
         for item in group["tasks"]
     )

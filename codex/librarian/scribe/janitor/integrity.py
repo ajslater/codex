@@ -189,9 +189,7 @@ def _mark_comics_for_update(fix_comic_pks, log):
     comic_model: type[Comic] = apps.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
     outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
         pk__in=fix_comic_pks
-    ).only(  # type: ignore[reportAssignmentType]
-        "stat", "updated_at"
-    )
+    ).only("stat", "updated_at")
     if not outdated_comics:
         return
 

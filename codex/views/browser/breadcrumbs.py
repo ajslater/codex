@@ -100,7 +100,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         breadcrumbs: tuple[Mapping[str, str | tuple[int, ...] | int], ...] = tuple(
             self.params.get("breadcrumbs", ())
         )
-        old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]  # ty: ignore[missing-argument]
+        old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]
         invalid = not old_breadcrumbs or old_breadcrumbs[-1].group not in valid_groups
         if invalid:
             old_breadcrumbs = []
