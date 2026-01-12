@@ -380,9 +380,6 @@ or
 
 `http(s)://host.tld(:9810)(/root_path)/opds/v2.0/`
 
-OPDS 2.0 is currently supported by a few not widely or well supported by older
-clients.
-
 #### OPDS v1 Clients
 
 - iOS
@@ -398,7 +395,11 @@ not supported.
 
 #### OPDS v2 Clients
 
+OPDS 2.0 is a newer protocol that is only just starting to be supported by new
+clients.
+
 - [Stump (Alpha Test)](https://www.stumpapp.dev/guides/mobile/app)
+- [Readest](https://readest.com/) (No page streaming yet, download only)
 
 #### HTTP Basic Authentication
 
