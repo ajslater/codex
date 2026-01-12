@@ -1,5 +1,6 @@
 """OPDS Authentication 1.0."""
 
+from re import DEBUG
 from types import MappingProxyType
 
 from django.contrib.staticfiles.storage import staticfiles_storage
@@ -66,7 +67,7 @@ class OPDSAuthentication1View(GenericAPIView):
     def static_get(cls, request, status_code=status.HTTP_200_OK):
         """Serialize the authentication dict."""
         user_agent_name = get_user_agent_name(request)
-        if user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
+        if DEBUG or user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
             doc = cls._absolute_doc(request)
         else:
             doc = _DOC
