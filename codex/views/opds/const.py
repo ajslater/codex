@@ -70,6 +70,7 @@ class MimeType:
             "CBZ": "application/vnd.comicbook+zip",
             "CBR": "application/vnd.comicbook+rar",
             "CBT": "application/vnd.comicbook+tar",
+            "CB7": "application/vnd.comicbook+7zip",
             "PDF": "application/pdf",
         }
     )
@@ -79,6 +80,7 @@ class MimeType:
             "CBZ": "application/zip",
             "CBR": "application/x-rar-compressed",
             "CBT": "application/x-tar",
+            "CB7": "application/x-7z-compressed",
             "PDF": "application/pdf",
         }
     )
