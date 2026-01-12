@@ -9,7 +9,8 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
-from codex.views.opds.const import MimeType
+from codex.views.opds.const import MimeType, UserAgentNames
+from codex.views.opds.util import get_user_agent_name
 
 _LOGO_SIZE = 180
 _DOC = MappingProxyType(
@@ -51,14 +52,24 @@ class OPDSAuthentication1View(GenericAPIView):
 
     serializer_class = OPDSAuthentication1Serializer
 
+    @staticmethod
+    def _absolute_doc(request):
+        """Absolutize the logo link url."""
+        doc = dict(_DOC)
+        logo_link: dict[str, str | int] = doc["links"][0]  # pyright: ignore[reportAssignmentType]
+        href = logo_link["href"]
+        href = request.build_absolute_uri(href)
+        logo_link["href"] = href
+        return doc
+
     @classmethod
     def static_get(cls, request, status_code=status.HTTP_200_OK):
-        """Fill in the authentication dict."""
-        doc = dict(_DOC)
-        logo_dict: dict[str, str | int] = doc["links"][0]  # pyright: ignore[reportAssignmentType]
-        href = logo_dict["href"]
-        href = request.build_absolute_uri(href)
-        logo_dict["href"] = href
+        """Serialize the authentication dict."""
+        user_agent_name = get_user_agent_name(request)
+        if user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
+            doc = cls._absolute_doc(request)
+        else:
+            doc = _DOC
         serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall]
         return Response(serializer.data, status=status_code)
 
