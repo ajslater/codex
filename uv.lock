@@ -612,7 +612,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.9.0"
+version = "1.9.1"
 source = { editable = "." }
 dependencies = [
     { name = "aioprocessing" },
@@ -656,8 +656,6 @@ ci = [
     { name = "requests" },
 ]
 dev = [
-    { name = "django-schema-graph" },
-    { name = "icecream" },
     { name = "neovim" },
     { name = "nplusone" },
     { name = "picopt" },
@@ -671,9 +669,11 @@ lint = [
     { name = "basedpyright" },
     { name = "codespell" },
     { name = "complexipy" },
+    { name = "django-schema-graph" },
     { name = "django-types" },
     { name = "djangorestframework-types" },
     { name = "djlint" },
+    { name = "icecream" },
     { name = "radon", extra = ["toml"] },
     { name = "ruff" },
     { name = "ty" },
@@ -727,8 +727,6 @@ requires-dist = [
 build = [{ name = "cairosvg", specifier = "~=2.8" }]
 ci = [{ name = "requests", specifier = "~=2.32" }]
 dev = [
-    { name = "django-schema-graph", specifier = "~=3.1" },
-    { name = "icecream", specifier = "~=2.1" },
     { name = "neovim", specifier = "~=0.3" },
     { name = "nplusone", specifier = "~=1.0" },
     { name = "picopt", specifier = "~=5.2" },
@@ -742,9 +740,11 @@ lint = [
     { name = "basedpyright", specifier = "~=1.30" },
     { name = "codespell", specifier = "~=2.4" },
     { name = "complexipy", specifier = "~=5.1" },
+    { name = "django-schema-graph", specifier = "~=3.1" },
     { name = "django-types", specifier = "~=0.21" },
     { name = "djangorestframework-types", specifier = "~=0.9" },
     { name = "djlint", specifier = "~=1.36" },
+    { name = "icecream", specifier = "~=2.1" },
     { name = "radon", extras = ["toml"], specifier = "~=6.0" },
     { name = "ruff", specifier = "~=0.12" },
     { name = "ty", specifier = "~=0.0.4" },

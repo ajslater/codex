@@ -6,7 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.9.0 - vOPDS 2.0 Redesign
+## v1.9.1
+
+- Fixes
+    - OPDS 2.0 fix crash on faceted views.
+
+## v1.9.0 - OPDS 2.0 Redesign
 
 - Fixes
     - Fix crash in OPDS 2.0 feed.

@@ -1,6 +1,7 @@
 """OPDS v2.0 Feed."""
 
 import json
+import urllib.parse
 from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
@@ -13,6 +14,10 @@ from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
+
+_ORDER_BY_MAP = MappingProxyType(
+    {"bookmark_updated_at": "read", "created_at": "added", "date": "published"}
+)
 
 
 class OPDS2FeedView(OPDS2FeedGroupsView):
@@ -29,12 +34,13 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         # Add filters and order
         parts = []
         qps = self.request.GET
-        if (filters := qps.get("filters")) and (
-            bf := json.loads(filters).get("bookmark", "")
-        ):
-            bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
+        if filters := qps.get("filters"):
+            filters = urllib.parse.unquote(filters)
+            if bf := json.loads(filters).get("bookmark", ""):
+                bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
             parts.append(bf)
         if (order_by := qps.get("orderBy")) and order_by != "sort_name":
+            order_by = _ORDER_BY_MAP.get(order_by, order_by)
             parts.append(order_by)
         if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
             parts.append("desc")
