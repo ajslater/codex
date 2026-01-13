@@ -1,14 +1,7 @@
 <template>
   <v-dialog max-width="30em">
     <template #activator="{ props }">
-      <v-btn
-        id="opdsButton"
-        icon
-        size="small"
-        variant="plain"
-        v-bind="props"
-        @click="loadOPDSURLs"
-      >
+      <v-btn id="opdsButton" icon size="small" variant="plain" v-bind="props" @click="loadOPDSURLs">
         <v-icon>{{ mdiRss }}</v-icon>
         OPDS
       </v-btn>
@@ -21,11 +14,7 @@
         OPDS
       </h2>
       <OPDSUrl title="v1.2" :url-path="opdsURLs.v1" />
-      <OPDSUrl
-        title="v2.0"
-        :url-path="opdsURLs.v2"
-        subtitle="Experimental and not widely or well supported by clients"
-      />
+      <OPDSUrl title="v2.0" :url-path="opdsURLs.v2" subtitle="Supported in some newer clients" />
     </div>
     <PlaceholderLoading v-else />
   </v-dialog>
@@ -63,11 +52,13 @@ export default {
 #opds {
   padding: 20px;
 }
+
 #opdsButton {
   display: block;
   width: 100%;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 .inline {
   display: inline-flex;
 }
