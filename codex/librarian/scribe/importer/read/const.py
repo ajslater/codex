@@ -104,7 +104,7 @@ COMPLEX_FIELD_AGG_MAP: MappingProxyType[
         dict[str, DeferredAttribute],
     ],
 ] = MappingProxyType(
-    {  # ty: ignore[invalid-argument-type]
+    {
         **{key: (cls.name, None, {}) for key, cls in SIMPLE_KEY_CLASS_MAP.items()},
         **{
             key: (cls.name, cls.identifier, {})

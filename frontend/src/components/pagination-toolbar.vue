@@ -1,6 +1,6 @@
 <template>
   <v-toolbar
-    class="paginationToolbar codexToolbar"
+    class="paginationToolbar"
     density="compact"
     transform="center bottom"
   >
@@ -18,6 +18,7 @@ export default {
 
 <style scoped lang="scss">
 .paginationToolbar {
+  position: fixed !important;
   bottom: env(safe-area-inset-bottom);
   width: 100%;
   padding: 0px;

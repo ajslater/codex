@@ -26,7 +26,7 @@ from codex.settings.whitenoise import immutable_file_test
 # Undocumented Environment Variables #
 ######################################
 # SECURITY WARNING: don't run with debug turned on in production!
-FALSY = {None, "", "false", "0", False}
+FALSY = frozenset({None, "", "false", "0", False, "False"})
 
 
 def not_falsy_env(name):
@@ -40,6 +40,7 @@ BUILD = not_falsy_env("BUILD")
 # limit in seconds
 SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", "0.5"))
 LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
+LOG_REQUEST = not_falsy_env("CODEX_LOG_REQUEST")
 # Misc
 VITE_HOST = environ.get("VITE_HOST")
 LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
@@ -187,6 +188,10 @@ def _get_middleware():
     if LOG_RESPONSE_TIME:
         middleware += [
             "codex.middleware.LogResponseTimeMiddleware",
+        ]
+    if LOG_REQUEST:
+        middleware += [
+            "codex.middleware.LogRequestMiddleware",
         ]
     return tuple(middleware)
 

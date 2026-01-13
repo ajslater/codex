@@ -138,7 +138,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
                 event_handler, path, event_filter=list(POLLING_EVENT_FILTER), **kwargs
             )
         with self._lock:
-            watch = ObservedWatch(path, event_filter=list(EVENT_FILTER), **kwargs)  # ty: ignore[missing-argument]
+            watch = ObservedWatch(path, event_filter=list(EVENT_FILTER), **kwargs)
             self._add_handler_for_watch(event_handler, watch)
             if self._emitter_for_watch.get(watch) is None:
                 self._add_emitter_for_watch(event_handler, watch)

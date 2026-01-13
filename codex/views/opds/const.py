@@ -12,8 +12,9 @@ from codex.models import (
     Team,
 )
 
-BLANK_TITLE = "Unknown"
+BLANK_TITLE = "(Empty)"
 AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
+OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 
 
 class Rel:
@@ -48,6 +49,7 @@ class MimeType:
 
     ATOM = "application/atom+xml"
     _PROFILE_CATALOG = "profile=opds-catalog"
+    DIVINA = "application/divina+json"
     NAV = f"{ATOM};{_PROFILE_CATALOG};kind=navigation"
     ACQUISITION = f"{ATOM};{_PROFILE_CATALOG};kind=acquisition"
     ENTRY_CATALOG = f"{ATOM};type=entry;{_PROFILE_CATALOG}"
@@ -69,6 +71,7 @@ class MimeType:
             "CBZ": "application/vnd.comicbook+zip",
             "CBR": "application/vnd.comicbook+rar",
             "CBT": "application/vnd.comicbook+tar",
+            "CB7": "application/vnd.comicbook+7zip",
             "PDF": "application/pdf",
         }
     )
@@ -78,13 +81,11 @@ class MimeType:
             "CBZ": "application/zip",
             "CBR": "application/x-rar-compressed",
             "CBT": "application/x-tar",
+            "CB7": "application/x-7z-compressed",
             "PDF": "application/pdf",
         }
     )
     OCTET = "application/octet-stream"
-
-
-OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 
 
 class UserAgentNames:
@@ -93,5 +94,4 @@ class UserAgentNames:
     CLIENT_REORDERS = frozenset({"Chunky"})
     FACET_SUPPORT = frozenset({"yar"})  # kybooks
     SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
-    # Other known valid  names:
-    # "Chunky"
+    REQUIRE_ABSOLUTE_URL = frozenset()

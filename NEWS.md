@@ -6,6 +6,36 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.1
+
+- Fixes
+    - OPDS 2.0 fix crash on faceted views.
+
+## v1.9.0 - OPDS 2.0 Redesign
+
+- Fixes
+    - Fix crash in OPDS 2.0 feed.
+- Features
+    - Redesigned OPDS v2.0 to work with Stump & Readest Clients
+    - Docker healthcheck endpoint. See docs.
+
+## v1.8.22
+
+- Fixes
+    - Fix reading books crash that crept into the last release.
+
+## v1.8.21
+
+- Fixes
+    - Fix Close Book button linking to parent of desired route.
+
+## v1.8.20
+
+- Fixes
+    - Fix dragging when zoomed in in reader when using mouse left button.
+    - Fix weird spacing and borders on browser and reader toolbars.
+    - Attempt to make Close Book route in reader more accurate.
+
 ## v1.8.19
 
 - Fixes

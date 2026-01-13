@@ -187,8 +187,8 @@ export const useBrowserStore = defineStore("browser", {
       return Boolean(state.settings.q);
     },
     lastRoute(state) {
-      const bc = state.settings.breadcrumbs;
-      const params = bc.at(-1);
+      const params =
+        state.settings?.breadcrumbs?.at(-1) || globalThis.CODEX.LAST_ROUTE;
       const route = {};
       if (params) {
         route.name = "browser";
@@ -656,10 +656,8 @@ export const useBrowserStore = defineStore("browser", {
       const group =
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
       const pks = params?.pks || "0";
-      return await COMMON_API.getMtime(
-        [{ group, pks }],
-        this.filterOnlySettings,
-      )
+      const arcs = [{ group, pks }];
+      return await COMMON_API.getMtime(arcs, this.filterOnlySettings)
         .then((response) => {
           const newMtime = response?.data?.maxMtime;
           if (newMtime !== this.page.mtime) {

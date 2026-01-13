@@ -11,7 +11,7 @@ from codex.views.template import CodexAPIView
 
 
 @extend_schema(responses={("200", "application/xml"): OpenApiTypes.BYTE})
-class OpenSearch1View(OPDSTemplateMixin, CodexAPIView):
+class OpenSearch1View(OPDSTemplateMixin, CodexAPIView):  # pyright: ignore[reportIncompatibleVariableOverride]
     """OpenSearchView."""
 
     template_name = "opds_v1/opensearch_v1.xml"

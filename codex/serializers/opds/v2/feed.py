@@ -12,7 +12,11 @@ from codex.serializers.opds.v2.publication import OPDS2PublicationSerializer
 
 
 class OPDS2GroupSerializer(Serializer):
-    """Group."""
+    """
+    Group.
+
+    https://drafts.opds.io/opds-2.0.html#25-groups
+    """
 
     metadata = OPDS2MetadataSerializer(read_only=True)
     links = OPDS2LinkListField(read_only=True, required=False)

@@ -198,7 +198,7 @@ export default {
   padding-right: calc(env(safe-area-inset-left) / 2);
   text-align: center;
   white-space: nowrap;
-  overflow: scroll;
+  overflow-y: scroll;
 }
 
 .readerTitle {

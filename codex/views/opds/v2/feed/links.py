@@ -1,9 +1,11 @@
 """Links methods for OPDS v2.0 Feed."""
 
+import json
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
+from types import MappingProxyType
 from typing import override
 from urllib.parse import parse_qsl, urlparse
 
@@ -11,8 +13,13 @@ from django.db.models import QuerySet
 
 from codex.settings import FALSY
 from codex.views.browser.browser import BrowserView
-from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.auth import OPDSAuthMixin
+from codex.views.opds.const import MimeType, Rel, UserAgentNames
+from codex.views.opds.util import get_user_agent_name
+from codex.views.opds.v2.const import BookmarkFilters
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
+
+_BOOKMARK_FILTERS_NONE_STR = json.dumps(dict(BookmarkFilters.NONE))
 
 
 @dataclass
@@ -26,13 +33,18 @@ class LinkData:
     template: str | None = None
     height: int | None = None
     width: int | None = None
+    size: int | None = None
     href: str | None = None
     num_items: int | None = None
     authenticate: Mapping | None = None
 
 
-class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
+class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
     """Links methods for OPDS 2.0 Feed."""
+
+    DEFAULT_ROUTE = MappingProxyType(
+        {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
+    )
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
@@ -41,6 +53,8 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
         self._group_and_books: (
             tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
         ) = None
+        self._user_agent_name: str | None = None
+        self._is_start_page: bool | None = None
 
     @property
     def group_and_books(
@@ -60,6 +74,13 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
             self._num_pages = self.group_and_books[2]
         return self._num_pages
 
+    @property
+    def user_agent_name(self) -> str:
+        """Memoize user agent name."""
+        if self._user_agent_name is None:
+            self._user_agent_name = get_user_agent_name(self.request)
+        return self._user_agent_name
+
     @staticmethod
     def _link_attributes(data, link):
         """Add attributes to link."""
@@ -72,6 +93,8 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
             link["height"] = data.height
         if data.width:
             link["width"] = data.width
+        if data.size:
+            link["size"] = data.size
 
     @staticmethod
     def _link_properties(data, link):
@@ -91,6 +114,8 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
             href = self.href(data.href_data)
             if not href:
                 return None
+        if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
+            href = self.request.build_absolute_uri(href)
         mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
         link = {"href": href, "rel": data.rel, "type": mime_type}
         self._link_attributes(data, link)
@@ -103,6 +128,8 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
             qps_dict.pop("orderBy", None)
         if qps_dict.get("orderReverse", "").lower() in FALSY:
             qps_dict.pop("orderReverse", None)
+        if qps_dict.get("filters", {}) == _BOOKMARK_FILTERS_NONE_STR:
+            qps_dict.pop("filters")
         return frozenset(qps_dict.items())
 
     def _is_self_link(self, href):
@@ -147,8 +174,6 @@ class OPDS2LinksView(OPDS2HrefMixin, BrowserView):
 
     def link_self(self):
         """Create the self link for this page."""
-        href_data = HrefData(
-            self.kwargs, dict(self.request.GET), absolute_query_params=True
-        )
+        href_data = HrefData(self.kwargs, dict(self.request.GET))
         link_data = LinkData(Rel.SELF, href_data)
         return self.link(link_data)

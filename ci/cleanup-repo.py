@@ -10,17 +10,22 @@ from getpass import getpass
 import requests
 
 API_BASE = "https://hub.docker.com/v2"
+HTTP_OK = 200
 HTTP_NO_CONTENT = 204
 API_TIMEOUT = 10
 
 
 def login(username, password):
     """Docker login."""
+    url = f"{API_BASE}/users/login/"
     resp = requests.post(
-        f"{API_BASE}/users/login/",
+        url,
         json={"username": username, "password": password},
         timeout=API_TIMEOUT,
     )
+    if resp.status_code != HTTP_OK:
+        print(f"Request {url} failed with status code {resp.status_code}:")
+        print(resp.text)
     resp.raise_for_status()
 
     return resp.json()["token"]
@@ -102,8 +107,7 @@ def get_args():
     return parser.parse_args()
 
 
-def main():
-    """Run the Program."""
+def _init():
     args = get_args()
 
     password = read_password(args)
@@ -111,14 +115,15 @@ def main():
         sys.exit(
             "❌ No password provided. Use --password, --password-stdin, or pipe it in."
         )
+    return args, password
 
-    token = login(args.username, password)
-    print(f"Logged in as {args.username}")
 
+def _get_tags_to_delete(args, token):
+    """Get deletebale tags."""
     tags = fetch_all_tags(args.namespace, args.repository, token)
     if not tags:
         print("No tags found.")
-        return
+        return None
 
     # Sort tags by last_updated descending
     tags.sort(
@@ -126,10 +131,9 @@ def main():
         reverse=True,
     )
     to_delete = tags[args.keep :]
-
     if not to_delete:
         print(f"Nothing to delete (<= {args.keep} tags).")
-        return
+        return None
 
     print(f"Keeping {args.keep} most recent tags:")
     for t in tags[: args.keep]:
@@ -138,6 +142,20 @@ def main():
     print(f"\nTags to delete ({len(to_delete)}):")
     for t in to_delete:
         print(f"  {t['name']}  ({t['last_updated']})")
+
+    return to_delete
+
+
+def main():
+    """Run the Program."""
+    args, password = _init()
+
+    token = login(args.username, password)
+    print(f"Logged in as {args.username}")
+
+    to_delete = _get_tags_to_delete(args, token)
+    if not to_delete:
+        return
 
     if args.dry_run:
         print("\nDry run mode. No tags will be deleted.")

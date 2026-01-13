@@ -39,7 +39,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             if model is Volume:
                 only.append("number_to")
             qs = qs.only(*only).distinct()
-            qs = qs.group_by(*only)  # pyright:ignore[reportAttributeAccessIssue]
+            qs = qs.group_by(*only)
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
             qs = qs.values("ids", *only)
             groups[field_name] = qs

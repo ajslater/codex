@@ -30,7 +30,7 @@ _IMPLICIT_AND_REXP = (
 )
 _BEGIN_NOT_RE = re.compile(_BEGIN_NOT_REXP, flags=re.IGNORECASE)
 _IMPLICIT_AND_RE = re.compile(_IMPLICIT_AND_REXP, flags=re.IGNORECASE)
-ParserElement.enablePackrat()
+ParserElement.enable_packrat()
 
 
 class BoolOperandBase(ABC):

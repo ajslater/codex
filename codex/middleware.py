@@ -65,3 +65,17 @@ class LogResponseTimeMiddleware:
         response = self._log_response_time(request)
         self._log_query_times()
         return response
+
+
+class LogRequestMiddleware:
+    """Log every request."""
+
+    def __init__(self, get_response):
+        """Store the creation response."""
+        self.get_response = get_response
+
+    def __call__(self, request):
+        """Trace the request uri."""
+        uri = request.build_absolute_uri()  # Includes query parameters
+        logger.trace(uri)
+        return self.get_response(request)

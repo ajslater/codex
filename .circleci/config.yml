@@ -9,12 +9,12 @@ executors:
       resource_class: arm.medium
 orbs:
   discord: antonioned/discord@0.1.0
+  advanced-checkout: vsco/advanced-checkout@1.1.0
 jobs:
   build-base-amd64: &build-base
     executor: amd64-medium-executor
     steps:
-      - checkout:
-          depth: 1
+      - advanced-checkout/shallow-checkout
       - run:
           command: . ./ci/machine-init.sh base
           name: Update packages & docker, produce env file.
@@ -39,8 +39,7 @@ jobs:
   test-and-build-dist-amd64:
     executor: amd64-medium-executor
     steps:
-      - checkout:
-          depth: 1
+      - advanced-checkout/shallow-checkout
       - attach_workspace:
           at: .
       - run:
@@ -86,8 +85,7 @@ jobs:
   build-amd64: &build
     executor: amd64-medium-executor
     steps:
-      - checkout:
-          depth: 1
+      - advanced-checkout/shallow-checkout
       - attach_workspace:
           at: .
       - run:
@@ -107,8 +105,7 @@ jobs:
   deploy:
     executor: amd64-medium-executor
     steps:
-      - checkout:
-          depth: 1
+      - advanced-checkout/shallow-checkout
       - attach_workspace:
           at: .
       - run:

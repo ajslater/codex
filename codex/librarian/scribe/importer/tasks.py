@@ -14,17 +14,17 @@ class ImportTask(ScribeTask):
 
     library_id: int
 
-    dirs_moved: Mapping[str, str] = field(default_factory=dict)  # ty: ignore[no-matching-overload]
+    dirs_moved: Mapping[str, str] = field(default_factory=dict)
     dirs_modified: frozenset[str] = frozenset()
     # dirs_created: frozenset[str] | None = frozenset() # noqa: ERA001
     dirs_deleted: frozenset[str] = frozenset()
 
-    files_moved: Mapping[str, str] = field(default_factory=dict)  # ty: ignore[no-matching-overload]
+    files_moved: Mapping[str, str] = field(default_factory=dict)
     files_modified: frozenset[str] = frozenset()
     files_created: frozenset[str] = frozenset()
     files_deleted: frozenset[str] = frozenset()
 
-    covers_moved: Mapping[str, str] = field(default_factory=dict)  # ty: ignore[no-matching-overload]
+    covers_moved: Mapping[str, str] = field(default_factory=dict)
     covers_modified: frozenset[str] = frozenset()
     covers_created: frozenset[str] = frozenset()
     covers_deleted: frozenset[str] = frozenset()

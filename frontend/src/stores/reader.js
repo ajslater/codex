@@ -10,6 +10,7 @@ import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import READER_CHOICES from "@/choices/reader-choices.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
+import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
   // Must be null so xior doesn't throw them out when sending.
@@ -62,7 +63,7 @@ const ROUTES_NULL = {
     prev: false,
     next: false,
   },
-  close: BROWSER_DEFAULTS.breadcrumbs[0],
+  close: undefined,
 };
 Object.freeze(ROUTES_NULL);
 const DEFAULT_ARC = {
@@ -182,16 +183,17 @@ export const useReaderStore = defineStore("reader", {
     },
     closeBookRoute(state) {
       const route = { name: "browser" };
-      let params = state.routes.close;
-      if (params) {
+      route.params =
+        state.routes.close || useBrowserStore()?.settings?.breadcrumbs?.at(-1);
+      if (route.params) {
         const cardPk = state.books?.current?.pk;
         if (cardPk) {
           route.hash = `#card-${cardPk}`;
         }
       } else {
-        params = globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
+        route.params =
+          globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
       }
-      route.params = params;
       return route;
     },
   },
@@ -489,6 +491,10 @@ export const useReaderStore = defineStore("reader", {
           const arc = { group, pks };
           arcs.push(arc);
         }
+      }
+      if (!arcs.length) {
+        // No arcs is a 500 from the mtime api
+        arcs.push({ r: "0" });
       }
       return await COMMON_API.getMtime(arcs, {})
         .then((response) => {

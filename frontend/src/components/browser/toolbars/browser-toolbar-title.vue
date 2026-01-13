@@ -88,7 +88,7 @@ export default {
   margin: 0px;
   text-align: center;
   white-space: nowrap;
-  overflow: scroll;
+  overflow-y: scroll;
 }
 
 #browserTitle {

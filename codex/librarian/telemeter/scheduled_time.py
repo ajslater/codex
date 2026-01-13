@@ -38,7 +38,7 @@ def _get_scheduled_time(ts):
     """Compute the time of week to send from the uuid."""
     start_of_week = _get_utc_start_of_week()
     uuid = UUID(ts.version)
-    uuid_int: int = int(uuid.int)  # pyright: ignore[reportArgumentType]
+    uuid_int: int = int(uuid.int)
     seconds_after_week_start = uuid_int / _UUID_DIVISOR
     time_of_week = timedelta(seconds=seconds_after_week_start)
     telemeter_time = start_of_week + time_of_week

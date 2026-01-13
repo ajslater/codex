@@ -100,5 +100,5 @@ class GroupByQuerySet(QuerySet):
         return obj
 
 
-class GroupByManager(Manager.from_queryset(GroupByQuerySet)):
+class GroupByManager(Manager.from_queryset(GroupByQuerySet)):  # ty: ignore[unsupported-base]
     """Use GroupBy QuerySet."""

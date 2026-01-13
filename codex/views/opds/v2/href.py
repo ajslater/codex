@@ -1,23 +1,25 @@
 """Href methods for OPDS v2.0 Feed."""
 
+import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from itertools import chain
 
+from caseconverter import camelcase
 from django.urls import reverse
 
+from codex.settings import DEBUG
+from codex.views.opds.const import UserAgentNames
 from codex.views.util import pop_name
-
-if TYPE_CHECKING:
-    from rest_framework.request import Request
 
 
 @dataclass
 class HrefData:
     """Data for creating hrefs."""
 
-    kwargs: dict | None = None
-    query_params: dict | None = None
-    absolute_query_params: bool = False
+    kwargs: Mapping[str, str | Sequence[int] | int] | None = None
+    query_params: Mapping[str, str | int | Mapping] | None = None
+    inherit_query_params: bool = False
     url_name: str | None = None
     min_page: int | None = None
     max_page: int | None = None
@@ -40,26 +42,32 @@ class OPDS2HrefMixin:
 
     def _href_update_query_params(self, data):
         """Update the query params."""
+        # Merge query_params and camelCase keys
+        qps_maps = []
+        if data.inherit_query_params:
+            qps_maps.append(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if data.query_params:
+            qps_maps.append(data.query_params)
         query = {}
-        if data.absolute_query_params and data.query_params:
-            query.update(data.query_params)
-        elif hasattr(self, "request"):
-            # if request link and not init static links
-            if TYPE_CHECKING:
-                self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
-            query.update(self.request.GET)
-            query.update(data.query_params)
+        for key, val in chain(*(d.items() for d in qps_maps)):
+            query[camelcase(key)] = val
+
+        # Stringify filters value
+        if (filters := query.get("filters")) and isinstance(filters, Mapping):
+            query["filters"] = json.dumps(dict(filters))
+
         return query
 
     def href(self, data):
         """Create an href."""
         url_name = data.url_name if data.url_name else "opds:v2:feed"
-        if TYPE_CHECKING:
-            self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
-        kwargs = data.kwargs if data.kwargs is not None else self.kwargs
+        kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
         kwargs = pop_name(kwargs)
         query = self._href_update_query_params(data)
-        return reverse(url_name, kwargs=kwargs, query=query)
+        href = reverse(url_name, kwargs=kwargs, query=query)
+        if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        return href
