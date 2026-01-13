@@ -112,32 +112,16 @@ jobs:
           command: ./ci/machine-init.sh
           name: Update packages & docker, produce env file.
       - run:
-          name: Plan a deploy
-          command: |
-            circleci run release plan \
-              --environment-name="Production" \
-              --component-name="codex" \
-              --target-version="$CODEX_VERSION"
-      - run:
           command: ./ci/docker-push.sh
           name: Push multi-arch images to Docker Hub
       - run:
           command: ./ci/python-publish.sh
           name: Publish Codex Package to PyPi
-
       - discord/status:
           fail_only: false
           webhook: "${DISCORD_STATUS_WEBHOOK}"
           failure_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** failed."
           success_message: "**${CIRCLE_USERNAME}**'s build: **${CIRCLE_JOB}** deployed."
-      - run:
-          name: Update a deploy to SUCCESS
-          command: circleci run release update --status=SUCCESS
-          when: on_success
-      - run:
-          name: Update planned deploy to FAILED
-          command: circleci run release update --status=FAILED
-          when: on_fail
 version: 2.1
 workflows:
   main:
