@@ -229,18 +229,14 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         groups.append(pub_group)
         return groups
 
-    def get_publications_preview(self, link_spec: Link | BrowserGroupModel):
+    def get_publications_preview(self, link_spec: Link):
         """Get a limited preview of publications outside the main query."""
         browser_view = BrowserView()
         browser_view.request = self.request
-        group = (
-            link_spec.group
-            if isinstance(link_spec, Link)
-            else link_spec.__class__.__name__[0].lower()
-        )
+        group = link_spec.group
         browser_view.kwargs = {"group": group, "pks": [0], "page": 1}
         params = {}
-        if isinstance(link_spec, Link) and link_spec.query_params:
+        if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 params[snakecase(key)] = value
         params["show"] = {"p": True, "s": True}
@@ -251,15 +247,10 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         if not book_count:
             return []
 
-        title = (
-            link_spec.title
-            if isinstance(link_spec, Link)
-            else BrowserGroupModel.__name__
-        )
         return self.get_publications(
             book_qs,
             zero_pad,
-            title,
+            link_spec.title,
             "",
             _PUBLICATION_PREVIEW_LIMIT,
             link_spec,
