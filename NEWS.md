@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.2
+
+- Fixes
+    - OPDS 2.0 homepage preview sections were showing the wrong queries.
+
 ## v1.9.1
 
 - Fixes

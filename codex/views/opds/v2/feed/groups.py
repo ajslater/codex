@@ -161,8 +161,7 @@ class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
             for group_spec in ORDERED_GROUPS:
                 # explode into individual groups
                 for link_spec in group_spec.links:
-                    group_spec.title = link_spec.title
-                    pub_section = self.get_publications_preview(link_spec, group_spec)
+                    pub_section = self.get_publications_preview(link_spec)
                     groups += pub_section
         return groups
 

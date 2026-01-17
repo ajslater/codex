@@ -15,7 +15,7 @@ from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v2.const import Link, LinkGroup
+from codex.views.opds.v2.const import Link
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.href import HrefData
@@ -229,9 +229,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         groups.append(pub_group)
         return groups
 
-    def get_publications_preview(
-        self, link_spec: Link | BrowserGroupModel, group_spec: LinkGroup
-    ):
+    def get_publications_preview(self, link_spec: Link | BrowserGroupModel):
         """Get a limited preview of publications outside the main query."""
         browser_view = BrowserView()
         browser_view.request = self.request
@@ -253,11 +251,15 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         if not book_count:
             return []
 
-        link_spec = next(iter(group_spec.links))
+        title = (
+            link_spec.title
+            if isinstance(link_spec, Link)
+            else BrowserGroupModel.__name__
+        )
         return self.get_publications(
             book_qs,
             zero_pad,
-            group_spec.title,
+            title,
             "",
             _PUBLICATION_PREVIEW_LIMIT,
             link_spec,
