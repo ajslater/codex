@@ -143,10 +143,19 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return belongs_to
 
+    def _publication_subject(self, obj):
+        # Subjects can also have links
+        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
+        m2m_objs = get_m2m_objects(obj.ids)
+        return [subj.name for subjs in m2m_objs.values() for subj in subjs]
+
+    def _publication_credits(self, obj, md):
+        for key, roles in _MD_CREDIT_MAP.items():
+            self._add_credits(md, obj.ids, key, roles)
+
     @override
     def _publication_metadata(self, obj, zero_pad):
         md = super()._publication_metadata(obj, zero_pad)
-        md["conformsTo"] = "https://readium.org/webpub-manifest/profiles/divina"
         if desc := obj.summary:
             md["description"] = desc
         if lang := obj.language:
@@ -155,23 +164,15 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             md["publisher"] = publisher
         if imprint := obj.imprint_name:
             md["imprint"] = imprint
-        for key, roles in _MD_CREDIT_MAP.items():
-            self._add_credits(md, obj.ids, key, roles)
-
-        # Subjects can also have links
-        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
-        m2m_objs = get_m2m_objects(obj.ids)
-        subject = [subj.name for subjs in m2m_objs.values() for subj in subjs]
-        if subject:
-            md["subject"] = subject
-
         if layout := obj.reading_direction:
             md["layout"] = layout if layout != "ttb" else "scrolled"
         if identifier := self._publication_identifier(obj):
             md["identifier"] = identifier
         if belongs_to := self._publication_belongs_to(obj):
             md["belongs_to"] = belongs_to
-
+        if subject := self._publication_subject(obj):
+            md["subject"] = subject
+        self._publication_credits(obj, md)
         return md
 
 

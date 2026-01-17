@@ -134,6 +134,10 @@ class OPDS2PublicationDivinaManifestSerializer(OPDS2PublicationSerializer):
     vars()["@context"] = CharField(
         read_only=True, default="https://readium.org/webpub-manifest/context.jsonld"
     )
+    conforms_to = CharField(
+        read_only=True, default="https://readium.org/webpub-manifest/profiles/divina"
+    )
+
     metadata = OPDS2PublicationDivinaMetadataSerializer(read_only=True)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     reading_order = OPDS2LinkListField(read_only=True, required=False)
