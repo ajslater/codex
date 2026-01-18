@@ -90,7 +90,7 @@ class RootTopLinks:
         ),
         "📥",
         "Latest Unread",
-        "",
+        "Unread issues, latest added first.",
     )
     OLD_UNREAD = TopLink(
         TopRoutes.SERIES,
