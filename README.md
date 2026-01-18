@@ -383,7 +383,8 @@ or
 #### OPDS v1 Clients
 
 - iOS
-    - [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
+    - [Panels](https://panels.app/)
+    - [PocketBooks](https://pocketbook.ch/)
     - [KYBook 3](http://kybook-reader.com/)
     - [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
 - Android

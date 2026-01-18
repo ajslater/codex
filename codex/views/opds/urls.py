@@ -24,7 +24,7 @@ class OPDSURLsView(AuthGenericAPIView):
         route = pop_name(route)
         for version in _OPDS_VERSIONS:
             key = f"v{version}"
-            name = f"opds:v{version}:feed"
+            name = f"opds:v{version}:start"
             value = reverse(name, kwargs=route)
             obj[key] = value
         serializer = self.get_serializer(obj)

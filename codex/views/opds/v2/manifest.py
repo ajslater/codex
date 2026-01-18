@@ -143,10 +143,19 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return belongs_to
 
+    def _publication_subject(self, obj):
+        # Subjects can also have links
+        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
+        m2m_objs = get_m2m_objects(obj.ids)
+        return [subj.name for subjs in m2m_objs.values() for subj in subjs]
+
+    def _publication_credits(self, obj, md):
+        for key, roles in _MD_CREDIT_MAP.items():
+            self._add_credits(md, obj.ids, key, roles)
+
     @override
     def _publication_metadata(self, obj, zero_pad):
         md = super()._publication_metadata(obj, zero_pad)
-        md["conformsTo"] = "https://readium.org/webpub-manifest/profiles/divina"
         if desc := obj.summary:
             md["description"] = desc
         if lang := obj.language:
@@ -155,23 +164,15 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             md["publisher"] = publisher
         if imprint := obj.imprint_name:
             md["imprint"] = imprint
-        for key, roles in _MD_CREDIT_MAP.items():
-            self._add_credits(md, obj.ids, key, roles)
-
-        # Subjects can also have links
-        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
-        m2m_objs = get_m2m_objects(obj.ids)
-        subject = [subj.name for subjs in m2m_objs.values() for subj in subjs]
-        if subject:
-            md["subject"] = subject
-
         if layout := obj.reading_direction:
             md["layout"] = layout if layout != "ttb" else "scrolled"
         if identifier := self._publication_identifier(obj):
             md["identifier"] = identifier
         if belongs_to := self._publication_belongs_to(obj):
             md["belongs_to"] = belongs_to
-
+        if subject := self._publication_subject(obj):
+            md["subject"] = subject
+        self._publication_credits(obj, md)
         return md
 
 
@@ -191,6 +192,8 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         This part of the spec is redundant, but required.
         """
         reading_order = []
+        if not obj:
+            return reading_order
         ts = floor(datetime.timestamp(obj.updated_at))
         query_params = {"ts": ts}
         for page_num in range(obj.page_count):
@@ -214,6 +217,8 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
 
     def _cover(self, obj):
         images = []
+        if not obj:
+            return images
         ts = floor(datetime.timestamp(obj.updated_at))
         pk = obj.ids[0]
         kwargs = {"pk": pk, "page": 0}
@@ -242,8 +247,10 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
         # DiViNa manifest uses resources instead of images
-        pub["resources"] = self._cover(obj)
-        pub["reading_order"] = self._publication_reading_order(obj)
+        if resources := self._cover(obj):
+            pub["resources"] = resources
+        if reading_order := self._publication_reading_order(obj):
+            pub["reading_order"] = reading_order
         return pub
 
     @override

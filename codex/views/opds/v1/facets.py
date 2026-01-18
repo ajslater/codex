@@ -1,6 +1,5 @@
 """OPDS v1 Facets methods."""
 
-from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
 
@@ -11,73 +10,16 @@ from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.util import get_user_agent_name
-from codex.views.opds.v1.data import OPDS1Link
-from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.const import (
+    DEFAULT_FACETS,
+    FacetGroups,
+    OPDS1EntryData,
+    OPDS1EntryObject,
+    OPDS1Link,
+    RootFacetGroups,
+)
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.util import pop_name
-
-
-@dataclass
-class FacetGroup:
-    """An opds:facetGroup."""
-
-    title_prefix: str
-    query_param: str
-    glyph: str
-    facets: tuple
-
-
-@dataclass
-class Facet:
-    """An OPDS facet."""
-
-    value: str
-    title: str
-
-
-class FacetGroups:
-    """Facet Group definitions."""
-
-    ORDER_BY = FacetGroup(
-        "Order By",
-        "orderBy",
-        "➠",
-        (
-            Facet("date", "Date"),
-            Facet("sort_name", "Name"),
-        ),
-    )
-    ORDER_REVERSE = FacetGroup(
-        "Order",
-        "orderReverse",
-        "⇕",
-        (Facet("false", "Ascending"), Facet("true", "Descending")),
-    )
-    ALL = (ORDER_BY, ORDER_REVERSE)
-
-
-class RootFacetGroups:
-    """Facet Groups that only appear at the root."""
-
-    TOP_GROUP = FacetGroup(
-        "",
-        "topGroup",
-        "⊙",
-        (
-            Facet("p", "Publishers View"),
-            Facet("s", "Series View"),
-            Facet("f", "Folder View"),
-            Facet("a", "Story Arc View"),
-        ),
-    )
-    ALL = (TOP_GROUP,)
-
-
-DEFAULT_FACETS = {
-    "topGroup": "p",
-    "orderBy": "sort_name",
-    "orderReverse": "false",
-}
 
 
 class OPDS1FacetsView(BrowserView):
@@ -200,10 +142,6 @@ class OPDS1FacetsView(BrowserView):
 
     def _facet_or_facet_entry(self, facet_group, facet, entries):
         # This logic preempts facet:activeFacet but no one uses it.
-        # don't add default facets if in default mode.
-        if self._is_facet_active(facet_group, facet):
-            return None
-
         group = self.kwargs.get("group")
         if facet_group.query_param == "topGroup" and self._did_special_group_change(
             group, facet.value
@@ -242,9 +180,9 @@ class OPDS1FacetsView(BrowserView):
         add_order_facets = (
             group != "c" and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
         )
-        if not add_order_facets:
-            facets += self._facet_group(FacetGroups.ORDER_BY, entries)
-            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
         if root:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries)
+        elif not add_order_facets:
+            facets += self._facet_group(FacetGroups.ORDER_BY, entries)
+            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
         return facets

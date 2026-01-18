@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.2
+
+- Fixes
+    - OPDS 2.0 homepage preview sections were showing the wrong queries.
+    - OPDS 2.0 progression bookmarking was broken. Stump doesn't seem to be
+      transmitting progression data yet, though.
+- Features
+    - OPDS 1.0 gains a homepage similar to OPDS 2.0
+    - OPDS start page URLS are now different. See the OPDS popup dialog.
+
 ## v1.9.1
 
 - Fixes

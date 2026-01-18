@@ -1,5 +1,7 @@
 """Browser title."""
 
+from collections.abc import Mapping
+
 from codex.models import Comic, Volume
 from codex.views.browser.breadcrumbs import BrowserBreadcrumbsView
 
@@ -31,7 +33,7 @@ class BrowserTitleView(BrowserBreadcrumbsView):
                 group_count = gi.volume.issue_count
         return group_name, group_number_to, group_count
 
-    def get_browser_page_title(self):
+    def get_browser_page_title(self) -> Mapping:
         """Get the proper title for this browse level."""
         pks = self.kwargs.get("pks")
         if not pks:

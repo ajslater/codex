@@ -25,8 +25,6 @@ from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
 from codex.views.opds.v2.href import HrefData
 
-_START_GROUPS = frozenset({"r", "f", "a"})
-
 
 class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
     """OPDS 2.0 Feed Groups."""
@@ -133,43 +131,22 @@ class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
             )
         return groups
 
-    @property
-    def is_start_page(self):
-        """Memoize if we're on the start page."""
-        if self._is_start_page is None:
-            group = self.kwargs.get("group")
-            pks = self.kwargs.get("pks")
-            self._is_start_page = (
-                group in _START_GROUPS
-                and (not pks or 0 in pks)
-                and not self.request.GET.get("filters")
-            )
-
-        return self._is_start_page
-
     def _get_top_groups(self):
         """Top Nav Groups."""
-        groups = []
-        if self.is_start_page:
-            groups += self._create_group(TOP_GROUPS, TOP_NAV_GROUP_SECTION_DATA)
-        return groups
+        return self._create_group(TOP_GROUPS, TOP_NAV_GROUP_SECTION_DATA)
 
     def _get_ordered_groups(self):
         # Top Nav Groups
         groups = []
-        if self.is_start_page:
-            for group_spec in ORDERED_GROUPS:
-                # explode into individual groups
-                for link_spec in group_spec.links:
-                    group_spec.title = link_spec.title
-                    pub_section = self.get_publications_preview(link_spec, group_spec)
-                    groups += pub_section
+        for group_spec in ORDERED_GROUPS:
+            # explode into individual groups
+            for link_spec in group_spec.links:
+                pub_section = self.get_publications_preview(link_spec)
+                groups += pub_section
         return groups
 
     def _get_start_groups(self):
         # Top Nav Groups
-        if self.is_start_page:
-            return []
         return self._create_group(START_GROUPS, START_SECTION_DATA)
 
     def _get_groups(self, group_qs, book_qs, title: str, zero_pad: int):

@@ -24,7 +24,7 @@
       <OPDSUrl
         title="v2.0"
         :url-path="opdsURLs.v2"
-        subtitle="Experimental and not widely or well supported by clients"
+        subtitle="Supported in some newer clients"
       />
     </div>
     <PlaceholderLoading v-else />
@@ -63,11 +63,13 @@ export default {
 #opds {
   padding: 20px;
 }
+
 #opdsButton {
   display: block;
   width: 100%;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 .inline {
   display: inline-flex;
 }
