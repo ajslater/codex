@@ -200,10 +200,6 @@ class OPDS1FacetsView(BrowserView):
 
     def _facet_or_facet_entry(self, facet_group, facet, entries):
         # This logic preempts facet:activeFacet but no one uses it.
-        # don't add default facets if in default mode.
-        if self._is_facet_active(facet_group, facet):
-            return None
-
         group = self.kwargs.get("group")
         if facet_group.query_param == "topGroup" and self._did_special_group_change(
             group, facet.value
@@ -242,9 +238,9 @@ class OPDS1FacetsView(BrowserView):
         add_order_facets = (
             group != "c" and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
         )
-        if not add_order_facets:
-            facets += self._facet_group(FacetGroups.ORDER_BY, entries)
-            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
         if root:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries)
+        elif not add_order_facets:
+            facets += self._facet_group(FacetGroups.ORDER_BY, entries)
+            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
         return facets

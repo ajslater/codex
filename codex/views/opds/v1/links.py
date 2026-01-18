@@ -16,15 +16,18 @@ from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
 from codex.views.util import pop_name
 
+_PREVIEW_LIMIT = 100
+_ROOT_ROUTE_SUFFIX = MappingProxyType({"pks": (0,), "page": 1})
+
 
 class TopRoutes:
     """Routes for top groups."""
 
-    PUBLISHER = MappingProxyType({"group": "p", "pks": {}, "page": 1})
-    SERIES = MappingProxyType({"group": "s", "pks": {}, "page": 1})
-    FOLDER = MappingProxyType({"group": "f", "pks": {}, "page": 1})
-    ROOT = MappingProxyType({"group": "r", "pks": {}, "page": 1})
-    STORY_ARC = MappingProxyType({"group": "a", "pks": {}, "page": 1})
+    ROOT = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
+    PUBLISHER = MappingProxyType({**ROOT, "group": "p"})
+    SERIES = MappingProxyType({**ROOT, "group": "s"})
+    FOLDER = MappingProxyType({**ROOT, "group": "f"})
+    STORY_ARC = MappingProxyType({**ROOT, "group": "a"})
 
 
 @dataclass
@@ -38,6 +41,7 @@ class TopLink:
     glyph: str
     title: str
     desc: str
+    url_name: str = "opds:v1:feed"
 
 
 class TopLinks:
@@ -51,6 +55,7 @@ class TopLinks:
         "⌂",
         "Start of the catalog",
         "",
+        "opds:v1:start",
     )
     ALL = (START,)
 
@@ -58,45 +63,52 @@ class TopLinks:
 class RootTopLinks:
     """Top Links that only appear at the root."""
 
-    NEW = TopLink(
-        TopRoutes.SERIES,
-        Rel.SORT_NEW,
-        MimeType.ACQUISITION,
-        defaultdict(
-            None, {"orderBy": "created_at", "orderReverse": True, "limit": 100}
-        ),
-        "📥",
-        "Recently Added",
-        "",
-    )
-    FEATURED = TopLink(
+    KEEP_READING = TopLink(
         TopRoutes.SERIES,
         Rel.FEATURED,
         MimeType.NAV,
         defaultdict(
             None,
             {
-                "orderBy": "date",
                 "filters": json.dumps({"bookmark": "UNREAD"}),
-                "limit": 100,
+                "orderBy": "bookmark_updated_at",
+                "orderReverse": True,
+                "limit": _PREVIEW_LIMIT,
+            },
+        ),
+        "👀",
+        "Keep Reading",
+        "Unread issues, recently read first.",
+    )
+    NEW_UNREAD = TopLink(
+        TopRoutes.SERIES,
+        Rel.SORT_NEW,
+        MimeType.ACQUISITION,
+        defaultdict(
+            None,
+            {"orderBy": "created_at", "orderReverse": True, "limit": _PREVIEW_LIMIT},
+        ),
+        "📥",
+        "Latest Unread",
+        "",
+    )
+    OLD_UNREAD = TopLink(
+        TopRoutes.SERIES,
+        Rel.SORT_NEW,
+        MimeType.NAV,
+        defaultdict(
+            None,
+            {
+                "filters": json.dumps({"bookmark": "UNREAD"}),
+                "orderBy": "date",
+                "limit": _PREVIEW_LIMIT,
             },
         ),
         "📚",
         "Oldest Unread",
         "Unread issues, oldest published first",
     )
-    LAST_READ = TopLink(
-        TopRoutes.SERIES,
-        Rel.POPULAR,
-        MimeType.NAV,
-        defaultdict(
-            None, {"orderBy": "bookmark_updated_at", "orderReverse": True, "limit": 100}
-        ),
-        "👀",
-        "Last Read",
-        "Last Read issues, recently read first.",
-    )
-    ALL = (NEW, FEATURED, LAST_READ)
+    ALL = (KEEP_READING, NEW_UNREAD, OLD_UNREAD)
 
 
 class OPDS1LinksView(OPDS1FacetsView):
@@ -201,7 +213,19 @@ class OPDS1LinksView(OPDS1FacetsView):
             entry_obj, top_link.query_params, data, title_filename_fallback=False
         )
 
-    def add_top_links(self, top_links):
+    def add_start_link(self):
+        top_link: TopLink = TopLinks.START
+        name = " ".join(filter(None, (top_link.glyph, top_link.title)))
+        entry_obj = OPDS1EntryObject(
+            name=name, summary=top_link.desc, url_name=top_link.url_name
+        )
+
+        data = OPDS1EntryData(
+            frozenset(), 0, metadata=False, mime_type_map=self.mime_type_map
+        )
+        return [OPDS1Entry(entry_obj, {}, data, title_filename_fallback=False)]
+
+    def add_top_links(self, top_links, *, preview: bool = False):
         """Add a list of top links as entries if they should be enabled."""
         entries = []
         for tl in top_links:

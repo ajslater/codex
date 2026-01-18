@@ -25,7 +25,6 @@ from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
     OPDS1LinksView,
     RootTopLinks,
-    TopLinks,
 )
 
 if TYPE_CHECKING:
@@ -48,6 +47,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
     TARGET: str = "opds1"
+    IS_START_PAGE: bool = False
 
     @property
     def opds_ns(self):
@@ -151,15 +151,17 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         entries = []
         try:
             if not self.use_facets and self.kwargs.get("page") == 1:
-                entries += self.add_top_links(TopLinks.ALL)
-                at_root = not self.kwargs["pks"]
-                if at_root:
-                    entries += self.add_top_links(RootTopLinks.ALL)
-                entries += self.facets(entries=True, root=at_root)
-
-            entries += self._get_entries_section("groups", metadata=False)
-            metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
-            entries += self._get_entries_section("books", metadata)
+                if self.IS_START_PAGE:
+                    entries += self.add_top_links(RootTopLinks.ALL, preview=True)
+                    entries += self.facets(entries=True, root=True)
+                else:
+                    entries += self.add_start_link()
+                    entries += self.facets(entries=True, root=False)
+                    entries += self._get_entries_section("groups", metadata=False)
+                    metadata = (
+                        self.request.GET.get("opdsMetadata", "").lower() not in FALSY
+                    )
+                    entries += self._get_entries_section("books", metadata)
         except Exception:
             logger.exception("Getting OPDS v1 entries")
         return entries
@@ -174,4 +176,6 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
 
 
 class OPDS1StartView(OPDS1FeedView):
-    """TODO."""
+    """OPDS v1 Start Page."""
+
+    IS_START_PAGE = True

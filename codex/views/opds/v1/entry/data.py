@@ -13,6 +13,7 @@ class OPDS1EntryObject:
     name: str = ""
     summary: str = ""
     fake: bool = True
+    url_name: str = "opds:v1:feed"
 
 
 @dataclass

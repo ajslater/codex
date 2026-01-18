@@ -1,5 +1,6 @@
 """OPDS v1 Entry Links Methods."""
 
+from collections.abc import Mapping
 from datetime import datetime
 from math import floor
 from urllib.parse import quote_plus
@@ -18,7 +19,12 @@ class OPDS1EntryLinksMixin:
     """OPDS v1 Entry Links Methods."""
 
     def __init__(
-        self, obj, query_params, data: OPDS1EntryData, *, title_filename_fallback: bool
+        self,
+        obj,
+        query_params: Mapping,
+        data: OPDS1EntryData,
+        *,
+        title_filename_fallback: bool,
     ):
         """Initialize params."""
         self.obj = obj
@@ -48,8 +54,11 @@ class OPDS1EntryLinksMixin:
 
     def _nav_href(self, *, metadata: bool):
         try:
-            pks = sorted(self.obj.ids)
-            kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
+            if self.obj.group:
+                pks = sorted(self.obj.ids)
+                kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
+            else:
+                kwargs = {}
             qps = {}
             qps.update(self.query_params)
             if (
@@ -62,7 +71,8 @@ class OPDS1EntryLinksMixin:
                 qps.update({"orderBy": "story_arc_number"})
             if metadata:
                 qps.update({"opdsMetadata": 1})
-            return reverse("opds:v1:feed", kwargs=kwargs, query=qps)
+            url_name = getattr(self.obj, "url_name", "opds:v1:feed")
+            return reverse(url_name, kwargs=kwargs, query=qps)
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
             logger.exception(msg)
