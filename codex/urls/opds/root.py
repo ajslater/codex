@@ -6,7 +6,7 @@ from codex.views.opds.util import full_redirect_view
 
 app_name = "opds"
 
-opds_v1_start_view = full_redirect_view("opds:v1:feed")
+opds_v1_start_view = full_redirect_view("opds:v1:start")
 opds_v2_start_view = full_redirect_view("opds:v2:start")
 auth_v1_view = full_redirect_view("opds:auth:v1")
 
