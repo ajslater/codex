@@ -144,7 +144,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         try:
             if not self.use_facets and self.kwargs.get("page") == 1:
                 if self.IS_START_PAGE:
-                    entries += self.add_top_links(RootTopLinks.ALL, preview=True)
+                    entries += self.add_top_links(RootTopLinks.ALL)
                     entries += self.facets(entries=True, root=True)
                 else:
                     entries += self.add_start_link()

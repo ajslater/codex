@@ -138,7 +138,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         )
         return [OPDS1Entry(entry_obj, {}, data, title_filename_fallback=False)]
 
-    def add_top_links(self, top_links, *, preview: bool = False):
+    def add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""
         entries = []
         for tl in top_links:
