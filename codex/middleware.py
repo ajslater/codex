@@ -78,4 +78,6 @@ class LogRequestMiddleware:
         """Trace the request uri."""
         uri = request.build_absolute_uri()  # Includes query parameters
         logger.trace(uri)
+        if post := request.POST:
+            logger.trace(post)
         return self.get_response(request)
