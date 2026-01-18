@@ -23,8 +23,7 @@ urlpatterns = [
         cache_page(COMMON_TIMEOUT)(OpenSearch1View.as_view()),
         name="opensearch_v1",
     ),
-    #
-    # Catch All
+    # Start
     path(
         "",
         cache_page(BROWSER_TIMEOUT)(OPDS1StartView.as_view()),
