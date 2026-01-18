@@ -1,7 +1,6 @@
 """OPDS v1 const and data classes."""
 
 import json
-from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -35,7 +34,7 @@ class TopLink:
     kwargs: Mapping
     rel: str
     mime_type: str
-    query_params: defaultdict[str, str | bool | int]
+    query_params: Mapping[str, str | bool | int]
     glyph: str
     title: str
     desc: str
@@ -49,7 +48,7 @@ class TopLinks:
         TopRoutes.ROOT,
         Rel.START,
         MimeType.NAV,
-        defaultdict(),
+        {"topGroup": "p"},
         "⌂",
         "Start of catalog",
         "",
@@ -65,15 +64,12 @@ class RootTopLinks:
         TopRoutes.SERIES,
         Rel.FEATURED,
         MimeType.NAV,
-        defaultdict(
-            None,
-            {
-                "topGroup": "s",
-                "filters": json.dumps({"bookmark": "UNREAD"}),
-                "orderBy": "bookmark_updated_at",
-                "orderReverse": True,
-            },
-        ),
+        {
+            "topGroup": "s",
+            "filters": json.dumps({"bookmark": "UNREAD"}),
+            "orderBy": "bookmark_updated_at",
+            "orderReverse": True,
+        },
         "👀",
         "Keep Reading",
         "Unread issues, recently read first.",
@@ -82,30 +78,24 @@ class RootTopLinks:
         TopRoutes.SERIES,
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
-        defaultdict(
-            None,
-            {
-                "topGroup": "s",
-                "orderBy": "created_at",
-                "orderReverse": True,
-            },
-        ),
+        {
+            "topGroup": "s",
+            "orderBy": "created_at",
+            "orderReverse": True,
+        },
         "📥",
         "Latest Unread",
         "Unread issues, latest added first.",
     )
     OLD_UNREAD = TopLink(
         TopRoutes.SERIES,
-        Rel.SORT_NEW,
+        Rel.POPULAR,
         MimeType.NAV,
-        defaultdict(
-            None,
-            {
-                "topGroup": "s",
-                "filters": json.dumps({"bookmark": "UNREAD"}),
-                "orderBy": "date",
-            },
-        ),
+        {
+            "topGroup": "s",
+            "filters": json.dumps({"bookmark": "UNREAD"}),
+            "orderBy": "date",
+        },
         "📚",
         "Oldest Unread",
         "Unread issues, oldest published first",
