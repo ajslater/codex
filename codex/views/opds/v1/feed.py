@@ -20,22 +20,14 @@ from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.mixins import UserActiveMixin
 from codex.views.opds.auth import OPDSTemplateMixin
 from codex.views.opds.const import BLANK_TITLE
-from codex.views.opds.v1.entry.data import OPDS1EntryData
+from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
     OPDS1LinksView,
-    RootTopLinks,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-
-
-class OpdsNs:
-    """XML Namespaces."""
-
-    CATALOG = "http://opds-spec.org/2010/catalog"
-    ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
 
 class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):

@@ -1,114 +1,22 @@
 """OPDS v1 Links methods."""
 
-import json
-from collections import defaultdict
-from collections.abc import Mapping
-from dataclasses import dataclass
 from types import MappingProxyType
 
 from django.urls import reverse
 from loguru import logger
 
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v1.data import OPDS1Link
-from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.const import (
+    OPDS1EntryData,
+    OPDS1EntryObject,
+    OPDS1Link,
+    RootTopLinks,
+    TopLink,
+    TopLinks,
+)
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
 from codex.views.util import pop_name
-
-_PREVIEW_LIMIT = 100
-_ROOT_ROUTE_SUFFIX = MappingProxyType({"pks": (0,), "page": 1})
-
-
-class TopRoutes:
-    """Routes for top groups."""
-
-    ROOT = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
-    PUBLISHER = MappingProxyType({**ROOT, "group": "p"})
-    SERIES = MappingProxyType({**ROOT, "group": "s"})
-    FOLDER = MappingProxyType({**ROOT, "group": "f"})
-    STORY_ARC = MappingProxyType({**ROOT, "group": "a"})
-
-
-@dataclass
-class TopLink:
-    """A non standard root link when facets are unsupported."""
-
-    kwargs: Mapping
-    rel: str
-    mime_type: str
-    query_params: defaultdict[str, str | bool | int]
-    glyph: str
-    title: str
-    desc: str
-    url_name: str = "opds:v1:feed"
-
-
-class TopLinks:
-    """Top link definitions."""
-
-    START = TopLink(
-        TopRoutes.ROOT,
-        Rel.START,
-        MimeType.NAV,
-        defaultdict(),
-        "⌂",
-        "Start of the catalog",
-        "",
-        "opds:v1:start",
-    )
-    ALL = (START,)
-
-
-class RootTopLinks:
-    """Top Links that only appear at the root."""
-
-    KEEP_READING = TopLink(
-        TopRoutes.SERIES,
-        Rel.FEATURED,
-        MimeType.NAV,
-        defaultdict(
-            None,
-            {
-                "filters": json.dumps({"bookmark": "UNREAD"}),
-                "orderBy": "bookmark_updated_at",
-                "orderReverse": True,
-                "limit": _PREVIEW_LIMIT,
-            },
-        ),
-        "👀",
-        "Keep Reading",
-        "Unread issues, recently read first.",
-    )
-    NEW_UNREAD = TopLink(
-        TopRoutes.SERIES,
-        Rel.SORT_NEW,
-        MimeType.ACQUISITION,
-        defaultdict(
-            None,
-            {"orderBy": "created_at", "orderReverse": True, "limit": _PREVIEW_LIMIT},
-        ),
-        "📥",
-        "Latest Unread",
-        "Unread issues, latest added first.",
-    )
-    OLD_UNREAD = TopLink(
-        TopRoutes.SERIES,
-        Rel.SORT_NEW,
-        MimeType.NAV,
-        defaultdict(
-            None,
-            {
-                "filters": json.dumps({"bookmark": "UNREAD"}),
-                "orderBy": "date",
-                "limit": _PREVIEW_LIMIT,
-            },
-        ),
-        "📚",
-        "Oldest Unread",
-        "Unread issues, oldest published first",
-    )
-    ALL = (KEEP_READING, NEW_UNREAD, OLD_UNREAD)
 
 
 class OPDS1LinksView(OPDS1FacetsView):
@@ -214,6 +122,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         )
 
     def add_start_link(self):
+        """Add the start link."""
         top_link: TopLink = TopLinks.START
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
         entry_obj = OPDS1EntryObject(

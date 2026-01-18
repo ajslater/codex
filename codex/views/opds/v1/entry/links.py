@@ -11,8 +11,7 @@ from loguru import logger
 
 from codex.settings import COMICBOX_CONFIG
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v1.data import OPDS1Link
-from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.const import OPDS1EntryData, OPDS1EntryObject, OPDS1Link
 
 
 class OPDS1EntryLinksMixin:
