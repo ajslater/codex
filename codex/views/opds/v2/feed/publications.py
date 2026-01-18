@@ -100,6 +100,8 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _publication(self, obj, zero_pad):
         pub = {}
+        if not obj:
+            return pub
         pub["metadata"] = self._publication_metadata(obj, zero_pad)
 
         # Acquisition/Download link
@@ -137,6 +139,8 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _thumb(self, obj):
         images = []
+        if not obj:
+            return images
         ts = floor(datetime.timestamp(obj.updated_at))
         kwargs = {"group": obj.group, "pks": obj.ids}
         query_params = {
@@ -169,7 +173,8 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     @override
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
-        pub["images"] = self._thumb(obj)
+        if images := self._thumb(obj):
+            pub["images"] = images
         return pub
 
     def _get_publications_links(self, link_spec):

@@ -192,6 +192,8 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         This part of the spec is redundant, but required.
         """
         reading_order = []
+        if not obj:
+            return reading_order
         ts = floor(datetime.timestamp(obj.updated_at))
         query_params = {"ts": ts}
         for page_num in range(obj.page_count):
@@ -215,6 +217,8 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
 
     def _cover(self, obj):
         images = []
+        if not obj:
+            return images
         ts = floor(datetime.timestamp(obj.updated_at))
         pk = obj.ids[0]
         kwargs = {"pk": pk, "page": 0}
@@ -243,8 +247,10 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
         # DiViNa manifest uses resources instead of images
-        pub["resources"] = self._cover(obj)
-        pub["reading_order"] = self._publication_reading_order(obj)
+        if resources := self._cover(obj):
+            pub["resources"] = resources
+        if reading_order := self._publication_reading_order(obj):
+            pub["reading_order"] = reading_order
         return pub
 
     @override
