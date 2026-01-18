@@ -171,3 +171,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         serializer = self.get_serializer(self)
         self.mark_user_active()
         return Response(serializer.data, content_type=self.content_type)
+
+
+class OPDS1StartView(OPDS1FeedView):
+    """TODO."""
