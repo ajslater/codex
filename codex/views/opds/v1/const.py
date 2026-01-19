@@ -45,10 +45,10 @@ class TopLinks:
     """Top link definitions."""
 
     START = TopLink(
-        TopRoutes.ROOT,
+        {},  # TopRoutes.ROOT,
         Rel.START,
         MimeType.NAV,
-        {"topGroup": "p"},
+        {},  # {"topGroup": "p"},
         "⌂",
         "Start of catalog",
         "",

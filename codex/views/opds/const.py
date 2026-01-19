@@ -15,6 +15,14 @@ from codex.models import (
 BLANK_TITLE = "(Empty)"
 AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
 OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
+DEFAULT_KWARGS = MappingProxyType(
+    {
+        "top_group": "r",
+        "filters": {"bookmark": ""},
+        "order_by": "sort_name",
+        "order_reverse": False,
+    }
+)
 
 
 class Rel:
