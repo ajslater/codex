@@ -3,12 +3,11 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from types import MappingProxyType
 
 from django.db.models.query import QuerySet
 
 from codex.settings import MAX_OBJ_PER_PAGE
-from codex.views.opds.const import Rel
+from codex.views.opds.const import BookmarkFilters, Rel
 
 
 @dataclass
@@ -17,8 +16,9 @@ class Link:
 
     rel: str
     title: str
-    group: str = ""
+    group: str | None = ""
     query_params: dict | None = None
+    inherit_query_params: bool = True
 
 
 @dataclass
@@ -27,15 +27,7 @@ class LinkGroup:
 
     title: str
     links: Sequence[Link] | QuerySet
-
-
-class BookmarkFilters:
-    """Bookmark Filters."""
-
-    UNREAD = MappingProxyType({"bookmark": "UNREAD"})
-    IN_PROGRESS = MappingProxyType({"bookmark": "IN_PROGRESS"})
-    READ = MappingProxyType({"bookmark": "READ"})
-    NONE = MappingProxyType({"bookmark": ""})
+    subtitle: str = ""
 
 
 FACETS = (
@@ -126,9 +118,9 @@ TOP_GROUPS = (
     LinkGroup(
         "Top Groups",
         (
-            Link(Rel.START, "Publishers", "r", {"topGroup": "p"}),
+            Link(Rel.SUB, "Publishers", "r", {"topGroup": "p"}),
             Link(Rel.SUB, "Series", "p", {"topGroup": "p"}),
-            Link(Rel.SUB, "Issues", "s", {"topGroup": "p"}),
+            Link(Rel.SUB, "Issues", "s", {"topGroup": "s"}),
             Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
             Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
         ),
@@ -138,35 +130,6 @@ TOP_GROUPS = (
 START_GROUPS = (
     LinkGroup(
         "Start",
-        (
-            Link(
-                Rel.START,
-                "Start",
-                "r",
-                {
-                    "topGroup": "p",
-                    "filters": BookmarkFilters.NONE,
-                    "orderBy": "sort_name",
-                    "orderReverse": False,
-                },
-            ),
-        ),
+        (Link(Rel.START, "Start", None, {}, inherit_query_params=False),),
     ),
 )
-
-
-@dataclass
-class LinksSectionData:
-    """Data for the create_links_section method."""
-
-    subtitle: str | None = None
-    rel: str | None = None
-
-
-START_SECTION_DATA = LinksSectionData(rel=Rel.START)
-ORDERED_GROUP_SECTION_DATA = LinksSectionData(rel=Rel.FACET)
-TOP_NAV_GROUP_SECTION_DATA = LinksSectionData()
-GROUPS_SECTION_DATA = LinksSectionData(
-    rel=Rel.SUB,
-)
-FACETS_SECTION_DATA = LinksSectionData(rel=Rel.FACET)

@@ -34,7 +34,7 @@ comicbox:
   credit_primaries:
     Joe Orlando: Writer
     Wally Wood: Penciller
-  critical_rating: 10.0
+  critical_rating: 10
   date:
     cover_date: 1950-11-01
     store_date: 1950-11-28
@@ -103,10 +103,10 @@ comicbox:
     34: { size: 353013 }
     35: { size: 340840 }
   publisher:
-    name: "Youthful Adventure Stories"
+    name: Youthful Adventure Stories
   prices:
     GB: 0.05
-    US: 0.10
+    US: 0.1
   protagonist: Captain Science
   reading_direction: ltr
   remainders:
@@ -123,7 +123,7 @@ comicbox:
   review: It wasn't all bad.
   scan_info: Photocopied
   series:
-    name: "Captain Science"
+    name: Captain Science
   series_groups:
     - science comics
   stories:

@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.3
+
+- Fixes
+    - Unnecessary redirect going to OPDS v1.0 start page.
+    - Fixed start page link in OPDS v2.0
+
 ## v1.9.2
 
 - Fixes

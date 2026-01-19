@@ -41,7 +41,7 @@ comicbox:
   credit_primaries:
     Joe Orlando: Writer
     Wally Wood: Penciller
-  critical_rating: 5.0
+  critical_rating: 5
   date:
     cover_date: 1951-12-20
     store_date: 1951-11-28
@@ -81,7 +81,7 @@ comicbox:
   notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145265
   page_count: 24
   publisher:
-    name: "Youthful Adventure Stories"
+    name: Youthful Adventure Stories
     identifiers:
       metron:
         key: "111"
@@ -103,7 +103,7 @@ comicbox:
   review: Actually unreadable.
   scan_info: Digital
   series:
-    name: "Captain Science"
+    name: Captain Science
     identifiers:
       comicvine:
         key: "333"
