@@ -15,10 +15,21 @@ from codex.models import (
 BLANK_TITLE = "(Empty)"
 AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
 OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
+
+
+class BookmarkFilters:
+    """Bookmark Filters."""
+
+    UNREAD = MappingProxyType({"bookmark": "UNREAD"})
+    IN_PROGRESS = MappingProxyType({"bookmark": "IN_PROGRESS"})
+    READ = MappingProxyType({"bookmark": "READ"})
+    NONE = MappingProxyType({"bookmark": ""})
+
+
 DEFAULT_KWARGS = MappingProxyType(
     {
         "top_group": "r",
-        "filters": {"bookmark": ""},
+        "filters": {"bookmark": BookmarkFilters.NONE},
         "order_by": "sort_name",
         "order_reverse": False,
     }
