@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 
-from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.const import MimeType, Rel, TopRoutes
 
 DEFAULT_FACETS = MappingProxyType(
     {
@@ -15,16 +15,6 @@ DEFAULT_FACETS = MappingProxyType(
         "orderReverse": "false",
     }
 )
-
-
-class TopRoutes:
-    """Routes for top groups."""
-
-    ROOT = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
-    PUBLISHER = MappingProxyType({**ROOT, "group": "p"})
-    SERIES = MappingProxyType({**ROOT, "group": "s"})
-    FOLDER = MappingProxyType({**ROOT, "group": "f"})
-    STORY_ARC = MappingProxyType({**ROOT, "group": "a"})
 
 
 @dataclass

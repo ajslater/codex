@@ -23,6 +23,7 @@ class HrefData:
     url_name: str | None = None
     min_page: int | None = None
     max_page: int | None = None
+    template: str = ""
 
 
 class OPDS2HrefMixin:
@@ -70,4 +71,9 @@ class OPDS2HrefMixin:
         href = reverse(url_name, kwargs=kwargs, query=query)
         if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if template := data.template:
+            parts = href.split("?")
+            if len(parts) > 1:
+                template += "&"
+            href = template.join(parts)
         return href

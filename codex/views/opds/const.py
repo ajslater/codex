@@ -114,3 +114,13 @@ class UserAgentNames:
     FACET_SUPPORT = frozenset({"yar"})  # kybooks
     SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
     REQUIRE_ABSOLUTE_URL = frozenset()
+
+
+class TopRoutes:
+    """Routes for top groups."""
+
+    ROOT = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
+    PUBLISHER = MappingProxyType({**ROOT, "group": "p"})
+    SERIES = MappingProxyType({**ROOT, "group": "s"})
+    FOLDER = MappingProxyType({**ROOT, "group": "f"})
+    STORY_ARC = MappingProxyType({**ROOT, "group": "a"})
