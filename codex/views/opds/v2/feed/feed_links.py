@@ -1,8 +1,12 @@
 """OPDS v2.0 top links section methods."""
 
-from codex.views.opds.const import MimeType, Rel
+from types import MappingProxyType
+
+from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.feed.links import LinkData, OPDS2LinksView
 from codex.views.opds.v2.href import HrefData
+
+_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s", "q": ""})
 
 
 class OPDS2FeedLinksView(OPDS2LinksView):
@@ -21,9 +25,9 @@ class OPDS2FeedLinksView(OPDS2LinksView):
         return self.link(link_data)
 
     def _link_search(self):
-        kwargs = {"group": "s", "pks": (0,), "page": 1}
-        query_params = {"q": ""}
-        href_data = HrefData(kwargs, query_params=query_params, max_page=1)
+        href_data = HrefData(
+            TopRoutes.SERIES, query_params=_SEARCH_QUERY_PARAMS, max_page=1
+        )
         link_data = LinkData(Rel.SEARCH, href_data, template="{?query}")
         return self.link(link_data)
 
