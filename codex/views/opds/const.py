@@ -26,12 +26,13 @@ class BookmarkFilters:
     NONE = MappingProxyType({"bookmark": ""})
 
 
-DEFAULT_KWARGS = MappingProxyType(
+DEFAULT_PARAMS = MappingProxyType(
     {
-        "top_group": "r",
+        "top_group": "p",
         "filters": {"bookmark": BookmarkFilters.NONE},
         "order_by": "sort_name",
         "order_reverse": False,
+        "show": {"p": True, "s": True},
     }
 )
 

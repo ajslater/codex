@@ -15,7 +15,7 @@ from typing_extensions import override
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
-from codex.views.opds.const import BLANK_TITLE, DEFAULT_KWARGS
+from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
 _START_GROUPS = frozenset({"r", "f", "a"})
@@ -162,5 +162,5 @@ class OPDS2StartView(OPDS2FeedView):
 
     def __init__(self, *args, **kwargs):
         """Reset all params."""
-        kwargs = {**kwargs, **DEFAULT_KWARGS}
         super().__init__(*args, **kwargs)
+        self.set_params(DEFAULT_PARAMS)

@@ -19,7 +19,7 @@ from codex.serializers.opds.v1 import (
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.mixins import UserActiveMixin
 from codex.views.opds.auth import OPDSTemplateMixin
-from codex.views.opds.const import BLANK_TITLE, DEFAULT_KWARGS
+from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
@@ -174,5 +174,5 @@ class OPDS1StartView(OPDS1FeedView):
 
     def __init__(self, *args, **kwargs):
         """Reset all params."""
-        kwargs = {**kwargs, **DEFAULT_KWARGS}
         super().__init__(*args, **kwargs)
+        self.set_params(DEFAULT_PARAMS)
