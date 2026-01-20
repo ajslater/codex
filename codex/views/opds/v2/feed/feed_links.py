@@ -6,7 +6,7 @@ from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.feed.links import LinkData, OPDS2LinksView
 from codex.views.opds.v2.href import HrefData
 
-_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s", "q": ""})
+_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s"})
 
 
 class OPDS2FeedLinksView(OPDS2LinksView):
@@ -26,9 +26,12 @@ class OPDS2FeedLinksView(OPDS2LinksView):
 
     def _link_search(self):
         href_data = HrefData(
-            TopRoutes.SERIES, query_params=_SEARCH_QUERY_PARAMS, max_page=1
+            TopRoutes.SERIES,
+            query_params=_SEARCH_QUERY_PARAMS,
+            max_page=1,
+            template="{?query}",
         )
-        link_data = LinkData(Rel.SEARCH, href_data, template="{?query}")
+        link_data = LinkData(Rel.SEARCH, href_data)
         return self.link(link_data)
 
     def _get_static_links(self):

@@ -85,9 +85,8 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
         """Add attributes to link."""
         if data.title:
             link["title"] = data.title
-        if data.template:
+        if data.href_data.template:
             link["templated"] = True
-            link["href"] += data.template
         if data.height:
             link["height"] = data.height
         if data.width:
