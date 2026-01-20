@@ -179,7 +179,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     def _get_publications_links(self, link_spec):
         if not link_spec:
             return []
-        kwargs = {"group": link_spec.group, "pks": "0", "page": 1}
+        kwargs = {"group": link_spec.group, "pks": (0,), "page": 1}
         href_data = HrefData(kwargs, link_spec.query_params, inherit_query_params=True)
         # Must be rel="self" for Stump to add View All
         link_data = LinkData(Rel.SELF, href_data=href_data, title=link_spec.title)

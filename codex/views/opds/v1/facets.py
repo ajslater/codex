@@ -9,6 +9,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
+from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v1.const import (
     DEFAULT_FACETS,
@@ -22,11 +23,9 @@ from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.util import pop_name
 
 
-class OPDS1FacetsView(BrowserView):
+class OPDS1FacetsView(OPDSBrowserView):
     """OPDS 1 Facets methods."""
 
-    BROWSER_SESSION_KEY = "opds_browser"
-    READER_SESSION_KEY = "opds_reader"
     DEFAULT_ROUTE = MappingProxyType(
         {**BrowserView.DEFAULT_ROUTE, "name": "opds:v1:feed"}
     )
