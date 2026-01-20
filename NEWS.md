@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.6
+
+- Fixes
+    - Fix OPDS feed crash.
+
 ## v1.9.5
 
 - Fixes

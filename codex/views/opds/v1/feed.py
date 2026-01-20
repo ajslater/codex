@@ -18,19 +18,19 @@ from codex.serializers.opds.v1 import (
 )
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.mixins import UserActiveMixin
-from codex.views.opds.auth import OPDSTemplateMixin
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
     OPDS1LinksView,
 )
+from codex.views.template import CodexXMLTemplateMixin
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
+class OPDS1FeedView(CodexXMLTemplateMixin, UserActiveMixin, OPDS1LinksView):
     """OPDS 1 Feed."""
 
     template_name = "opds_v1/index.xml"

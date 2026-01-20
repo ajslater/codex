@@ -13,8 +13,8 @@ from typing_extensions import override
 
 from codex.settings import FALSY
 from codex.views.browser.browser import BrowserView
-from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentNames
+from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
 
@@ -38,11 +38,9 @@ class LinkData:
     authenticate: Mapping | None = None
 
 
-class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
+class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
-    BROWSER_SESSION_KEY = "opds_browser"
-    READER_SESSION_KEY = "opds_reader"
     DEFAULT_ROUTE = MappingProxyType(
         {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )

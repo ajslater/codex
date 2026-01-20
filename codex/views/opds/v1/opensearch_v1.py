@@ -6,12 +6,12 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 
-from codex.views.opds.auth import OPDSTemplateMixin
-from codex.views.template import CodexAPIView
+from codex.views.opds.auth import OPDSAuthMixin
+from codex.views.template import CodexAPIView, CodexXMLTemplateMixin
 
 
 @extend_schema(responses={("200", "application/xml"): OpenApiTypes.BYTE})
-class OpenSearch1View(OPDSTemplateMixin, CodexAPIView):  # pyright: ignore[reportIncompatibleVariableOverride]
+class OpenSearch1View(OPDSAuthMixin, CodexXMLTemplateMixin, CodexAPIView):  # pyright: ignore[reportIncompatibleVariableOverride]
     """OpenSearchView."""
 
     template_name = "opds_v1/opensearch_v1.xml"
