@@ -88,7 +88,7 @@
     "eslint-plugin-yml": "^3.0.0",
     "prettier": "^3.6.2",
     "prettier-plugin-nginx": "^1.0.3",
-    "prettier-plugin-packagejson": "^2.5.8",
+    "prettier-plugin-packagejson": "^3.0.0",
     "prettier-plugin-sh": "^0.18.0",
     "prettier-plugin-toml": "^2.0.1",
     "remark-cli": "^12.0.1",
