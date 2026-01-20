@@ -1,7 +1,5 @@
 """OPDS v1 Links methods."""
 
-from types import MappingProxyType
-
 from django.urls import reverse
 from loguru import logger
 
@@ -21,14 +19,6 @@ from codex.views.util import pop_name
 
 class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
-
-    # overwritten in get_object method
-    DEFAULT_ROUTE = MappingProxyType(
-        {
-            **OPDS1FacetsView.DEFAULT_ROUTE,
-            "name": "opds:v1:feed",
-        }
-    )
 
     def is_top_link_displayed(self, top_link):
         """Determine if this top link should be displayed."""

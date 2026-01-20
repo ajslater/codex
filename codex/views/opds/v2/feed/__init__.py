@@ -15,7 +15,7 @@ from typing_extensions import override
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
-from codex.views.opds.const import BLANK_TITLE, DEFAULT_KWARGS
+from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
 _START_GROUPS = frozenset({"r", "f", "a"})
@@ -27,12 +27,11 @@ _ORDER_BY_MAP = MappingProxyType(
 class OPDS2FeedView(OPDS2FeedGroupsView):
     """OPDS 2.0 Feed."""
 
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
-    IS_START_PAGE: bool = False
-
     serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    throttle_scope = "opds"
+    IS_START_PAGE: bool = False
 
     def _subtitle(self):
         """Subtitle for main feed."""
@@ -162,5 +161,5 @@ class OPDS2StartView(OPDS2FeedView):
 
     def __init__(self, *args, **kwargs):
         """Reset all params."""
-        kwargs = {**kwargs, **DEFAULT_KWARGS}
         super().__init__(*args, **kwargs)
+        self.set_params(DEFAULT_PARAMS)
