@@ -6,10 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.4
+
+- Fixes
+    - Fix unnecessary redirects in OPDS v1 & v2 search.
+
 ## v1.9.3
 
 - Fixes
-    - Unnecessary redirect going to OPDS v1.0 start page.
+    - Unnecessary redirect going to OPDS v1 start page.
     - Fixed start page link in OPDS v2.0
 
 ## v1.9.2
@@ -19,20 +24,20 @@ border-radius: 128px;
     - OPDS 2.0 progression bookmarking was broken. Stump doesn't seem to be
       transmitting progression data yet, though.
 - Features
-    - OPDS 1.0 gains a homepage similar to OPDS 2.0
+    - OPDS 1.0 gains a homepage similar to OPDS v2
     - OPDS start page URLS are now different. See the OPDS popup dialog.
 
 ## v1.9.1
 
 - Fixes
-    - OPDS 2.0 fix crash on faceted views.
+    - OPDS v2 fix crash on faceted views.
 
 ## v1.9.0 - OPDS 2.0 Redesign
 
 - Fixes
-    - Fix crash in OPDS 2.0 feed.
+    - Fix crash in OPDS v2 feed.
 - Features
-    - Redesigned OPDS v2.0 to work with Stump & Readest Clients
+    - Redesigned OPDS v2 to work with Stump & Readest Clients
     - Docker healthcheck endpoint. See docs.
 
 ## v1.8.22
