@@ -25,6 +25,13 @@ from codex.views.util import pop_name
 class OPDS1FacetsView(BrowserView):
     """OPDS 1 Facets methods."""
 
+    BROWSER_SESSION_KEY = "opds_browser"
+    READER_SESSION_KEY = "opds_reader"
+    DEFAULT_ROUTE = MappingProxyType(
+        {**BrowserView.DEFAULT_ROUTE, "name": "opds:v1:feed"}
+    )
+    TARGET = "opds1"
+
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
         super().__init__(*args, **kwargs)

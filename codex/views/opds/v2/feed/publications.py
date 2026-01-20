@@ -13,9 +13,9 @@ from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import AdminFlag, Comic
 from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import MAX_OBJ_PER_PAGE
-from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.const import Link
+from codex.views.opds.v2.feed import OPDS2FeedView
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.href import HrefData
@@ -234,12 +234,11 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         groups.append(pub_group)
         return groups
 
-    def get_publications_preview(self, link_spec: Link):
-        """Get a limited preview of publications outside the main query."""
-        browser_view = BrowserView()
-        browser_view.request = self.request
+    def _get_publications_preview_feed_view(self, link_spec: Link):
+        feed_view = OPDS2FeedView()
+        feed_view.request = self.request
         group = link_spec.group
-        browser_view.kwargs = {"group": group, "pks": [0], "page": 1}
+        feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
         params = {}
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
@@ -247,8 +246,13 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         params["show"] = {"p": True, "s": True}
         params["limit"] = _PUBLICATION_PREVIEW_LIMIT
 
-        browser_view.set_params(params)
-        book_qs, book_count, zero_pad = browser_view.get_book_qs()
+        feed_view.set_params(params)
+        return feed_view
+
+    def get_publications_preview(self, link_spec: Link):
+        """Get a limited preview of publications outside the main query."""
+        feed_view = self._get_publications_preview_feed_view(link_spec)
+        book_qs, book_count, zero_pad = feed_view.get_book_qs()
         if not book_count:
             return []
 

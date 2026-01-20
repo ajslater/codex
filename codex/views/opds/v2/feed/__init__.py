@@ -27,12 +27,11 @@ _ORDER_BY_MAP = MappingProxyType(
 class OPDS2FeedView(OPDS2FeedGroupsView):
     """OPDS 2.0 Feed."""
 
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
-    IS_START_PAGE: bool = False
-
     serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    throttle_scope = "opds"
+    IS_START_PAGE: bool = False
 
     def _subtitle(self):
         """Subtitle for main feed."""

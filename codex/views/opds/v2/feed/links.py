@@ -41,9 +41,12 @@ class LinkData:
 class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
+    BROWSER_SESSION_KEY = "opds_browser"
+    READER_SESSION_KEY = "opds_reader"
     DEFAULT_ROUTE = MappingProxyType(
         {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
+    TARGET = "opds2"
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""

@@ -38,7 +38,6 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
-    TARGET: str = "opds1"
     IS_START_PAGE: bool = False
 
     @property
