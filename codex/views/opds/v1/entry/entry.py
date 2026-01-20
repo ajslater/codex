@@ -12,12 +12,12 @@ from codex.models import Comic
 from codex.views.opds.const import (
     AUTHOR_ROLES,
     BLANK_TITLE,
+    TopRoutes,
 )
 from codex.views.opds.util import (
     get_credit_people,
     get_m2m_objects,
 )
-from codex.views.opds.v1.const import TopRoutes
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
 
 
