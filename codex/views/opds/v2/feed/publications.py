@@ -15,7 +15,6 @@ from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.const import Link
-from codex.views.opds.v2.feed import OPDS2FeedView
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.href import HrefData
@@ -235,7 +234,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         return groups
 
     def _get_publications_preview_feed_view(self, link_spec: Link):
-        feed_view = OPDS2FeedView()
+        feed_view = OPDS2FeedLinksView()
         feed_view.request = self.request
         group = link_spec.group
         feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
