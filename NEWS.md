@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.7
+
+- Fixes
+    - Fix OPDS v2 manifest/reading crash.
+
 ## v1.9.6
 
 - Fixes
