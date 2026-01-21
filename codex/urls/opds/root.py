@@ -19,8 +19,8 @@ urlpatterns = (
     path("auth", auth_v1_view),
     path("bin/", include("codex.urls.opds.binary")),
     path("v1.2/", include("codex.urls.opds.v1")),
-    re_path(r"v1\..*", opds_v1_start_view),
+    re_path(r"v?1.*", opds_v1_start_view),
     path("v2.0/", include("codex.urls.opds.v2")),
-    re_path(r"v2\..*", opds_v2_start_view),
+    re_path(r"v?2.*", opds_v2_start_view),
     re_path(".*", opds_v1_start_view),
 )
