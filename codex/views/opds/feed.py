@@ -6,7 +6,7 @@ from codex.views.browser.browser import BrowserView
 from codex.views.opds.auth import OPDSAuthMixin
 
 
-class OPDSViewMixin(OPDSAuthMixin):
+class OPDSSessionMixin(OPDSAuthMixin):
     """OPDS View isolates OPDS sessions data."""
 
     BROWSER_SESSION_KEY = "opds_browser"
@@ -24,7 +24,7 @@ class OPDSViewMixin(OPDSAuthMixin):
     )
 
 
-class OPDSBrowserView(OPDSViewMixin, BrowserView):
+class OPDSBrowserView(OPDSSessionMixin, BrowserView):
     """OPDS Browser View."""
 
-    SESSION_KEY = OPDSViewMixin.BROWSER_SESSION_KEY
+    SESSION_KEY = OPDSSessionMixin.BROWSER_SESSION_KEY
