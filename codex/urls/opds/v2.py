@@ -2,6 +2,7 @@
 
 from django.urls import path
 from django.views.decorators.cache import cache_page
+from django.views.generic import RedirectView
 
 from codex.urls.const import OPDS_TIMEOUT
 from codex.views.opds.v2.feed import OPDS2FeedView, OPDS2StartView
@@ -35,4 +36,5 @@ urlpatterns = [
         {"group": "r", "pks": (0,), "page": 1},
         name="start",
     ),
+    path("catalog", RedirectView.as_view(pattern_name="opds:v2:start")),
 ]
