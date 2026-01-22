@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - Fix OPDS v2 manifest/reading crash.
+    - Fix OPDS v2 search.
 
 ## v1.9.6
 
