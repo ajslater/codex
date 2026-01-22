@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
 from codex.settings import MAX_OBJ_PER_PAGE
-from codex.views.mixins import UserActiveMixin
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
@@ -20,7 +19,7 @@ from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
 from codex.views.opds.v2.href import HrefData
 
 
-class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
+class OPDS2FeedGroupsView(OPDS2PublicationsView):
     """OPDS 2.0 Feed Groups."""
 
     #########
