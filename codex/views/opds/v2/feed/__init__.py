@@ -62,21 +62,21 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         if not result:
             result = BLANK_TITLE
 
-        result += self._subtitle()
         return result
 
     def _feed_metadata(self, title: str, total_count: int, mtime: datetime | None):
         number_of_items = total_count
         current_page = self.kwargs.get("page")
-        return MappingProxyType(
-            {
-                "title": title,
-                "modified": mtime,
-                "number_of_items": number_of_items,
-                "items_per_page": MAX_OBJ_PER_PAGE,
-                "current_page": current_page,
-            }
-        )
+        md = {
+            "title": title,
+            "modified": mtime,
+            "number_of_items": number_of_items,
+            "items_per_page": MAX_OBJ_PER_PAGE,
+            "current_page": current_page,
+        }
+        if subtitle := self._subtitle():
+            md["subtitle"] = subtitle
+        return MappingProxyType(md)
 
     def _feed_navigation_and_groups(
         self,
