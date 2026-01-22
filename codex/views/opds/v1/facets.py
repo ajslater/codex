@@ -8,6 +8,7 @@ from django.urls import reverse
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
+from codex.views.mixins import UserActiveMixin
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.util import get_user_agent_name
@@ -20,10 +21,11 @@ from codex.views.opds.v1.const import (
     RootFacetGroups,
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
+from codex.views.template import CodexXMLTemplateMixin
 from codex.views.util import pop_name
 
 
-class OPDS1FacetsView(OPDSBrowserView):
+class OPDS1FacetsView(CodexXMLTemplateMixin, UserActiveMixin, OPDSBrowserView):
     """OPDS 1 Facets methods."""
 
     DEFAULT_ROUTE = MappingProxyType(
