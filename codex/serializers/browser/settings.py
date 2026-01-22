@@ -71,6 +71,7 @@ class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     def to_internal_value(self, data):
         if "q" not in data and (query := data.get("query")):
             # parse query param for opds v2
+            data = data.copy()
             data["q"] = query
         return super().to_internal_value(data)
 

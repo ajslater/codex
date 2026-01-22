@@ -1,14 +1,9 @@
 """codex:opds URL Configuration."""
 
 from django.urls import include, path, re_path
-
-from codex.views.opds.util import full_redirect_view
+from django.views.generic.base import RedirectView
 
 app_name = "opds"
-
-opds_v1_start_view = full_redirect_view("opds:v1:start")
-opds_v2_start_view = full_redirect_view("opds:v2:start")
-auth_v1_view = full_redirect_view("opds:auth:v1")
 
 urlpatterns = (
     path(
@@ -16,11 +11,10 @@ urlpatterns = (
         include("codex.urls.opds.authentication"),
         name="auth",
     ),
-    path("auth", auth_v1_view),
+    re_path("auth.*", RedirectView.as_view(pattern_name="opds:auth:v1")),
     path("bin/", include("codex.urls.opds.binary")),
     path("v1.2/", include("codex.urls.opds.v1")),
-    re_path(r"v1\..*", opds_v1_start_view),
     path("v2.0/", include("codex.urls.opds.v2")),
-    re_path(r"v2\..*", opds_v2_start_view),
-    re_path(".*", opds_v1_start_view),
+    re_path(r"v?2[\.\d].*", RedirectView.as_view(pattern_name="opds:v2:start")),
+    re_path(".*", RedirectView.as_view(pattern_name="opds:v1:start")),
 )
