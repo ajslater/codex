@@ -5,14 +5,12 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
-from types import MappingProxyType
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
 from typing_extensions import override
 
 from codex.settings import FALSY
-from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.util import get_user_agent_name
@@ -41,9 +39,6 @@ class LinkData:
 class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
-    DEFAULT_ROUTE = MappingProxyType(
-        {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
-    )
     TARGET = "opds2"
     throttle_scope = "opds"
 
