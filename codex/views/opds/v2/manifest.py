@@ -6,7 +6,6 @@ from math import floor
 from types import MappingProxyType
 
 from django.db.models import F
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.models.identifier import Identifier
@@ -179,11 +178,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 class OPDS2ManifestView(OPDS2ManifestMetadataView):
     """Single publication manifest view."""
 
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
-    serializer_class: type[BaseSerializer] | None = (
-        OPDS2PublicationDivinaManifestSerializer
-    )
+    serializer_class = OPDS2PublicationDivinaManifestSerializer
 
     def _publication_reading_order(self, obj):
         """

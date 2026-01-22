@@ -9,7 +9,6 @@ from types import MappingProxyType
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
@@ -27,10 +26,9 @@ _ORDER_BY_MAP = MappingProxyType(
 class OPDS2FeedView(OPDS2FeedGroupsView):
     """OPDS 2.0 Feed."""
 
-    serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
-    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
+    serializer_class = OPDS2FeedSerializer
+    input_serializer_class = OPDSSettingsSerializer
 
-    throttle_scope = "opds"
     IS_START_PAGE: bool = False
 
     def _subtitle(self):

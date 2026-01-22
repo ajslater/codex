@@ -3,14 +3,19 @@
 from types import MappingProxyType
 from typing import Any
 
-from codex.serializers.browser.settings import BrowserSettingsSerializer
+from codex.serializers.browser.settings import (
+    BrowserSettingsSerializer,
+    BrowserSettingsSerializerBase,
+)
 from codex.views.session import SessionView
 
 
 class BrowserParamsView(SessionView):
     """Browser Params Parsing."""
 
-    input_serializer_class: type[BrowserSettingsSerializer] = BrowserSettingsSerializer
+    input_serializer_class: type[BrowserSettingsSerializerBase] = (
+        BrowserSettingsSerializer
+    )
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""

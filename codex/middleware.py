@@ -1,5 +1,6 @@
 """Django middleware for codex."""
 
+from base64 import b64decode
 from time import time
 
 from django.db import connection
@@ -78,6 +79,14 @@ class LogRequestMiddleware:
         """Trace the request uri."""
         uri = request.build_absolute_uri()  # Includes query parameters
         logger.trace(uri)
+        filtered_headers = {}
+        for key, value in request.headers.items():
+            if key.lower() in {"user-agent", "authorization", "cookie"}:
+                if key.lower().startswith("auth"):
+                    value = value.lstrip("Basic ")
+                    value = b64decode(value).decode()
+                filtered_headers[key] = value
+        logger.trace(filtered_headers)
         if data := getattr(request, "data", None):
             logger.trace(data)
         return self.get_response(request)
