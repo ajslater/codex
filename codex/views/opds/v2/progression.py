@@ -41,9 +41,9 @@ _EMPTY_DEVICE = MappingProxyType(
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
     OPDSAuthMixin,
-    BookmarkFilterMixin,
     OPDS2HrefMixin,
     BookmarkPageMixin,
+    BookmarkFilterMixin,
     AuthFilterGenericAPIView,
 ):
     """OPDS 2 Progression view."""
