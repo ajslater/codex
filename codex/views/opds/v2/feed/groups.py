@@ -55,8 +55,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):
-            if not qps:
-                qps = {}
+            qps = dict(qps) if qps else {}
             qps["orderBy"] = "story_arc_number"
         return qps
 

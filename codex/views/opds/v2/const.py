@@ -3,6 +3,7 @@
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from django.db.models.query import QuerySet
 
@@ -46,7 +47,7 @@ class Link:
     rel: str
     title: str
     group: str | None = ""
-    query_params: dict | None = None
+    query_params: Mapping | None = None
     inherit_query_params: bool = True
 
 
@@ -104,6 +105,12 @@ FACETS = (
         ),
     ),
 )
+_PREVIEW_GROUP_PARAMS = MappingProxyType(
+    {
+        "topGroup": "s",
+        "filters": BookmarkFilters.UNREAD,
+    }
+)
 PREVIEW_GROUPS = (
     LinkGroup(
         "Ordered Groups",
@@ -112,37 +119,40 @@ PREVIEW_GROUPS = (
                 Rel.FEATURED,
                 "Keep Reading",
                 "s",
-                {
-                    "topGroup": "s",
-                    "filters": BookmarkFilters.UNREAD,
-                    "orderBy": "bookmark_updated_at",
-                    "orderReverse": True,
-                    "title": "Keep Reading",
-                },
+                MappingProxyType(
+                    {
+                        **_PREVIEW_GROUP_PARAMS,
+                        "orderBy": "bookmark_updated_at",
+                        "orderReverse": True,
+                        "title": "Keep Reading",
+                    }
+                ),
             ),
             Link(
                 Rel.SORT_NEW,
                 "Latest Unread",
                 "s",
-                {
-                    "topGroup": "s",
-                    "filters": BookmarkFilters.UNREAD,
-                    "orderBy": "created_at",
-                    "orderReverse": True,
-                    "title": "Latest Unread",
-                },
+                MappingProxyType(
+                    {
+                        **_PREVIEW_GROUP_PARAMS,
+                        "orderBy": "created_at",
+                        "orderReverse": True,
+                        "title": "Latest Unread",
+                    }
+                ),
             ),
             Link(
                 Rel.SORT_NEW,
                 "Oldest Unread",
                 "s",
-                {
-                    "topGroup": "s",
-                    "filters": BookmarkFilters.UNREAD,
-                    "orderBy": "date",
-                    "orderReverse": False,
-                    "title": "Oldest Unread",
-                },
+                MappingProxyType(
+                    {
+                        **_PREVIEW_GROUP_PARAMS,
+                        "orderBy": "date",
+                        "orderReverse": False,
+                        "title": "Oldest Unread",
+                    }
+                ),
             ),
         ),
     ),
