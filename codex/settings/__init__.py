@@ -41,6 +41,7 @@ BUILD = not_falsy_env("BUILD")
 SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", "0.5"))
 LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
 LOG_REQUEST = not_falsy_env("CODEX_LOG_REQUEST")
+LOG_AUTH_HEADERS = not_falsy_env("CODEX_LOG_AUTH_HEADERS")
 # Misc
 VITE_HOST = environ.get("VITE_HOST")
 LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
