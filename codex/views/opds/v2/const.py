@@ -1,13 +1,43 @@
 """OPDS v2 consts."""
 # https://drafts.opds.io/opds-2.0.html
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from django.db.models.query import QuerySet
 
 from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BookmarkFilters, Rel
+
+
+@dataclass
+class HrefData:
+    """Data for creating hrefs."""
+
+    kwargs: Mapping[str, str | Sequence[int] | int] | None = None
+    query_params: Mapping[str, str | int | Mapping] | None = None
+    inherit_query_params: bool = False
+    url_name: str | None = None
+    min_page: int | None = None
+    max_page: int | None = None
+    template: str = ""
+
+
+@dataclass
+class LinkData:
+    """Data for creating links."""
+
+    rel: str
+    href_data: HrefData
+    title: str | None = None
+    mime_type: str | None = None
+    template: str | None = None
+    height: int | None = None
+    width: int | None = None
+    size: int | None = None
+    href: str | None = None
+    num_items: int | None = None
+    authenticate: Mapping | None = None
 
 
 @dataclass

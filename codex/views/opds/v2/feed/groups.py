@@ -11,12 +11,12 @@ from codex.views.opds.v2.const import (
     PREVIEW_GROUPS,
     START_GROUPS,
     TOP_GROUPS,
+    HrefData,
     Link,
+    LinkData,
     LinkGroup,
 )
-from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
-from codex.views.opds.v2.href import HrefData
 
 
 class OPDS2FeedGroupsView(OPDS2PublicationsView):

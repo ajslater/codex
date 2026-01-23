@@ -16,9 +16,8 @@ from codex.serializers.opds.v2.publication import (
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
-from codex.views.opds.v2.feed.links import LinkData
+from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
-from codex.views.opds.v2.href import HrefData
 
 _MD_CREDIT_MAP = MappingProxyType(
     # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums

@@ -3,8 +3,8 @@
 from types import MappingProxyType
 
 from codex.views.opds.const import MimeType, Rel, TopRoutes
-from codex.views.opds.v2.feed.links import LinkData, OPDS2LinksView
-from codex.views.opds.v2.href import HrefData
+from codex.views.opds.v2.const import HrefData, LinkData
+from codex.views.opds.v2.feed.links import OPDS2LinksView
 
 _SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s"})
 
