@@ -383,7 +383,8 @@ or
 #### OPDS v1 Clients
 
 - iOS
-    - [Panels](https://panels.app/), [PocketBooks](https://pocketbook.ch/),
+    - [Panels](https://panels.app/)
+    - [PocketBooks](https://pocketbook.ch/)
     - [KYBook 3](http://kybook-reader.com/)
     - [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
 - Android
@@ -487,12 +488,23 @@ and unfortunately isn't practical to remove yet.
 
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing,
   supports comics, eBooks, and features for manga.
-- [Komga](https://komga.org/) has light metadata editing.
+- [Komga](https://komga.org/) has light metadata editing and duplicate page
+  elimination.
 - [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
+
+## 🔧 Popular comic utilities
+
 - [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which
   also has a built in reader.
 - [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
-  editor. It comes with a powerful command line and desktop GUI.
+  editor. It comes with a command line and desktop GUI. It will tag identified
+  comics from online database sources.
+- [Metron Tagger](https://github.com/Metron-Project/metron-tagger) is a command
+  line comic metadata editor. It will tag identified comics from online database
+  sources.
+- [Comicbox](https://github.com/ajslater/comicbox) is a powerful command line
+  comic metadata editor and multi metadata format synthesizer. It is what Codex
+  uses under the hood to read comic metadata.
 
 ## 🤝 Contributing
 

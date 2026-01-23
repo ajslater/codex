@@ -52,8 +52,8 @@ class SessionView(AuthFilterGenericAPIView, ABC):
     # Must override this
     SESSION_KEY: str = ""
     FILTER_ATTRIBUTES: frozenset[str] = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
-    BROWSER_SESSION_KEY = "browser"
-    READER_SESSION_KEY = "reader"
+    BROWSER_SESSION_KEY: str = "browser"
+    READER_SESSION_KEY: str = "reader"
     SESSION_DEFAULTS = MappingProxyType(
         {
             BROWSER_SESSION_KEY: {

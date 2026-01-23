@@ -12,33 +12,18 @@ from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
-from codex.serializers.opds.v1 import (
-    OPDS1TemplateSerializer,
-)
+from codex.serializers.opds.v1 import OPDS1TemplateSerializer
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
-from codex.views.mixins import UserActiveMixin
-from codex.views.opds.auth import OPDSTemplateMixin
-from codex.views.opds.const import BLANK_TITLE
-from codex.views.opds.v1.entry.data import OPDS1EntryData
+from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
+from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
-from codex.views.opds.v1.links import (
-    OPDS1LinksView,
-    RootTopLinks,
-    TopLinks,
-)
+from codex.views.opds.v1.links import OPDS1LinksView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class OpdsNs:
-    """XML Namespaces."""
-
-    CATALOG = "http://opds-spec.org/2010/catalog"
-    ACQUISITION = "http://opds-spec.org/2010/acquisition"
-
-
-class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
+class OPDS1FeedView(OPDS1LinksView):
     """OPDS 1 Feed."""
 
     template_name = "opds_v1/index.xml"
@@ -46,7 +31,7 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
-    TARGET: str = "opds1"
+    IS_START_PAGE: bool = False
 
     @property
     def opds_ns(self):
@@ -150,15 +135,17 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         entries = []
         try:
             if not self.use_facets and self.kwargs.get("page") == 1:
-                entries += self.add_top_links(TopLinks.ALL)
-                at_root = not self.kwargs["pks"]
-                if at_root:
+                if self.IS_START_PAGE:
                     entries += self.add_top_links(RootTopLinks.ALL)
-                entries += self.facets(entries=True, root=at_root)
-
-            entries += self._get_entries_section("groups", metadata=False)
-            metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
-            entries += self._get_entries_section("books", metadata)
+                    entries += self.facets(entries=True, root=True)
+                else:
+                    entries += self.add_start_link()
+                    entries += self.facets(entries=True, root=False)
+                    entries += self._get_entries_section("groups", metadata=False)
+                    metadata = (
+                        self.request.GET.get("opdsMetadata", "").lower() not in FALSY
+                    )
+                    entries += self._get_entries_section("books", metadata)
         except Exception:
             logger.exception("Getting OPDS v1 entries")
         return entries
@@ -170,3 +157,14 @@ class OPDS1FeedView(OPDSTemplateMixin, UserActiveMixin, OPDS1LinksView):
         serializer = self.get_serializer(self)
         self.mark_user_active()
         return Response(serializer.data, content_type=self.content_type)
+
+
+class OPDS1StartView(OPDS1FeedView):
+    """OPDS v1 Start Page."""
+
+    IS_START_PAGE = True
+
+    def __init__(self, *args, **kwargs):
+        """Reset all params."""
+        super().__init__(*args, **kwargs)
+        self.set_params(DEFAULT_PARAMS)

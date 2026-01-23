@@ -1,12 +1,13 @@
 """Django middleware for codex."""
 
+from base64 import b64decode
 from time import time
 
 from django.db import connection
 from django.utils import timezone
 from loguru import logger
 
-from codex.settings import LOG_RESPONSE_TIME, SLOW_QUERY_LIMIT
+from codex.settings import LOG_AUTH_HEADERS, LOG_RESPONSE_TIME, SLOW_QUERY_LIMIT
 
 
 class TimezoneMiddleware:
@@ -74,8 +75,25 @@ class LogRequestMiddleware:
         """Store the creation response."""
         self.get_response = get_response
 
+    def _log_auth_headers(self, request):
+        if not LOG_AUTH_HEADERS:
+            return
+        filtered_headers = {}
+        for key, value in request.headers.items():
+            if key.lower() in {"user-agent", "authorization", "cookie"}:
+                if key.lower().startswith("auth"):
+                    final_val = value.lstrip("Basic ")
+                    final_val = b64decode(final_val).decode()
+                else:
+                    final_val = value
+                filtered_headers[key] = final_val
+        logger.trace(filtered_headers)
+
     def __call__(self, request):
         """Trace the request uri."""
         uri = request.build_absolute_uri()  # Includes query parameters
         logger.trace(uri)
+        self._log_auth_headers(request)
+        if data := getattr(request, "data", None):
+            logger.trace(data)
         return self.get_response(request)

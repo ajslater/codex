@@ -18,7 +18,7 @@ class SimpleRouteSerializer(Serializer):
     pks = CharField()
 
     @override
-    def to_representation(self, instance):  # ty: ignore[invalid-method-override]
+    def to_representation(self, instance):
         """Allow submission of sequences instead of strings for pks."""
         instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
         pks = instance["pks"]

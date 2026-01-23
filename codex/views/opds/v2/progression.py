@@ -1,9 +1,12 @@
 """OPDS 2 Progression view."""
 # https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
 
+from http import HTTPStatus
 from types import MappingProxyType
 from typing import TYPE_CHECKING, override
 
+from dateparser import parse
+from django.db.models import QuerySet
 from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least
@@ -12,7 +15,6 @@ from django.http import HttpResponse
 from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.serializers import BaseSerializer
 
 from codex.models.comic import Comic
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
@@ -22,7 +24,8 @@ from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.util import get_user_agent_name
-from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
+from codex.views.opds.v2.const import HrefData
+from codex.views.opds.v2.href import OPDS2HrefMixin
 
 if TYPE_CHECKING:
     from codex.models.groups import BrowserGroupModel
@@ -38,14 +41,14 @@ _EMPTY_DEVICE = MappingProxyType(
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
     OPDSAuthMixin,
-    BookmarkFilterMixin,
     OPDS2HrefMixin,
     BookmarkPageMixin,
+    BookmarkFilterMixin,
     AuthFilterGenericAPIView,
 ):
     """OPDS 2 Progression view."""
 
-    serializer_class: type[BaseSerializer] | None = OPDS2ProgressionSerializer
+    serializer_class = OPDS2ProgressionSerializer
 
     def __init__(self, *args, **kwargs):
         """Initialize Bookmark Filter."""
@@ -69,7 +72,7 @@ class OPDS2ProgressionView(
     @property
     def device(self):
         """Dummy device."""
-        # Codex doesn't record this.
+        # Codex doesn't device for progression.
         return _EMPTY_DEVICE
 
     @property
@@ -109,15 +112,13 @@ class OPDS2ProgressionView(
             "locations": self._locations,
         }
 
-    @override
-    def get_object(self):
-        """Build the progression data object."""
+    def _get_bookmark_query(self) -> QuerySet:
         group = self.kwargs.get("group")
         pk = self.kwargs.get("pk")
 
         if not (group and pk):
             reason = f"Bad primary key for {group}:{pk}"
-            return ValidationError(reason, code="422")
+            raise ValidationError(reason, code="422")
 
         model = GROUP_MODEL_MAP.get(group)
         if not model:
@@ -129,16 +130,23 @@ class OPDS2ProgressionView(
 
         bm_rel = self.get_bm_rel(model)
         bm_filter = self.get_my_bookmark_filter(bm_rel)
+        return qs.annotate(
+            my_bookmark=FilteredRelation("bookmark", condition=bm_filter),
+            bookmark_updated_at=F("my_bookmark__updated_at"),
+        )
+
+    @override
+    def get_object(self):
+        """Build the progression data object."""
+        qs = self._get_bookmark_query()
         progress = Least(
             F("page") / Greatest(Cast(F("page_count"), FloatField()), 1.0), Value(1.0)
         )
-
         qs = qs.annotate(
-            my_bookmark=FilteredRelation("bookmark", condition=bm_filter),
-            bookmark_updated_at=F("my_bookmark__updated_at"),
             page=Coalesce(F("my_bookmark__page"), 0),
             progress=progress,
         )
+        pk = self.kwargs.get("pk")
         self._obj = qs.only("page_count").distinct().get(pk=pk)
 
         if not self._obj.bookmark_updated_at:  # pyright: ignore[reportAttributeAccessIssue]
@@ -162,5 +170,27 @@ class OPDS2ProgressionView(
 
     def put(self, *_args, **_kwargs):
         """Update the bookmark."""
-        self.update_bookmark()
-        return Response()
+        data = self.request.data
+        serializer = self.serializer_class(data=data, partial=True)  # pyright: ignore[reportOptionalCall]
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        conflict = False
+        status_code = HTTPStatus.BAD_REQUEST
+        if new_modified_str := data.get("modified"):
+            new_modified = parse(new_modified_str)
+            qs = self._get_bookmark_query()
+            comic = qs.first()
+            conflict = comic and comic.bookmark_updated_at > new_modified
+
+        # Update anyway on missing modified. Liberal acceptance, not according to spec.
+        if conflict:
+            status_code = HTTPStatus.CONFLICT
+        else:
+            position: int | None = (
+                data.get("locator", {}).get("locations", {}).get("position")
+            )
+            if position is not None:
+                self.kwargs["page"] = position
+                self.update_bookmark()
+                status_code = HTTPStatus.OK
+        return Response(status=status_code)

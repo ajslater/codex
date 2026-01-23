@@ -1,114 +1,24 @@
 """OPDS v1 Links methods."""
 
-import json
-from collections import defaultdict
-from collections.abc import Mapping
-from dataclasses import dataclass
-from types import MappingProxyType
-
 from django.urls import reverse
 from loguru import logger
 
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v1.data import OPDS1Link
-from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.const import (
+    OPDS1EntryData,
+    OPDS1EntryObject,
+    OPDS1Link,
+    RootTopLinks,
+    TopLink,
+    TopLinks,
+)
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
 from codex.views.util import pop_name
 
 
-class TopRoutes:
-    """Routes for top groups."""
-
-    PUBLISHER = MappingProxyType({"group": "p", "pks": {}, "page": 1})
-    SERIES = MappingProxyType({"group": "s", "pks": {}, "page": 1})
-    FOLDER = MappingProxyType({"group": "f", "pks": {}, "page": 1})
-    ROOT = MappingProxyType({"group": "r", "pks": {}, "page": 1})
-    STORY_ARC = MappingProxyType({"group": "a", "pks": {}, "page": 1})
-
-
-@dataclass
-class TopLink:
-    """A non standard root link when facets are unsupported."""
-
-    kwargs: Mapping
-    rel: str
-    mime_type: str
-    query_params: defaultdict[str, str | bool | int]
-    glyph: str
-    title: str
-    desc: str
-
-
-class TopLinks:
-    """Top link definitions."""
-
-    START = TopLink(
-        TopRoutes.ROOT,
-        Rel.START,
-        MimeType.NAV,
-        defaultdict(),
-        "⌂",
-        "Start of the catalog",
-        "",
-    )
-    ALL = (START,)
-
-
-class RootTopLinks:
-    """Top Links that only appear at the root."""
-
-    NEW = TopLink(
-        TopRoutes.SERIES,
-        Rel.SORT_NEW,
-        MimeType.ACQUISITION,
-        defaultdict(
-            None, {"orderBy": "created_at", "orderReverse": True, "limit": 100}
-        ),
-        "📥",
-        "Recently Added",
-        "",
-    )
-    FEATURED = TopLink(
-        TopRoutes.SERIES,
-        Rel.FEATURED,
-        MimeType.NAV,
-        defaultdict(
-            None,
-            {
-                "orderBy": "date",
-                "filters": json.dumps({"bookmark": "UNREAD"}),
-                "limit": 100,
-            },
-        ),
-        "📚",
-        "Oldest Unread",
-        "Unread issues, oldest published first",
-    )
-    LAST_READ = TopLink(
-        TopRoutes.SERIES,
-        Rel.POPULAR,
-        MimeType.NAV,
-        defaultdict(
-            None, {"orderBy": "bookmark_updated_at", "orderReverse": True, "limit": 100}
-        ),
-        "👀",
-        "Last Read",
-        "Last Read issues, recently read first.",
-    )
-    ALL = (NEW, FEATURED, LAST_READ)
-
-
 class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
-
-    # overwritten in get_object method
-    DEFAULT_ROUTE = MappingProxyType(
-        {
-            **OPDS1FacetsView.DEFAULT_ROUTE,
-            "name": "opds:v1:feed",
-        }
-    )
 
     def is_top_link_displayed(self, top_link):
         """Determine if this top link should be displayed."""
@@ -139,7 +49,11 @@ class OPDS1LinksView(OPDS1FacetsView):
     def _root_links(self):
         """Navigation Root Links."""
         links = []
-        if up_route := self.get_last_route():
+        if (
+            (up_route := self.get_last_route())
+            and (pks := up_route.get("pks", []))
+            and 0 not in pks
+        ):
             links += [self._link(up_route, Rel.UP)]
         page = self.kwargs.get("page", 1)
         if page > 1:
@@ -200,6 +114,19 @@ class OPDS1LinksView(OPDS1FacetsView):
         return OPDS1Entry(
             entry_obj, top_link.query_params, data, title_filename_fallback=False
         )
+
+    def add_start_link(self):
+        """Add the start link."""
+        top_link: TopLink = TopLinks.START
+        name = " ".join(filter(None, (top_link.glyph, top_link.title)))
+        entry_obj = OPDS1EntryObject(
+            name=name, summary=top_link.desc, url_name=top_link.url_name
+        )
+
+        data = OPDS1EntryData(
+            frozenset(), 0, metadata=False, mime_type_map=self.mime_type_map
+        )
+        return [OPDS1Entry(entry_obj, {}, data, title_filename_fallback=False)]
 
     def add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""

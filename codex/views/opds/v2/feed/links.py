@@ -1,50 +1,27 @@
 """Links methods for OPDS v2.0 Feed."""
 
 import json
-from collections.abc import Mapping
 from copy import deepcopy
-from dataclasses import dataclass
 from datetime import datetime
-from types import MappingProxyType
-from typing import override
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
 
 from codex.settings import FALSY
-from codex.views.browser.browser import BrowserView
-from codex.views.opds.auth import OPDSAuthMixin
-from codex.views.opds.const import MimeType, Rel, UserAgentNames
+from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentNames
+from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.util import get_user_agent_name
-from codex.views.opds.v2.const import BookmarkFilters
-from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
+from codex.views.opds.v2.const import HrefData, LinkData
+from codex.views.opds.v2.href import OPDS2HrefMixin
 
 _BOOKMARK_FILTERS_NONE_STR = json.dumps(dict(BookmarkFilters.NONE))
 
 
-@dataclass
-class LinkData:
-    """Data for creating links."""
-
-    rel: str
-    href_data: HrefData
-    title: str | None = None
-    mime_type: str | None = None
-    template: str | None = None
-    height: int | None = None
-    width: int | None = None
-    size: int | None = None
-    href: str | None = None
-    num_items: int | None = None
-    authenticate: Mapping | None = None
-
-
-class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
+class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
-    DEFAULT_ROUTE = MappingProxyType(
-        {**BrowserView.DEFAULT_ROUTE, "name": "opds:v2:feed"}
-    )
+    TARGET = "opds2"
+    throttle_scope = "opds"
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
@@ -54,7 +31,6 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
             tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
         ) = None
         self._user_agent_name: str | None = None
-        self._is_start_page: bool | None = None
 
     @property
     def group_and_books(
@@ -86,9 +62,8 @@ class OPDS2LinksView(OPDSAuthMixin, OPDS2HrefMixin, BrowserView):
         """Add attributes to link."""
         if data.title:
             link["title"] = data.title
-        if data.template:
+        if data.href_data.template:
             link["templated"] = True
-            link["href"] += data.template
         if data.height:
             link["height"] = data.height
         if data.width:

@@ -6,6 +6,7 @@ from typing_extensions import override
 from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.opds.auth import OPDSAuthMixin
+from codex.views.opds.session import OPDSBrowserSessionMixin
 from codex.views.reader.page import ReaderPageView
 
 
@@ -29,7 +30,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         return (renderer, renderer.media_type)
 
 
-class OPDSCoverView(OPDSAuthMixin, CoverView):
+class OPDSCoverView(OPDSBrowserSessionMixin, CoverView):
     """Cover View with Basic Auth."""
 
 

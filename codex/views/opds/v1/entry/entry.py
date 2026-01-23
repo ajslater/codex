@@ -12,14 +12,13 @@ from codex.models import Comic
 from codex.views.opds.const import (
     AUTHOR_ROLES,
     BLANK_TITLE,
+    TopRoutes,
 )
 from codex.views.opds.util import (
     get_credit_people,
     get_m2m_objects,
 )
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
-
-_SERIES_ROUTE_KWARGS = {"group": "s", "pks": {}, "page": 1}
 
 
 class OPDS1Entry(OPDS1EntryLinksMixin):
@@ -123,7 +122,9 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         for obj in objs:
             filters = json.dumps({filter_key: [obj.pk]})
             query = {"filters": filters}
-            obj.url = reverse("opds:v1:feed", kwargs=_SERIES_ROUTE_KWARGS, query=query)
+            obj.url = reverse(
+                "opds:v1:feed", kwargs=dict(TopRoutes.SERIES), query=query
+            )
             result.append(obj)
         return result
 

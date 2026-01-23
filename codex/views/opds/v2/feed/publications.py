@@ -13,12 +13,9 @@ from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import AdminFlag, Comic
 from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import MAX_OBJ_PER_PAGE
-from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v2.const import Link, LinkGroup
+from codex.views.opds.v2.const import HrefData, Link, LinkData
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
-from codex.views.opds.v2.feed.links import LinkData
-from codex.views.opds.v2.href import HrefData
 
 _PUBLICATION_PREVIEW_LIMIT = 5
 
@@ -100,6 +97,8 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _publication(self, obj, zero_pad):
         pub = {}
+        if not obj:
+            return pub
         pub["metadata"] = self._publication_metadata(obj, zero_pad)
 
         # Acquisition/Download link
@@ -137,6 +136,8 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _thumb(self, obj):
         images = []
+        if not obj:
+            return images
         ts = floor(datetime.timestamp(obj.updated_at))
         kwargs = {"group": obj.group, "pks": obj.ids}
         query_params = {
@@ -169,13 +170,14 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     @override
     def _publication(self, obj, zero_pad):
         pub = super()._publication(obj, zero_pad)
-        pub["images"] = self._thumb(obj)
+        if images := self._thumb(obj):
+            pub["images"] = images
         return pub
 
     def _get_publications_links(self, link_spec):
         if not link_spec:
             return []
-        kwargs = {"group": link_spec.group, "pks": "0", "page": 1}
+        kwargs = {"group": link_spec.group, "pks": (0,), "page": 1}
         href_data = HrefData(kwargs, link_spec.query_params, inherit_query_params=True)
         # Must be rel="self" for Stump to add View All
         link_data = LinkData(Rel.SELF, href_data=href_data, title=link_spec.title)
@@ -229,35 +231,32 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         groups.append(pub_group)
         return groups
 
-    def get_publications_preview(
-        self, link_spec: Link | BrowserGroupModel, group_spec: LinkGroup
-    ):
-        """Get a limited preview of publications outside the main query."""
-        browser_view = BrowserView()
-        browser_view.request = self.request
-        group = (
-            link_spec.group
-            if isinstance(link_spec, Link)
-            else link_spec.__class__.__name__[0].lower()
-        )
-        browser_view.kwargs = {"group": group, "pks": [0], "page": 1}
+    def _get_publications_preview_feed_view(self, link_spec: Link):
+        feed_view = OPDS2FeedLinksView()
+        feed_view.request = self.request
+        group = link_spec.group
+        feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
         params = {}
-        if isinstance(link_spec, Link) and link_spec.query_params:
+        if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 params[snakecase(key)] = value
         params["show"] = {"p": True, "s": True}
         params["limit"] = _PUBLICATION_PREVIEW_LIMIT
 
-        browser_view.set_params(params)
-        book_qs, book_count, zero_pad = browser_view.get_book_qs()
+        feed_view.set_params(params)
+        return feed_view
+
+    def get_publications_preview(self, link_spec: Link):
+        """Get a limited preview of publications outside the main query."""
+        feed_view = self._get_publications_preview_feed_view(link_spec)
+        book_qs, book_count, zero_pad = feed_view.get_book_qs()
         if not book_count:
             return []
 
-        link_spec = next(iter(group_spec.links))
         return self.get_publications(
             book_qs,
             zero_pad,
-            group_spec.title,
+            link_spec.title,
             "",
             _PUBLICATION_PREVIEW_LIMIT,
             link_spec,

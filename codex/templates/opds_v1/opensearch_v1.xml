@@ -6,5 +6,5 @@
 <InputEncoding>UTF-8</InputEncoding>
 <OutputEncoding>UTF-8</OutputEncoding>
 <Image width="512" height="512" type="image/svg+xml">{% static 'img/logo.svg' %}</Image>
-<Url type="application/atom+xml;profile=opds-catalog;kind=acquisition" template="{% url 'opds:v1:feed' 's' 0 1 %}?q={searchTerms}"/>
+<Url type="application/atom+xml;profile=opds-catalog;kind=acquisition" template="{% url 'opds:v1:feed' 's' 0 1 %}?topGroup=s&q={searchTerms}"/>
 </OpenSearchDescription>

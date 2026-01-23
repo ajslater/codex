@@ -1,8 +1,7 @@
 """Href methods for OPDS v2.0 Feed."""
 
 import json
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping
 from itertools import chain
 
 from caseconverter import camelcase
@@ -11,18 +10,6 @@ from django.urls import reverse
 from codex.settings import DEBUG
 from codex.views.opds.const import UserAgentNames
 from codex.views.util import pop_name
-
-
-@dataclass
-class HrefData:
-    """Data for creating hrefs."""
-
-    kwargs: Mapping[str, str | Sequence[int] | int] | None = None
-    query_params: Mapping[str, str | int | Mapping] | None = None
-    inherit_query_params: bool = False
-    url_name: str | None = None
-    min_page: int | None = None
-    max_page: int | None = None
 
 
 class OPDS2HrefMixin:
@@ -70,4 +57,9 @@ class OPDS2HrefMixin:
         href = reverse(url_name, kwargs=kwargs, query=query)
         if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if template := data.template:
+            parts = href.split("?")
+            if len(parts) > 1:
+                template += "&"
+            href = template.join(parts)
         return href

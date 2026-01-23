@@ -2,20 +2,22 @@
 
 import json
 import urllib.parse
+from collections.abc import Mapping
+from datetime import datetime
 from types import MappingProxyType
 
+from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
-from codex.views.opds.const import BLANK_TITLE
+from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
-_ORDER_BY_MAP = MappingProxyType(
+_ORDER_BY_SUBTITLE_MAP = MappingProxyType(
     {"bookmark_updated_at": "read", "created_at": "added", "date": "published"}
 )
 
@@ -23,11 +25,10 @@ _ORDER_BY_MAP = MappingProxyType(
 class OPDS2FeedView(OPDS2FeedGroupsView):
     """OPDS 2.0 Feed."""
 
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
+    serializer_class = OPDS2FeedSerializer
+    input_serializer_class = OPDSSettingsSerializer
 
-    serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
-    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
+    IS_START_PAGE: bool = False
 
     def _subtitle(self):
         """Subtitle for main feed."""
@@ -39,14 +40,17 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             if bf := json.loads(filters).get("bookmark", ""):
                 bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
             parts.append(bf)
+        if q := qps.get("query"):
+            search_query = urllib.parse.unquote(q)
+            parts.append(search_query)
         if (order_by := qps.get("orderBy")) and order_by != "sort_name":
-            order_by = _ORDER_BY_MAP.get(order_by, order_by)
+            order_by = _ORDER_BY_SUBTITLE_MAP.get(order_by, order_by)
             parts.append(order_by)
         if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
             parts.append("desc")
-        return f" ({','.join(parts)})" if parts else ""
+        return ", ".join(parts) if parts else ""
 
-    def _title(self, browser_title):
+    def _title(self, browser_title: Mapping[str, str]):
         """Create the feed title."""
         result = self.request.GET.get("title", "")
         if not result and browser_title:
@@ -60,55 +64,83 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         if not result:
             result = BLANK_TITLE
 
-        result += self._subtitle()
         return result
+
+    def _feed_metadata(self, title: str, total_count: int, mtime: datetime | None):
+        number_of_items = total_count
+        current_page = self.kwargs.get("page")
+        md = {
+            "title": title,
+            "modified": mtime,
+            "number_of_items": number_of_items,
+            "items_per_page": MAX_OBJ_PER_PAGE,
+            "current_page": current_page,
+        }
+        if subtitle := self._subtitle():
+            md["subtitle"] = subtitle
+        return MappingProxyType(md)
+
+    def _feed_navigation_and_groups(
+        self,
+        group_qs: QuerySet,
+        book_qs: QuerySet,
+        zero_pad: int | None,
+        title: str,
+    ):
+        groups = []
+        navigation = []
+        top_groups = self._get_top_groups()
+        if self.IS_START_PAGE:
+            groups += self._get_ordered_groups()
+            first_top_group = next(iter(top_groups), {})
+            navigation = first_top_group.get("navigation", [])
+            publications = []
+        else:
+            # Move the first group's navigation to become the feed navigation.
+            # The feed navigation is titled "Browse"" in Stump
+            zero_pad = zero_pad if zero_pad else 0
+            regular_groups = self._get_groups(group_qs, book_qs, title, zero_pad)
+            first_regular_group = next(iter(regular_groups), {})
+            navigation = first_regular_group.pop("navigation", [])
+
+            groups += regular_groups
+            groups += top_groups
+            groups += self._get_facets()
+            groups += self._get_start_groups()
+
+            publications = first_regular_group.pop("publications", [])
+        return tuple(navigation), tuple(groups), tuple(publications)
 
     @override
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group_qs, book_qs, _, total_count, zero_pad, mtime = self.group_and_books
-        title = self.get_browser_page_title()
-        # convert browser_page into opds page
+        # convert browser_page into opds pagej
+        browser_title = self.get_browser_page_title()
+        title = "Start" if self.IS_START_PAGE else self._title(browser_title)
 
         # opds page
-        title = self._title(title)
-        zero_pad = zero_pad if zero_pad else 0
+        metadata = self._feed_metadata(title, total_count, mtime)
 
-        # Move the first group's navigation to become the feed navigation.
-        # The feed navigation is titled "Browse"" in Stump
-        regular_groups = self._get_groups(group_qs, book_qs, title, zero_pad)
-        first_regular_group = next(iter(regular_groups), {})
-        navigation = first_regular_group.pop("navigation", [])
-
-        # opds groups
-        groups = []
-        if first_regular_group.get("publications"):
-            groups += regular_groups
-        og = self._get_ordered_groups()
-        groups += og
-        groups += self._get_top_groups()
-        groups += self._get_facets()
-        groups += self._get_start_groups()
-
-        number_of_items = total_count
-        current_page = self.kwargs.get("page")
+        # links
         up_route = self.get_last_route()
-        links = self.get_links(up_route)
+        links = tuple(self.get_links(up_route))
+
+        # Navigation & Groups
+        navigation, groups, publications = self._feed_navigation_and_groups(
+            group_qs, book_qs, zero_pad, title
+        )
 
         feed = {
-            "metadata": {
-                "title": title,
-                "modified": mtime,
-                "number_of_items": number_of_items,
-                "items_per_page": MAX_OBJ_PER_PAGE,
-                "current_page": current_page,
-            },
+            "metadata": metadata,
             "links": links,
         }
         if navigation:
             feed["navigation"] = navigation
         if groups:
             feed["groups"] = groups
+        if publications:
+            feed["publications"] = publications
 
         return MappingProxyType(feed)
 
@@ -120,3 +152,14 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         serializer = self.get_serializer(obj)
         self.mark_user_active()
         return Response(serializer.data)
+
+
+class OPDS2StartView(OPDS2FeedView):
+    """Start View."""
+
+    IS_START_PAGE = True
+
+    def __init__(self, *args, **kwargs):
+        """Reset all params."""
+        super().__init__(*args, **kwargs)
+        self.set_params(DEFAULT_PARAMS)

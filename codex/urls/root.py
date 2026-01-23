@@ -38,6 +38,7 @@ urlpatterns += [
     ),
     path("api/", include("codex.urls.api.root")),
     path("opds/", include("codex.urls.opds.root")),
+    path("opds", RedirectView.as_view(pattern_name="opds:v1:start")),
     path("health", health_check_view, name="healthcheck"),
     path("", include("codex.urls.pwa")),
     # The app must be last because it includes a catch-all path
