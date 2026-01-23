@@ -49,7 +49,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             parts.append(order_by)
         if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
             parts.append("desc")
-        return f" ({','.join(parts)})" if parts else ""
+        return ", ".join(parts) if parts else ""
 
     def _title(self, browser_title: Mapping[str, str]):
         """Create the feed title."""
