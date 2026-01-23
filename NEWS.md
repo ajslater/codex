@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.8
+
+- Fixes
+    - Remove redundant top links from OPDS 2.0 facets group block.
+
 ## v1.9.7
 
 - Fixes
