@@ -30,7 +30,36 @@ class LinkGroup:
     subtitle: str = ""
 
 
+TOP_GROUPS = (
+    LinkGroup(
+        "Top Groups",
+        (
+            Link(Rel.SUB, "Publishers", "r", {"topGroup": "p"}),
+            Link(Rel.SUB, "Series", "p", {"topGroup": "p"}),
+            Link(Rel.SUB, "Issues", "s", {"topGroup": "s"}),
+            Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
+            Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+        ),
+    ),
+)
+START_GROUPS = (
+    LinkGroup(
+        "Start",
+        (Link(Rel.START, "Start", None, {}, inherit_query_params=False),),
+    ),
+)
 FACETS = (
+    LinkGroup(
+        "⏿ Read Filter",
+        (
+            Link(Rel.FACET, "Unread", "", {"filters": BookmarkFilters.UNREAD}),
+            Link(
+                Rel.FACET, "In Progress", "", {"filters": BookmarkFilters.IN_PROGRESS}
+            ),
+            Link(Rel.FACET, "Read", "", {"filters": BookmarkFilters.READ}),
+            Link(Rel.FACET, "All", "", {"filters": BookmarkFilters.NONE}),
+        ),
+    ),
     LinkGroup(
         "⬄ Order By",
         (
@@ -45,30 +74,8 @@ FACETS = (
             Link(Rel.FACET, "Descending", "", {"orderReverse": True}),
         ),
     ),
-    LinkGroup(
-        "⊙  Top Group",
-        (
-            Link(Rel.FACET, "Publishers View", "r", {"topGroup": "p"}),
-            Link(Rel.FACET, "Series View", "s", {"topGroup": "s"}),
-            Link(Rel.FACET, "Folder View", "f", {"topGroup": "f"}),
-            Link(Rel.FACET, "Story Arc View", "a", {"topGroup": "a"}),
-        ),
-    ),
-    LinkGroup(
-        "⏿ Read State",
-        (
-            Link(Rel.FACET, "Unread", "", {"filters": BookmarkFilters.UNREAD}),
-            Link(
-                Rel.FACET, "In Progress", "", {"filters": BookmarkFilters.IN_PROGRESS}
-            ),
-            Link(Rel.FACET, "Read", "", {"filters": BookmarkFilters.READ}),
-            Link(Rel.FACET, "All", "", {"filters": BookmarkFilters.NONE}),
-        ),
-    ),
 )
-
-
-ORDERED_GROUPS = (
+PREVIEW_GROUPS = (
     LinkGroup(
         "Ordered Groups",
         (
@@ -112,24 +119,5 @@ ORDERED_GROUPS = (
                 },
             ),
         ),
-    ),
-)
-TOP_GROUPS = (
-    LinkGroup(
-        "Top Groups",
-        (
-            Link(Rel.SUB, "Publishers", "r", {"topGroup": "p"}),
-            Link(Rel.SUB, "Series", "p", {"topGroup": "p"}),
-            Link(Rel.SUB, "Issues", "s", {"topGroup": "s"}),
-            Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
-            Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
-        ),
-    ),
-)
-
-START_GROUPS = (
-    LinkGroup(
-        "Start",
-        (Link(Rel.START, "Start", None, {}, inherit_query_params=False),),
     ),
 )

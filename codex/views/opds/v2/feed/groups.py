@@ -8,7 +8,7 @@ from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
-    ORDERED_GROUPS,
+    PREVIEW_GROUPS,
     START_GROUPS,
     TOP_GROUPS,
     Link,
@@ -140,7 +140,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
     def _get_ordered_groups(self):
         # Top Nav Groups
         groups = []
-        for group_spec in ORDERED_GROUPS:
+        for group_spec in PREVIEW_GROUPS:
             # explode into individual groups
             for link_spec in group_spec.links:
                 pub_section = self.get_publications_preview(link_spec)
