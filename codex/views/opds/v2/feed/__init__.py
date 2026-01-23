@@ -41,6 +41,9 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             if bf := json.loads(filters).get("bookmark", ""):
                 bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
             parts.append(bf)
+        if q := qps.get("query"):
+            search_query = urllib.parse.unquote(q)
+            parts.append(search_query)
         if (order_by := qps.get("orderBy")) and order_by != "sort_name":
             order_by = _ORDER_BY_MAP.get(order_by, order_by)
             parts.append(order_by)
