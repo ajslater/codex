@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 from django.db.models.query import QuerySet
 
-from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BookmarkFilters, Rel
 
 
@@ -118,7 +117,6 @@ PREVIEW_GROUPS = (
                     "filters": BookmarkFilters.UNREAD,
                     "orderBy": "bookmark_updated_at",
                     "orderReverse": True,
-                    "limit": MAX_OBJ_PER_PAGE,
                     "title": "Keep Reading",
                 },
             ),
@@ -131,7 +129,6 @@ PREVIEW_GROUPS = (
                     "filters": BookmarkFilters.UNREAD,
                     "orderBy": "created_at",
                     "orderReverse": True,
-                    "limit": MAX_OBJ_PER_PAGE,
                     "title": "Latest Unread",
                 },
             ),
@@ -144,7 +141,6 @@ PREVIEW_GROUPS = (
                     "filters": BookmarkFilters.UNREAD,
                     "orderBy": "date",
                     "orderReverse": False,
-                    "limit": MAX_OBJ_PER_PAGE,
                     "title": "Oldest Unread",
                 },
             ),
