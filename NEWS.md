@@ -9,7 +9,10 @@ border-radius: 128px;
 ## v1.9.8
 
 - Fixes
+    - Major Access Control Bug would let users see comics in include groups they
+      were not a part of.
     - Remove redundant top links from OPDS 2.0 facets group block.
+    - Fixed a status crash.
 - Features
     - Remote-User HTTP header SSO support in an environment variable. See docs.
 

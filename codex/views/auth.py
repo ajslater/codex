@@ -99,7 +99,7 @@ class GroupACLMixin:
         exclude_filter.update(user_filter)
         exclude_q = Q(**exclude_filter)
 
-        q |= include_q | ~exclude_q
+        q |= include_q & ~exclude_q
 
         return q
 
