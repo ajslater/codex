@@ -129,7 +129,7 @@ class StatusController:
             for key, value in updates.items():
                 setattr(ls, key, value)
             update_ls.append(ls)
-            status = positive_statii[ls.status_type]
+            status = positive_statii.get(ls.status_type)
             if isinstance(status, Status):
                 log_statii.append(status)
         return update_ls, log_statii
