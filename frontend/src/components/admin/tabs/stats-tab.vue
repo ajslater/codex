@@ -3,22 +3,16 @@
     <StatsTable title="Platform" :items="platformTable" />
     <StatsTable title="Config" :items="configTable">
       <tbody>
+        <ClipBoard class="apiKey" tooltip="Copy API Key" title="API Key" :text="stats.config.apiKey" />
         <tr id="schemaDoc">
           <td colspan="2">
-            The only endpoint accessible by API Key is
-            <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-            <a :href="schemaHref" target="_blank">/admin/stats</a>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <ConfirmDialog
-              button-text="Regenerate API Key"
-              title-text="Regenerate"
-              text="API Key"
-              confirm-text="Regenerate"
-              @confirm="regenAPIKey"
-            />
+            <div>
+              The only endpoint accessible by API Key is
+              <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
+              <a :href="schemaHref" target="_blank">/admin/stats</a>
+            </div>
+            <ConfirmDialog button-text="Regenerate API Key" title-text="Regenerate" text="API Key"
+              confirm-text="Regenerate" @confirm="regenAPIKey" />
           </td>
         </tr>
       </tbody>
@@ -31,13 +25,12 @@
 </template>
 
 <script>
-import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import { capitalCase, snakeCase } from "text-case";
 
 import StatsTable from "@/components/admin/tabs/stats-table.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { copyToClipboard } from "@/copy-to-clipboard";
+import ClipBoard from "@/components/clipboard.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -77,6 +70,7 @@ Object.freeze(INDENT_KEYS);
 export default {
   name: "AdminTasksTab",
   components: {
+    ClipBoard,
     ConfirmDialog,
     StatsTable,
   },
@@ -92,14 +86,8 @@ export default {
     ...mapState(useAdminStore, {
       stats: (state) => state.stats,
     }),
-    clipBoardEnabled() {
-      return location.prototcal == "https:";
-    },
     apiTooltip() {
       return API_TOOLTIP ? this.clipBoardEnabled : undefined;
-    },
-    clipBoardIcon() {
-      return this.showTooltip ? mdiClipboardCheckOutline : mdiClipboardOutline;
     },
     platformTable() {
       const table = {};
@@ -113,18 +101,13 @@ export default {
     },
     configTable() {
       const table = {};
-      let apiKeyValue = "";
       for (const [key, value] of Object.entries(this.stats?.config)) {
-        let label;
         if (key == "apiKey") {
-          apiKeyValue = value;
           continue;
-        } else {
-          label = CONFIG_LABELS[key];
         }
+        const label = CONFIG_LABELS[key];
         table[label] = value;
       }
-      table["API Key"] = apiKeyValue;
       return table;
     },
     userSettingsTable() {
@@ -185,12 +168,6 @@ export default {
     regenAPIKey() {
       this.updateAPIKey().then(this.loadStats).catch(console.warn);
     },
-    onClickAPIKey() {
-      if (!this.clipBoardEnabled) {
-        return;
-      }
-      copyToClipboard(this.stats.config.apiKey, this.showTooltip);
-    },
     keyToLabel(key) {
       key = key.replace(/Count$/, "");
       return capitalCase(key);
@@ -206,7 +183,30 @@ export default {
   background-color: rgb(var(--v-theme-background));
 }
 
-#schemaDoc > td {
+#schemaDoc>td {
+  padding-top: 15px;
   border-bottom: none !important;
+}
+
+// Hack this component into a table row
+
+:deep(.clipboard) {
+  display: table-row;
+}
+
+:deep(.clipboard *) {
+  height: 52px;
+}
+
+:deep(.clipboard>h3) {
+  display: table-cell;
+  font-weight: normal;
+  font-size: 14px;
+  padding-left: 16px;
+}
+
+:deep(.clipboard>.bodyText) {
+  display: table-cell;
+  padding-right: 16px;
 }
 </style>

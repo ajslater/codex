@@ -151,6 +151,7 @@ def _get_installed_apps():
         "whitenoise.runserver_nostatic",
         "django.contrib.staticfiles",
         "rest_framework",
+        "rest_framework.authtoken",
         "rest_registration",
         "corsheaders",
     ]
@@ -351,6 +352,7 @@ for scope, value in _THROTTLE_MAP.items():
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",

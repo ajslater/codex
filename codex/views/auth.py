@@ -4,8 +4,13 @@ from collections.abc import Sequence
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
+from loguru import logger
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.serializers import AuthTokenSerializer
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from typing_extensions import override
 
@@ -120,3 +125,36 @@ class AuthFilterAPIView(AuthAPIView, GroupACLMixin):
         """Iniit acl properties."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
+
+
+class AuthToken(AuthGenericAPIView):
+    """Auth Token creation and getting."""
+
+    serializer_class = AuthTokenSerializer
+
+    def get(self, *args, **kwargs):
+        """Get auth token."""
+        user = self.request.user
+        if not user:
+            reason = "Not an authenticated user."
+            raise NotAuthenticated(detail=reason)
+
+        token, created = Token.objects.get_or_create(user=user)
+        if created:
+            logger.info("Auth Token created for user {self.user}")
+        data = {"token": token.key}
+
+        return Response(data)
+
+    def put(self, *args, **kwargs):
+        """Reset auth token for user."""
+        user = self.request.user
+        if not user:
+            reason = "Not an authenticated user."
+            raise NotAuthenticated(detail=reason)
+
+        Token.objects.filter(user=user).delete()
+        token, _ = Token.objects.get_or_create(user=user)
+        logger.info("Auth Token updated for user {self.user}")
+        data = {"token": token.key}
+        return Response(data)
