@@ -1,5 +1,11 @@
 <template>
-  <ClipBoard class="opdsVersion" :title="title" :tooltip="TOOLTIP" :text="url" :subtitle="subtitle" />
+  <ClipBoard
+    class="opdsVersion"
+    :title="title"
+    :tooltip="TOOLTIP"
+    :text="url"
+    :subtitle="subtitle"
+  />
 </template>
 <script>
 import { mdiRss } from "@mdi/js";

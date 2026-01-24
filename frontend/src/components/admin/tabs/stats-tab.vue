@@ -3,7 +3,12 @@
     <StatsTable title="Platform" :items="platformTable" />
     <StatsTable title="Config" :items="configTable">
       <tbody>
-        <ClipBoard class="apiKey" tooltip="Copy API Key" title="API Key" :text="stats.config.apiKey" />
+        <ClipBoard
+          class="apiKey"
+          tooltip="Copy API Key"
+          title="API Key"
+          :text="stats.config.apiKey"
+        />
         <tr id="schemaDoc">
           <td colspan="2">
             <div>
@@ -11,8 +16,13 @@
               <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
               <a :href="schemaHref" target="_blank">/admin/stats</a>
             </div>
-            <ConfirmDialog button-text="Regenerate API Key" title-text="Regenerate" text="API Key"
-              confirm-text="Regenerate" @confirm="regenAPIKey" />
+            <ConfirmDialog
+              button-text="Regenerate API Key"
+              title-text="Regenerate"
+              text="API Key"
+              confirm-text="Regenerate"
+              @confirm="regenAPIKey"
+            />
           </td>
         </tr>
       </tbody>
@@ -29,8 +39,8 @@ import { mapActions, mapState } from "pinia";
 import { capitalCase, snakeCase } from "text-case";
 
 import StatsTable from "@/components/admin/tabs/stats-table.vue";
-import ConfirmDialog from "@/components/confirm-dialog.vue";
 import ClipBoard from "@/components/clipboard.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -183,7 +193,7 @@ export default {
   background-color: rgb(var(--v-theme-background));
 }
 
-#schemaDoc>td {
+#schemaDoc > td {
   padding-top: 15px;
   border-bottom: none !important;
 }
@@ -198,14 +208,14 @@ export default {
   height: 52px;
 }
 
-:deep(.clipboard>h3) {
+:deep(.clipboard > h3) {
   display: table-cell;
   font-weight: normal;
   font-size: 14px;
   padding-left: 16px;
 }
 
-:deep(.clipboard>.bodyText) {
+:deep(.clipboard > .bodyText) {
   display: table-cell;
   padding-right: 16px;
 }

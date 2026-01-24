@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminCreateUpdateDialog table="Group" max-width="20em" :inputs="AdminGroupCreateUpdateInputs" />
+      <AdminCreateUpdateDialog
+        table="Group"
+        max-width="20em"
+        :inputs="AdminGroupCreateUpdateInputs"
+      />
     </header>
     <AdminTable item-title="name" :headers="headers" :items="groups">
       <template #no-data>
@@ -14,12 +18,28 @@
         <RelationChips :pks="item.userSet" :objs="users" title-key="username" />
       </template>
       <template #[`item.librarySet`]="{ item }">
-        <RelationChips :pks="item.librarySet" :objs="normalLibraries" title-key="path" />
+        <RelationChips
+          :pks="item.librarySet"
+          :objs="normalLibraries"
+          title-key="path"
+        />
       </template>
       <template #[`item.actions`]="{ item }">
-        <AdminCreateUpdateDialog table="Group" :old-row="item" max-width="20em" :inputs="AdminGroupCreateUpdateInputs"
-          size="small" density="compact" />
-        <AdminDeleteRowDialog table="Group" :pk="item.pk" :name="item.name" size="small" density="compact" />
+        <AdminCreateUpdateDialog
+          table="Group"
+          :old-row="item"
+          max-width="20em"
+          :inputs="AdminGroupCreateUpdateInputs"
+          size="small"
+          density="compact"
+        />
+        <AdminDeleteRowDialog
+          table="Group"
+          :pk="item.pk"
+          :name="item.name"
+          size="small"
+          density="compact"
+        />
       </template>
     </AdminTable>
     <div id="groupHelp">
@@ -59,7 +79,11 @@
           </tr>
           <tr>
             <td>
-              <GroupChip :item="{ name: 'Include', exclude: false }" title-key="name" group-type />
+              <GroupChip
+                :item="{ name: 'Include', exclude: false }"
+                title-key="name"
+                group-type
+              />
             </td>
             <td class="hidden">Hidden</td>
             <td class="hidden">Hidden</td>
@@ -67,7 +91,11 @@
           </tr>
           <tr>
             <td>
-              <GroupChip :item="{ name: 'Exclude', exclude: true }" title-key="name" group-type />
+              <GroupChip
+                :item="{ name: 'Exclude', exclude: true }"
+                title-key="name"
+                group-type
+              />
             </td>
             <td class="hidden">Hidden</td>
             <td class="see">Can See</td>

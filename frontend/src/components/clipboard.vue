@@ -1,6 +1,7 @@
 <template>
   <span class="clipboard" :title="tooltipText" @click.stop="onClick">
-    <h3>{{ title }}
+    <h3>
+      {{ title }}
       <span v-if="enabled" class="iconContainer">
         <v-icon class="clipboardIcon" size="small" :icon="icon" />
         <v-fade-transition>
@@ -22,12 +23,12 @@ export default {
     tooltip: { type: String, required: true },
     title: { type: String, required: true },
     subtitle: { type: String, required: true },
-    text: { type: String, required: true }
+    text: { type: String, required: true },
   },
   data() {
     return {
       showTooltip: { show: false },
-    }
+    };
   },
   computed: {
     enabled() {
@@ -59,7 +60,7 @@ export default {
         .catch(console.warn);
     },
   },
-}
+};
 </script>
 <style scoped lang="scss">
 .clipboard:hover {
