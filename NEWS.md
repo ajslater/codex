@@ -14,7 +14,10 @@ border-radius: 128px;
     - Remove redundant top links from OPDS 2.0 facets group block.
     - Fixed a status crash.
 - Features
-    - Remote-User HTTP header SSO support in an environment variable. See docs.
+    - Remote-User HTTP header SSO support activated by an environment variable.
+      See docs.
+    - HTTP Header Auth Tokens are now accepted as authorization. Useful for OPDS
+      and possibly some SSO setups.
 
 ## v1.9.7
 
