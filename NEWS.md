@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.9.8
+## v1.9.9
 
 - Fixes
     - Major Access Control Bug would let users see comics in include groups they
@@ -18,6 +18,10 @@ border-radius: 128px;
       See docs.
     - HTTP Header Auth Tokens are now accepted as authorization. Useful for OPDS
       and possibly some SSO setups.
+
+## v1.9.8
+
+- Bad release. Does not start.
 
 ## v1.9.7
 
