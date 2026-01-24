@@ -43,7 +43,7 @@
       </template>
     </AdminTable>
     <div id="groupHelp">
-      <h3>Group Logic</h3>
+      <h3>Group Access Logic</h3>
       <p>
         A library in no groups is accessible to every user and non-users if
         those are enabled.
@@ -174,17 +174,21 @@ export default {
   margin-bottom: 2em;
   color: rgb(var(--v-theme-textSecondary));
 }
+
 #groupTable {
   border: solid thin;
   margin-top: 1em;
 }
+
 #groupTable th,
 #groupTable td {
   padding: 0.25em;
 }
+
 .see {
   background-color: rgb(var(--v-theme-includeGroup));
 }
+
 .hidden {
   background-color: rgb(var(--v-theme-excludeGroup));
 }

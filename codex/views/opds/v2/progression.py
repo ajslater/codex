@@ -25,7 +25,8 @@ from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.util import get_user_agent_name
-from codex.views.opds.v2.href import HrefData, OPDS2HrefMixin
+from codex.views.opds.v2.const import HrefData
+from codex.views.opds.v2.href import OPDS2HrefMixin
 
 if TYPE_CHECKING:
     from codex.models.groups import BrowserGroupModel
@@ -41,9 +42,9 @@ _EMPTY_DEVICE = MappingProxyType(
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
     OPDSAuthMixin,
-    BookmarkFilterMixin,
     OPDS2HrefMixin,
     BookmarkPageMixin,
+    BookmarkFilterMixin,
     AuthFilterGenericAPIView,
 ):
     """OPDS 2 Progression view."""
@@ -72,7 +73,7 @@ class OPDS2ProgressionView(
     @property
     def device(self):
         """Dummy device."""
-        # Codex doesn't record this.
+        # Codex doesn't device for progression.
         return _EMPTY_DEVICE
 
     @property

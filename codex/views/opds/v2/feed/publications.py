@@ -14,10 +14,8 @@ from codex.models import AdminFlag, Comic
 from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import MAX_OBJ_PER_PAGE
 from codex.views.opds.const import MimeType, Rel
-from codex.views.opds.v2.const import Link
+from codex.views.opds.v2.const import HrefData, Link, LinkData
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
-from codex.views.opds.v2.feed.links import LinkData
-from codex.views.opds.v2.href import HrefData
 
 _PUBLICATION_PREVIEW_LIMIT = 5
 

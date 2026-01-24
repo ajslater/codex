@@ -9,7 +9,6 @@ from types import MappingProxyType
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
@@ -18,8 +17,7 @@ from codex.settings import FALSY, MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
-_START_GROUPS = frozenset({"r", "f", "a"})
-_ORDER_BY_MAP = MappingProxyType(
+_ORDER_BY_SUBTITLE_MAP = MappingProxyType(
     {"bookmark_updated_at": "read", "created_at": "added", "date": "published"}
 )
 
@@ -27,10 +25,9 @@ _ORDER_BY_MAP = MappingProxyType(
 class OPDS2FeedView(OPDS2FeedGroupsView):
     """OPDS 2.0 Feed."""
 
-    serializer_class: type[BaseSerializer] | None = OPDS2FeedSerializer
-    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
+    serializer_class = OPDS2FeedSerializer
+    input_serializer_class = OPDSSettingsSerializer
 
-    throttle_scope = "opds"
     IS_START_PAGE: bool = False
 
     def _subtitle(self):
@@ -43,12 +40,15 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             if bf := json.loads(filters).get("bookmark", ""):
                 bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
             parts.append(bf)
+        if q := qps.get("query"):
+            search_query = urllib.parse.unquote(q)
+            parts.append(search_query)
         if (order_by := qps.get("orderBy")) and order_by != "sort_name":
-            order_by = _ORDER_BY_MAP.get(order_by, order_by)
+            order_by = _ORDER_BY_SUBTITLE_MAP.get(order_by, order_by)
             parts.append(order_by)
         if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
             parts.append("desc")
-        return f" ({','.join(parts)})" if parts else ""
+        return ", ".join(parts) if parts else ""
 
     def _title(self, browser_title: Mapping[str, str]):
         """Create the feed title."""
@@ -64,21 +64,21 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         if not result:
             result = BLANK_TITLE
 
-        result += self._subtitle()
         return result
 
     def _feed_metadata(self, title: str, total_count: int, mtime: datetime | None):
         number_of_items = total_count
         current_page = self.kwargs.get("page")
-        return MappingProxyType(
-            {
-                "title": title,
-                "modified": mtime,
-                "number_of_items": number_of_items,
-                "items_per_page": MAX_OBJ_PER_PAGE,
-                "current_page": current_page,
-            }
-        )
+        md = {
+            "title": title,
+            "modified": mtime,
+            "number_of_items": number_of_items,
+            "items_per_page": MAX_OBJ_PER_PAGE,
+            "current_page": current_page,
+        }
+        if subtitle := self._subtitle():
+            md["subtitle"] = subtitle
+        return MappingProxyType(md)
 
     def _feed_navigation_and_groups(
         self,

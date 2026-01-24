@@ -23,6 +23,7 @@ border-radius: 128px;
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
+- Remote-User HTTP header SSO support.
 - Runs in 1GB of RAM, faster with more.
 - GPLv3 Licenced.
 
@@ -270,6 +271,11 @@ index, a Django cache and comic book cover thumbnails.
 - `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
+- `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
+  Remote-User HTTP header. Do not enable this unless codex is guarded behind an
+  authenticating proxy. This can be used with an SSO solution that forwards
+  Remote-User headers after authentication. The SSO user must match the
+  registered Codex user exactly.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
   `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults

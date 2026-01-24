@@ -3,8 +3,8 @@
 from types import MappingProxyType
 
 from codex.views.opds.const import MimeType, Rel, TopRoutes
-from codex.views.opds.v2.feed.links import LinkData, OPDS2LinksView
-from codex.views.opds.v2.href import HrefData
+from codex.views.opds.v2.const import HrefData, LinkData
+from codex.views.opds.v2.feed.links import OPDS2LinksView
 
 _SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s"})
 
@@ -76,15 +76,25 @@ class OPDS2FeedLinksView(OPDS2LinksView):
 
     def get_links(self, up_route):
         """Get the top links section of the feed."""
+        pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 0)
-        top_href_data = HrefData(self._top_route(), inherit_query_params=True)
-        top_link_data = LinkData(Rel.TOP, top_href_data)
-        up_href_data = HrefData(up_route, inherit_query_params=True)
-        up_link_data = LinkData(Rel.UP, up_href_data)
+
         links_data = [
             self.link_self(),
             *self._get_static_links(),
         ]
+
+        if pks and 0 not in pks:
+            # no top or up links if we're already at the top
+            top_href_data = HrefData(self._top_route(), inherit_query_params=True)
+            top_link_data = LinkData(Rel.TOP, top_href_data)
+            up_href_data = HrefData(up_route, inherit_query_params=True)
+            up_link_data = LinkData(Rel.UP, up_href_data)
+            links_data += [
+                self.link(top_link_data),
+                self.link(up_link_data),
+            ]
+
         if page != 1:
             links_data += [
                 self._link_page("first", 1),
@@ -98,15 +108,6 @@ class OPDS2FeedLinksView(OPDS2LinksView):
                 self._link_page("next", page + 1),
                 self._link_page("last", self.num_pages),
             ]
-
-        group = self.kwargs.get("group")
-        pks = self.kwargs.get("pks")
-        if group not in {"r", "f", "a"} and 0 not in pks:
-            links_data += [
-                self.link(top_link_data),
-                self.link(up_link_data),
-            ]
-
         link_dict = {}
         for link in links_data:
             self.link_aggregate(link_dict, link)

@@ -38,12 +38,22 @@ const updatePassword = async (credentials) => {
   return await HTTP.post("/auth/change-password/", credentials);
 };
 
+const getToken = async () => {
+  return await HTTP.get("/auth/token/");
+};
+
+const updateToken = async () => {
+  return await HTTP.put("/auth/token/");
+};
+
 export default {
   updatePassword,
   getAdminFlags,
   getProfile,
-  updateTimezone,
+  getToken,
   login,
   logout,
   register,
+  updateTimezone,
+  updateToken,
 };

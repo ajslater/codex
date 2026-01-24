@@ -77,7 +77,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "top_group": "p",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
-        "last_route": {**DEFAULT_BROWSER_ROUTE, "pks": (0,)},
+        "last_route": {**DEFAULT_BROWSER_ROUTE, "pks": "0"},
     }
 )
 

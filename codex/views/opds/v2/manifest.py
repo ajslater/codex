@@ -6,7 +6,6 @@ from math import floor
 from types import MappingProxyType
 
 from django.db.models import F
-from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
 from codex.models.identifier import Identifier
@@ -17,9 +16,8 @@ from codex.serializers.opds.v2.publication import (
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE, MimeType, Rel
 from codex.views.opds.util import get_credits, get_m2m_objects
-from codex.views.opds.v2.feed.links import LinkData
+from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
-from codex.views.opds.v2.href import HrefData
 
 _MD_CREDIT_MAP = MappingProxyType(
     # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
@@ -179,11 +177,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 class OPDS2ManifestView(OPDS2ManifestMetadataView):
     """Single publication manifest view."""
 
-    TARGET: str = "opds2"
-    throttle_scope = "opds"
-    serializer_class: type[BaseSerializer] | None = (
-        OPDS2PublicationDivinaManifestSerializer
-    )
+    serializer_class = OPDS2PublicationDivinaManifestSerializer
 
     def _publication_reading_order(self, obj):
         """

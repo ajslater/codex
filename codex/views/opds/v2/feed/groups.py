@@ -5,22 +5,21 @@ from collections.abc import Mapping
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
 from codex.settings import MAX_OBJ_PER_PAGE
-from codex.views.mixins import UserActiveMixin
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
-    ORDERED_GROUPS,
+    PREVIEW_GROUPS,
     START_GROUPS,
     TOP_GROUPS,
+    HrefData,
     Link,
+    LinkData,
     LinkGroup,
 )
-from codex.views.opds.v2.feed.links import LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
-from codex.views.opds.v2.href import HrefData
 
 
-class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
+class OPDS2FeedGroupsView(OPDS2PublicationsView):
     """OPDS 2.0 Feed Groups."""
 
     #########
@@ -56,8 +55,7 @@ class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
             and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):
-            if not qps:
-                qps = {}
+            qps = dict(qps) if qps else {}
             qps["orderBy"] = "story_arc_number"
         return qps
 
@@ -141,7 +139,7 @@ class OPDS2FeedGroupsView(UserActiveMixin, OPDS2PublicationsView):
     def _get_ordered_groups(self):
         # Top Nav Groups
         groups = []
-        for group_spec in ORDERED_GROUPS:
+        for group_spec in PREVIEW_GROUPS:
             # explode into individual groups
             for link_spec in group_spec.links:
                 pub_section = self.get_publications_preview(link_spec)
