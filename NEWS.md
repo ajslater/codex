@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fixes
     - Remove redundant top links from OPDS 2.0 facets group block.
+- Features
+    - Remote-User HTTP header SSO support in an environment variable. See docs.
 
 ## v1.9.7
 

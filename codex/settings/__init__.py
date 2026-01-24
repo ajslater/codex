@@ -71,6 +71,7 @@ RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
 LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
+AUTH_REMOTE_USER = not_falsy_env("CODEX_AUTH_REMOTE_USER")
 THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", "0"))
 THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", "0"))
 THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", "0"))
@@ -177,6 +178,10 @@ def _get_middleware():
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
+    ]
+    if AUTH_REMOTE_USER:
+        middleware += ["django.contrib.auth.middleware.RemoteUserMiddleware"]
+    middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "codex.middleware.TimezoneMiddleware",
@@ -255,6 +260,12 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 #   Django 4.0 at the earliest:
 #   https://code.djangoproject.com/ticket/32674
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+if AUTH_REMOTE_USER:
+    AUTHENTICATION_BACKENDS = [
+        "django.contrib.auth.backends.RemoteUserBackend",
+    ]
+    logger.info("Remote User authorization enabled.")
 
 
 # Password validation
