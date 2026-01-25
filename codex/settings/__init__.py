@@ -266,8 +266,6 @@ if AUTH_REMOTE_USER:
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.RemoteUserBackend",
     ]
-    logger.info("Remote User authorization enabled.")
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
