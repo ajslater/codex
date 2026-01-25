@@ -82,8 +82,12 @@ class LogRequestMiddleware:
         for key, value in request.headers.items():
             if key.lower() in {"user-agent", "authorization", "cookie"}:
                 if key.lower().startswith("auth"):
-                    final_val = value.lstrip("Basic ")
-                    final_val = b64decode(final_val).decode()
+                    parts = value.split(" ")
+                    if parts[0] == "Basic":
+                        parts[1] = b64decode(parts[1]).decode()
+                        final_val = " ".join(parts)
+                    else:
+                        final_val = value
                 else:
                     final_val = value
                 filtered_headers[key] = final_val
