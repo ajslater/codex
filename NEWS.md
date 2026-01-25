@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fixes
     - Fix Remote-User authorization for proxy setting http headers.
     - Fix order links not appearing in OPDS v1
+- Feature:
+    - Allow "Bearer" header for token authentication in addition to "Token"
 
 ## v1.9.9
 
