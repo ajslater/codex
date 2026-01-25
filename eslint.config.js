@@ -37,7 +37,7 @@ export const CONFIGS = {
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginNoUnsanitized.configs.recommended,
     ...eslintPluginPromise.configs[FLAT_ALL],
-    ...eslintPluginRegexp.configs.recommended,
+    ...eslintPluginRegexp.configs.all,
     ...eslintPluginSonarjs.configs.all,
     ...eslintPluginUnicorn.configs.all,
     plugins: {
