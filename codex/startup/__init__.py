@@ -13,6 +13,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.settings import (
+    AUTH_REMOTE_USER,
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
     HYPERCORN_CONFIG,
@@ -189,4 +190,6 @@ def codex_init():
     logger.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
         logger.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
+    if AUTH_REMOTE_USER:
+        logger.info("Remote User authorization enabled.")
     return True

@@ -6,6 +6,7 @@ from rest_framework.authentication import (
     TokenAuthentication,
 )
 
+from codex.authentication import BearerTokenAuthentication
 from codex.views.auth import AuthMixin
 
 
@@ -13,7 +14,8 @@ class OPDSAuthMixin(AuthMixin):
     """Add Basic Auth."""
 
     authentication_classes = (
-        TokenAuthentication,
-        BasicAuthentication,
         SessionAuthentication,
+        BasicAuthentication,
+        TokenAuthentication,
+        BearerTokenAuthentication,
     )

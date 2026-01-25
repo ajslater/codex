@@ -4,10 +4,10 @@ from re import DEBUG
 from types import MappingProxyType
 
 from django.contrib.staticfiles.storage import staticfiles_storage
+from django.http.response import JsonResponse
 from django.urls import reverse_lazy
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
-from rest_framework.response import Response
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
 from codex.views.opds.const import MimeType, UserAgentNames
@@ -72,7 +72,7 @@ class OPDSAuthentication1View(GenericAPIView):
         else:
             doc = _DOC
         serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall]
-        return Response(serializer.data, status=status_code)
+        return JsonResponse(serializer.data, status=status_code)
 
     def get(self, *args, **kwargs):
         """Get authentication response."""

@@ -6,12 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.10
+
+- Fixes
+    - Fix Remote-User authorization for proxy setting http headers.
+    - Fix order links not appearing in OPDS v1
+- Feature:
+    - Allow "Bearer" header for token authentication in addition to "Token"
+
 ## v1.9.9
 
 - Fixes
-    - Major Access Control Bug would let users see comics in include groups they
-      were not a part of.
-    - Remove redundant top links from OPDS 2.0 facets group block.
+    - Access control bug would let users see comics in include groups they were
+      not a part of.
+    - Remove redundant top links from OPDS v2 facets group block.
     - Fixed a status crash.
 - Features
     - Remote-User HTTP header SSO support activated by an environment variable.

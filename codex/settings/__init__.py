@@ -181,7 +181,7 @@ def _get_middleware():
         "django.contrib.auth.middleware.AuthenticationMiddleware",
     ]
     if AUTH_REMOTE_USER:
-        middleware += ["django.contrib.auth.middleware.RemoteUserMiddleware"]
+        middleware += ["codex.authentication.HttpRemoteUserMiddleware"]
     middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -265,9 +265,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 if AUTH_REMOTE_USER:
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.RemoteUserBackend",
+        "django.contrib.auth.backends.ModelBackend",
     ]
-    logger.info("Remote User authorization enabled.")
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -353,6 +352,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
+        "codex.authentication.BearerTokenAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",

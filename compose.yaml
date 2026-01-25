@@ -78,3 +78,12 @@ services:
       - ./dist:/dist
       - ./comics:/comics
       - ./config:/config
+  nginx:
+    image: lscr.io/linuxserver/nginx
+    container_name: nginx
+    # network_mode: host
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/config/nginx/site-confs/default.conf:ro
