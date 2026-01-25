@@ -350,7 +350,9 @@ recreate. See this
 [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/)
 article.
 
-#### Remote-User Authentication
+#### Single Sign On and Third Party Authentication.
+
+##### Remote-User Authentication
 
 Remote-User authentication tells Codex to accept a username from the webserver
 and assume that authentication has already been done. This is very insecure if
@@ -365,9 +367,21 @@ auth_request_set $tinyauth_remote_user $upstream_http_remote_user;
 proxy_set_header Remote-User $tiny_auth_user;
 ```
 
-Only turn on the `CODEX_AUTH_REMOTE_USER` environment variable if your webserver
-sets the `Remote-User` header itself every time for the Codex location,
-overriding any malicious client that might set it themselves.
+⚠️ Only turn on the `CODEX_AUTH_REMOTE_USER` environment variable if your
+webserver sets the `Remote-User` header itself every time for the Codex
+location, overriding any malicious client that might set it themselves. ⚠️
+
+##### HTTP Token
+
+You can also configure your proxy to add token authentication to the headers.
+Codex will read both “Token” and “Bearer” prefixed authorization tokens. The
+token is unique for each user and may be found in the Web UI sidebar. You must
+configure your proxy or single sign on software to send this token.
+
+```nginx
+set              user_token 'user-token-taken-from-web-ui';
+proxy_set_header Authorization "Token $user_token";
+```
 
 ### Restricted Memory Environments
 
@@ -425,13 +439,26 @@ clients.
 - [Stump (Alpha Test)](https://www.stumpapp.dev/guides/mobile/app)
 - [Readest](https://readest.com/) (No page streaming yet, download only)
 
-#### HTTP Basic Authentication
+#### OPDS Authentication
 
-If you wish to access OPDS as your Codex User. You will have to add your
-username and password to the URL. Some OPDS clients do not asssist you with
-authentication. In that case the OPDS url will look like:
+##### OPDS Login
 
-`http(s)://username:password@host.tld(:9810)(/root_path)/opds/v1.2/`
+The few clients that implement the OPDS 1.0 Authentication spec present the user
+with a login screen for interactive authentication.
+
+##### HTTP Basic
+
+Some OPDS clients allow configuring HTTP Basic authentication in their OPDS
+server settings. If the don't, you will have to add your username and password
+to the URL. In that case the OPDS url will look like:
+
+`http(s)://username:password@codex-server.tld(:9810)(/root_path)/opds/v1.2/`
+
+##### HTTP Token
+
+Some clients allow adding a unique login token to the HTTP headers. Codex will
+read both "Token" and "Bearer" prefixed authorization tokens. The token is
+unique for each user and may be found in the Web UI sidebar.
 
 #### Supported OPDS Specifications
 
