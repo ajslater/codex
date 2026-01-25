@@ -181,7 +181,7 @@ def _get_middleware():
         "django.contrib.auth.middleware.AuthenticationMiddleware",
     ]
     if AUTH_REMOTE_USER:
-        middleware += ["django.contrib.auth.middleware.RemoteUserMiddleware"]
+        middleware += ["codex.authentication.HttpRemoteUserMiddleware"]
     middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",

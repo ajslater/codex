@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.9.10
 
 - Fixes
+    - Fix Remote-User authorization for proxy setting http headers.
     - Fix order links not appearing in OPDS v1
 
 ## v1.9.9
