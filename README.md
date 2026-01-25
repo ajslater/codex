@@ -272,7 +272,8 @@ index, a Django cache and comic book cover thumbnails.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
 - `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
-  Remote-User HTTP header. This can be very insecure if not configured properly. Please read the Remote-User docs devoted to it below.
+  Remote-User HTTP header. This can be very insecure if not configured properly.
+  Please read the Remote-User docs devoted to it below.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
   `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
@@ -351,16 +352,22 @@ article.
 
 #### Remote-User Authentication
 
-Remote-User authentication tells Codex to accept a username from the webserver and assume that authentication has already been done. This is very insecure if you haven't configured an authenticating reverse proxy in front of Codex.
+Remote-User authentication tells Codex to accept a username from the webserver
+and assume that authentication has already been done. This is very insecure if
+you haven't configured an authenticating reverse proxy in front of Codex.
 
-Here's a snipped for configuring nginx with tinyauth to provide this header. This snipped it incomplete and assumes that the rest of nginx tinyauth config has been done:
+Here's a snipped for configuring nginx with tinyauth to provide this header.
+This snipped it incomplete and assumes that the rest of nginx tinyauth config
+has been done:
 
 ```nginx
 auth_request_set $tinyauth_remote_user $upstream_http_remote_user;
 proxy_set_header Remote-User $tiny_auth_user;
 ```
 
-Only turn on the `CODEX_AUTH_REMOTE_USER` environment variable if your webserver sets the `Remote-User` header itself every time for the Codex location, overriding any malicious client that might set it themselves.
+Only turn on the `CODEX_AUTH_REMOTE_USER` environment variable if your webserver
+sets the `Remote-User` header itself every time for the Codex location,
+overriding any malicious client that might set it themselves.
 
 ### Restricted Memory Environments
 
