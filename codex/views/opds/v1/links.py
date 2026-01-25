@@ -89,7 +89,7 @@ class OPDS1LinksView(OPDS1FacetsView):
                 for top_link in TopLinks.ALL + RootTopLinks.ALL:
                     if not self.is_top_link_displayed(top_link):
                         links += [self._top_link(top_link)]
-                if facets := self.facets(entries=False, root=True):
+                if facets := self.facets(entries=False):
                     links += facets
         except Exception:
             logger.exception("Getting OPDS v1 links")

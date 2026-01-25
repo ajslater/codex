@@ -32,7 +32,6 @@ class OPDS1FeedView(OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
-    IS_START_PAGE: bool = False
 
     @property
     def opds_ns(self):
@@ -135,18 +134,19 @@ class OPDS1FeedView(OPDS1LinksView):
         """Create all the entries."""
         entries = []
         try:
-            if not self.use_facets and self.kwargs.get("page") == 1:
-                if self.IS_START_PAGE:
-                    entries += self.add_top_links(RootTopLinks.ALL)
-                    entries += self.facets(entries=True, root=True)
-                else:
-                    entries += self.add_start_link()
-                    entries += self.facets(entries=True, root=False)
-                    entries += self._get_entries_section("groups", metadata=False)
-                    metadata = (
-                        self.request.GET.get("opdsMetadata", "").lower() not in FALSY
-                    )
-                    entries += self._get_entries_section("books", metadata)
+            # if not self.use_facets:  # and self.kwargs.get("page") == 1:
+            facet_entries = not self.use_facets
+            if self.IS_START_PAGE:
+                entries += self.add_top_links(RootTopLinks.ALL)
+            else:
+                entries += self.add_start_link()
+
+            entries += self.facets(entries=facet_entries)
+
+            if not self.IS_START_PAGE:
+                entries += self._get_entries_section("groups", metadata=False)
+                metadata = self.request.GET.get("opdsMetadata", "").lower() not in FALSY
+                entries += self._get_entries_section("books", metadata)
         except Exception:
             logger.exception("Getting OPDS v1 entries")
         return entries
