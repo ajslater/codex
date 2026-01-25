@@ -265,6 +265,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 if AUTH_REMOTE_USER:
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.RemoteUserBackend",
+        "django.contrib.auth.backends.ModelBackend",
     ]
 
 # Password validation
