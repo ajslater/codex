@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.11
+
+- Fixes:
+    - Fix OPDS v1 pagination.
+
 ## v1.9.10
 
 - Fixes

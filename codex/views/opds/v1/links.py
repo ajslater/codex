@@ -81,9 +81,16 @@ class OPDS1LinksView(OPDS1FacetsView):
                 ),
                 OPDS1Link(Rel.START, reverse("opds:v1:start"), MimeType.NAV),
                 OPDS1Link(
-                    "search", reverse("opds:v1:opensearch_v1"), MimeType.OPENSEARCH
+                    Rel.SEARCH, reverse("opds:v1:opensearch_v1"), MimeType.OPENSEARCH
                 ),
             ]
+            if self.IS_START_PAGE:
+                links += [
+                    OPDS1Link(
+                        Rel.ALTERNATE, reverse("opds:v2:start"), MimeType.OPDS_JSON
+                    )
+                ]
+
             links += self._root_links()
             if self.use_facets:
                 for top_link in TopLinks.ALL + RootTopLinks.ALL:
