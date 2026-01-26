@@ -155,7 +155,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             kwargs = self.kwargs
 
         qps = {facet_group.query_param: facet.value}
-        if entries and self.kwargs.get("page") == 1:
+        if entries:
             facet = self._facet_entry(kwargs, facet_group, facet, qps)
         else:
             facet = self._facet(kwargs, facet_group, facet.title, qps)
