@@ -144,6 +144,8 @@ class SearchFilterView(BrowserFTSFilter):
         multi_col = match.group("multi_col")
         col = match.group("col")
         exp = match.group("exp")
+        if exp:
+            exp = exp.strip("'").strip('"')
         if multi_col or not col or not exp:
             # I could add multi-col to field groups, but nobody will care.
             self._add_fts_token(fts_tokens, token)
@@ -151,6 +153,8 @@ class SearchFilterView(BrowserFTSFilter):
 
         preop = match.group("preop")
         if not self._parse_column_match(preop, col, exp, field_tokens):
+            if col and exp:
+                token = f"{col}:{exp}"
             self._add_fts_token(fts_tokens, token)
 
     def _preparse_search_query(self):
