@@ -6,6 +6,7 @@ from types import MappingProxyType
 
 from comicbox.fields.fields import IssueField
 from dateparser import parse
+from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import (
     BooleanField,
     CharField,
@@ -22,7 +23,10 @@ _QUOTES_RE = re.compile(r"[\"']")
 _OP_MAP = MappingProxyType({">": "gt", ">=": "gte", "<": "lt", "<=": "lte"})
 _RANGE_RE = re.compile(r"\.{2,}")
 _PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
-_LIKE_RE = re.compile(f"([{re.escape('%_')}])")
+_LIKE_QUERY_VALUE = re.compile(r"\S\*+\S")
+_ICONTAINS_QUERY_VALUE = re.compile(r"^(\*.*\*|[^*].*[^*]|^\**$)$")
+_IENDSWITH_QEURY_VALUE = re.compile(r"^\*")
+_ISTARTSWITH_QEURY_VALUE = re.compile(r"\*$")
 
 
 def _parse_issue_value(value):
@@ -81,6 +85,31 @@ def _cast_value(rel, rel_class, value):
     return value
 
 
+def _glob_to_lookup(value) -> tuple[str, str]:
+    """Transform globs into django orm lookups."""
+    rel_suffix = ""
+    value = value.strip('"').strip("'")
+    ic(value)
+    if _LIKE_QUERY_VALUE.search(value):
+        # Django doesn't have a builtin interior LIKE operator.
+        # Escape LIKE reserved chars
+        value = BaseDatabaseOperations(None).prep_for_like_query(value)
+        value = value.replace("*", "%")
+        rel_suffix = "__like"
+    elif _ICONTAINS_QUERY_VALUE.search(value):
+        rel_suffix = "__icontains"
+        value = value.replace("*", "")
+    elif _IENDSWITH_QEURY_VALUE.search(value):
+        rel_suffix = "__iendswith"
+        value = value.replace("*", "")
+    elif _ISTARTSWITH_QEURY_VALUE.search(value):
+        # This never happens because full text search hijacks it early.
+        rel_suffix = "__istartswith"
+        value = value.replace("*", "")
+
+    return value, rel_suffix
+
+
 def _parse_operator_numeric(rel, rel_class, value):
     value = _cast_value(rel, rel_class, value)
     if value is None:
@@ -93,8 +122,8 @@ def _parse_operator_text(rel, exp):
     if rel == "issue":
         return _parse_issue_values(rel, exp)
 
-    value = _glob_to_like(exp)
-    rel += "__like"
+    value, rel_suffix = _glob_to_lookup(exp)
+    rel += rel_suffix
     return {rel: value}
 
 
@@ -125,32 +154,6 @@ def _parse_operator_range(rel, rel_class, value) -> dict:
     return {rel: range_value}
 
 
-def _glob_to_like(value) -> str:
-    """Transform globs into like lookups."""
-    # Escape like tokens
-    value = _LIKE_RE.sub(r"\\\g<1>", value)
-
-    # Remove double stars
-    while True:
-        new_value = value.replace("**", "*")
-        if new_value == value:
-            value = new_value
-            break
-        value = new_value
-
-    if not value:
-        return "%"
-
-    # Replace starts with like operands
-    value = value.replace("*", "%")
-
-    # If not a prefix or suffix search, make a like term search
-    if not value.startswith("%") and not value.endswith("%"):
-        value = f"%{value}%"
-
-    return value
-
-
 def parse_expression(rel, rel_class, exp) -> dict:
     """Parse the operators of the value size of the field query."""
     exp = _QUOTES_RE.sub("", exp)
@@ -167,9 +170,9 @@ def parse_expression(rel, rel_class, exp) -> dict:
     else:
         if ".." in exp:
             q_dict = _parse_operator_range(rel, rel_class, exp)
-        elif (
-            issubclass(rel_class, CharField) or issubclass(rel_class, TextField)
-        ) and not rel.startswith("volume"):
+        elif (issubclass(rel_class, CharField | TextField)) and not rel.startswith(
+            "volume"
+        ):
             q_dict = _parse_operator_text(rel, exp)
         else:
             q_dict = _parse_operator_numeric(rel, rel_class, exp)
