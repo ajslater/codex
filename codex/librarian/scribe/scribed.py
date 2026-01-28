@@ -40,6 +40,8 @@ ABORT_SEARCH_UPDATE_TASKS = (
 class ScribeThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
+    SHUTDOWN_MSG = (0, QueuedThread.SHUTDOWN_MSG)
+
     def __init__(self, *args, **kwargs):
         """Initialize abort event."""
         self.abort_import_event = Manager().Event()
