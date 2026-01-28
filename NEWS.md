@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.13
+
+- Fixes:
+    - Fix crash on API schema generation.
+
 ## v1.9.12
 
 - Fixes:
