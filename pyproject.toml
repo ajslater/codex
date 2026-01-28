@@ -36,7 +36,6 @@ dependencies = [
   "psutil~=7.1",
   "pyparsing~=3.2",
   "requests~=2.24",
-  "typing-extensions~=4.14",
   "tzlocal~=5.0",
   "watchdog~=6.0",
   "websocket-client~=1.2",
