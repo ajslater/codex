@@ -42,7 +42,7 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
 class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
 
-    SHUTDOWN_MSG = "shutdown"
+    SHUTDOWN_MSG: str | tuple = "shutdown"
     SHUTDOWN_TIMEOUT = 5
 
     def __init__(self, *args, **kwargs):
