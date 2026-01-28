@@ -3,6 +3,7 @@
 import json
 from copy import deepcopy
 from datetime import datetime
+from typing import override
 from urllib.parse import parse_qsl, urlparse
 
 from django.db.models import QuerySet
