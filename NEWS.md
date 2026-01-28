@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.12
+
+- Fixes:
+    - Fix accepting OPDS v2 progression correct Content-Type.
+    - Fix parsing OPDS v2 progression position.
+    - Fix bookmark update crash.
+
 ## v1.9.11
 
 - Fixes:

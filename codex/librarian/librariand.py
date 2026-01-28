@@ -51,7 +51,7 @@ _THREAD_CLASSES = (
 _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
 )
-LibrarianThreads = NamedTuple("LibrarianThreads", _THREAD_CLASS_MAP.items())
+LibrarianThreads = NamedTuple("LibrarianThreads", tuple(_THREAD_CLASS_MAP.items()))  # ty: ignore[invalid-named-tuple]
 
 
 class LibrarianDaemon(Process):

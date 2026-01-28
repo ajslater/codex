@@ -64,16 +64,36 @@ class OPDS1LinksView(OPDS1FacetsView):
             links += [self._link(next_route, Rel.NEXT)]
         return links
 
+    def _links_start_page_links(self):
+        links = []
+        if not self.IS_START_PAGE:
+            return links
+        links += [
+            OPDS1Link(Rel.ALTERNATE, reverse("opds:v2:start"), MimeType.OPDS_JSON)
+        ]
+        return links
+
+    def _links_facets(self):
+        links = []
+        if not self.use_facets:
+            return links
+        for top_link in TopLinks.ALL + RootTopLinks.ALL:
+            if not self.is_top_link_displayed(top_link):
+                links += [self._top_link(top_link)]
+        if facets := self.facets(entries=False):
+            links += facets
+        return links
+
     @property
     def links(self):
         """Create all the links."""
         links = []
         try:
-            mime_type = (
+            self_mime_type = (
                 MimeType.ACQUISITION if self.is_opds_acquisition else MimeType.NAV
             )
             links += [
-                OPDS1Link("self", self.request.get_full_path(), mime_type),
+                OPDS1Link("self", self.request.get_full_path(), self_mime_type),
                 OPDS1Link(
                     Rel.AUTHENTICATION,
                     reverse("opds:auth:v1"),
@@ -84,20 +104,9 @@ class OPDS1LinksView(OPDS1FacetsView):
                     Rel.SEARCH, reverse("opds:v1:opensearch_v1"), MimeType.OPENSEARCH
                 ),
             ]
-            if self.IS_START_PAGE:
-                links += [
-                    OPDS1Link(
-                        Rel.ALTERNATE, reverse("opds:v2:start"), MimeType.OPDS_JSON
-                    )
-                ]
-
+            links += self._links_start_page_links()
             links += self._root_links()
-            if self.use_facets:
-                for top_link in TopLinks.ALL + RootTopLinks.ALL:
-                    if not self.is_top_link_displayed(top_link):
-                        links += [self._top_link(top_link)]
-                if facets := self.facets(entries=False):
-                    links += facets
+            links += self._links_facets()
         except Exception:
             logger.exception("Getting OPDS v1 links")
         return links
