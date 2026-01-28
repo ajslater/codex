@@ -89,7 +89,6 @@ def _glob_to_lookup(value) -> tuple[str, str]:
     """Transform globs into django orm lookups."""
     rel_suffix = ""
     value = value.strip('"').strip("'")
-    ic(value)
     if _LIKE_QUERY_VALUE.search(value):
         # Django doesn't have a builtin interior LIKE operator.
         # Escape LIKE reserved chars
