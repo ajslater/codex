@@ -14,6 +14,7 @@ from django.db.models.query_utils import FilteredRelation
 from django.http import HttpResponse
 from loguru import logger
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 
 from codex.models.comic import Comic
@@ -38,6 +39,12 @@ _EMPTY_DEVICE = MappingProxyType(
 )
 
 
+class ReadiumProgressionParser(JSONParser):
+    """Parses 'application/vnd.readium.progression+json' as standard JSON."""
+
+    media_type = "application/vnd.readium.progression+json"
+
+
 # This is an independent api requiring a separate get.
 class OPDS2ProgressionView(
     OPDSAuthMixin,
@@ -48,6 +55,7 @@ class OPDS2ProgressionView(
 ):
     """OPDS 2 Progression view."""
 
+    parser_classes = (ReadiumProgressionParser, JSONParser)
     serializer_class = OPDS2ProgressionSerializer
 
     def __init__(self, *args, **kwargs):
@@ -163,7 +171,10 @@ class OPDS2ProgressionView(
         try:
             obj = self.get_object()
             serializer = self.get_serializer(obj)
-            return Response(serializer.data)
+            return Response(
+                serializer.data
+                # , content_type=ReadiumProgressionParser.media_type
+            )
         except Exception:
             logger.exception("progression")
             raise
@@ -171,8 +182,9 @@ class OPDS2ProgressionView(
     def put(self, *_args, **_kwargs):
         """Update the bookmark."""
         data = self.request.data
-        serializer = self.serializer_class(data=data, partial=True)  # pyright: ignore[reportOptionalCall]
+        serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)
+
         data = serializer.validated_data
         conflict = False
         status_code = HTTPStatus.BAD_REQUEST

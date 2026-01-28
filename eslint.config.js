@@ -24,7 +24,6 @@ import eslintPluginYml from "eslint-plugin-yml";
 import globals from "globals";
 
 export const FLAT_ALL = "flat/all";
-export const FLAT_BASE = "flat/base";
 export const FLAT_RECOMMENDED = "flat/recommended";
 
 export const CONFIGS = {
@@ -37,7 +36,7 @@ export const CONFIGS = {
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginNoUnsanitized.configs.recommended,
     ...eslintPluginPromise.configs[FLAT_ALL],
-    ...eslintPluginRegexp.configs.recommended,
+    ...eslintPluginRegexp.configs.all,
     ...eslintPluginSonarjs.configs.all,
     ...eslintPluginUnicorn.configs.all,
     plugins: {

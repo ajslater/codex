@@ -5,6 +5,7 @@ from typing import override
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
 
@@ -88,10 +89,10 @@ class AdminUserViewSet(AdminModelViewSet):
         groups = validated_data.pop("groups")
         validated_data["email"] = ""
         user = User.objects.create_user(**validated_data)
-
         if groups:
             user.groups.set(groups)
             user.save()
+        Token.objects.create(user=user)
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

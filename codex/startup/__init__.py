@@ -7,11 +7,13 @@ from django.core.cache import cache
 from django.db.models import F, Q
 from django.db.models.functions import Now
 from loguru import logger
+from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.settings import (
+    AUTH_REMOTE_USER,
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
     HYPERCORN_CONFIG,
@@ -156,6 +158,16 @@ def update_custom_covers_for_config_dir():
         )
 
 
+def create_missing_auth_tokens():
+    """Create missing auth tokens."""
+    num_created = 0
+    for user in User.objects.all():
+        _, created = Token.objects.get_or_create(user=user)
+        if created:
+            num_created += 1
+        logger.info(f"Created {num_created} missing auth tokens for users.")
+
+
 def ensure_db_rows():
     """Ensure database content is good."""
     ensure_superuser()
@@ -165,6 +177,7 @@ def ensure_db_rows():
     clear_library_status()
     init_custom_cover_dir()
     update_custom_covers_for_config_dir()
+    create_missing_auth_tokens()
 
 
 def codex_init():
@@ -177,4 +190,6 @@ def codex_init():
     logger.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
         logger.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
+    if AUTH_REMOTE_USER:
+        logger.info("Remote User authorization enabled.")
     return True

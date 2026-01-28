@@ -16,9 +16,11 @@ export const useAuthStore = defineStore("auth", {
       lazyImportMetadata: undefined,
     },
     user: undefined,
+    token: undefined,
     MIN_PASSWORD_LENGTH: 4,
     showLoginDialog: false,
     showChangePasswordDialog: false,
+    showAuthTokenDialog: false,
   }),
   getters: {
     isAuthorized() {
@@ -101,6 +103,16 @@ export const useAuthStore = defineStore("auth", {
       if (this.adminFlags.nonUsers || this.user) {
         await API.updateTimezone().catch(console.error);
       }
+    },
+    async getToken() {
+      await API.getToken()
+        .then((response) => (this.token = response.data.token))
+        .catch(console.error);
+    },
+    async updateToken() {
+      await API.updateToken()
+        .then((response) => (this.token = response.data.token))
+        .catch(console.error);
     },
   },
 });

@@ -118,11 +118,8 @@ def ensure_db_schema():
             return False
         _repair_db(logger)
 
-    if not db_exists or _has_unapplied_migrations():
-        if db_exists:
-            _backup_db_before_migration()
-        call_command("migrate")
-    else:
-        logger.info("Database up to date.")
+    if db_exists and _has_unapplied_migrations():
+        _backup_db_before_migration()
+    call_command("migrate")
     logger.success("Database ready.")
     return True

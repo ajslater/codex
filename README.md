@@ -23,6 +23,7 @@ border-radius: 128px;
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
+- Remote-User HTTP header SSO support.
 - Runs in 1GB of RAM, faster with more.
 - GPLv3 Licenced.
 
@@ -270,6 +271,9 @@ index, a Django cache and comic book cover thumbnails.
 - `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
+- `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
+  Remote-User HTTP header. This can be very insecure if not configured properly.
+  Please read the Remote-User docs devoted to it below.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
   `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
@@ -346,6 +350,39 @@ recreate. See this
 [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/)
 article.
 
+#### Single Sign On and Third Party Authentication.
+
+##### Remote-User Authentication
+
+Remote-User authentication tells Codex to accept a username from the webserver
+and assume that authentication has already been done. This is very insecure if
+you haven't configured an authenticating reverse proxy in front of Codex.
+
+Here's a snipped for configuring nginx with tinyauth to provide this header.
+This snipped it incomplete and assumes that the rest of nginx tinyauth config
+has been done:
+
+```nginx
+auth_request_set $tinyauth_remote_user $upstream_http_remote_user;
+proxy_set_header Remote-User $tiny_auth_user;
+```
+
+⚠️ Only turn on the `CODEX_AUTH_REMOTE_USER` environment variable if your
+webserver sets the `Remote-User` header itself every time for the Codex
+location, overriding any malicious client that might set it themselves. ⚠️
+
+##### HTTP Token
+
+You can also configure your proxy to add token authentication to the headers.
+Codex will read both “Token” and “Bearer” prefixed authorization tokens. The
+token is unique for each user and may be found in the Web UI sidebar. You must
+configure your proxy or single sign on software to send this token.
+
+```nginx
+set              user_token 'user-token-taken-from-web-ui';
+proxy_set_header Authorization "Token $user_token";
+```
+
 ### Restricted Memory Environments
 
 Codex can run with as little as 1GB available RAM. Large batch jobs –like
@@ -402,13 +439,26 @@ clients.
 - [Stump (Alpha Test)](https://www.stumpapp.dev/guides/mobile/app)
 - [Readest](https://readest.com/) (No page streaming yet, download only)
 
-#### HTTP Basic Authentication
+#### OPDS Authentication
 
-If you wish to access OPDS as your Codex User. You will have to add your
-username and password to the URL. Some OPDS clients do not asssist you with
-authentication. In that case the OPDS url will look like:
+##### OPDS Login
 
-`http(s)://username:password@host.tld(:9810)(/root_path)/opds/v1.2/`
+The few clients that implement the OPDS 1.0 Authentication spec present the user
+with a login screen for interactive authentication.
+
+##### HTTP Basic
+
+Some OPDS clients allow configuring HTTP Basic authentication in their OPDS
+server settings. If the don't, you will have to add your username and password
+to the URL. In that case the OPDS url will look like:
+
+`http(s)://username:password@codex-server.tld(:9810)(/root_path)/opds/v1.2/`
+
+##### HTTP Token
+
+Some clients allow adding a unique login token to the HTTP headers. Codex will
+read both "Token" and "Bearer" prefixed authorization tokens. The token is
+unique for each user and may be found in the Web UI sidebar.
 
 #### Supported OPDS Specifications
 

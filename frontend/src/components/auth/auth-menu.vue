@@ -6,6 +6,7 @@
       @click.stop="logout"
     />
     <ChangePasswordDialog v-if="showChangePassword" :user="user" />
+    <AuthTokenDialog :user="user" />
   </div>
   <AuthLoginDialog v-else />
 </template>
@@ -14,6 +15,7 @@
 import { mdiLogout } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import AuthTokenDialog from "@/components/auth/auth-token.vue";
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
@@ -23,6 +25,7 @@ export default {
   name: "AuthMenu",
   components: {
     AuthLoginDialog,
+    AuthTokenDialog,
     ChangePasswordDialog,
     CodexListItem,
   },

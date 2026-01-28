@@ -6,10 +6,42 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.9.8
+## v1.9.12
+
+- Fixes:
+    - Fix accepting OPDS v2 progression correct Content-Type.
+    - Fix parsing OPDS v2 progression position.
+    - Fix bookmark update crash.
+
+## v1.9.11
+
+- Fixes:
+    - Fix OPDS v1 pagination.
+
+## v1.9.10
 
 - Fixes
-    - Remove redundant top links from OPDS 2.0 facets group block.
+    - Fix Remote-User authorization for proxy setting http headers.
+    - Fix order links not appearing in OPDS v1
+- Feature:
+    - Allow "Bearer" header for token authentication in addition to "Token"
+
+## v1.9.9
+
+- Fixes
+    - Access control bug would let users see comics in include groups they were
+      not a part of.
+    - Remove redundant top links from OPDS v2 facets group block.
+    - Fixed a status crash.
+- Features
+    - Remote-User HTTP header SSO support activated by an environment variable.
+      See docs.
+    - HTTP Header Auth Tokens are now accepted as authorization. Useful for OPDS
+      and possibly some SSO setups.
+
+## v1.9.8
+
+- Bad release. Does not start.
 
 ## v1.9.7
 

@@ -27,6 +27,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     """OPDS 1 Facets methods."""
 
     TARGET = "opds1"
+    IS_START_PAGE: bool = False
 
     def __init__(self, *args, **kwargs):
         """Initialize properties."""
@@ -143,7 +144,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
                 return True
         return False
 
-    def _facet_or_facet_entry(self, facet_group, facet, entries):
+    def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
         group = self.kwargs.get("group")
         if facet_group.query_param == "topGroup" and self._did_special_group_change(
@@ -154,13 +155,13 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             kwargs = self.kwargs
 
         qps = {facet_group.query_param: facet.value}
-        if entries and self.kwargs.get("page") == 1:
+        if entries:
             facet = self._facet_entry(kwargs, facet_group, facet, qps)
         else:
             facet = self._facet(kwargs, facet_group, facet.title, qps)
         return facet
 
-    def _facet_group(self, facet_group, entries):
+    def _facet_group(self, facet_group, *, entries: bool):
         facets = []
         for facet in facet_group.facets:
             if facet.value == "f":
@@ -171,21 +172,23 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
                 )
                 if not efv_flag:
                     continue
-            if facet_obj := self._facet_or_facet_entry(facet_group, facet, entries):
+            if facet_obj := self._facet_or_facet_entry(
+                facet_group, facet, entries=entries
+            ):
                 facets += [facet_obj]
         return facets
 
-    def facets(self, *, entries: bool, root: bool):
-        # entries false, root true
+    def facets(self, *, entries: bool):
         """Return facets."""
         facets = []
-        group = self.kwargs.get("group")
-        add_order_facets = (
-            group != "c" and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
-        )
-        if root:
-            facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries)
-        elif not add_order_facets:
-            facets += self._facet_group(FacetGroups.ORDER_BY, entries)
-            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
+        if self.IS_START_PAGE:
+            facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries=entries)
+        else:
+            group = self.kwargs.get("group")
+            if (
+                group != "c"
+                and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
+            ):
+                facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)
+                facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries=entries)
         return facets

@@ -13,14 +13,15 @@ _RESET_TOP_GROUP_QUERY = "?topGroup=p"
 _OPDS_REDIRECT_TO_TOP_CODES = frozenset(
     {
         status.HTTP_400_BAD_REQUEST,
-        status.HTTP_403_FORBIDDEN,
         status.HTTP_404_NOT_FOUND,
         status.HTTP_405_METHOD_NOT_ALLOWED,
         status.HTTP_410_GONE,
         status.HTTP_414_REQUEST_URI_TOO_LONG,
     }
 )
-_OPDS_REDIRECT_TO_AUTH_CODES = frozenset({status.HTTP_401_UNAUTHORIZED})
+_OPDS_REDIRECT_TO_AUTH_CODES = frozenset(
+    {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN}
+)
 
 
 def codex_opds_exception_handler(exc, context):

@@ -75,7 +75,7 @@ class BookmarkPageMixin(BookmarkAuthMixin):
         auth_filter = self.get_bookmark_auth_filter()
         comic_pks = []
         if comic_pk := self.kwargs.get("pk"):
-            comic_pk.append(comic_pk)
+            comic_pks.append(comic_pk)
         comic_pks = tuple(comic_pks)
         page = self.kwargs.get("page")
         updates = {"page": page}
