@@ -350,7 +350,13 @@ recreate. See this
 [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/)
 article.
 
-#### Single Sign On and Third Party Authentication.
+#### Single Sign On and Third Party Authentication
+
+##### OAuth & OIDC
+
+Codex is not an OIDC client at this time. However the following Remote-User and
+Token Authentication methods may assist other services in providing Single Sign
+On.
 
 ##### Remote-User Authentication
 
@@ -371,7 +377,7 @@ proxy_set_header Remote-User $tiny_auth_user;
 webserver sets the `Remote-User` header itself every time for the Codex
 location, overriding any malicious client that might set it themselves. ⚠️
 
-##### HTTP Token
+##### HTTP Token Authentication
 
 You can also configure your proxy to add token authentication to the headers.
 Codex will read both “Token” and “Bearer” prefixed authorization tokens. The
