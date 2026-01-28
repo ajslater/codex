@@ -172,7 +172,10 @@ class OPDS2ProgressionView(
         try:
             obj = self.get_object()
             serializer = self.get_serializer(obj)
-            return Response(serializer.data)
+            return Response(
+                serializer.data
+                # , content_type=ReadiumProgressionParser.media_type
+            )
         except Exception:
             logger.exception("progression")
             raise
@@ -180,8 +183,9 @@ class OPDS2ProgressionView(
     def put(self, *_args, **_kwargs):
         """Update the bookmark."""
         data = self.request.data
-        serializer = self.serializer_class(data=data, partial=True)  # pyright: ignore[reportOptionalCall]
+        serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)
+
         data = serializer.validated_data
         conflict = False
         status_code = HTTPStatus.BAD_REQUEST
