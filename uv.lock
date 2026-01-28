@@ -741,7 +741,7 @@ lint = [
     { name = "codespell", specifier = "~=2.4" },
     { name = "complexipy", specifier = "~=5.1" },
     { name = "django-schema-graph", specifier = "~=3.1" },
-    { name = "django-types", specifier = "~=0.21" },
+    { name = "django-types", specifier = "~=0.22" },
     { name = "djangorestframework-types", specifier = "~=0.9" },
     { name = "djlint", specifier = "~=1.36" },
     { name = "icecream", specifier = "~=2.1" },
