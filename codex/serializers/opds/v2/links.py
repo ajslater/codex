@@ -18,9 +18,9 @@ class OPDS2LinkBaseSerializer(Serializer):
     rel = SerializerMethodField(read_only=True, required=False)
     type = CharField(read_only=True, required=False)
 
-    def get_rel(self, obj) -> str | list[str] | None:
+    def get_rel(self, obj) -> str | list[str]:
         """Allow for SanitizedCharField or CharListField types."""
-        rel: str | list[str] | None = obj.get("rel")
+        rel: str | list[str] = obj.get("rel", "")
         if rel and not isinstance(rel, list | str):
             reason = "OPDS2LinkSerializer.rel is not a list or a string."
             raise TypeError(reason)
