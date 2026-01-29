@@ -10,7 +10,7 @@ from rest_framework.serializers import (
 )
 
 from codex.choices.browser import VUETIFY_NULL_CODE
-from codex.models.comic import FileType, ReadingDirection
+from codex.models.choices import FileTypeChoices, ReadingDirectionChoices
 from codex.serializers.fields.base import CodexChoiceField
 
 
@@ -27,13 +27,13 @@ class VuetifyNullCodeFieldMixin:
 class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """File Type Choice Field."""
 
-    class_choices = FileType.values
+    class_choices = FileTypeChoices.values
 
 
 class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Reading Direction Choice Field."""
 
-    class_choices = ReadingDirection.values
+    class_choices = ReadingDirectionChoices.values
 
 
 class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride]

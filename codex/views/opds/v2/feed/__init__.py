@@ -163,3 +163,11 @@ class OPDS2StartView(OPDS2FeedView):
         """Reset all params."""
         super().__init__(*args, **kwargs)
         self.set_params(DEFAULT_PARAMS)
+
+    @override
+    @extend_schema(
+        parameters=[OPDS2FeedView.input_serializer_class],
+        operation_id="opds_2.0_start_retrieve",
+    )
+    def get(self, *args, **kwargs):
+        return super().get(*args, **kwargs)

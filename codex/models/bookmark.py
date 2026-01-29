@@ -11,8 +11,9 @@ from django.db.models import (
     TextChoices,
 )
 
-from codex.models.base import BaseModel, max_choices_len
-from codex.models.comic import Comic, ReadingDirection
+from codex.models.base import BaseModel
+from codex.models.choices import ReadingDirectionChoices, max_choices_len
+from codex.models.comic import Comic
 
 __all__ = ("Bookmark", "cascade_if_user_null")
 
@@ -49,7 +50,7 @@ def cascade_if_user_null(
 class Bookmark(BaseModel):
     """Persist user's bookmarks and settings."""
 
-    class FitTo(TextChoices):
+    class FitToChoices(TextChoices):
         """Identifiers for Readder fit_to choices."""
 
         SCREEN = "S"
@@ -68,16 +69,16 @@ class Bookmark(BaseModel):
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
         blank=True,
-        choices=FitTo.choices,
+        choices=FitToChoices.choices,
         default="",
-        max_length=max_choices_len(FitTo),
+        max_length=max_choices_len(FitToChoices),
     )
     two_pages = BooleanField(default=None, null=True)
     reading_direction = CharField(
         blank=True,
-        choices=ReadingDirection.choices,
+        choices=ReadingDirectionChoices.choices,
         default="",
-        max_length=max_choices_len(ReadingDirection),
+        max_length=max_choices_len(ReadingDirectionChoices),
     )
 
     class Meta(BaseModel.Meta):

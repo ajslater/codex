@@ -15,6 +15,10 @@ border-radius: 128px;
     - Fix scribe daemon not shutting down properly.
     - Fix Swagger API docs crash.
     - Fix full text search barfing on single quoted terms.
+    - Return 401 and authorization v1 json to OPDS instead of 403 on auth
+      failure more often.
+- Features:
+    - OPDS order by filename.
 
 ## v1.9.12
 

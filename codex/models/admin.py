@@ -19,7 +19,8 @@ from django.utils.translation import gettext_lazy as _
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.statii import ADMIN_STATUS_TITLES
-from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, max_choices_len
+from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
+from codex.models.choices import max_choices_len, text_choices_from_map
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
 
@@ -46,12 +47,14 @@ class AdminFlag(BaseModel):
 class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
-    CHOICES = TextChoices("LibrarianStatusTypes", ADMIN_STATUS_TITLES.inverse.items())
+    StatusChoices = text_choices_from_map(
+        ADMIN_STATUS_TITLES.inverse, "LibrarianStatusChoices"
+    )
 
     status_type = CharField(
         db_index=True,
-        max_length=max_choices_len(CHOICES),
-        choices=CHOICES.choices,  # ty: ignore[unresolved-attribute]
+        max_length=max_choices_len(StatusChoices),
+        choices=StatusChoices.choices,
     )
     subtitle = CharField(db_index=True, max_length=MAX_NAME_LEN)
     complete = PositiveSmallIntegerField(null=True, default=None)

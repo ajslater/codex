@@ -95,6 +95,7 @@ FACETS = (
         (
             Link(Rel.FACET, "Date", "", {"orderBy": "date"}),
             Link(Rel.FACET, "Name", "", {"orderBy": "sort_name"}),
+            Link(Rel.FACET, "Filename", "", {"orderBy": "filename"}),
         ),
     ),
     LinkGroup(
