@@ -1,26 +1,12 @@
 <template>
-  <v-dialog
-    v-if="user"
-    v-model="showAuthTokenDialog"
-    origin="center-top"
-    transition="slide-y-transition"
-    max-width="24em"
-  >
+  <v-dialog v-if="user" v-model="showAuthTokenDialog" origin="center-top" transition="slide-y-transition"
+    max-width="24em">
     <template #activator="{ props }">
-      <CodexListItem
-        :prepend-icon="mdiTicketConfirmationOutline"
-        v-bind="props"
-        title="Auth Token"
-      />
+      <CodexListItem :prepend-icon="mdiTicketConfirmationOutline" v-bind="props" title="Auth Token" />
     </template>
     <div id="tokenDialog">
       <h2>Auth Token</h2>
-      <ClipBoard
-        class="tokenContainer"
-        :tooltip="TOOLTIP"
-        :title="title"
-        :text="token"
-      />
+      <ClipBoard class="tokenContainer" :tooltip="TOOLTIP" :title="title" :text="token" />
       <v-btn @click.stop="resetToken">Reset Token</v-btn>
     </div>
   </v-dialog>

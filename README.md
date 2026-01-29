@@ -380,13 +380,13 @@ location, overriding any malicious client that might set it themselves. ⚠️
 ##### HTTP Token Authentication
 
 You can also configure your proxy to add token authentication to the headers.
-Codex will read both “Token” and “Bearer” prefixed authorization tokens. The
-token is unique for each user and may be found in the Web UI sidebar. You must
-configure your proxy or single sign on software to send this token.
+Codex will read “Bearer” prefixed authorization tokens. The token is unique for
+each user and may be found in the Web UI sidebar. You must configure your proxy
+or single sign on software to send this token.
 
 ```nginx
 set              user_token 'user-token-taken-from-web-ui';
-proxy_set_header Authorization "Token $user_token";
+proxy_set_header Authorization "Bearer $user_token";
 ```
 
 ### Restricted Memory Environments
@@ -463,8 +463,8 @@ to the URL. In that case the OPDS url will look like:
 ##### HTTP Token
 
 Some clients allow adding a unique login token to the HTTP headers. Codex will
-read both "Token" and "Bearer" prefixed authorization tokens. The token is
-unique for each user and may be found in the Web UI sidebar.
+read "Bearer" prefixed authorization tokens. The token is unique for each user
+and may be found in the Web UI sidebar.
 
 #### Supported OPDS Specifications
 
