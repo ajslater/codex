@@ -74,7 +74,7 @@ lint = [
   "djangorestframework-types~=0.9",
   "django-types~=0.22",
   "djlint~=1.36",
-  "radon[toml]~=6.0",
+  "radon~=6.0",
   "ruff~=0.12",
   "ty~=0.0.4",
   "types-python-dateutil~=2.9",
@@ -85,7 +85,7 @@ lint = [
 
 ]
 test = [
-  "coverage[toml]~=7.0",
+  "coverage~=7.0",
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
