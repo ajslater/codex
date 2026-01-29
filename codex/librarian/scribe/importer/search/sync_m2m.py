@@ -3,6 +3,7 @@
 from django.db.models.expressions import Value
 from django.db.models.functions.datetime import Now
 from django.db.models.functions.text import Concat
+from loguru import logger
 
 from codex.librarian.scribe.importer.const import FTS_UPDATED_M2MS
 from codex.librarian.scribe.importer.finish import FinishImporter
@@ -21,12 +22,21 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
     def _get_fts_m2m_concat(field_name: str):
         rel = "comic__" + field_name
         name_rel = rel + "__name"
-        name_concat = GroupConcat(name_rel, distinct=True)
+        name_concat = GroupConcat(
+            name_rel,
+            order_by=name_rel,
+            distinct=True,
+        )
         if field_name == "universes":
-            exp = Concat(
-                GroupConcat(f"{rel}__designation", distinct=True),
-                Value(","),
-                name_concat,
+            exp = GroupConcat(
+                Concat(
+                    "universes__name",
+                    Value(","),
+                    "universes__designation",
+                    distinct=True,
+                ),
+                order_by=("universes__designation", "universes__name"),
+                distinct=True,
             )
         else:
             exp = name_concat
@@ -87,5 +97,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
                 level,
                 f"Updated {count} search indexes entries for comics linked to updated tags: {tags}.",
             )
+        except Exception as exc:
+            logger.warning(f"Syncing FTS for M2M Updates: {exc}")
         finally:
             self.metadata.pop(FTS_UPDATED_M2MS, None)
