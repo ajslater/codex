@@ -3,6 +3,7 @@
 from datetime import datetime
 from math import floor
 from time import time
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
@@ -34,6 +35,44 @@ if TYPE_CHECKING:
 
 _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 _ALL_FTS_COMIC_IDS_QUERY = Q(pk__in=ComicFTS.objects.values_list("comic_id", flat=True))
+_SIMPLE_FTS_FIELDS = (
+    # Group Fks
+    "publisher",
+    "imprint",
+    "series",
+    # Fks
+    "age_rating",
+    "country",
+    "original_format",
+    "language",
+    "scan_info",
+    "tagger",
+)
+_SIMPLE_FTS_ANNOTATIONS = MappingProxyType(
+    {f"fts_{rel}": F(f"{rel}__name") for rel in _SIMPLE_FTS_FIELDS}
+)
+_M2M_FTS_RELS = (
+    "characters",
+    "credits__person",
+    "genres",
+    "locations",
+    "series_groups",
+    "identifiers__source",
+    "stories",
+    "story_arc_numbers__story_arc",
+    "tags",
+    "teams",
+)
+_M2M_FTS_ANNOTATIONS = MappingProxyType(
+    {
+        f"fts_{rel}": GroupConcat(
+            f"{rel}__name",
+            order_by=f"{rel}__name",
+            distinct=True,
+        )
+        for rel in _M2M_FTS_RELS
+    }
+)
 
 
 class SearchIndexerSync(SearchIndexerRemove):
@@ -99,35 +138,17 @@ class SearchIndexerSync(SearchIndexerRemove):
     @staticmethod
     def _annotate_fts_query(qs):
         return qs.annotate(
-            # Group Fks
-            fts_publisher=F("publisher__name"),
-            fts_imprint=F("imprint__name"),
-            fts_series=F("series__name"),
-            # Fks
-            fts_age_rating=F("age_rating__name"),
-            fts_country=F("country__name"),
-            fts_original_format=F("original_format__name"),
-            fts_language=F("language__name"),
-            fts_scan_info=F("scan_info__name"),
-            fts_tagger=F("tagger__name"),
-            # M2ms
-            fts_characters=GroupConcat("characters__name", distinct=True),
-            fts_credits=GroupConcat("credits__person__name", distinct=True),
-            fts_genres=GroupConcat("genres__name", distinct=True),
-            fts_identifiers=GroupConcat("identifiers__key", distinct=True),
-            fts_locations=GroupConcat("locations__name", distinct=True),
-            fts_series_groups=GroupConcat("series_groups__name", distinct=True),
-            fts_sources=GroupConcat("identifiers__source__name", distinct=True),
-            fts_stories=GroupConcat("stories__name", distinct=True),
-            fts_story_arcs=GroupConcat(
-                "story_arc_numbers__story_arc__name", distinct=True
-            ),
-            fts_tags=GroupConcat("tags__name", distinct=True),
-            fts_teams=GroupConcat("teams__name", distinct=True),
-            fts_universes=Concat(
-                GroupConcat("universes__name", distinct=True),
-                Value(","),
-                GroupConcat("universes__designation", distinct=True),
+            **_SIMPLE_FTS_ANNOTATIONS,
+            **_M2M_FTS_ANNOTATIONS,
+            fts_universes=GroupConcat(
+                Concat(
+                    "universes__name",
+                    Value(","),
+                    "universes__designation",
+                    distinct=True,
+                ),
+                order_by=("universes__designation", "universes__name"),
+                distinct=True,
             ),
         )
 
