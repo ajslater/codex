@@ -1,5 +1,5 @@
 {% load static %}
-<script>
+<script nonce="{{ csp_nonce }}">
   var CODEX = {
     APP_PATH: "{% url 'app:start' %}",
     API_V3_PATH: "{% url 'api:v3:base' %}",

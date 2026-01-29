@@ -15,6 +15,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
+from django.utils.csp import CSP
 from loguru import logger
 
 from codex.settings.hypercorn import load_hypercorn_config
@@ -178,6 +179,7 @@ def _get_middleware():
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
+        "django.middleware.csp.ContentSecurityPolicyMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
     ]
     if AUTH_REMOTE_USER:
@@ -223,6 +225,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.csp",
             ],
         },
     },
@@ -462,3 +465,30 @@ COMICBOX_CONFIG = get_config(
         ),
     }
 )
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [
+        CSP.SELF,
+        CSP.NONCE,
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
+    ],
+    "style-src": [
+        CSP.SELF,
+        # Titanic amount of work to make this safe with vite
+        CSP.UNSAFE_INLINE,
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
+    ],
+    "img-src": [
+        "data:",
+        CSP.SELF,
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
+    ],
+    "connect-src": [
+        CSP.SELF,
+        "ws:",
+        "wss:",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
+    ],
+}
