@@ -12,6 +12,9 @@ border-radius: 128px;
     - Codex only accepts auth tokens prefixed with the Bearer header.
 - Fixes:
     - Fix crash on API schema generation.
+    - Fix scribe daemon not shutting down properly.
+    - Fix Swagger API docs crash.
+    - Fix full text search barfing on single quoted terms.
 
 ## v1.9.12
 
