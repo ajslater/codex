@@ -13,7 +13,7 @@ class OPDSAuthMixin(AuthMixin):
     """Add Basic Auth."""
 
     authentication_classes = (
-        SessionAuthentication,
         BasicAuthentication,
         BearerTokenAuthentication,
+        SessionAuthentication,
     )
