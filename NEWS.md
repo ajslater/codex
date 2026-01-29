@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.9.13
 
+- Change:
+    - Codex only accepts auth tokens prefixed with the Bearer header.
 - Fixes:
     - Fix crash on API schema generation.
 
