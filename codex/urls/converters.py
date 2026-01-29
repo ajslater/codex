@@ -7,7 +7,7 @@ from loguru import logger
 class GroupConverter(StringConverter):
     """Only accept valid browser groups."""
 
-    regex = "[rpisvcfa]"
+    regex = r"[rpisvcfa]"
 
 
 class IntListConverter:
