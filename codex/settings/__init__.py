@@ -405,9 +405,13 @@ SPECTACULAR_SETTINGS = {
         "description": "Codex Docs",
     },
     "ENUM_NAME_OVERRIDES": {
+        # group
         "BrowseGroupEnum": "codex.serializers.fields.group.BrowseGroupField.class_choices",
-        "BrowserRootGroupEnum": "codex.serializers.fields.group.BrowserRouteGroupField.class_choices",
-        "ReadingDirectionEnum": "codex.models.choices.ReadingDirectionChoices",
+        "BrowserRouteGroupEnum": "codex.serializers.fields.group.BrowserRouteGroupField.class_choices",
+        # reading_direction
+        "BookmarkReadingDirectionEnum": "codex.models.choices.ReadingDirectionChoices.choices",
+        "ReaderReadingDirectionEnum": "codex.serializers.fields.reader.ReadingDirectionField.class_choices",
+        "VuetifyReadingDirectionEnum": "codex.serializers.fields.vuetify.VuetifyReadingDirectionChoiceField.class_choices",
     },
 }
 
