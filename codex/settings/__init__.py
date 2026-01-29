@@ -15,7 +15,9 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
-from django.utils.csp import CSP
+from django.utils.csp import (  # pyright: ignore[reportMissingImports] # ty: ignore[unresolved-import]
+    CSP,
+)
 from loguru import logger
 
 from codex.settings.hypercorn import load_hypercorn_config
