@@ -46,7 +46,7 @@ def _remove_cover_symlinks(_apps, _schema_editor):
     """Remove old missing cover symlinks."""
     # Handled programmatically now.
     count = 0
-    for dirpath_str, _, filenames in os.walk(COVER_ROOT):
+    for dirpath_str, _, filenames in COVER_ROOT.walk():
         dirpath = Path(dirpath_str)
         for filename in filenames:
             full_path = dirpath / filename
