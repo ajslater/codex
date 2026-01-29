@@ -15,6 +15,8 @@ border-radius: 128px;
     - Fix scribe daemon not shutting down properly.
     - Fix Swagger API docs crash.
     - Fix full text search barfing on single quoted terms.
+- Features:
+    - OPDS order by filename.
 
 ## v1.9.12
 
