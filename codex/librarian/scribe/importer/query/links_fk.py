@@ -1,5 +1,7 @@
 """Prune M2O links that don't need updating."""
 
+from itertools import batched
+
 from codex.librarian.scribe.importer.const import (
     COMIC_FK_FIELD_NAMES,
     FIELD_NAME_KEYS_REL_MAP,
@@ -93,13 +95,8 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         status.subtitle = "Many to One"
         self.status_controller.update(status)
         paths = tuple(self.metadata[LINK_FKS].keys())
-        num_paths = len(paths)
 
-        start = 0
-        while start < num_paths:
+        for batch_paths in batched(paths, LINK_FK_BATCH_SIZE):
             if self.abort_event.is_set():
                 return
-            end = start + LINK_FK_BATCH_SIZE
-            batch_paths = paths[start:end]
             self._query_prune_comic_fk_links_batch(batch_paths, status)
-            start += LINK_FK_BATCH_SIZE
