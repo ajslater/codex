@@ -9,7 +9,8 @@ from rest_framework.exceptions import NotFound
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.models.comic import Comic, FileType
+from codex.models.choices import FileTypeChoices
+from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG, FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
@@ -57,7 +58,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             page_image = b""
 
         # content type
-        if comic.file_type == FileType.PDF.value and not to_pixmap:
+        if comic.file_type == FileTypeChoices.PDF.value and not to_pixmap:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type

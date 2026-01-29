@@ -401,8 +401,13 @@ SPECTACULAR_SETTINGS = {
     "PREPROCESSING_HOOKS": ["codex.urls.spectacular.allow_list"],
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "EXTERNAL_DOCS": {
-        "url": "https://github.com/ajslater/codex/",
+        "url": "https://codex-comic-reader.readthedocs.io/",
         "description": "Codex Docs",
+    },
+    "ENUM_NAME_OVERRIDES": {
+        "BrowseGroupEnum": "codex.serializers.fields.group.BrowseGroupField.class_choices",
+        "BrowserRootGroupEnum": "codex.serializers.fields.group.BrowserRouteGroupField.class_choices",
+        "ReadingDirectionEnum": "codex.models.choices.ReadingDirectionChoices",
     },
 }
 

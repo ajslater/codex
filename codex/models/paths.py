@@ -6,7 +6,8 @@ from types import MappingProxyType
 from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoices
 from typing_extensions import override
 
-from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel, max_choices_len
+from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel
+from codex.models.choices import max_choices_len
 from codex.models.library import Library
 from codex.models.util import get_sort_name
 
@@ -83,30 +84,31 @@ class FailedImport(WatchedPath):
 class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
-    class GroupChoice(TextChoices):
+    class GroupChoices(TextChoices):
         """Reading direction choices."""
 
         P = "p"
         I = "i"  # noqa: E741
         S = "s"
+        # no V
         A = "a"
         F = "f"
 
     FOLDER_COVER_STEM = ".codex-cover"
     DIR_GROUP_CHOICE_MAP = MappingProxyType(
         {
-            "publishers": GroupChoice.P.value,
-            "imprints": GroupChoice.I.value,
-            "series": GroupChoice.S.value,
-            "story-arcs": GroupChoice.A.value,
+            "publishers": GroupChoices.P.value,
+            "imprints": GroupChoices.I.value,
+            "series": GroupChoices.S.value,
+            "story-arcs": GroupChoices.A.value,
         }
     )
 
     parent_folder: ForeignKey | None = None
     group = CharField(
-        max_length=max_choices_len(GroupChoice),
+        max_length=max_choices_len(GroupChoices),
         db_index=True,
-        choices=GroupChoice.choices,
+        choices=GroupChoices.choices,
     )
     sort_name = CharField(
         max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
@@ -117,7 +119,7 @@ class CustomCover(WatchedPath):
         path = Path(self.path)
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            self.group = self.GroupChoice.F.value  # ty: ignore[invalid-assignment]
+            self.group = self.GroupChoices.F.value  # ty: ignore[invalid-assignment]
         else:
             self.group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)

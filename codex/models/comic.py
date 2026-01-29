@@ -6,7 +6,7 @@ import re
 from datetime import MAXYEAR, MINYEAR, date
 from pathlib import Path
 
-from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
+from comicbox.enums.comicbox import ReadingDirectionEnum
 from django.db.models import (
     CASCADE,
     BooleanField,
@@ -17,7 +17,6 @@ from django.db.models import (
     ManyToManyField,
     OneToOneField,
     PositiveIntegerField,
-    TextChoices,
     TextField,
 )
 from typing_extensions import override
@@ -26,6 +25,10 @@ from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,
     MAX_NAME_LEN,
     BaseModel,
+)
+from codex.models.choices import (
+    FileTypeChoices,
+    ReadingDirectionChoices,
     max_choices_len,
 )
 from codex.models.fields import (
@@ -63,25 +66,6 @@ from codex.models.named import (
 )
 
 __all__ = ("Comic",)
-
-
-class ReadingDirection(TextChoices):
-    """Reading direction choices."""
-
-    LTR = ReadingDirectionEnum.LTR.value
-    RTL = ReadingDirectionEnum.RTL.value
-    TTB = ReadingDirectionEnum.TTB.value
-    BTT = ReadingDirectionEnum.BTT.value
-
-
-class FileType(TextChoices):
-    """Identifiers for file formats."""
-
-    CBR = FileTypeEnum.CBR.value
-    CBZ = FileTypeEnum.CBZ.value
-    CBT = FileTypeEnum.CBT.value
-    CB7 = FileTypeEnum.CB7.value
-    PDF = FileTypeEnum.PDF.value
 
 
 class Comic(WatchedPathBrowserGroup):
@@ -170,9 +154,9 @@ class Comic(WatchedPathBrowserGroup):
     page_count = CoercingPositiveSmallIntegerField(db_index=True, default=0)
     reading_direction = CleaningCharField(
         db_index=True,
-        choices=ReadingDirection.choices,
+        choices=ReadingDirectionChoices.choices,
         default=ReadingDirectionEnum.LTR.value,
-        max_length=max_choices_len(ReadingDirection),
+        max_length=max_choices_len(ReadingDirectionChoices),
         db_collation="nocase",
     )
 
@@ -210,8 +194,8 @@ class Comic(WatchedPathBrowserGroup):
     size = PositiveIntegerField(db_index=True)
     file_type = CleaningCharField(
         db_index=True,
-        choices=FileType.choices,
-        max_length=max_choices_len(FileType),
+        choices=FileTypeChoices.choices,
+        max_length=max_choices_len(FileTypeChoices),
         blank=True,
         default="",
         db_collation="nocase",
