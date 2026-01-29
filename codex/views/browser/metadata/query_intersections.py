@@ -40,7 +40,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
                 only.append("number_to")
             qs = qs.only(*only).distinct()
             qs = qs.group_by(*only)
-            qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+            qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
             qs = qs.values("ids", *only)
             groups[field_name] = qs
         return groups

@@ -115,8 +115,10 @@ class ReaderArcsView(ReaderParamsView):
 
         qs = qs.group_by("sort_name")  # pyright: ignore[reportAttributeAccessIssue]
         qs = qs.annotate(
-            ids=JsonGroupArray("id", distinct=True),
-            updated_ats=JsonGroupArray("updated_at", distinct=True),
+            ids=JsonGroupArray("id", distinct=True, order_by="id"),
+            updated_ats=JsonGroupArray(
+                "updated_at", distinct=True, order_by="updated_at"
+            ),
         )
         qs = qs.order_by("sort_name").only("name")
 

@@ -16,6 +16,7 @@ class JsonGroupArray(Aggregate):
     """Sqlite3 JSON_GROUP_ARRAY function."""
 
     allow_distinct = True
+    allow_order_by = True
     function = "JSON_GROUP_ARRAY"
     name = "JsonGroupArray"
 
