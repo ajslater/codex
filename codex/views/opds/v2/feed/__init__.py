@@ -71,11 +71,12 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         current_page = self.kwargs.get("page")
         md = {
             "title": title,
-            "modified": mtime,
             "number_of_items": number_of_items,
             "items_per_page": MAX_OBJ_PER_PAGE,
             "current_page": current_page,
         }
+        if mtime:
+            md["modified"] = mtime
         if subtitle := self._subtitle():
             md["subtitle"] = subtitle
         return MappingProxyType(md)
