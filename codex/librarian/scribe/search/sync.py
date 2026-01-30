@@ -140,15 +140,16 @@ class SearchIndexerSync(SearchIndexerRemove):
         return qs.annotate(
             **_SIMPLE_FTS_ANNOTATIONS,
             **_M2M_FTS_ANNOTATIONS,
-            fts_universes=GroupConcat(
-                Concat(
-                    "universes__name",
-                    Value(","),
+            fts_universes=Concat(
+                GroupConcat(
                     "universes__designation",
                     distinct=True,
+                    order_by="universes__designation",
                 ),
-                order_by=("universes__designation", "universes__name"),
-                distinct=True,
+                Value(","),
+                GroupConcat(
+                    "universes__name", distinct=True, order_by="universes__name"
+                ),
             ),
         )
 

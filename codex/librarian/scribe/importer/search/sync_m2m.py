@@ -28,15 +28,14 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
             distinct=True,
         )
         if field_name == "universes":
-            exp = GroupConcat(
-                Concat(
-                    "universes__name",
-                    Value(","),
-                    "universes__designation",
+            exp = Concat(
+                GroupConcat(
+                    f"{rel}__designation",
                     distinct=True,
+                    order_by=("{rel}__designation"),
                 ),
-                order_by=("universes__designation", "universes__name"),
-                distinct=True,
+                Value(","),
+                name_concat,
             )
         else:
             exp = name_concat
