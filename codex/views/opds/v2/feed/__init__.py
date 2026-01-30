@@ -2,7 +2,7 @@
 
 import json
 import urllib.parse
-from collections.abc import Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from types import MappingProxyType
 
