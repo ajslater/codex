@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.14
+
+- Fixes:
+    - Fix bad href validation in OPDS v2 leading to null links and therefore
+      invalid OPDS.
+
 ## v1.9.13
 
 - Change:

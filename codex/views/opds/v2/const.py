@@ -49,6 +49,7 @@ class Link:
     group: str | None = ""
     query_params: Mapping | None = None
     inherit_query_params: bool = True
+    subtitle: str = ""
 
 
 @dataclass

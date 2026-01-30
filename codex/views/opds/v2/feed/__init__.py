@@ -2,7 +2,7 @@
 
 import json
 import urllib.parse
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from types import MappingProxyType
 
@@ -14,6 +14,7 @@ from typing_extensions import override
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import FALSY, MAX_OBJ_PER_PAGE
+from codex.views.const import EPOCH_START
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
@@ -71,11 +72,12 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         current_page = self.kwargs.get("page")
         md = {
             "title": title,
-            "modified": mtime,
             "number_of_items": number_of_items,
             "items_per_page": MAX_OBJ_PER_PAGE,
             "current_page": current_page,
         }
+        if mtime:
+            md["modified"] = mtime
         if subtitle := self._subtitle():
             md["subtitle"] = subtitle
         return MappingProxyType(md)
@@ -111,6 +113,10 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             publications = first_regular_group.pop("publications", [])
         return tuple(navigation), tuple(groups), tuple(publications)
 
+    @staticmethod
+    def _update_feed_modified(feed_metadata: Mapping, groups: Iterable[Mapping]):  # noqa: ARG004
+        return feed_metadata
+
     @override
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
@@ -130,6 +136,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         navigation, groups, publications = self._feed_navigation_and_groups(
             group_qs, book_qs, zero_pad, title
         )
+        metadata = self._update_feed_modified(metadata, groups)
 
         feed = {
             "metadata": metadata,
@@ -163,6 +170,19 @@ class OPDS2StartView(OPDS2FeedView):
         """Reset all params."""
         super().__init__(*args, **kwargs)
         self.set_params(DEFAULT_PARAMS)
+
+    @override
+    @staticmethod
+    def _update_feed_modified(feed_metadata: Mapping, groups: Iterable[Mapping]):
+        max_modified = EPOCH_START
+        for group in groups:
+            for publication in group.get("publications", []):
+                modified = publication.get("metadata", {}).get("modified", EPOCH_START)
+                max_modified = max(max_modified, modified)
+        if max_modified != feed_metadata["modified"]:
+            feed_metadata = dict(feed_metadata)
+            feed_metadata["modified"] = max_modified
+        return feed_metadata
 
     @override
     @extend_schema(

@@ -11,7 +11,6 @@ from typing_extensions import override
 from codex.settings import FALSY
 from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
-from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.href import OPDS2HrefMixin
 
@@ -50,13 +49,6 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         if self._num_pages is None:
             self._num_pages = self.group_and_books[2]
         return self._num_pages
-
-    @property
-    def user_agent_name(self) -> str:
-        """Memoize user agent name."""
-        if self._user_agent_name is None:
-            self._user_agent_name = get_user_agent_name(self.request)
-        return self._user_agent_name
 
     @staticmethod
     def _link_attributes(data, link):
