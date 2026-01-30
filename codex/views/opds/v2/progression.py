@@ -25,7 +25,6 @@ from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
 from codex.views.opds.auth import OPDSAuthMixin
-from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.const import HrefData
 from codex.views.opds.v2.href import OPDS2HrefMixin
 
@@ -65,13 +64,6 @@ class OPDS2ProgressionView(
         super().__init__(*args, **kwargs)
         self._obj: BrowserGroupModel = Comic()
         self._user_agent_name: str | None = None
-
-    @property
-    def user_agent_name(self) -> str:
-        """Memoize user agent name."""
-        if self._user_agent_name is None:
-            self._user_agent_name = get_user_agent_name(self.request)
-        return self._user_agent_name
 
     @property
     def modified(self):

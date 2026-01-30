@@ -1,8 +1,11 @@
 """OPDS Utility classes."""
 
+from collections.abc import Callable, Iterable, Sequence
+
 from django.db.models import F
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
+from rest_framework.request import Request
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
@@ -23,7 +26,7 @@ from codex.views.opds.const import OPDS_M2M_MODELS
 # querysets to the views and templates.
 
 
-def get_credit_people(comic_pks, roles, exclude):
+def get_credit_people(comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool):
     """Get credits that are not authors."""
     people = CreditPerson.objects.filter(
         credit__comic__in=comic_pks,
@@ -35,7 +38,7 @@ def get_credit_people(comic_pks, roles, exclude):
     return people.distinct().only("name")
 
 
-def get_credits(comic_pks, roles, exclude):
+def get_credits(comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool):
     """Get credits that are not part of other roles."""
     credit_qs = Credit.objects.filter(comic__in=comic_pks)
     if exclude:
@@ -45,7 +48,7 @@ def get_credits(comic_pks, roles, exclude):
     return credit_qs.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
-def get_m2m_objects(pks) -> dict:
+def get_m2m_objects(pks: Sequence[int]) -> dict:
     """Get Category labels."""
     cats = {}
     for model in OPDS_M2M_MODELS:
@@ -63,10 +66,10 @@ def get_m2m_objects(pks) -> dict:
 ###################
 
 
-def full_redirect_view(url_name):
+def full_redirect_view(url_name: str) -> Callable[[Request], HttpResponseRedirect]:
     """Redirect to view, for a url name."""
 
-    def func(request):
+    def func(request: Request):
         """Redirect to view, forwarding query strings and auth."""
         kwargs = dict(DEFAULT_BROWSER_ROUTE)
         url = reverse(url_name, kwargs=kwargs, query=request.GET)
@@ -82,11 +85,12 @@ def full_redirect_view(url_name):
     return func
 
 
-def get_user_agent_name(request):
-    """Get the first part of the user agent."""
-    user_agent_name = ""
+def get_user_agent_name(request: Request) -> str:
+    """Parse User Agent Name from Request."""
     if (user_agent := request.headers.get("User-Agent")) and (
         user_agent_parts := user_agent.split("/", 1)
     ):
         user_agent_name = user_agent_parts[0]
+    else:
+        user_agent_name = ""
     return user_agent_name
