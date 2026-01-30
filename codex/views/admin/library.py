@@ -1,6 +1,7 @@
 """Admin Library Views."""
 
 from pathlib import Path
+from typing import override
 
 from django.core.cache import cache
 from django.db.models.aggregates import Count
@@ -9,7 +10,6 @@ from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK

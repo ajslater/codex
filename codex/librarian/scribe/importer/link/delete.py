@@ -1,5 +1,6 @@
 """Delete stale m2ms."""
 
+from itertools import batched
 from typing import TYPE_CHECKING
 
 from django.db.models import ManyToManyField, Q
@@ -73,22 +74,19 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         through_model = self.get_through_model(field)
         comic_ids = set()
 
-        start = 0
-        while start < num_rows:
-            end = start + FILTER_BATCH_SIZE
-            batch_rows = rows[start:end]
-            count = self._delete_m2m_field_batch(
-                column_name, through_model, batch_rows, comic_ids
-            )
-            status.complete += count
-            total_field_count += count
-            if count:
-                self.log.info(
-                    f"Deleted {total_field_count}/{num_rows} stale {field_name} relations for altered comics.",
+        if rows:
+            for batch_rows in batched(rows, FILTER_BATCH_SIZE):
+                count = self._delete_m2m_field_batch(
+                    column_name, through_model, batch_rows, comic_ids
                 )
+                status.complete += count
+                total_field_count += count
+                if count:
+                    self.log.info(
+                        f"Deleted {total_field_count}/{num_rows} stale {field_name} relations for altered comics.",
+                    )
 
-            self.status_controller.update(status)
-            start += FILTER_BATCH_SIZE
+                self.status_controller.update(status)
 
         self._delete_m2m_fts_entries(field_name, comic_ids)
 

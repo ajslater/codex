@@ -1,8 +1,8 @@
 """The Codex Library Watchdog Observer threads."""
 
 from multiprocessing.queues import Queue
+from typing import override
 
-from typing_extensions import override
 from watchdog.events import (
     FileSystemEvent,
     FileSystemEventHandler,

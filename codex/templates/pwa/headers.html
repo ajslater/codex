@@ -14,4 +14,6 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="application-name" content="Codex" />
 <meta name="theme-color" content="#2A2A2A" />
-<script async src="{% url 'pwa:serviceworker_register' %}"></script>
+<script async
+        src="{% url 'pwa:serviceworker_register' %}"
+        nonce="{{ csp_nonce }}"></script>

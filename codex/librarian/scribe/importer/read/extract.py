@@ -1,6 +1,6 @@
 """Extract metadata from comic archive."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from tarfile import TarError
 from types import MappingProxyType
 from zipfile import BadZipFile, LargeZipFile
@@ -36,7 +36,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         if old_mtime and (
             old_mtime.tzinfo is None or old_mtime.tzinfo.utcoffset(old_mtime) is None
         ):
-            old_mtime = old_mtime.replace(tzinfo=timezone.utc)
+            old_mtime = old_mtime.replace(tzinfo=UTC)
         return old_file_type, old_page_count, old_mtime
 
     def _set_import_metadata_flag(self):

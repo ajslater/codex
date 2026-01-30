@@ -259,7 +259,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def annotate_order_aggregates(self, qs):
         """Annotate common aggregates between browser and metadata."""
-        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
         qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs)
         qs = self._alias_filename(qs)

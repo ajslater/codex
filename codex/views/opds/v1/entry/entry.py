@@ -2,7 +2,7 @@
 
 import json
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from dateutil import parser
 from django.urls import reverse
@@ -85,7 +85,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                 if isinstance(value, str):
                     result = parser.parse(value)
                 if isinstance(value, datetime):
-                    result = value.astimezone(timezone.utc).isoformat()
+                    result = value.astimezone(UTC).isoformat()
             except ValueError:
                 pass
         return result

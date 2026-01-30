@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from multiprocessing.queues import Queue
 from queue import Empty, SimpleQueue
 from threading import Thread
+from typing import override
 
 from django.db import close_old_connections
 from loguru._logger import Logger
-from typing_extensions import override
 
 from codex.librarian.worker import WorkerStatusMixin
 

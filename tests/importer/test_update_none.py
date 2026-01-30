@@ -4,9 +4,9 @@ from abc import ABC
 from copy import deepcopy
 from threading import Event, Lock
 from types import MappingProxyType
+from typing import override
 
 from loguru import logger
-from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.importer.const import (

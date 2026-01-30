@@ -1,14 +1,13 @@
 """OPDS v1 feed."""
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
-from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tasks import LazyImportComicsTask

@@ -5,19 +5,19 @@ import shutil
 from abc import ABC
 from collections.abc import Mapping
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from pprint import pformat, pprint
 from threading import Event, Lock
 from types import MappingProxyType
+from typing import override
 
 from deepdiff import DeepDiff
 from django.core.cache import cache
 from django.test import TestCase
 from django.test.testcases import SerializeMixin
 from loguru import logger
-from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.importer.const import (
@@ -188,7 +188,7 @@ AGGREGATED = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -277,7 +277,7 @@ QUERIED = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -431,7 +431,7 @@ CREATED_FK = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",

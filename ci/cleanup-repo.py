@@ -27,6 +27,7 @@ def login(username, password):
         print(f"Request {url} failed with status code {resp.status_code}:")
         print(resp.text)
     resp.raise_for_status()
+
     return resp.json()["token"]
 
 
@@ -126,7 +127,7 @@ def _get_tags_to_delete(args, token):
 
     # Sort tags by last_updated descending
     tags.sort(
-        key=lambda t: datetime.fromisoformat(t["last_updated"].replace("Z", "+00:00")),
+        key=lambda t: datetime.fromisoformat(t["last_updated"]),
         reverse=True,
     )
     to_delete = tags[args.keep :]

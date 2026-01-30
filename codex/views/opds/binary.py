@@ -1,7 +1,8 @@
 """Binary views with Basic Authentication added."""
 
+from typing import override
+
 from rest_framework.negotiation import BaseContentNegotiation
-from typing_extensions import override
 
 from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView

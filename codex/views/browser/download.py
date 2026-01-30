@@ -1,11 +1,12 @@
 """Download a group of comics in a zipfile."""
 
+from typing import override
+
 from django.http import HttpResponseBadRequest
 from django.http.response import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from loguru import logger
-from typing_extensions import override
 from zipstream import ZipStream
 
 from codex.views.browser.filters.filter import BrowserFilterView

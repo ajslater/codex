@@ -5,11 +5,11 @@ import urllib.parse
 from collections.abc import Mapping
 from datetime import datetime
 from types import MappingProxyType
+from typing import override
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-from typing_extensions import override
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer

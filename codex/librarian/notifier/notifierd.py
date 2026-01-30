@@ -1,6 +1,6 @@
 """Sends notifications to connections, reading from a queue."""
 
-from typing_extensions import override
+from typing import override
 
 from codex.librarian.threads import AggregateMessageQueuedThread
 

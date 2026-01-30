@@ -1,5 +1,7 @@
 """OPDS v2.0 Links Serializers."""
 
+from typing import override
+
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -8,7 +10,6 @@ from rest_framework.fields import (
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
-from typing_extensions import override
 
 
 class OPDS2LinkBaseSerializer(Serializer):

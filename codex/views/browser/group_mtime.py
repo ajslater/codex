@@ -52,9 +52,14 @@ class BrowserGroupMtimeView(BrowserFilterView):
         bm_rel = self.get_bm_rel(model)
         bm_filter = self.get_my_bookmark_filter(bm_rel)
         bmua_rel = f"{bm_rel}__updated_at"
-        kwargs: dict[str, bool | Value | Q] = {"default": default, "filter": bm_filter}
+        kwargs: dict[str, bool | str | Value | Q] = {
+            "default": default,
+            "filter": bm_filter,
+        }
         if agg_func is JsonGroupArray:
             kwargs["distinct"] = True
+            kwargs["order_by"] = bmua_rel
+
         return agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
 
     def get_group_mtime(self, model, group=None, pks=None, *, page_mtime=False):

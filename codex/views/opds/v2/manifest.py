@@ -4,9 +4,9 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from math import floor
 from types import MappingProxyType
+from typing import override
 
 from django.db.models import F
-from typing_extensions import override
 
 from codex.models.identifier import Identifier
 from codex.models.named import StoryArcNumber

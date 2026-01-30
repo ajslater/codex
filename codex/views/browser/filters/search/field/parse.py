@@ -2,7 +2,7 @@
 
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.db.models import Q
 from pyparsing import (
@@ -14,7 +14,6 @@ from pyparsing import (
     infix_notation,
     printables,
 )
-from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN
 from codex.models.comic import Comic

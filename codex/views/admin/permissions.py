@@ -1,7 +1,8 @@
 """Codex drf permissions."""
 
+from typing import override
+
 from rest_framework.permissions import BasePermission, IsAdminUser
-from typing_extensions import override
 
 from codex.models import Timestamp
 

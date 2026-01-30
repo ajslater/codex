@@ -2,11 +2,10 @@
 
 import shutil
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import MappingProxyType
-
-from typing_extensions import override
+from typing import override
 
 from codex.librarian.scribe.importer.const import (
     CREATE_COMICS,
@@ -75,7 +74,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -404,7 +403,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -514,7 +513,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=timezone.utc),
+                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",

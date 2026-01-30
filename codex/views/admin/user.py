@@ -1,12 +1,13 @@
 """Admin User ViewSet."""
 
+from typing import override
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
-from typing_extensions import override
 
 from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE

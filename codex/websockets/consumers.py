@@ -1,10 +1,10 @@
 """Notifier ChannelGroups Consumer."""
 
 from enum import Enum
+from typing import override
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from loguru import logger
-from typing_extensions import override
 
 ChannelGroups = Enum("ChannelGroups", "ALL ADMIN")
 

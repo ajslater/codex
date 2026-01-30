@@ -1,6 +1,7 @@
 """Views authorization bases."""
 
 from collections.abc import Sequence
+from typing import override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
@@ -12,7 +13,6 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag, Comic, Folder, StoryArc

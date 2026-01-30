@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from multiprocessing import Queue
 from os import fsdecode
 from pathlib import Path
+from typing import override
 
-from typing_extensions import override
 from watchdog.events import (
     EVENT_TYPE_MOVED,
     FileCreatedEvent,

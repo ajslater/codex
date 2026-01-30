@@ -9,8 +9,8 @@
         {% include "headers-icons.html" %}
         {% include "pwa/headers.html" %}
         {% include "headers-script-globals.html" %}
-        {% vite_hmr_client %}
-        {% vite_asset "src/main.js" %}
+        {% vite_hmr_client nonce=csp_nonce %}
+        {% vite_asset "src/main.js" nonce=csp_nonce %}
     </head>
     <body>
         <noscript>

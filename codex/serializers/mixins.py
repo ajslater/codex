@@ -3,7 +3,7 @@
 import json
 from contextlib import suppress
 from json.decoder import JSONDecodeError
-from typing import Any
+from typing import Any, override
 from urllib.parse import unquote_plus
 
 from djangorestframework_camel_case.settings import api_settings
@@ -13,7 +13,6 @@ from rest_framework.serializers import (
     BooleanField,
     Serializer,
 )
-from typing_extensions import override
 
 
 class OKSerializer(Serializer):

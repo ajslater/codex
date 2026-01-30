@@ -3,7 +3,7 @@
 
 from http import HTTPStatus
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from dateparser import parse
 from django.db.models import QuerySet
@@ -16,7 +16,6 @@ from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
-from typing_extensions import override
 
 from codex.models.comic import Comic
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
