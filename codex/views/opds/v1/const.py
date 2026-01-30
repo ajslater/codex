@@ -138,6 +138,7 @@ class FacetGroups:
         (
             Facet("date", "Date"),
             Facet("sort_name", "Name"),
+            Facet("filename", "Filename"),
         ),
     )
     ORDER_REVERSE = FacetGroup(

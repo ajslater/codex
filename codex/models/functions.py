@@ -29,6 +29,7 @@ class GroupConcat(Aggregate):
     # Defaults to " " separator which is all I need for now.
 
     allow_distinct = True
+    allow_order_by = True
     function = "GROUP_CONCAT"
     name = "GroupConcat"
 

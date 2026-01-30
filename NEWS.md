@@ -6,6 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.13
+
+- Change:
+    - Codex only accepts auth tokens prefixed with the Bearer header.
+- Fixes:
+    - Fix crash on API schema generation.
+    - Fix scribe daemon not shutting down properly.
+    - Fix Swagger API docs crash.
+    - Fix full text search barfing on single quoted terms.
+    - Return 401 and authorization v1 json to OPDS instead of 403 on auth
+      failure more often.
+- Features:
+    - OPDS order by filename.
+
 ## v1.9.12
 
 - Fixes:

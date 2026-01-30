@@ -52,7 +52,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "1.9.12"
+version = "1.9.13"
 
 [project.urls]
 News = "https://codex-comic-reader.readthedocs.io/NEWS/"
@@ -73,7 +73,7 @@ lint = [
   "codespell~=2.4",
   "complexipy~=5.1",
   "djangorestframework-types~=0.9",
-  "django-types~=0.21",
+  "django-types~=0.22",
   "djlint~=1.36",
   "radon[toml]~=6.0",
   "ruff~=0.12",

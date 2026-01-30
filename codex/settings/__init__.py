@@ -351,7 +351,6 @@ for scope, value in _THROTTLE_MAP.items():
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
         "codex.authentication.BearerTokenAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
@@ -402,8 +401,17 @@ SPECTACULAR_SETTINGS = {
     "PREPROCESSING_HOOKS": ["codex.urls.spectacular.allow_list"],
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "EXTERNAL_DOCS": {
-        "url": "https://github.com/ajslater/codex/",
+        "url": "https://codex-comic-reader.readthedocs.io/",
         "description": "Codex Docs",
+    },
+    "ENUM_NAME_OVERRIDES": {
+        # group
+        "BrowseGroupEnum": "codex.serializers.fields.group.BrowseGroupField.class_choices",
+        "BrowserRouteGroupEnum": "codex.serializers.fields.group.BrowserRouteGroupField.class_choices",
+        # reading_direction
+        "BookmarkReadingDirectionEnum": "codex.models.choices.ReadingDirectionChoices.choices",
+        "ReaderReadingDirectionEnum": "codex.serializers.fields.reader.ReadingDirectionField.class_choices",
+        "VuetifyReadingDirectionEnum": "codex.serializers.fields.vuetify.VuetifyReadingDirectionChoiceField.class_choices",
     },
 }
 

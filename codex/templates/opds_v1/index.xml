@@ -26,7 +26,7 @@
 <opensearch:totalResults>{{ total_results }}</opensearch:totalResults>
 {% endif %}
 {% for link in links %}
-<link 
+<link
   {% if link.title %}
     title="{{ link.title }}"
   {% endif %}
@@ -49,7 +49,7 @@
   <id>{{ entry.id_tag }}</id>
   <title>{{ entry.title }}</title>
   {% for link in entry.links %}
-    <link 
+    <link
       rel="{{ link.rel }}"
       href="{{ link.href }}"
       type="{{ link.mime_type }}"

@@ -13,15 +13,14 @@ _RESET_TOP_GROUP_QUERY = "?topGroup=p"
 _OPDS_REDIRECT_TO_TOP_CODES = frozenset(
     {
         status.HTTP_400_BAD_REQUEST,
+        status.HTTP_403_FORBIDDEN,
         status.HTTP_404_NOT_FOUND,
         status.HTTP_405_METHOD_NOT_ALLOWED,
         status.HTTP_410_GONE,
         status.HTTP_414_REQUEST_URI_TOO_LONG,
     }
 )
-_OPDS_REDIRECT_TO_AUTH_CODES = frozenset(
-    {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN}
-)
+_OPDS_REDIRECT_TO_AUTH_CODES = frozenset({status.HTTP_401_UNAUTHORIZED})
 
 
 def codex_opds_exception_handler(exc, context):
@@ -36,12 +35,14 @@ def codex_opds_exception_handler(exc, context):
     name = f"opds:v{version}:feed"
     if isinstance(exc, SeeOtherRedirectError):
         response = exc.get_response(name)
-    elif hasattr(exc, "status_code"):
-        if exc.status_code in _OPDS_REDIRECT_TO_TOP_CODES:
+    elif status_code := getattr(exc, "status_code", None):
+        if status_code == status.HTTP_403_FORBIDDEN:
+            status_code = status.HTTP_401_UNAUTHORIZED
+        if status_code in _OPDS_REDIRECT_TO_TOP_CODES:
             url = reverse(name)
             url += _RESET_TOP_GROUP_QUERY
             response = redirect(url, permanent=False)
-        elif exc.status_code in _OPDS_REDIRECT_TO_AUTH_CODES:
-            response = OPDSAuthentication1View.static_get(request, exc.status_code)
+        elif status_code in _OPDS_REDIRECT_TO_AUTH_CODES:
+            response = OPDSAuthentication1View.static_get(request, status_code)
 
     return response
