@@ -1,6 +1,6 @@
 """Special Redirect Error."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from pprint import pformat
 
@@ -39,6 +39,19 @@ class SeeOtherRedirectError(APIException):
     default_code = "redirect"
     default_detail = "redirect to a valid route"
 
+    @staticmethod
+    def _copy_params_into(
+        params: Mapping, keys: Iterable[str], final_params: MutableMapping
+    ):
+        """Copy and filter params into another map as camelcase."""
+        for key in keys:
+            value = params.get(key)
+            if value in EMPTY_VALUES:
+                continue
+            if key == "breadcrumbs" and isinstance(value, Sequence):
+                value = BreadcrumbsField().to_representation(value)
+            final_params[camelcase(key)] = value
+
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""
         super().__init__(detail)
@@ -59,15 +72,9 @@ class SeeOtherRedirectError(APIException):
         route["params"] = serializer.data
         detail["route"] = route
 
-        filtered_settings = {}
         settings = detail.get("settings", {})
-        for key in _REDIRECT_SETTINGS_KEYS:
-            value = settings.get(key)
-            if value in EMPTY_VALUES:
-                continue
-            if key == "breadcrumbs":
-                value = BreadcrumbsField().to_representation(value)
-            filtered_settings[camelcase(key)] = value
+        filtered_settings = {}
+        self._copy_params_into(settings, _REDIRECT_SETTINGS_KEYS, filtered_settings)
         detail["settings"] = filtered_settings
 
         self.detail = detail
@@ -76,14 +83,11 @@ class SeeOtherRedirectError(APIException):
 
     def _get_query_params(self):
         """Change OPDS settings like the frontend does with error.detail."""
-        query_params = {}
         settings = (
             self.detail.get("settings", {}) if isinstance(self.detail, Mapping) else {}  # ty: ignore[no-matching-overload]
         )
-        for key in _OPDS_REDIRECT_SETTINGS_KEYS:
-            value = settings.get(key)
-            if value not in EMPTY_VALUES:
-                query_params[camelcase(key)] = value
+        query_params = {}
+        self._copy_params_into(settings, _OPDS_REDIRECT_SETTINGS_KEYS, query_params)
         return query_params
 
     def get_response(self, url_name):
