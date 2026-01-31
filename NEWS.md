@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.15
+
+- Fixes:
+    - Fix OPDS v2 progression view.
+
 ## v1.9.14
 
 - Fixes:
