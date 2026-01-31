@@ -3,6 +3,7 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.views import exception_handler
 
 from codex.views.exceptions import SeeOtherRedirectError
 from codex.views.opds.authentication_v1 import OPDSAuthentication1View
@@ -35,6 +36,8 @@ def codex_opds_exception_handler(exc, context):
     name = f"opds:v{version}:feed"
     if isinstance(exc, SeeOtherRedirectError):
         response = exc.get_response(name)
+    elif request.path.endswith("progression"):
+        response = exception_handler(exc, context)
     elif status_code := getattr(exc, "status_code", None):
         if status_code == status.HTTP_403_FORBIDDEN:
             status_code = status.HTTP_401_UNAUTHORIZED
