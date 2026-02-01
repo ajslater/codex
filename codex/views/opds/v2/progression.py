@@ -113,8 +113,10 @@ class OPDS2ProgressionView(
     @property
     def _locations(self):
         """Build the Locations object."""
+        # The OPDS v2 progression spec secifies position as > 0.
+        position = max(self._obj.page + 1, 0)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return {
-            "position": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            "position": position,
             "progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             "total_progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         }
@@ -217,7 +219,10 @@ class OPDS2ProgressionView(
                 data.get("locator", {}).get("locations", {}).get("position")
             )
             if position is not None:
-                self.kwargs["page"] = position
+                # The OPDS v2 progression spec secifies position as > 0.
+                page = max(position - 1, 0)
+                self.kwargs["page"] = page
+                max(position - 1, 0)
                 self.update_bookmark()
                 status_code = HTTPStatus.OK
         return Response(status=status_code)
