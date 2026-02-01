@@ -80,7 +80,7 @@ class OPDS2ProgressionView(
         self.init_bookmark_filter()
         super().__init__(*args, **kwargs)
         self._obj: BrowserGroupModel = Comic()
-        self._user_agent_name: str | None = None
+        self._user_agent_name: str | None = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     @property
     def modified(self):
