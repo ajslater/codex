@@ -1,103 +1,38 @@
 <template>
   <header id="metadataHeader">
-    <MetadataText
-      v-if="q"
-      id="search"
-      :value="q"
-      label="Search Query"
-      :highlight="true"
-    />
+    <MetadataText v-if="q" id="search" :value="q" label="Search Query" :highlight="true" />
     <MetadataBookCover id="metadataBookCover" :group="group" />
     <section v-if="md.seriesList?.length === 1" id="seriesHeader">
       <div id="seriesRow" class="inlineRow">
-        <MetadataText
-          id="series"
-          :key="md.seriesList[0].ids"
-          :value="md.seriesList[0]"
-          group="s"
-          :highlight="'s' === md.group"
-        />
-        <MetadataText
-          v-if="md.volumeList?.length === 1"
-          id="volume"
-          :key="md.volumeList[0].ids"
-          :value="md.volumeList[0]"
-          group="v"
-          :highlight="'v' === md.group"
-        />
+        <MetadataText id="series" :key="md.seriesList[0].ids" :value="md.seriesList[0]" group="s"
+          :highlight="'s' === md.group" />
+        <MetadataText v-if="md.volumeList?.length === 1" id="volume" :key="md.volumeList[0].ids"
+          :value="md.volumeList[0]" group="v" :highlight="'v' === md.group" />
         <MetadataText :value="seriesVolumeCount" class="subdued" />
-        <MetadataText
-          id="issue"
-          :value="formattedIssueNumber"
-          group="c"
-          :highlight="'c' === md.group"
-        />
+        <MetadataText id="issue" :value="formattedIssueNumber" group="c" :highlight="'c' === md.group" />
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
     </section>
     <span v-if="md.name" id="titleRow">
       {{ collectionTitle }} {{ md.name }}
     </span>
-    <MetadataTags
-      v-if="md.seriesList?.length > 1"
-      id="seriesTags"
-      class="groupTags"
-      label="Series"
-      :values="md.seriesList"
-      filter="s"
-    />
+    <MetadataTags v-if="md.seriesList?.length > 1" id="seriesTags" class="groupTags" label="Series"
+      :values="md.seriesList" filter="s" />
     <div>
-      <MetadataTags
-        v-if="md.volumeList?.length > 1"
-        id="volumeTags"
-        class="groupTags"
-        label="Volumes"
-        :values="md.volumeList"
-        filter="v"
-      />
+      <MetadataTags v-if="md.volumeList?.length > 1" id="volumeTags" class="groupTags" label="Volumes"
+        :values="md.volumeList" filter="v" />
     </div>
-    <div
-      v-if="md.publisherList?.length === 1"
-      id="publisherRow"
-      class="inlineRow"
-    >
-      <MetadataText
-        id="publisher"
-        :key="md.publisherList[0].ids"
-        group="p"
-        :highlight="'p' === md.group"
-        :value="md.publisherList[0]"
-      />
-      <MetadataText
-        v-if="md.imprintList?.length === 1"
-        id="imprint"
-        :key="md.imprintList[0].ids"
-        group="i"
-        :highlight="'i' === md.group"
-        :value="md.imprintList[0]"
-      />
+    <div v-if="md.publisherList?.length === 1" id="publisherRow" class="inlineRow">
+      <MetadataText id="publisher" :key="md.publisherList[0].ids" group="p" :highlight="'p' === md.group"
+        :value="md.publisherList[0]" />
+      <MetadataText v-if="md.imprintList?.length === 1" id="imprint" :key="md.imprintList[0].ids" group="i"
+        :highlight="'i' === md.group" :value="md.imprintList[0]" />
     </div>
-    <MetadataTags
-      v-if="md.publisherList?.length > 1"
-      id="publisherTags"
-      class="groupTags"
-      label="Publishers"
-      :values="md.publisherList"
-      filter="p"
-    />
-    <MetadataTags
-      v-if="md.imprintList?.length > 1"
-      id="imprintTags"
-      class="groupTags"
-      label="Imprints"
-      :values="md.imprintList"
-      filter="i"
-    />
-    <div
-      v-if="pages || md.year || md.month || md.day"
-      id="pageDateRow"
-      class="inlineRow"
-    >
+    <MetadataTags v-if="md.publisherList?.length > 1" id="publisherTags" class="groupTags" label="Publishers"
+      :values="md.publisherList" filter="p" />
+    <MetadataTags v-if="md.imprintList?.length > 1" id="imprintTags" class="groupTags" label="Imprints"
+      :values="md.imprintList" filter="i" />
+    <div v-if="pages || md.year || md.month || md.day" id="pageDateRow" class="inlineRow">
       <MetadataText :value="pages" />
       <MetadataText :value="date" class="datePicker" />
     </div>
@@ -188,8 +123,10 @@ export default {
       if (!this.md) {
         return pages;
       }
-      if (this.md.page) {
-        const humanBookmark = NUMBER_FORMAT.format(this.md.page);
+      if (this.md.page !== undefined) {
+        // Show if any bookmark at all.
+        // +1 to page for math with pageCount
+        const humanBookmark = NUMBER_FORMAT.format(this.md.page + 1);
         pages += this.$vuetify.display.smAndDown
           ? `${humanBookmark} / `
           : `Read ${humanBookmark} of `;
@@ -242,7 +179,7 @@ export default {
 }
 
 .inlineRow,
-.inlineRow > * {
+.inlineRow>* {
   display: inline-flex;
 }
 
