@@ -18,7 +18,7 @@ dependencies = [
   "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=2.1.0",
+  "comicbox[pdf]~=2.1.1",
   "dateparser~=1.2",
   "django~=5.2",
   "djangorestframework~=3.16",
@@ -52,7 +52,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "1.9.14"
+version = "1.9.15"
 
 [project.urls]
 News = "https://codex-comic-reader.readthedocs.io/NEWS/"
@@ -80,10 +80,9 @@ lint = [
   "ty~=0.0.4",
   "types-python-dateutil~=2.9",
   "vulture~=2.3",
-  # For types
+  # In lint for types
   "django-schema-graph~=3.1",
   "icecream~=2.1",
-
 ]
 test = [
   "coverage[toml]~=7.0",

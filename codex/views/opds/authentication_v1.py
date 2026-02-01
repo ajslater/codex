@@ -11,7 +11,7 @@ from rest_framework.generics import GenericAPIView
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
 from codex.views.opds.const import MimeType, UserAgentNames
-from codex.views.opds.util import get_user_agent_name
+from codex.views.opds.user_agent import get_user_agent_name
 
 _LOGO_SIZE = 180
 _DOC = MappingProxyType(

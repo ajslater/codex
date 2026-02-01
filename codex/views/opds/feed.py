@@ -3,7 +3,7 @@
 from codex.views.browser.browser import BrowserView
 from codex.views.mixins import UserActiveMixin
 from codex.views.opds.session import OPDSBrowserSessionMixin
-from codex.views.opds.util import get_user_agent_name
+from codex.views.opds.user_agent import get_user_agent_name
 
 
 class OPDSBrowserView(OPDSBrowserSessionMixin, UserActiveMixin, BrowserView):

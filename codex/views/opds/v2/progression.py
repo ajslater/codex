@@ -11,10 +11,10 @@ from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least
 from django.db.models.query_utils import FilteredRelation
-from django.http import HttpResponse
 from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from typing_extensions import override
 
@@ -24,6 +24,7 @@ from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
 from codex.views.const import GROUP_MODEL_MAP
+from codex.views.exceptions import NoContent
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.v2.const import HrefData
 from codex.views.opds.v2.href import OPDS2HrefMixin
@@ -38,11 +39,19 @@ _EMPTY_DEVICE = MappingProxyType(
     }
 )
 
+READIUM_PROGRESSION_MIME_TYPE = "application/vnd.readium.progression+json"
+
 
 class ReadiumProgressionParser(JSONParser):
-    """Parses 'application/vnd.readium.progression+json' as standard JSON."""
+    """Parses Readium Progression as JSON."""
 
-    media_type = "application/vnd.readium.progression+json"
+    media_type = READIUM_PROGRESSION_MIME_TYPE
+
+
+class ReadiumProgressionAPIRenderer(JSONRenderer):
+    """Renders Readium Progression as a JSON."""
+
+    media_type = READIUM_PROGRESSION_MIME_TYPE
 
 
 # This is an independent api requiring a separate get.
@@ -55,8 +64,16 @@ class OPDS2ProgressionView(
 ):
     """OPDS 2 Progression view."""
 
-    parser_classes = (ReadiumProgressionParser, JSONParser)
+    parser_classes = (
+        ReadiumProgressionParser,
+        *AuthFilterGenericAPIView.parser_classes,
+    )
+    renderer_classes = (
+        ReadiumProgressionAPIRenderer,
+        *AuthFilterGenericAPIView.renderer_classes,
+    )
     serializer_class = OPDS2ProgressionSerializer
+    content_type = ReadiumProgressionParser.media_type
 
     def __init__(self, *args, **kwargs):
         """Initialize Bookmark Filter."""
@@ -72,8 +89,7 @@ class OPDS2ProgressionView(
 
     @property
     def device(self):
-        """Dummy device."""
-        # Codex doesn't device for progression.
+        """Codex doesn't record device for progression."""
         return _EMPTY_DEVICE
 
     @property
@@ -97,8 +113,10 @@ class OPDS2ProgressionView(
     @property
     def _locations(self):
         """Build the Locations object."""
+        # The OPDS v2 progression spec secifies position as > 0.
+        position = max(self._obj.page + 1, 0)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return {
-            "position": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            "position": position,
             "progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             "total_progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         }
@@ -139,19 +157,23 @@ class OPDS2ProgressionView(
     @override
     def get_object(self):
         """Build the progression data object."""
+        pk = self.kwargs.get("pk")
         qs = self._get_bookmark_query()
         progress = Least(
             F("page") / Greatest(Cast(F("page_count"), FloatField()), 1.0), Value(1.0)
         )
-        qs = qs.annotate(
-            page=Coalesce(F("my_bookmark__page"), 0),
-            progress=progress,
+        qs = (
+            qs.annotate(
+                page=Coalesce(F("my_bookmark__page"), 0),
+                progress=progress,
+            )
+            .only("page_count")
+            .distinct()
         )
-        pk = self.kwargs.get("pk")
-        self._obj = qs.only("page_count").distinct().get(pk=pk)
+        self._obj = qs.get(pk=pk)
 
         if not self._obj.bookmark_updated_at:  # pyright: ignore[reportAttributeAccessIssue]
-            HttpResponse(status=204)
+            raise NoContent
 
         return {
             "modified": self.modified,
@@ -164,12 +186,14 @@ class OPDS2ProgressionView(
         try:
             obj = self.get_object()
             serializer = self.get_serializer(obj)
-            return Response(
-                serializer.data
-                # , content_type=ReadiumProgressionParser.media_type
-            )
-        except Exception:
-            logger.exception("progression")
+            return Response(serializer.data)
+        except Comic.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        except NoContent:
+            return Response(status=HTTPStatus.NO_CONTENT)
+        except Exception as exc:
+            logger.error("Error in OPDS v2 progression API")
+            logger.exception(exc)
             raise
 
     def put(self, *_args, **_kwargs):
@@ -195,7 +219,10 @@ class OPDS2ProgressionView(
                 data.get("locator", {}).get("locations", {}).get("position")
             )
             if position is not None:
-                self.kwargs["page"] = position
+                # The OPDS v2 progression spec secifies position as > 0.
+                page = max(position - 1, 0)
+                self.kwargs["page"] = page
+                max(position - 1, 0)
                 self.update_bookmark()
                 status_code = HTTPStatus.OK
         return Response(status=status_code)

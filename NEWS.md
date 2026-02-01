@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.15
+
+- Fixes:
+    - Fix OPDS v2 progression crash.
+    - Adjust OPDS v2 progression position field to be 1 based, while Codex page
+      is 0 based.
+
 ## v1.9.14
 
 - Fixes:

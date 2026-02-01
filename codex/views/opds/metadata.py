@@ -1,13 +1,9 @@
-"""OPDS Utility classes."""
+"""OPDS Metadata Subqueries."""
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from django.db.models import F
-from django.http.response import HttpResponseRedirect
-from django.urls import reverse
-from rest_framework.request import Request
 
-from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
     Credit,
     CreditPerson,
@@ -59,38 +55,3 @@ def get_m2m_objects(pks: Sequence[int]) -> dict:
         cats[table] = qs
 
     return cats
-
-
-###################
-# Other Utilities #
-###################
-
-
-def full_redirect_view(url_name: str) -> Callable[[Request], HttpResponseRedirect]:
-    """Redirect to view, for a url name."""
-
-    def func(request: Request):
-        """Redirect to view, forwarding query strings and auth."""
-        kwargs = dict(DEFAULT_BROWSER_ROUTE)
-        url = reverse(url_name, kwargs=kwargs, query=request.GET)
-        response = HttpResponseRedirect(url)
-
-        # Forward authorization.
-        auth_header = request.META.get("HTTP_AUTHORIZATION")
-        if auth_header:
-            response["HTTP_AUTHORIZATION"] = auth_header
-
-        return response
-
-    return func
-
-
-def get_user_agent_name(request: Request) -> str:
-    """Parse User Agent Name from Request."""
-    if (user_agent := request.headers.get("User-Agent")) and (
-        user_agent_parts := user_agent.split("/", 1)
-    ):
-        user_agent_name = user_agent_parts[0]
-    else:
-        user_agent_name = ""
-    return user_agent_name
