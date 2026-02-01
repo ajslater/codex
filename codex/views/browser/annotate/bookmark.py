@@ -106,6 +106,9 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         # Least guard is for rare instances when bookmarks are set to
         # invalid high values
         progress = Least(
-            Coalesce(F("page"), 0) * 100.0 / Greatest("page_count", 1), Value(100.0)
+            Coalesce(F("page"), 0)
+            * 100.0
+            / Greatest(Coalesce(F("page_count"), 1) - 1, 1),
+            Value(100.0),
         )
         return qs.annotate(progress=progress)

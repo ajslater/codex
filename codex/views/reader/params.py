@@ -62,7 +62,6 @@ class ReaderParamsView(SessionView):
                 if serializer.validated_data:
                     params.update(serializer.validated_data)
                 self._ensure_arc(params)
-                self.save_last_route(params)
                 self.save_params_to_session(params)
                 self._params = MappingProxyType(params)
             except Exception:
