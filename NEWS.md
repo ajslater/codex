@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.9.16
 
 - Fixes:
+    - Fix broken Reader close button.
     - Fix OPDS v2 progression crash
 
 ## v1.9.15
