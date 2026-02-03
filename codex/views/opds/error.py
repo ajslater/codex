@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.views import exception_handler
 
 from codex.views.exceptions import SeeOtherRedirectError
-from codex.views.opds.authentication_v1 import OPDSAuthentication1View
+from codex.views.opds.authentication.v1 import OPDSAuthentication1View
 
 OPDS_PATH_PREFIX = "opds/v"
 _OPDS_V2_PATH_PREFIX = OPDS_PATH_PREFIX + "2"

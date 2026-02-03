@@ -4,7 +4,7 @@ from django.urls import path
 from django.views.decorators.cache import cache_page
 
 from codex.urls.const import COMMON_TIMEOUT
-from codex.views.opds.authentication_v1 import OPDSAuthentication1View
+from codex.views.opds.authentication.v1 import OPDSAuthentication1View
 
 app_name = "auth"
 
