@@ -117,7 +117,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         )
         for story_arc_number in story_arc_numbers:
             story_arc = story_arc_number.story_arc
-            name = story_arc.name if story_arc.name else BLANK_TITLE
+            name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
             kwargs = {"group": "a", "pks": pks, "page": 1}

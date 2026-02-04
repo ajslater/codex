@@ -47,7 +47,7 @@ class OPDS2HrefMixin:
 
     def href(self, data):
         """Create an href."""
-        url_name = data.url_name if data.url_name else "opds:v2:feed"
+        url_name = data.url_name or "opds:v2:feed"
         kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None

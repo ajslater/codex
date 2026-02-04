@@ -16,7 +16,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
         new_page = num_pages if num_pages and page > num_pages else 1
-        pks = pks if pks else (0,)
+        pks = pks or (0,)
         return {"group": group, "pks": pks, "page": new_page}
 
     def _get_up_breadcrumbs(self):

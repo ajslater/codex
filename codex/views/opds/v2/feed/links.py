@@ -84,7 +84,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
                 return None
         if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
             href = self.request.build_absolute_uri(href)
-        mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
+        mime_type = data.mime_type or MimeType.OPDS_JSON
         link = {"href": href, "rel": data.rel, "type": mime_type}
         self._link_attributes(data, link)
         self._link_properties(data, link)

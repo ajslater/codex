@@ -436,7 +436,7 @@ CHANNEL_LAYERS = {
 if DEBUG and not BUILD:
     import socket
 
-    DEV_SERVER_HOST = VITE_HOST if VITE_HOST else socket.gethostname()
+    DEV_SERVER_HOST = VITE_HOST or socket.gethostname()
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,

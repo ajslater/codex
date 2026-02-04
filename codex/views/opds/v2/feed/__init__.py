@@ -100,7 +100,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         else:
             # Move the first group's navigation to become the feed navigation.
             # The feed navigation is titled "Browse"" in Stump
-            zero_pad = zero_pad if zero_pad else 0
+            zero_pad = zero_pad or 0
             regular_groups = self._get_groups(group_qs, book_qs, title, zero_pad)
             first_regular_group = next(iter(regular_groups), {})
             navigation = first_regular_group.pop("navigation", [])
