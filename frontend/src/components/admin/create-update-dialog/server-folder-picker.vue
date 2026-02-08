@@ -17,11 +17,11 @@
       @click:clear="onClear"
       @keydown.enter="onKeyDownEnter"
     >
-      <template #item="{ item, props }">
+      <template #item="{ internalItem, props }">
         <v-list-item
           v-bind="props"
-          :title="item.title"
-          :value="item.value"
+          :title="internalItem.title"
+          :value="internalItem.value"
           @click="onItemClick(item.value)"
         />
       </template>
@@ -140,6 +140,7 @@ export default {
   border-radius: 5px;
   background-color: rgb(var(--v-theme-surface));
 }
+
 .showHidden :deep(.v-label) {
   color: rgb(var(--v-theme-textSecondary));
 }
