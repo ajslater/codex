@@ -17,7 +17,7 @@
             variant="plain"
             @click="onCloseBook"
           >
-            close book
+            Close Book
           </v-btn>
         </v-toolbar-items>
         <v-spacer />
