@@ -1,6 +1,5 @@
 <template>
   <v-dialog
-    v-if="user"
     v-model="showAuthTokenDialog"
     origin="center-top"
     transition="slide-y-transition"
