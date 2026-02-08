@@ -1,10 +1,16 @@
 <template>
-  <v-btn v-bind="$attrs" :size="size" :density="density" :icon="icon" :prepend-icon="prependIcon" :text="table" />
+  <v-btn
+    v-bind="$attrs"
+    :size="size"
+    :density="density"
+    :icon="icon"
+    :prepend-icon="prependIcon"
+    :text="table"
+  />
 </template>
 
 <script>
 import { mdiPencil, mdiPlus } from "@mdi/js";
-
 
 export default {
   name: "AdminCreateUpdateButton",
@@ -34,7 +40,7 @@ export default {
     },
     text() {
       return !this.update ? table : undefined;
-    }
-  }
+    },
+  },
 };
 </script>
