@@ -34,20 +34,24 @@ export default {
   top: -6px;
   left: -6px;
 }
+
 :deep(.v-slider-thumb__label) {
   bottom: 0px !important;
   transform: translateX(-50%) translateY(125%) !important;
   background-color: transparent;
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
 }
+
 :deep(.v-slider-thumb__label:before) {
   display: none;
 }
+
 :deep(.v-slider-track__tick-label) {
   display: none;
   bottom: 1px;
   opacity: 0.5;
 }
+
 :deep(.v-slider-track__tick:hover .v-slider-track__tick-label) {
   display: block;
 }
