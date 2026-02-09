@@ -20,8 +20,8 @@ LABEL version=$CODEX_VERSION
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
 # Fix Synology comicbox requiring config
 RUN mkdir -p /home/abc/.config/comicbox \
-  && chown -R abc /home/abc/.config \
-  && chmod 777 /home/abc/.config /home/abc/.config/comicbox
+    && chown -R abc /home/abc/.config \
+    && chmod 777 /home/abc/.config /home/abc/.config/comicbox
 
 # The final image is the mininimal base with /usr/local copied.
 # Possibly could optimize this further to only get python and bin
