@@ -1,5 +1,5 @@
 <template>
-  <div class="settingsHeader">Navigation</div>
+  <div class="settingsSubHeader">Navigation</div>
   <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
@@ -38,7 +38,7 @@
       </tr>
     </tbody>
   </v-table>
-  <div class="settingsHeader">Fit Page To</div>
+  <div class="settingsSubHeader">Fit Page To</div>
   <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
@@ -81,7 +81,7 @@
       </tr>
     </tbody>
   </v-table>
-  <div class="settingsHeader">Other</div>
+  <div class="settingsSubHeader">Other</div>
   <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
@@ -116,14 +116,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.settingsHeader {
-  padding-top: 10px;
-  padding-left: 15px;
-  padding-right: 10px;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
+// settingsSubHeader defined in settings/settings-drawer.vue
 :deep(.v-expansion-panel-title--active) {
   min-height: 48px !important;
 }

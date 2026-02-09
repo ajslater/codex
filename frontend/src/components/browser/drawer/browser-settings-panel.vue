@@ -7,7 +7,7 @@
     }"
     class="browserSettingsBlock"
   >
-    <div class="browserSettingsHeader">Show Group Levels</div>
+    <div class="settingsSubHeader">Show Group Levels</div>
     <v-checkbox
       v-for="choice of groupChoices"
       :key="choice.title"
@@ -22,7 +22,7 @@
   </div>
   <v-divider />
   <div class="browserSettingsBlock">
-    <div class="browserSettingsHeader">Covers</div>
+    <div class="settingsSubHeader">Covers</div>
     <v-checkbox
       v-tooltip="{
         openDelay,
@@ -133,15 +133,9 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.browserGroupCheckbox,
-.browserSettingsHeader {
+// settingsSubHeader defined in settings/settings-drawer.vue
+.browserGroupCheckbox {
   padding-right: 10px;
   padding-left: 15px;
-}
-
-.browserSettingsHeader {
-  padding-top: 10px;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

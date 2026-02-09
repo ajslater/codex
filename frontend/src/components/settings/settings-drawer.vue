@@ -100,8 +100,8 @@ export default {
 
 .settingsHeader {
   padding-top: 10px;
-  padding-bottom: 10px;
   padding-left: 15px;
+  padding-bottom: 10px;
   background-color: rgb(var(--v-theme-surface-light));
   font-size: larger;
   font-weight: bolder;
@@ -128,5 +128,14 @@ export default {
 
 #bottomFooter {
   padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
+}
+</style>
+<style lang="scss">
+.settingsSubHeader {
+  padding-top: 10px;
+  padding-left: 15px;
+  padding-right: 10px;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>
