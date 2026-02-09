@@ -191,6 +191,7 @@ export default {
 
 .closeBook {
   padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
+  color: rgb(var(--v-theme-textPrimary));
 }
 
 .readerTitle {
