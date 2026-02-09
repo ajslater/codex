@@ -1,26 +1,24 @@
 <template>
   <div class="statBlock">
     <h3>{{ title }}</h3>
-    <v-table class="highlight-table">
-      <tbody v-for="[key, value] of Object.entries(items)" :key="key">
-        <tr v-if="typeof value === 'object'">
-          <th colspan="2" class="subtitleRow">
-            {{ key }}
-          </th>
-        </tr>
-        <tr v-else>
+    <v-table class="statsTable" striped="odd">
+      <tbody>
+        <tr v-for="[key, value] of Object.entries(items)" :key="key">
           <td :class="tdClasses(key)">{{ tdLabel(key) }}</td>
-          <td>{{ nf(value) }}</td>
-        </tr>
-        <tr
-          v-for="[subkey, subvalue] of Object.entries(valueTable(value))"
-          :key="subkey"
-        >
-          <td class="indent">{{ subkey }}</td>
-          <td>{{ nf(subvalue) }}</td>
+          <td v-if="typeof value === 'object'">
+            <v-table class="statsTable" striped="even">
+      <tbody>
+        <tr v-for="[subKey, subValue] of Object.entries(value)">
+          <td :class="tdClasses(subKey)">{{ tdLabel(subKey) }}</td>
+          <td>{{ nf(subValue) }}</td>
         </tr>
       </tbody>
-      <slot />
+    </v-table>
+    </td>
+    <td v-else>{{ nf(value) }}</td>
+    </tr>
+    <slot />
+    </tbody>
     </v-table>
   </div>
 </template>
@@ -69,12 +67,9 @@ h3 {
   text-align: center;
 }
 
-.highlight-table {
+.statsTable {
   color: rgb(var(--v-theme-textSecondary));
-}
-
-.highlight-table tbody:nth-child(even) {
-  background-color: rgb(var(--v-theme-background)) !important;
+  background-color: inherit;
 }
 
 tr td:nth-child(2) {

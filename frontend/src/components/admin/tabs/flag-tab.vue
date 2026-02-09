@@ -1,5 +1,5 @@
 <template>
-  <v-table class="highlight-table flags-table" :items="flags" fixed-header>
+  <v-table id="flags-table" :items="flags" striped="odd">
     <thead>
       <tr>
         <th>Description</th>
@@ -16,33 +16,14 @@
           </p>
         </td>
         <td v-if="item.key === 'BT'" class="bannerTextField">
-          <v-text-field
-            :model-value="banner"
-            label="Banner"
-            clearable
-            hide-details="auto"
-            :error-messages="errors[item.key]"
-            @update:model-value="banner = $event"
-            @click:clear="banner = ''"
-          />
+          <v-text-field :model-value="banner" label="Banner" clearable hide-details="auto"
+            :error-messages="errors[item.key]" @update:model-value="banner = $event" @click:clear="banner = ''" />
         </td>
         <td>
-          <v-btn
-            v-if="item.key === 'BT'"
-            variant="plain"
-            class="flagSaveButton"
-            :icon="mdiContentSaveOutline"
-            title="Save Banner"
-            @click="changeCol(item.key, 'value', banner)"
-          />
-          <v-checkbox
-            v-else
-            :model-value="item.on"
-            :true-value="true"
-            :error-messages="errors[item.key]"
-            hide-details="auto"
-            @update:model-value="changeCol(item.key, 'on', $event)"
-          />
+          <v-btn v-if="item.key === 'BT'" variant="plain" class="flagSaveButton" :icon="mdiContentSaveOutline"
+            title="Save Banner" @click="changeCol(item.key, 'value', banner)" />
+          <v-checkbox v-else :model-value="item.on" :true-value="true" :error-messages="errors[item.key]"
+            hide-details="auto" @update:model-value="changeCol(item.key, 'on', $event)" />
         </td>
       </tr>
     </tbody>
@@ -127,9 +108,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.flags-table {
+#flags-table {
   max-width: 100vw !important;
   margin-bottom: 24px;
+  background-color: inherit;
 }
 
 .nameCol {

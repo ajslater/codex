@@ -4,7 +4,7 @@
       <h1>Search Help</h1>
       <div id="fieldTableContainer">
         <h2>Search Fields</h2>
-        <v-table id="fieldTable" class="highlight-table">
+        <v-table id="fieldTable" striped="odd">
           <thead>
             <tr>
               <th>Field</th>
@@ -13,10 +13,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="[field, data] of Object.entries(FIELD_ROWS)"
-              :key="field"
-            >
+            <tr v-for="[field, data] of Object.entries(FIELD_ROWS)" :key="field">
               <td>{{ field }}</td>
               <td>{{ data["type"] }}</td>
               <td class="aliasCol">
@@ -89,8 +86,7 @@
           Field Search has it's own operators that offer more powerful queries.
           For text, numeric, boolean and datetime fields may be applied at the
           beginning of the expression
-          <code>&gt;</code
-          >,<code>&gt;=</code>,<code>&lt;</code>,<code>&lt;=</code>. And the
+          <code>&gt;</code>,<code>&gt;=</code>,<code>&lt;</code>,<code>&lt;=</code>. And the
           range syntax <code>..</code> accepts two values. For instance:
         </p>
         <table class="searchExample">
@@ -168,9 +164,7 @@
         </table>
         <p>
           Placing a leading operator outside the quotes for a date phrase will
-          not be parsed correctly. If the format you try fails, the <br /><code
-            >YYYY-MM-DD</code
-          >
+          not be parsed correctly. If the format you try fails, the <br /><code>YYYY-MM-DD</code>
           and <br /><code>YYYY-MM-DD-HH:mm:SS</code> formats are reliable.
         </p>
         <h3>Single Quote complex field Queries</h3>
@@ -238,9 +232,10 @@ h3 {
 
 #fieldTable {
   width: fit-content;
-  text-align: left;
-  margin-bottom: 1em;
   margin-right: 2em;
+  margin-bottom: 1em;
+  text-align: left;
+  background-color: inherit;
   color: rgb(var(--v-theme-textSecondary));
 }
 

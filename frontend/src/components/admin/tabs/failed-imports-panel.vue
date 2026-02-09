@@ -1,22 +1,15 @@
 <template>
   <div v-if="showFailedImports">
     <v-expansion-panels>
-      <v-expansion-panel
-        id="failedImportsPanel"
-        @click="unseenFailedImports = false"
-      >
+      <v-expansion-panel id="failedImportsPanel" @click="unseenFailedImports = false">
         <v-expansion-panel-title>
           Failed Imports: {{ failedImports.length }}
-          <v-icon
-            v-if="unseenFailedImports"
-            id="failedImportsIcon"
-            title="New Failed Imports"
-          >
+          <v-icon v-if="unseenFailedImports" id="failedImportsIcon" title="New Failed Imports">
             {{ mdiBookAlert }}
           </v-icon>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <v-table class="highlight-table">
+          <v-table id="failedImportsTable" striped="odd">
             <template #default>
               <thead>
                 <tr>
@@ -67,13 +60,10 @@
                   If the comic looks good to you, but still shows up as a failed
                   import, it might be Codex's fault for not importing it
                   correctly. Please file an
-                  <a
-                    href="https://github.com/ajslater/codex/issues/"
-                    target="_blank"
-                    >Issue Report<v-icon size="small">{{
-                      mdiOpenInNew
-                    }}</v-icon></a
-                  >
+                  <a href="https://github.com/ajslater/codex/issues/" target="_blank">Issue Report<v-icon
+                      size="small">{{
+                        mdiOpenInNew
+                      }}</v-icon></a>
                   and include the stack trace from the logs at
                   <code>config/logs/codex.log</code>
                   if you can.
@@ -135,6 +125,10 @@ export default {
 #failedImportsIcon {
   padding-left: 0.25em;
   color: rgb(var(--v-theme-error)) !important;
+}
+
+#failedImportsTable {
+  background-color: inherit;
 }
 
 #failedImportsHelp {

@@ -1,6 +1,6 @@
 <template>
   <div class="settingsHeader">Navigation</div>
-  <table class="highlight-table">
+  <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
         <td>
@@ -37,23 +37,23 @@
         <td>Close book</td>
       </tr>
     </tbody>
-  </table>
+  </v-table>
   <div class="settingsHeader">Fit Page To</div>
-  <table class="highlight-table">
+  <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
         <td><v-hotkey keys="s" /></td>
-        <td>screen</td>
+        <td>Screen</td>
       </tr>
       <tr>
         <td>
           <v-hotkey keys="h" />
         </td>
-        <td>screen height</td>
+        <td>Screen height</td>
       </tr>
       <tr>
         <td><v-hotkey keys="w" /></td>
-        <td>screen width</td>
+        <td>Screen width</td>
       </tr>
       <tr>
         <td><v-hotkey keys="o" /></td>
@@ -80,9 +80,9 @@
         <td>Read in Bottom to Top</td>
       </tr>
     </tbody>
-  </table>
+  </v-table>
   <div class="settingsHeader">Other</div>
-  <table class="highlight-table">
+  <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
         <td><v-hotkey keys="m" /></td>
@@ -93,7 +93,7 @@
         <td>Zoom page</td>
       </tr>
     </tbody>
-  </table>
+  </v-table>
 </template>
 <script>
 import {
@@ -121,7 +121,7 @@ export default {
   padding-left: 15px;
   padding-right: 10px;
   font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-textSecondary));
 }
 
 :deep(.v-expansion-panel-title--active) {
@@ -133,28 +133,18 @@ export default {
   padding-right: 10px;
 }
 
-.highlight-table {
+.shortcutsTable {
   margin-top: 10px;
-  border-collapse: collapse;
+  background-color: inherit;
   color: rgb(var(--v-theme-textDisabled));
 }
 
-div {
-  padding-left: 0.5em;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.highlight-table tr:nth-child(odd) {
-  background-color: rgb(var(--v-theme-surface)) !important;
-}
-
-.highlight-table td {
-  min-width: 60px;
+.shortcutsTable td {
   padding: 5px;
 }
 
-.highlight-table td:first-child {
-  text-align: center;
+.shortcutsTable td:first-child {
+  width: 105px;
 }
 
 .keyIcon {
