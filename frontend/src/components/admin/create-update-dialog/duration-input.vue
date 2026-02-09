@@ -84,30 +84,18 @@ export default {
       minutes: DEFAULT_MINUTES,
     };
   },
-  mounted() {
-    const match = this.modelValue.match(DURATION_RE);
-    const { days, hours, minutes } = match.groups;
-    if (days) {
-      this.days = +days;
-    }
-    if (hours) {
-      this.hours = +hours;
-    }
-    if (minutes) {
-      this.minutes = +minutes;
-    }
+  created() {
+    const { days, hours, minutes } = this.djangoDurationToFields(
+      this.modelValue,
+    );
+    this.days = days;
+    this.hours = hours;
+    this.minutes = minutes;
   },
   computed: {
     value: {
       get() {
-        return (
-          String(this.days).padStart(3, "0") +
-          " " +
-          String(this.hours).padStart(2, "0") +
-          ":" +
-          String(this.minutes).padStart(2, "0") +
-          ":00"
-        );
+        return this.fieldsToDjangoDuration(this.days, this.hours, this.minutes);
       },
       // set(value) {},
     },
@@ -115,6 +103,24 @@ export default {
   methods: {
     update() {
       this.$emit("update:modelValue", this.value);
+    },
+    djangoDurationToFields(duration) {
+      const match = duration.match(DURATION_RE);
+      let { days, hours, minutes } = match.groups;
+      days = +days || 0;
+      hours = +hours || 0;
+      minutes = +minutes || 0;
+      return { days, hours, minutes };
+    },
+    fieldsToDjangoDuration(days, hours, minutes) {
+      return (
+        String(days).padStart(3, "0") +
+        " " +
+        String(hours).padStart(2, "0") +
+        ":" +
+        String(minutes).padStart(2, "0") +
+        ":00"
+      );
     },
   },
 };
