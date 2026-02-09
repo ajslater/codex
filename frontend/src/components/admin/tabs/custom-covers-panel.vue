@@ -2,7 +2,7 @@
   <v-expansion-panels>
     <v-expansion-panel>
       <v-expansion-panel-title>
-        <h4 id="coverDirHeader">Custom Covers</h4>
+        <div id="coverDirHeader">Custom Covers</div>
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <AdminLibraryTable
@@ -13,7 +13,7 @@
         <v-expansion-panels>
           <v-expansion-panel id="customCoversHelp">
             <v-expansion-panel-title>
-              <h4>Custom Covers Help</h4>
+              Custom Covers Help
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <p>Custom covers may be added to the browser in two locations:</p>
@@ -82,11 +82,19 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+:deep(.v-expansion-panel-title) {
+  font-weight: bolder;
+}
+
 #customCoversHelp {
   color: rgb(var(--v-theme-textSecondary));
 }
 
 #customCoversHelp :deep(.v-expansion-panel-text h4) {
   margin-top: 0.5em;
+}
+
+h4 {
+  padding-top: 0.5em;
 }
 </style>

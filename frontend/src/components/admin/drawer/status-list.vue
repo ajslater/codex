@@ -9,7 +9,7 @@
           size="small"
           @click="clear"
         />
-        <h4>Librarian Tasks</h4>
+        <div class="settingsHeader">Librarian Tasks</div>
         <v-expand-transition
           v-for="status of librarianStatuses"
           :key="status.id"
@@ -89,11 +89,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
-h4 {
+.settingsHeader {
   padding-top: 10px;
   padding-left: 0px;
   padding-right: 0px;
   padding-bottom: 10px;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-textDisabled));
 }
 
 #noTasksRunning {

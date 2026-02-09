@@ -208,7 +208,7 @@ export default {
   height: 52px;
 }
 
-:deep(.clipboard > h3) {
+:deep(.clipboard > .clipboardTitle) {
   display: table-cell;
   font-weight: normal;
   font-size: 14px;

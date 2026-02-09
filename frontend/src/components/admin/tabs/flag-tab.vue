@@ -10,7 +10,7 @@
     <tbody>
       <tr v-for="item in flags" :key="`f${item.key}`">
         <td class="nameCol" :colspan="colspan(item)">
-          <h4>{{ title(item) }}</h4>
+          <div class="title">{{ title(item) }}</div>
           <p class="desc">
             {{ DESC[item.key] }}
           </p>
@@ -134,6 +134,11 @@ export default {
 
 .nameCol {
   padding-top: 0.5em !important;
+}
+
+.title {
+  padding-top: 0.5em;
+  font-weight: bolder;
 }
 
 .desc {

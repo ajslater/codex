@@ -6,7 +6,7 @@
         @click="unseenFailedImports = false"
       >
         <v-expansion-panel-title>
-          <h4>Failed Imports: {{ failedImports.length }}</h4>
+          Failed Imports: {{ failedImports.length }}
           <v-icon
             v-if="unseenFailedImports"
             id="failedImportsIcon"
@@ -39,7 +39,7 @@
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
               <v-expansion-panel-title>
-                <h4>Failed Imports Help</h4>
+                Failed Imports Help
               </v-expansion-panel-title>
               <v-expansion-panel-text>
                 <p>
@@ -118,6 +118,11 @@ export default {
 
 <style scoped lang="scss">
 @forward "../../anchors";
+
+:deep(.v-expansion-panel-title) {
+  font-weight: bolder;
+}
+
 .cli {
   display: block;
   margin-left: 2em;
