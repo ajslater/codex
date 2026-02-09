@@ -9,25 +9,25 @@ COPY ci/debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
-  && apt-get update \
-  && apt-get install --no-install-recommends -y \
-    bash \
-    build-essential \
-    cmake \
-    git \
-    libimagequant0 \
-    libjpeg62-turbo \
-    libopenjp2-7 \
-    libssl3 \
-    libyaml-0-2 \
-    libtiff6 \
-    libwebp7 \
-    python3-dev \
-    ruamel.yaml.clib \
-    unrar \
-    zlib1g \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+    && apt-get update \
+    && apt-get install --no-install-recommends -y \
+        bash \
+        build-essential \
+        cmake \
+        git \
+        libimagequant0 \
+        libjpeg62-turbo \
+        libopenjp2-7 \
+        libssl3 \
+        libyaml-0-2 \
+        libtiff6 \
+        libwebp7 \
+        python3-dev \
+        ruamel.yaml.clib \
+        unrar \
+        zlib1g \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
