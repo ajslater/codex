@@ -1,5 +1,5 @@
 <template>
-  <h4>Navigation</h4>
+  <div class="settingsHeader">Navigation</div>
   <table class="highlight-table">
     <tbody>
       <tr>
@@ -38,7 +38,7 @@
       </tr>
     </tbody>
   </table>
-  <h4>Fit Page To</h4>
+  <div class="settingsHeader">Fit Page To</div>
   <table class="highlight-table">
     <tbody>
       <tr>
@@ -81,7 +81,7 @@
       </tr>
     </tbody>
   </table>
-  <h4>Other</h4>
+  <div class="settingsHeader">Other</div>
   <table class="highlight-table">
     <tbody>
       <tr>
@@ -116,6 +116,14 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.settingsHeader {
+  padding-top: 10px;
+  padding-left: 15px;
+  padding-right: 10px;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-textDisabled));
+}
+
 :deep(.v-expansion-panel-title--active) {
   min-height: 48px !important;
 }
@@ -131,7 +139,7 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
 }
 
-h4 {
+div {
   padding-left: 0.5em;
   color: rgb(var(--v-theme-textSecondary));
 }
