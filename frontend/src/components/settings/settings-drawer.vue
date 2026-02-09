@@ -114,11 +114,12 @@ export default {
 
 .footer {
   display: block;
+  margin-top: auto;
+  padding-top: 0px;
   font-size: small;
   text-align: center;
-  padding-top: 0px;
-  background-color: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-textDisabled));
+  background-color: rgb(var(--v-theme-surface));
 }
 
 #scrollFooter {
