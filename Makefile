@@ -80,7 +80,7 @@ build-icons:
 collectstatic: build-icons build-frontend
 	bin/collectstatic.sh
 
-.PHONE: django-check
+.PHONY: django-check
 ## Django check
 ## @category Build
 django-check:
@@ -117,7 +117,7 @@ kill-eslint_d:
 
 .PHONY: fix-frontend
 ## Fix only frontend lint errors
-## @category Fix 
+## @category Fix
 fix-frontend:
 	cd frontend && make fix
 
@@ -189,7 +189,7 @@ test-frontend: build-choices
 .PHONY: test-backend
 ## Run backend tests. Use T variable to run specific tests
 ## @category Test
-T := 
+T :=
 test-backend: collectstatic django-check
 	./bin/test-backend.sh $(T)
 
@@ -272,7 +272,6 @@ docs:
 ## @category Docs
 docs-server:
 	uv run --only-group docs mkdocs serve --open --dirty
-
 
 .PHONY: all
 
