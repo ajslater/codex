@@ -6,8 +6,11 @@ import { defineConfig } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginArrayFunc from "eslint-plugin-array-func";
 import eslintPluginCompat from "eslint-plugin-compat";
+import eslintPluginDeMorgan from "eslint-plugin-de-morgan";
 import eslintPluginDepend from "eslint-plugin-depend";
+import eslintPluginHtml from "eslint-plugin-html";
 import eslintPluginImport from "eslint-plugin-import";
+import eslintPluginMath from "eslint-plugin-math";
 import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
@@ -32,19 +35,18 @@ export const CONFIGS = {
     ...eslintPluginArrayFunc.configs.all,
     ...eslintPluginComments.recommended,
     ...eslintPluginCompat.configs[FLAT_RECOMMENDED],
+    ...eslintPluginDeMorgan.configs.recommended,
     ...eslintPluginDepend.configs[FLAT_RECOMMENDED],
     ...eslintPluginImport.flatConfigs.all,
+    ...eslintPluginMath.configs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
     ...eslintPluginPromise.configs[FLAT_ALL],
     ...eslintPluginRegexp.configs.all,
     ...eslintPluginSonarjs.configs.all,
     ...eslintPluginUnicorn.configs.all,
     plugins: {
-      depend: eslintPluginDepend,
       "no-secrets": eslintPluginNoSecrets,
       "simple-import-sort": eslintPluginSimpleImportSort,
-      sonarjs: eslintPluginSonarjs,
-      unicorn: eslintPluginUnicorn,
     },
     languageOptions: {
       // eslint-plugin-import recommended sets this to 2018.
@@ -108,6 +110,7 @@ export default defineConfig([
       "prettier/prettier": "warn",
     },
   },
+  { files: ["**/*.html"], plugins: { html: eslintPluginHtml } },
   {
     files: ["**/*.js"],
     ...CONFIGS.js,
