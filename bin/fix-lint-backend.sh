@@ -24,3 +24,8 @@ npm run fix
 ###### Shell ######
 ###################
 shellharden --replace ./**/*.sh .env.platforms
+
+#######################
+###### Dockerfile #####
+#######################
+dockerfmt ci/*Dockerfile --write

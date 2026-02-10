@@ -120,7 +120,7 @@ class TimestampUpdater(WorkerStatusBase):
     def update_groups(self, task):
         """Update groups in all libraries."""
         count = 0
-        start_time = task.start_time if task.start_time else timezone.now()
+        start_time = task.start_time or timezone.now()
         libraries = Library.objects.filter(covers_only=False).only("pk")
         for library in libraries:
             count += self.update_library_groups(

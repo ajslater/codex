@@ -188,8 +188,10 @@ export default {
       if (!this.md) {
         return pages;
       }
-      if (this.md.page) {
-        const humanBookmark = NUMBER_FORMAT.format(this.md.page);
+      if (this.md.page !== undefined) {
+        // Show if any bookmark at all.
+        // +1 to page for math with pageCount
+        const humanBookmark = NUMBER_FORMAT.format(this.md.page + 1);
         pages += this.$vuetify.display.smAndDown
           ? `${humanBookmark} / `
           : `Read ${humanBookmark} of `;

@@ -6,6 +6,25 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.16
+
+- Fixes:
+    - Fix broken Reader close button.
+    - Fix OPDS v2 progression crash
+
+## v1.9.15
+
+- Fixes:
+    - Fix OPDS v2 progression crash.
+    - Adjust OPDS v2 progression position field to be 1 based, while Codex page
+      is 0 based.
+
+## v1.9.14
+
+- Fixes:
+    - Fix bad href validation in OPDS v2 leading to null links and therefore
+      invalid OPDS.
+
 ## v1.9.13
 
 - Change:

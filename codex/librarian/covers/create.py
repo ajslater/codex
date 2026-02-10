@@ -84,7 +84,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         except Exception as exc:
             thumb_bytes = b""
             thumb_buffer = None
-            cover_str = db_path if db_path else f"{pk=}"
+            cover_str = db_path or f"{pk=}"
             log.warning(f"Could not create cover thumbnail for {cover_str}: {exc}")
 
         task = CoverSaveToCache(cover_path, thumb_bytes)

@@ -9,7 +9,6 @@ from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
-from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v1.const import (
     DEFAULT_FACETS,
     FacetGroups,
@@ -36,13 +35,6 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         self._mime_type_map: MappingProxyType[str, str] | None = None
         self._use_facets: bool | None = None
         self._obj: MappingProxyType[str, Any] | None = None
-
-    @property
-    def user_agent_name(self) -> str:
-        """Memoize user agent name."""
-        if self._user_agent_name is None:
-            self._user_agent_name = get_user_agent_name(self.request)
-        return self._user_agent_name
 
     @property
     def mime_type_map(self) -> MappingProxyType[str, str]:

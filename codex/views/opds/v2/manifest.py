@@ -15,7 +15,7 @@ from codex.serializers.opds.v2.publication import (
 )
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE, MimeType, Rel
-from codex.views.opds.util import get_credits, get_m2m_objects
+from codex.views.opds.metadata import get_credits, get_m2m_objects
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
 
@@ -117,7 +117,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         )
         for story_arc_number in story_arc_numbers:
             story_arc = story_arc_number.story_arc
-            name = story_arc.name if story_arc.name else BLANK_TITLE
+            name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
             kwargs = {"group": "a", "pks": pks, "page": 1}

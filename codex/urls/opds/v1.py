@@ -4,8 +4,8 @@ from django.urls import path
 from django.views.decorators.cache import cache_page
 
 from codex.urls.const import OPDS_TIMEOUT
+from codex.views.opds.opensearch.v1 import OpenSearch1View
 from codex.views.opds.v1.feed import OPDS1FeedView, OPDS1StartView
-from codex.views.opds.v1.opensearch_v1 import OpenSearch1View
 
 app_name = "v1"
 

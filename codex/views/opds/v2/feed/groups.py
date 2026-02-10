@@ -32,9 +32,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             if link_spec.group is None:
                 # Start Link
                 return {}
-            group = (
-                link_spec.group if link_spec.group else self.kwargs.get("group", "r")
-            )
+            group = link_spec.group or self.kwargs.get("group", "r")
             pks = (0,)
         else:
             group = link_spec.__class__.__name__[0].lower()

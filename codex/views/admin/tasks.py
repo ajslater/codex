@@ -157,7 +157,7 @@ class AdminLibrarianTaskView(AdminAPIView):
         task = self._get_task(task_name, pk)
         if task:
             LIBRARIAN_QUEUE.put(task)
-            task_log = task_name if task_name else "Unknown"
+            task_log = task_name or "Unknown"
             if pk is not None:
                 task_log += f" {pk}"
             logger.debug(f"Admin task submitted {task_log}")

@@ -14,7 +14,7 @@ from codex.views.opds.const import (
     BLANK_TITLE,
     TopRoutes,
 )
-from codex.views.opds.util import (
+from codex.views.opds.metadata import (
     get_credit_people,
     get_m2m_objects,
 )

@@ -22,8 +22,8 @@ class OPDS2HrefMixin:
 
     def _href_page_validate(self, kwargs, data):
         """Validate the page bounds."""
-        min_page = 1 if data.min_page is None else data.min_page
-        max_page = self.num_pages if data.max_page is None else data.max_page
+        min_page = min(1, 1 if data.min_page is None else data.min_page)
+        max_page = max(1, self.num_pages if data.max_page is None else data.max_page)
         page = int(kwargs["page"])
         return page >= min_page and page <= max_page
 
@@ -47,7 +47,7 @@ class OPDS2HrefMixin:
 
     def href(self, data):
         """Create an href."""
-        url_name = data.url_name if data.url_name else "opds:v2:feed"
+        url_name = data.url_name or "opds:v2:feed"
         kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None

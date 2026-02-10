@@ -1,10 +1,9 @@
-"""OPDS Utility classes."""
+"""OPDS Metadata Subqueries."""
+
+from collections.abc import Iterable, Sequence
 
 from django.db.models import F
-from django.http.response import HttpResponseRedirect
-from django.urls import reverse
 
-from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models import (
     Credit,
     CreditPerson,
@@ -23,7 +22,7 @@ from codex.views.opds.const import OPDS_M2M_MODELS
 # querysets to the views and templates.
 
 
-def get_credit_people(comic_pks, roles, exclude):
+def get_credit_people(comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool):
     """Get credits that are not authors."""
     people = CreditPerson.objects.filter(
         credit__comic__in=comic_pks,
@@ -35,7 +34,7 @@ def get_credit_people(comic_pks, roles, exclude):
     return people.distinct().only("name")
 
 
-def get_credits(comic_pks, roles, exclude):
+def get_credits(comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool):
     """Get credits that are not part of other roles."""
     credit_qs = Credit.objects.filter(comic__in=comic_pks)
     if exclude:
@@ -45,7 +44,7 @@ def get_credits(comic_pks, roles, exclude):
     return credit_qs.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
-def get_m2m_objects(pks) -> dict:
+def get_m2m_objects(pks: Sequence[int]) -> dict:
     """Get Category labels."""
     cats = {}
     for model in OPDS_M2M_MODELS:
@@ -56,37 +55,3 @@ def get_m2m_objects(pks) -> dict:
         cats[table] = qs
 
     return cats
-
-
-###################
-# Other Utilities #
-###################
-
-
-def full_redirect_view(url_name):
-    """Redirect to view, for a url name."""
-
-    def func(request):
-        """Redirect to view, forwarding query strings and auth."""
-        kwargs = dict(DEFAULT_BROWSER_ROUTE)
-        url = reverse(url_name, kwargs=kwargs, query=request.GET)
-        response = HttpResponseRedirect(url)
-
-        # Forward authorization.
-        auth_header = request.META.get("HTTP_AUTHORIZATION")
-        if auth_header:
-            response["HTTP_AUTHORIZATION"] = auth_header
-
-        return response
-
-    return func
-
-
-def get_user_agent_name(request):
-    """Get the first part of the user agent."""
-    user_agent_name = ""
-    if (user_agent := request.headers.get("User-Agent")) and (
-        user_agent_parts := user_agent.split("/", 1)
-    ):
-        user_agent_name = user_agent_parts[0]
-    return user_agent_name

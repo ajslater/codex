@@ -11,7 +11,6 @@ from django.db.models import QuerySet
 from codex.settings import FALSY
 from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
-from codex.views.opds.util import get_user_agent_name
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.href import OPDS2HrefMixin
 
@@ -51,13 +50,6 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
             self._num_pages = self.group_and_books[2]
         return self._num_pages
 
-    @property
-    def user_agent_name(self) -> str:
-        """Memoize user agent name."""
-        if self._user_agent_name is None:
-            self._user_agent_name = get_user_agent_name(self.request)
-        return self._user_agent_name
-
     @staticmethod
     def _link_attributes(data, link):
         """Add attributes to link."""
@@ -92,7 +84,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
                 return None
         if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
             href = self.request.build_absolute_uri(href)
-        mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
+        mime_type = data.mime_type or MimeType.OPDS_JSON
         link = {"href": href, "rel": data.rel, "type": mime_type}
         self._link_attributes(data, link)
         self._link_properties(data, link)
