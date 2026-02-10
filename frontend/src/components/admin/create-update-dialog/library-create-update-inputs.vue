@@ -128,7 +128,6 @@ export default {
   watch: {
     row: {
       handler(to) {
-        console.log(to);
         this.$emit("change", to);
       },
       deep: true,
