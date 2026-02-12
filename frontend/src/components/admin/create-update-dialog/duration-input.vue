@@ -57,6 +57,7 @@ const DEFAULT_HOURS = 1;
 const DEFAULT_MINUTES = 0;
 
 const DURATION_RE =
+  // eslint-disable-next-line security/detect-unsafe-regex
   /^(?<days>[0-3]?\d?\d\s)?(?<hours>[01]?\d|2[0-3]):(?<minutes>[0-5]\d):\d{2}$/;
 export default {
   name: "DurationInput",

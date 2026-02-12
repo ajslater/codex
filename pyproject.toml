@@ -94,7 +94,7 @@ docs = ["mkdocs~=1.6", "mkdocs-minify-plugin~=0.8"]
 ci = ["requests~=2.32"]
 
 [build-system]
-requires = ["uv_build~=0.8.7"]
+requires = ["uv_build~=0.10.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
