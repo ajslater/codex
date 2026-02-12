@@ -32,6 +32,8 @@ if [ "$(uname)" = "Darwin" ]; then
   # subdirs aren't copied into docker builder
   # .env files aren't copied into docker
   shellcheck --external-sources ./**/*.sh
+  mbake validate Makefile
+  dockerfmt ci/*Dockerfile --check
   circleci config validate .circleci/config.yml
 fi
 ./bin/roman.sh -i .prettierignore .
