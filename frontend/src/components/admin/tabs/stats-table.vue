@@ -7,18 +7,18 @@
           <td :class="tdClasses(key)">{{ tdLabel(key) }}</td>
           <td v-if="typeof value === 'object'">
             <v-table class="statsTable" striped="even">
-      <tbody>
-        <tr v-for="[subKey, subValue] of Object.entries(value)">
-          <td :class="tdClasses(subKey)">{{ tdLabel(subKey) }}</td>
-          <td>{{ nf(subValue) }}</td>
+              <tbody>
+                <tr v-for="[subKey, subValue] of Object.entries(value)">
+                  <td :class="tdClasses(subKey)">{{ tdLabel(subKey) }}</td>
+                  <td>{{ nf(subValue) }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </td>
+          <td v-else>{{ nf(value) }}</td>
         </tr>
+        <slot />
       </tbody>
-    </v-table>
-    </td>
-    <td v-else>{{ nf(value) }}</td>
-    </tr>
-    <slot />
-    </tbody>
     </v-table>
   </div>
 </template>

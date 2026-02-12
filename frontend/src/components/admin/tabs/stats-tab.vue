@@ -2,7 +2,12 @@
   <div v-if="stats" id="stats">
     <StatsTable title="Platform" :items="platformTable" />
     <StatsTable title="Config" :items="configTable">
-      <ClipBoard class="apiKey" tooltip="Copy API Key" title="API Key" :text="stats.config.apiKey" />
+      <ClipBoard
+        class="apiKey"
+        tooltip="Copy API Key"
+        title="API Key"
+        :text="stats.config.apiKey"
+      />
       <tr id="schemaDoc">
         <td colspan="2">
           <div>
@@ -10,8 +15,13 @@
             <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
             <a :href="schemaHref" target="_blank">/admin/stats</a>
           </div>
-          <ConfirmDialog button-text="Regenerate API Key" title-text="Regenerate" text="API Key"
-            confirm-text="Regenerate" @confirm="regenAPIKey" />
+          <ConfirmDialog
+            button-text="Regenerate API Key"
+            title-text="Regenerate"
+            text="API Key"
+            confirm-text="Regenerate"
+            @confirm="regenAPIKey"
+          />
         </td>
       </tr>
     </StatsTable>
@@ -181,7 +191,7 @@ export default {
   background-color: rgb(var(--v-theme-background));
 }
 
-#schemaDoc>td {
+#schemaDoc > td {
   padding-top: 15px;
   border-bottom: none !important;
 }
@@ -190,11 +200,12 @@ export default {
 
 :deep(.clipboard) {
   display: table-row;
-  background-image: linear-gradient(0deg, rgba(var(--v-border-color), var(--v-hover-opacity)), rgba(var(--v-border-color), var(--v-hover-opacity)));
+  background-image: linear-gradient(
+    0deg,
+    rgba(var(--v-border-color), var(--v-hover-opacity)),
+    rgba(var(--v-border-color), var(--v-hover-opacity))
+  );
 }
-
-;
-
 :deep(.clipboard *) {
   height: 52px;
 }

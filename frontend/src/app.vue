@@ -63,7 +63,7 @@ a {
   border-radius: 5px;
 }
 
-.v-tooltip>.v-overlay__content {
+.v-tooltip > .v-overlay__content {
   color: rgb(var(--v-theme-textDisabled)) !important;
 }
 </style>
