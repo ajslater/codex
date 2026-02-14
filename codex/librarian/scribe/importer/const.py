@@ -189,66 +189,64 @@ _IDENTIFIED_MODEL_RELS = ((NAME_FIELD_NAME,), _IDENTIFIER_RELS)
 IDENTIFIED_MODELS = frozenset(
     {Character, CreditPerson, CreditRole, Genre, Location, Story, StoryArc, Tag, Team}
 )
-MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple[str | tuple[str, ...], ...]] = (
-    MappingProxyType(
-        {
-            **dict.fromkeys(NAMED_MODELS, _NAMED_MODEL_RELS),
-            **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_MODEL_RELS),
-            Identifier: (
-                (
-                    f"{IDENTIFIER_SOURCE_FIELD_NAME}__name",
-                    IDENTIFIER_TYPE_FIELD_NAME,
-                    IDENTIFIER_ID_KEY_FIELD_NAME,
-                ),
-                "",
-                IDENTIFIER_URL_FIELD_NAME,
+MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
+    {
+        **dict.fromkeys(NAMED_MODELS, _NAMED_MODEL_RELS),
+        **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_MODEL_RELS),
+        Identifier: (
+            (
+                f"{IDENTIFIER_SOURCE_FIELD_NAME}__name",
+                IDENTIFIER_TYPE_FIELD_NAME,
+                IDENTIFIER_ID_KEY_FIELD_NAME,
             ),
-            Publisher: _IDENTIFIED_MODEL_RELS,
-            Imprint: (
-                (
-                    "publisher__name",
-                    NAME_FIELD_NAME,
-                ),
-                _IDENTIFIER_RELS,
+            "",
+            IDENTIFIER_URL_FIELD_NAME,
+        ),
+        Publisher: _IDENTIFIED_MODEL_RELS,
+        Imprint: (
+            (
+                "publisher__name",
+                NAME_FIELD_NAME,
             ),
-            Series: (
-                (
-                    "publisher__name",
-                    "imprint__name",
-                    NAME_FIELD_NAME,
-                ),
-                _IDENTIFIER_RELS,
-                VOLUME_COUNT_FIELD_NAME,
+            _IDENTIFIER_RELS,
+        ),
+        Series: (
+            (
+                "publisher__name",
+                "imprint__name",
+                NAME_FIELD_NAME,
             ),
-            Volume: (
-                (
-                    "publisher__name",
-                    "imprint__name",
-                    "series__name",
-                    NAME_FIELD_NAME,
-                    NUMBER_TO_FIELD_NAME,
-                ),
-                "",
-                ISSUE_COUNT_FIELD_NAME,
+            _IDENTIFIER_RELS,
+            VOLUME_COUNT_FIELD_NAME,
+        ),
+        Volume: (
+            (
+                "publisher__name",
+                "imprint__name",
+                "series__name",
+                NAME_FIELD_NAME,
+                NUMBER_TO_FIELD_NAME,
             ),
-            Folder: (
-                (PATH_FIELD_NAME,),
-                "",
+            "",
+            ISSUE_COUNT_FIELD_NAME,
+        ),
+        Folder: (
+            (PATH_FIELD_NAME,),
+            "",
+        ),
+        Credit: (
+            (
+                f"{CREDIT_PERSON_FIELD_NAME}__name",
+                f"{CREDIT_ROLE_FIELD_NAME}__name",
             ),
-            Credit: (
-                (
-                    f"{CREDIT_PERSON_FIELD_NAME}__name",
-                    f"{CREDIT_ROLE_FIELD_NAME}__name",
-                ),
-                "",
-            ),
-            StoryArcNumber: (
-                (f"{STORY_ARC_FIELD_NAME}__name", NUMBER_FIELD_NAME),
-                "",
-            ),
-            Universe: ((NAME_FIELD_NAME,), _IDENTIFIER_RELS, DESIGNATION_FIELD_NAME),
-        }
-    )
+            "",
+        ),
+        StoryArcNumber: (
+            (f"{STORY_ARC_FIELD_NAME}__name", NUMBER_FIELD_NAME),
+            "",
+        ),
+        Universe: ((NAME_FIELD_NAME,), _IDENTIFIER_RELS, DESIGNATION_FIELD_NAME),
+    }
 )
 _IDENTIFIED_SELECT_RELATED = ("identifier", "identifier__source")
 MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
@@ -268,7 +266,7 @@ MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
 )
 FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
     {
-        field.name: MODEL_REL_MAP[field.related_model][0]  # pyright: ignore[reportArgumentType]
+        field.name: MODEL_REL_MAP[field.related_model][0]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         for field in (*ALL_COMIC_FK_FIELDS, *COMIC_M2M_FIELDS)
     }
 )

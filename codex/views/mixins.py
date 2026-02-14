@@ -24,7 +24,9 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
     """Cross view annotation methods."""
 
     @staticmethod
-    def _get_order_group(nav_group, show, parent_group, index, pks, order_groups):
+    def _get_order_group(
+        nav_group, show, parent_group, index, pks, order_groups
+    ) -> tuple:
         do_break = False
         if (
             nav_group not in _VARIABLE_SHOW or show.get(nav_group)
@@ -37,7 +39,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         return order_groups, do_break
 
     @classmethod
-    def _get_order_groups(cls, parent_group, pks, show):
+    def _get_order_groups(cls, parent_group, pks, show) -> tuple:
         """Annotate sort_name."""
         order_groups = ()
         if parent_group != "c":
@@ -52,7 +54,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         return order_groups
 
     @classmethod
-    def get_sort_name_annotations(cls, model, parent_group, pks, show):
+    def get_sort_name_annotations(cls, model, parent_group, pks, show) -> dict:
         """Annotate sort names for browser subclasses and reader."""
         sort_name_annotations = {}
         if model is Comic:
@@ -68,7 +70,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         return sort_name_annotations
 
     @staticmethod
-    def _volume_name_annotation(model):
+    def _volume_name_annotation(model) -> Case:
         prefix = "volume__" if model is Comic else ""
         name_rel = prefix + "name"
         number_to_rel = prefix + "number_to"
@@ -112,7 +114,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
 class UserActiveMixin:
     """View that records user activity."""
 
-    def mark_user_active(self):
+    def mark_user_active(self) -> None:
         """Get the app index page."""
         if TYPE_CHECKING:
             self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]

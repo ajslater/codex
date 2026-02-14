@@ -1,11 +1,12 @@
 """Covers Tasks."""
 
-from abc import ABC
 from dataclasses import dataclass
+
+from codex.librarian.tasks import LibrarianTask
 
 
 @dataclass
-class CoverTask(ABC):  # noqa: B024
+class CoverTask(LibrarianTask):
     """Handle with the CoverThread."""
 
 

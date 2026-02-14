@@ -73,7 +73,7 @@ class Counts:
     covers_moved: int = 0
     failed_imports: int = 0
 
-    def _any(self, exclude_prefixes: tuple[str, ...]):
+    def _any(self, exclude_prefixes: tuple[str, ...]) -> bool:
         return any(
             value
             for key, value in asdict(self).items()
@@ -99,7 +99,7 @@ class InitImporter(WorkerStatusBase):
 
     def __init__(
         self, task: ImportTask, logger_, librarian_queue: Queue, db_write_lock, event
-    ):
+    ) -> None:
         """Initialize the import."""
         super().__init__(logger_, librarian_queue, db_write_lock)
         self.task: ImportTask = task
@@ -153,7 +153,7 @@ class InitImporter(WorkerStatusBase):
     #######
     # LOG #
     #######
-    def _log_task_construct_dirs_log(self):
+    def _log_task_construct_dirs_log(self) -> list:
         """Construct dirs log line."""
         dirs_log = []
         if self.task.dirs_moved:
@@ -164,7 +164,7 @@ class InitImporter(WorkerStatusBase):
             dirs_log += [f"{len(self.task.dirs_deleted)} deleted"]
         return dirs_log
 
-    def _log_task_construct_comics_log(self):
+    def _log_task_construct_comics_log(self) -> list:
         """Construct comcis log line."""
         comics_log = []
         if self.task.files_moved:
@@ -177,7 +177,7 @@ class InitImporter(WorkerStatusBase):
             comics_log += [f"{len(self.task.files_deleted)} deleted"]
         return comics_log
 
-    def _log_task(self):
+    def _log_task(self) -> None:
         """Log the watchdog event self.task."""
         if not self._is_log_debug_task:
             return
@@ -198,7 +198,7 @@ class InitImporter(WorkerStatusBase):
     ########
     # INIT #
     ########
-    def _init_librarian_status_moved(self, status_list):
+    def _init_librarian_status_moved(self, status_list) -> int:
         """Initialize moved statuses."""
         search_index_updates = 0
         if self.task.dirs_moved:
@@ -210,7 +210,7 @@ class InitImporter(WorkerStatusBase):
             status_list += [ImporterMoveCoversStatus(None, len(self.task.covers_moved))]
         return search_index_updates
 
-    def _init_if_modified_or_created(self, path, status_list):
+    def _init_if_modified_or_created(self, path, status_list) -> tuple:
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(self.task.files_modified) + len(self.task.files_created)
         status_list += [
@@ -277,7 +277,7 @@ class InitImporter(WorkerStatusBase):
 
         return modified, created
 
-    def _init_librarian_status_deleted(self, status_list):
+    def _init_librarian_status_deleted(self, status_list) -> int:
         """Init deleted statuses."""
         search_index_updates = 0
         if self.task.files_deleted:
@@ -298,7 +298,7 @@ class InitImporter(WorkerStatusBase):
     @staticmethod
     def _init_librarian_status_search_index(
         comic_updates, comic_creates, comic_deletes, status_list
-    ):
+    ) -> None:
         """Init search index statuses."""
         status_list += [
             SearchIndexCleanStatus(total=comic_deletes),
@@ -306,7 +306,7 @@ class InitImporter(WorkerStatusBase):
             ImporterFTSCreateStatus(total=comic_creates),
         ]
 
-    def _init_librarian_status(self, path):
+    def _init_librarian_status(self, path) -> None:
         """Update the librarian status self.tasks."""
         status_list = []
         moved = self._init_librarian_status_moved(status_list)
@@ -321,7 +321,7 @@ class InitImporter(WorkerStatusBase):
         )
         self.status_controller.start_many(status_list)
 
-    def init_apply(self):
+    def init_apply(self) -> None:
         """Initialize the library and status flags."""
         self.start_time = now()
         self.library.start_update()

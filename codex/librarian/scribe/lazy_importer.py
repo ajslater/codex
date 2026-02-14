@@ -10,7 +10,7 @@ from codex.models.comic import Comic
 class LazyImporter(WorkerBase):
     """Kick off an import task for just these books."""
 
-    def lazy_import(self, task):
+    def lazy_import(self, task) -> None:
         """Kick off an import task for just these books."""
         if not AdminFlag.objects.get(
             key=AdminFlagChoices.LAZY_IMPORT_METADATA.value

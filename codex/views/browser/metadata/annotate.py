@@ -18,7 +18,7 @@ from codex.views.browser.metadata.const import (
 class MetadataAnnotateView(BrowserAnnotateCardView):
     """Metadata Annotations."""
 
-    def _get_comic_value_fields(self):
+    def _get_comic_value_fields(self) -> tuple:
         """Include the path field for staff."""
         fields = set(COMIC_VALUE_FIELD_NAMES)
         group = self.kwargs["group"]
@@ -35,7 +35,7 @@ class MetadataAnnotateView(BrowserAnnotateCardView):
         fields,
         related_suffix="",
         annotation_prefix="",
-    ):
+    ) -> tuple:
         """Annotate the intersection of value and fk fields."""
         (filtered_qs, qs) = querysets
 

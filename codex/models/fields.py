@@ -2,6 +2,7 @@
 
 from decimal import ROUND_DOWN, Decimal
 from html import unescape
+from typing import Any
 
 from django.db.models.fields import (
     CharField,
@@ -63,14 +64,14 @@ class CoercingPositiveSmallIntegerField(
 class CoercingDecimalField(DecimalField):
     """Custom DecimalField."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Init coercing values."""
         super().__init__(*args, **kwargs)
         self._quantize_str = Decimal(f"1e-{self.decimal_places}")
         self._decimal_max = Decimal(10 ** (self.max_digits - 2) - 1)
 
     @override
-    def get_prep_value(self, value):
+    def get_prep_value(self, value) -> Any:
         """Coerce Decimal."""
         prepped_value: Decimal | None = super().get_prep_value(value)
         if prepped_value is not None:

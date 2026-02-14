@@ -5,6 +5,7 @@ from dataclasses import asdict
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from django.db.models import QuerySet
 from loguru import logger
 
 from codex.models import (
@@ -43,7 +44,7 @@ _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
 class BrowserBreadcrumbsView(BrowserPaginateView):
     """Browser breadcrumbs calculations."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         # Use 0 to indicate unmemoized because None is a valid value
@@ -58,7 +59,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         order_by = "name" if model is Volume else "sort_name"
         return qs.order_by(order_by)
 
-    def _handle_group_query_missing_model(self, model):
+    def _handle_group_query_missing_model(self, model) -> QuerySet:
         """Handle a missing model for the group instance."""
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
@@ -73,7 +74,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 route_mask={"group": group},
                 settings_mask=settings_mask,
             )
-        return group_query
+        return group_query  # pyright: ignore[reportPossiblyUnboundVariable]
 
     @property
     def group_instance(self) -> BrowserGroupModel | None:
@@ -95,7 +96,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             self._group_instance = group_instance
         return self._group_instance  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
 
-    def _init_breadcrumbs(self, valid_groups):
+    def _init_breadcrumbs(self, valid_groups) -> tuple:
         """Load breadcrumbs and determine if they should be searched for a graft."""
         breadcrumbs: tuple[Mapping[str, str | tuple[int, ...] | int], ...] = tuple(
             self.params.get("breadcrumbs", ())
@@ -106,7 +107,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             old_breadcrumbs = []
         return old_breadcrumbs, invalid
 
-    def _breadcrumbs_save(self, breadcrumbs):
+    def _breadcrumbs_save(self, breadcrumbs) -> None:
         """Save the breadcrumbs to params."""
         params = dict(self.params)
         params["breadcrumbs"] = tuple(asdict(crumb) for crumb in breadcrumbs)
@@ -187,7 +188,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         return tuple(breadcrumbs), changed
 
-    def _get_breadcrumbs_group_crumb(self, group):
+    def _get_breadcrumbs_group_crumb(self, group) -> Route:
         """Create the crumb for this group."""
         gi = self.group_instance
         if not gi:
@@ -244,7 +245,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         new_breadcrumbs,
         changed,
         done,
-    ):
+    ) -> bool:
         with suppress(ValueError):
             level = level or GROUP_ORDER.index(group) <= browser_group_index
         if level:

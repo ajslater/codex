@@ -17,7 +17,7 @@ _PREFETCH_DICT_FIELDS = frozenset({"identifiers", "credits", "story_arc_numbers"
 class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     """Copy Intersections Into Comic Fields."""
 
-    def _path_security(self, obj):
+    def _path_security(self, obj) -> None:
         """Secure filesystem information for acl situation."""
         group = self.kwargs["group"]
         is_path_group = group in PATH_GROUPS
@@ -29,7 +29,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         else:
             obj.path = ""
 
-    def _highlight_current_group(self, obj):
+    def _highlight_current_group(self, obj) -> None:
         """Values for highlighting the current group."""
         if self.model and self.model is not Comic:
             # move the name of the group to the correct field
@@ -39,7 +39,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
             obj.name = None
 
     @classmethod
-    def _copy_m2m_intersections(cls, obj, m2m_intersections):
+    def _copy_m2m_intersections(cls, obj, m2m_intersections) -> None:
         """Copy the m2m intersections into the object."""
         # It might even be faster to copy everything to a dict and not use the obj.
         for key, qs in m2m_intersections.items():
@@ -55,17 +55,17 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
                 setattr(obj, serializer_key, qs)
 
     @staticmethod
-    def _copy_groups(obj, groups):
+    def _copy_groups(obj, groups) -> None:
         for field, group_qs in groups.items():
             setattr(obj, field + "_list", group_qs)
 
     @staticmethod
-    def _copy_fks(obj, fks):
+    def _copy_fks(obj, fks) -> None:
         for field, fk_qs in fks.items():
             setattr(obj, field, fk_qs.first())
 
     @staticmethod
-    def _copy_conflicting_simple_fields(obj):
+    def _copy_conflicting_simple_fields(obj) -> None:
         for field in COMIC_VALUE_FIELDS_CONFLICTING:
             """Copy conflicting fields over naturral fields."""
             conflict_field = COMIC_VALUE_FIELDS_CONFLICTING_PREFIX + field

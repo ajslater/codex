@@ -16,7 +16,7 @@ class CoverThread(CoverPurgeThread):
     """Create comic covers in it's own thread."""
 
     @override
-    def process_item(self, item):
+    def process_item(self, item) -> None:
         """Run the task method."""
         task = item
         if isinstance(task, CoverSaveToCache):

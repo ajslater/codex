@@ -1,6 +1,5 @@
 """Download a group of comics in a zipfile."""
 
-from django.http import HttpResponseBadRequest
 from django.http.response import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
@@ -19,13 +18,13 @@ class GroupDownloadView(BrowserFilterView):
     TARGET: str = "download"
 
     @override
-    def get_object(self):
+    def get_object(self) -> tuple[str, ...]:
         """Get comic paths for a browse group."""
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         if not self.model:
             reason = f"Could not find model for group {group}"
-            return HttpResponseBadRequest(reason)
+            raise Http404(reason)
 
         try:
             qs = self.get_filtered_queryset(self.model, group=group, pks=pks)
@@ -39,10 +38,10 @@ class GroupDownloadView(BrowserFilterView):
             reason = f"Comics from {group}:{pks} not not found."
             raise Http404(reason)
 
-        return sorted(set(paths))
+        return tuple(sorted(set(paths)))
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
-    def get(self, *_args, **kwargs):
+    def get(self, *_args, **kwargs) -> FileResponse:
         """Stream a zip archive of many comics."""
         paths = self.get_object()
 

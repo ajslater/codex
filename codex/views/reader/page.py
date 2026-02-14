@@ -24,7 +24,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
 
-    def _update_bookmark(self):
+    def _update_bookmark(self) -> None:
         """Update the bookmark if the bookmark param was passed."""
         do_bookmark = bool(
             self.request.GET.get("bookmark")
@@ -41,7 +41,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
-    def _get_page_image(self):
+    def _get_page_image(self) -> tuple:
         """Get the image data and content type."""
         # Get comic - Distinct is important
         group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
@@ -75,7 +75,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             (200, _PDF_MIME_TYPE): OpenApiTypes.BINARY,
         },
     )
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> HttpResponse:
         """Get the comic page from the archive."""
         try:
             page_image, content_type = self._get_page_image()

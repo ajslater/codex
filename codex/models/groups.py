@@ -39,17 +39,17 @@ class BrowserGroupModel(BaseModel):
         CustomCover, on_delete=SET_DEFAULT, null=True, default=None
     )
 
-    def set_sort_name(self):
+    def set_sort_name(self) -> None:
         """Create sort_name for model."""
         self.sort_name = get_sort_name(self.name)
 
     @override
-    def presave(self):
+    def presave(self) -> None:
         """Set computed values."""
         self.set_sort_name()
 
     @override
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """Save computed fields."""
         self.presave()
         super().save(*args, **kwargs)
@@ -63,7 +63,7 @@ class BrowserGroupModel(BaseModel):
         return (self.name,)
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent as string."""
         return "/".join(self._repr_parts())
 
@@ -109,7 +109,7 @@ class Imprint(IdentifiedBrowserGroupModel):
         unique_together = ("publisher", "name")
 
     @override
-    def _repr_parts(self):
+    def _repr_parts(self) -> tuple:
         return (self.publisher.name, self.name)
 
 
@@ -129,7 +129,7 @@ class Series(IdentifiedBrowserGroupModel):
         verbose_name_plural = "Series"
 
     @override
-    def _repr_parts(self):
+    def _repr_parts(self) -> tuple:
         return (
             self.publisher.name,
             self.imprint.name,
@@ -169,7 +169,7 @@ class Volume(BrowserGroupModel):
         unique_together = ("series", "name", "number_to")
 
     @classmethod
-    def to_str(cls, number: int | None, number_to: int | None):
+    def to_str(cls, number: int | None, number_to: int | None) -> str:
         """Represent volume as a string."""
         if number is None:
             rep = ""
@@ -182,7 +182,7 @@ class Volume(BrowserGroupModel):
         return rep
 
     @override
-    def _repr_parts(self):
+    def _repr_parts(self) -> tuple:
         """Represent volume as a string."""
         return (
             self.publisher.name,
@@ -196,7 +196,7 @@ class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
     """Watched Path Browser Group."""
 
     @override
-    def presave(self):
+    def presave(self) -> None:
         """Fix multiple inheritance presave."""
         super().presave()
         WatchedPath.presave(self)

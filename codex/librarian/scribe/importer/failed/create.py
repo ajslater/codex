@@ -20,7 +20,7 @@ class FailedImportsCreateUpdateImporter(FailedImportsQueryImporter):
 
     def _bulk_update_failed_imports(
         self, status: ImporterFailedImportsUpdateStatus | None
-    ):
+    ) -> None:
         """Bulk update failed imports."""
         update_failed_imports = self.metadata.pop(UPDATE_FIS, None)
         try:
@@ -57,7 +57,7 @@ class FailedImportsCreateUpdateImporter(FailedImportsQueryImporter):
 
     def _bulk_create_failed_imports(
         self, status: ImporterFailedImportsCreateStatus | None
-    ):
+    ) -> int:
         """Bulk create failed imports."""
         create_failed_imports = self.metadata.pop(CREATE_FIS, None)
         try:

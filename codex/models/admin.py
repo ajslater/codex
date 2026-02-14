@@ -88,11 +88,11 @@ class Timestamp(BaseModel):
     version = CharField(max_length=MAX_FIELD_LEN, default="")
 
     @classmethod
-    def touch(cls, choice):
+    def touch(cls, choice) -> None:
         """Touch a timestamp."""
         cls.objects.get(key=choice.value).save()
 
-    def save_uuid_version(self):
+    def save_uuid_version(self) -> None:
         """Create base64 uuid."""
         uuid_bytes = uuid.uuid4().bytes
         b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
@@ -105,7 +105,7 @@ class Timestamp(BaseModel):
         unique_together = ("key",)
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Print name for choice."""
         return self.Choices(self.key).name
 

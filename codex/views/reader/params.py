@@ -15,13 +15,13 @@ class ReaderParamsView(SessionView):
 
     input_serializer_class = ReaderViewInputSerializer
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize instance vars."""
         super().__init__(*args, **kwargs)
         self._group_pks: dict[str, tuple[int, ...]] = {}
         self._params: MappingProxyType[str, Any] | None = None
 
-    def _ensure_arc_group(self, params: dict[str, Any]):
+    def _ensure_arc_group(self, params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
         group = arc.get("group", "")
         if not group:
@@ -34,7 +34,7 @@ class ReaderParamsView(SessionView):
         params["arc"]["group"] = group
 
     @staticmethod
-    def _ensure_arc_ids(params: dict[str, Any]):
+    def _ensure_arc_ids(params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
         if ids := arc.get("ids"):
             ids = tuple(sorted(set(filter(lambda x: x > 0, ids))))

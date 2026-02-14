@@ -40,7 +40,7 @@ def get_telemeter_timestamp():
     return ts
 
 
-def _post_stats(data):
+def _post_stats(data) -> None:
     """Post telemetry to endpoint."""
     data_json = json.dumps(data)
     json_bytes = data_json.encode()
@@ -52,7 +52,7 @@ def _post_stats(data):
         response.raise_for_status()
 
 
-def _send_telemetry(uuid):
+def _send_telemetry(uuid) -> None:
     """Send telemetry to server."""
     if (
         not AdminFlag.objects.only("on")
@@ -66,7 +66,7 @@ def _send_telemetry(uuid):
     _post_stats(data)
 
 
-def send_telemetry(log):
+def send_telemetry(log) -> None:
     """Send anonymous telemetry during one window per week."""
     try:
         ts = get_telemeter_timestamp()

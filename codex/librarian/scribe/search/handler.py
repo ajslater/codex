@@ -13,7 +13,7 @@ from codex.librarian.scribe.search.tasks import (
 class SearchIndexer(SearchIndexerSync):
     """Handle search indexer tasks."""
 
-    def handle_task(self, task: SearchIndexerTask):
+    def handle_task(self, task: SearchIndexerTask) -> None:
         """Handle search indexer tasks."""
         match task:
             case SearchIndexSyncTask():

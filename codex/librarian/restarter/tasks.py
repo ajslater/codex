@@ -1,9 +1,9 @@
 """Codex Restarter Taskss."""
 
-from abc import ABC
+from codex.librarian.tasks import LibrarianTask
 
 
-class CodexRestarterTask(ABC):  # noqa: B024
+class CodexRestarterTask(LibrarianTask):
     """Restart and Shutdown."""
 
 

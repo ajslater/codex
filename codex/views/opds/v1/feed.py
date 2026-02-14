@@ -42,7 +42,7 @@ class OPDS1FeedView(OPDS1LinksView):
             logger.exception("Getting OPDS v1 namespace")
 
     @property
-    def is_acquisition(self):
+    def is_acquisition(self) -> bool:
         """Is acquisition."""
         return self.is_opds_acquisition
 
@@ -55,7 +55,7 @@ class OPDS1FeedView(OPDS1LinksView):
             logger.exception("Getting OPDS v1 ID Tag")
 
     @property
-    def title(self):
+    def title(self) -> str:
         """Create the feed title."""
         result = ""
         try:
@@ -75,7 +75,7 @@ class OPDS1FeedView(OPDS1LinksView):
         return result
 
     @property
-    def updated(self):
+    def updated(self) -> str:
         """Use mtime for updated."""
         datestr = ""
         try:
@@ -87,7 +87,7 @@ class OPDS1FeedView(OPDS1LinksView):
         return datestr
 
     @property
-    def items_per_page(self):
+    def items_per_page(self) -> int | None:
         """Return opensearch:itemsPerPage."""
         try:
             if self.params.get("q"):
@@ -104,7 +104,7 @@ class OPDS1FeedView(OPDS1LinksView):
         except Exception:
             logger.exception("Getting OPDS v1 total results")
 
-    def _get_entries_section(self, key, metadata):
+    def _get_entries_section(self, key, metadata) -> list:
         """Get entries by key section."""
         entries = []
         if objs := self.obj.get(key):
@@ -130,7 +130,7 @@ class OPDS1FeedView(OPDS1LinksView):
         return entries
 
     @property
-    def entries(self):
+    def entries(self) -> list:
         """Create all the entries."""
         entries = []
         try:
@@ -153,7 +153,7 @@ class OPDS1FeedView(OPDS1LinksView):
 
     @override
     @extend_schema(parameters=[input_serializer_class])
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Get the feed."""
         serializer = self.get_serializer(self)
         self.mark_user_active()
@@ -165,7 +165,7 @@ class OPDS1StartView(OPDS1FeedView):
 
     IS_START_PAGE = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Reset all params."""
         super().__init__(*args, **kwargs)
         self.set_params(DEFAULT_PARAMS)
@@ -175,5 +175,5 @@ class OPDS1StartView(OPDS1FeedView):
         parameters=[OPDS1FeedView.input_serializer_class],
         operation_id="opds_1.2_start_retrieve",
     )
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         return super().get(*args, **kwargs)

@@ -1,9 +1,11 @@
 """Custom Http Error Views."""
 
 from django.http import HttpRequest
+from django.http.response import HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from codex.views.exceptions import SeeOtherRedirectError
@@ -25,19 +27,21 @@ _OPDS_REDIRECT_TO_TOP_CODES = frozenset(
 )
 
 
-def _get_url_name(request: HttpRequest, name_suffix: str):
+def _get_url_name(request: HttpRequest, name_suffix: str) -> str:
     version = "2" if _OPDS_V2_PATH_PREFIX in request.path else "1"
     return f"opds:v{version}:{name_suffix}"
 
 
-def _get_redirect_to_start_response(request: HttpRequest):
+def _get_redirect_to_start_response(request: HttpRequest) -> HttpResponseRedirect:
     """Get a redirect to the start."""
     name = _get_url_name(request, "start")
     url = reverse(name)
     return redirect(url, permanent=False)
 
 
-def codex_opds_exception_handler(exc, context):
+def codex_opds_exception_handler(
+    exc, context
+) -> JsonResponse | None | HttpResponseRedirect | Response:
     """
     Assume OPDS clients want redirects instead of errors.
 

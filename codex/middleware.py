@@ -2,6 +2,7 @@
 
 from base64 import b64decode
 from time import time
+from typing import Any
 
 from django.db import connection
 from django.utils import timezone
@@ -15,11 +16,11 @@ class TimezoneMiddleware:
 
     # https://docs.djangoproject.com/en/dev/topics/i18n/timezones/
 
-    def __init__(self, get_response):
+    def __init__(self, get_response) -> None:
         """Store the creation response."""
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request) -> Any:
         """Fix timeszone from the django session."""
         if tzname := request.session.get("django_timezone"):
             timezone.activate(tzname)
@@ -31,7 +32,7 @@ class TimezoneMiddleware:
 class LogResponseTimeMiddleware:
     """Slow query Middleware."""
 
-    def __init__(self, get_response):
+    def __init__(self, get_response) -> None:
         """Set up get_response func."""
         self.get_response = get_response
 
@@ -50,7 +51,7 @@ class LogResponseTimeMiddleware:
                 logger.trace(msg)
         return response
 
-    def _log_query_times(self):
+    def _log_query_times(self) -> None:
         """Log queries if slow or debug."""
         for query in connection.queries:
             is_slow = float(query["time"]) > SLOW_QUERY_LIMIT
@@ -61,7 +62,7 @@ class LogResponseTimeMiddleware:
                 else:
                     logger.trace(msg)
 
-    def __call__(self, request):
+    def __call__(self, request) -> Any:
         """Call request."""
         response = self._log_response_time(request)
         self._log_query_times()
@@ -71,11 +72,11 @@ class LogResponseTimeMiddleware:
 class LogRequestMiddleware:
     """Log every request."""
 
-    def __init__(self, get_response):
+    def __init__(self, get_response) -> None:
         """Store the creation response."""
         self.get_response = get_response
 
-    def _log_auth_headers(self, request):
+    def _log_auth_headers(self, request) -> None:
         if not LOG_AUTH_HEADERS:
             return
         filtered_headers = {}
@@ -93,7 +94,7 @@ class LogRequestMiddleware:
                 filtered_headers[key] = final_val
         logger.trace(filtered_headers)
 
-    def __call__(self, request):
+    def __call__(self, request) -> Any:
         """Trace the request uri."""
         uri = request.build_absolute_uri()  # Includes query parameters
         logger.trace(uri)

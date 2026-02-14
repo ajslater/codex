@@ -16,7 +16,7 @@ _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
 class JanitorVacuum(JanitorIntegrity):
     """Vacuum methods for janitor."""
 
-    def vacuum_db(self):
+    def vacuum_db(self) -> None:
         """Vacuum the database and report on savings."""
         status = JanitorDBOptimizeStatus()
         try:
@@ -32,7 +32,7 @@ class JanitorVacuum(JanitorIntegrity):
         finally:
             self.status_controller.finish(status)
 
-    def backup_db(self, backup_path=BACKUP_DB_PATH, *, show_status: bool):
+    def backup_db(self, backup_path=BACKUP_DB_PATH, *, show_status: bool) -> None:
         """Backup the database."""
         status = JanitorDBBackupStatus() if show_status else None
         try:

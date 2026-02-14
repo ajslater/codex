@@ -12,7 +12,7 @@ from codex.librarian.scribe.importer.create.foreign_keys import (
 class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
     """Methods for creating foreign keys."""
 
-    def create_and_update(self):
+    def create_and_update(self) -> None:
         """Create and update FKs, covers and comics."""
         if self.abort_event.is_set():
             return

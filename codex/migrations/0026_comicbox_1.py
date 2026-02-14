@@ -22,7 +22,7 @@ SEARCH_INDEX_UUID = "SI"
 _ALPHA_2_LEN = 2
 
 
-def _migrate_comments(apps, _schema_editor):
+def _migrate_comments(apps, _schema_editor) -> None:
     comic_model = apps.get_model("codex", "comic")
 
     comics = comic_model.objects.exclude(comments="").filter(summary="")
@@ -32,7 +32,7 @@ def _migrate_comments(apps, _schema_editor):
     comic_model.objects.bulk_update(comics, ("summary",))
 
 
-def _migrate_reading_direction(apps, _schema_editor):
+def _migrate_reading_direction(apps, _schema_editor) -> None:
     comic_model = apps.get_model("codex", "comic")
 
     comics = comic_model.objects.filter(read_ltr=False)
@@ -48,7 +48,7 @@ def _get_pycountry_alpha_2(val, lookup) -> str:
     return val
 
 
-def _create_new_rows(comic_model, model, field_name, model_name):
+def _create_new_rows(comic_model, model, field_name, model_name) -> dict:
     """Create new model rows."""
     null_filter = {f"{field_name}__in": (None, "")}
     names = (
@@ -76,7 +76,7 @@ def _create_new_rows(comic_model, model, field_name, model_name):
     return names_map
 
 
-def _link_rows_to_comic(comic_model, model, field_name, model_name, names_map):
+def _link_rows_to_comic(comic_model, model, field_name, model_name, names_map) -> None:
     """Link rows to comics."""
     update_comics = []
     new_field_name = f"new_{field_name}"
@@ -92,7 +92,7 @@ def _link_rows_to_comic(comic_model, model, field_name, model_name, names_map):
         print(f"\tLinked {len(update_comics)} comics to {len(names_map)} {model_name}s")
 
 
-def _migrate_fields_to_tables(apps, _schema_editor):
+def _migrate_fields_to_tables(apps, _schema_editor) -> None:
     comic_model = apps.get_model("codex", "comic")
     print()
     for field_name, model_name in FIELDS_TABLE_MAP.items():
@@ -101,7 +101,7 @@ def _migrate_fields_to_tables(apps, _schema_editor):
         _link_rows_to_comic(comic_model, model, field_name, model_name, names_map)
 
 
-def _migrate_bookmark(apps, _schema_editor):
+def _migrate_bookmark(apps, _schema_editor) -> None:
     bm_model = apps.get_model("codex", "bookmark")
 
     bookmarks = bm_model.objects.exclude(read_in_reverse=None, vertical=None)
@@ -127,7 +127,7 @@ def _migrate_bookmark(apps, _schema_editor):
         print(f"\tMigrated {len(update_bookmarks)} Bookmarks to use reading_direction")
 
 
-def _migrate_gtin_to_ids_scan(comics):
+def _migrate_gtin_to_ids_scan(comics) -> tuple[dict, dict]:
     identifiers = {}
     comic_identifiers = {}
     for comic in comics:
@@ -145,7 +145,7 @@ def _migrate_gtin_to_ids_scan(comics):
     return identifiers, comic_identifiers
 
 
-def _migrate_gtin_to_ids_create_id_types(identifier_type_model, identifiers):
+def _migrate_gtin_to_ids_create_id_types(identifier_type_model, identifiers) -> None:
     create_identifier_types = []
     for name in identifiers:
         obj = identifier_type_model(name=name)
@@ -158,7 +158,7 @@ def _migrate_gtin_to_ids_create_id_types(identifier_type_model, identifiers):
 
 def _migrate_gtin_to_ids_create_ids(
     identifier_model, identifier_type_model, identifiers
-):
+) -> None:
     create_identifiers = []
     for name, nsses in identifiers.items():
         identifier_type = identifier_type_model.objects.get(name=name)
@@ -173,7 +173,7 @@ def _migrate_gtin_to_ids_create_ids(
 
 def _migrate_gtin_to_ids_link_comics(
     comic_model, identifier_model, comics, comic_identifiers
-):
+) -> None:
     through_model = comic_model.identifiers.through
     tms = []
     for comic in comics:
@@ -187,7 +187,7 @@ def _migrate_gtin_to_ids_link_comics(
         print(f"\tLinked {len(comics)} Comics to Identifiers")
 
 
-def _migrate_gtin_to_identifiers(apps, _schema_editor):
+def _migrate_gtin_to_identifiers(apps, _schema_editor) -> None:
     """Migrate gtin to identifiers table."""
     if not MIGRATE_GTIN:
         return
@@ -207,7 +207,7 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
     )
 
 
-def _migrate_volume_name(apps, _schema_editor):
+def _migrate_volume_name(apps, _schema_editor) -> None:
     volume_model = apps.get_model("codex", "volume")
 
     all_volumes = volume_model.objects.all()
@@ -223,7 +223,7 @@ def _migrate_volume_name(apps, _schema_editor):
         print(f"\tMigrated {len(update_volumes)} volumes with empty names.")
 
 
-def _clear_search_index_uuid(apps, _schema_editor):
+def _clear_search_index_uuid(apps, _schema_editor) -> None:
     """Clear the search index uuid to force a search rebuild."""
     ts_model = apps.get_model("codex", "timestamp")
     ts_model.objects.filter(key=SEARCH_INDEX_UUID).update(version="")

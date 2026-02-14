@@ -66,7 +66,13 @@ Source = "https://github.com/ajslater/codex"
 codex = "codex.run:main"
 
 [dependency-groups]
-dev = ["neovim~=0.3", "nplusone~=1.0", "picopt~=5.2", "toml-cli~=0.7"]
+dev = [
+  "infer-types>=1.0.0",
+  "neovim~=0.3",
+  "nplusone~=1.0",
+  "picopt~=5.2",
+  "toml-cli~=0.7",
+]
 build = ["cairosvg~=2.8"]
 lint = [
   "basedpyright~=1.30",

@@ -17,7 +17,7 @@ class CoverPathMixin:
     _ZFILL = 12
 
     @classmethod
-    def _hex_path(cls, pk):
+    def _hex_path(cls, pk) -> Path:
         """Translate an integer into an efficient filesystem path."""
         fnv = fnv1a_32(bytes(str(pk).zfill(cls._ZFILL), "utf-8"))
         hex_str = format(fnv, f"0{cls._ZFILL}x")
@@ -35,7 +35,7 @@ class CoverPathMixin:
         return root / cover_path.with_suffix(".webp")
 
     @classmethod
-    def get_cover_paths(cls, pks, custom):
+    def get_cover_paths(cls, pks, custom) -> set:
         """Get cover paths for many comic pks."""
         cover_paths = set()
         for pk in pks:

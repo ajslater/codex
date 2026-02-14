@@ -6,6 +6,7 @@ from pprint import pformat
 
 from caseconverter import camelcase
 from django.core.validators import EMPTY_VALUES
+from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse
 from loguru import logger
@@ -42,7 +43,7 @@ class SeeOtherRedirectError(APIException):
     @staticmethod
     def _copy_params_into(
         params: Mapping, keys: Iterable[str], final_params: MutableMapping
-    ):
+    ) -> None:
         """Copy and filter params into another map as camelcase."""
         for key in keys:
             value = params.get(key)
@@ -52,7 +53,7 @@ class SeeOtherRedirectError(APIException):
                 value = BreadcrumbsField().to_representation(value)
             final_params[camelcase(key)] = value
 
-    def __init__(self, detail):
+    def __init__(self, detail) -> None:
         """Create a response to pass to the exception handler."""
         super().__init__(detail)
         # Copy to edit and not write over refs
@@ -81,7 +82,7 @@ class SeeOtherRedirectError(APIException):
 
         logger.debug(f"redirect {pformat(self.detail)}")
 
-    def _get_query_params(self):
+    def _get_query_params(self) -> dict:
         """Change OPDS settings like the frontend does with error.detail."""
         settings = (
             self.detail.get("settings", {}) if isinstance(self.detail, Mapping) else {}  # ty: ignore[no-matching-overload]
@@ -90,11 +91,11 @@ class SeeOtherRedirectError(APIException):
         self._copy_params_into(settings, _OPDS_REDIRECT_SETTINGS_KEYS, query_params)
         return query_params
 
-    def get_response(self, url_name):
+    def get_response(self, url_name) -> HttpResponseRedirect:
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
         query = self._get_query_params()
-        url = reverse(url_name, kwargs=self.route_kwargs, query=query)
+        url = reverse(url_name, kwargs=dict(self.route_kwargs), query=query)
         return redirect(url, permanent=False)
 
 

@@ -14,7 +14,7 @@ from codex.models import CustomCover, Folder
 class LinkCoversImporter(FailedImportsImporter):
     """Link Covers methods."""
 
-    def _link_custom_cover_prepare(self, cover, model_map):
+    def _link_custom_cover_prepare(self, cover, model_map) -> None:
         """Prepare one cover in the model map for bulk update."""
         if cover.library and cover.library.covers_only:
             model = CLASS_CUSTOM_COVER_GROUP_MAP.inverse.get(cover.group)
@@ -37,7 +37,7 @@ class LinkCoversImporter(FailedImportsImporter):
             obj.custom_cover = cover
             model_map[model].append(obj)
 
-    def _link_custom_cover_group(self, model, objs, status):
+    def _link_custom_cover_group(self, model, objs, status) -> None:
         """Bulk link a group to it's custom covers."""
         if not objs:
             return
@@ -45,7 +45,7 @@ class LinkCoversImporter(FailedImportsImporter):
         status.complete += len(objs)
         self.status_controller.update(status)
 
-    def link_custom_covers(self):
+    def link_custom_covers(self) -> int | None:
         """Link Custom Covers to Groups."""
         link_cover_pks = self.metadata.get(LINK_COVER_PKS, {})
         num_link_cover_pks = len(link_cover_pks)

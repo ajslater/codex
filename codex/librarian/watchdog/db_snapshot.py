@@ -1,6 +1,7 @@
 """Custom directory snapshots."""
 
 import os
+from collections.abc import Iterator
 from itertools import chain
 from pathlib import Path
 
@@ -16,7 +17,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
     COVERS_ONLY_MODELS = (CustomCover,)
     _STAT_LEN = 10
 
-    def _walk(self, root):
+    def _walk(self, root) -> Iterator:
         """Populate the DirectorySnapshot structures from the database."""
         models = self.COVERS_ONLY_MODELS if self._covers_only else self.MODELS
         for model in models:
@@ -51,7 +52,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
             stat[8] = 0.0
         return os.stat_result(tuple(stat))
 
-    def _set_lookups(self, path, st):
+    def _set_lookups(self, path, st) -> None:
         """Populate the lookup dirs."""
         self._stat_info[path] = st
         i = (st.st_ino, st.st_dev)
@@ -67,7 +68,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         logger_=None,
         force=False,
         covers_only=False,
-    ):
+    ) -> None:
         """Initialize like DirectorySnapshot but use a database walk."""
         # Do not call super().__init__(), because it walks.
         if not logger_:

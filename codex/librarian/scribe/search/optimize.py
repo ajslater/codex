@@ -14,7 +14,7 @@ _OPTIMIZE_SQL = f"INSERT INTO {_TABLE}({_TABLE}) VALUES('optimize')"
 class SearchIndexerOptimize(WorkerStatusAbortableBase):
     """Search Index optimize methods."""
 
-    def optimize(self):
+    def optimize(self) -> None:
         """Remove records not in the database from the index, trapping exceptions."""
         status = SearchIndexOptimizeStatus()
         try:

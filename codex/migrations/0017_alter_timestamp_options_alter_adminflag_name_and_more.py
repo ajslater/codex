@@ -12,12 +12,12 @@ CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 COVER_ROOT = CONFIG_PATH / "cache" / "covers"
 
 
-def clear_covers(_apps, _schema_editor):
+def clear_covers(_apps, _schema_editor) -> None:
     """Remove old covers."""
     shutil.rmtree(COVER_ROOT, ignore_errors=True)
 
 
-def remove_null_librarian_statuses(apps, _schema_editor):
+def remove_null_librarian_statuses(apps, _schema_editor) -> None:
     """Remove all librarian statuses."""
     ls_model = apps.get_model("codex", "librarianstatus")
     ls_model.objects.all().delete()

@@ -28,7 +28,9 @@ class BookmarkUpdateMixin(GroupACLMixin):
     # Used by Bookmarkd and view.bookmark.
 
     @classmethod
-    def _get_existing_bookmarks_for_update(cls, auth_filter, comic_pks, updates):
+    def _get_existing_bookmarks_for_update(
+        cls, auth_filter, comic_pks, updates
+    ) -> tuple:
         # Get existing bookmarks
         query_filter = Q(**auth_filter) & Q(comic__in=comic_pks)
         existing_bookmarks = Bookmark.objects.filter(query_filter)
@@ -44,7 +46,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
         return existing_bookmarks, update_fields
 
     @classmethod
-    def _prepare_bookmark_updates(cls, existing_bookmarks, updates):
+    def _prepare_bookmark_updates(cls, existing_bookmarks, updates) -> list:
         # Prepare updates
         update_bookmarks = []
         for bm in existing_bookmarks:
@@ -57,7 +59,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
         return update_bookmarks
 
     @staticmethod
-    def _update_bookmarks_validate_page(bm, updates):
+    def _update_bookmarks_validate_page(bm, updates) -> None:
         """Force bookmark page into valid range."""
         page = updates.get("page")
         if page is None:
@@ -70,7 +72,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
         updates["page"] = page
 
     @staticmethod
-    def _update_bookmarks_validate_two_pages(bm, updates):
+    def _update_bookmarks_validate_two_pages(bm, updates) -> None:
         """Force vertical view to not use two pages."""
         if bm.two_pages and bool(
             {bm.reading_direction, updates.get("reading_direction")}.intersection(
@@ -80,7 +82,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
             updates["two_pages"] = None
 
     @staticmethod
-    def _notify_library_changed(uid):
+    def _notify_library_changed(uid) -> None:
         """Notify one user that their library changed."""
         group = f"user_{uid}"
         task = NotifierTask(Notifications.BOOKMARK.value, group)
@@ -114,7 +116,9 @@ class BookmarkUpdateMixin(GroupACLMixin):
         return Comic.objects.filter(query_filter).only("pk")
 
     @classmethod
-    def _prepare_bookmark_creates(cls, create_bookmark_comics, auth_filter, updates):
+    def _prepare_bookmark_creates(
+        cls, create_bookmark_comics, auth_filter, updates
+    ) -> list:
         # Prepare creates
         create_bookmarks = []
         for comic in create_bookmark_comics:
@@ -123,7 +127,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
         return create_bookmarks
 
     @staticmethod
-    def _create_bookmarks_validate_two_pages(updates):
+    def _create_bookmarks_validate_two_pages(updates) -> None:
         """Force vertical view to not use two pages."""
         if (
             updates.get("two_pages")
@@ -157,7 +161,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
         return count
 
     @classmethod
-    def update_bookmarks(cls, auth_filter, comic_pks, updates):
+    def update_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
         """Update a user bookmark."""
         count = cls._update_bookmarks(auth_filter, comic_pks, updates)
         count += cls._create_bookmarks(auth_filter, comic_pks, updates)

@@ -3,7 +3,7 @@
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING
 
-from django.db.models.query import Q
+from django.db.models.query_utils import Q
 
 from codex.librarian.scribe.importer.const import (
     FIELD_NAME_KEYS_REL_MAP,
@@ -27,13 +27,13 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
     """Prepare links with database objects."""
 
     @staticmethod
-    def _get_link_folders_filter(_field_name, values_set):
+    def _get_link_folders_filter(_field_name, values_set) -> Q:
         """Get the ids of all folders to link."""
         folder_paths = frozenset(flatten(values_set))
         return Q(path__in=folder_paths)
 
     @staticmethod
-    def _get_link_complex_model_filter(field_name, values_set):
+    def _get_link_complex_model_filter(field_name, values_set) -> Q:
         """Get the ids of all dict style objects to link."""
         rels = FIELD_NAME_KEYS_REL_MAP[field_name]
         dict_filter = Q()
@@ -44,7 +44,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
 
     def _add_complex_link_to_fts(
         self, comic_pk: int, field_name: str, values: frozenset
-    ):
+    ) -> None:
         if field_name == IDENTIFIERS_FIELD_NAME:
             # sources extracton must come before identifiers is minified
             # but now identifiers is not indexed at all, yet sources are.
@@ -66,7 +66,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         comic_pk: int,
         field_name: str,
         link_filter_method: Callable,
-    ):
+    ) -> None:
         """Prepare special m2m for linking."""
         values = md.pop(field_name, None)
         if not values:
@@ -86,7 +86,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         comic_pk: int,
         field_name: str,
         names: tuple[str, ...] | frozenset[str],
-    ):
+    ) -> None:
         """Set the ids of all named m2m fields into the comic dict."""
         model = Comic._meta.get_field(field_name).related_model
         if model is None:

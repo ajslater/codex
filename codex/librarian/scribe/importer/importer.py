@@ -18,7 +18,7 @@ _METHODS = (
 class ComicImporter(MovedImporter):
     """Initialize, run and finish a bulk import."""
 
-    def apply(self):
+    def apply(self) -> None:
         """Bulk import comics."""
         try:
             self.abort_event.clear()

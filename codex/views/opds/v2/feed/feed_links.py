@@ -1,6 +1,7 @@
 """OPDS v2.0 top links section methods."""
 
 from types import MappingProxyType
+from typing import Any
 
 from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.const import HrefData, LinkData
@@ -63,7 +64,7 @@ class OPDS2FeedLinksView(OPDS2LinksView):
 
         return static_links
 
-    def _top_route(self):
+    def _top_route(self) -> dict[str, Any]:
         group = "f" if self.kwargs.get("group") == "f" else "r"
         return {"group": group, "pks": (0,), "page": 1}
 

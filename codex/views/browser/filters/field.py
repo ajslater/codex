@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from django.db.models import Q
+from django.db.models.query_utils import Q
 
 from codex.views.browser.filters.group import GroupFilterView
 from codex.views.session import (
@@ -24,7 +24,7 @@ class ComicFieldFilterView(GroupFilterView):
     """Comic field filters."""
 
     @staticmethod
-    def _filter_by_comic_field(field, rel_prefix, filter_list):
+    def _filter_by_comic_field(field, rel_prefix, filter_list) -> Q:
         """Filter by a comic any2many attribute."""
         filter_query = Q()
         if not filter_list:
@@ -42,7 +42,7 @@ class ComicFieldFilterView(GroupFilterView):
         return filter_query
 
     @classmethod
-    def get_all_comic_field_filters(cls, rel_prefix, filters):
+    def get_all_comic_field_filters(cls, rel_prefix, filters) -> Q:
         """Get all comicfiled filters for rel_prefix."""
         comic_field_filter = Q()
         for field in cls.FILTER_ATTRIBUTES:
@@ -52,7 +52,7 @@ class ComicFieldFilterView(GroupFilterView):
             )
         return comic_field_filter
 
-    def get_comic_field_filter(self, model):
+    def get_comic_field_filter(self, model) -> Q:
         """Filter the comics based on the form filters."""
         rel_prefix = self.get_rel_prefix(model)
         filters = self.params["filters"]

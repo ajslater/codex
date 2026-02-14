@@ -23,13 +23,13 @@ class BroadcastListener:
         }
     )
 
-    def __init__(self, logger_, queue):
+    def __init__(self, logger_, queue) -> None:
         """Initialize."""
         self.log = logger_
         self.queue = queue
         self.channel_layer = get_channel_layer()
 
-    async def broadcast_group(self, event):
+    async def broadcast_group(self, event) -> None:
         """Broadcast message to a group of channels.."""
         if not self.channel_layer:
             reason = "No channel layer found"
@@ -38,7 +38,7 @@ class BroadcastListener:
         message = event["message"]
         await self.channel_layer.group_send(group, message)
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Broadcast disconnect message and close the queue."""
         await self.broadcast_group(self._WS_DISCONNECT_EVENT)
         self.log.debug("Sent disconnect to all channels.")
@@ -50,7 +50,7 @@ class BroadcastListener:
         self.queue.close()
         self.queue.join_thread()
 
-    async def listen(self):
+    async def listen(self) -> None:
         """Listen to the broadcast queue until a shutdown message."""
         self.log.success(f"{self.__class__.__name__} started.")
         while True:

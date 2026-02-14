@@ -78,7 +78,7 @@ _M2M_FTS_ANNOTATIONS = MappingProxyType(
 class SearchIndexerSync(SearchIndexerRemove):
     """Search Index update methods."""
 
-    def _init_statuses(self, rebuild):
+    def _init_statuses(self, rebuild) -> None:
         """Initialize all statuses order before starting."""
         statii: list[Status] = []
         if rebuild:
@@ -95,7 +95,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         statii.append(SearchIndexSyncCreateStatus())
         self.status_controller.start_many(statii)
 
-    def _update_search_index_clean(self, rebuild):
+    def _update_search_index_clean(self, rebuild) -> None:
         """Clear or clean the search index."""
         if rebuild:
             self.log.info("Rebuilding search index...")
@@ -155,7 +155,7 @@ class SearchIndexerSync(SearchIndexerRemove):
 
     def _update_search_index_operate_get_status(
         self, total_comics: int, chunk_human_size: str, *, create: bool
-    ):
+    ) -> SearchIndexSyncCreateStatus | SearchIndexSyncUpdateStatus:
         status_class = (
             SearchIndexSyncCreateStatus if create else SearchIndexSyncUpdateStatus
         )
@@ -168,7 +168,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         status,
         *,
         create: bool,
-    ):
+    ) -> None:
         if self.abort_event.is_set():
             return
         verb = "create" if create else "update"
@@ -283,7 +283,7 @@ class SearchIndexerSync(SearchIndexerRemove):
         self.log.debug(f"Found {count} comics missing from the search index.")
         return self._update_search_index_operate(missing_comics, create=True)
 
-    def _update_search_index(self, *, rebuild: bool):
+    def _update_search_index(self, *, rebuild: bool) -> None:
         """Update or Rebuild the search index."""
         self.log.debug("In update search index before init statii.")
         start_time = time()
@@ -315,7 +315,7 @@ class SearchIndexerSync(SearchIndexerRemove):
             summary = "found to be already synced"
         self.log.success(f"Search index {summary} in {elapsed}.")
 
-    def update_search_index(self, *, rebuild: bool):
+    def update_search_index(self, *, rebuild: bool) -> None:
         """Update or Rebuild the search index."""
         self.abort_event.clear()
         try:

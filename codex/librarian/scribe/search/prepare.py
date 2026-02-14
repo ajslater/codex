@@ -85,19 +85,19 @@ class SearchEntryPrepare:
         return ",".join((iso_code, field.to_representation(iso_code)))
 
     @classmethod
-    def _create_comicfts_entry_attributes(cls, entry, *, create: bool):
+    def _create_comicfts_entry_attributes(cls, entry, *, create: bool) -> None:
         now = Now()
         entry["updated_at"] = now
         if create:
             entry["created_at"] = now
 
     @classmethod
-    def _create_comicfts_entry_fks(cls, entry):
+    def _create_comicfts_entry_fks(cls, entry) -> None:
         entry["country"] = cls._get_pycountry_fts_field(entry, "country")
         entry["language"] = cls._get_pycountry_fts_field(entry, "language")
 
     @classmethod
-    def _create_comicfts_entry_m2ms(cls, entry, existing_values: dict | None):
+    def _create_comicfts_entry_m2ms(cls, entry, existing_values: dict | None) -> None:
         if sources := cls._get_sources_fts_field(entry):
             entry["sources"] = sources
         if existing_values:
@@ -116,7 +116,7 @@ class SearchEntryPrepare:
         status: Status,
         *,
         create: bool,
-    ):
+    ) -> None:
         """Prepare ComicFTS object from import data."""
         cls._create_comicfts_entry_m2ms(entry, existing_m2m_values)
         cls._create_comicfts_entry_fks(entry)
@@ -144,7 +144,7 @@ class SearchEntryPrepare:
         obj_list: list[ComicFTS],
         *,
         create: bool,
-    ):
+    ) -> None:
         """Prepare ComicFTS object from sync query data."""
         entry = {
             key.removeprefix("fts_"): comic.get(key, "")

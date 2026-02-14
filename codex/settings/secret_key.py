@@ -3,7 +3,7 @@
 from django.core.management.utils import get_random_secret_key
 
 
-def get_secret_key(config_path):
+def get_secret_key(config_path) -> str:
     """Get the secret key from a file or create and write it."""
     secret_key_path = config_path / "secret_key"
     try:

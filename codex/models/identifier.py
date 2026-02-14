@@ -67,13 +67,13 @@ class Identifier(BaseModel):
         unique_together: tuple[str, ...] = ("source", "id_type", "key")
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Provide a urn like name to imitate a NamedModel."""
         source_name = f"{self.source.name}:" if self.source else ""
         parts = (source_name, self.id_type, self.key)
         return ":".join(parts)
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent as a string."""
         return self.name + ":" + self.url

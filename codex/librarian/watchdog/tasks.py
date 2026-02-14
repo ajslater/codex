@@ -1,13 +1,14 @@
 """Watchdog Tasks."""
 
-from abc import ABC
 from dataclasses import dataclass
 
 from watchdog.events import FileSystemEvent
 
+from codex.librarian.tasks import LibrarianTask
+
 
 @dataclass
-class WatchdogTask(ABC):  # noqa: B024
+class WatchdogTask(LibrarianTask):
     """Watchdog tasks."""
 
 

@@ -31,14 +31,14 @@ class UatuObserver(WorkerMixin, BaseObserver):
     ENABLE_FIELD: str = ""
     ALWAYS_WATCH: bool = False
 
-    def _get_watch(self, path):
+    def _get_watch(self, path) -> ObservedWatch | None:
         """Find the watch by path."""
         for watch in self._watches:
             if watch.path == path:
                 return watch
         return None
 
-    def _sync_library_watch(self, library):
+    def _sync_library_watch(self, library) -> None:
         """Start a library watching process."""
         watch = self._get_watch(library.path)
         is_enabled = self.ALWAYS_WATCH or getattr(library, self.ENABLE_FIELD, False)
@@ -69,7 +69,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
         self.schedule(handler, library.path, recursive=True)
         self.log.info(f"Started {watching_log}")
 
-    def _unschedule_orphan_watches(self, paths):
+    def _unschedule_orphan_watches(self, paths) -> None:
         """Unschedule lost watches."""
         orphan_watches = set()
         for watch in self._watches:
@@ -83,7 +83,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
             )
             self.log.info(reason)
 
-    def sync_library_watches(self):
+    def sync_library_watches(self) -> None:
         """Watch or unwatch all libraries according to the db."""
         try:
             libraries = Library.objects.all().only("pk", "path", self.ENABLE_FIELD)
@@ -104,7 +104,7 @@ class UatuObserver(WorkerMixin, BaseObserver):
 
     def _add_emitter_for_watch(
         self, event_handler: FileSystemEventHandler, watch: ObservedWatch
-    ):
+    ) -> None:
         """If we don't have an emitter for this watch already, create it."""
         covers_only = isinstance(event_handler, CodexCustomCoverEventHandler)
         library_id = Library.objects.get(path=watch.path).pk
@@ -164,7 +164,9 @@ class LibraryEventObserver(UatuObserver, Observer):  # pyright: ignore[reportGen
 
     ENABLE_FIELD: str = "events"
 
-    def __init__(self, logger_, librarian_queue: Queue, db_write_lock, *args, **kwargs):
+    def __init__(
+        self, logger_, librarian_queue: Queue, db_write_lock, *args, **kwargs
+    ) -> None:
         """Initialize queues."""
         if db_write_lock is None:
             reason = "db_write_lock argument must be a Lock."
@@ -187,14 +189,14 @@ class LibraryPollingObserver(UatuObserver):
         *args,
         timeout: float = DEFAULT_OBSERVER_TIMEOUT,
         **kwargs,
-    ):
+    ) -> None:
         """Use the DatabasePollingEmitter."""
         self.init_worker(logger_, librarian_queue, db_write_lock)
         super().__init__(
             emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )
 
-    def poll(self, library_pks, *, force: bool):
+    def poll(self, library_pks, *, force: bool) -> None:
         """Poll each requested emitter."""
         try:
             qs = Library.objects.all()
@@ -212,7 +214,7 @@ class LibraryPollingObserver(UatuObserver):
             )
 
     @override
-    def on_thread_stop(self):
+    def on_thread_stop(self) -> None:
         """Put a dummy event on the queue that blocks forever."""
         # The global timeout is None because the emitters have their own
         # per watch timeout. This makes self.dispatch_events() block

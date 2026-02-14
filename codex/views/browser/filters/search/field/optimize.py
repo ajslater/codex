@@ -3,7 +3,7 @@
 
 import re
 
-from django.db.models import Q
+from django.db.models.query_utils import Q
 
 # Just an unlikely character
 _PERCENT_PLACEHOLDER = "Ɍ"
@@ -46,7 +46,7 @@ def _regex_like(regex, lookahead):
     return regex
 
 
-def like_qs_to_regex_q(q: Q, regex_op: str, *, many_to_many: bool):
+def like_qs_to_regex_q(q: Q, regex_op: str, *, many_to_many: bool) -> Q:
     """Optimize a tree of like lookup qs to one regex q."""
     regexes = []
     # Optimize like equations into regexes

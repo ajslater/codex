@@ -25,13 +25,13 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     """An OPDS entry object."""
 
     @property
-    def id_tag(self):
+    def id_tag(self) -> str:
         """GUID is a nav url."""
         # Id top links by query params but not regular entries.
         return self._nav_href(metadata=self.metadata)
 
     @property
-    def title(self):
+    def title(self) -> str:
         """Compute the item title."""
         result = ""
         try:
@@ -64,7 +64,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         return result
 
     @property
-    def issued(self):
+    def issued(self) -> str:
         """Return the published date."""
         date = ""
         if self.obj.group == "c":
@@ -78,7 +78,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Return the publisher."""
         return self.obj.publisher_name
 
-    def _get_datefield(self, key):
+    def _get_datefield(self, key) -> datetime | None:
         result = None
         if not self.fake and (value := getattr(self.obj, key, None)):
             try:
@@ -86,17 +86,19 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                     result = parser.parse(value)
                 if isinstance(value, datetime):
                     result = value.astimezone(timezone.utc).isoformat()
+                else:
+                    result = None
             except ValueError:
                 pass
-        return result
+        return result  # pyright: ignore[reportReturnType]
 
     @property
-    def updated(self):
+    def updated(self) -> datetime | None:
         """When the entry was last updated."""
         return self._get_datefield("updated_at")
 
     @property
-    def published(self):
+    def published(self) -> datetime | None:
         """When the entry was created."""
         return self._get_datefield("created_at")
 
@@ -116,7 +118,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         return desc
 
     @staticmethod
-    def _add_url_to_obj(objs, filter_key):
+    def _add_url_to_obj(objs, filter_key) -> list:
         """Add filter urls to objects."""
         result = []
         for obj in objs:
@@ -129,7 +131,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         return result
 
     @property
-    def authors(self):
+    def authors(self) -> list:
         """Get Author names."""
         if not self.metadata:
             return []
@@ -137,7 +139,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         return self._add_url_to_obj(people, "credits")
 
     @property
-    def contributors(self):
+    def contributors(self) -> list:
         """Get Credit names."""
         if not self.metadata:
             return []
@@ -145,7 +147,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         return self._add_url_to_obj(people, "credits")
 
     @property
-    def category_groups(self):
+    def category_groups(self) -> dict:
         """Get Category labels."""
         if not self.metadata:
             return {}

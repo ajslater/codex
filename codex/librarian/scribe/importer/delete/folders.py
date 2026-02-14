@@ -9,7 +9,7 @@ from codex.models.groups import Folder
 class DeletedFoldersImporter(DeletedComicsImporter):
     """Delete database folders methods."""
 
-    def bulk_folders_deleted(self, **kwargs):
+    def bulk_folders_deleted(self, **kwargs) -> int:
         """Bulk delete folders."""
         status = ImporterRemoveFoldersStatus(0, len(self.task.dirs_deleted))
         try:

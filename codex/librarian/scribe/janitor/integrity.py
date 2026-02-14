@@ -50,7 +50,7 @@ def _exec_sql(sql):
         return cursor.fetchall()
 
 
-def _compile_foreign_key_results(results, log):
+def _compile_foreign_key_results(results, log) -> tuple[dict, dict]:
     bad_fk_rels = {}
     bad_m2m_rows = {}
 
@@ -98,7 +98,7 @@ def _get_model(table_name) -> type[BaseModel]:
     return model
 
 
-def _null_bad_fk_rels_table(table_name, bad_rows, log):
+def _null_bad_fk_rels_table(table_name, bad_rows, log) -> set:
     """Null bad foreign key relations by table."""
     fix_comic_pks = set()
     model: type[BaseModel] = _get_model(table_name)
@@ -136,7 +136,7 @@ def _null_bad_fk_rels_table(table_name, bad_rows, log):
     return fix_comic_pks
 
 
-def _null_bad_fk_rels(bad_fk_rels, log):
+def _null_bad_fk_rels(bad_fk_rels, log) -> set:
     """Null bad foreign key relations."""
     fix_comic_pks = set()
     for table_name, bad_rows in bad_fk_rels.items():
@@ -168,7 +168,7 @@ def _delete_bad_m2m_rows_table(table_name, ids, fix_comic_pks, log):
     return count
 
 
-def _delete_bad_m2m_rows(bad_m2m_rows, log):
+def _delete_bad_m2m_rows(bad_m2m_rows, log) -> set:
     """Delete illegal foreign keys for all tables."""
     fix_comic_pks = set()
     count = 0
@@ -182,7 +182,7 @@ def _delete_bad_m2m_rows(bad_m2m_rows, log):
     return fix_comic_pks
 
 
-def _mark_comics_for_update(fix_comic_pks, log):
+def _mark_comics_for_update(fix_comic_pks, log) -> None:
     """Mark comics with altered foreign keys for update."""
     if not fix_comic_pks:
         return
@@ -211,7 +211,7 @@ def _mark_comics_for_update(fix_comic_pks, log):
         log.info(f"Marked {count} comics with bad relations for update by poller.")
 
 
-def fix_foreign_keys(log):
+def fix_foreign_keys(log) -> None:
     """Foreign Key Check."""
     try:
         sql = _PRAGMA_TMPL % "foreign_key_check"
@@ -235,7 +235,7 @@ def fix_foreign_keys(log):
         log.exception("Could not mark comics with bad relations for update")
 
 
-def _repair_extra_custom_cover_libraries(library_model, log):
+def _repair_extra_custom_cover_libraries(library_model, log) -> None:
     """Attempt to remove the bad ones, probably futile."""
     delete_libs = library_model.objects.filter(covers_only=True).exclude(
         path=CUSTOM_COVERS_DIR
@@ -247,7 +247,7 @@ def _repair_extra_custom_cover_libraries(library_model, log):
         )
 
 
-def cleanup_custom_cover_libraries(log):
+def cleanup_custom_cover_libraries(log) -> None:
     """Cleanup extra custom cover libraries."""
     try:
         try:
@@ -272,13 +272,13 @@ def cleanup_custom_cover_libraries(log):
         log.warning(f"Failed to check custom cover library for integrity - {exc}")
 
 
-def _is_integrity_ok(results):
+def _is_integrity_ok(results) -> bool:
     return (
         results and len(results) == 1 and len(results[0]) == 1 and results[0][0] == "ok"
     )
 
 
-def integrity_check(log, *, long: bool):
+def integrity_check(log, *, long: bool) -> None:
     """Run sqlite3 integrity check."""
     pragma = "integrity_check" if long else "quick_check"
     sql = _PRAGMA_TMPL % pragma
@@ -296,13 +296,13 @@ def integrity_check(log, *, long: bool):
         )
 
 
-def fts_rebuild():
+def fts_rebuild() -> None:
     """FTS Rebuild."""
     sql = _FTS_INSERT_TMPL % "rebuild"
     _exec_sql(sql)
 
 
-def fts_integrity_check(log):
+def fts_integrity_check(log) -> bool:
     """Run sqlite3 fts integrity check."""
     results = []
     sql = _FTS_INSERT_TMPL % "integrity-check"
@@ -324,7 +324,7 @@ def fts_integrity_check(log):
 class JanitorIntegrity(WorkerStatusAbortableBase):
     """Integrity Check Mixin."""
 
-    def foreign_key_check(self):
+    def foreign_key_check(self) -> None:
         """Foreign Key Check task."""
         status = JanitorDBFKIntegrityStatus()
         try:
@@ -334,7 +334,7 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
         finally:
             self.status_controller.finish(status)
 
-    def integrity_check(self, *, long: bool):
+    def integrity_check(self, *, long: bool) -> None:
         """Integrity check task."""
         subtitle = "" if long else "Quick"
         status = JanitorDBIntegrityStatus(subtitle=subtitle)
@@ -345,7 +345,7 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
         finally:
             self.status_controller.finish(status)
 
-    def fts_rebuild(self):
+    def fts_rebuild(self) -> None:
         """FTS rebuild task."""
         status = JanitorDBFTSRebuildStatus()
         try:
@@ -355,7 +355,7 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
         finally:
             self.status_controller.finish(status)
 
-    def fts_integrity_check(self):
+    def fts_integrity_check(self) -> None:
         """FTS integrity check task."""
         status = JanitorDBFTSIntegrityStatus()
         try:

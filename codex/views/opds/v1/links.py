@@ -20,7 +20,7 @@ from codex.views.util import pop_name
 class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
-    def is_top_link_displayed(self, top_link):
+    def is_top_link_displayed(self, top_link) -> bool:
         """Determine if this top link should be displayed."""
         for key, value in top_link.kwargs.items():
             if str(self.kwargs.get(key)) != str(value):
@@ -32,12 +32,14 @@ class OPDS1LinksView(OPDS1FacetsView):
 
         return True
 
-    def _link(self, kwargs, rel, query_params=None, mime_type=MimeType.NAV):
+    def _link(
+        self, kwargs, rel, query_params=None, mime_type=MimeType.NAV
+    ) -> OPDS1Link:
         """Create a link."""
         if query_params is None:
             query_params = self.request.GET
         kwargs = pop_name(kwargs)
-        href = reverse("opds:v1:feed", kwargs=kwargs, query=query_params)
+        href = reverse("opds:v1:feed", kwargs=dict(kwargs), query=query_params)
         return OPDS1Link(rel, href, mime_type)
 
     def _top_link(self, top_link):
@@ -46,7 +48,7 @@ class OPDS1LinksView(OPDS1FacetsView):
             top_link.kwargs, top_link.rel, top_link.query_params, top_link.mime_type
         )
 
-    def _root_links(self):
+    def _root_links(self) -> list:
         """Navigation Root Links."""
         links = []
         if (
@@ -64,7 +66,7 @@ class OPDS1LinksView(OPDS1FacetsView):
             links += [self._link(next_route, Rel.NEXT)]
         return links
 
-    def _links_start_page_links(self):
+    def _links_start_page_links(self) -> list:
         links = []
         if not self.IS_START_PAGE:
             return links
@@ -73,7 +75,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         ]
         return links
 
-    def _links_facets(self):
+    def _links_facets(self) -> list:
         links = []
         if not self.use_facets:
             return links
@@ -85,7 +87,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         return links
 
     @property
-    def links(self):
+    def links(self) -> list:
         """Create all the links."""
         links = []
         try:
@@ -111,7 +113,7 @@ class OPDS1LinksView(OPDS1FacetsView):
             logger.exception("Getting OPDS v1 links")
         return links
 
-    def _top_link_entry(self, top_link):
+    def _top_link_entry(self, top_link) -> OPDS1Entry:
         """Create a entry instead of a facet."""
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
         entry_obj = OPDS1EntryObject(
@@ -131,7 +133,7 @@ class OPDS1LinksView(OPDS1FacetsView):
             entry_obj, top_link.query_params, data, title_filename_fallback=False
         )
 
-    def add_start_link(self):
+    def add_start_link(self) -> list[OPDS1Entry]:
         """Add the start link."""
         top_link: TopLink = TopLinks.START
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
@@ -144,7 +146,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         )
         return [OPDS1Entry(entry_obj, {}, data, title_filename_fallback=False)]
 
-    def add_top_links(self, top_links):
+    def add_top_links(self, top_links) -> list:
         """Add a list of top links as entries if they should be enabled."""
         entries = []
         for tl in top_links:

@@ -10,7 +10,7 @@ from codex.models import FailedImport, Library
 class JanitorUpdateFailedImports(JanitorVacuum):
     """Methods for updating failed imports."""
 
-    def _force_update_failed_imports(self, library_id):
+    def _force_update_failed_imports(self, library_id) -> None:
         """Force update events for failed imports in a library."""
         failed_import_paths = FailedImport.objects.filter(
             library=library_id
@@ -20,7 +20,7 @@ class JanitorUpdateFailedImports(JanitorVacuum):
             task = WatchdogEventTask(library_id, event)
             self.librarian_queue.put(task)
 
-    def force_update_all_failed_imports(self):
+    def force_update_all_failed_imports(self) -> None:
         """Force update events for failed imports in every library."""
         pks = Library.objects.filter(covers_only=False).values_list("pk", flat=True)
         for pk in pks:

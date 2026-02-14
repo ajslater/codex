@@ -9,7 +9,7 @@ class StringListMultipleChoiceField(MultipleChoiceField):
     """A Multiple Choice Field expressed as as a comma delimited string."""
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> str:
         """Convert comma delimited strings to sets."""
         if isinstance(data, str):
             data = frozenset(data.split(","))
@@ -19,7 +19,7 @@ class StringListMultipleChoiceField(MultipleChoiceField):
 class SerializerChoicesField(StringListMultipleChoiceField):
     """A String List Multiple Choice Field limited to a specified serializer's fields."""
 
-    def __init__(self, serializer=None, **kwargs):
+    def __init__(self, serializer=None, **kwargs) -> None:
         """Limit choices to fields from serializers."""
         if not serializer:
             reason = "serializer required for this field."

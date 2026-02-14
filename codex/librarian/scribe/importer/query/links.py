@@ -11,7 +11,7 @@ from codex.librarian.scribe.importer.statii.query import ImporterQueryTagLinksSt
 class QueryPruneLinks(QueryPruneLinksM2M):
     """Prune link actions."""
 
-    def query_prune_comic_links(self):
+    def query_prune_comic_links(self) -> None:
         """Prune links that don't need updating."""
         total_query_ops = self.sum_path_ops(LINK_FKS) + self.sum_path_ops(LINK_M2MS)
         status = ImporterQueryTagLinksStatus(0, total_query_ops)

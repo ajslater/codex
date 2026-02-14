@@ -31,7 +31,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
     IS_START_PAGE: bool = False
 
-    def _subtitle(self):
+    def _subtitle(self) -> str:
         """Subtitle for main feed."""
         # Add filters and order
         parts = []
@@ -67,7 +67,9 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
         return result
 
-    def _feed_metadata(self, title: str, total_count: int, mtime: datetime | None):
+    def _feed_metadata(
+        self, title: str, total_count: int, mtime: datetime | None
+    ) -> MappingProxyType:
         number_of_items = total_count
         current_page = self.kwargs.get("page")
         md = {
@@ -88,7 +90,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         book_qs: QuerySet,
         zero_pad: int | None,
         title: str,
-    ):
+    ) -> tuple[tuple, tuple, tuple]:
         groups = []
         navigation = []
         top_groups = self._get_top_groups()
@@ -114,11 +116,14 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         return tuple(navigation), tuple(groups), tuple(publications)
 
     @staticmethod
-    def _update_feed_modified(feed_metadata: Mapping, groups: Iterable[Mapping]):  # noqa: ARG004
+    def _update_feed_modified(
+        feed_metadata: Mapping,
+        groups: Iterable[Mapping],  # noqa: ARG004
+    ) -> Mapping:
         return feed_metadata
 
     @override
-    def get_object(self):
+    def get_object(self) -> MappingProxyType:
         """Get the browser page and serialize it for this subclass."""
         group_qs, book_qs, _, total_count, zero_pad, mtime = self.group_and_books
         # convert browser_page into opds pagej
@@ -153,7 +158,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
     @override
     @extend_schema(parameters=[input_serializer_class])
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Get the feed."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)
@@ -166,14 +171,16 @@ class OPDS2StartView(OPDS2FeedView):
 
     IS_START_PAGE = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Reset all params."""
         super().__init__(*args, **kwargs)
         self.set_params(DEFAULT_PARAMS)
 
     @override
     @staticmethod
-    def _update_feed_modified(feed_metadata: Mapping, groups: Iterable[Mapping]):
+    def _update_feed_modified(
+        feed_metadata: Mapping, groups: Iterable[Mapping]
+    ) -> Mapping:
         max_modified = EPOCH_START
         for group in groups:
             for publication in group.get("publications", []):
@@ -189,5 +196,5 @@ class OPDS2StartView(OPDS2FeedView):
         parameters=[OPDS2FeedView.input_serializer_class],
         operation_id="opds_2.0_start_retrieve",
     )
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         return super().get(*args, **kwargs)

@@ -21,7 +21,7 @@ class CodexAPIView(APIView):
     content_type = "application/json"
     status_code = status.HTTP_200_OK
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Render the template with correct content_type."""
         return Response(
             data={}, status=self.status_code, content_type=self.content_type

@@ -57,7 +57,7 @@ LibrarianThreads = NamedTuple("LibrarianThreads", tuple(_THREAD_CLASS_MAP.items(
 class LibrarianDaemon(Process):
     """Librarian Process."""
 
-    def __init__(self, logger_, queue: Queue, broadcast_queue: AioQueue):
+    def __init__(self, logger_, queue: Queue, broadcast_queue: AioQueue) -> None:
         """Init process."""
         self.log = logger_
         name = self.__class__.__name__
@@ -75,7 +75,7 @@ class LibrarianDaemon(Process):
         self.run_loop = True
         self._reversed_threads = ()
 
-    def _process_task(self, task):  # noqa: C901
+    def _process_task(self, task) -> None:  # noqa: C901
         """Process an individual task popped off the queue."""
         match task:
             case CoverTask():
@@ -106,7 +106,7 @@ class LibrarianDaemon(Process):
             case _:
                 self.log.warning(f"Unhandled Librarian task: {task}")
 
-    def _create_threads(self):
+    def _create_threads(self) -> None:
         """Create all the threads."""
         self.log.debug("Creating Librarian threads...")
         self.log.debug(f"Active threads before thread creation: {active_count()}")
@@ -129,14 +129,14 @@ class LibrarianDaemon(Process):
         )
         self.log.debug("Threads created")
 
-    def _start_threads(self):
+    def _start_threads(self) -> None:
         """Start all librarian's threads."""
         self.log.debug(f"{self.name} starting all threads.")
         for thread in self._threads:
             thread.start()
         self.log.info(f"{self.name} started all threads.")
 
-    def _startup(self):
+    def _startup(self) -> None:
         """Initialize threads."""
         self.log.debug(f"Started {self.name}.")
         # Janitor created in init.
@@ -144,21 +144,21 @@ class LibrarianDaemon(Process):
         self._start_threads()
         self.log.success(f"{self.name} ready for tasks.")
 
-    def _stop_threads(self):
+    def _stop_threads(self) -> None:
         """Stop all librarian's threads."""
         self.log.debug(f"{self.name} stopping all threads...")
         for thread in self._reversed_threads:
             thread.stop()
         self.log.debug(f"{self.name} stopped all threads.")
 
-    def _join_threads(self):
+    def _join_threads(self) -> None:
         """Join all librarian threads."""
         self.log.debug(f"{self.name} joining all threads...")
         for thread in self._reversed_threads:
             thread.join()
         self.log.info(f"{self.name} joined all threads.")
 
-    def _shutdown(self):
+    def _shutdown(self) -> None:
         """Shutdown threads and queues."""
         self._reversed_threads = tuple(reversed(self._threads))
         self._stop_threads()
@@ -170,7 +170,7 @@ class LibrarianDaemon(Process):
         self.log.success(f"{self.name} finished.")
 
     @override
-    def run(self):
+    def run(self) -> None:
         """
         Process tasks from the queue.
 
@@ -193,7 +193,7 @@ class LibrarianDaemon(Process):
         finally:
             self._shutdown()
 
-    def stop(self):
+    def stop(self) -> None:
         """Close up the librarian process."""
         self.queue.put(LibrarianShutdownTask())
         self.queue.close()

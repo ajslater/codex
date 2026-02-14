@@ -54,7 +54,7 @@ class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: 
     """Boolean Field with null code conversion."""
 
 
-def validate_decade(decade):
+def validate_decade(decade) -> bool:
     """Validate decades."""
     # * We don't need a whole db call just to be perfectly accurate
     # * -1s are decoded back into None before validation
@@ -68,6 +68,6 @@ class VuetifyDecadeField(VuetifyIntegerField):
 
     VALIDATORS = (validate_decade,)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Use decade validator."""
         super().__init__(*args, validators=self.VALIDATORS, **kwargs)

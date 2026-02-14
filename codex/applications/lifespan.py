@@ -15,14 +15,14 @@ class LifespanApplication:
 
     SCOPE_TYPE = "lifespan"
 
-    def __init__(self, broadcast_queue):
+    def __init__(self, broadcast_queue) -> None:
         """Create logger and librarian."""
         init_logging()
         self.broadcast_queue = broadcast_queue
         self.broadcast_listener = BroadcastListener(logger, broadcast_queue)
         self.broadcast_listener_task = None
 
-    async def _event(self, event, send):
+    async def _event(self, event, send) -> None:
         """Process a lifespan event."""
         try:
             logger.debug(f"Lifespan {event} started.")
@@ -35,14 +35,14 @@ class LifespanApplication:
             logger.exception(f"Lifespan {event} failed.")
             raise
 
-    async def _startup(self):
+    async def _startup(self) -> None:
         """Startup tasks."""
         bind_signals_to_loop()
         self.broadcast_listener_task = asyncio.create_task(
             self.broadcast_listener.listen()
         )
 
-    async def _shutdown(self):
+    async def _shutdown(self) -> None:
         """Shutdown tasks."""
         with suppress(ValueError):
             # Depending on timing this can be closed already
@@ -50,7 +50,7 @@ class LifespanApplication:
         if self.broadcast_listener_task:
             await self.broadcast_listener_task
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send) -> None:
         """Lifespan application."""
         if scope["type"] != self.SCOPE_TYPE:
             return

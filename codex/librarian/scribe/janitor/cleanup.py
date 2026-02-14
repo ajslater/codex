@@ -75,7 +75,7 @@ _FK_MODELS = (
 _TOTAL_NUM_FK_CLASSES = len(_FK_MODELS)
 
 
-def _create_reverse_rel_map_for_model(model, rel_map):
+def _create_reverse_rel_map_for_model(model, rel_map) -> None:
     rev_rels = []
     filter_dict = {}
     for field in model._meta.get_fields():
@@ -96,7 +96,7 @@ def _create_reverse_rel_map_for_model(model, rel_map):
         rel_map[model] = filter_dict
 
 
-def _create_reverse_rel_map():
+def _create_reverse_rel_map() -> MappingProxyType:
     rel_map = {}
     for model in _FK_MODELS:
         _create_reverse_rel_map_for_model(model, rel_map)
@@ -121,7 +121,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         self.status_controller.update(status)
         return count
 
-    def _cleanup_fks_one_level(self, status):
+    def _cleanup_fks_one_level(self, status) -> int:
         count = 0
         for model, filter_dict in _MODEL_REVERSE_EMPTY_FILTER_MAP.items():
             if self.abort_event.is_set():
@@ -129,7 +129,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             count += self._cleanup_fks_model(model, filter_dict, status)
         return count
 
-    def cleanup_fks(self):
+    def cleanup_fks(self) -> None:
         """Clean up unused foreign keys."""
         self.abort_event.clear()
         status = JanitorCleanupTagsStatus(0)
@@ -148,7 +148,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.abort_event.clear()
             self.status_controller.finish(status)
 
-    def cleanup_custom_covers(self):
+    def cleanup_custom_covers(self) -> None:
         """Clean up unused custom covers."""
         covers = CustomCover.objects.only("path")
         status = JanitorCleanupCoversStatus(0, covers.count())
@@ -166,7 +166,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         finally:
             self.status_controller.finish(status)
 
-    def cleanup_sessions(self):
+    def cleanup_sessions(self) -> None:
         """Delete corrupt sessions."""
         status = JanitorCleanupSessionsStatus()
         try:
@@ -188,7 +188,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         finally:
             self.status_controller.finish(status)
 
-    def cleanup_orphan_bookmarks(self):
+    def cleanup_orphan_bookmarks(self) -> None:
         """Delete bookmarks without users or sessions."""
         status = JanitorCleanupBookmarksStatus()
         try:
