@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Get version or set version in Frontend & API.
 set -euo pipefail
 VERSION="${1:-}"

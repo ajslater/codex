@@ -7,10 +7,10 @@
   },
   "browserslist": [
     "> 1%",
-    "last 2 versions",
     "Firefox ESR",
-    "not op_mini all",
-    "not dead"
+    "last 2 versions",
+    "not dead",
+    "not op_mini all"
   ],
   "prettier": {
     "plugins": [
@@ -32,18 +32,18 @@
       },
       {
         "files": [
-          "**/nginx/http.d/**/*.conf"
-        ],
-        "options": {
-          "parser": "nginx"
-        }
-      },
-      {
-        "files": [
           "**/*Dockerfile"
         ],
         "options": {
           "parser": "sh"
+        }
+      },
+      {
+        "files": [
+          "**/nginx/http.d/**/*.conf"
+        ],
+        "options": {
+          "parser": "nginx"
         }
       }
     ]
@@ -53,8 +53,8 @@
       "gfm",
       "lint",
       "preset-lint-consistent",
-      "preset-lint-recommended",
       "preset-lint-markdown-style-guide",
+      "preset-lint-recommended",
       "preset-prettier"
     ]
   },
@@ -62,10 +62,10 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
     "@eslint/json": "^1.0.0",
     "@fsouza/prettierd": "^0.27.0",
-    "@prettier/plugin-xml": "^3.0.0",
+    "@prettier/plugin-xml": "^3.4.2",
     "@stylistic/eslint-plugin": "^5.3.1",
     "eslint": "^9.39.2",
-    "eslint_d": "^14.2.2",
+    "eslint_d": "^14.3.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-array-func": "^5.0.1",
@@ -80,11 +80,11 @@
     "eslint-plugin-no-unsanitized": "^4.1.0",
     "eslint-plugin-no-use-extend-native": "^0.7.2",
     "eslint-plugin-prettier": "^5.2.2",
-    "eslint-plugin-promise": "^7.0.0",
+    "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-regexp": "^3.0.0",
     "eslint-plugin-scanjs-rules": "^0.2.1",
     "eslint-plugin-security": "^3.0.0",
-    "eslint-plugin-simple-import-sort": "^12.1.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sonarjs": "^3.0.1",
     "eslint-plugin-toml": "^1.0.0",
     "eslint-plugin-unicorn": "^63.0.0",
@@ -95,11 +95,11 @@
     "prettier-plugin-sh": "^0.18.0",
     "prettier-plugin-toml": "^2.0.1",
     "remark-cli": "^12.0.1",
-    "remark-gfm": "^4.0.0",
-    "remark-preset-lint-consistent": "^6.0.0",
-    "remark-preset-lint-markdown-style-guide": "^6.0.0",
-    "remark-preset-lint-recommended": "^7.0.0",
-    "remark-preset-prettier": "^2.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-preset-lint-consistent": "^6.0.1",
+    "remark-preset-lint-markdown-style-guide": "^6.0.1",
+    "remark-preset-lint-recommended": "^7.0.1",
+    "remark-preset-prettier": "^2.0.2",
     "svgo": "^4.0.0",
     "toml": "^3.0.0"
   }
