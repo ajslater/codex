@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from packaging.specifiers import SpecifierSet
 
 PYTHON_DEP_KEY_PATH_LEN = 2
+DEP_KEY_PATHS = frozenset({("project", "dependencies"), ("build-system", "requires")})
 
 
 def is_comma_delimited_string(value: Any) -> bool:
@@ -71,14 +72,9 @@ def is_python_dependency_key(key_path: tuple[str, ...]) -> bool:
         True if this is a Python dependency list
 
     """
-    if len(key_path) == PYTHON_DEP_KEY_PATH_LEN:
-        if key_path == ("project", "dependencies"):
-            return True
-        if key_path == ("build-system", "requires"):
-            return True
-        if key_path[0] == "dependency-groups":
-            return True
-    return False
+    return len(key_path) == PYTHON_DEP_KEY_PATH_LEN and (
+        key_path in DEP_KEY_PATHS or key_path[0] == "dependency-groups"
+    )
 
 
 def parse_python_requirement(dep_string: str) -> tuple[str, SpecifierSet | None]:
@@ -98,8 +94,7 @@ def parse_python_requirement(dep_string: str) -> tuple[str, SpecifierSet | None]
     except Exception:
         # If parsing fails, try to extract just the package name
         # Handle simple cases like "package-name" without version
-        match = re.match(r"^([a-zA-Z0-9._-]+)", dep_string.strip())
-        if match:
+        if match := re.match(r"^([a-zA-Z0-9._-]+)", dep_string.strip()):
             return match.group(1).lower(), None
         # If all else fails, return the string as-is
         return dep_string.strip().lower(), None

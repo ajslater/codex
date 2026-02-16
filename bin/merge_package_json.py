@@ -15,35 +15,33 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
 import semver
 
 SEMVER_LEN = 3
-DEPENDENCY_KEYS = frozenset(
+SPECIAL_PROTOCOLS = frozenset(
     {
-        "dependencies",
-        "devDependencies",
-        "peerDependencies",
-        "optionalDependencies",
-        "bundledDependencies",
-        "bundleDependencies",
+        "git+",
+        "github:",
+        "file:",
+        "http://",
+        "https://",
+        "workspace:",
     }
 )
 
 
+def is_spec_special(spec_str):
+    """Determine if the spec start with a protocol."""
+    return any(spec_str.startswith(prefix) for prefix in SPECIAL_PROTOCOLS)
+
+
 def extract_version_from_range(version_str: str) -> str | None:
-    """
-    Extract a base semver version from an npm version range string.
-
-    Args:
-        version_str: npm version string (may include ranges like ^, ~, >=, etc.)
-
-    Returns:
-        Extracted semver version or None if extraction fails
-
-    """
+    """Extract a base semver version from an npm version range string."""
     # Handle special cases
     if version_str in ("*", "latest", "", "next"):
         return None
@@ -73,76 +71,52 @@ def extract_version_from_range(version_str: str) -> str | None:
         parts.append("0")
 
     # Handle prerelease tags
-    base_version = ".".join(parts[:SEMVER_LEN])
+    base_spec = ".".join(parts[:SEMVER_LEN])
     if "-" in parts[2]:
-        base_version = ".".join(parts[:2]) + "." + parts[2]
+        base_spec = ".".join(parts[:2]) + "." + parts[2]
 
     # Validate it's a proper version
     try:
-        semver.VersionInfo.parse(base_version)
-        result_version = base_version
+        semver.VersionInfo.parse(base_spec)
+        result_spec = base_spec
     except (ValueError, AttributeError):
-        result_version = None
-    return result_version
+        result_spec = None
+    return result_spec
 
 
 def get_version_prefix(version_str: str) -> str:
-    """
-    Extract the npm range prefix from a version string.
-
-    Args:
-        version_str: npm version string
-
-    Returns:
-        The prefix (^, ~, >=, etc.) or empty string
-
-    """
-    prefix = ""
-    if version_str.startswith("^"):
-        prefix = "^"
-    elif version_str.startswith("~"):
-        prefix = "~"
-    elif version_str.startswith(">="):
-        prefix = ">="
-    elif version_str.startswith("<="):
-        prefix = "<="
-    elif version_str.startswith(">"):
-        prefix = ">"
-    elif version_str.startswith("<"):
-        prefix = "<"
-    elif version_str.startswith("="):
-        prefix = "="
-    return prefix
+    """Extract the npm range prefix from a version string."""
+    # Order matters: >= and <= must come before > and
+    if match := re.match(r"^([\^~]|>=|<=|>|<|=)", version_str):
+        return match.group(1)
+    return "="
 
 
-def merge_dependency_versions(base_version: str, update_version: str) -> str:
+def merge_dependency_specs(base_spec: str, update_spec: str) -> str:  # noqa: PLR0911
     """
     Merge two npm semver version strings, preferring the higher version.
 
     Uses the semver package for proper semantic version comparison.
     Handles npm-specific version ranges (^, ~, >=, etc.)
-
-    Args:
-        base_version: Base version string
-        update_version: Update version string
-
-    Returns:
-        The version string with the higher constraint
-
     """
+    if is_spec_special(base_spec):
+        return base_spec
+    if is_spec_special(update_spec):
+        return update_spec
+
     # Try to extract actual versions from ranges
-    base_extracted = extract_version_from_range(base_version)
-    update_extracted = extract_version_from_range(update_version)
+    base_extracted = extract_version_from_range(base_spec)
+    update_extracted = extract_version_from_range(update_spec)
 
     # If we can't parse either, prefer the update
     if base_extracted is None and update_extracted is None:
-        return update_version
+        return update_spec
 
     # If only one is parseable, use that one
     if base_extracted is None:
-        return update_version
+        return update_spec
     if update_extracted is None:
-        return base_version
+        return base_spec
 
     # Compare the extracted versions
     try:
@@ -151,26 +125,24 @@ def merge_dependency_versions(base_version: str, update_version: str) -> str:
 
         # Compare versions
         if update_ver > base_ver:
-            return update_version
+            return update_spec
         if base_ver > update_ver:
-            return base_version
+            return base_spec
         # Versions are equal, prefer more flexible range
         # Priority: ^ > ~ > >= > exact
-        base_prefix = get_version_prefix(base_version)
-        update_prefix = get_version_prefix(update_version)
+        base_prefix = get_version_prefix(base_spec)
+        update_prefix = get_version_prefix(update_spec)
 
         prefix_priority = {"": 0, "=": 0, ">=": 1, "~": 2, "^": 3}
         base_priority = prefix_priority.get(base_prefix, 0)
         update_priority = prefix_priority.get(update_prefix, 0)
 
-        result_version = (
-            update_version if update_priority > base_priority else base_version
-        )
+        result_spec = update_spec if update_priority > base_priority else base_spec
 
     except (ValueError, AttributeError):
         # If comparison fails, prefer update
-        result_version = update_version
-    return result_version
+        result_spec = update_spec
+    return result_spec
 
 
 def merge_dependencies(base: dict[str, str], updates: dict[str, str]) -> dict[str, str]:
@@ -190,12 +162,35 @@ def merge_dependencies(base: dict[str, str], updates: dict[str, str]) -> dict[st
     for package, version in updates.items():
         if package in result:
             # Merge versions, preferring higher
-            result[package] = merge_dependency_versions(result[package], version)
+            result[package] = merge_dependency_specs(result[package], version)
         else:
             # New package
             result[package] = version
 
     return result
+
+
+def _deep_merge_override(base_val, value):
+    """Handle overrides: deduplicate by "files" key."""
+    # Prioritize base values when there are duplicates
+    dedup_dict: dict[str, Any] = {}
+
+    # Add base items first (these take priority)
+    for item in base_val:
+        if isinstance(item, dict) and "files" in item:
+            dedup_key = ":".join(sorted(item["files"]))
+            dedup_dict[dedup_key] = item
+
+    # Add update items only if not already present
+    for item in value:
+        if isinstance(item, dict) and "files" in item:
+            dedup_key = ":".join(sorted(item["files"]))
+            if dedup_key not in dedup_dict:
+                dedup_dict[dedup_key] = item
+
+    dedup_dict = dict(sorted(dedup_dict.items()))
+
+    return list(dedup_dict.values())
 
 
 def _deep_merge_value(key, value, result, list_strategy):
@@ -207,7 +202,7 @@ def _deep_merge_value(key, value, result, list_strategy):
     base_val = result[key]
 
     # Special handling for dependency objects
-    if key in DEPENDENCY_KEYS:
+    if key.lower().endswith("dependencies"):
         result[key] = merge_dependencies(base_val, value)
 
     # Both values are dictionaries - recurse
@@ -216,17 +211,18 @@ def _deep_merge_value(key, value, result, list_strategy):
 
     # Both values are lists - apply strategy
     elif isinstance(base_val, list) and isinstance(value, list):
-        # overrides is a list of dicts that might not even benefit
-        #   from merging and sorting
-        # Merging and sorting a list of dicts is pretty complicated.
-        #   If I had to with overrides I'd make a special key from
-        #   the files key.
         if list_strategy == "merge":
-            value = base_val + value
-            if key != "overrides":
-                value = set(value)
-        if key != "overrides":
-            result[key] = sorted(value)
+            if key == "overrides":
+                result[key] = _deep_merge_override(base_val, value)
+            else:
+                # Regular list merging with deduplication and sorting
+                merged_list = base_val + value
+                # Try to deduplicate if possible (for hashable types)
+                with suppress(TypeError):
+                    merged_list = list(set(merged_list))
+                result[key] = sorted(merged_list)
+        else:
+            result[key] = value
 
     # Otherwise, the new value overwrites the old
     else:
@@ -240,15 +236,6 @@ def deep_merge(
     Recursively merge two dictionaries.
 
     Special handling for dependency keys where semver versions are compared.
-
-    Args:
-        base: The base dictionary to merge into
-        updates: The dictionary with updates to apply
-        list_strategy: How to handle lists - 'replace' (default) or 'append'
-
-    Returns:
-        The merged dictionary
-
     """
     result = base.copy()
     for key, value in updates.items():
@@ -257,16 +244,7 @@ def deep_merge(
 
 
 def load_package_json(filepath: Path) -> dict[Any, Any]:
-    """
-    Load a package.json file and return its contents.
-
-    Args:
-        filepath: Path to the package.json file
-
-    Returns:
-        The parsed JSON content as a dictionary
-
-    """
+    """Load a package.json file and return its contents."""
     content = json.loads(filepath.read_text())
     if not isinstance(content, dict):
         reason = f"{filepath} does not contain a JSON object at root level"
@@ -277,17 +255,7 @@ def load_package_json(filepath: Path) -> dict[Any, Any]:
 def merge_package_json_files(
     filepaths: list[Path], list_strategy: str = "replace"
 ) -> dict[Any, Any]:
-    """
-    Merge multiple package.json files in order.
-
-    Args:
-        filepaths: List of paths to package.json files (in order of precedence)
-        list_strategy: How to handle lists - 'replace' or 'append'
-
-    Returns:
-        The merged dictionary
-
-    """
+    """Merge multiple package.json files in order."""
     if not filepaths:
         return {}
 
@@ -371,23 +339,18 @@ Dependency Merging:
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
-    try:
-        # Perform the merge
-        merged_data = merge_package_json_files(args.files, args.list_strategy)
+    # Perform the merge
+    merged_data = merge_package_json_files(args.files, args.list_strategy)
 
-        # Output the result
-        json_output = json.dumps(merged_data, indent=args.indent, ensure_ascii=False)
-        json_output += "\n"  # Add trailing newline like npm does
+    # Output the result
+    json_output = json.dumps(merged_data, indent=args.indent, ensure_ascii=False)
+    json_output += "\n"  # Add trailing newline like npm does
 
-        if args.output:
-            args.output.write_text(json_output)
-            print(f"Merged package.json written to: {args.output}")  # noqa: T201
-        else:
-            print(json_output)  # noqa: T201
-
-    except Exception as e:
-        reason = f"Error during merge: {e}"
-        parser.error(reason)
+    if args.output:
+        args.output.write_text(json_output)
+        print(f"Merged package.json written to: {args.output}")  # noqa: T201
+    else:
+        print(json_output)  # noqa: T201
 
 
 if __name__ == "__main__":
