@@ -29,7 +29,7 @@ install:: install-deps-pip
 ## Update python dependencies
 ## @category Update
 update-python:
-	./bin/update-deps-python.sh || true
+	./bin/update-deps-python.sh
 
 .PHONY: update
 ## Update dependencies

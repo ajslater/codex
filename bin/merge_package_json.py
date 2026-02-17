@@ -92,7 +92,37 @@ def get_version_prefix(version_str: str) -> str:
     return "="
 
 
-def merge_dependency_specs(base_spec: str, update_spec: str) -> str:  # noqa: PLR0911
+def _merge_exatracted_dep_ranges(
+    base_spec, update_spec, base_extracted: str, update_extracted: str
+):
+    """Compare the extracted versions."""
+    try:
+        base_ver = semver.VersionInfo.parse(base_extracted)
+        update_ver = semver.VersionInfo.parse(update_extracted)
+
+        # Compare versions
+        if update_ver > base_ver:
+            return update_spec
+        if base_ver > update_ver:
+            return base_spec
+        # Versions are equal, prefer more flexible range
+        # Priority: ^ > ~ > >= > exact
+        base_prefix = get_version_prefix(base_spec)
+        update_prefix = get_version_prefix(update_spec)
+
+        prefix_priority = {"": 0, "=": 0, ">=": 1, "~": 2, "^": 3}
+        base_priority = prefix_priority.get(base_prefix, 0)
+        update_priority = prefix_priority.get(update_prefix, 0)
+
+        result_spec = update_spec if update_priority > base_priority else base_spec
+
+    except (ValueError, AttributeError):
+        # If comparison fails, prefer update
+        result_spec = update_spec
+    return result_spec
+
+
+def merge_dependency_specs(base_spec: str, update_spec: str) -> str:
     """
     Merge two npm semver version strings, preferring the higher version.
 
@@ -118,31 +148,9 @@ def merge_dependency_specs(base_spec: str, update_spec: str) -> str:  # noqa: PL
     if update_extracted is None:
         return base_spec
 
-    # Compare the extracted versions
-    try:
-        base_ver = semver.VersionInfo.parse(base_extracted)
-        update_ver = semver.VersionInfo.parse(update_extracted)
-
-        # Compare versions
-        if update_ver > base_ver:
-            return update_spec
-        if base_ver > update_ver:
-            return base_spec
-        # Versions are equal, prefer more flexible range
-        # Priority: ^ > ~ > >= > exact
-        base_prefix = get_version_prefix(base_spec)
-        update_prefix = get_version_prefix(update_spec)
-
-        prefix_priority = {"": 0, "=": 0, ">=": 1, "~": 2, "^": 3}
-        base_priority = prefix_priority.get(base_prefix, 0)
-        update_priority = prefix_priority.get(update_prefix, 0)
-
-        result_spec = update_spec if update_priority > base_priority else base_spec
-
-    except (ValueError, AttributeError):
-        # If comparison fails, prefer update
-        result_spec = update_spec
-    return result_spec
+    return _merge_exatracted_dep_ranges(
+        base_spec, update_spec, base_extracted, update_extracted
+    )
 
 
 def merge_dependencies(base: dict[str, str], updates: dict[str, str]) -> dict[str, str]:

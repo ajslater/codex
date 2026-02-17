@@ -2294,7 +2294,7 @@ wheels = [
 
 [[package]]
 name = "picopt"
-version = "5.3.1"
+version = "5.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "confuse" },
@@ -2312,9 +2312,9 @@ dependencies = [
     { name = "treestamps" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/5b/33fa790646ca138f9a88fd4d6140483ae255a53e3ceef2f2b9290df93e68/picopt-5.3.1.tar.gz", hash = "sha256:63e9f3fd5b99ea2403c417c571bc08f585aa0bea7050b8f810277032f0fccbd4", size = 9957094, upload-time = "2026-02-01T09:36:18.916Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/39/fb/e9f13ebdc924a5e44c23cbf5937984fe817b889253adc774707121ae9a25/picopt-5.3.2.tar.gz", hash = "sha256:603bd71dbfa4da49aac46f38419d990ef48f2525a424e10e4b2c7bf75aa72fe5", size = 9983040, upload-time = "2026-02-17T01:08:05.388Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/78/cb0e7e8abda806c6c1a34b03db78d67f07e23947154de78715a7d257b894/picopt-5.3.1-py3-none-any.whl", hash = "sha256:cf4225fdf9fed6fece3d0df39fbfd40c29d35826d40ae84faa0963e7122ebe81", size = 65642, upload-time = "2026-02-01T09:36:21.111Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/97/6459f85640d96fcbf7781889113d7ca0ef964640e837b90212363612461d/picopt-5.3.2-py3-none-any.whl", hash = "sha256:e2cb9ec8b6af32f58acab6b4bb25288771778768edc0e704a42c13e77c73b1d4", size = 66135, upload-time = "2026-02-17T01:08:07.63Z" },
 ]
 
 [[package]]
@@ -3650,7 +3650,7 @@ wheels = [
 
 [[package]]
 name = "typer"
-version = "0.23.2"
+version = "0.24.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -3658,9 +3658,9 @@ dependencies = [
     { name = "rich" },
     { name = "shellingham" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/ae/93d16574e66dfe4c2284ffdaca4b0320ade32858cb2cc586c8dd79f127c5/typer-0.23.2.tar.gz", hash = "sha256:a99706a08e54f1aef8bb6a8611503808188a4092808e86addff1828a208af0de", size = 120162, upload-time = "2026-02-16T18:52:40.354Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/b6/3e681d3b6bb22647509bdbfdd18055d5adc0dce5c5585359fa46ff805fdc/typer-0.24.0.tar.gz", hash = "sha256:f9373dc4eff901350694f519f783c29b6d7a110fc0dcc11b1d7e353b85ca6504", size = 118380, upload-time = "2026-02-16T22:08:48.496Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/2c/dee705c427875402200fe779eb8a3c00ccb349471172c41178336e9599cc/typer-0.23.2-py3-none-any.whl", hash = "sha256:e9c8dc380f82450b3c851a9b9d5a0edf95d1d6456ae70c517d8b06a50c7a9978", size = 56834, upload-time = "2026-02-16T18:52:39.308Z" },
+    { url = "https://files.pythonhosted.org/packages/85/d0/4da85c2a45054bb661993c93524138ace4956cb075a7ae0c9d1deadc331b/typer-0.24.0-py3-none-any.whl", hash = "sha256:5fc435a9c8356f6160ed6e85a6301fdd6e3d8b2851da502050d1f92c5e9eddc8", size = 56441, upload-time = "2026-02-16T22:08:47.535Z" },
 ]
 
 [[package]]

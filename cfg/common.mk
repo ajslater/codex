@@ -21,7 +21,7 @@ install:: install-deps-npm
 ## Update npm dependencies
 ## @category Update
 update-npm:
-	./bin/update-deps-npm.sh || true
+	./bin/update-deps-npm.sh
 
 .PHONY: update
 ## Update dependencies

@@ -2,4 +2,4 @@
 # Update npm dependencies
 set -euo pipefail
 npm update
-npm outdated
+npm outdated || true
