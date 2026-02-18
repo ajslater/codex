@@ -49,7 +49,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         Return image thumb data or path to missing file thumb.
         """
         with Comicbox(comic_path, config=COMICBOX_CONFIG, logger=log) as car:
-            image_data = car.get_cover_page(to_pixmap=True)
+            image_data = car.get_cover_page(pdf_format="pixmap")
         if not image_data:
             reason = "Read empty cover"
             raise ValueError(reason)
