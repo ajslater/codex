@@ -10,7 +10,7 @@ from io import BytesIO
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
-from comicbox.identifiers import IdSources
+from comicbox.enums.comicbox import IdSources
 from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32

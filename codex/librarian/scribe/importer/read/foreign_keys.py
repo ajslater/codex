@@ -3,8 +3,8 @@
 from collections.abc import Mapping
 from contextlib import suppress
 
+from comicbox.enums.comicbox import IdSources
 from comicbox.fields.number_fields import PAGE_COUNT_KEY
-from comicbox.identifiers import IdSources
 from comicbox.schemas.comicbox import (
     ID_KEY_KEY,
     ID_URL_KEY,
