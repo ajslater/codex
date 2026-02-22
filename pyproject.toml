@@ -249,9 +249,9 @@ addopts = [
   "--cov-report=html",
   "--cov-report=term",
   "--junit-xml=test-results/pytest/results.xml",
-  "-ra",
   "--strict-config",
   "--strict-markers",
+  "-ra",
 ]
 junit_family = "xunit2"
 strict = true

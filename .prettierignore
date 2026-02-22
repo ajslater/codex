@@ -29,4 +29,3 @@ dist
 frontend
 package-lock.json
 uv.lock
-webpack-stats.json
