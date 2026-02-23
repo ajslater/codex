@@ -34,8 +34,13 @@ collectstatic: build-icons build-frontend
 django-check:
 	bin/pm check
 
+.PHONY: build-only
+## Build python package
+## @category Build
+build-only:
+	uv build
+
 .PHONY: build
 ## Build python package
 ## @category Build
-build:: collectstatic
-	uv build
+build:: collectstatic build-only

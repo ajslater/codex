@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.18
+
+- Fixes
+    - Fix search indexing the universes tag.
+
+## v1.9.17 Broken build
+
 ## v1.9.16
 
 - Fixes:
