@@ -25,14 +25,14 @@ services:
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
-    command: make test-python -o build-frontend
+    command: make test-python -o collectstatic
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
     volumes:
       - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
-    command: make build
+    command: make build-only
   codex:
     build:
       context: .
