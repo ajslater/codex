@@ -55,13 +55,13 @@ fix::
 ## Static typecheck
 ## @category Lint
 typecheck:
-	uv run --group lint basedpyright .
+	uv run --group lint --group build basedpyright .
 
 .PHONY: ty
 ## Static typecheck with ty
 ## @category Lint
 ty:
-	uv run --group lint ty check .
+	uv run --group lint --group build ty check .
 
 .PHONY: complexity
 ## Lint backend complexity
