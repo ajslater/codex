@@ -25,7 +25,7 @@ services:
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
-    command: make test-python -o collectstatic
+    command: make collectstatic django-check test-python -o build-frontend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
