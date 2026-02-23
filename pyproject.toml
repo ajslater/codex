@@ -51,7 +51,7 @@ readme = "README.md"
 license = "GPL-3.0-only"
 name = "codex"
 requires-python = ">=3.10"
-version = "1.9.16"
+version = "1.9.17"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -242,7 +242,6 @@ omit = [
 
 [tool.pytest]
 minversion = "9.0"
-asyncio_mode = "strict"
 addopts = [
   "--cov",
   "--cov-append",
@@ -255,7 +254,7 @@ addopts = [
 ]
 junit_family = "xunit2"
 strict = true
-testpaths = "tests"
+testpaths = ["tests"]
 pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
