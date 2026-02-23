@@ -86,14 +86,14 @@ wheels = [
 
 [[package]]
 name = "astroid"
-version = "4.1.0"
+version = "4.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b0/79/f1e971b3700bcc24c09b3f0d47745d8404675a74afc10b32df8e4929dfdc/astroid-4.1.0.tar.gz", hash = "sha256:e2fbab37f205a651e6a168cb1e9a6a10677f6fa6a1c21833d113999855b04259", size = 412160, upload-time = "2026-02-09T02:19:57.705Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/4c/569eefb533ce71bc9f4f12a4a0d7f0ba27e500681dec1312d4657e849d20/astroid-4.1.1.tar.gz", hash = "sha256:445d831fe785df8c670bbb46b900b8424b82f85b4af187103f71a63a63ebed43", size = 412522, upload-time = "2026-02-23T02:36:30.315Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/38/b2becedff0bef4af9ff474b82e2dcaefca608b6d24753d0b460c94003d91/astroid-4.1.0-py3-none-any.whl", hash = "sha256:2f8263bc7a33cbe8fc2bf5a3d37cfa8327a3284bf4afe3f47f5f0debba638e36", size = 279168, upload-time = "2026-02-09T02:19:55.89Z" },
+    { url = "https://files.pythonhosted.org/packages/32/53/bac4724684064bfee95ece0bb6caf3887e509006845e25388a12cac26d0c/astroid-4.1.1-py3-none-any.whl", hash = "sha256:6b28522096f7e7a36ffcf3be60e77de15e2411ab3a713184beac33fb8f20c0c9", size = 279273, upload-time = "2026-02-23T02:36:28.676Z" },
 ]
 
 [[package]]
@@ -724,6 +724,7 @@ lint = [
     { name = "djangorestframework-types" },
     { name = "djlint" },
     { name = "icecream" },
+    { name = "mbake" },
     { name = "pathspec" },
     { name = "radon", extra = ["toml"] },
     { name = "ruff" },
@@ -799,6 +800,7 @@ lint = [
     { name = "djangorestframework-types", specifier = "~=0.9" },
     { name = "djlint", specifier = "~=1.36" },
     { name = "icecream", specifier = "~=2.1" },
+    { name = "mbake", specifier = "~=1.4.5" },
     { name = "pathspec", specifier = "~=1.0.4" },
     { name = "radon", extras = ["toml"], specifier = "~=6.0" },
     { name = "ruff", specifier = "~=0.15" },
@@ -2058,6 +2060,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f4/b3/3b2adcebc922d147637e18866bbce107dc3c0938e715c003697bbab2e9bf/marshmallow-union-0.1.15.post1.tar.gz", hash = "sha256:c08f0a87891ae73dd2b5d4a154bc7daea20c3bc0f99ca0b6a26570c927d20c8c", size = 17549, upload-time = "2020-06-24T13:47:24.918Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6d/b7/1f3c4575b488435c91c7bf25598ea6d22ae09b55cf1724320f4bd451323d/marshmallow_union-0.1.15.post1-py2.py3-none-any.whl", hash = "sha256:1e21b759c76735305f99179c1a16759ebb9629733159628241b3f2117ff55e86", size = 4607, upload-time = "2020-06-24T13:47:22.955Z" },
+]
+
+[[package]]
+name = "mbake"
+version = "1.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rich" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a7/2f/f3947481f2d53e9a661f9421a90d93af931ec8ae7f2835bd79d7bd11d03d/mbake-1.4.5.tar.gz", hash = "sha256:cc0be44d6e07257c138f21c5af255cb6f65554b48f3fe3dae7b211a85c2f9457", size = 1646354, upload-time = "2026-02-04T01:07:17.508Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/25/a780c093c8266aebf44b377d4713a48eae1315f5f94ba35581345abb439d/mbake-1.4.5-py3-none-any.whl", hash = "sha256:4286848fc07e81be05ede95f755152bf9eae0780ce9c7d5fd5ed41ea46215eb7", size = 81786, upload-time = "2026-02-04T01:07:16.099Z" },
 ]
 
 [[package]]
@@ -3584,8 +3600,8 @@ name = "taskgroup"
 version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "exceptiongroup", marker = "python_full_version < '3.13'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "exceptiongroup" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f0/8d/e218e0160cc1b692e6e0e5ba34e8865dbb171efeb5fc9a704544b3020605/taskgroup-0.2.2.tar.gz", hash = "sha256:078483ac3e78f2e3f973e2edbf6941374fbea81b9c5d0a96f51d297717f4752d", size = 11504, upload-time = "2025-01-03T09:24:13.761Z" }
 wheels = [

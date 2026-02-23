@@ -5,7 +5,6 @@ set -euxo pipefail
 if [ "$(uname)" != "Darwin" ]; then
   exit 0
 fi
-mbake validate Makefile
 shellharden --check ./**/*.sh
 # subdirs aren't copied into docker builder
 # .env files aren't copied into docker

@@ -87,6 +87,7 @@ lint = [
   "djangorestframework-types~=0.9",
   "djlint~=1.36",
   "icecream~=2.1",
+  "mbake~=1.4.5",
   "pathspec~=1.0.4",
   "radon[toml]~=6.0",
   "ruff~=0.15",
