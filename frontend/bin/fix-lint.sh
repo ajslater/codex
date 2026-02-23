@@ -2,4 +2,4 @@
 # Fix lints frontend
 set -euo pipefail
 npm run fix
-mbake format Makefile
+uv run mbake format Makefile

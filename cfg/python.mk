@@ -55,13 +55,13 @@ fix::
 ## Static typecheck
 ## @category Lint
 typecheck:
-	uv run --group lint basedpyright .
+	uv run --group lint --group build basedpyright .
 
 .PHONY: ty
 ## Static typecheck with ty
 ## @category Lint
 ty:
-	uv run --group lint ty check .
+	uv run --group lint --group build ty check .
 
 .PHONY: complexity
 ## Lint backend complexity
@@ -87,14 +87,17 @@ uml:
 cycle:
 	uvx pycycle --ignore node_modules,.venv --verbose --here
 
+T :=
+.PHONY: test-python
 ## Test Python
 ## @category Test
-T :=
+test-python:
+	./bin/test-python.sh $(T)
+
 .PHONY: test
 ## Run Python Tests. Use T variable to run specific tests
 ## @category Test
-test::
-	./bin/test-python.sh $(T)
+test:: test-python
 
 ifndef OVERRIDE_BUILD
 .PHONY: build

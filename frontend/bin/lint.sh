@@ -4,4 +4,4 @@ set -euo pipefail
 
 npm run lint
 npx prettier --check .
-mbake validate Makefile
+uv run mbake validate Makefile

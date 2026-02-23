@@ -32,7 +32,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
                 GroupConcat(
                     f"{rel}__designation",
                     distinct=True,
-                    order_by=("{rel}__designation"),
+                    order_by=(f"{rel}__designation"),
                 ),
                 Value(","),
                 name_concat,
