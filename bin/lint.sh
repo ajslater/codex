@@ -7,4 +7,4 @@ npm run lint
 
 bin/lint-darwin.sh
 
-bin/roman.py -i .prettierignore .
+uv run --group lint bin/roman.py -i .prettierignore .
