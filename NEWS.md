@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - Fix search indexing the universes tag.
+    - Fancier Admin library poll duration input.
 
 ## v1.9.16
 
