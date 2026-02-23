@@ -41,12 +41,12 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
     """Publication Manifest Divina Extended Metadata."""
 
     @staticmethod
-    def _add_credits(md, pks, key, roles):
+    def _add_credits(md, pks, key, roles) -> None:
         """Add credits to metadata."""
         if credit_objs := get_credits(pks, roles, exclude=False):
             md[key] = credit_objs
 
-    def _publication_identifier(self, obj):
+    def _publication_identifier(self, obj) -> str:
         rel = GroupACLMixin.get_rel_prefix(Identifier)
         comic_filter = {rel + "in": [obj.pk]}
         identifiers = (
@@ -67,7 +67,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         query_params: Mapping[str, str | int | Mapping],
         name: str,
         number: int | None,
-    ):
+    ) -> list[dict]:
         href_data = HrefData(
             kwargs,
             query_params,
@@ -94,7 +94,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
-    def _publication_belongs_to_folder(self, obj):
+    def _publication_belongs_to_folder(self, obj) -> list:
         if not self.is_allowed(obj):
             return []
         name = obj.path
@@ -106,7 +106,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
-    def _publication_belongs_to_story_arcs(self, obj):
+    def _publication_belongs_to_story_arcs(self, obj) -> list:
         story_arcs = []
         rel = GroupACLMixin.get_rel_prefix(StoryArcNumber)
         comic_filter = {rel + "in": [obj.pk]}
@@ -117,7 +117,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         )
         for story_arc_number in story_arc_numbers:
             story_arc = story_arc_number.story_arc
-            name = story_arc.name if story_arc.name else BLANK_TITLE
+            name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
             kwargs = {"group": "a", "pks": pks, "page": 1}
@@ -130,7 +130,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             story_arcs += story_arc
         return story_arcs
 
-    def _publication_belongs_to(self, obj):
+    def _publication_belongs_to(self, obj) -> dict:
         belongs_to = {}
         if series := self._publication_belongs_to_series(obj):
             belongs_to["series"] = series
@@ -141,18 +141,18 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return belongs_to
 
-    def _publication_subject(self, obj):
+    def _publication_subject(self, obj) -> list:
         # Subjects can also have links
         # https://readium.org/webpub-manifest/schema/subject-object.schema.json
         m2m_objs = get_m2m_objects(obj.ids)
         return [subj.name for subjs in m2m_objs.values() for subj in subjs]
 
-    def _publication_credits(self, obj, md):
+    def _publication_credits(self, obj, md) -> None:
         for key, roles in _MD_CREDIT_MAP.items():
             self._add_credits(md, obj.ids, key, roles)
 
     @override
-    def _publication_metadata(self, obj, zero_pad):
+    def _publication_metadata(self, obj, zero_pad) -> dict:
         md = super()._publication_metadata(obj, zero_pad)
         if desc := obj.summary:
             md["description"] = desc
@@ -179,7 +179,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
 
     serializer_class = OPDS2PublicationDivinaManifestSerializer
 
-    def _publication_reading_order(self, obj):
+    def _publication_reading_order(self, obj) -> list:
         """
         Reader manifest for OPDS 2.0.
 
@@ -209,7 +209,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
             reading_order.append(page)
         return reading_order
 
-    def _cover(self, obj):
+    def _cover(self, obj) -> list:
         images = []
         if not obj:
             return images
@@ -238,7 +238,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         return images
 
     @override
-    def _publication(self, obj, zero_pad):
+    def _publication(self, obj, zero_pad) -> dict:
         pub = super()._publication(obj, zero_pad)
         # DiViNa manifest uses resources instead of images
         if resources := self._cover(obj):
@@ -248,7 +248,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         return pub
 
     @override
-    def get_object(self):
+    def get_object(self) -> MappingProxyType:
         """Get one publication object."""
         book_qs, _, zero_pad = self.get_book_qs()
         obj = book_qs.first()

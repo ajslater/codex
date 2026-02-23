@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import migrations, models
 
 
-def critical_rating_to_decimal(apps, _schema_editor):
+def critical_rating_to_decimal(apps, _schema_editor) -> None:
     """Migrate comics with charfield ratings to decimal if possible."""
     comic_model = apps.get_model("codex", "comic")
     update_comics = []

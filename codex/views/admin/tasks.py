@@ -57,6 +57,7 @@ from codex.librarian.scribe.tasks import (
     SearchIndexSyncAbortTask,
     UpdateGroupsTask,
 )
+from codex.librarian.tasks import LibrarianTask
 from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
@@ -70,7 +71,6 @@ from codex.views.const import EPOCH_START
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-
 
 _TASK_MAP = MappingProxyType(
     {
@@ -132,7 +132,7 @@ class AdminLibrarianTaskView(AdminAPIView):
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
-    def _get_task(self, name, pk):
+    def _get_task(self, name, pk) -> LibrarianTask | None:
         """Stuff library ids into tasks."""
         if name == "notify_bookmark_changed":
             uid = self.request.user.pk
@@ -145,7 +145,7 @@ class AdminLibrarianTaskView(AdminAPIView):
         return task
 
     @extend_schema(request=input_serializer_class)
-    def post(self, *_args, **_kwargs):
+    def post(self, *_args, **_kwargs) -> Response:
         """Download a comic archive."""
         # DRF does not populate POST correctly, only data
         data = self.request.data
@@ -157,7 +157,7 @@ class AdminLibrarianTaskView(AdminAPIView):
         task = self._get_task(task_name, pk)
         if task:
             LIBRARIAN_QUEUE.put(task)
-            task_log = task_name if task_name else "Unknown"
+            task_log = task_name or "Unknown"
             if pk is not None:
                 task_log += f" {pk}"
             logger.debug(f"Admin task submitted {task_log}")

@@ -7,7 +7,7 @@ from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP, get_id_source_by
 from django.db import migrations, models
 
 
-def _map_identifiers_to_canonical_names(apps):
+def _map_identifiers_to_canonical_names(apps) -> dict:
     id_source_model = apps.get_model("codex", "identifiersource")
     identifier_source_map = {}
 
@@ -23,7 +23,7 @@ def _map_identifiers_to_canonical_names(apps):
     return identifier_source_map
 
 
-def _prepare_canonical_id_sources(apps, identifier_source_map):
+def _prepare_canonical_id_sources(apps, identifier_source_map) -> tuple:
     id_source_model = apps.get_model("codex", "identifiersource")
     source_names = identifier_source_map.keys()
     existing_id_sources = id_source_model.objects.filter(name__in=source_names).only(
@@ -40,7 +40,7 @@ def _prepare_canonical_id_sources(apps, identifier_source_map):
     ), existing_id_sources
 
 
-def _create_link_map(identifier_source_map, sources):
+def _create_link_map(identifier_source_map, sources) -> dict:
     link_map = {}
     for id_source in chain(*sources):
         for id_pk in identifier_source_map[id_source.name]:
@@ -48,7 +48,7 @@ def _create_link_map(identifier_source_map, sources):
     return link_map
 
 
-def _prepare_updatatable_identifiers(apps, identifier_source_map, sources):
+def _prepare_updatatable_identifiers(apps, identifier_source_map, sources) -> tuple:
     link_map = _create_link_map(identifier_source_map, sources)
     identifier_model = apps.get_model("codex", "identifier")
     updateable_identifiers = identifier_model.objects.filter(pk__in=link_map.keys())
@@ -59,7 +59,7 @@ def _prepare_updatatable_identifiers(apps, identifier_source_map, sources):
     return tuple(obj_list)
 
 
-def _create_canonical_sources(apps):
+def _create_canonical_sources(apps) -> tuple[dict, tuple]:
     print("Examining identifier sources for conversion to canonical sources...")
     identifier_source_map = _map_identifiers_to_canonical_names(apps)
     print("Preparing missing canonical identifiers sources for creation...")
@@ -73,7 +73,9 @@ def _create_canonical_sources(apps):
     return identifier_source_map, (existing_id_sources, created_id_sources)
 
 
-def _update_identifiers_with_canonical_sources(apps, identifier_source_map, sources):
+def _update_identifiers_with_canonical_sources(
+    apps, identifier_source_map, sources
+) -> None:
     print("Preparing identifiers for update with canonical sources...")
     obj_list = _prepare_updatatable_identifiers(apps, identifier_source_map, sources)
     identifier_model = apps.get_model("codex", "identifier")
@@ -82,7 +84,7 @@ def _update_identifiers_with_canonical_sources(apps, identifier_source_map, sour
     print(f"Updated {count} identifiers with canonical sources.")
 
 
-def _convert_identifier_sources(apps, _schema_editor):
+def _convert_identifier_sources(apps, _schema_editor) -> None:
     identifier_source_map, sources = _create_canonical_sources(apps)
     _update_identifiers_with_canonical_sources(apps, identifier_source_map, sources)
 

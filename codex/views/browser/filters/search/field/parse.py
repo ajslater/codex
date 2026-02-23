@@ -37,7 +37,7 @@ ParserElement.enable_packrat()
 class BoolOperandBase(ABC):
     """Hold context."""
 
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         """Initialize context."""
         self.context = context
 
@@ -50,7 +50,7 @@ class BoolOperandBase(ABC):
 class BoolOperand(BoolOperandBase):
     """Hacky Base for injecting rel."""
 
-    def __init__(self, tokens, context):
+    def __init__(self, tokens, context) -> None:
         """Initialize value from first token."""
         super().__init__(context)
         self.value = tokens[0]
@@ -60,7 +60,7 @@ class BoolOperand(BoolOperandBase):
         """Represent as string."""
         return str(self.value)
 
-    def _prefix_q_dict(self, q_dict):
+    def _prefix_q_dict(self, q_dict) -> dict:
         """Add (or subtract!) relation prefixes to q_dict for the model."""
         model = self.context[2]
         prefix = "" if model == Comic else "comic__"
@@ -92,7 +92,7 @@ class BoolOperand(BoolOperandBase):
 class BoolNot(BoolOperandBase):
     """NOT Operand."""
 
-    def __init__(self, tokens, context):
+    def __init__(self, tokens, context) -> None:
         """Initialize args from first token."""
         super().__init__(context)
         self.arg = tokens[0][1]
@@ -114,7 +114,7 @@ class BoolBinaryOperand(BoolOperandBase):
 
     OP: str = ""
 
-    def __init__(self, tokens, context):
+    def __init__(self, tokens, context) -> None:
         """Initialize args from first two tokens."""
         super().__init__(context)
         self.args = tokens[0][0::2]

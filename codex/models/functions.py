@@ -18,7 +18,7 @@ class JsonGroupArray(Aggregate):
     function = "JSON_GROUP_ARRAY"
     name = "JsonGroupArray"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """output_field is set in the constructor."""
         super().__init__(*args, output_field=JSONField(), **kwargs)
 
@@ -33,7 +33,7 @@ class GroupConcat(Aggregate):
     function = "GROUP_CONCAT"
     name = "GroupConcat"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """output_field is set in the constructor."""
         super().__init__(*args, output_field=CharField(), **kwargs)
 
@@ -45,7 +45,7 @@ class FTS5Match(Lookup):
     lookup_name = "match"
 
     @override
-    def as_sql(self, compiler, connection):
+    def as_sql(self, compiler, connection) -> tuple:
         """Generate MATCH sql."""
         rhs, rhs_params = self.process_rhs(compiler, connection)
         # MATCH works on the table itself not the one_to_one rel.
@@ -66,7 +66,7 @@ class Like(Lookup):
     prepare_rhs = False
 
     @override
-    def as_sql(self, compiler, connection):
+    def as_sql(self, compiler, connection) -> tuple:
         """Generate LIKE sql."""
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
@@ -81,6 +81,6 @@ class ComicFTSRank(Func):
     function = "rank"
     template = '("codex_comicfts"."rank" * -1)'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """output_field is set in the constructor."""
         super().__init__(*args, output_field=FloatField(), **kwargs)

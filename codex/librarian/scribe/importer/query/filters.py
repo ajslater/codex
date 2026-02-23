@@ -1,6 +1,6 @@
 """Query the missing foreign keys methods."""
 
-from django.db.models import Q
+from django.db.models.query_utils import Q
 
 from codex.librarian.scribe.importer.const import DictModelType
 from codex.librarian.scribe.importer.query.covers import QueryCustomCoversImporter
@@ -15,7 +15,7 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
     def _get_query_missing_simple_filter(
         key_rels: tuple[str, ...],
         key_values: tuple[str, ...],
-    ):
+    ) -> Q:
         filter_args = {}
         rel = key_rels[0]
         values = frozenset(key[0] for key in key_values if key[0])
@@ -26,7 +26,7 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
     def _query_missing_complex_model_filter(
         key_rels: tuple[str, ...],
         key_values: tuple[tuple[str | None, ...], ...],
-    ):
+    ) -> Q:
         """Add value filter to query filter map."""
         query_filter = Q()
         for keys in key_values:
@@ -48,7 +48,7 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
         model: type[BaseModel],
         key_rels: tuple[str, ...],
         key_value_tuples: tuple,
-    ):
+    ) -> Q:
         """Get filters for the model."""
         if issubclass(model, DictModelType | BrowserGroupModel):
             fk_filter = self._query_missing_complex_model_filter(

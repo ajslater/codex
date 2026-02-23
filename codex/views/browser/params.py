@@ -17,7 +17,7 @@ class BrowserParamsView(SessionView):
         BrowserSettingsSerializer
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._params: MappingProxyType[str, Any] | None = None
@@ -36,6 +36,6 @@ class BrowserParamsView(SessionView):
             self._params = MappingProxyType(params)
         return self._params
 
-    def set_params(self, params):
+    def set_params(self, params) -> None:
         """Manually set the params."""
         self._params = params

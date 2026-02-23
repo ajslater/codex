@@ -49,11 +49,8 @@ jobs:
           command: ./ci/docker-build-image.sh codex-dist-builder pull
           name: Build Builder Base Image
       - run:
-          command: ./ci/docker-compose-exit.sh codex-backend-lint
-          name: "Backend: Lint"
-      - run:
-          command: ./ci/docker-compose-exit.sh codex-frontend-lint
-          name: "Frontend: Lint"
+          command: ./ci/docker-compose-exit.sh codex-lint
+          name: Lint
       - run:
           command: ./ci/docker-compose-exit.sh codex-frontend-test
           name: "Frontend: Test"
@@ -74,6 +71,9 @@ jobs:
       - run:
           command: ./ci/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
+      - run:
+          command: sudo chown -R circleci:circleci dist
+          name: chown dist
       - persist_to_workspace:
           paths:
             - ./dist

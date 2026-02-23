@@ -1,12 +1,12 @@
-site_name: Codex
-site_author: AJ
-site_description: Codex Comicbook Reader Admin Guide
-theme:
-  name: mkdocs
-  color_mode: dark
-  logo: codex/img/logo.svg
-  strict: true
-
+extra_css:
+  - style.css
+markdown_extensions:
+  - smarty
+  - toc:
+      permalink: true
+nav:
+  - NEWS.md
+  - DOCKER.md
 plugins:
   - minify:
       minify_html: true
@@ -18,12 +18,11 @@ plugins:
       css_files:
         - style.css
   - search
-markdown_extensions:
-  - smarty
-  - toc:
-      permalink: true
-extra_css:
-  - style.css
-nav:
-  - NEWS.md
-  - DOCKER.md
+site_author: AJ
+site_description: Codex Comicbook Reader Admin Guide
+site_name: Codex
+theme:
+  color_mode: dark
+  logo: codex/img/logo.svg
+  name: mkdocs
+  strict: true

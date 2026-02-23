@@ -1,8 +1,10 @@
 """Parse field lookup right hand side expression."""
 
 import re
+from datetime import date, datetime
 from decimal import Decimal
 from types import MappingProxyType
+from typing import Any
 
 from comicbox.fields.fields import IssueField
 from dateparser import parse
@@ -29,7 +31,7 @@ _IENDSWITH_QEURY_VALUE = re.compile(r"^\*")
 _ISTARTSWITH_QEURY_VALUE = re.compile(r"\*$")
 
 
-def _parse_issue_value(value):
+def _parse_issue_value(value) -> tuple | tuple[None, None]:
     """Parse a compound issue value into number & suffix."""
     value = IssueField.parse_issue(value)
     if not value:
@@ -42,7 +44,7 @@ def _parse_issue_value(value):
     return numeric_value, suffix_value
 
 
-def _parse_issue_values(rel, value, to_value=None):
+def _parse_issue_values(rel, value, to_value=None) -> dict:
     """Issue is not a column. Convert to issue_number and issue_suffix."""
     numeric_value, suffix_value = _parse_issue_value(value)
     if to_value is not None:
@@ -67,7 +69,7 @@ def _parse_issue_values(rel, value, to_value=None):
     return q_dict
 
 
-def _cast_value(rel, rel_class, value):
+def _cast_value(rel, rel_class, value) -> int | Decimal | bool | date | datetime | None:
     """Cast values by relation class."""
     if rel.startswith("size"):
         value = parse_size(value)
@@ -109,14 +111,14 @@ def _glob_to_lookup(value) -> tuple[str, str]:
     return value, rel_suffix
 
 
-def _parse_operator_numeric(rel, rel_class, value):
+def _parse_operator_numeric(rel, rel_class, value) -> dict[Any, int | None] | dict:
     value = _cast_value(rel, rel_class, value)
     if value is None:
         return {}
     return {rel: value}
 
 
-def _parse_operator_text(rel, exp):
+def _parse_operator_text(rel, exp) -> dict[Any, str] | dict:
     """Parse text value operators."""
     if rel == "issue":
         return _parse_issue_values(rel, exp)
@@ -126,7 +128,7 @@ def _parse_operator_text(rel, exp):
     return {rel: value}
 
 
-def _parse_operator(operator, rel, rel_class, exp):
+def _parse_operator(operator, rel, rel_class, exp) -> dict:
     """Move value operator out of value into relation operator."""
     lookup = _OP_MAP[operator]
     span_rel = f"{rel}__{lookup}" if operator else rel

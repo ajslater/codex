@@ -8,7 +8,7 @@ def max_none(*args):
     return max(filter(lambda x: x is not None, args), default=None)
 
 
-def mapping_to_dict(data):
+def mapping_to_dict(data) -> dict | set | frozenset | tuple | list:
     """Convert nested Mapping objects to dicts."""
     if isinstance(data, Mapping):
         return {key: mapping_to_dict(value) for key, value in data.items()}

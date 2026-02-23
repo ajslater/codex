@@ -1,6 +1,7 @@
 """OPDS v2.0 Feed Groups."""
 
 from collections.abc import Mapping
+from typing import Any
 
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
@@ -26,15 +27,15 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
     # Links #
     #########
 
-    def _create_link_kwargs(self, link_spec: Link | BrowserGroupModel):
+    def _create_link_kwargs(
+        self, link_spec: Link | BrowserGroupModel
+    ) -> dict[str, Any] | dict:
         """Create link kwargs."""
         if isinstance(link_spec, Link):
             if link_spec.group is None:
                 # Start Link
                 return {}
-            group = (
-                link_spec.group if link_spec.group else self.kwargs.get("group", "r")
-            )
+            group = link_spec.group or self.kwargs.get("group", "r")
             pks = (0,)
         else:
             group = link_spec.__class__.__name__[0].lower()
@@ -42,7 +43,9 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         return {"group": group, "pks": pks, "page": 1}
 
     @staticmethod
-    def _create_link_query_params(link_spec: Link | BrowserGroupModel, kwargs: Mapping):
+    def _create_link_query_params(
+        link_spec: Link | BrowserGroupModel, kwargs: Mapping
+    ) -> Mapping | None:
         """Create link query params."""
         if not isinstance(link_spec, Link | StoryArc):
             return {}
@@ -63,7 +66,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         self,
         link_spec: Link | BrowserGroupModel,
         link_dict: Mapping,
-    ):
+    ) -> None:
         if not self.is_allowed(link_spec):
             return
 
@@ -98,7 +101,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
     def _create_group_from_group_spec(
         self, group_spec: LinkGroup, *, paginate: bool = False
-    ):
+    ) -> list:
         groups = []
         link_dict = {}
         for link_spec in group_spec.links:
@@ -125,7 +128,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
         return groups
 
-    def _create_group(self, group_specs, *, paginate: bool = False):
+    def _create_group(self, group_specs, *, paginate: bool = False) -> list:
         """Create links sections for groups and facets."""
         groups = []
         for group_spec in group_specs:
@@ -136,7 +139,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Top Nav Groups."""
         return self._create_group(TOP_GROUPS)
 
-    def _get_ordered_groups(self):
+    def _get_ordered_groups(self) -> list:
         # Top Nav Groups
         groups = []
         for group_spec in PREVIEW_GROUPS:

@@ -20,14 +20,14 @@ class OPDS2HrefMixin:
         """Dummy."""
         return 1
 
-    def _href_page_validate(self, kwargs, data):
+    def _href_page_validate(self, kwargs, data) -> bool:
         """Validate the page bounds."""
         min_page = min(1, 1 if data.min_page is None else data.min_page)
         max_page = max(1, self.num_pages if data.max_page is None else data.max_page)
         page = int(kwargs["page"])
         return page >= min_page and page <= max_page
 
-    def _href_update_query_params(self, data):
+    def _href_update_query_params(self, data) -> dict:
         """Update the query params."""
         # Merge query_params and camelCase keys
         qps_maps = []
@@ -45,16 +45,16 @@ class OPDS2HrefMixin:
 
         return query
 
-    def href(self, data):
+    def href(self, data) -> str | None:
         """Create an href."""
-        url_name = data.url_name if data.url_name else "opds:v2:feed"
+        url_name = data.url_name or "opds:v2:feed"
         kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
         kwargs = pop_name(kwargs)
         query = self._href_update_query_params(data)
-        href = reverse(url_name, kwargs=kwargs, query=query)
+        href = reverse(url_name, kwargs=dict(kwargs), query=query)
         if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if template := data.template:

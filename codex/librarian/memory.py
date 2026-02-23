@@ -15,13 +15,13 @@ MEMORY_MAX_PATH = "/sys/fs/cgroup/memory.max"
 DIVISORS = {"b": 1, "k": 1024, "m": 1024**2, "g": 1024**3}
 
 
-def _get_cgroups2_mem_limit():
+def _get_cgroups2_mem_limit() -> int:
     """Get mem limit from cgroups2."""
     with Path(MEMORY_MAX_PATH).open("r") as limit:
         return int(limit.read())
 
 
-def _get_cgroups1_mem_limit():
+def _get_cgroups1_mem_limit() -> int | None:
     """Get mem limit from cgroups1."""
     with Path(MEMORY_STAT_PATH).open("r") as mem_stat_file:
         for line in mem_stat_file:

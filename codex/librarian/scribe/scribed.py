@@ -42,7 +42,7 @@ class ScribeThread(QueuedThread):
 
     SHUTDOWN_MSG = (0, QueuedThread.SHUTDOWN_MSG)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize abort event."""
         self.abort_import_event = Manager().Event()
         self.abort_search_update_event = Manager().Event()
@@ -50,7 +50,7 @@ class ScribeThread(QueuedThread):
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     @override
-    def process_item(self, item):
+    def process_item(self, item) -> None:
         """Run the updater."""
         task = item[-1]
         match task:
@@ -100,7 +100,7 @@ class ScribeThread(QueuedThread):
             case _:
                 self.log.warning(f"Bad task sent to scribe: {task}")
 
-    def put(self, task):
+    def put(self, task) -> None:
         """Put item in queue, and signal events."""
         if isinstance(task, ABORT_SEARCH_UPDATE_TASKS):
             self.abort_search_update_event.set()

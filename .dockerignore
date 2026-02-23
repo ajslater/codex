@@ -1,4 +1,6 @@
 __pycache__
+!dist
+!docker/debian.sources
 .*cache
 .circleci
 .coverage*
@@ -8,10 +10,12 @@ __pycache__
 .eslintcache
 .git
 .mypy_cache
+.picopt_timestamp
 .picopt_treestamps.yaml
 .pypi-token
 .pytest_cache
 .ropeproject
+.ruff_cache
 .venv*
 *.egg-info
 *.py[co]
@@ -28,10 +32,9 @@ docker*
 MANIFEST
 mock_comics
 monkeytype.sqlite3
+NEWS
 node_modules
 test-results
 TODO.md
 update-builder-requirement.sh
 version.sh
-!dist
-!docker/debian.sources

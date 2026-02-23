@@ -1,11 +1,12 @@
 """DB Import Tasks."""
 
-from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
 
+from codex.librarian.tasks import LibrarianTask
 
-class ScribeTask(ABC):  # noqa: B024
+
+class ScribeTask(LibrarianTask):
     """Tasks for scribed."""
 
 

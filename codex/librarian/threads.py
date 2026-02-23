@@ -27,14 +27,14 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
         db_write_lock,
         name="",
         **kwargs,
-    ):
+    ) -> None:
         """Initialize queues."""
         self.init_worker(logger_, librarian_queue, db_write_lock)
         if not name:
             name = self.__class__.__name__
         super().__init__(name=name, **kwargs)
 
-    def run_start(self):
+    def run_start(self) -> None:
         """First thing to do when running a new thread."""
         self.log.debug(f"Started {self.name}")
 
@@ -45,7 +45,7 @@ class QueuedThread(NamedThread, ABC):
     SHUTDOWN_MSG: str | tuple = "shutdown"
     SHUTDOWN_TIMEOUT = 5
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize with overridden name and as a daemon thread."""
         self.queue = kwargs.pop("queue", SimpleQueue())
         super().__init__(*args, daemon=True, **kwargs)
@@ -62,7 +62,7 @@ class QueuedThread(NamedThread, ABC):
     def timed_out(self):
         """Override to things on queue timeout."""
 
-    def _check_item(self):
+    def _check_item(self) -> None:
         """Get items, with timeout. Check for shutdown and Empty."""
         timeout = self.get_timeout()
         try:
@@ -74,7 +74,7 @@ class QueuedThread(NamedThread, ABC):
             self.timed_out()
 
     @override
-    def run(self):
+    def run(self) -> None:
         """Run thread loop."""
         self.run_start()
         while True:
@@ -87,12 +87,12 @@ class QueuedThread(NamedThread, ABC):
                 self.log.exception(f"{self.__class__.__name__} crashed:")
         self.log.debug(f"Stopped {self.__class__.__name__}")
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the thread."""
         self.queue.put(self.SHUTDOWN_MSG)
 
     @override
-    def join(self, timeout=None):
+    def join(self, timeout=None) -> None:
         """End the thread."""
         self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
@@ -105,13 +105,13 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     FLOOD_DELAY = 1.0
     MAX_DELAY = 5.0
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the cache."""
         self.cache = {}
         self._last_send = time.time()
         super().__init__(*args, **kwargs)
 
-    def set_last_send(self):
+    def set_last_send(self) -> None:
         """Set the last send time to now."""
         self._last_send = time.time()
 
@@ -130,14 +130,14 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         """Abstract method for sending all items."""
         raise NotImplementedError
 
-    def cleanup_cache(self, keys):
+    def cleanup_cache(self, keys) -> None:
         """Remove sent messages from the cache and record send times."""
         for key in keys:
             self.cache.pop(key, None)
         self.set_last_send()
 
     @override
-    def process_item(self, item):
+    def process_item(self, item) -> None:
         """Aggregate items and sleep in case there are more."""
         self.aggregate_items(item)
         since_last_timed_out = time.time() - self._last_send
@@ -146,7 +146,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
             self.timed_out()
 
     @override
-    def timed_out(self):
+    def timed_out(self) -> None:
         """Send the items and set when we did this."""
         self.send_all_items()
         self.set_last_send()

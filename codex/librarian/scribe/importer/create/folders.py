@@ -27,7 +27,7 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
                 self.log.warning(reason)
         return parent
 
-    def _bulk_folders_create_add_folder(self, path: Path, create_folders):
+    def _bulk_folders_create_add_folder(self, path: Path, create_folders) -> None:
         """Add one folder to the create list."""
         parent_folder = self._get_parent_folder(path)
         folder = Folder(
@@ -40,7 +40,7 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
         self.add_custom_cover_to_group(Folder, folder)
         create_folders.append(folder)
 
-    def _bulk_folders_create_depth_level(self, paths, status: Status):
+    def _bulk_folders_create_depth_level(self, paths, status: Status) -> int:
         """Create a depth level of folders."""
         create_folders = []
         for path in sorted(paths):

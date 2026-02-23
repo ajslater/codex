@@ -24,7 +24,7 @@
       hint="Periodically poll the library for changes"
       :persistent-hint="true"
     />
-    <TimeTextField
+    <DurationInput
       v-model="row.pollEvery"
       label="Poll Every"
       :disabled="!row.poll"
@@ -44,9 +44,9 @@
 import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 
+import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
-import TimeTextField from "@/components/admin/create-update-dialog/time-text-field.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];
@@ -83,7 +83,7 @@ export default {
   components: {
     AdminRelationPicker,
     AdminServerFolderPicker,
-    TimeTextField,
+    DurationInput,
   },
   props: {
     oldRow: {

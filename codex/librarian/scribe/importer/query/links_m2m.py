@@ -17,7 +17,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
     """Prune M2M links that don't need updating."""
 
     @staticmethod
-    def _m2m_obj_to_key_tuple(key_attrs: tuple[str, ...], m2m_obj: BaseModel):
+    def _m2m_obj_to_key_tuple(key_attrs: tuple[str, ...], m2m_obj: BaseModel) -> tuple:
         """Create a key value tuple from a db obj."""
         value_tuple = []
         for attr in key_attrs:
@@ -34,7 +34,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         m2m_obj: BaseModel,
         kept_existing_values: set,
         proposed_values: set,
-    ):
+    ) -> bool:
         """Remove existing m2m links from the action list and add missing ones delete list."""
         # transform objs into tuples
         key_attrs = FIELD_NAME_KEY_ATTRS_MAP[field_name]
@@ -51,7 +51,9 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
             deleted = True
         return deleted
 
-    def _query_prune_comic_m2m_links_field(self, comic: Comic, field_name: str, status):
+    def _query_prune_comic_m2m_links_field(
+        self, comic: Comic, field_name: str, status
+    ) -> None:
         if field_name not in self.metadata[DELETE_M2MS]:
             self.metadata[DELETE_M2MS][field_name] = set()
 
@@ -70,14 +72,14 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         if not self.metadata[LINK_M2MS][comic.path][field_name]:
             del self.metadata[LINK_M2MS][comic.path][field_name]
 
-    def _query_prune_comic_m2m_links_comic(self, comic: Comic, status):
+    def _query_prune_comic_m2m_links_comic(self, comic: Comic, status) -> None:
         field_names = tuple(self.metadata[LINK_M2MS][comic.path].keys())
         for field_name in field_names:
             self._query_prune_comic_m2m_links_field(comic, field_name, status)
         if not self.metadata[LINK_M2MS][comic.path]:
             del self.metadata[LINK_M2MS][comic.path]
 
-    def _query_prune_comic_m2m_links_batch(self, paths: tuple[str], status):
+    def _query_prune_comic_m2m_links_batch(self, paths: tuple[str], status) -> None:
         comics = (
             Comic.objects.filter(library=self.library, path__in=paths)
             # prefetching deep links means a batch size of 190 or less
@@ -87,7 +89,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         for comic in comics.iterator(chunk_size=LINK_M2M_BATCH_SIZE):
             self._query_prune_comic_m2m_links_comic(comic, status)
 
-    def query_prune_comic_m2m_links(self, status):
+    def query_prune_comic_m2m_links(self, status) -> None:
         """Prune comic m2m links that already exists or should be deleted."""
         status.subtitle = "Many to Many"
         self.status_controller.update(status)

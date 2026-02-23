@@ -93,6 +93,7 @@ export default {
   opacity: 0.75 !important;
   z-index: 15 !important;
 }
+
 .drawerActivated {
   // Deactivated drawers with custom width don't move off the screen enough
   width: 33vw !important;
@@ -101,20 +102,24 @@ export default {
 .prevCursor {
   cursor: n-resize;
 }
+
 .nextCursor {
   cursor: s-resize;
 }
+
 .navLink {
   display: block;
   height: 100%;
 }
+
 $iconSize: 25%;
+
 .bookChangeIcon {
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
   height: $iconSize;
   width: $iconSize;
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
 }
 </style>

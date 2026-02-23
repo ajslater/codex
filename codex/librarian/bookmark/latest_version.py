@@ -27,7 +27,7 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
         response = requests.get(_REPO_URL, timeout=_REPO_TIMEOUT)
         return json.loads(response.text)["info"]["version"]
 
-    def update_latest_version(self, *, force: bool, update: bool = False):
+    def update_latest_version(self, *, force: bool, update: bool = False) -> None:
         """Get the latest version from a remote repo using a cache."""
         if self.db_write_lock.locked():
             self.log.warning("Database locked, not retrieving latest codex version.")

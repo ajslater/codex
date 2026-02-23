@@ -26,7 +26,7 @@ _UPDATED_ATS_DATE_FORMAT_STR = "%Y-%m-%d %H:%M:%S.%f"
 class ReaderArcsView(ReaderParamsView):
     """Reader get Arcs methods."""
 
-    def _get_field_names(self):
+    def _get_field_names(self) -> tuple:
         field_names = []
         for field_name in _COMIC_ARC_FIELD_NAMES:
             if field_name == "parent_folder":
@@ -47,7 +47,7 @@ class ReaderArcsView(ReaderParamsView):
             field_names.append(field_name)
         return tuple(field_names)
 
-    def _get_group_pks_from_breadcrumbs(self):
+    def _get_group_pks_from_breadcrumbs(self) -> MappingProxyType | dict:
         """Set Multi-Group pks from breadcrumbs to the cache."""
         group_pks = {}
         top_group = self.get_from_session(
@@ -137,7 +137,7 @@ class ReaderArcsView(ReaderParamsView):
             arcs[STORY_ARC_GROUP][ids] = arc
         return max_mtime
 
-    def _set_selected_arc(self, arcs):
+    def _set_selected_arc(self, arcs) -> None:
         arc = self.params["arc"]
         arc_group = arc["group"]
         requested_arc_ids = arc.get("ids", ())

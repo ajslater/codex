@@ -16,7 +16,7 @@ class IntListConverter:
     regex = r"\d+(,\d+)*"
     DELIMITER = ","
 
-    def to_python(self, value):
+    def to_python(self, value) -> tuple:
         """Convert string list to tuple of ints."""
         parts = value.split(self.DELIMITER)
         pks = set()
@@ -33,7 +33,7 @@ class IntListConverter:
 
         return tuple(sorted(pks))
 
-    def to_url(self, value):
+    def to_url(self, value) -> str:
         """Convert sequence of ints to a comma delineated string list."""
         pks: set[str] = set()
         if value:

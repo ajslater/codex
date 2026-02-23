@@ -21,7 +21,7 @@
     </template>
     <template #[`item.pollEvery`]="{ item }">
       <span :class="{ disabled: !item.poll }">
-        {{ item.pollEvery }}
+        {{ removeSeconds(item.pollEvery) }}
       </span>
     </template>
     <template #[`item.lastPoll`]="{ item }">
@@ -251,6 +251,9 @@ export default {
         classes["failedComics"] = true;
       }
       return classes;
+    },
+    removeSeconds(duration) {
+      return duration.slice(0, -3);
     },
   },
 };

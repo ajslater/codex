@@ -29,7 +29,7 @@ class BookmarkKey:
     user_pk: int = 0
 
     @override
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Hash the dict as a tuple."""
         auth_filters = (
             None if self.auth_filter is None else tuple(self.auth_filter.items())
@@ -37,7 +37,7 @@ class BookmarkKey:
         return hash((auth_filters, self.comic_pks, self.user_pk))
 
     @override
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Equal uses hashes."""
         return self.__hash__() == other.__hash__()
 
@@ -52,13 +52,13 @@ class BookmarkThread(
     FLOOD_DELAY = 3.0
     MAX_DELAY = 5.0
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Init mixins."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
         self.init_user_active()
 
-    def _process_task_immediately(self, task):
+    def _process_task_immediately(self, task) -> None:
         if self.db_write_lock.locked():
             self.log.warning(f"Database locked, not processing {task}")
         match task:
@@ -75,7 +75,7 @@ class BookmarkThread(
                 self.log.warning(f"Unknown Bookmark task {task}")
 
     @override
-    def aggregate_items(self, item):
+    def aggregate_items(self, item) -> None:
         """Aggregate bookmark updates."""
         task = item
         match task:
@@ -93,7 +93,7 @@ class BookmarkThread(
                 self._process_task_immediately(task)
 
     @override
-    def send_all_items(self):
+    def send_all_items(self) -> None:
         """Run the task method."""
         if self.db_write_lock.locked():
             self.log.debug("Database locked, waiting to process bookmarks.")

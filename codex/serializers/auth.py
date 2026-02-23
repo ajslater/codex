@@ -25,7 +25,7 @@ class UserSerializer(BaseModelSerializer):
 
     admin_flags = SerializerMethodField()
 
-    def get_admin_flags(self, *_args):
+    def get_admin_flags(self, *_args) -> dict:
         """Piggyback admin flags on the user object."""
         flags = AdminFlag.objects.filter(key__in=self._ADMIN_FLAG_KEYS).values(
             "name", "on"

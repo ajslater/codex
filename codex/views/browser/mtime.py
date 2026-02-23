@@ -40,7 +40,7 @@ class MtimeView(BrowserGroupMtimeView):
         return max_mtime
 
     @extend_schema(parameters=[GroupsMtimeSerializer])
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get the mtimes for the submitted groups."""
         max_mtime = self.get_max_groups_mtime()
 

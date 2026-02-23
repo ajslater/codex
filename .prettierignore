@@ -1,15 +1,21 @@
 __pycache__
 .*cache
+.*cache/
 .circleci
 .git
 .mypy_cache
 .pytest_cache
 .ruff_cache
+.venv
 .venv*
+*Dockerfile
 /config
 /node_modules
 /site
 /test-results
+/tests/**/*.json
+/tests/**/*.xml
+/tests/**/*.yaml
 cache
 codex/_vendor
 codex/static_build
@@ -23,4 +29,3 @@ dist
 frontend
 package-lock.json
 uv.lock
-webpack-stats.json

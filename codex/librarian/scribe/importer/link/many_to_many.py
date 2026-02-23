@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class LinkManyToManyImporter(LinkSumImporter):
     """Link Comics M2M fields."""
 
-    def link_comic_m2m_field(self, field_name, m2m_links, status: Status):
+    def link_comic_m2m_field(self, field_name, m2m_links, status: Status) -> int:
         """
         Recreate an m2m field for a set of comics.
 
@@ -53,7 +53,7 @@ class LinkManyToManyImporter(LinkSumImporter):
             self.status_controller.update(status)
         return count
 
-    def link_comic_m2m_fields(self):
+    def link_comic_m2m_fields(self) -> int:
         """Combine query and bulk link into a batch."""
         link_total = self.sum_ops(DELETE_M2MS) + self.sum_path_ops(LINK_M2MS)
         status = ImporterLinkTagsStatus(0, link_total)

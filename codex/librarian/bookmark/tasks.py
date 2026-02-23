@@ -1,12 +1,13 @@
 """Bookmark Tasks."""
 
-from abc import ABC
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from codex.librarian.tasks import LibrarianTask
 
-class BookmarkTask(ABC):  # noqa: B024
+
+class BookmarkTask(LibrarianTask):
     """Bookmark Base Class."""
 
 

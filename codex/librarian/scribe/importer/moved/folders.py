@@ -19,7 +19,7 @@ class MovedFoldersImporter(MovedCoversImporter):
     """Methods for moving comics and folders."""
 
     @staticmethod
-    def _folder_sort_key(element: Folder):
+    def _folder_sort_key(element: Folder) -> int:
         return len(Path(element.path).parts)
 
     def _bulk_move_folders(
@@ -65,7 +65,7 @@ class MovedFoldersImporter(MovedCoversImporter):
 
     def _bulk_move_folders_under_existing_parents(
         self, dest_parent_folder_paths_map, dirs_moved: frozenbidict[str, str], status
-    ):
+    ) -> int:
         """Move folders under existing folders."""
         count = 0
         while True:
@@ -105,7 +105,9 @@ class MovedFoldersImporter(MovedCoversImporter):
                 status,
             )
 
-    def _get_move_create_folders_one_layer(self, dest_parent_folder_paths_map):
+    def _get_move_create_folders_one_layer(
+        self, dest_parent_folder_paths_map
+    ) -> frozenset:
         """Find the next layer of folder paths to create."""
         create_folder_paths_one_layer = set()
         library_parts_len = len(Path(self.library.path).parts)
@@ -130,7 +132,7 @@ class MovedFoldersImporter(MovedCoversImporter):
 
         return frozenset(create_folder_paths_one_layer)
 
-    def _remove_move_collisions(self, dirs_moved: bidict[str, str]):
+    def _remove_move_collisions(self, dirs_moved: bidict[str, str]) -> None:
         """Remove moves that would collide with an existing Folder."""
         dest_paths = set(dirs_moved.values())
         collision_dest_paths = Folder.objects.filter(
@@ -145,7 +147,7 @@ class MovedFoldersImporter(MovedCoversImporter):
             f"Not moving folders to destinations that would collide with existing database folders: {collision_dest_paths}"
         )
 
-    def _bulk_move_folders_and_create_parents(self, status):
+    def _bulk_move_folders_and_create_parents(self, status) -> int:
         """Find folders that can be moved without creating parents."""
         count = 0
         dirs_moved = bidict(self.task.dirs_moved)
@@ -184,7 +186,7 @@ class MovedFoldersImporter(MovedCoversImporter):
             layer += 1
         return count
 
-    def bulk_folders_moved(self, *, mark_in_progress=False):
+    def bulk_folders_moved(self, *, mark_in_progress=False) -> int:
         """Move folders in the database instead of recreating them."""
         count = 0
         num_dirs_moved = len(self.task.dirs_moved)

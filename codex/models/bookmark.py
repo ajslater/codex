@@ -23,7 +23,7 @@ def cascade_if_user_null(
     field,
     sub_objs,
     using,  # noqa: ARG001
-):
+) -> None:
     """
     Cascade only if the user field is null.
 

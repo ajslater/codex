@@ -39,6 +39,6 @@ def validate_timezone(data):
 class TimezoneField(CharField):
     """Timezone field."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Call Charfield with defaults."""
         super().__init__(*args, min_length=2, validators=[validate_timezone], **kwargs)

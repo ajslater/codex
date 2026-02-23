@@ -15,11 +15,11 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
     """Update fts fields for updated foreign keys with non key search values."""
 
     @staticmethod
-    def _to_fts_str(values):
+    def _to_fts_str(values) -> str:
         return ",".join(sorted(values))
 
     @staticmethod
-    def _get_fts_m2m_concat(field_name: str):
+    def _get_fts_m2m_concat(field_name: str) -> Concat | GroupConcat:
         rel = "comic__" + field_name
         name_rel = rel + "__name"
         name_concat = GroupConcat(
@@ -32,7 +32,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
                 GroupConcat(
                     f"{rel}__designation",
                     distinct=True,
-                    order_by=("{rel}__designation"),
+                    order_by=(f"{rel}__designation"),
                 ),
                 Value(","),
                 name_concat,
@@ -47,7 +47,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         already_updated_comicfts_pks: tuple[int, ...],
         update_fields: tuple[str, ...],
         update_objs: list[ComicFTS],
-    ):
+    ) -> None:
         rel = f"comic__{field_name}__in"
         fts_value = self._get_fts_m2m_concat(field_name)
         model_pks = self.metadata[FTS_UPDATED_M2MS].pop(field_name)
@@ -66,7 +66,9 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
             comicfts.updated_at = Now()
             update_objs.append(comicfts)
 
-    def sync_fts_for_m2m_updates(self, already_updated_comicfts_pks: tuple[int, ...]):
+    def sync_fts_for_m2m_updates(
+        self, already_updated_comicfts_pks: tuple[int, ...]
+    ) -> None:
         """Update fts entries for foreign keys."""
         try:
             count = 0

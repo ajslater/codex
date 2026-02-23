@@ -16,7 +16,7 @@ NEW_DEFAULT_NAME = ""
 UPDATE_FIELDS = ("stat", "updated_at")
 
 
-def update_default_names(apps, _schema_editor):
+def update_default_names(apps, _schema_editor) -> None:
     """Prepare for removing the is_default field."""
     for model_name, default_name in MODEL_NAMES.items():
         model = apps.get_model("codex", model_name)
@@ -28,7 +28,7 @@ def update_default_names(apps, _schema_editor):
         )
 
 
-def remove_duplicate_comics(apps, _schema_editor):
+def remove_duplicate_comics(apps, _schema_editor) -> None:
     """Remove duplicate comics in preparation for looser unique constraints."""
     model = apps.get_model("codex", "Comic")
     comics = model.objects.only("pk", "library__id", "path", "updated_at")

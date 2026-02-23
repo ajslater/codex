@@ -44,7 +44,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
     def _get_m2m_metadata_dict_model_aggregate_sub_sub_value_roles(
         self, sub_sub_field, sub_sub_value
-    ):
+    ) -> frozenset:
         clean_sub_sub_values = set()
         for sub_sub_sub_key_name, sub_sub_sub_value_obj in sub_sub_value.items():
             clean_sub_sub_sub_key_name = sub_sub_field.get_prep_value(
@@ -99,7 +99,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         sub_key_name: str,
         sub_key_identifier_field,
         sub_value_obj,
-    ):
+    ) -> tuple[tuple, list]:
         name_field = (
             sub_key_name_field
             if isinstance(sub_key_name_field, CharField)
@@ -128,7 +128,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
     def _get_roles_or_numbers(
         self, field, dict_field_keys, clean_sub_values, sub_value_obj
-    ):
+    ) -> set:
         roles_or_numbers = set()
         for sub_sub_md_key, sub_sub_field in dict_field_keys.items():
             # Sub_sub_md_key is identifiers or designation or roles
@@ -156,7 +156,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
     def _create_clean_sub_map(
         self, field, roles_or_numbers, clean_sub_key, clean_sub_values
-    ):
+    ) -> dict:
         # Create sub_map with special provisions for complex types.
         clean_sub_map = {}
         if roles_or_numbers:
@@ -223,7 +223,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         md_key: str,
         field: ManyToManyField,
         values: Mapping[str, Mapping | None] | list | tuple | set | frozenset,
-    ):
+    ) -> dict:
         # Process values dict for a field
         # {story_arc_name_a: { number: 1, identifiers: {} }, ...}
         # {character_name_a: { identifiers: {} }, ...}
@@ -245,7 +245,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 self.add_query_model(related_model, key, value)
         return clean_values_map
 
-    def _get_m2m_metadata_for_field(self, field, md, m2m_md):
+    def _get_m2m_metadata_for_field(self, field, md, m2m_md) -> None:
         md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field.name, field.name)
         values = md.pop(md_key, None)
         if values is None:
@@ -265,7 +265,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 m2m_md[field.name] = set()
             m2m_md[field.name] |= clean_key_values
 
-    def get_m2m_metadata(self, md, path):
+    def get_m2m_metadata(self, md, path) -> None:
         """Many_to_many fields get moved into a separate dict."""
         m2m_md = {}
         for field in COMIC_M2M_FIELDS:

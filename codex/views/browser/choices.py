@@ -83,7 +83,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
         # Detect if there are null choices. Regretably with another query.
         return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
 
-    def get_rel_and_model(self, field_name):
+    def get_rel_and_model(self, field_name) -> tuple:
         """Return the relation and model for the field name."""
         rel_and_model = _FIELD_TO_REL_MODEL_MAP.get(field_name)
         if rel_and_model:
@@ -103,7 +103,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
         return self.get_filtered_queryset(Comic)
 
     @extend_schema(parameters=[input_serializer_class])
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Return choices."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)
@@ -116,12 +116,12 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     serializer_class: type[BaseSerializer] | None = BrowserFilterChoicesSerializer
 
     @classmethod
-    def _is_field_choices_exists(cls, comic_qs, field_name):
+    def _is_field_choices_exists(cls, comic_qs, field_name) -> bool:
         """Create a pk:name object for fields without tables."""
         qs = cls.get_field_choices_query(comic_qs, field_name)
         return qs.exists()
 
-    def _is_m2m_field_choices_exists(self, model, comic_qs, rel):
+    def _is_m2m_field_choices_exists(self, model, comic_qs, rel) -> bool:
         """Get choices with nulls where there are nulls."""
         qs = self.get_m2m_field_query(model, comic_qs)
         qs = qs[:2]
@@ -135,7 +135,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         # There is only one or no choices.
         return False
 
-    def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str):
+    def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str) -> bool:
         rel, m2m_model = self.get_rel_and_model(field_name)
 
         if m2m_model:

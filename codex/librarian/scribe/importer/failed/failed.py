@@ -15,7 +15,7 @@ class FailedImportsImporter(FailedImportsCreateUpdateImporter):
 
     def _bulk_cleanup_failed_imports(
         self, status: ImporterFailedImportsDeleteStatus | None
-    ):
+    ) -> int:
         """Remove FailedImport objects that have since succeeded."""
         delete_failed_imports_paths = self.metadata.pop(DELETE_FI_PATHS, None)
         try:
@@ -36,7 +36,7 @@ class FailedImportsImporter(FailedImportsCreateUpdateImporter):
         finally:
             self.status_controller.finish(status)
 
-    def fail_imports(self):
+    def fail_imports(self) -> None:
         """Handle failed imports."""
         created_count = 0
         update_status = create_status = delete_status = None

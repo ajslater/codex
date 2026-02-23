@@ -19,7 +19,7 @@ class SettingsView(SessionView, ABC):
         return params
 
     @extend_schema(parameters=[SettingsInputSerializer])
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get session settings."""
         serializer = self.input_serializer_class(data=self.request.GET)
         serializer.is_valid(raise_exception=True)
@@ -31,7 +31,7 @@ class SettingsView(SessionView, ABC):
         return Response(serializer.data)
 
     @extend_schema(responses=None)
-    def patch(self, *args, **kwargs):
+    def patch(self, *args, **kwargs) -> Response:
         """Update session settings."""
         data = self.request.data
         serializer = self.get_serializer(data=data)

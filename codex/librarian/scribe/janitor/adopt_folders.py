@@ -15,7 +15,7 @@ from codex.models import Folder, Library
 class OrphanFolderAdopter(WorkerStatusAbortableBase):
     """A worker to handle all bulk database updates."""
 
-    def _adopt_orphan_folders_for_library(self, library):
+    def _adopt_orphan_folders_for_library(self, library) -> tuple | tuple[bool, int]:
         """Adopt orphan folders for one library."""
         count = 0
         orphan_folder_paths = (
@@ -45,7 +45,7 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
         count = importer.bulk_folders_moved(mark_in_progress=True)
         return True, count
 
-    def adopt_orphan_folders(self):
+    def adopt_orphan_folders(self) -> None:
         """Find orphan folders and move them into their correct place."""
         self.abort_event.clear()
         status = JanitorAdoptOrphanFoldersStatus()

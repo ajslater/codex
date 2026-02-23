@@ -24,7 +24,7 @@ class OPDS1EntryLinksMixin:
         data: OPDS1EntryData,
         *,
         title_filename_fallback: bool,
-    ):
+    ) -> None:
         """Initialize params."""
         self.obj = obj
         self.fake = isinstance(self.obj, OPDS1EntryObject)
@@ -35,7 +35,7 @@ class OPDS1EntryLinksMixin:
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
 
-    def _cover_link(self, rel):
+    def _cover_link(self, rel) -> OPDS1Link | None:
         if self.fake:
             return None
         try:
@@ -51,7 +51,7 @@ class OPDS1EntryLinksMixin:
         except Exception:
             logger.exception("create thumb")
 
-    def _nav_href(self, *, metadata: bool):
+    def _nav_href(self, *, metadata: bool) -> str:
         try:
             if self.obj.group:
                 pks = sorted(self.obj.ids)
@@ -77,7 +77,7 @@ class OPDS1EntryLinksMixin:
             logger.exception(msg)
             raise
 
-    def _nav_link(self, *, metadata: bool):
+    def _nav_link(self, *, metadata: bool) -> OPDS1Link:
         href = self._nav_href(metadata=metadata)
 
         group = self.obj.group
@@ -93,7 +93,7 @@ class OPDS1EntryLinksMixin:
 
         return OPDS1Link(rel, href, mime_type, thr_count=thr_count)
 
-    def _download_link(self):
+    def _download_link(self) -> OPDS1Link | None:
         pk = self.obj.pk
         if not pk:
             return None
@@ -103,7 +103,7 @@ class OPDS1EntryLinksMixin:
         mime_type = self.mime_type_map.get(self.obj.file_type, MimeType.OCTET)
         return OPDS1Link(Rel.ACQUISITION, href, mime_type, length=self.obj.size)
 
-    def lazy_metadata(self):
+    def lazy_metadata(self) -> bool:
         """Get barebones metadata lazily to make pse work for chunky-like readers."""
         if self.obj.page_count and self.obj.file_type:
             return False
@@ -113,7 +113,7 @@ class OPDS1EntryLinksMixin:
         logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")
         return True
 
-    def _stream_link(self):
+    def _stream_link(self) -> OPDS1Link | None:
         pk = self.obj.pk
         if not pk:
             return None
@@ -135,7 +135,7 @@ class OPDS1EntryLinksMixin:
             pse_last_read_date=bookmark_updated_at,
         )
 
-    def _links_comic(self):
+    def _links_comic(self) -> list:
         """Links for comics."""
         result = []
         if download := self._download_link():
@@ -147,7 +147,7 @@ class OPDS1EntryLinksMixin:
         return result
 
     @property
-    def links(self):
+    def links(self) -> list:
         """Create all entry links."""
         result = []
         try:

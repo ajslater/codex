@@ -25,7 +25,7 @@ _FIELD_TYPE_MAP = MappingProxyType(
 )
 
 
-def _parse_field_rel(field_name, rel_class):
+def _parse_field_rel(field_name, rel_class) -> tuple:
     """Set rel to comic attribute or relation span."""
     rel = _FIELD_TO_REL_SPAN_MAP.get(field_name, "")
     if not rel and rel_class in (ForeignKey, ManyToManyField):
@@ -42,7 +42,7 @@ def _parse_field_rel(field_name, rel_class):
     return rel_class, rel
 
 
-def parse_field(field_name: str):
+def parse_field(field_name: str) -> tuple:
     """Parse the field size of the query in to database relations."""
     rel_class = _FIELD_TYPE_MAP.get(field_name)
     if not rel_class:

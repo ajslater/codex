@@ -16,7 +16,7 @@ from codex.models.groups import Folder
 class AggregatePathMetadataImporter(AggregateManyToManyMetadataImporter):
     """Aggregate path metadata."""
 
-    def get_all_library_relative_paths(self, comic_paths):
+    def get_all_library_relative_paths(self, comic_paths) -> set:
         """Get the proposed folder_paths."""
         # also used by moved/comic.py:_bulk_comics_moved_ensure_folders()
         library_path = Path(self.library.path)
@@ -28,7 +28,7 @@ class AggregatePathMetadataImporter(AggregateManyToManyMetadataImporter):
                     proposed_folder_paths.add((str(path),))
         return proposed_folder_paths
 
-    def get_path_metadata(self, md: dict, path: Path | str):
+    def get_path_metadata(self, md: dict, path: Path | str) -> None:
         """Set the path metadata."""
         proposed_folder_paths = self.get_all_library_relative_paths((path,))
         for proposed_path in proposed_folder_paths:

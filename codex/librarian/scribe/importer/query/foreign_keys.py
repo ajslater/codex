@@ -26,9 +26,11 @@ from codex.util import flatten
 class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     """Query the missing foreign keys methods."""
 
-    def query_existing_mds(self, model: type[BaseModel], batch_proposed_key_tuples):
+    def query_existing_mds(
+        self, model: type[BaseModel], batch_proposed_key_tuples
+    ) -> dict:
         """Query existing metadata tables."""
-        key_rels: tuple[str, ...] = MODEL_REL_MAP[model][0]  # pyright:ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        key_rels: tuple[str, ...] = MODEL_REL_MAP[model][0]
         fk_filter = self.query_missing_model_filter(
             model,
             key_rels,
@@ -62,7 +64,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         update_values: set[tuple],
         fts_values: dict[tuple, tuple],
         status: Status,
-    ):
+    ) -> None:
         # Do this in batches so as not to exceed the 1k sqlite query depth limit
         end = start + FILTER_BATCH_SIZE
         batch_proposed_key_tuples = all_proposed_key_values[start:end]
@@ -96,7 +98,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         values: set | frozenset | dict,
         key: str,
         title: str,
-    ):
+    ) -> None:
         if values:
             fks = self.metadata[key]
             if isinstance(values, dict):
@@ -126,7 +128,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         model: type[BaseModel],
         proposed_values_map: dict[tuple, set[tuple]],
         status: Status,
-    ):
+    ) -> int:
         """Find missing foreign key models."""
         if not proposed_values_map:
             return 0
@@ -160,7 +162,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         status.subtitle = ""
         return num_all_proposed_values
 
-    def _query_missing_model(self, model: type[BaseModel], status: Status):
+    def _query_missing_model(self, model: type[BaseModel], status: Status) -> int:
         """Find missing model and update create and update sets."""
         count = 0
         proposed_values = self.metadata[QUERY_MODELS].pop(model, None)
@@ -174,7 +176,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             status,
         )
 
-    def _set_fk_totals(self, fk_key: str, status_class):
+    def _set_fk_totals(self, fk_key: str, status_class) -> None:
         total_fks = 0
         fks = self.metadata[fk_key]
         for rows in fks.values():

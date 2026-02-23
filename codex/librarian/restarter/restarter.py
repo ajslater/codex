@@ -21,7 +21,7 @@ class CodexRestarter(WorkerStatusBase):
 
     def _shutdown_codex(
         self, status: CodexRestarterStatus, name: str, sig: signal.Signals
-    ):
+    ) -> None:
         """Send a system signal as handled in run.py."""
         try:
             self.status_controller.start(status)
@@ -33,15 +33,15 @@ class CodexRestarter(WorkerStatusBase):
             # Librarian shutdown must come after the kill signal.
             self.librarian_queue.put(LibrarianShutdownTask())
 
-    def shutdown_codex(self):
+    def shutdown_codex(self) -> None:
         """Shutdown codex."""
         self._shutdown_codex(CodexRestarterStopStatus(), "stop", signal.SIGTERM)
 
-    def restart_codex(self):
+    def restart_codex(self) -> None:
         """Restart codex."""
         self._shutdown_codex(CodexRestarterRestartStatus(), "restart", signal.SIGUSR1)
 
-    def handle_task(self, task):
+    def handle_task(self, task) -> None:
         """Handle Codex reatarter tasks."""
         match task:
             case CodexRestartTask():

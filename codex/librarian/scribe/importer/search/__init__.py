@@ -23,7 +23,7 @@ class SearchIndexImporter(SearchIndexPrepareImporter):
         )
         return indexer.remove_stale_records(log_success=False)
 
-    def full_text_search(self):
+    def full_text_search(self) -> None:
         """Sync the fts index with the imported database."""
         statii = (status_class() for status_class in _STATII)
         self.status_controller.start_many(statii)

@@ -20,7 +20,7 @@ from codex.models import Comic
 class QueryUpdateComics(QueryForeignKeysQueryImporter):
     """Move comics that need only updating into correct structure."""
 
-    def _query_update_comic(self, comic: Comic, status: Status):
+    def _query_update_comic(self, comic: Comic, status: Status) -> None:
         """Query for update one comic."""
         proposed_comic_dict = self.metadata[CREATE_COMICS].pop(comic.path, None)
         if not proposed_comic_dict:
@@ -38,7 +38,7 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
         status.increment_complete()
         self.status_controller.update(status)
 
-    def query_update_comics(self):
+    def query_update_comics(self) -> None:
         """Pop existing comics from create & move to update if needed."""
         paths = tuple(self.metadata[CREATE_COMICS].keys())
         status = ImporterQueryComicUpdatesStatus(0, len(paths))

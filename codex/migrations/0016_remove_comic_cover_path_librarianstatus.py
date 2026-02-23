@@ -12,7 +12,7 @@ CACHE_DIR = CONFIG_PATH / "cache"
 LATEST_VERSION_TO_TIMESTAMPS_MAP = {1: "codex_version", 2: "xapian_index_uuid"}
 
 
-def copy_versions_to_timestamp(apps, _schema_editor):
+def copy_versions_to_timestamp(apps, _schema_editor) -> None:
     """Convert old latest versions."""
     lv_model = apps.get_model("codex", "latestversion")
     ts_model = apps.get_model("codex", "timestamp")
@@ -27,7 +27,7 @@ def copy_versions_to_timestamp(apps, _schema_editor):
         print(f"  Copied {name} version into Timestamps table.")
 
 
-def remove_old_caches(_apps, _schema_editor):
+def remove_old_caches(_apps, _schema_editor) -> None:
     """Clean up old cache locations."""
     print("\n  Removing old cover cache...")
     shutil.rmtree(OLD_COVER_CACHE, ignore_errors=True)

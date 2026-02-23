@@ -6,7 +6,7 @@ from django.utils import timezone as django_timezone
 from loguru._logger import Logger
 
 
-def get_janitor_time(_log: Logger):
+def get_janitor_time(_log: Logger) -> datetime:
     """Get midnight relative to now."""
     tomorrow = django_timezone.now() + timedelta(days=1)
     tomorrow = tomorrow.astimezone()

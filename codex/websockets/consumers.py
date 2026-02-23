@@ -30,7 +30,7 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         return groups
 
     @override
-    async def websocket_connect(self, message):
+    async def websocket_connect(self, message) -> None:
         """Authorize with user and connect websocket to groups."""
         # Set groups for user.
         self.groups = self._get_groups()
@@ -39,11 +39,11 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         logger.trace(f"Websocket connected to {self.groups}")
 
     @override
-    async def disconnect(self, code):
+    async def disconnect(self, code) -> None:
         """Close channels after WebSocket disconnect."""
         await self.close(code)
 
-    async def send_text(self, event):
+    async def send_text(self, event) -> None:
         """Send message to client."""
         text = event.get("text")
         if not text:

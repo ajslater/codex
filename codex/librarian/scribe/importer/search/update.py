@@ -33,7 +33,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         entry: dict,
         obj_list: list[ComicFTS],
         status: Status,
-    ):
+    ) -> None:
         if entry:
             existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(pk)
             SearchEntryPrepare.prepare_import_fts_entry(
@@ -48,7 +48,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         comicfts: ComicFTS,
         obj_list: list[ComicFTS],
         status: Status,
-    ):
+    ) -> None:
         comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if entry := self.metadata[FTS_UPDATE].pop(comic_id):
             existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(comic_id)
@@ -174,7 +174,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         """Create missing search entries."""
         return self._update_search_index_operate(create=True)
 
-    def _update_search_index(self, cleaned_count: int):
+    def _update_search_index(self, cleaned_count: int) -> None:
         """Update or Rebuild the search index."""
         start_time = time()
         if self.abort_event.is_set():
@@ -199,7 +199,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         log_txt += f" in {elapsed}."
         self.log.log(level, log_txt)
 
-    def import_search_index(self, cleaned_count: int):
+    def import_search_index(self, cleaned_count: int) -> None:
         """Update or Rebuild the search index."""
         self.abort_event.clear()
         try:

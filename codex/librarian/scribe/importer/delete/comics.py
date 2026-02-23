@@ -11,7 +11,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
     """Delete comics methods."""
 
     @staticmethod
-    def _init_deleted_comic_groups():
+    def _init_deleted_comic_groups() -> dict:
         """Init deleted_comic_groups, used later even if no deletes."""
         deleted_comic_groups = {}
         for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
@@ -23,7 +23,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
         return deleted_comic_groups
 
     @staticmethod
-    def _populate_deleted_comic_group(deleted_comic_groups, comic):
+    def _populate_deleted_comic_group(deleted_comic_groups, comic) -> None:
         for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
             if field_name == "story_arc_numbers":
                 for san in comic.story_arc_numbers.select_related("story_arc").only(
@@ -39,7 +39,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
                 deleted_comic_groups[related_model].add(related_id)
 
     @classmethod
-    def _populate_deleted_comic_groups(cls, delete_qs):
+    def _populate_deleted_comic_groups(cls, delete_qs) -> dict:
         """Populate changed groups for cover timestamp updater."""
         deleted_comic_groups = cls._init_deleted_comic_groups()
         comics_deleted_qs = delete_qs.only(

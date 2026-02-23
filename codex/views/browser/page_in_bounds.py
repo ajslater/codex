@@ -1,5 +1,7 @@
 """Browser Page Bounds Checking."""
 
+from typing import Any
+
 from loguru import logger
 
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
@@ -9,17 +11,17 @@ from codex.views.util import Route
 class BrowserPageInBoundsView(BrowserAnnotateCardView):
     """Browser Page Bounds Checking."""
 
-    def _get_back_one_page_route(self, num_pages):
+    def _get_back_one_page_route(self, num_pages) -> dict[str, Any]:
         """Get max page if oob or 1."""
         logger.debug("Redirect back one page.")
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
         new_page = num_pages if num_pages and page > num_pages else 1
-        pks = pks if pks else (0,)
+        pks = pks or (0,)
         return {"group": group, "pks": pks, "page": new_page}
 
-    def _get_up_breadcrumbs(self):
+    def _get_up_breadcrumbs(self) -> list:
         """Walk up the breadcrumbs to get the next level up."""
         breadcrumbs = self.params.get("breadcrumbs", [])
         new_breadcrumbs = []
@@ -42,7 +44,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
             new_breadcrumbs = [top_route]
         return new_breadcrumbs
 
-    def _get_up_page_redirect(self):
+    def _get_up_page_redirect(self) -> tuple[dict, dict]:
         """Walk up the breadcrumbs."""
         try:
             up_breadcrumbs = self._get_up_breadcrumbs()
@@ -58,7 +60,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
             logger.debug("Redirect to all at current group.")
         return route_mask, settings_mask
 
-    def _handle_page_out_of_bounds(self, num_pages):
+    def _handle_page_out_of_bounds(self, num_pages) -> None:
         """Handle out of bounds redirect."""
         # Try to find a logical page to run to.
         group = self.kwargs.get("group")
@@ -76,7 +78,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
 
         self.raise_redirect(reason, route_mask=route_mask, settings_mask=settings_mask)
 
-    def check_page_in_bounds(self, num_pages: int):
+    def check_page_in_bounds(self, num_pages: int) -> None:
         """Redirect page out of bounds."""
         page = self.kwargs.get("page", 1)
         if page == 1 or (page >= 1 and page <= num_pages):

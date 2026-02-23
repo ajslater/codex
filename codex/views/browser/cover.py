@@ -1,9 +1,10 @@
 """Comic cover thumbnail view."""
 
 from collections.abc import Sequence
+from typing import Any
 
 from django.db import OperationalError
-from django.db.models.query import Q
+from django.db.models.query_utils import Q
 from django.http import FileResponse, HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
@@ -37,7 +38,7 @@ class WEBPRenderer(BaseRenderer):
     render_style = "binary"
 
     @override
-    def render(self, data, *_args, **_kwargs):
+    def render(self, data, *_args, **_kwargs) -> Any:
         """Return raw data."""
         return data
 
@@ -53,7 +54,7 @@ class CoverView(BrowserAnnotateOrderView):
     TARGET: str = "cover"
 
     @override
-    def get_group_filter(self, group=None, pks=None, *, page_mtime=False):
+    def get_group_filter(self, group=None, pks=None, *, page_mtime=False) -> Q:
         """Get group filter for First Cover View."""
         if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
             return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
@@ -75,11 +76,11 @@ class CoverView(BrowserAnnotateOrderView):
             group_filter[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**group_filter)
 
-    def _get_comic_cover(self):
+    def _get_comic_cover(self) -> tuple:
         pks = self.kwargs["pks"]
         return pks[0], False
 
-    def _get_custom_cover(self):
+    def _get_custom_cover(self) -> CustomCover | None:
         """Get Custom Cover."""
         if self.model is Volume or not self.params.get("custom_covers"):
             return None
@@ -91,7 +92,7 @@ class CoverView(BrowserAnnotateOrderView):
         qs = qs.only("pk")
         return qs.first()
 
-    def _get_dynamic_cover(self):
+    def _get_dynamic_cover(self) -> tuple:
         """Get dynamic cover."""
         comic_qs = self.get_filtered_queryset(Comic)
         comic_qs = self.annotate_order_aggregates(comic_qs)
@@ -112,7 +113,7 @@ class CoverView(BrowserAnnotateOrderView):
             cover_pk, custom = self._get_dynamic_cover()
         return cover_pk, custom
 
-    def _get_missing_cover_path(self):
+    def _get_missing_cover_path(self) -> tuple:
         """Get the missing cover, which is a default svg if fetched for a group."""
         group: str = self.kwargs["group"]
         cover_name = MISSING_COVER_NAME_MAP.get(group)
@@ -125,7 +126,7 @@ class CoverView(BrowserAnnotateOrderView):
         cover_path = STATIC_IMG_PATH / cover_fn
         return cover_path, content_type
 
-    def _get_cover_data(self, pk, *, custom: bool):
+    def _get_cover_data(self, pk, *, custom: bool) -> tuple:
         thumb_buffer = False
         content_type = "image/webp"
 
@@ -145,7 +146,7 @@ class CoverView(BrowserAnnotateOrderView):
         parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> FileResponse | HttpResponse:
         """Get comic cover."""
         try:
             try:
@@ -162,3 +163,4 @@ class CoverView(BrowserAnnotateOrderView):
             return FileResponse(cover_path.open("rb"), content_type=content_type)
         except Exception:
             logger.exception("Get cover")
+            raise

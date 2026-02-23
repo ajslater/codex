@@ -29,7 +29,7 @@ _TYPE_MAP = MappingProxyType(
 )
 
 
-def gen_multipart_field_aliases(field):
+def gen_multipart_field_aliases(field) -> frozenset:
     """Generate aliases for fields made of snake_case words."""
     bits = field.split("_")
     aliases = set({field})
@@ -48,7 +48,7 @@ def gen_multipart_field_aliases(field):
     return frozenset(aliases)
 
 
-def _get_fieldmap_values(*args):
+def _get_fieldmap_values(*args) -> tuple:
     values = set()
     for val in args:
         values |= gen_multipart_field_aliases(val)
@@ -119,7 +119,7 @@ FIELDMAP = MappingProxyType(
 )
 
 
-def create_search_field_map():
+def create_search_field_map() -> dict:
     """Create the search field alias help map."""
     result = {}
     for key, values in FIELDMAP.items():

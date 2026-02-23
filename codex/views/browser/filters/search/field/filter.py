@@ -26,7 +26,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         return q
 
     @classmethod
-    def _hoist_filters(cls, filter_q_list, exclude_q_list, new_q):
+    def _hoist_filters(cls, filter_q_list, exclude_q_list, new_q) -> None:
         """Peel top layer of queries into multiple filter and exclude clauses."""
         # This makes m2m queries behave more as expected and may optimize fk queries.
         if new_q.connector == Q.AND:
@@ -41,7 +41,9 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         else:
             filter_q_list[0] = cls._combine_q(filter_q_list[0], new_q, new_q.connector)
 
-    def _parse_field_query(self, col, exp, model, filter_q_list, exclude_q_list):
+    def _parse_field_query(
+        self, col, exp, model, filter_q_list, exclude_q_list
+    ) -> None:
         try:
             rel_class, rel, many_to_many = parse_field(col)
 
@@ -53,7 +55,7 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             logger.warning(msg)
             self.search_error = msg
 
-    def get_search_field_filters(self, model, field_token_pairs):
+    def get_search_field_filters(self, model, field_token_pairs) -> tuple[list, list]:
         """Parse and apply field query filters."""
         filter_q_list = []
         exclude_q_list = []

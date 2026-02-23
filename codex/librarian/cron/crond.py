@@ -24,14 +24,14 @@ _TASK_TIME_FUNCTION_MAP = MappingProxyType(
 class CronThread(NamedThread):
     """Run nightly cleanups."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize this thread with the worker."""
         self._stop_event = Event()
         self._cond = Condition()
         self._task_times = ()
         super().__init__(*args, daemon=True, **kwargs)
 
-    def _create_task_times(self):
+    def _create_task_times(self) -> None:
         task_times = {}
         for task_class, func in _TASK_TIME_FUNCTION_MAP.items():
             if dttm := func(self.log):
@@ -39,7 +39,7 @@ class CronThread(NamedThread):
 
         self._task_times = tuple(sorted(task_times.items()))
 
-    def _get_timeout(self):
+    def _get_timeout(self) -> int:
         if not self._task_times or not self._task_times[0]:
             self.log.warning("No scheduled jobs found. Not normal! Waiting a minute.")
             return 60
@@ -50,7 +50,7 @@ class CronThread(NamedThread):
         self.log.debug(f"Next scheduled job at {next_time} in {delta}.")
         return max(0, int(delta.total_seconds()))
 
-    def _run_expired_jobs(self):
+    def _run_expired_jobs(self) -> None:
         now = django_timezone.now()
         for dttm, task_class in self._task_times:
             if dttm < now:
@@ -60,7 +60,7 @@ class CronThread(NamedThread):
                 break
 
     @override
-    def run(self):
+    def run(self) -> None:
         """Cron loop."""
         try:
             self.run_start()
@@ -78,12 +78,12 @@ class CronThread(NamedThread):
             self.log.exception(f"In {self.__class__.__name__}")
         self.log.debug(f"Stopped {self.__class__.__name__}.")
 
-    def end_timeout(self):
+    def end_timeout(self) -> None:
         """End the timeout wait."""
         with self._cond:
             self._cond.notify()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the cron thread."""
         self._stop_event.set()
         self.end_timeout()

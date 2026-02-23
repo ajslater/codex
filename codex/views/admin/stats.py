@@ -26,7 +26,7 @@ class AdminStatsView(AdminGenericAPIView):
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._params: MappingProxyType[str, Any] | None = None
@@ -49,7 +49,7 @@ class AdminStatsView(AdminGenericAPIView):
             )
         return self._params
 
-    def _add_api_key(self, obj):
+    def _add_api_key(self, obj) -> None:
         """Add the api key to the config object if specified."""
         request_counts = self.params.get("config", {})
         if request_counts and ("apikey" not in request_counts):
@@ -60,7 +60,7 @@ class AdminStatsView(AdminGenericAPIView):
         obj["config"]["api_key"] = api_key
 
     @override
-    def get_object(self):
+    def get_object(self) -> dict:
         """Get the stats object with an api key."""
         getter = CodexStats(self.params)
         obj = getter.get()
@@ -68,7 +68,7 @@ class AdminStatsView(AdminGenericAPIView):
         return obj
 
     @extend_schema(parameters=[input_serializer_class])
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Get the stats object and serialize it."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)

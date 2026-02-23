@@ -23,7 +23,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     TARGET = "opds2"
     throttle_scope = "opds"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._num_pages: int | None = None
@@ -51,7 +51,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         return self._num_pages
 
     @staticmethod
-    def _link_attributes(data, link):
+    def _link_attributes(data, link) -> None:
         """Add attributes to link."""
         if data.title:
             link["title"] = data.title
@@ -65,7 +65,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
             link["size"] = data.size
 
     @staticmethod
-    def _link_properties(data, link):
+    def _link_properties(data, link) -> None:
         """Add properties attribute to link."""
         if data.num_items or data.authenticate:
             link["properties"] = {}
@@ -74,7 +74,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         if data.authenticate:
             link["properties"]["authenticate"] = data.authenticate
 
-    def link(self, data):
+    def link(self, data) -> dict | None:
         """Create a link element."""
         if data.href:
             href = data.href
@@ -84,14 +84,14 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
                 return None
         if self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
             href = self.request.build_absolute_uri(href)
-        mime_type = data.mime_type if data.mime_type else MimeType.OPDS_JSON
+        mime_type = data.mime_type or MimeType.OPDS_JSON
         link = {"href": href, "rel": data.rel, "type": mime_type}
         self._link_attributes(data, link)
         self._link_properties(data, link)
         return link
 
     @staticmethod
-    def _normalize_query_params(qps_dict):
+    def _normalize_query_params(qps_dict) -> frozenset:
         if qps_dict.get("orderBy") == "sort_name":
             qps_dict.pop("orderBy", None)
         if qps_dict.get("orderReverse", "").lower() in FALSY:
@@ -100,7 +100,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
             qps_dict.pop("filters")
         return frozenset(qps_dict.items())
 
-    def _is_self_link(self, href):
+    def _is_self_link(self, href) -> bool:
         """Return if the path and query params match the current request."""
         req_qps = deepcopy(self.request.GET)
         req_qps = self._normalize_query_params(req_qps)
@@ -113,7 +113,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
 
         return self.request.path == parts.path and req_qps == href_qps
 
-    def link_aggregate(self, link_dict, link):
+    def link_aggregate(self, link_dict, link) -> None:
         """Aggregate links into a dict to combine rels into an array."""
         if not link:
             return
@@ -129,7 +129,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
                 link_dict[href]["rels"].add(Rel.SELF)
 
     @staticmethod
-    def get_links_from_dict(link_dict):
+    def get_links_from_dict(link_dict) -> list:
         """Produce the final links list from the aggregate dict."""
         final_links = []
         for link in link_dict.values():

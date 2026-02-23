@@ -12,7 +12,6 @@
     </h3>
     <div class="bodyText">{{ text }}</div>
   </span>
-  <slot />
 </template>
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
@@ -22,7 +21,7 @@ export default {
   props: {
     tooltip: { type: String, required: true },
     title: { type: String, required: true },
-    subtitle: { type: String, required: true },
+    subtitle: { type: String, default: "" },
     text: { type: String, required: true },
   },
   data() {

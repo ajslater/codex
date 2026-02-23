@@ -9,7 +9,7 @@ from codex.views.browser.validate import BrowserValidateView
 class BrowserFilterBookmarkView(BookmarkFilterMixin, BrowserValidateView):
     """BookmarkFilter view methods."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize Bookmark Filter."""
         self.init_bookmark_filter()
         super().__init__(*args, **kwargs)

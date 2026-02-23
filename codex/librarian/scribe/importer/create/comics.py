@@ -27,14 +27,16 @@ from codex.models import Comic
 class CreateComicsImporter(CreateForeignKeyLinksImporter):
     """Create comics methods."""
 
-    def _populate_fts_attribute_values(self, key: str, sub_key: str | int, md):
+    def _populate_fts_attribute_values(self, key: str, sub_key: str | int, md) -> None:
         if sub_key not in self.metadata[key]:
             self.metadata[key][sub_key] = {}
         for field_name, value in md.items():
             if field_name not in NON_FTS_FIELDS:
                 self.metadata[key][sub_key][field_name] = (value,)
 
-    def _update_comic_values(self, comic: Comic, update_comics: list, comic_pks: list):
+    def _update_comic_values(
+        self, comic: Comic, update_comics: list, comic_pks: list
+    ) -> None:
         md = self.metadata[UPDATE_COMICS].pop(comic.pk, {})
         for field_name, value in md.items():
             setattr(comic, field_name, value)
@@ -53,7 +55,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         update_comics.append(comic)
         comic_pks.append(comic.pk)
 
-    def update_comics(self):
+    def update_comics(self) -> int:
         """Bulk update comics, and move nonextant comics into create job.."""
         count = 0
         pks = tuple(sorted(self.metadata[UPDATE_COMICS].keys()))
@@ -102,7 +104,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             self.status_controller.finish(status)
         return count
 
-    def _bulk_create_comic(self, path: str, create_comics: list[Comic]):
+    def _bulk_create_comic(self, path: str, create_comics: list[Comic]) -> None:
         md = self.metadata[CREATE_COMICS].pop(path, {})
         self._populate_fts_attribute_values(FTS_CREATE, path, md)
         link_md = self.get_comic_fk_links(path, path)
@@ -113,7 +115,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         comic.presave()
         create_comics.append(comic)
 
-    def create_comics(self):
+    def create_comics(self) -> int:
         """Bulk create comics."""
         count = 0
         paths = tuple(sorted(self.metadata[CREATE_COMICS].keys()))

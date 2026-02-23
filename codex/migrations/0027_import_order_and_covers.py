@@ -21,12 +21,12 @@ _GROUP_MODEL_NAMES = (
 )
 
 
-def _set_sort_name(obj):
+def _set_sort_name(obj) -> None:
     """Create sort_name for model."""
     obj.sort_name = get_sort_name(obj.name)
 
 
-def _generate_sort_name(apps, _schema_editor):
+def _generate_sort_name(apps, _schema_editor) -> None:
     """Update new sort_name field."""
     for model_name in _GROUP_MODEL_NAMES:
         model = apps.get_model("codex", model_name)
@@ -42,7 +42,7 @@ def _generate_sort_name(apps, _schema_editor):
             print(f"\tUpdated sort_name for {len(update_groups)} {model_name}s")
 
 
-def _remove_cover_symlinks(_apps, _schema_editor):
+def _remove_cover_symlinks(_apps, _schema_editor) -> None:
     """Remove old missing cover symlinks."""
     # Handled programmatically now.
     count = 0

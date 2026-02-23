@@ -80,7 +80,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
 
     @staticmethod
-    def _transform_metadata(md):
+    def _transform_metadata(md) -> None:
         for key in tuple(md.keys()):
             if key not in _USED_COMICBOX_FIELDS:
                 md.pop(key, None)
@@ -99,7 +99,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         if title := md.pop(TITLE_KEY, None):
             md["name"] = title
 
-    def _aggregate_path(self, path, status):
+    def _aggregate_path(self, path, status) -> None:
         """Aggregate metadata for one path."""
         # Prepare
         md = self.metadata[EXTRACTED].pop(path)
