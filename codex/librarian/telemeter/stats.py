@@ -41,21 +41,21 @@ _USER_STATS = MappingProxyType(
 class CodexStats:
     """Collect codex stats."""
 
-    def __init__(self, params=None):
+    def __init__(self, params=None) -> None:
         """Specify which stats to collect. Default to all."""
         if not params:
             params = {}
         self.params = params
 
     @classmethod
-    def _is_docker(cls):
+    def _is_docker(cls) -> bool:
         """Test if we're in a docker container."""
         try:
             return _DOCKERENV_PATH.is_file() or "docker" in _CGROUP_PATH.read_text()
         except Exception:
             return False
 
-    def _get_models(self, key):
+    def _get_models(self, key) -> tuple:
         """Get models from request params."""
         request_model_set = self.params.get(key, {})
         all_models = _KEY_MODELS_MAP[key]
@@ -70,7 +70,7 @@ class CodexStats:
             models = all_models
         return tuple(models)
 
-    def _get_model_counts(self, key):
+    def _get_model_counts(self, key) -> dict:
         """Get database counts of each model group."""
         models = self._get_models(key)
         obj = {}
@@ -83,7 +83,9 @@ class CodexStats:
         return obj
 
     @staticmethod
-    def _aggregate_session_key(session, session_key, session_subkeys, user_stats):
+    def _aggregate_session_key(
+        session, session_key, session_subkeys, user_stats
+    ) -> None:
         session_dict = session.get(session_key, {})
         for key in session_subkeys:
             value = session_dict.get(key)
@@ -96,7 +98,7 @@ class CodexStats:
             user_stats[key][value] += 1
 
     @classmethod
-    def _get_session_stats(cls):
+    def _get_session_stats(cls) -> tuple[dict, int]:
         """Return the number of anonymous sessions."""
         sessions = Session.objects.all()
         anon_session_count = 0
@@ -110,7 +112,7 @@ class CodexStats:
 
         return user_stats, anon_session_count
 
-    def _add_platform(self, obj):
+    def _add_platform(self, obj) -> None:
         """Add dict of platform information to object."""
         if self.params and "platform" not in self.params:
             return
@@ -127,7 +129,7 @@ class CodexStats:
         }
         obj["platform"] = platform
 
-    def _add_config(self, obj):
+    def _add_config(self, obj) -> None:
         """Add dict of config informaation to object."""
         if self.params and "config" not in self.params:
             return
@@ -138,7 +140,7 @@ class CodexStats:
         obj["config"] = config
         obj["sessions"] = sessions
 
-    def _add_groups(self, obj):
+    def _add_groups(self, obj) -> None:
         """Add dict of groups information to object."""
         if self.params and "groups" not in self.params:
             return
@@ -146,7 +148,7 @@ class CodexStats:
         groups["issue_count"] = groups.pop("comic_count", 0)
         obj["groups"] = groups
 
-    def _add_file_types(self, obj):
+    def _add_file_types(self, obj) -> None:
         """Query for file types."""
         if self.params and "file_types" not in self.params:
             return
@@ -163,14 +165,14 @@ class CodexStats:
         sorted_fts = dict(sorted(file_types.items()))
         obj["file_types"] = sorted_fts
 
-    def _add_metadata(self, obj):
+    def _add_metadata(self, obj) -> None:
         """Add dict of metadata counts to object."""
         if self.params and "metadata" not in self.params:
             return
         metadata = self._get_model_counts("metadata")
         obj["metadata"] = metadata
 
-    def get(self):
+    def get(self) -> dict:
         """Construct the stats object."""
         obj = {}
         self._add_platform(obj)

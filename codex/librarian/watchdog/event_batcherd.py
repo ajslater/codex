@@ -59,13 +59,13 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         return EVENT_CLASS_DIFF_ALL_MAP[type(event)]
 
     @staticmethod
-    def _remove_paths(args, deleted_key: str, moved_key: str):
+    def _remove_paths(args, deleted_key: str, moved_key: str) -> None:
         for src_path in args[deleted_key]:
             with suppress(KeyError):
                 del args[moved_key][src_path]
 
     @classmethod
-    def deduplicate_events(cls, args: dict):
+    def deduplicate_events(cls, args: dict) -> None:
         """Prune different event types on the same paths."""
         # deleted
         cls._remove_paths(args, "dirs_deleted", "dirs_moved")
@@ -87,7 +87,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         args["covers_modified"] -= args["covers_deleted"]
         args["covers_modified"] -= args["covers_created"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Set the total items for limiting db ops per batch."""
         super().__init__(*args, **kwargs)
         self._total_items = 0
@@ -106,7 +106,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         return args_field
 
     @override
-    def aggregate_items(self, item):
+    def aggregate_items(self, item) -> None:
         """Aggregate events into cache by library."""
         event = item.event
         try:
@@ -127,22 +127,22 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
             # Send all items
             self.timed_out()
 
-    def _set_check_metadata_mtime(self, item):
+    def _set_check_metadata_mtime(self, item) -> None:
         pk = item.library_id
         if pk not in self.cache:
             self.cache[pk] = self.create_import_task_args(pk)
         self.cache[pk]["check_metadata_mtime"] = not item.event.force
 
-    def _start_poll(self, item):
+    def _start_poll(self, item) -> None:
         self.set_last_send()
         self._set_check_metadata_mtime(item)
 
-    def _finish_poll(self, item):
+    def _finish_poll(self, item) -> None:
         self._set_check_metadata_mtime(item)
         self.send_all_items()
 
     @override
-    def process_item(self, item):
+    def process_item(self, item) -> None:
         event_type = item.event.event_type
         if event_type == EVENT_TYPE_START_POLL:
             self._start_poll(item)
@@ -151,21 +151,21 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         else:
             super().process_item(item)
 
-    def _subtract_args_items(self, args):
+    def _subtract_args_items(self, args) -> None:
         total = 0
         for value in args.values():
             with suppress(TypeError):
                 total += len(value)
         self._total_items = max(0, self._total_items - total)
 
-    def _create_task(self, library_id):
+    def _create_task(self, library_id) -> ImportTask:
         """Create a task from cached aggregated message data."""
         args = self.cache.pop(library_id)
         self._subtract_args_items(args)
         self.deduplicate_events(args)
         return ImportTask(**args)
 
-    def _send_import_task(self, library_id: int):
+    def _send_import_task(self, library_id: int) -> None:
         task = self._create_task(library_id)
         if task.total():
             self.librarian_queue.put(task)
@@ -173,7 +173,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
             self.log.debug("Empty task after filtering. Not sending to importer.")
 
     @override
-    def send_all_items(self):
+    def send_all_items(self) -> None:
         """Send all tasks to library queue and reset events cache."""
         for library_id in tuple(self.cache):
             self._send_import_task(library_id)

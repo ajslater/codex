@@ -24,7 +24,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         request,
         renderers,
         format_suffix="",
-    ):
+    ) -> tuple:
         """Select the first renderer in the `.renderer_classes` list."""
         renderer = next(iter(renderers))
         return (renderer, renderer.media_type)

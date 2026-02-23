@@ -21,7 +21,7 @@ from codex.models.base import MAX_PATH_LEN, BaseModel
 __all__ = ("Library", "validate_dir_exists")
 
 
-def validate_dir_exists(path):
+def validate_dir_exists(path) -> None:
     """Validate that a library exists."""
     if not Path(path).is_dir():
         raise ValidationError(_("{path} is not a directory"), params={"path": path})
@@ -63,14 +63,14 @@ class Library(BaseModel):
 
         verbose_name_plural = "Libraries"
 
-    def _save_update_in_progress(self, *, value: bool):
+    def _save_update_in_progress(self, *, value: bool) -> None:
         self.update_in_progress = value
         self.save(update_fields=["update_in_progress"])
 
-    def start_update(self):
+    def start_update(self) -> None:
         """Start a library update."""
         self._save_update_in_progress(value=True)
 
-    def end_update(self):
+    def end_update(self) -> None:
         """Finish a library update."""
         self._save_update_in_progress(value=False)

@@ -37,7 +37,7 @@ _FINISH_STATII = (*IMPORTER_STATII, *SEARCH_INDEX_STATII, *SCRIBE_STATII)
 class FinishImporter(InitImporter):
     """Initialize, run and finish a bulk import."""
 
-    def finish(self):
+    def finish(self) -> None:
         """Perform final tasks when the apply is done."""
         if self.abort_event.is_set():
             self.log.info("Import task aborted early.")

@@ -51,7 +51,7 @@ class IdentifiedNamedModel(NamedModel):
         abstract = True
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the name."""
         suffix = ":" + str(self.identifier) if self.identifier else ""
         return self.name + suffix
@@ -85,7 +85,7 @@ class Credit(BaseModel):
         unique_together = ("person", "role")
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the strings of parts."""
         return str(self.person) + ":" + str(self.role)
 
@@ -175,7 +175,7 @@ class Universe(IdentifiedNamedModel):
     designation = CleaningCharField(max_length=MAX_NAME_LEN)
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Provide a name to imitate a NamedModel."""
         name = self.name + ":" + str(self.designation)
         if self.identifier:

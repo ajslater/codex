@@ -4,7 +4,7 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
-def _create_story_arc_numbers(apps, _schema_editor):
+def _create_story_arc_numbers(apps, _schema_editor) -> None:
     comic_model = apps.get_model("codex", "comic")
     san_model = apps.get_model("codex", "StoryArcNumber")
     num_sans = 0

@@ -27,7 +27,7 @@ class WatchedPath(BaseModel):
     stat = JSONField(null=True)
     ZERO_STAT = (0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0)
 
-    def set_stat(self):
+    def set_stat(self) -> None:
         """Set select stat params from the filesystem."""
         path = Path(str(self.path))
         st_record = path.stat()
@@ -46,12 +46,12 @@ class WatchedPath(BaseModel):
         self.stat = st
 
     @override
-    def presave(self):
+    def presave(self) -> None:
         """Save stat."""
         self.set_stat()
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the full path."""
         return str(self.path)
 
@@ -71,7 +71,7 @@ class FailedImport(WatchedPath):
 
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")
 
-    def set_reason(self, exc):
+    def set_reason(self, exc) -> None:
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
         suffixes = (f": {self.path}", f": {self.path!r}")
@@ -114,18 +114,19 @@ class CustomCover(WatchedPath):
         max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
     )
 
-    def _set_group_and_sort_name(self):
+    def _set_group_and_sort_name(self) -> None:
         """Set group and sort_name from path."""
         path = Path(self.path)
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            self.group = self.GroupChoices.F.value  # ty: ignore[invalid-assignment]
+            group = self.GroupChoices.F.value
         else:
-            self.group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
+            group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
+        self.group = group  # ty: ignore[invalid-assignment]
 
     @override
-    def presave(self):
+    def presave(self) -> None:
         """Presave group and sort_name."""
         super().presave()
         self._set_group_and_sort_name()

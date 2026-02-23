@@ -43,7 +43,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
     serializer_class = LibrarySerializer
 
     @classmethod
-    def _sync_watchdog(cls, validated_keys=None):
+    def _sync_watchdog(cls, validated_keys=None) -> None:
         if validated_keys is None or validated_keys.intersection(
             cls._WATCHDOG_SYNC_FIELDS
         ):
@@ -51,24 +51,24 @@ class AdminLibraryViewSet(AdminModelViewSet):
             LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
-    def _on_change():
+    def _on_change() -> None:
         cache.clear()
         task = LIBRARY_CHANGED_TASK
         LIBRARIAN_QUEUE.put(task)
 
-    def _create_library_folder(self, library):
+    def _create_library_folder(self, library) -> None:
         folder = Folder(
             library=library, path=library.path, name=Path(library.path).name
         )
         folder.save()
 
     @staticmethod
-    def _poll(pk, force):
+    def _poll(pk, force) -> None:
         task = WatchdogPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
 
     @override
-    def perform_create(self, serializer):
+    def perform_create(self, serializer) -> None:
         """Perform create and run hooks."""
         super().perform_create(serializer)
         if serializer.validated_data.get("covers_only"):
@@ -81,7 +81,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         self._poll(library.pk, force=False)
 
     @override
-    def perform_update(self, serializer):
+    def perform_update(self, serializer) -> None:
         """Perform update an run hooks."""
         validated_keys = frozenset(serializer.validated_data.keys())
         pk = self.kwargs["pk"]
@@ -95,7 +95,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         self._poll(pk, force=False)
 
     @override
-    def perform_destroy(self, instance):
+    def perform_destroy(self, instance) -> None:
         """Perform destroy and run hooks."""
         if instance.covers_only:
             raise NotSupportedError
@@ -118,7 +118,7 @@ class AdminFolderListView(AdminGenericAPIView):
     input_serializer_class = AdminFolderSerializer
 
     @staticmethod
-    def _get_dirs(root_path, show_hidden):
+    def _get_dirs(root_path, show_hidden) -> tuple:
         """Get dirs list."""
         dirs = []
         if root_path.parent != root_path:
@@ -133,7 +133,7 @@ class AdminFolderListView(AdminGenericAPIView):
         return tuple(dirs)
 
     @extend_schema(request=input_serializer_class)
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Get subdirectories for a path."""
         try:
             serializer = self.input_serializer_class(data=self.request.GET)

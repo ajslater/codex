@@ -7,6 +7,7 @@ from django.db.models import (
     F,
     FilteredRelation,
     Q,
+    QuerySet,
     Value,
 )
 from django.db.models.aggregates import Avg, Count, Max, Min, Sum
@@ -62,7 +63,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     _PAGE_COUNT_TARGETS = frozenset(CARD_TARGETS | _OPDS_TARGETS)
     _COVER_AND_CARD_TARGETS = frozenset(CARD_TARGETS | {"cover"})
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self._order_agg_func: type[Min | Max] | None = None
@@ -81,7 +82,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         return self._opds_acquisition_groups
 
     @property
-    def is_opds_acquisition(self):
+    def is_opds_acquisition(self) -> bool:
         """Memoize if we're in an opds acquisition view."""
         if self._is_opds_acquisition is None:
             is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
@@ -120,7 +121,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
                 self._comic_sort_names = tuple(sort_name_annotations.keys())
         return qs
 
-    def get_filename_func(self, model):
+    def get_filename_func(self, model) -> Right:
         """Get the filename creation function."""
         prefix = "" if model == Comic else self.rel_prefix
         path_rel = prefix + "path"
@@ -189,7 +190,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(page_count=page_count_sum)
         return qs
 
-    def _annotate_bookmark_updated_at(self, qs):
+    def _annotate_bookmark_updated_at(self, qs) -> QuerySet:
         if self.is_opds_acquisition or self.order_key == "bookmark_updated_at":
             bmua_agg = self.get_max_bookmark_updated_at_aggregate(
                 qs.model, agg_func=self.order_agg_func
@@ -257,7 +258,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
-    def annotate_order_aggregates(self, qs):
+    def annotate_order_aggregates(self, qs: QuerySet):
         """Annotate common aggregates between browser and metadata."""
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_search_scores(qs)

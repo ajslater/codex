@@ -5,7 +5,7 @@ from pathlib import Path
 from django.db import migrations
 
 
-def fix_no_parent_folder_comics(apps, _schema_editor):
+def fix_no_parent_folder_comics(apps, _schema_editor) -> None:
     """Add a parent folder to orphan comics."""
     folder_model = apps.get_model("codex", "folder")
     top_folders = folder_model.objects.filter(parent_folder=None).only("path")

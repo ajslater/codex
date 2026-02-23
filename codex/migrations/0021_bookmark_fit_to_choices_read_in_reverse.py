@@ -3,7 +3,7 @@
 from django.db import migrations, models
 
 
-def ensure_fit_to_has_valid_choices(apps, _schema_editor):
+def ensure_fit_to_has_valid_choices(apps, _schema_editor) -> None:
     """Ensure fit_to has valid choices before adding constraint."""
     bookmark_model = apps.get_model("codex", "bookmark")
     choices = {"", "SCREEN", "WIDTH", "HEIGHT", "ORIG"}

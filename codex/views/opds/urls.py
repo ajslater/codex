@@ -17,7 +17,7 @@ class OPDSURLsView(AuthGenericAPIView):
 
     serializer_class: type[BaseSerializer] | None = OPDSURLsSerializer
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Resolve the urls."""
         obj = {}
         route = DEFAULT_BROWSER_ROUTE
@@ -25,7 +25,7 @@ class OPDSURLsView(AuthGenericAPIView):
         for version in _OPDS_VERSIONS:
             key = f"v{version}"
             name = f"opds:v{version}:start"
-            value = reverse(name, kwargs=route)
+            value = reverse(name, kwargs=dict(route))
             obj[key] = value
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

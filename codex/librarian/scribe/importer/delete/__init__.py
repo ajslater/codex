@@ -7,7 +7,7 @@ from codex.librarian.scribe.timestamp_update import TimestampUpdater
 class DeletedImporter(DeletedFoldersImporter):
     """Delete database objects methods."""
 
-    def delete(self):
+    def delete(self) -> None:
         """Delete files and folders."""
         if self.abort_event.is_set():
             return

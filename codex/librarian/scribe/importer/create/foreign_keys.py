@@ -48,7 +48,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         key_args_map: Mapping,
         update_args_map: Mapping,
         values_tuple: tuple,
-    ):
+    ) -> tuple[dict, dict]:
         """Create key args and update args."""
         key_args = {}
         update_args = {}
@@ -74,10 +74,10 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             arg_map[field_name] = value
         return key_args, update_args
 
-    def _add_custom_cover(self, model, obj):
+    def _add_custom_cover(self, model, obj) -> None:
         self.add_custom_cover_to_group(model, obj)
 
-    def _finish_create_update(self, model, objs, status: Status):
+    def _finish_create_update(self, model, objs, status: Status) -> None:
         count = len(objs)
         if count:
             vnp = model._meta.verbose_name_plural
@@ -90,7 +90,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         self,
         model: type[BaseModel],
         status,
-    ):
+    ) -> int:
         """Bulk create a dict type m2m model."""
         count = 0
         create_tuples = self.metadata[CREATE_FKS].pop(model, None)
@@ -138,7 +138,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         self._finish_create_update(model, create_objs, status)
         return count
 
-    def bulk_create_all_models(self, status):
+    def bulk_create_all_models(self, status) -> int:
         """
         Bulk create all dict type m2m models.
 
@@ -168,7 +168,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             )
         return count
 
-    def _bulk_update_models(self, model: type[BaseModel], status):
+    def _bulk_update_models(self, model: type[BaseModel], status) -> int:
         count = 0
         update_tuples = self.metadata[UPDATE_FKS].pop(model, None)
         if not update_tuples:
@@ -213,7 +213,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         self._finish_create_update(model, update_objs, status)
         return count
 
-    def bulk_update_all_models(self, status):
+    def bulk_update_all_models(self, status) -> int:
         """Bulk update all complex models."""
         count = 0
         for model in tuple(self.metadata[UPDATE_FKS].keys()):

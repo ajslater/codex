@@ -24,7 +24,7 @@ from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
 
 
-def ensure_superuser():
+def ensure_superuser() -> None:
     """Ensure there is a valid superuser."""
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
         admin_user, created = User.objects.update_or_create(
@@ -37,7 +37,7 @@ def ensure_superuser():
         logger.success(f"{prefix}ated admin user.")
 
 
-def _delete_orphans(model, field, names):
+def _delete_orphans(model, field, names) -> None:
     """Delete orphans for declared models."""
     params = {f"{field}__in": names}
     query = model.objects.filter(~Q(**params))
@@ -46,7 +46,7 @@ def _delete_orphans(model, field, names):
         logger.info(f"Deleted {count} orphan {model._meta.verbose_name_plural}.")
 
 
-def init_admin_flags():
+def init_admin_flags() -> None:
     """Init admin flag rows."""
     _delete_orphans(AdminFlag, "key", AdminFlagChoices.values)
 
@@ -57,7 +57,7 @@ def init_admin_flags():
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
 
 
-def init_timestamps():
+def init_timestamps() -> None:
     """Init timestamps."""
     _delete_orphans(Timestamp, "key", Timestamp.Choices.values)
 
@@ -71,7 +71,7 @@ def init_timestamps():
             logger.debug(f"Created {label} timestamp.")
 
 
-def init_librarian_statuses():
+def init_librarian_statuses() -> None:
     """Init librarian statuses."""
     _delete_orphans(
         LibrarianStatus,
@@ -87,7 +87,7 @@ def init_librarian_statuses():
             logger.debug(f"Created {title} LibrarianStatus.")
 
 
-def clear_library_status():
+def clear_library_status() -> None:
     """Unset the update_in_progress flag for all libraries."""
     count = Library.objects.filter(update_in_progress=True).update(
         update_in_progress=False, updated_at=Now()
@@ -96,7 +96,7 @@ def clear_library_status():
         logger.debug(f"Reset {count} Libraries' update_in_progress flag")
 
 
-def init_custom_cover_dir():
+def init_custom_cover_dir() -> None:
     """Initialize the Custom Cover Dir singleton row."""
     defaults = dict(**Library.CUSTOM_COVERS_DIR_DEFAULTS, path=CUSTOM_COVERS_DIR)
     covers_library, created = Library.objects.get_or_create(
@@ -113,7 +113,7 @@ def init_custom_cover_dir():
         )
 
 
-def update_custom_covers_for_config_dir():
+def update_custom_covers_for_config_dir() -> None:
     """Update custom covers if the config dir changes."""
     # This is okay, but I wouldn't need to do it if paths were constructed from
     # parent_folder and library.path
@@ -162,7 +162,7 @@ def update_custom_covers_for_config_dir():
         )
 
 
-def create_missing_auth_tokens():
+def create_missing_auth_tokens() -> None:
     """Create missing auth tokens."""
     num_created = 0
     for user in User.objects.all():
@@ -172,7 +172,7 @@ def create_missing_auth_tokens():
         logger.info(f"Created {num_created} missing auth tokens for users.")
 
 
-def ensure_db_rows():
+def ensure_db_rows() -> None:
     """Ensure database content is good."""
     ensure_superuser()
     init_admin_flags()
@@ -184,7 +184,7 @@ def ensure_db_rows():
     create_missing_auth_tokens()
 
 
-def codex_init():
+def codex_init() -> bool:
     """Initialize the database and start the daemons."""
     if not ensure_db_schema():
         return False

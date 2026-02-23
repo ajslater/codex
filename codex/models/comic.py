@@ -210,7 +210,7 @@ class Comic(WatchedPathBrowserGroup):
 
         verbose_name = "Issue"
 
-    def _set_date(self):
+    def _set_date(self) -> None:
         """Compute a date for the comic."""
         year = MINYEAR if self.year is None else min(max(self.year, MINYEAR), MAXYEAR)
         month = 1 if self.month is None else min(max(self.month, 1), 12)
@@ -223,7 +223,7 @@ class Comic(WatchedPathBrowserGroup):
 
         self.date = date(year, month, day)
 
-    def _set_decade(self):
+    def _set_decade(self) -> None:
         """Compute a decade for the comic."""
         if self.year is None:
             self.decade = None
@@ -231,7 +231,7 @@ class Comic(WatchedPathBrowserGroup):
             self.decade = self.year - (self.year % 10)
 
     @override
-    def presave(self):
+    def presave(self) -> None:
         """Set computed values."""
         super().presave()
         self._set_date()
@@ -244,7 +244,7 @@ class Comic(WatchedPathBrowserGroup):
         return max(self.page_count - 1, 0)
 
     @staticmethod
-    def _compute_zero_pad(issue_number_max):
+    def _compute_zero_pad(issue_number_max) -> int:
         """Compute zero padding for issues."""
         if issue_number_max is None:
             issue_number_max = 100
@@ -252,12 +252,12 @@ class Comic(WatchedPathBrowserGroup):
             return 1
         return math.floor(math.log10(issue_number_max)) + 1
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         """Return filename from path as a property."""
         return Path(self.path).name
 
     @classmethod
-    def _get_title_issue_str(cls, obj, zero_pad):
+    def _get_title_issue_str(cls, obj, zero_pad) -> str:
         """Get the issue parts of the title."""
         issue_str = ""
         if obj.issue_number is not None:
@@ -308,7 +308,7 @@ class Comic(WatchedPathBrowserGroup):
         return title
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Most common text representation for logging."""
         return self.get_title(self, volume=True, name=True, filename_fallback=True)
 

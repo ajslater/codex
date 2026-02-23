@@ -10,7 +10,7 @@ import baseConfig, {
   CONFIGS,
   FLAT_ALL,
   FLAT_RECOMMENDED,
-} from "../eslint.config.js";
+} from "../cfg/eslint.config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

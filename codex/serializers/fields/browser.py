@@ -30,7 +30,7 @@ class PyCountryField(SanitizedCharField, ABC):
     _ALPHA_2_LEN = 2
 
     @override
-    def to_representation(self, value):
+    def to_representation(self, value) -> str:
         """Lookup the name with pycountry, just copy the value on fail."""
         if not value:
             return ""

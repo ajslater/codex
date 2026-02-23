@@ -17,7 +17,7 @@ class QueryIsUpdateImporter(QueryForeignKeysFilterImporter):
         best_extra_values: tuple,
         proposed_extra_values: tuple,
         synthesized_extra_proposed_values: list,
-    ):
+    ) -> None:
         """Compare Identifiers."""
         best_identifier = best_extra_values[0]
         if proposed_identifier := proposed_extra_values[0]:
@@ -46,7 +46,7 @@ class QueryIsUpdateImporter(QueryForeignKeysFilterImporter):
         synthesized_extra_proposed_values: list,
         *,
         has_id: bool,
-    ):
+    ) -> None:
         """Compare extra relations."""
         if has_id:
             best_extra_values = best_extra_values[1:]
@@ -69,7 +69,7 @@ class QueryIsUpdateImporter(QueryForeignKeysFilterImporter):
     @staticmethod
     def _query_normalize_existing_values(
         existing_values_tuple: tuple, extra_index: int
-    ):
+    ) -> tuple:
         existing_identifier = existing_values_tuple[extra_index : extra_index + 3]
         if not any(existing_identifier):
             existing_identifier = None

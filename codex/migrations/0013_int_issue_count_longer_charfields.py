@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import migrations, models
 
 
-def cast_issue_count(apps, _schema_editor):
+def cast_issue_count(apps, _schema_editor) -> None:
     """Round issue counts to integer."""
     volume_model = apps.get_model("codex", "volume")
     volumes = volume_model.objects.filter(issue_count_decimal__isnull=False).only(

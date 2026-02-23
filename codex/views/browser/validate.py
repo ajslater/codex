@@ -29,7 +29,7 @@ class BrowserValidateView(SearchFilterView):
         {"name": "browser", "params": DEFAULT_BROWSER_ROUTE}
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._is_admin: bool | None = None
@@ -39,7 +39,7 @@ class BrowserValidateView(SearchFilterView):
         self._valid_nav_groups: tuple[str, ...] | None = None
 
     @property
-    def model_group(self):
+    def model_group(self) -> str:
         """Memoize the model group."""
         if not self._model_group:
             group = self.kwargs["group"]
@@ -62,7 +62,7 @@ class BrowserValidateView(SearchFilterView):
         return self._model
 
     @property
-    def rel_prefix(self):
+    def rel_prefix(self) -> str:
         """Memoize model rel prefix."""
         if self._rel_prefix is None:
             self._rel_prefix = self.get_rel_prefix(self.model)
@@ -70,18 +70,18 @@ class BrowserValidateView(SearchFilterView):
 
     def raise_redirect(
         self, reason, route_mask=None, settings_mask: Mapping | None = None
-    ):
+    ) -> None:
         """Redirect the client to a valid group url."""
-        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)
+        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         if route_mask:
             route["params"].update(route_mask)
-        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))
+        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
-    def _get_valid_browse_top_groups(self):
+    def _get_valid_browse_top_groups(self) -> list:
         """
         Get valid top groups for the current settings.
 
@@ -98,7 +98,7 @@ class BrowserValidateView(SearchFilterView):
 
         return valid_top_groups
 
-    def _validate_top_group(self, valid_top_groups):
+    def _validate_top_group(self, valid_top_groups) -> None:
         nav_group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
         if top_group not in valid_top_groups:
@@ -117,7 +117,7 @@ class BrowserValidateView(SearchFilterView):
             settings_mask = {"top_group": valid_top_group, "breadcrumbs": breadcrumbs}
             self.raise_redirect(reason, route, settings_mask)
 
-    def _get_valid_browse_nav_groups(self, valid_top_groups):
+    def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
         """
         Get valid nav groups for the current settings.
 
@@ -143,7 +143,7 @@ class BrowserValidateView(SearchFilterView):
 
         return tuple(valid_nav_groups)
 
-    def _validate_folder_settings(self):
+    def _validate_folder_settings(self) -> tuple:
         """Check that all the view variables for folder mode are set right."""
         # Check folder view admin flag
         if not self.admin_flags["folder_view"]:
@@ -160,7 +160,7 @@ class BrowserValidateView(SearchFilterView):
         self._validate_top_group(valid_top_groups)
         return valid_top_groups
 
-    def _validate_browser_group_settings(self):
+    def _validate_browser_group_settings(self) -> tuple:
         """Check that all the view variables for browser mode are set right."""
         # Validate Browser top_group
         # Change top_group if its not in the valid top groups

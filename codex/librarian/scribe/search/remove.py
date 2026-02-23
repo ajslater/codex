@@ -13,7 +13,7 @@ from codex.models.comic import Comic, ComicFTS
 class SearchIndexerRemove(SearchIndexerOptimize):
     """Search Index cleanup methods."""
 
-    def clear_search_index(self):
+    def clear_search_index(self) -> None:
         """Clear the search index."""
         clear_status = SearchIndexClearStatus()
         self.status_controller.start(clear_status)

@@ -54,17 +54,17 @@ class OPDSAuthentication1View(GenericAPIView):
     serializer_class = OPDSAuthentication1Serializer
 
     @staticmethod
-    def _absolute_doc(request):
+    def _absolute_doc(request) -> dict:
         """Absolutize the logo link url."""
         doc = dict(_DOC)
-        logo_link: dict[str, str | int] = doc["links"][0]  # pyright: ignore[reportAssignmentType]
+        logo_link: dict[str, str | int] = doc["links"][0]  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         href = logo_link["href"]
         href = request.build_absolute_uri(href)
         logo_link["href"] = href
         return doc
 
     @classmethod
-    def static_get(cls, request, status_code=status.HTTP_200_OK):
+    def static_get(cls, request, status_code=status.HTTP_200_OK) -> JsonResponse:
         """Serialize the authentication dict."""
         user_agent_name = get_user_agent_name(request)
         if DEBUG or user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
@@ -74,6 +74,6 @@ class OPDSAuthentication1View(GenericAPIView):
         serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall]
         return JsonResponse(serializer.data, status=status_code)
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> JsonResponse:
         """Get authentication response."""
         return self.static_get(self.request)

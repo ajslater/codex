@@ -17,7 +17,7 @@ from codex.version import VERSION, get_version
 class JanitorCodexUpdate(JanitorCleanup):
     """Auto Update codex methods for janitor."""
 
-    def _is_outdated(self):
+    def _is_outdated(self) -> bool:
         """Is codex outdated."""
         result = False
         if not VERSION:
@@ -36,7 +36,7 @@ class JanitorCodexUpdate(JanitorCleanup):
         self.log.debug(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
         return result
 
-    def _update_codex(self, *, force: bool):
+    def _update_codex(self, *, force: bool) -> None:
         if force:
             self.log.info("Forcing update of Codex.")
         else:
@@ -62,7 +62,7 @@ class JanitorCodexUpdate(JanitorCleanup):
             check=True,
         )
 
-    def update_codex(self, *, force: bool):
+    def update_codex(self, *, force: bool) -> None:
         """Update the package and restart everything if the version changed."""
         status = JanitorCodexUpdateStatus()
         try:

@@ -95,6 +95,6 @@ class AdminFolderSerializer(Serializer):
             raise ValidationError(reason)
         return path
 
-    def validate_show_hidden(self, show_hidden):
+    def validate_show_hidden(self, show_hidden) -> bool:
         """Snakecase the showHidden field."""
         return show_hidden == "true" or self.initial_data.get("showHidden") == "true"

@@ -1,5 +1,7 @@
 """Unused OPDS v2 Serializers."""
 
+from typing import Any
+
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
 from typing_extensions import override
@@ -16,7 +18,7 @@ class RecursiveField(Serializer):
     """
 
     @override
-    def to_representation(self, instance):
+    def to_representation(self, instance) -> Any:
         """Represent with own class."""
         parent = self.parent
         # Should not be ignored but is currently unused

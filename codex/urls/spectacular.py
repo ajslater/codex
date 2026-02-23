@@ -3,7 +3,7 @@
 ALLOW_PREFIXES = ("/api", "/opds")
 
 
-def allow_list(endpoints):
+def allow_list(endpoints) -> list:
     """Allow only API endpoints."""
     drf_endpoints = []
     for endpoint in endpoints:

@@ -3,11 +3,12 @@
 from dataclasses import dataclass
 
 from codex.choices.notifications import Notifications
+from codex.librarian.tasks import LibrarianTask
 from codex.websockets.consumers import ChannelGroups
 
 
 @dataclass
-class NotifierTask:
+class NotifierTask(LibrarianTask):
     """Handle with the Notifier."""
 
     text: str

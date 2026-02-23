@@ -27,14 +27,14 @@ def _get_utc_start_of_week():
     )
 
 
-def _is_created_recently(ts):
+def _is_created_recently(ts) -> bool:
     """Don't send if created recently."""
     now = datetime.now(tz=timezone.utc)
     since = ts.created_at - now
     return abs(since.total_seconds()) < _ONE_DAY
 
 
-def _get_scheduled_time(ts):
+def _get_scheduled_time(ts) -> int | datetime:
     """Compute the time of week to send from the uuid."""
     start_of_week = _get_utc_start_of_week()
     uuid = UUID(ts.version)
@@ -49,7 +49,7 @@ def _get_scheduled_time(ts):
     return telemeter_time
 
 
-def get_telemeter_time(log: Logger):
+def get_telemeter_time(log: Logger) -> int | datetime:
     """Get the time to send telemetry."""
     # Should we schedule telemeter at all?
     if (

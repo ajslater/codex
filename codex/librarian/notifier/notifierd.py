@@ -8,17 +8,17 @@ from codex.librarian.threads import AggregateMessageQueuedThread
 class NotifierThread(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
-    def __init__(self, *args, broadcast_queue, **kwargs):
+    def __init__(self, *args, broadcast_queue, **kwargs) -> None:
         """Initialize local send url."""
         self.broadcast_queue = broadcast_queue
         super().__init__(*args, **kwargs)
 
     @override
-    def aggregate_items(self, item):
+    def aggregate_items(self, item) -> None:
         """Aggregate messages into cache."""
         self.cache[item.text] = item
 
-    def _send_task(self, task):
+    def _send_task(self, task) -> None:
         """
         Send a group_send message to the mulitprocess broadcast channel.
 
@@ -35,7 +35,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         self.broadcast_queue.put(item)
 
     @override
-    def send_all_items(self):
+    def send_all_items(self) -> None:
         """Send all messages waiting in the message cache to client."""
         if not self.cache:
             return
@@ -50,7 +50,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         self.cleanup_cache(sent_keys)
 
     @override
-    def stop(self):
+    def stop(self) -> None:
         """Send the consumer stop broadcast and stop the thread."""
         self.broadcast_queue.put(None)
         self.broadcast_queue.close()

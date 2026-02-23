@@ -3,6 +3,7 @@
 from math import ceil
 
 from django.core.paginator import EmptyPage, Paginator
+from django.db.models.query import QuerySet
 from loguru import logger
 
 from codex.settings import MAX_OBJ_PER_PAGE
@@ -12,7 +13,7 @@ from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
 class BrowserPaginateView(BrowserPageInBoundsView):
     """Paginate Groups and Books."""
 
-    def _paginate_section(self, qs, page):
+    def _paginate_section(self, qs, page) -> QuerySet:
         """Paginate a group or Comic section."""
         orphans = 0 if self.model_group == "f" or self.params.get("q") else 5
         paginator = Paginator(qs, MAX_OBJ_PER_PAGE, orphans=orphans)
@@ -32,7 +33,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         page = self.kwargs.get("page", 1)
         return self._paginate_section(group_qs, page)
 
-    def _paginate_books(self, book_qs, total_group_count, page_group_count):
+    def _paginate_books(self, book_qs, total_group_count, page_group_count) -> QuerySet:
         """Paginate the book object list based on how many group/folders are showing."""
         group_remainder = total_group_count % MAX_OBJ_PER_PAGE
         num_books_on_mixed_page = MAX_OBJ_PER_PAGE - group_remainder
@@ -53,7 +54,9 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             page_book_qs = self._paginate_section(page_book_qs, book_only_page)
         return page_book_qs
 
-    def paginate(self, group_qs, book_qs, group_count):
+    def paginate(
+        self, group_qs, book_qs, group_count
+    ) -> tuple[QuerySet, QuerySet, int, int]:
         """Paginate the queryset into a group and book object lists."""
         if self.TARGET == "opds2":
             self._opds_number_of_books = book_qs.count()

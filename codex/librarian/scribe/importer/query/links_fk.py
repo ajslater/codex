@@ -19,14 +19,14 @@ _QUERY_LINK_FK_PRUNE_ONLY = (
 class QueryPruneLinksFKs(QueryUpdateComics):
     """Prune M2O links that don't need updating."""
 
-    def pop_links_to_fts(self, path, field_name):
+    def pop_links_to_fts(self, path, field_name) -> None:
         """Pop a link to the FTS structure."""
         link_key = self.metadata[LINK_FKS][path].pop(field_name)
         self.add_links_to_fts(path, field_name, (link_key,))
 
     def _query_prune_comic_fk_links_protagonist(
         self, comic: Comic, path: str, field_name: str, key_values: tuple
-    ):
+    ) -> None:
         prot = key_values[0]
         for obj in (comic.main_character, comic.main_team):
             if obj and obj.name == prot:
@@ -34,7 +34,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
                 break
 
     @staticmethod
-    def _query_prune_comic_fk_links_key_equal(field_obj, key_rel, key_value):
+    def _query_prune_comic_fk_links_key_equal(field_obj, key_rel, key_value) -> bool:
         parts = key_rel.split("__")
         rel_obj = field_obj
         key_val = None
@@ -43,7 +43,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
             rel_obj = key_val
         return key_val == key_value
 
-    def _query_prune_comic_fk_links_field(self, comic, path, field_name):
+    def _query_prune_comic_fk_links_field(self, comic, path, field_name) -> None:
         link_dict = self.metadata[LINK_FKS].get(path)
         key_values = link_dict[field_name]
         if field_name == "protagonist":
@@ -63,7 +63,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         if keys_equal:
             self.metadata[LINK_FKS][path].pop(field_name)
 
-    def _query_prune_comic_fk_links_comic(self, comic, status):
+    def _query_prune_comic_fk_links_comic(self, comic, status) -> None:
         path = comic.path
         path_link_fks = self.metadata[LINK_FKS].get(path)
         if path_link_fks is None:
@@ -79,7 +79,9 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         if not self.metadata[LINK_FKS][path]:
             del self.metadata[LINK_FKS][path]
 
-    def _query_prune_comic_fk_links_batch(self, batch_paths: tuple[str, ...], status):
+    def _query_prune_comic_fk_links_batch(
+        self, batch_paths: tuple[str, ...], status
+    ) -> None:
         comics = (
             Comic.objects.filter(library=self.library, path__in=batch_paths)
             .select_related(*COMIC_FK_FIELD_NAMES)
@@ -88,7 +90,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         for comic in comics:
             self._query_prune_comic_fk_links_comic(comic, status)
 
-    def query_prune_comic_fk_links(self, status):
+    def query_prune_comic_fk_links(self, status) -> None:
         """Prune comic fk links that already exist."""
         status.subtitle = "Many to One"
         self.status_controller.update(status)

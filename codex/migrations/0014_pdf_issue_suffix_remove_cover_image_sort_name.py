@@ -5,7 +5,7 @@ from pathlib import Path
 from django.db import migrations, models
 
 
-def add_library_folders(apps, _schema_editor):
+def add_library_folders(apps, _schema_editor) -> None:
     """Add library folders if they're missing."""
     folder_model = apps.get_model("codex", "folder")
     top_folders = folder_model.objects.filter(parent_folder=None)

@@ -19,9 +19,7 @@ from comicbox.schemas.comicbox import (
     TAGS_KEY,
     TEAMS_KEY,
 )
-from django.db.models.fields import CharField, Field
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
-from django.db.models.query_utils import DeferredAttribute
+from django.db.models.fields import Field
 
 from codex.librarian.scribe.importer.const import (
     ALL_COMIC_FK_FIELDS,
@@ -96,14 +94,7 @@ IDENTIFIED_KEY_CLASS_MAP = MappingProxyType(
 )
 ID_TYPE_KEY = "id_type"
 # This map tells aggregator how to parse metadata into tuples for query & create.
-COMPLEX_FIELD_AGG_MAP: MappingProxyType[
-    str,
-    tuple[
-        DeferredAttribute | CharField,
-        ForwardManyToOneDescriptor | None,
-        dict[str, DeferredAttribute],
-    ],
-] = MappingProxyType(
+COMPLEX_FIELD_AGG_MAP: MappingProxyType[str, tuple] = MappingProxyType(
     {
         **{key: (cls.name, None, {}) for key, cls in SIMPLE_KEY_CLASS_MAP.items()},
         **{

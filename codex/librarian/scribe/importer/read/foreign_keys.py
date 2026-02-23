@@ -3,8 +3,8 @@
 from collections.abc import Mapping
 from contextlib import suppress
 
+from comicbox.enums.comicbox import IdSources
 from comicbox.fields.number_fields import PAGE_COUNT_KEY
-from comicbox.identifiers import IdSources
 from comicbox.schemas.comicbox import (
     ID_KEY_KEY,
     ID_URL_KEY,
@@ -45,7 +45,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         model: type[Model],
         clean_key_values: tuple,
         clean_extra_values: frozenset | set | None = None,
-    ):
+    ) -> None:
         """Add to the queury models set for the model."""
         if model not in self.metadata[QUERY_MODELS]:
             self.metadata[QUERY_MODELS][model] = {}
@@ -57,7 +57,9 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             clean_extra_values = frozenset(clean_extra_values)
         self.metadata[QUERY_MODELS][model][clean_key_values] |= clean_extra_values
 
-    def get_identifier_tuple(self, model: type[BaseModel], obj: Mapping):
+    def get_identifier_tuple(
+        self, model: type[BaseModel], obj: Mapping
+    ) -> tuple | None:
         """Parse first highest priority identifier from metadata."""
         # Used by Objects with identifiers, not comic itself.
         identifiers = obj.get(IDENTIFIERS_KEY)
@@ -129,7 +131,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             extra_vals.append(count)
         return tuple(group_list), frozenset((tuple(extra_vals),))
 
-    def get_fk_metadata(self, md, path):
+    def get_fk_metadata(self, md, path) -> None:
         """Aggregate Simple Foreign Keys."""
         group_list = []
         # prevents skipped metadata from destroying browser group links

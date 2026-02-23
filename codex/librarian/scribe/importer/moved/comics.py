@@ -21,7 +21,7 @@ from codex.models import Comic, Folder
 class MovedComicsImporter(ReadMetadataImporter):
     """Methods for moving comics and folders."""
 
-    def _bulk_comics_moved_ensure_folders(self):
+    def _bulk_comics_moved_ensure_folders(self) -> None:
         """Ensure folders we're moving to exist."""
         dest_comic_paths = self.task.files_moved.values()
         dest_comic_paths = self.get_all_library_relative_paths(dest_comic_paths)
@@ -51,7 +51,7 @@ class MovedComicsImporter(ReadMetadataImporter):
 
     def _prepare_moved_comic(
         self, comic, folder_m2m_links, updated_comics, del_folder_rows
-    ):
+    ) -> None:
         """Prepare one comic for bulk update."""
         try:
             new_path = self.task.files_moved[comic.path]
@@ -74,7 +74,7 @@ class MovedComicsImporter(ReadMetadataImporter):
         except Exception:
             self.log.exception(f"moving {comic.path}")
 
-    def _bulk_comics_move_prepare(self):
+    def _bulk_comics_move_prepare(self) -> tuple[list, dict, dict]:
         """Prepare Update Comics."""
         comics = (
             Comic.objects.prefetch_related(FOLDERS_FIELD_NAME)
@@ -96,7 +96,7 @@ class MovedComicsImporter(ReadMetadataImporter):
             del_rows_map[FOLDERS_FIELD_NAME] = del_folder_rows
         return updated_comics, folder_m2m_links, del_rows_map
 
-    def bulk_comics_moved(self):
+    def bulk_comics_moved(self) -> int:
         """Move comcis."""
         num_files_moved = len(self.task.files_moved)
         status = ImporterMoveComicsStatus(0, num_files_moved)

@@ -9,7 +9,7 @@ from codex.views.browser.breadcrumbs import BrowserBreadcrumbsView
 class BrowserTitleView(BrowserBreadcrumbsView):
     """Browser title methods."""
 
-    def _get_root_group_name(self):
+    def _get_root_group_name(self) -> tuple:
         if not self.model:
             reason = "No model set in browser"
             raise ValueError(reason)
@@ -19,7 +19,7 @@ class BrowserTitleView(BrowserBreadcrumbsView):
             raise ValueError(reason)
         return plural.capitalize(), 0
 
-    def _get_group_name(self):
+    def _get_group_name(self) -> tuple:
         group_number_to = None
         group_count = 0
         group_name = ""

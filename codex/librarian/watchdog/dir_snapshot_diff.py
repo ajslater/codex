@@ -28,11 +28,11 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
             result = result[0]
         return result
 
-    def _is_inode_equal(self, data, path):
+    def _is_inode_equal(self, data, path) -> bool:
         """Return if the inodes are equal."""
         return self._get_inode(data.ref, path) == self._get_inode(data.snapshot, path)
 
-    def _is_stats_equal(self, data, old_path, new_path):
+    def _is_stats_equal(self, data, old_path, new_path) -> bool:
         """
         Return if the mtime and size are equal.
 
@@ -42,7 +42,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
             new_path
         ) and data.ref.size(old_path) == data.snapshot.size(new_path)
 
-    def _check_unchanged_paths_for_inode_changes(self, data):
+    def _check_unchanged_paths_for_inode_changes(self, data) -> None:
         """Check that all unchanged paths have the same inode."""
         for path in data.unchanged:
             if not self._is_inode_equal(data, path):
@@ -56,7 +56,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
                     data.created.add(path)
                     data.deleted.add(path)
 
-    def _find_moved_paths(self, data):
+    def _find_moved_paths(self, data) -> None:
         """Find moved paths in deleted and created."""
         for old_path in tuple(data.deleted):
             inode = self._get_inode(data.ref, old_path)
@@ -71,7 +71,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
                 data.created.remove(new_path)
                 data.moved.add((old_path, new_path))
 
-    def _find_modified_paths(self, data):
+    def _find_modified_paths(self, data) -> None:
         """Find modified paths."""
         # first paths that have not moved
         for path in data.unchanged:
@@ -87,7 +87,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
 
     def __init__(  # pyright: ignore[reportMissingSuperCall]
         self, ref, snapshot, *, ignore_device: bool, inode_only_modified: bool
-    ):
+    ) -> None:
         """Create diff object."""
         # Do init differently than super()
         self._ignore_device = ignore_device

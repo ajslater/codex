@@ -68,7 +68,7 @@ class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     top_group = BrowseGroupField(required=False)
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> dict:
         if "q" not in data and (query := data.get("query")):
             # parse query param for opds v2
             data = data.copy()

@@ -6,7 +6,7 @@ from datetime import datetime
 from django.db.models import QuerySet
 from django.db.models.aggregates import Count
 from django.db.models.functions.datetime import Now
-from django.db.models.query import Q
+from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
@@ -29,7 +29,7 @@ class TimestampUpdater(WorkerStatusBase):
         start_time: datetime,
         force_update_group_map: Mapping,
         library: Library,
-    ):
+    ) -> Q:
         # Get groups with comics updated during this import
         rel = "storyarcnumber__" if model == StoryArc else ""
         updated_at_rel = rel + "comic__updated_at__gt"
@@ -63,7 +63,7 @@ class TimestampUpdater(WorkerStatusBase):
         start_time: datetime,
         library: Library,
         log_list,
-    ):
+    ) -> int:
         """Update a single group model."""
         update_filter = cls._get_update_filter(
             model, start_time, force_update_group_map, library
@@ -92,7 +92,7 @@ class TimestampUpdater(WorkerStatusBase):
         force_update_group_map: Mapping,
         *,
         mark_library_in_progress=False,
-    ):
+    ) -> int:
         """Update timestamps for each group for cover cache busting."""
         total_count = 0
         if mark_library_in_progress:
@@ -117,7 +117,7 @@ class TimestampUpdater(WorkerStatusBase):
             self.status_controller.finish(status)
         return total_count
 
-    def update_groups(self, task):
+    def update_groups(self, task) -> None:
         """Update groups in all libraries."""
         count = 0
         start_time = task.start_time or timezone.now()

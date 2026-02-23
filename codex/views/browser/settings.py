@@ -1,6 +1,7 @@
 """Browser session view."""
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from typing_extensions import override
 
@@ -22,7 +23,7 @@ class BrowserSettingsView(SettingsView):
     SESSION_KEY: str = SettingsView.BROWSER_SESSION_KEY
 
     @staticmethod
-    def _validate_browse_top_group(params, group, top_group):
+    def _validate_browse_top_group(params, group, top_group) -> None:
         """Validate top group for browse groups."""
         show = params["show"]
         if group == "r" or (
@@ -39,7 +40,7 @@ class BrowserSettingsView(SettingsView):
             params["top_group"] = "c"
 
     @classmethod
-    def _validate_top_group(cls, params, group, top_group):
+    def _validate_top_group(cls, params, group, top_group) -> None:
         """Validate top group."""
         if group == top_group:
             return
@@ -50,7 +51,7 @@ class BrowserSettingsView(SettingsView):
             cls._validate_browse_top_group(params, group, top_group)
 
     @override
-    def validate_settings_get(self, validated_data, params):
+    def validate_settings_get(self, validated_data, params) -> dict:
         """Change bad settings."""
         # This is a micro version of browser/validate.py
         # It would be ideal to combine them but browser validate does redirects so maybe later.
@@ -62,5 +63,5 @@ class BrowserSettingsView(SettingsView):
 
     @override
     @extend_schema(parameters=[BrowserSettingsInputSerializer])
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         return super().get(*args, **kwargs)

@@ -15,7 +15,7 @@ from codex.librarian.scribe.importer.statii.query import QUERY_STATII
 class QueryForeignKeysImporter(QueryPruneLinks):
     """Methods for querying missing fks."""
 
-    def query(self):
+    def query(self) -> None:
         """Get objects to create by querying existing objects for the proposed fks."""
         if QUERY_MODELS not in self.metadata:
             return

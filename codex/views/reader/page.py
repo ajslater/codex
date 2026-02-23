@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from loguru import logger
+from pdffile import PageFormat
 from rest_framework.exceptions import NotFound
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
@@ -16,6 +17,9 @@ from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 
 _PDF_MIME_TYPE = "application/pdf"
+_PDF_FORMAT_NON_PDF_TYPES = frozenset(
+    {e.value for e in (PageFormat.PIXMAP, PageFormat.IMAGE)}
+)
 
 
 class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
@@ -24,7 +28,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
 
-    def _update_bookmark(self):
+    def _update_bookmark(self) -> None:
         """Update the bookmark if the bookmark param was passed."""
         do_bookmark = bool(
             self.request.GET.get("bookmark")
@@ -41,7 +45,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
-    def _get_page_image(self):
+    def _get_page_image(self) -> tuple:
         """Get the image data and content type."""
         # Get comic - Distinct is important
         group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
@@ -51,14 +55,21 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
 
         # page_image
         page = self.kwargs.get("page")
-        to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
+        pdf_format = (
+            PageFormat.PIXMAP.value
+            if self.request.GET.get("pixmap", "").lower() not in FALSY
+            else ""
+        )
         with Comicbox(comic.path, config=COMICBOX_CONFIG, logger=logger) as cb:
-            page_image = cb.get_page_by_index(page, to_pixmap=to_pixmap)
+            page_image = cb.get_page_by_index(page, pdf_format=pdf_format)
         if not page_image:
             page_image = b""
 
         # content type
-        if comic.file_type == FileTypeChoices.PDF.value and not to_pixmap:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if (
+            comic.file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            and pdf_format not in _PDF_FORMAT_NON_PDF_TYPES
+        ):
             content_type = _PDF_MIME_TYPE
         else:
             content_type = self.content_type
@@ -75,7 +86,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             (200, _PDF_MIME_TYPE): OpenApiTypes.BINARY,
         },
     )
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> HttpResponse:
         """Get the comic page from the archive."""
         try:
             page_image, content_type = self._get_page_image()

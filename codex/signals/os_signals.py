@@ -23,7 +23,7 @@ RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()
 
 
-def _shutdown_signal_handler(*_args):
+def _shutdown_signal_handler(*_args) -> None:
     """Initiate Codex Shutdown."""
     if SHUTDOWN_EVENT.is_set():
         return
@@ -31,7 +31,7 @@ def _shutdown_signal_handler(*_args):
     SHUTDOWN_EVENT.set()
 
 
-def _restart_signal_handler(*_args):
+def _restart_signal_handler(*_args) -> None:
     """Initiate Codex Restart."""
     if RESTART_EVENT.is_set():
         return
@@ -40,14 +40,14 @@ def _restart_signal_handler(*_args):
     _shutdown_signal_handler()
 
 
-def bind_signals_to_loop_aux(sig_add, signal_names, handler):
+def bind_signals_to_loop_aux(sig_add, signal_names, handler) -> None:
     """Bind signal names to a handler."""
     for name in signal_names:
         if sig := getattr(signal, name, None):
             sig_add(sig, handler)
 
 
-def bind_signals_to_loop():
+def bind_signals_to_loop() -> None:
     """Binds signals to the handlers."""
     try:
         if platform == "win32":

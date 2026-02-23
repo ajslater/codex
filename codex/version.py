@@ -5,7 +5,7 @@ from importlib.metadata import PackageNotFoundError, version
 PACKAGE_NAME = "codex"
 
 
-def get_version():
+def get_version() -> str:
     """Get the current installed codex version."""
     try:
         v = version(PACKAGE_NAME)

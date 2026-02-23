@@ -19,20 +19,20 @@ from codex.version import VERSION
 from codex.websockets.aio_queue import BROADCAST_QUEUE
 
 
-def codex_startup():
+def codex_startup() -> bool:
     """Start up codex."""
     logger.info(f"Starting Codex v{VERSION}")
     return codex_init()
 
 
-def _database_checkpoint():
+def _database_checkpoint() -> None:
     """Write wal to disk and truncate it."""
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
     logger.debug("checkpointed and truncated database wal")
 
 
-def restart():
+def restart() -> None:
     """Restart this process."""
     from sys import argv
 
@@ -40,7 +40,7 @@ def restart():
     execv(__file__, argv)  # noqa: S606
 
 
-def codex_shutdown():
+def codex_shutdown() -> None:
     """Shutdown for codex."""
     _database_checkpoint()
     logger.success("Goodbye.")
@@ -49,7 +49,7 @@ def codex_shutdown():
         restart()
 
 
-def run():
+def run() -> None:
     """Run Codex."""
     logger.success(f"Running Codex v{VERSION}")
     librarian = LibrarianDaemon(logger, LIBRARIAN_QUEUE, BROADCAST_QUEUE)
@@ -64,7 +64,7 @@ def run():
     librarian.stop()
 
 
-def main():
+def main() -> None:
     """Set up and run Codex."""
     init_logging()
     if codex_startup():

@@ -28,7 +28,7 @@ class JSONFieldSerializer(Serializer):
     JSON_FIELDS: frozenset[str] = frozenset()
 
     @staticmethod
-    def _parse_json_field(key, value):
+    def _parse_json_field(key, value) -> str | None:
         try:
             parsed_value = unquote_plus(value)
             with suppress(JSONDecodeError):
@@ -40,7 +40,7 @@ class JSONFieldSerializer(Serializer):
         return parsed_value
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> dict:
         """Reparse JSON encoded query_params."""
         # It is an unbelievable amount of trouble to try to parse axios native bracket
         # encoded complex objects in python

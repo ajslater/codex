@@ -34,7 +34,7 @@ _REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
 _REPAIR_ARGS = ("sqlite3", DB_PATH, ".recover")
 
 
-def _has_unapplied_migrations():
+def _has_unapplied_migrations() -> bool:
     """Check if any migrations are outstanding."""
     try:
         connection = connections[DEFAULT_DB_ALIAS]
@@ -56,7 +56,7 @@ def _get_backup_db_path(prefix):
     return BACKUP_DB_PATH.with_suffix(suffix)
 
 
-def _backup_db_before_migration():
+def _backup_db_before_migration() -> None:
     """If there are migrations to do, backup the db."""
     backup_path = _get_backup_db_path(f"before-v{VERSION}")
     janitor = Janitor(logger, LIBRARIAN_QUEUE, Lock(), event=Event())
@@ -64,7 +64,7 @@ def _backup_db_before_migration():
     logger.info("Backed up database before migrations")
 
 
-def _repair_db(log):
+def _repair_db(log) -> None:
     """Run integrity checks on startup."""
     if FIX_FOREIGN_KEYS:
         fix_foreign_keys(log)
@@ -77,7 +77,7 @@ def _repair_db(log):
     cleanup_custom_cover_libraries(log)
 
 
-def _rebuild_db():
+def _rebuild_db() -> bool:
     """Dump and rebuild the database."""
     # Drastic
     if not _REPAIR_FLAG_PATH.exists():
@@ -109,7 +109,7 @@ def _rebuild_db():
     return True
 
 
-def ensure_db_schema():
+def ensure_db_schema() -> bool:
     """Ensure the db is good and up to date."""
     logger.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()

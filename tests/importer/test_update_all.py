@@ -61,8 +61,8 @@ from tests.importer.test_basic import (
     create_compare_comic_values,
     create_fts_strings,
     diff_assert,
-    test_comic_creation,
-    test_fts_creation,
+    export_test_comic_creation,
+    export_test_fts_creation,
 )
 from tests.importer.test_update_none import UPDATE_PATH, BaseTestImporterUpdate
 
@@ -752,7 +752,7 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         md = MappingProxyType(self.importer.metadata)
         diff_assert(LINKED_COMICS_UPDATE_ALL, md, "LINKED_COMICS_UPDATE_ALL")
 
-        comic = test_comic_creation(COMIC_VALUES_UPDATE_ALL)
+        comic = export_test_comic_creation(COMIC_VALUES_UPDATE_ALL)
 
         # Fail imports
         self.importer.fail_imports()
@@ -768,4 +768,4 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         self.importer.full_text_search()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(FTSED_UPDATE_ALL, md, "FTSED_UPDATE_ALL")
-        test_fts_creation(FTS_FINAL_UPDATE_ALL, comic)
+        export_test_fts_creation(FTS_FINAL_UPDATE_ALL, comic)
