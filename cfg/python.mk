@@ -87,14 +87,17 @@ uml:
 cycle:
 	uvx pycycle --ignore node_modules,.venv --verbose --here
 
+T :=
+.PHONY: test-python
 ## Test Python
 ## @category Test
-T :=
+test-python:
+	./bin/test-python.sh $(T)
+
 .PHONY: test
 ## Run Python Tests. Use T variable to run specific tests
 ## @category Test
-test::
-	./bin/test-python.sh $(T)
+test:: test-python
 
 ifndef OVERRIDE_BUILD
 .PHONY: build

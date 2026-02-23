@@ -1,14 +1,10 @@
 services:
   codex-dist-builder: &codex-dist-builder
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
-  codex-backend-lint:
+  codex-lint:
     <<: *codex-dist-builder
-    container_name: codex-backend-lint
-    command: make lint-backend
-  codex-frontend-lint:
-    <<: *codex-dist-builder
-    container_name: codex-frontend-lint
-    command: make lint-frontend
+    container_name: codex-lint
+    command: make lint
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
@@ -29,14 +25,14 @@ services:
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
-    command: make test-backend -o build-frontend
+    command: make test-python -o build-frontend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
     volumes:
       - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
-    command: make build-backend -o collectstatic
+    command: make build
   codex:
     build:
       context: .
