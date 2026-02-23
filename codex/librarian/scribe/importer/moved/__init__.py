@@ -13,7 +13,7 @@ from codex.models import Folder
 class MovedImporter(MovedFoldersImporter):
     """Methods for moving comics and folders."""
 
-    def _bulk_folders_modified(self):
+    def _bulk_folders_modified(self) -> int:
         """Update folders stat and nothing else."""
         num_dirs_modified = len(self.task.dirs_modified)
         if not num_dirs_modified:
@@ -42,7 +42,7 @@ class MovedImporter(MovedFoldersImporter):
         self.status_controller.update(status)
         return count
 
-    def move_and_modify_dirs(self):
+    def move_and_modify_dirs(self) -> None:
         """Move files and dirs and modify dirs."""
         # It would be nice to move folders instead of recreating them but it would require
         # an inode map from the snapshots to do correctly.

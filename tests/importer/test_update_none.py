@@ -35,8 +35,8 @@ from tests.importer.test_basic import (
     QUERIED,
     BaseTestImporter,
     diff_assert,
-    test_comic_creation,
-    test_fts_creation,
+    export_test_comic_creation,
+    export_test_fts_creation,
 )
 
 UPDATE_PATH = FILES_DIR / "comicbox-2-update.cbz"
@@ -113,9 +113,9 @@ class BaseTestImporterUpdate(BaseTestImporter, ABC):
         importer.metadata = deepcopy(dict(QUERIED))
         importer.create_and_update()
         importer.link()
-        comic = test_comic_creation(COMIC_VALUES_BASIC)
+        comic = export_test_comic_creation(COMIC_VALUES_BASIC)
         importer.full_text_search()
-        test_fts_creation(FTS_FINAL_BASIC, comic)
+        export_test_fts_creation(FTS_FINAL_BASIC, comic)
 
 
 class TestImporterUpdateNone(BaseTestImporterUpdate):
@@ -146,7 +146,7 @@ class TestImporterUpdateNone(BaseTestImporterUpdate):
         md = MappingProxyType(self.importer.metadata)
         diff_assert(LINKED_COMICS_UPDATE_NONE, md, "LINKED_COMICS_UPDATE_NONE")
 
-        comic = test_comic_creation(COMIC_VALUES_BASIC)
+        comic = export_test_comic_creation(COMIC_VALUES_BASIC)
 
         # Fail imports
         self.importer.fail_imports()
@@ -162,4 +162,4 @@ class TestImporterUpdateNone(BaseTestImporterUpdate):
         self.importer.full_text_search()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(FTSED_UPDATE_NONE, md, "FTSED_UPDATE_NONE")
-        test_fts_creation(FTS_FINAL_BASIC, comic)
+        export_test_fts_creation(FTS_FINAL_BASIC, comic)

@@ -18,7 +18,7 @@ class SimpleRouteSerializer(Serializer):
     pks = CharField()
 
     @override
-    def to_representation(self, instance):
+    def to_representation(self, instance) -> dict:
         """Allow submission of sequences instead of strings for pks."""
         instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
         pks = instance["pks"]
@@ -29,7 +29,7 @@ class SimpleRouteSerializer(Serializer):
         return super().to_representation(instance)
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> dict:
         """Convert pk strings to tuples."""
         instance = super().to_internal_value(data)
         try:

@@ -84,7 +84,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
         """Get the last route from the session."""
         return self.get_from_session("last_route", session_key=self.BROWSER_SESSION_KEY)
 
-    def save_last_route(self, data: MutableMapping):
+    def save_last_route(self, data: MutableMapping) -> None:
         """Save last route to data."""
         last_route = {
             "group": self.kwargs.get("group", "r"),
@@ -123,7 +123,9 @@ class SessionView(AuthFilterGenericAPIView, ABC):
             order_defaults = {}
         return order_defaults
 
-    def get_param_defaults(self, session_key: str = "", only: list[str] | None = None):
+    def get_param_defaults(
+        self, session_key: str = "", only: list[str] | None = None
+    ) -> dict[str, Any]:
         """Get default params."""
         if not session_key:
             session_key = self.SESSION_KEY
@@ -135,12 +137,12 @@ class SessionView(AuthFilterGenericAPIView, ABC):
                         self.SESSION_DEFAULTS[session_key][key]
                     )
         else:
-            defaults = mapping_to_dict(self.SESSION_DEFAULTS[session_key])
+            defaults = mapping_to_dict(self.SESSION_DEFAULTS[session_key])  # pyright: ignore[reportAssignmentType]
         if session_key == self.BROWSER_SESSION_KEY:
             # There's no BrowserSession so conditional on session key.
             order_defaults = self._get_browser_order_defaults()
-            defaults.update(order_defaults)
-        return defaults
+            defaults.update(order_defaults)  # ty: ignore[unresolved-attribute]
+        return defaults  # ty: ignore[invalid-return-type]
 
     def load_params_from_session(
         self, session_key: str | None = None, only: list[str] | None = None
@@ -153,7 +155,7 @@ class SessionView(AuthFilterGenericAPIView, ABC):
         session = self.request.session.get(session_key, defaults)
         return self._get_source_values_or_set_defaults(defaults, session, {})
 
-    def save_params_to_session(self, params):  # reader session & browser final
+    def save_params_to_session(self, params) -> None:  # reader session & browser final
         """Save the session from params with defaults for missing values."""
         try:
             # Deepcopy this so serializing the values later later for http response doesn't alter them

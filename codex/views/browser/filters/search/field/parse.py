@@ -59,7 +59,7 @@ class BoolOperand(BoolOperandBase):
         """Represent as string."""
         return str(self.value)
 
-    def _prefix_q_dict(self, q_dict):
+    def _prefix_q_dict(self, q_dict) -> dict:
         """Add (or subtract!) relation prefixes to q_dict for the model."""
         model = self.context[2]
         prefix = "" if model == Comic else "comic__"

@@ -17,7 +17,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
     _CLEANUP_STATUS_MAP = (FindOrphanCoversStatus, RemoveCoversStatus)
 
     @classmethod
-    def _cleanup_cover_dirs(cls, path, cover_root):
+    def _cleanup_cover_dirs(cls, path, cover_root) -> None:
         """Recursively remove empty cover directories."""
         if not path or cover_root not in path.parents:
             return
@@ -48,13 +48,13 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             self.status_controller.finish(status)
         return status.complete or 0
 
-    def purge_comic_covers(self, pks: frozenset[int], *, custom: bool):
+    def purge_comic_covers(self, pks: frozenset[int], *, custom: bool) -> int:
         """Purge a set a cover paths."""
         cover_paths = self.get_cover_paths(pks, custom)
         cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
         return self.purge_cover_paths(cover_paths, cover_root)
 
-    def purge_all_comic_covers(self, librarian_queue):
+    def purge_all_comic_covers(self, librarian_queue) -> None:
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")
         changed = False
@@ -71,7 +71,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
         if changed:
             librarian_queue.put(COVERS_CHANGED_TASK)
 
-    def _cleanup_orphan_covers(self, cover_class, cover_root, name):
+    def _cleanup_orphan_covers(self, cover_class, cover_root, name) -> None:
         """Remove all orphan cover thumbs."""
         status = FindOrphanCoversStatus()
         try:
@@ -92,7 +92,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
 
         self.purge_cover_paths(orphan_cover_paths, cover_root)
 
-    def cleanup_orphan_covers(self):
+    def cleanup_orphan_covers(self) -> None:
         """Cleanup both comic and custom covers."""
         self._cleanup_orphan_covers(Comic, self.COVERS_ROOT, "comics")
         self._cleanup_orphan_covers(

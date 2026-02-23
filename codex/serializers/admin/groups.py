@@ -1,6 +1,6 @@
 """Admin group serializers."""
 
-from typing import override
+from typing import Any, override
 
 from django.contrib.auth.models import Group
 from rest_framework.serializers import (
@@ -24,7 +24,7 @@ class GroupSerializer(BaseModelSerializer):
         read_only_fields = ("pk",)
 
     @override
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data) -> Any:
         """Update with nested GroupAuth."""
         exclude = validated_data.pop("groupauth", {}).get("exclude")
         if exclude is not None:
@@ -34,7 +34,7 @@ class GroupSerializer(BaseModelSerializer):
         return super().update(instance, validated_data)
 
     @override
-    def create(self, validated_data):
+    def create(self, validated_data) -> Any:
         """Create with nested GroupAuth."""
         exclude = validated_data.pop("groupauth", {}).get("exclude", False)
         instance = super().create(validated_data)

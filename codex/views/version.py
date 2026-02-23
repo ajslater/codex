@@ -28,7 +28,7 @@ class VersionView(AuthGenericAPIView):
             latest_version = "fetching..."
         return {"installed": VERSION, "latest": latest_version}
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get Versions."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)

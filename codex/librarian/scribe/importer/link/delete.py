@@ -46,7 +46,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         count, _ = qs.delete()
         return count
 
-    def _delete_m2m_fts_entries(self, field_name: str, comic_ids: set[int]):
+    def _delete_m2m_fts_entries(self, field_name: str, comic_ids: set[int]) -> None:
         fts_field_name = (
             "story_arcs" if field_name == "story_arc_numbers" else field_name
         )
@@ -58,7 +58,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
             ):
                 self.add_links_to_fts(comic_id, fts_field_name, ())
 
-    def delete_m2m_field(self, field_name: str, delete_m2ms: dict, status):
+    def delete_m2m_field(self, field_name: str, delete_m2ms: dict, status) -> int:
         """Delete one comic field's m2m relations."""
         total_field_count = 0
         rows = tuple(delete_m2ms.pop(field_name, ()))
@@ -92,7 +92,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
 
         return total_field_count
 
-    def delete_m2ms(self, status):
+    def delete_m2ms(self, status) -> int:
         """Delete old missing m2ms."""
         delete_m2ms = self.metadata.pop(DELETE_M2MS, {})
 

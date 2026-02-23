@@ -19,7 +19,7 @@ from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
 class MetadataQueryIntersectionsView(MetadataAnnotateView):
     """Metadata query fk & m2m intersections."""
 
-    def _query_groups(self):
+    def _query_groups(self) -> dict:
         """Query the through models to show group lists."""
         groups = {}
         if not self.model:
@@ -75,7 +75,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         # Evaluating it now is probably faster than running the filter for every m2m anyway.
         return frozenset(comic_pks)
 
-    def _query_m2m_intersections(self, comic_pks: frozenset[int]):
+    def _query_m2m_intersections(self, comic_pks: frozenset[int]) -> dict:
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         m2m_intersections = {}
@@ -102,7 +102,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         )
         return intersection_qs.only("name")
 
-    def _query_fk_intersections(self, comic_pks: frozenset[int]):
+    def _query_fk_intersections(self, comic_pks: frozenset[int]) -> dict:
         fk_intersections = {}
 
         for field in COMIC_FK_FIELDS:
@@ -112,7 +112,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             )
         return fk_intersections
 
-    def query_intersections(self, filtered_qs):
+    def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict]:
         """Query complex intersections."""
         groups = self._query_groups()
         comic_pks = self._get_comic_pks(filtered_qs)

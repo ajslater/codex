@@ -15,27 +15,27 @@ class Route:
     name: str = ""
 
     @override
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Breadcrumb hash."""
         pk_parts = tuple(sorted(set(self.pks)))
         parts = (self.group, pk_parts, self.page)
         return hash(parts)
 
     @override
-    def __eq__(self, cmp):
+    def __eq__(self, cmp) -> bool:
         """Breadcrumb equality."""
         return cmp and hash(self) == hash(cmp)
 
-    def __and__(self, cmp):
+    def __and__(self, cmp) -> bool:
         """Breadcrumb intersection."""
         return (
-            bool(cmp is not None)
+            (cmp is not None)
             and (self.group == cmp.group)
-            and (self.pks == cmp.pks or (set(self.pks) & set(cmp.pks)))
+            and (self.pks == cmp.pks or bool(set(self.pks) & set(cmp.pks)))
         )
 
 
-def pop_name(kwargs: Mapping):
+def pop_name(kwargs: Mapping) -> Mapping:
     """Pop name from a mapping route."""
     kwargs = dict(kwargs)
     kwargs.pop("name", None)

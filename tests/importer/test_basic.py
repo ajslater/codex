@@ -771,7 +771,7 @@ def _test_comic_creation_field(comic, field_name, test_value):
     assert diff
 
 
-def test_comic_creation(values_const: MappingProxyType):
+def export_test_comic_creation(values_const: MappingProxyType):
     """Test Comic Creation and Linking."""
     qs = Comic.objects.prefetch_related(*COMIC_M2M_FIELD_NAMES).select_related(
         *COMIC_FK_FIELD_NAMES, "main_team", "main_character"
@@ -785,7 +785,7 @@ def test_comic_creation(values_const: MappingProxyType):
     return comic
 
 
-def test_fts_creation(values_const: MappingProxyType, comic: Comic):
+def export_test_fts_creation(values_const: MappingProxyType, comic: Comic):
     """FTS Values."""
     qs = ComicFTS.objects.filter(comic_id=comic.pk).values()
     comicfts = qs[0]
@@ -870,11 +870,11 @@ class TestImporterBasic(BaseTestImporter):
         self.importer.delete()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(DELETED_COMICS, md, "DELETED_COMICS")
-        comic = test_comic_creation(COMIC_VALUES_BASIC)
+        comic = export_test_comic_creation(COMIC_VALUES_BASIC)
 
         # FTS
         self.importer.full_text_search()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(FTSED, md, "FTSED")
 
-        test_fts_creation(FTS_FINAL_BASIC, comic)
+        export_test_fts_creation(FTS_FINAL_BASIC, comic)

@@ -71,7 +71,7 @@ _JANITOR_STATII = (
 class Janitor(JanitorCodexUpdate):
     """Janitor inline task runner."""
 
-    def queue_nightly_tasks(self):
+    def queue_nightly_tasks(self) -> None:
         """Queue all the janitor tasks."""
         try:
             self.status_controller.start_many(_JANITOR_STATII)
@@ -97,7 +97,7 @@ class Janitor(JanitorCodexUpdate):
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
 
-    def handle_task(self, task):  # noqa: PLR0912,C901
+    def handle_task(self, task) -> None:  # noqa: PLR0912,C901
         """Run Janitor tasks as the librarian process directly."""
         try:
             match task:

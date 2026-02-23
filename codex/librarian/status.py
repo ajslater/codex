@@ -27,7 +27,7 @@ class Status(ABC):
     log_success: bool = False
 
     @classmethod
-    def title(cls):
+    def title(cls) -> str:
         """Return created title."""
         if not cls._title:
             title_parts = (cls.VERB, *cls.ITEM_NAME.split(" "))
@@ -36,32 +36,32 @@ class Status(ABC):
         return cls._title
 
     @classmethod
-    def verbed(cls):
+    def verbed(cls) -> str:
         """Return verbed, create it if it doesn't exist."""
         if not cls._verbed:
             cls._verbed = cls.VERB + "d"
         return cls._verbed
 
-    def increment_complete(self, count: int = 1):
+    def increment_complete(self, count: int = 1) -> None:
         """Add count to complete."""
         self.complete = self.complete + count if self.complete else count
 
-    def decrement_total(self):
+    def decrement_total(self) -> None:
         """Decrement total if not not."""
         self.total = max(self.total - 1, 0) if self.total is not None else None
 
-    def start(self):
+    def start(self) -> None:
         """Set start time."""
         self.start_time = time()
 
     def _elapsed(self):
         return time() - self.start_time if self.start_time else 0
 
-    def elapsed(self):
+    def elapsed(self) -> str:
         """Elapsed time."""
         return naturaldelta(self._elapsed())
 
-    def per_second(self):
+    def per_second(self) -> str:
         """Items per second."""
         if self.SINGLE or self.total is None:
             return ""
@@ -69,7 +69,7 @@ class Status(ABC):
         ips = intword(self.total / elapsed) if elapsed else "infinite"
         return f"{ips} {self.ITEM_NAME} per second"
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset for batch statii."""
         self.complete = 0
         self.total = 0

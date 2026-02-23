@@ -28,7 +28,7 @@ class OPDS2LinkBaseSerializer(Serializer):
         return rel
 
     @override
-    def to_representation(self, instance):
+    def to_representation(self, instance) -> dict:
         """Clean complex rel field if None."""
         ret = super().to_representation(instance)
 

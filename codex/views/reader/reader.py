@@ -19,7 +19,7 @@ class ReaderView(ReaderBooksView):
     TARGET: str = "reader"
 
     @override
-    def get_object(self):
+    def get_object(self) -> dict[str, dict | int | None]:
         """Get the previous and next comics in a group or story arc."""
         # get_arcs & get_book_collection populates those arc self valirables.
         # So order is important.
@@ -42,7 +42,7 @@ class ReaderView(ReaderBooksView):
         }
 
     @extend_schema(parameters=[ReaderViewInputSerializer])
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get the book info."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)

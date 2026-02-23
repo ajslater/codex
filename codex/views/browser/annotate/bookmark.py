@@ -23,7 +23,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
     def _get_group_bookmark_page_annotation(
         self, qs, bm_rel, bm_filter, page_rel, finished_rel
-    ):
+    ) -> Sum:
         """Get bookmark page subquery."""
         finished_filter = {finished_rel: True}
         prefix = "" if qs.model is Comic else self.rel_prefix
@@ -45,7 +45,9 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         )
 
     @classmethod
-    def _get_group_bookmark_finished_annotation(cls, qs, bm_filter, finished_rel):
+    def _get_group_bookmark_finished_annotation(
+        cls, qs, bm_filter, finished_rel
+    ) -> tuple:
         """Get finished_count subquery."""
         finished_count = Sum(
             finished_rel,

@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def rename_search_timestamp(apps, _schema_editor):
+def rename_search_timestamp(apps, _schema_editor) -> None:
     """Rename the search_index_uuid timestamp to its new name."""
     ts_model = apps.get_model("codex", "timestamp")
     ts_model.objects.filter(name="xapian_index_uuid").update(name="search_index_uuid")

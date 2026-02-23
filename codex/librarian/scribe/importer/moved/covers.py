@@ -17,7 +17,7 @@ from codex.models import CustomCover
 class MovedCoversImporter(MovedComicsImporter):
     """Methods for moving comics and folders."""
 
-    def _bulk_covers_moved_prepare(self, status):
+    def _bulk_covers_moved_prepare(self, status) -> tuple[list, set]:
         """Create an update map for bulk update."""
         covers = CustomCover.objects.filter(
             library=self.library, path__in=self.task.covers_moved.keys()
@@ -41,7 +41,7 @@ class MovedCoversImporter(MovedComicsImporter):
                 self.log.exception(f"moving {cover.path}")
         return moved_covers, unlink_pks
 
-    def _bulk_covers_moved_unlink(self, unlink_pks):
+    def _bulk_covers_moved_unlink(self, unlink_pks) -> None:
         """Unlink moved covers because they could have moved between group dirs."""
         if not unlink_pks:
             return
@@ -60,7 +60,7 @@ class MovedCoversImporter(MovedComicsImporter):
 
         self.remove_covers(unlink_pks, custom=True)
 
-    def bulk_covers_moved(self, status=None):
+    def bulk_covers_moved(self, status=None) -> int:
         """Move covers."""
         num_covers_moved = len(self.task.covers_moved)
         status = ImporterMoveCoversStatus(None, num_covers_moved)

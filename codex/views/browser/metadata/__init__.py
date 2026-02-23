@@ -1,6 +1,6 @@
 """Aggregate Group and Comic Metadata View."""
 
-from typing import override
+from typing import Any, override
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
@@ -28,13 +28,13 @@ class MetadataView(MetadataCopyIntersectionsView):
     ADMIN_FLAGS = (AdminFlagChoices.FOLDER_VIEW,)
 
     @override
-    def _get_valid_browse_nav_groups(self, valid_top_groups):
+    def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
         """Limited allowed nav groups for metadata."""
         # Overrides method in browser.validate
         group = self.kwargs["group"]
         return (group,)
 
-    def _raise_not_found(self, exc=None):
+    def _raise_not_found(self, exc=None) -> None:
         """Raise an exception if the object is not found."""
         pks = self.kwargs["pks"]
         group = self.kwargs["group"]
@@ -49,7 +49,7 @@ class MetadataView(MetadataCopyIntersectionsView):
         return obj
 
     @override
-    def get_object(self):
+    def get_object(self) -> Any:
         """Create a comic-like object from the current browser group."""
         # Comic model goes through the same code path as groups because
         # values dicts don't copy relations to the serializer. The values
@@ -80,7 +80,7 @@ class MetadataView(MetadataCopyIntersectionsView):
         )
 
     @extend_schema(parameters=[input_serializer_class])
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Get metadata for a filtered browse group."""
         # Init
         try:
@@ -89,3 +89,4 @@ class MetadataView(MetadataCopyIntersectionsView):
             return Response(serializer.data)
         except Exception:
             logger.exception(f"Getting metadata {self.kwargs}")
+            raise

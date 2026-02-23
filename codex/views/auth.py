@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from typing import override
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
+from django.db.models.query_utils import Q
 from loguru import logger
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.serializers import AuthTokenSerializer
@@ -24,7 +24,7 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
     code = 401
 
     @override
-    def has_permission(self, request, view):
+    def has_permission(self, request, view) -> bool:
         """Return True if ENABLE_NON_USERS is true or user authenticated."""
         enu_flag = AdminFlag.objects.only("on").get(
             key=AdminFlagChoices.NON_USERS.value
@@ -53,20 +53,20 @@ class AuthGenericAPIView(AuthMixin, GenericAPIView):  # pyright: ignore[reportIn
 class GroupACLMixin:
     """Filter group mixin for views and threads."""
 
-    def init_group_acl(self):
+    def init_group_acl(self) -> None:
         """Initialize properties."""
         self._is_admin: bool | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
 
     @property
-    def is_admin(self):
+    def is_admin(self) -> bool:
         """Is the current user an admin."""
         if self._is_admin is None:
             user = self.request.user  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self._is_admin = user and getattr(user, "is_staff", False)
+            self._is_admin = bool(user and getattr(user, "is_staff", False))
         return self._is_admin
 
     @staticmethod
-    def get_rel_prefix(model):
+    def get_rel_prefix(model) -> str:
         """Return the relation prefix for most fields."""
         prefix = ""
         if model is Comic:
@@ -77,7 +77,7 @@ class GroupACLMixin:
         return prefix
 
     @classmethod
-    def get_group_acl_filter(cls, model, user):
+    def get_group_acl_filter(cls, model, user) -> Q:
         """Generate the group acl filter for comics."""
         # The rel prefix
         groups_rel = cls.get_rel_prefix(model) if model is not Folder else ""
@@ -112,7 +112,7 @@ class GroupACLMixin:
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):
     """Auth Enabled GenericAPIView."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Iniit acl properties."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
@@ -121,7 +121,7 @@ class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):
 class AuthFilterAPIView(AuthAPIView, GroupACLMixin):
     """Auth Enabled APIView."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Iniit acl properties."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
@@ -132,7 +132,7 @@ class AuthToken(AuthGenericAPIView):
 
     serializer_class = AuthTokenSerializer
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get auth token."""
         user = self.request.user
         if not user:
@@ -146,7 +146,7 @@ class AuthToken(AuthGenericAPIView):
 
         return Response(data)
 
-    def put(self, *args, **kwargs):
+    def put(self, *args, **kwargs) -> Response:
         """Reset auth token for user."""
         user = self.request.user
         if not user:

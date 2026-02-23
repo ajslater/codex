@@ -5,14 +5,16 @@ import shutil
 from hypercorn.config import Config
 
 
-def _ensure_config(hypercon_config_toml, hypercorn_config_toml_default):
+def _ensure_config(hypercon_config_toml, hypercorn_config_toml_default) -> None:
     """Ensure that a valid config exists."""
     if not hypercon_config_toml.exists():
         shutil.copy(hypercorn_config_toml_default, hypercon_config_toml)
         print(f"Copied default config to {hypercon_config_toml}")
 
 
-def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, debug):
+def load_hypercorn_config(
+    hypercorn_config_toml, hypercorn_config_toml_default, debug
+) -> Config:
     """Load the hypercorn config."""
     _ensure_config(hypercorn_config_toml, hypercorn_config_toml_default)
     config = Config.from_toml(hypercorn_config_toml)

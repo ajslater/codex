@@ -4,6 +4,7 @@ from typing import override
 
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.choices.admin import AdminFlagChoices
@@ -27,7 +28,7 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     )
 
     @override
-    def get_object(self):
+    def get_object(self) -> dict:
         """Get admin flags."""
         flags = {}
         for obj in self.get_queryset():
@@ -36,6 +37,6 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
             flags[name] = val
         return flags
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get admin flags relevant to auth."""
         return self.retrieve(*args, **kwargs)

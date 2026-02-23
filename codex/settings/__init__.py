@@ -92,7 +92,7 @@ CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
 CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
 
 
-def create_custom_cover_group_dirs():
+def create_custom_cover_group_dirs() -> None:
     """Create custom cover group dirs."""
     for group_dir in CUSTOM_COVERS_GROUP_DIRS:
         custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
@@ -105,7 +105,7 @@ create_custom_cover_group_dirs()
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 
-def _get_logging():
+def _get_logging() -> dict[str, int | dict]:
     loggers = {}
     if LOGLEVEL != "TRACE":
         loggers.update(
@@ -138,7 +138,7 @@ ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
-def _get_installed_apps():
+def _get_installed_apps() -> tuple:
     installed_apps = [
         "django.contrib.auth",
         "django.contrib.contenttypes",
@@ -173,7 +173,7 @@ def _get_installed_apps():
 INSTALLED_APPS = _get_installed_apps()
 
 
-def _get_middleware():
+def _get_middleware() -> tuple:
     middleware = [
         "corsheaders.middleware.CorsMiddleware",
         "django.middleware.security.SecurityMiddleware",

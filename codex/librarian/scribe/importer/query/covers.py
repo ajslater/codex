@@ -18,7 +18,7 @@ from codex.models.paths import CustomCover
 class QueryCustomCoversImporter(CreateForeignKeysImporter):
     """Query Missing Custom Covers."""
 
-    def query_missing_custom_covers(self):
+    def query_missing_custom_covers(self) -> None:
         """Identify update & create covers."""
         cover_paths = self.task.covers_created | self.task.covers_modified
         num_cover_paths = len(cover_paths)

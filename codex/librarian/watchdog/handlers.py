@@ -41,7 +41,7 @@ class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler, ABC):
         librarian_queue: Queue,
         db_write_lock,
         **kwargs,
-    ):
+    ) -> None:
         """Let us send along he library id."""
         self.library_pk = library_pk
         self.init_worker(logger_, librarian_queue, db_write_lock)
@@ -60,7 +60,7 @@ class CodexEventHandlerBase(WorkerMixin, FileSystemEventHandler, ABC):
         raise NotImplementedError
 
     @override
-    def dispatch(self, event):
+    def dispatch(self, event) -> None:
         """Send only valid codex events to the EventBatcher."""
         try:
             if isinstance(event, CodexPollEvent):
@@ -82,7 +82,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
     """Handle watchdog events for comics in a library."""
 
     @staticmethod
-    def _match_comic_suffix(path):
+    def _match_comic_suffix(path) -> bool:
         """Match a supported comic suffix."""
         if not path:
             return False
@@ -108,7 +108,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
         event,
         events,
         source_match_comic,
-    ):
+    ) -> None:
         """Create file events for file moves."""
         dest_match_comic = cls._match_comic_suffix(event.dest_path)
         if not source_match_comic and dest_match_comic:
@@ -122,7 +122,7 @@ class CodexLibraryEventHandler(CodexEventHandlerBase):
             events.append(event)
 
     @classmethod
-    def _transform_file_move_event_to_cover_event(cls, event, events):
+    def _transform_file_move_event_to_cover_event(cls, event, events) -> None:
         """Create cover events for file moves."""
         source_match_cover = cls._match_folder_cover(event.src_path)
         dest_match_cover = cls._match_folder_cover(event.dest_path)
@@ -170,7 +170,9 @@ class CodexCustomCoverEventHandler(CodexEventHandlerBase):
         return cls._match_image_suffix(path)
 
     @classmethod
-    def _transform_event_moved(cls, event, src_cover_match):
+    def _transform_event_moved(
+        cls, event, src_cover_match
+    ) -> CoverMovedEvent | None | CoverCreatedEvent | CoverDeletedEvent:
         """Get a cover event for a file moved event."""
         send_event = None
         dest_cover_match = cls._match_group_cover_image(event.dest_path)

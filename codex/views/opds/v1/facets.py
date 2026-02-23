@@ -28,7 +28,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     TARGET = "opds1"
     IS_START_PAGE: bool = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._user_agent_name: str | None = None
@@ -77,7 +77,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             )
         return self._obj
 
-    def _facet(self, kwargs, facet_group, facet_title, new_query_params):
+    def _facet(self, kwargs, facet_group, facet_title, new_query_params) -> OPDS1Link:
         kwargs = pop_name(kwargs)
         facet_active = False
         for key, val in new_query_params.items():
@@ -87,7 +87,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         query = {}
         query.update(self.request.GET)
         query.update(new_query_params)
-        href = reverse("opds:v1:feed", kwargs=kwargs, query=query)
+        href = reverse("opds:v1:feed", kwargs=dict(kwargs), query=query)
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(
@@ -99,7 +99,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             facet_active=facet_active,
         )
 
-    def _facet_entry(self, item, facet_group, facet, query_params):
+    def _facet_entry(self, item, facet_group, facet, query_params) -> OPDS1Entry:
         name = " ".join(
             filter(None, (facet_group.glyph, facet_group.title_prefix, facet.title))
         ).strip()
@@ -119,7 +119,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         )
         return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
 
-    def _is_facet_active(self, facet_group, facet):
+    def _is_facet_active(self, facet_group, facet) -> bool:
         compare = [facet.value]
         default_val = DEFAULT_FACETS.get(facet_group.query_param)
         if facet.value == default_val:
@@ -127,7 +127,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return self.request.GET.get(facet_group.query_param) in compare
 
     @staticmethod
-    def _did_special_group_change(group, facet_group):
+    def _did_special_group_change(group, facet_group) -> bool:
         """Test if one of the special groups changed."""
         for test_group in ("f", "a"):
             if (group == test_group and facet_group != test_group) or (
@@ -153,7 +153,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             facet = self._facet(kwargs, facet_group, facet.title, qps)
         return facet
 
-    def _facet_group(self, facet_group, *, entries: bool):
+    def _facet_group(self, facet_group, *, entries: bool) -> list:
         facets = []
         for facet in facet_group.facets:
             if facet.value == "f":
@@ -170,7 +170,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
                 facets += [facet_obj]
         return facets
 
-    def facets(self, *, entries: bool):
+    def facets(self, *, entries: bool) -> list:
         """Return facets."""
         facets = []
         if self.IS_START_PAGE:

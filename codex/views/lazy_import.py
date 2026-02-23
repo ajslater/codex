@@ -13,7 +13,7 @@ class LazyImportView(AuthGenericAPIView):
 
     serializer_class = OKSerializer
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get Versions."""
         group = self.kwargs.get("group", "")
         if group in "fc":

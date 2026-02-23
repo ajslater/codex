@@ -40,7 +40,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
     """Get Books methods."""
 
     @staticmethod
-    def _get_bookmark_filter(auth_filter, comic_filter=None):
+    def _get_bookmark_filter(auth_filter, comic_filter=None) -> dict:
         """Get the search kwargs for a user's authentication state."""
         # search kwargs are relative to the bookmark object.
         search_kwargs = {}
@@ -62,7 +62,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         )
         return book
 
-    def _raise_not_found(self):
+    def _raise_not_found(self) -> None:
         """Raise not found exception."""
         pk = self.kwargs.get("pk")
         detail = {
@@ -86,7 +86,9 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             )
         return query_filter
 
-    def _get_comics_annotation_and_ordering(self, model, ordering):
+    def _get_comics_annotation_and_ordering(
+        self, model, ordering
+    ) -> tuple[dict, tuple]:
         """Get ordering for query."""
         sort_name_annotations = {}
         if self._selected_arc_group in "sv":
@@ -143,7 +145,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             qs = qs.alias(**sort_names_alias)
         return qs.order_by(*ordering)
 
-    def get_book_collection(self):
+    def get_book_collection(self) -> dict:
         """
         Get the -1, +1 window around the current issue.
 

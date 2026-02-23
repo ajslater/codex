@@ -27,7 +27,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
     """Create methods for covers."""
 
     @classmethod
-    def _create_cover_thumbnail(cls, cover_image_data):
+    def _create_cover_thumbnail(cls, cover_image_data) -> BytesIO:
         """Isolate the save thumbnail function for leak detection."""
         cover_thumb_buffer = BytesIO()
         with BytesIO(cover_image_data) as image_io:
@@ -49,7 +49,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         Return image thumb data or path to missing file thumb.
         """
         with Comicbox(comic_path, config=COMICBOX_CONFIG, logger=log) as car:
-            image_data = car.get_cover_page(to_pixmap=True)
+            image_data = car.get_cover_page(pdf_format="pixmap")
         if not image_data:
             reason = "Read empty cover"
             raise ValueError(reason)
@@ -64,7 +64,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
     @classmethod
     def create_cover_from_path(
         cls, pk: int, cover_path: str, log, librarian_queue: Queue, *, custom: bool
-    ):
+    ) -> BytesIO | None:
         """
         Create cover for path.
 
@@ -91,7 +91,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         librarian_queue.put(task)
         return thumb_buffer
 
-    def save_cover_to_cache(self, cover_path_str: str, data):
+    def save_cover_to_cache(self, cover_path_str: str, data) -> None:
         """Save cover thumb image to the disk cache."""
         cover_path = Path(cover_path_str)
         cover_path.parent.mkdir(exist_ok=True, parents=True)
@@ -102,7 +102,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             # zero length file is code for missing.
             cover_path.touch()
 
-    def _bulk_create_comic_cover(self, pk, custom, status):
+    def _bulk_create_comic_cover(self, pk, custom, status) -> None:
         # Create one cover
         cover_path = self.get_cover_path(pk, custom)
         if cover_path.exists():
@@ -143,7 +143,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             self.status_controller.finish(status)
         return status.complete or 0
 
-    def create_all_covers(self):
+    def create_all_covers(self) -> None:
         """Create all covers for all libraries."""
         pks = CustomCover.objects.values_list("pk", flat=True)
         count = self._bulk_create_comic_covers(pks, custom=True)

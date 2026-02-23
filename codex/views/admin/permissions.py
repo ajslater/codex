@@ -11,7 +11,7 @@ class HasAPIKeyOrIsAdminUser(BasePermission):
     """Does the request have the current api key."""
 
     @override
-    def has_permission(self, request, view):
+    def has_permission(self, request, view) -> bool:
         """Test the request api key against the database."""
         data = request.GET if request.method == "GET" else request.POST
         api_key = data.get("apiKey")

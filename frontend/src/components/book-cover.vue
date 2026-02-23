@@ -1,6 +1,6 @@
 <template>
   <div class="bookCover">
-    <v-img :src="coverSrc" class="coverImg" :class="multiPkClasses" />
+    <v-img :src="coverSrc" img-class="coverImgImg" :class="multiPkClasses" />
     <div
       v-if="finished !== true"
       :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
@@ -87,10 +87,12 @@ export default {
   height: bookcover.$cover-height;
   width: bookcover.$cover-width;
 }
+
 .coverImg {
   border-radius: 5px;
 }
-.coverImg :deep(.v-img__img) {
+
+.coverImgImg {
   object-position: top;
 }
 
@@ -106,9 +108,11 @@ export default {
   background-color: rgb(var(--v-theme-background));
   color: rbg(var(--v-theme-textPrimary));
 }
+
 /* Flags */
 $bookCoverShadow: rgba(0, 0, 0, 0.75);
 $primary: rgb(var(--v-theme-primary));
+
 .unreadFlag {
   position: absolute;
   top: 0;
@@ -124,6 +128,7 @@ $primary: rgb(var(--v-theme-primary));
   );
   border-top-right-radius: 5px;
 }
+
 .mixedreadFlag {
   background: linear-gradient(
     45deg,
@@ -136,14 +141,17 @@ $primary: rgb(var(--v-theme-primary));
     transparent 90%
   );
 }
+
 .stack2 {
   box-shadow: 3px 3px #606060;
 }
+
 .stack3 {
   box-shadow:
     3px 3px #606060,
     6px 6px #404040;
 }
+
 .stack4 {
   box-shadow:
     3px 3px #606060,

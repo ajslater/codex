@@ -8,7 +8,7 @@ from codex.views.browser.filters.search.field.filter import BrowserFieldQueryFil
 class BrowserFTSFilter(BrowserFieldQueryFilter):
     """Search Filters Methods."""
 
-    def get_fts_filter(self, model, text):
+    def get_fts_filter(self, model, text) -> dict:
         """Perform the search and return the scores as a dict."""
         fts_filter = {}
         try:

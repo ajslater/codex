@@ -28,7 +28,7 @@ class AdminFlagViewSet(AdminModelViewSet):
     serializer_class = AdminFlagSerializer
     lookup_field = "key"
 
-    def _on_change(self):
+    def _on_change(self) -> None:
         """Signal UI that its out of date."""
         key = self.kwargs.get("key")
         if key == AdminFlagChoices.REGISTRATION.value:
@@ -42,7 +42,7 @@ class AdminFlagViewSet(AdminModelViewSet):
             LIBRARIAN_QUEUE.put(ADMIN_FLAGS_CHANGED_TASK)
 
     @override
-    def perform_update(self, serializer):
+    def perform_update(self, serializer) -> None:
         """Perform update and hook for change."""
         super().perform_update(serializer)
         self._on_change()

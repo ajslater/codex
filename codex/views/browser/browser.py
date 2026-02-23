@@ -80,7 +80,7 @@ class BrowserView(BrowserTitleView):
             limit = max(query_limit, search_limit)
         return limit
 
-    def _get_common_queryset(self, model):
+    def _get_common_queryset(self, model) -> tuple:
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
@@ -107,7 +107,7 @@ class BrowserView(BrowserTitleView):
 
         return qs, count
 
-    def _get_group_queryset(self):
+    def _get_group_queryset(self) -> tuple:
         """Create group queryset."""
         if self.model is Comic:
             qs = self.model.objects.none().order_by("pk")
@@ -117,7 +117,7 @@ class BrowserView(BrowserTitleView):
             qs = self.add_group_by(qs)
         return qs, count
 
-    def _get_book_queryset(self):
+    def _get_book_queryset(self) -> tuple:
         """Create book queryset."""
         if self.model in (Comic, Folder):
             qs, count = self._get_common_queryset(Comic)
@@ -127,7 +127,7 @@ class BrowserView(BrowserTitleView):
         return qs, count
 
     @staticmethod
-    def _get_zero_pad(book_qs):
+    def _get_zero_pad(book_qs) -> int:
         """Get the zero padding for the display."""
         issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
             "issue_number__max"
@@ -140,7 +140,7 @@ class BrowserView(BrowserTitleView):
     def _get_page_mtime(self):
         return self.get_group_mtime(self.model, page_mtime=True)
 
-    def _debug_queries(self, group_count, book_count, group_qs, book_qs):
+    def _debug_queries(self, group_count, book_count, group_qs, book_qs) -> None:
         """Log query details."""
         if group_count:
             logger.debug(group_qs.explain())
@@ -149,7 +149,7 @@ class BrowserView(BrowserTitleView):
             logger.debug(book_qs.explain())
             logger.debug(book_qs.query)
 
-    def get_book_qs(self):
+    def get_book_qs(self) -> tuple:
         """Only get the book queryset."""
         book_qs, book_count = self._get_book_queryset()
         if book_count:
@@ -162,7 +162,7 @@ class BrowserView(BrowserTitleView):
             zero_pad = 0
         return book_qs, book_count, zero_pad
 
-    def _get_group_and_books(self):
+    def _get_group_and_books(self) -> tuple:
         """Create the main queries with filters, annotation and pagination."""
         group_qs, group_count = self._get_group_queryset()
         book_qs, book_count = self._get_book_queryset()
@@ -192,7 +192,7 @@ class BrowserView(BrowserTitleView):
         return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
     @override
-    def get_object(self):
+    def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
         group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
             self._get_group_and_books()
@@ -224,7 +224,7 @@ class BrowserView(BrowserTitleView):
         )
 
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
-    def get(self, *_args, **_kwargs):
+    def get(self, *_args, **_kwargs) -> Response:
         """Get browser settings."""
         data = self.get_object()
         serializer = self.get_serializer(data)

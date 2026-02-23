@@ -21,7 +21,7 @@ class AdminGroupViewSet(AdminModelViewSet):
 
     _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "groupauth"})
 
-    def _on_change(self, validated_data=None):
+    def _on_change(self, validated_data=None) -> None:
         """On change hook."""
         if not validated_data or frozenset(validated_data.keys()).intersection(
             self._CHANGE_FIELDS
@@ -36,21 +36,21 @@ class AdminGroupViewSet(AdminModelViewSet):
         return super().get_serializer(*args, **kwargs)
 
     @override
-    def perform_update(self, serializer):
+    def perform_update(self, serializer) -> None:
         """Perform update and run hooks."""
         validated_data = serializer.validated_data
         super().perform_update(serializer)
         self._on_change(validated_data)
 
     @override
-    def perform_create(self, serializer):
+    def perform_create(self, serializer) -> None:
         """Perform create and run hooks."""
         validated_data = serializer.validated_data
         super().perform_create(serializer)
         self._on_change(validated_data)
 
     @override
-    def perform_destroy(self, instance):
+    def perform_destroy(self, instance) -> None:
         """Perform destroy and run hooks."""
         super().perform_destroy(instance)
         self._on_change()

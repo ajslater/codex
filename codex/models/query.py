@@ -1,7 +1,7 @@
 """Custom Compiler to force group_by."""
 # If any group_by() is attached to the QuerySet, it completely overrides the compiler computed group_by
 
-from typing import override
+from typing import Self, override
 
 from django.db import connections
 from django.db.models import Manager
@@ -13,19 +13,19 @@ from django.db.models.sql.query import Query
 class GroupBySQLCompiler(SQLCompiler):
     """Custom Compiler to force group_by."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize force group_by fields."""
         super().__init__(*args, **kwargs)
         self.force_group_by_table = ""
         self.force_group_by_fields = ()
 
-    def set_force_group_by(self, table, fields):
+    def set_force_group_by(self, table, fields) -> None:
         """Set the force group_by variables."""
         self.force_group_by_table = table
         self.force_group_by_fields = fields
 
     @override
-    def get_group_by(self, *args, **kwargs):
+    def get_group_by(self, *args, **kwargs) -> list:
         """If force group_by set, force it."""
         if self.force_group_by_table and self.force_group_by_fields:
             table = self.force_group_by_table
@@ -42,14 +42,16 @@ class GroupBySQLCompiler(SQLCompiler):
 class GroupByQuery(Query):
     """Custom Query to use GroupBy Compiler."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Init force group_by fields."""
         super().__init__(*args, **kwargs)
         self.force_group_by_table = ""
         self.force_group_by_fields = ()
 
     @override
-    def get_compiler(self, using=None, connection=None, elide_empty=True):
+    def get_compiler(
+        self, using=None, connection=None, elide_empty=True
+    ) -> GroupBySQLCompiler | SQLCompiler:
         """Use the custom compiler instead of SQLCompiler."""
         if self.compiler == "SQLCompiler":
             if using is None and connection is None:
@@ -70,7 +72,7 @@ class GroupByQuery(Query):
 
         return compiler
 
-    def set_force_group_by(self, fields, model=None):
+    def set_force_group_by(self, fields, model=None) -> None:
         """Set the force group_by fields."""
         if not model:
             model = self.model
@@ -82,18 +84,18 @@ class GroupByQuery(Query):
 class GroupByQuerySet(QuerySet):
     """Custom Queryset that uses Custom compiler."""
 
-    def __init__(self, model=None, query=None, using=None, hints=None):
+    def __init__(self, model=None, query=None, using=None, hints=None) -> None:
         """Use the custom query with the custom compiler."""
         query = query or GroupByQuery(model)
         super().__init__(model=model, query=query, using=using, hints=hints)
 
-    def group_by(self, *fields, model=None):
+    def group_by(self, *fields, model=None) -> Self:
         """Force group_by operator."""
         obj = self._chain()  # pyright: ignore[reportAttributeAccessIssue]
         obj.query.set_force_group_by(fields, model=model)
         return obj
 
-    def demote_joins(self, tables):
+    def demote_joins(self, tables) -> Self:
         """Force INNER JOINS."""
         obj = self._chain()  # pyright: ignore[reportAttributeAccessIssue]
         obj.query.demote_joins(tables)

@@ -23,13 +23,13 @@ _PUBLICATION_PREVIEW_LIMIT = 5
 class OPDS2PublicationBaseView(OPDS2FeedLinksView):
     """Base view for publication entries."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize vars."""
         self._auth_link = None
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def is_allowed(link_spec: Link | BrowserGroupModel):
+    def is_allowed(link_spec: Link | BrowserGroupModel) -> bool:
         """Return if the link allowed."""
         if (
             isinstance(link_spec, Link)
@@ -51,7 +51,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
                 return False
         return True
 
-    def _publication_metadata(self, obj, zero_pad):
+    def _publication_metadata(self, obj, zero_pad) -> dict:
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         if self.kwargs.get("group") == "f":
             title = Comic.get_filename(obj)
@@ -95,7 +95,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         )
         return self.link(link_data)
 
-    def _publication(self, obj, zero_pad):
+    def _publication(self, obj, zero_pad) -> dict:
         pub = {}
         if not obj:
             return pub
@@ -134,7 +134,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
         return pub
 
-    def _thumb(self, obj):
+    def _thumb(self, obj) -> list:
         images = []
         if not obj:
             return images
@@ -168,13 +168,13 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     """Publication Methods for OPDS 2.0 feed."""
 
     @override
-    def _publication(self, obj, zero_pad):
+    def _publication(self, obj, zero_pad) -> dict:
         pub = super()._publication(obj, zero_pad)
         if images := self._thumb(obj):
             pub["images"] = images
         return pub
 
-    def _get_publications_links(self, link_spec):
+    def _get_publications_links(self, link_spec) -> list:
         if not link_spec:
             return []
         kwargs = {"group": link_spec.group, "pks": (0,), "page": 1}
@@ -185,7 +185,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
 
     def _get_publication_section_metadata(
         self, title, subtitle, number_of_items, items_per_page
-    ):
+    ) -> dict:
         current_page = self.kwargs.get("page", 1)
         if number_of_items is None:
             number_of_items = self._opds_number_of_books
@@ -208,7 +208,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         items_per_page=MAX_OBJ_PER_PAGE,
         link_spec=None,
         number_of_items: int | None = None,
-    ):
+    ) -> list:
         """Get publications section."""
         publications = []
         for obj in book_qs:
@@ -246,7 +246,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         feed_view.set_params(params)
         return feed_view
 
-    def get_publications_preview(self, link_spec: Link):
+    def get_publications_preview(self, link_spec: Link) -> list:
         """Get a limited preview of publications outside the main query."""
         feed_view = self._get_publications_preview_feed_view(link_spec)
         book_qs, book_count, zero_pad = feed_view.get_book_qs()

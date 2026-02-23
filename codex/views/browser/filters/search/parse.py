@@ -3,7 +3,7 @@
 import re
 from types import MappingProxyType
 
-from django.db.models.query import Q
+from django.db.models.query_utils import Q
 from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
@@ -68,7 +68,7 @@ class SearchFilterView(BrowserFTSFilter):
 
     ADMIN_FLAGS: tuple[AdminFlagChoices, ...] = (AdminFlagChoices.FOLDER_VIEW,)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize search variables."""
         super().__init__(*args, **kwargs)
         self._admin_flags: MappingProxyType[str, bool] | None = None
@@ -93,7 +93,7 @@ class SearchFilterView(BrowserFTSFilter):
             self._admin_flags = MappingProxyType(admin_flags)
         return self._admin_flags
 
-    def _is_path_column_allowed(self):
+    def _is_path_column_allowed(self) -> bool:
         """Is path column allowed."""
         return self.is_admin or bool(self.admin_flags["folder_view"])
 
@@ -105,7 +105,9 @@ class SearchFilterView(BrowserFTSFilter):
                 return True
         return False
 
-    def _parse_column_match(self, preop, col, exp, field_tokens):  # , fts_tokens):
+    def _parse_column_match(
+        self, preop, col, exp, field_tokens
+    ) -> bool:  # , fts_tokens):
         col = _ALIAS_FIELD_MAP.get(col.lower(), col)
         if col not in _VALID_COLUMNS:
             return True
@@ -122,7 +124,7 @@ class SearchFilterView(BrowserFTSFilter):
         return False
 
     @staticmethod
-    def _add_fts_token(fts_tokens, token):
+    def _add_fts_token(fts_tokens, token) -> None:
         token = _FTS_OPERATOR_RE.sub(lambda op: op.group("operator").upper(), token)
 
         if ":" in token:
@@ -136,7 +138,7 @@ class SearchFilterView(BrowserFTSFilter):
 
         fts_tokens.append(token)
 
-    def _preparse_search_query_token(self, match, field_tokens, fts_tokens):
+    def _preparse_search_query_token(self, match, field_tokens, fts_tokens) -> None:
         token = match.group("token")
         if not token:
             return
@@ -157,7 +159,7 @@ class SearchFilterView(BrowserFTSFilter):
                 token = f"{col}:{exp}"
             self._add_fts_token(fts_tokens, token)
 
-    def _preparse_search_query(self):
+    def _preparse_search_query(self) -> tuple[dict, str] | tuple:
         """Preparse search fields out of query text."""
         text = self.params.get("q")
         field_tokens = {}
@@ -175,7 +177,7 @@ class SearchFilterView(BrowserFTSFilter):
         text = " ".join(fts_tokens)
         return field_tokens, text
 
-    def _create_search_filters(self, model):
+    def _create_search_filters(self, model) -> tuple[list, list, Q]:
         field_tokens_dict, fts_text = self._preparse_search_query()
         field_filter_q_list = []
         field_exclude_q_list = []
@@ -204,7 +206,7 @@ class SearchFilterView(BrowserFTSFilter):
 
         return field_filter_q_list, field_exclude_q_list, fts_q
 
-    def _create_search_filter(self, filter_list):
+    def _create_search_filter(self, filter_list) -> Q:
         """Apply search filter lists. Separate filter clauses are employed for m2m searches."""
         combined_q = Q()
         for q in filter_list:
@@ -215,7 +217,7 @@ class SearchFilterView(BrowserFTSFilter):
 
         return combined_q
 
-    def get_search_filters(self, model):
+    def get_search_filters(self, model) -> tuple[Q, Q, Q]:
         """Preparse search, search and return the filter and scores."""
         include_q = Q()
         exclude_q = Q()
@@ -236,7 +238,7 @@ class SearchFilterView(BrowserFTSFilter):
 
         return include_q, exclude_q, fts_q
 
-    def get_search_limit(self):
+    def get_search_limit(self) -> int:
         """Get search scores for choices and metadata."""
         if not self.search_mode:
             return 0

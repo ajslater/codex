@@ -7,7 +7,7 @@ from django.db import connection, migrations, models
 NEW_FILE_TYPE_SUFFIXES = frozenset({"cbz", "cbr", "cbt", "pdf"})
 
 
-def prepare_librarianstatus(apps, _schema_editor):
+def prepare_librarianstatus(apps, _schema_editor) -> None:
     """Delete all librarian statuses for re-creation."""
     ls_model = apps.get_model("codex", "librarianstatus")
     ls_model.objects.all().delete()
@@ -19,7 +19,7 @@ def prepare_librarianstatus(apps, _schema_editor):
         cursor.execute(sql)
 
 
-def prepare_bookmarks(apps, _schema_editor):
+def prepare_bookmarks(apps, _schema_editor) -> None:
     """Change bookmark fit_to to new values."""
     bookmark_model = apps.get_model("codex", "bookmark")
     bookmarks = bookmark_model.objects.exclude(fit_to="")
@@ -28,7 +28,7 @@ def prepare_bookmarks(apps, _schema_editor):
     bookmark_model.objects.bulk_update(bookmarks, fields=["fit_to"])
 
 
-def prepare_comics(apps, _schema_editor):
+def prepare_comics(apps, _schema_editor) -> None:
     """Prepare comics for field choice changes."""
     comic_model = apps.get_model("codex", "comic")
 
@@ -46,7 +46,7 @@ def prepare_comics(apps, _schema_editor):
     comic_model.objects.bulk_update(comics, fields=["file_format"])
 
 
-def prepare_adminflags(apps, _schema_editor):
+def prepare_adminflags(apps, _schema_editor) -> None:
     """Migrate update flag data."""
     af_model = apps.get_model("codex", "adminflag")
     flags = af_model.objects.all()
@@ -70,7 +70,7 @@ def prepare_adminflags(apps, _schema_editor):
     af_model.objects.bulk_update(update_flags, fields=("name",))
 
 
-def prepare_timestamps(apps, _schema_editor):
+def prepare_timestamps(apps, _schema_editor) -> None:
     """Migrate timestamp data."""
     ts_model = apps.get_model("codex", "timestamp")
     timestamps = ts_model.objects.all()

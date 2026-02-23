@@ -47,6 +47,6 @@ class NamedModel(BaseModel):
         unique_together: tuple[str, ...] = ("name",)
 
     @override
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the name."""
-        return self.name
+        return str(self.name)

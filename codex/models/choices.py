@@ -51,7 +51,7 @@ def text_choices_from_string(string: str, class_name: str) -> type[TextChoices]:
     return _create_text_choices_class(class_name, cls_dict)
 
 
-def max_choices_len(choices: type[Choices]):
+def max_choices_len(choices: type[Choices]) -> int:
     """Return the maximum possible size for a Choice's key."""
     if not choices.choices:
         return 0

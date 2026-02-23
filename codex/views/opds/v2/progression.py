@@ -1,9 +1,9 @@
 """OPDS 2 Progression view."""
-# https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
 
+# https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
 from http import HTTPStatus
 from types import MappingProxyType
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from dateparser import parse
 from django.db.models import QuerySet
@@ -54,6 +54,8 @@ class ReadiumProgressionAPIRenderer(JSONRenderer):
 
 
 # This is an independent api requiring a separate get.
+
+
 class OPDS2ProgressionView(
     OPDSAuthMixin,
     OPDS2HrefMixin,
@@ -74,7 +76,7 @@ class OPDS2ProgressionView(
     serializer_class = OPDS2ProgressionSerializer
     content_type = ReadiumProgressionParser.media_type
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize Bookmark Filter."""
         self.init_bookmark_filter()
         super().__init__(*args, **kwargs)
@@ -92,7 +94,7 @@ class OPDS2ProgressionView(
         return _EMPTY_DEVICE
 
     @property
-    def title(self):
+    def title(self) -> str:
         """The locator title is the page number."""
         return f"Page {self._obj.page}"  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
 
@@ -110,7 +112,7 @@ class OPDS2ProgressionView(
         return self.href(data)
 
     @property
-    def _locations(self):
+    def _locations(self) -> dict[str, Any]:
         """Build the Locations object."""
         # The OPDS v2 progression spec secifies position as > 0.
         position = max(self._obj.page + 1, 0)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -121,7 +123,7 @@ class OPDS2ProgressionView(
         }
 
     @property
-    def locator(self):
+    def locator(self) -> dict[str, Any]:
         """Build the Locator object."""
         return {
             "title": self.title,  # See publication.py:103
@@ -154,7 +156,7 @@ class OPDS2ProgressionView(
         )
 
     @override
-    def get_object(self):
+    def get_object(self) -> dict[str, Any]:
         """Build the progression data object."""
         pk = self.kwargs.get("pk")
         qs = self._get_bookmark_query()
@@ -180,7 +182,7 @@ class OPDS2ProgressionView(
             "locator": self.locator,
         }
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         """Get Response."""
         try:
             obj = self.get_object()
@@ -195,7 +197,7 @@ class OPDS2ProgressionView(
             logger.exception(exc)
             raise
 
-    def put(self, *_args, **_kwargs):
+    def put(self, *_args, **_kwargs) -> Response:
         """Update the bookmark."""
         data = self.request.data
         serializer = self.get_serializer(data=data, partial=True)

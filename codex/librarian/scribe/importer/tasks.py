@@ -32,7 +32,7 @@ class ImportTask(ScribeTask):
     force_import_metadata: bool = False
     check_metadata_mtime: bool = True
 
-    def total(self):
+    def total(self) -> int:
         """Total number of operations."""
         return (
             len(self.dirs_moved)

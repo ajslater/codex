@@ -34,7 +34,7 @@ class AdminUserViewSet(AdminModelViewSet):
     INPUT_METHODS = ("POST", "PUT")
 
     @staticmethod
-    def _on_change(uid: int):
+    def _on_change(uid: int) -> None:
         if uid:
             group = f"user_{uid}"
             tasks = (
@@ -53,12 +53,12 @@ class AdminUserViewSet(AdminModelViewSet):
             kwargs["partial"] = True
         return super().get_serializer(*args, **kwargs)
 
-    def _is_change_to_current_user(self):
+    def _is_change_to_current_user(self) -> bool:
         instance = self.get_object()
         return instance == self.request.user
 
     @override
-    def destroy(self, request, *args, **kwargs):
+    def destroy(self, request, *args, **kwargs) -> Response:
         """Destroy with guard for logged in user."""
         if self._is_change_to_current_user():
             reason = "Cannot delete logged in user."
@@ -68,7 +68,7 @@ class AdminUserViewSet(AdminModelViewSet):
         return res
 
     @override
-    def perform_update(self, serializer):
+    def perform_update(self, serializer) -> None:
         """Add hook after update."""
         data = serializer.validated_data
         if self._is_change_to_current_user() and False in {
@@ -81,7 +81,7 @@ class AdminUserViewSet(AdminModelViewSet):
         self._on_change(uid)
 
     @override
-    def perform_create(self, serializer):
+    def perform_create(self, serializer) -> None:
         """Create user."""
         validated_data = serializer.validated_data
         password = validated_data["password"]
@@ -100,7 +100,7 @@ class AdminUserChangePasswordView(AdminGenericAPIView):
 
     serializer_class = UserChangePasswordSerializer
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs) -> Response:
         """Validate and set the user password."""
         try:
             serializer = self.get_serializer(data=request.data)

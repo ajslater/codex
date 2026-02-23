@@ -3,6 +3,7 @@
 from collections.abc import Iterable, Sequence
 
 from django.db.models import F
+from django.db.models.query import QuerySet
 
 from codex.models import (
     Credit,
@@ -34,7 +35,9 @@ def get_credit_people(comic_pks: Sequence[int], roles: Iterable[str], *, exclude
     return people.distinct().only("name")
 
 
-def get_credits(comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool):
+def get_credits(
+    comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool
+) -> QuerySet:
     """Get credits that are not part of other roles."""
     credit_qs = Credit.objects.filter(comic__in=comic_pks)
     if exclude:

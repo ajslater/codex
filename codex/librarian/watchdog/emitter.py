@@ -40,7 +40,7 @@ from codex.models import Library
 def extend_event_filter(
     event_filter: list[type[FileSystemEvent]] | None,
     extended_event_filter: tuple[type[FileSystemEvent], ...],
-):
+) -> None:
     """Initialize event filter with a some constant types."""
     if event_filter is None:
         event_filter = []
@@ -64,7 +64,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         covers_only=False,
         timeout: float = DEFAULT_EMITTER_TIMEOUT,
         event_filter: list[type[FileSystemEvent]] | None = None,
-    ):
+    ) -> None:
         """Initialize snapshot methods."""
         self.init_worker(logger_, librarian_queue, db_write_lock)
         self._poll_cond = Condition()
@@ -149,7 +149,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             self.log.exception(f"Getting timeout for {self.watch.path}")
         return timeout
 
-    def _is_take_snapshot(self, timeout):
+    def _is_take_snapshot(self, timeout) -> bool:
         """Determine if we should take a snapshot."""
         with self._poll_cond:
             if timeout:
@@ -161,7 +161,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         # Zero or None are acceptable timeouts to run now.
         return self.should_keep_running() and not self._get_timeout()
 
-    def _take_db_snapshot(self):
+    def _take_db_snapshot(self) -> CodexDatabaseSnapshot:
         """Get a database snapshot with optional force argument."""
         return CodexDatabaseSnapshot(
             self.watch.path,
@@ -170,7 +170,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             covers_only=self._covers_only,
         )
 
-    def _get_diff(self):
+    def _get_diff(self) -> CodexDirectorySnapshotDiff | None:
         """Take snapshots and compute the diff."""
         # Get event diff between database snapshot and directory snapshot.
         # Update snapshot.
@@ -188,7 +188,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
         )
 
-    def _queue_events(self):
+    def _queue_events(self) -> None:
         """Create and queue the events from the diff."""
         diff = self._get_diff()
         if not diff or diff.is_empty():
@@ -218,7 +218,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
         self.queue_event(FinishPollEvent("", force=self._force))
 
     @override
-    def queue_events(self, timeout):
+    def queue_events(self, timeout) -> None:
         """
         Like PollingEmitter but use a fresh db snapshot and send an entire import task.
 
@@ -250,12 +250,12 @@ class DatabasePollingEmitter(EventEmitter, WorkerStatusMixin):
             self._force = False
 
     @override
-    def on_thread_stop(self):
+    def on_thread_stop(self) -> None:
         """Send the poller as well."""
         with self._poll_cond:
             self._poll_cond.notify()
 
-    def poll(self, *, force: bool):
+    def poll(self, *, force: bool) -> None:
         """Poll now, sooner than timeout."""
         self._force = force
         self._manual_poll = True

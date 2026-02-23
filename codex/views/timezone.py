@@ -16,7 +16,7 @@ class TimezoneView(AuthGenericAPIView):
     input_serializer_class = TimezoneSerializer
     serializer_class: type[BaseSerializer] | None = OKSerializer
 
-    def _save_timezone(self, django_timezone):
+    def _save_timezone(self, django_timezone) -> None:
         """Save django timezone in session."""
         if not django_timezone:
             return
@@ -25,7 +25,7 @@ class TimezoneView(AuthGenericAPIView):
         session.save()
 
     @extend_schema(request=input_serializer_class)
-    def put(self, *args, **kwargs):
+    def put(self, *args, **kwargs) -> Response:
         """Get the user info for the current user."""
         data = self.request.data
         serializer = self.input_serializer_class(data=data)

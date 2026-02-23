@@ -8,7 +8,7 @@ from loguru import logger
 from codex.settings import DEBUG, LOG_PATH, LOG_RETENTION, LOG_ROTATION, LOGLEVEL
 
 
-def _log_format():
+def _log_format() -> str:
     fmt = "<lvl>{time:YYYY-MM-DD HH:mm:ss} | {level: <8}"
     if DEBUG:
         fmt += " | </lvl>"
@@ -20,7 +20,7 @@ def _log_format():
     return fmt
 
 
-def init_logging():
+def init_logging() -> None:
     """Initialize loguru sinks."""
     logger.level("DEBUG", color="<light-black>")
     logger.level("INFO", color="<white>")

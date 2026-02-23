@@ -1,6 +1,6 @@
 """Group Filters."""
 
-from django.db.models import Q
+from django.db.models.query_utils import Q
 
 from codex.views.browser.params import BrowserParamsView
 from codex.views.const import (
@@ -36,7 +36,7 @@ class GroupFilterView(BrowserParamsView):
         rel += "__in"
         return rel
 
-    def get_group_filter(self, group=None, pks=None, *, page_mtime=False):
+    def get_group_filter(self, group=None, pks=None, *, page_mtime=False) -> Q:
         """Get filter for the displayed group."""
         if group is None:
             group = self.kwargs["group"]

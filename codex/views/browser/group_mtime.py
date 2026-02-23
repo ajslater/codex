@@ -20,13 +20,13 @@ _FTS5_PREFIX = "fts5: "
 class BrowserGroupMtimeView(BrowserFilterView):
     """Annotations that also filter."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize memoized values."""
         super().__init__(*args, **kwargs)
         self._is_bookmark_filtered: bool | None = None
 
     @property
-    def is_bookmark_filtered(self):
+    def is_bookmark_filtered(self) -> bool:
         """Is bookmark filter in effect."""
         if self._is_bookmark_filtered is None:
             self._is_bookmark_filtered = bool(
@@ -34,7 +34,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
             )
         return self._is_bookmark_filtered
 
-    def _handle_operational_error(self, err):
+    def _handle_operational_error(self, err) -> None:
         msg = err.args[0] if err.args else ""
         if msg.startswith(_FTS5_PREFIX):
             level = "DEBUG"
@@ -47,7 +47,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
 
     def get_max_bookmark_updated_at_aggregate(
         self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
-    ):
+    ) -> Aggregate:
         """Get filtered maximum bookmark updated_at relation."""
         bm_rel = self.get_bm_rel(model)
         bm_filter = self.get_my_bookmark_filter(bm_rel)

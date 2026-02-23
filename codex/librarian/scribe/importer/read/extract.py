@@ -39,7 +39,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             old_mtime = old_mtime.replace(tzinfo=UTC)
         return old_file_type, old_page_count, old_mtime
 
-    def _set_import_metadata_flag(self):
+    def _set_import_metadata_flag(self) -> bool:
         """Set import_metadata flag."""
         if self.task.force_import_metadata:
             import_metadata = True
@@ -56,7 +56,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         old_comic_values: MappingProxyType,
         *,
         import_metadata: bool,
-    ):
+    ) -> dict:
         old_file_type, old_page_count, old_mtime = self._old_comic_values(
             old_comic_values, path
         )
@@ -90,7 +90,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
 
     def _extract_path(
         self, path: str, old_comic_values: MappingProxyType, *, import_metadata: bool
-    ):
+    ) -> dict:
         """Extract metadata from comic and clean it for codex."""
         md = {}
         failed_import = {}
@@ -117,7 +117,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         return md
 
     @staticmethod
-    def _get_all_old_comic_values(all_paths: frozenset[str]):
+    def _get_all_old_comic_values(all_paths: frozenset[str]) -> MappingProxyType:
         """Get some old comic values."""
         old_comics = Comic.objects.filter(path__in=all_paths).values(
             "path", "metadata_mtime", "page_count", "file_type"

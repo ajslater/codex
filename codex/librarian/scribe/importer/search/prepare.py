@@ -20,7 +20,9 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
     """Prepare FTS update methods used in earlier import steps."""
 
     @staticmethod
-    def minify_complex_link_to_fts_tuple(field_name: str, values: tuple | frozenset):
+    def minify_complex_link_to_fts_tuple(
+        field_name: str, values: tuple | frozenset
+    ) -> tuple[str, tuple]:
         """Only store the fts relevant parts of complex links."""
         if field_name == CREDITS_FIELD_NAME:
             values = tuple(subvalues[0] for subvalues in values)
@@ -29,12 +31,12 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         return field_name, tuple(values)
 
     @staticmethod
-    def _to_fts_tuple(values):
+    def _to_fts_tuple(values) -> tuple:
         return tuple(
             sorted(value for value in flatten(values) if isinstance(value, str))
         )
 
-    def add_to_fts_existing(self, pk: int, field_name: str, values: tuple):
+    def add_to_fts_existing(self, pk: int, field_name: str, values: tuple) -> None:
         """Add the existing values for creating a changed search entry."""
         if field_name in NON_FTS_FIELDS or not values:
             return
@@ -51,7 +53,7 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         sub_key: int | str,
         field_name: str,
         values: tuple[str | tuple, ...],
-    ):
+    ) -> None:
         """Add a link to FTS structure."""
         if field_name in NON_FTS_FIELDS:
             return

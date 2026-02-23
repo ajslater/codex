@@ -9,12 +9,12 @@ from codex.models.paths import CustomCover
 class DeletedCoversImporter(SearchIndexImporter):
     """Clean up covers from the db."""
 
-    def remove_covers(self, delete_pks, *, custom: bool):
+    def remove_covers(self, delete_pks, *, custom: bool) -> None:
         """Queue a remove covers task."""
         task = CoverRemoveTask(delete_pks, custom)
         self.librarian_queue.put(task)
 
-    def bulk_covers_deleted(self, **kwargs):
+    def bulk_covers_deleted(self, **kwargs) -> int:
         """Bulk delete comics found missing from the filesystem."""
         status = ImporterRemoveCoversStatus(
             0, len(self.task.covers_deleted), log_success=False

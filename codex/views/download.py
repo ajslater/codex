@@ -18,7 +18,7 @@ class DownloadView(AuthFilterAPIView):
     AS_ATTACHMENT: bool = True
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
-    def get(self, *_args, **kwargs):
+    def get(self, *_args, **kwargs) -> FileResponse:
         """Download a comic archive."""
         pk = kwargs.get("pk")
         try:

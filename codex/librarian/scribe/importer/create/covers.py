@@ -23,7 +23,7 @@ class CreateCoversImporter(CreateComicsImporter):
     """Create Custom Covers."""
 
     @staticmethod
-    def add_custom_cover_to_group(group_class, obj):
+    def add_custom_cover_to_group(group_class, obj) -> None:
         """If a custom cover exists for this group, add it."""
         group = CLASS_CUSTOM_COVER_GROUP_MAP.get(group_class)
         if not group:
@@ -35,7 +35,7 @@ class CreateCoversImporter(CreateComicsImporter):
         except (IndexError, ObjectDoesNotExist):
             pass
 
-    def update_custom_covers(self):
+    def update_custom_covers(self) -> int:
         """Update Custom Covers."""
         count = 0
         status = ImporterUpdateCoversStatus(0)
@@ -79,7 +79,7 @@ class CreateCoversImporter(CreateComicsImporter):
             self.status_controller.finish(status)
         return count
 
-    def create_custom_covers(self):
+    def create_custom_covers(self) -> int:
         """Create Custom Covers."""
         count = 0
         create_cover_paths = self.metadata.pop(CREATE_COVERS, ())

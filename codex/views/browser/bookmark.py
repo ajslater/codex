@@ -24,7 +24,7 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
 
     TARGET: str = "bookmark"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Init acl properties."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
@@ -50,7 +50,7 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
         return self.get_filtered_queryset(Comic, group=group, pks=pks).only("pk")
 
     @extend_schema(request=serializer_class, responses=None)
-    def patch(self, *_args, **_kwargs):
+    def patch(self, *_args, **_kwargs) -> Response:
         """Update bookmarks recursively."""
         updates = self._parse_params()
 

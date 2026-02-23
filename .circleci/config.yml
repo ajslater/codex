@@ -74,6 +74,9 @@ jobs:
       - run:
           command: ./ci/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
+      - run:
+          command: sudo chown -R circleci:circleci dist
+          name: chown dist
       - persist_to_workspace:
           paths:
             - ./dist

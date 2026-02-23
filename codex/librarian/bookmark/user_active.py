@@ -15,11 +15,11 @@ class UserActiveMixin:
     # only hit the disk to record user activity every so often
     USER_ACTIVE_RESOLUTION = timedelta(hours=1)
 
-    def init_user_active(self):
+    def init_user_active(self) -> None:
         """Init the last recorded dict."""
         self._user_active_recorded = {}  # pyright: ignore[reportUninitializedInstanceVariable]
 
-    def update_user_active(self, pk: int, log):
+    def update_user_active(self, pk: int, log) -> None:
         """Update user active."""
         # Offline because profile gets hit rapidly in succession.
         try:

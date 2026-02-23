@@ -8,14 +8,14 @@ from codex.views.browser.group_mtime import BrowserGroupMtimeView
 class BrowserOrderByView(BrowserGroupMtimeView):
     """Base class for views that need ordering."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize memoized vars."""
         super().__init__(*args, **kwargs)
         self._order_key: str = ""
         self._comic_sort_names: tuple[str, ...] = ()
 
     @property
-    def order_key(self):
+    def order_key(self) -> str:
         """Get the default order key for the view."""
         if not self._order_key:
             order_key: str = self.params["order_by"]
@@ -27,7 +27,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             self._order_key = order_key
         return self._order_key
 
-    def _add_comic_order_by(self, order_key, comic_sort_names):
+    def _add_comic_order_by(self, order_key, comic_sort_names) -> list:
         """Order by for comics (and covers)."""
         if not order_key:
             order_key = self.order_key

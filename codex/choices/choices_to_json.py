@@ -43,7 +43,7 @@ _MAP_DUMPS = MappingProxyType(
 )
 
 
-def _to_vuetify_choices(defaults, key: str, obj_map):
+def _to_vuetify_choices(defaults, key: str, obj_map) -> list:
     """Transform a dict into a list of vuetify choices."""
     default = defaults.get(key)
     vuetify_list = []
@@ -63,7 +63,7 @@ def _json_key(key: str):
     return key if key.upper() == key else camelcase(key)
 
 
-def _make_json_serializable(data, *, jsonize_keys: bool = True):
+def _make_json_serializable(data, *, jsonize_keys: bool = True) -> list | dict:
     """Convert nested Mapping objects to dicts."""
     if isinstance(data, Mapping):
         json_dict = {}
@@ -80,7 +80,7 @@ def _make_json_serializable(data, *, jsonize_keys: bool = True):
     return data
 
 
-def _to_vuetify_dict(fn: str, data):
+def _to_vuetify_dict(fn: str, data) -> dict:
     """Convert mappings to vuetify dict list."""
     vuetify_data = {}
     defaults = _DEFAULTS.get(fn) or {}
@@ -93,7 +93,9 @@ def _to_vuetify_dict(fn: str, data):
     return vuetify_data
 
 
-def _dump(parent_path: Path, fn: str, data, *, vuetify: bool, jsonize_keys: bool):
+def _dump(
+    parent_path: Path, fn: str, data, *, vuetify: bool, jsonize_keys: bool
+) -> None:
     """Dump data to json file."""
     vuetify_data = (
         _to_vuetify_dict(fn, data)
@@ -106,13 +108,13 @@ def _dump(parent_path: Path, fn: str, data, *, vuetify: bool, jsonize_keys: bool
         json_file.write("\n")
 
 
-def _make_websocket_messages():
+def _make_websocket_messages() -> MappingProxyType:
     return MappingProxyType(
         {"messages": {msg.name: msg.value for msg in Notifications}}
     )
 
 
-def main():
+def main() -> None:
     """Dump all files."""
     import sys
 
