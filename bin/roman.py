@@ -9,10 +9,13 @@ Inspired by @defunctzombie
 import re
 import sys
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
-from collections.abc import Generator, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pathspec import PathSpec
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Sequence  # noqa: TC004
 
 # ---------------------------------------------------------------------------
 # Constants
