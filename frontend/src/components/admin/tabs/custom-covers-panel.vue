@@ -1,8 +1,8 @@
 <template>
   <v-expansion-panels>
     <v-expansion-panel>
-      <v-expansion-panel-title>
-        <div id="coverDirHeader">Custom Covers</div>
+      <v-expansion-panel-title class="text-title-small">
+        Custom Covers
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <AdminLibraryTable
@@ -12,7 +12,7 @@
         />
         <v-expansion-panels>
           <v-expansion-panel id="customCoversHelp">
-            <v-expansion-panel-title>
+            <v-expansion-panel-title class="text-title-small">
               Custom Covers Help
             </v-expansion-panel-title>
             <v-expansion-panel-text>
@@ -92,9 +92,5 @@ export default {
 
 #customCoversHelp :deep(.v-expansion-panel-text h4) {
   margin-top: 0.5em;
-}
-
-h4 {
-  padding-top: 0.5em;
 }
 </style>

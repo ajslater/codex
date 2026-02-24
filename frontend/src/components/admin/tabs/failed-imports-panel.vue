@@ -5,7 +5,7 @@
         id="failedImportsPanel"
         @click="unseenFailedImports = false"
       >
-        <v-expansion-panel-title>
+        <v-expansion-panel-title class="text-title-small">
           Failed Imports: {{ failedImports.length }}
           <v-icon
             v-if="unseenFailedImports"
@@ -38,7 +38,7 @@
           </v-table>
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
-              <v-expansion-panel-title>
+              <v-expansion-panel-title class="text-title-small">
                 Failed Imports Help
               </v-expansion-panel-title>
               <v-expansion-panel-text>

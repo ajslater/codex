@@ -1,6 +1,6 @@
 <template>
   <v-footer id="version-footer" :title="versionTitle">
-    <a id="version" href="https://github.com/ajslater/codex/">
+    <a id="version" href="https://github.com/ajslater/codex/" target="_blank">
       <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
       codex v{{ versions.installed
       }}<v-icon size="x-small">{{ mdiOpenInNew }}</v-icon></a

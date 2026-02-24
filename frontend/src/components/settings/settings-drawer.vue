@@ -7,7 +7,7 @@
   >
     <div class="settingsDrawerContainer">
       <div id="topBlock">
-        <header class="settingsHeader">
+        <header class="text-title-large settingsHeader">
           {{ title }}
         </header>
         <v-divider />
@@ -103,7 +103,6 @@ export default {
   padding-left: 15px;
   padding-bottom: 10px;
   background-color: rgb(var(--v-theme-surface-light));
-  font-size: larger;
   font-weight: bolder;
 }
 
