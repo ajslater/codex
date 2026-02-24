@@ -12,9 +12,9 @@
         v-bind="props"
         density="compact"
         variant="plain"
-        :prepend-icon="item.raw.prependIcon"
-        :subtitle="item.raw.subtitle"
-        :append-icon="item.raw.appendIcon"
+        :prepend-icon="item.prependIcon"
+        :subtitle="item.subtitle"
+        :append-icon="item.appendIcon"
       />
     </template>
     <template #selection="{ props }">

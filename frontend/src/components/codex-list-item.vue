@@ -10,4 +10,8 @@ export default {
 .codexListItem :deep(> .v-list-item__prepend > .v-list-item__spacer) {
   display: none;
 }
+
+.codexListItem {
+  color: rgb(var(--v-theme-textPrimary));
+}
 </style>

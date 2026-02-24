@@ -1,6 +1,11 @@
 <template>
   <div class="bookCover">
-    <v-img :src="coverSrc" img-class="coverImgImg" :class="multiPkClasses" />
+    <v-img
+      :src="coverSrc"
+      class="coverImg"
+      :class="multiPkClasses"
+      position="top"
+    />
     <div
       v-if="finished !== true"
       :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
@@ -90,10 +95,6 @@ export default {
 
 .coverImg {
   border-radius: 5px;
-}
-
-.coverImgImg {
-  object-position: top;
 }
 
 /* Top Row */

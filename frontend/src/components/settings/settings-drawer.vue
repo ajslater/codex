@@ -7,8 +7,8 @@
   >
     <div class="settingsDrawerContainer">
       <div id="topBlock">
-        <header class="settingsHeader">
-          <h3>{{ title }}</h3>
+        <header class="text-title-large settingsHeader">
+          {{ title }}
         </header>
         <v-divider />
         <slot v-if="isAuthorized" name="panel" />
@@ -90,34 +90,51 @@ export default {
   position: relative !important;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   height: 100%;
   background-color: rgb(var(--v-theme-background)) !important;
 }
-.settingsHeader {
-  padding: 10px;
-  padding-left: 15px;
-  background-color: rgb(var(--v-theme-surface-light));
-}
+
 #topBlock {
   background-color: rgb(var(--v-theme-background)) !important;
 }
+
+.settingsHeader {
+  padding-top: 10px;
+  padding-left: 15px;
+  padding-bottom: 10px;
+  background-color: rgb(var(--v-theme-surface-light));
+  font-weight: bolder;
+}
+
 :deep(.v-list-item .v-icon) {
   color: rgb(var(--v-theme-iconsInactive)) !important;
   margin-right: 0.33em;
 }
+
 .footer {
   display: block;
+  margin-top: auto;
+  padding-top: 0px;
   font-size: small;
   text-align: center;
-  padding-top: 0px;
-  background-color: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-textDisabled));
+  background-color: rgb(var(--v-theme-surface));
 }
+
 #scrollFooter {
   padding-bottom: 0px;
 }
+
 #bottomFooter {
   padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
+}
+</style>
+<style lang="scss">
+.settingsSubHeader {
+  padding-top: 10px;
+  padding-left: 15px;
+  padding-right: 10px;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

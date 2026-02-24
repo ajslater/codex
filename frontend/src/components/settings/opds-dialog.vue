@@ -14,8 +14,8 @@
       </v-btn>
     </template>
     <div v-if="opdsURLs" id="opds">
-      <h2>
-        <v-icon size="x=small" class="inline">
+      <h2 id="opdsTitle">
+        <v-icon id="opdsIcon">
           {{ mdiRss }}
         </v-icon>
         OPDS
@@ -64,13 +64,19 @@ export default {
   padding: 20px;
 }
 
+#opdsTitle {
+  margin-top: 0px;
+}
+
 #opdsButton {
   display: block;
   width: 100%;
   color: rgb(var(--v-theme-textSecondary));
 }
 
-.inline {
+#opdsIcon {
   display: inline-flex;
+  vertical-align: -4px;
+  font-size: 25px;
 }
 </style>

@@ -2,30 +2,28 @@
   <div v-if="stats" id="stats">
     <StatsTable title="Platform" :items="platformTable" />
     <StatsTable title="Config" :items="configTable">
-      <tbody>
-        <ClipBoard
-          class="apiKey"
-          tooltip="Copy API Key"
-          title="API Key"
-          :text="stats.config.apiKey"
-        />
-        <tr id="schemaDoc">
-          <td colspan="2">
-            <div>
-              The only endpoint accessible by API Key is
-              <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-              <a :href="schemaHref" target="_blank">/admin/stats</a>
-            </div>
-            <ConfirmDialog
-              button-text="Regenerate API Key"
-              title-text="Regenerate"
-              text="API Key"
-              confirm-text="Regenerate"
-              @confirm="regenAPIKey"
-            />
-          </td>
-        </tr>
-      </tbody>
+      <ClipBoard
+        class="apiKey"
+        tooltip="Copy API Key"
+        title="API Key"
+        :text="stats.config.apiKey"
+      />
+      <tr id="schemaDoc">
+        <td colspan="2">
+          <div>
+            The only endpoint accessible by API Key is
+            <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
+            <a :href="schemaHref" target="_blank">/admin/stats</a>
+          </div>
+          <ConfirmDialog
+            button-text="Regenerate API Key"
+            title-text="Regenerate"
+            text="API Key"
+            confirm-text="Regenerate"
+            @confirm="regenAPIKey"
+          />
+        </td>
+      </tr>
     </StatsTable>
     <StatsTable title="User Settings" :items="userSettingsTable" />
     <StatsTable title="Browser Groups" :items="browserGroupsTable" />
@@ -202,13 +200,17 @@ export default {
 
 :deep(.clipboard) {
   display: table-row;
+  background-image: linear-gradient(
+    0deg,
+    rgba(var(--v-border-color), var(--v-hover-opacity)),
+    rgba(var(--v-border-color), var(--v-hover-opacity))
+  );
 }
-
 :deep(.clipboard *) {
   height: 52px;
 }
 
-:deep(.clipboard > h3) {
+:deep(.clipboard > .clipboardTitle) {
   display: table-cell;
   font-weight: normal;
   font-size: 14px;
