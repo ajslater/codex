@@ -78,8 +78,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@use "vuetify/styles/settings/variables" as vuetify;
-
 #browserToolbarTitle {
   padding-bottom: 6px;
 }

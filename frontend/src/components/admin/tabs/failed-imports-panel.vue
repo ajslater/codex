@@ -5,8 +5,8 @@
         id="failedImportsPanel"
         @click="unseenFailedImports = false"
       >
-        <v-expansion-panel-title>
-          <h4>Failed Imports: {{ failedImports.length }}</h4>
+        <v-expansion-panel-title class="text-title-small">
+          Failed Imports: {{ failedImports.length }}
           <v-icon
             v-if="unseenFailedImports"
             id="failedImportsIcon"
@@ -16,7 +16,7 @@
           </v-icon>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <v-table class="highlight-table">
+          <v-table id="failedImportsTable" striped="odd">
             <template #default>
               <thead>
                 <tr>
@@ -38,8 +38,8 @@
           </v-table>
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
-              <v-expansion-panel-title>
-                <h4>Failed Imports Help</h4>
+              <v-expansion-panel-title class="text-title-small">
+                Failed Imports Help
               </v-expansion-panel-title>
               <v-expansion-panel-text>
                 <p>
@@ -118,6 +118,11 @@ export default {
 
 <style scoped lang="scss">
 @forward "../../anchors";
+
+:deep(.v-expansion-panel-title) {
+  font-weight: bolder;
+}
+
 .cli {
   display: block;
   margin-left: 2em;
@@ -130,6 +135,10 @@ export default {
 #failedImportsIcon {
   padding-left: 0.25em;
   color: rgb(var(--v-theme-error)) !important;
+}
+
+#failedImportsTable {
+  background-color: inherit;
 }
 
 #failedImportsHelp {

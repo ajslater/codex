@@ -1,5 +1,5 @@
 <template>
-  <h4 class="readerSettingsHeader">Comic Settings Scope</h4>
+  <div class="settingsSubHeader">Comic Settings Scope</div>
   <v-radio-group
     v-model="isGlobalScope"
     class="scopeRadioGroup readerCodexListItem"
@@ -88,7 +88,7 @@
     </div>
   </v-expand-transition>
   <v-divider />
-  <h4 class="readerSettingsHeader">Reader Settings</h4>
+  <div class="settingsSubHeader">Reader Settings</div>
   <v-checkbox
     class="readerCodexListItem"
     :model-value="finishOnLastPage"
@@ -301,12 +301,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.readerSettingsHeader {
-  padding-top: 10px;
-  color: rgb(var(--v-theme-textDisabled));
-  padding-left: 15px;
-}
-
+// settingsSubHeader defined in settings/settings-drawer.vue
 .scopeRadioGroup {
   padding-top: 10px;
   padding-bottom: 4px;

@@ -38,7 +38,7 @@
       />
     </template>
     <div class="confirmDialog">
-      <h3>{{ titleText }}</h3>
+      <div class="title">{{ titleText }}</div>
       {{ text }}
       <ConfirmFooter
         :confirm-text="confirmText"
@@ -111,5 +111,11 @@ export default {
 .confirmDialog {
   padding: 20px;
   text-align: center;
+}
+
+.title {
+  padding-bottom: 10px;
+  font-weight: bolder;
+  font-size: larger;
 }
 </style>

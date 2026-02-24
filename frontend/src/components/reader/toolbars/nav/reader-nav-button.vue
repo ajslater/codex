@@ -78,10 +78,13 @@ export default {
 .readerNavButton {
   padding-left: 15px;
   padding-right: 15px;
+  color: rgb(var(--v-theme-textPrimary));
 }
+
 .readerNavButtonLeft {
   padding-left: max(15px, calc(env(safe-area-inset-left) / 3)) !important;
 }
+
 .readerNavButtonRight {
   padding-right: max(15px, calc(env(safe-area-inset-right) / 3)) !important;
 }

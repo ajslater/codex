@@ -4,7 +4,7 @@
       <h1>Search Help</h1>
       <div id="fieldTableContainer">
         <h2>Search Fields</h2>
-        <v-table id="fieldTable" class="highlight-table">
+        <v-table id="fieldTable" striped="odd">
           <thead>
             <tr>
               <th>Field</th>
@@ -238,9 +238,10 @@ h3 {
 
 #fieldTable {
   width: fit-content;
-  text-align: left;
-  margin-bottom: 1em;
   margin-right: 2em;
+  margin-bottom: 1em;
+  text-align: left;
+  background-color: inherit;
   color: rgb(var(--v-theme-textSecondary));
 }
 

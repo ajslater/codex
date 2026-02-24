@@ -109,6 +109,10 @@ export default {
   padding: 0px;
 }
 
+#browserBreadcrumbs :deep(.v-breadcrumbs-item--link) {
+  color: rgb(var(--v-theme-textDisabled));
+}
+
 #browserBreadcrumbs :deep(.v-breadcrumbs-divider) {
   padding: 3px;
 }
