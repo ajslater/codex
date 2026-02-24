@@ -4,6 +4,9 @@ set -euo pipefail
 
 DEVENV_SRC=../devenv
 
+# Cleanup old stuff
+bin/delete-files.sh "$DEVENV_SRC"
+
 # Prepare
 mkdir -pv bin cfg
 
