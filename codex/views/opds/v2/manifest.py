@@ -90,15 +90,19 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         }
         number = obj.issue_number
         ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {"ts": ts, "topGroup": "p"}
+        query_params = {
+            "ts": ts,
+            "topGroup": "p",
+        }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
     def _publication_belongs_to_folder(self, obj) -> list:
         if not self.is_allowed(obj):
             return []
-        name = obj.path
-        pks = [obj.parent_folder.pk]
+        folder = obj.parent_folder
+        name = folder.path
+        pks = [folder.pk]
         kwargs = {"group": "f", "pks": pks, "page": 1}
         number = None
         ts = floor(datetime.timestamp(obj.updated_at))

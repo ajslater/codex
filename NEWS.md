@@ -9,7 +9,8 @@ border-radius: 128px;
 ## v1.9.19
 
 - Fixes
-    - Fix comic names with null volume_to
+    - Fix comic names with null volume_to.
+    - Fix OPDS v2 folder as collection naming.
 - Dev Notes
     - Vuetify 4.0 frontend
 
