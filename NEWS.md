@@ -8,7 +8,9 @@ border-radius: 128px;
 
 ## v1.9.19
 
-- Changes
+- Fixes
+    - Fix comic names with null volume_to
+- Dev Notes
     - Vuetify 4.0 frontend
 
 ## v1.9.18
