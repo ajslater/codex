@@ -1,11 +1,11 @@
 .PHONY: fix
-## Fix django lint errors
+## Fix django lint errors in templates
 ## @category Fix
 fix::
 	uv run --group lint djlint --reformat **/templates/**/*.html
 
 .PHONY: lint
-## Fix django lint errors
+## Lint django templates
 ## @category Lint
 lint::
 	uv run --group lint djlint --lint **/templates/**/*.html

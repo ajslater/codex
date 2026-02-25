@@ -1,5 +1,3 @@
-export MERGE_PYTHON=1
-
 .PHONY: clean
 ## Clean python caches
 ## @category Clean

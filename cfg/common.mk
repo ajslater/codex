@@ -1,4 +1,5 @@
 SHELL := /usr/bin/env bash
+DEVENV_SRC ?= ../devenv
 
 .PHONY: clean
 ## Clean caches
@@ -32,7 +33,7 @@ update:: update-npm
 ## Update development environment
 ## @category Update
 update-devenv:
-	bin/update-devenv.sh
+	$(DEVENV_SRC)/scripts/update-devenv.sh
 
 .PHONY: fix
 ## Fix lint errors
