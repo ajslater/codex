@@ -1,6 +1,6 @@
 <template>
-  <h4>Navigation</h4>
-  <table class="highlight-table">
+  <div class="settingsSubHeader">Navigation</div>
+  <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
         <td>
@@ -37,23 +37,23 @@
         <td>Close book</td>
       </tr>
     </tbody>
-  </table>
-  <h4>Fit Page To</h4>
-  <table class="highlight-table">
+  </v-table>
+  <div class="settingsSubHeader">Fit Page To</div>
+  <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
         <td><v-hotkey keys="s" /></td>
-        <td>screen</td>
+        <td>Screen</td>
       </tr>
       <tr>
         <td>
           <v-hotkey keys="h" />
         </td>
-        <td>screen height</td>
+        <td>Screen height</td>
       </tr>
       <tr>
         <td><v-hotkey keys="w" /></td>
-        <td>screen width</td>
+        <td>Screen width</td>
       </tr>
       <tr>
         <td><v-hotkey keys="o" /></td>
@@ -80,9 +80,9 @@
         <td>Read in Bottom to Top</td>
       </tr>
     </tbody>
-  </table>
-  <h4>Other</h4>
-  <table class="highlight-table">
+  </v-table>
+  <div class="settingsSubHeader">Other</div>
+  <v-table class="shortcutsTable" striped="odd">
     <tbody>
       <tr>
         <td><v-hotkey keys="m" /></td>
@@ -93,7 +93,7 @@
         <td>Zoom page</td>
       </tr>
     </tbody>
-  </table>
+  </v-table>
 </template>
 <script>
 import {
@@ -116,6 +116,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+// settingsSubHeader defined in settings/settings-drawer.vue
 :deep(.v-expansion-panel-title--active) {
   min-height: 48px !important;
 }
@@ -125,28 +126,18 @@ export default {
   padding-right: 10px;
 }
 
-.highlight-table {
+.shortcutsTable {
   margin-top: 10px;
-  border-collapse: collapse;
+  background-color: inherit;
   color: rgb(var(--v-theme-textDisabled));
 }
 
-h4 {
-  padding-left: 0.5em;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.highlight-table tr:nth-child(odd) {
-  background-color: rgb(var(--v-theme-surface)) !important;
-}
-
-.highlight-table td {
-  min-width: 60px;
+.shortcutsTable td {
   padding: 5px;
 }
 
-.highlight-table td:first-child {
-  text-align: center;
+.shortcutsTable td:first-child {
+  width: 105px;
 }
 
 .keyIcon {

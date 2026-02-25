@@ -1,0 +1,8 @@
+features:
+  - common
+  - docs
+  - docker
+  - ci
+  - python
+  - frontend
+  - django

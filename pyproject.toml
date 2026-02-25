@@ -17,7 +17,7 @@ dependencies = [
   "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=2.2",
+  "comicbox[pdf]~=2.2.1",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",
@@ -51,7 +51,7 @@ readme = "README.md"
 license = "GPL-3.0-only"
 name = "codex"
 requires-python = ">=3.10"
-version = "1.9.18"
+version = "1.9.19"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"

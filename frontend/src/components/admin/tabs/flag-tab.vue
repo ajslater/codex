@@ -1,5 +1,5 @@
 <template>
-  <v-table class="highlight-table flags-table" :items="flags" fixed-header>
+  <v-table id="flags-table" :items="flags" striped="odd">
     <thead>
       <tr>
         <th>Description</th>
@@ -10,7 +10,7 @@
     <tbody>
       <tr v-for="item in flags" :key="`f${item.key}`">
         <td class="nameCol" :colspan="colspan(item)">
-          <h4>{{ title(item) }}</h4>
+          <div class="text-title-small title">{{ title(item) }}</div>
           <p class="desc">
             {{ DESC[item.key] }}
           </p>
@@ -127,13 +127,18 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.flags-table {
+#flags-table {
   max-width: 100vw !important;
   margin-bottom: 24px;
+  background-color: inherit;
 }
 
 .nameCol {
-  padding-top: 0.5em !important;
+  padding-top: 1em !important;
+}
+
+.title {
+  font-weight: bolder;
 }
 
 .desc {

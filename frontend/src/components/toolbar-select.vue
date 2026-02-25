@@ -14,13 +14,13 @@
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />
     </template>
-    <template #item="{ item, props }">
+    <template #item="{ internalItem, props }">
       <v-list-item
         v-bind="props"
         density="compact"
         variant="plain"
-        :title="item.title"
-        :value="item.value"
+        :title="internalItem.title"
+        :value="internalItem.value"
       />
     </template>
   </v-select>
@@ -56,19 +56,24 @@ export default {
 :deep(.v-label.v-field-label) {
   top: 13px;
 }
+
 :deep(.v-label.v-field-label--floating) {
   opacity: var(--v-disabled-opacity) !important;
 }
+
 :deep(.v-field:hover .v-label.v-field-label--floating),
 :deep(.v-field--focused .v-label.v-field-label--floating) {
   opacity: var(--v-medium-emphasis-opacity) !important;
 }
+
 :deep(.v-field__input) {
   padding-right: 0px;
 }
+
 :deep(.v-select__menu-icon) {
   margin-left: 0px !important;
 }
+
 :deep(.v-select__selection) {
   font-size: small;
 }

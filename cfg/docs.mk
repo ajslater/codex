@@ -1,4 +1,3 @@
-export MERGE_DOCS=1
 .PHONY: docs
 ## Build doc site
 ## @category Docs

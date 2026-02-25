@@ -6,13 +6,13 @@
     :items="topGroupChoicesWithDividers"
     :max-select-len="topGroupChoicesMaxLen - 2.25"
   >
-    <template #item="{ item, props }">
+    <template #item="{ internalItem, props }">
       <v-list-item
         v-bind="props"
         density="compact"
         variant="plain"
-        :title="item.title"
-        :value="item.value"
+        :title="internalItem.title"
+        :value="internalItem.value"
       />
     </template>
   </ToolbarSelect>

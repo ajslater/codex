@@ -1,6 +1,6 @@
 <template>
-  <span class="clipboard" :title="tooltipText" @click.stop="onClick">
-    <h3>
+  <div class="clipboard" :title="tooltipText" @click.stop="onClick">
+    <span class="clipboardTitle">
       {{ title }}
       <span v-if="enabled" class="iconContainer">
         <v-icon class="clipboardIcon" size="small" :icon="icon" />
@@ -8,10 +8,10 @@
           <span v-show="showTooltip.show" class="copied">Copied</span>
         </v-fade-transition>
       </span>
-      <span v-if="subtitle" class="subtitle">{{ subtitle }}</span>
-    </h3>
+    </span>
+    <span v-if="subtitle" class="subtitle">{{ subtitle }}</span>
     <div class="bodyText">{{ text }}</div>
-  </span>
+  </div>
 </template>
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
@@ -66,8 +66,13 @@ export default {
   background-color: rgb(var(--v-theme-surface));
 }
 
+.clipboardTitle {
+  font-size: larger;
+  font-weight: bolder;
+}
+
 .subtitle {
-  font-size: 12px;
+  font-size: small;
   font-weight: normal;
   color: rgb(var(--v-theme-textDisabled));
 }

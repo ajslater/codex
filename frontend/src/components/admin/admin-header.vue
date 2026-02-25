@@ -103,4 +103,8 @@ export default {
 :deep(.tabHeader) {
   padding: 10px;
 }
+
+:deep(.v-tab) {
+  color: rgb(var(--v-theme-textPrimary));
+}
 </style>
