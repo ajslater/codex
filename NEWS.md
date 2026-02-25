@@ -9,7 +9,8 @@ border-radius: 128px;
 ## v1.9.19
 
 - Fixes
-    - Fix comic names with null volume_to.
+    - Fix PDF date parsing bug on import.
+    - Fix comic names with null volume_to field.
     - Provide volume name in comic title for OPDS v2 as there's no volume view
       available.
     - Fix OPDS v2 folder as collection naming.
