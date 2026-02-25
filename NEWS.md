@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fixes
     - Fix comic names with null volume_to.
+    - Provide volume name in comic title for OPDS v2 as there's no volume view
+      available.
     - Fix OPDS v2 folder as collection naming.
 - Dev Notes
     - Vuetify 4.0 frontend
