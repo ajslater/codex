@@ -51,7 +51,7 @@ readme = "README.md"
 license = "GPL-3.0-only"
 name = "codex"
 requires-python = ">=3.10"
-version = "1.9.18"
+version = "1.9.19"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"

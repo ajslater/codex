@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.19
+
+- Changes
+    - Vuetify 4.0 frontend
+
 ## v1.9.18
 
 - Fixes
