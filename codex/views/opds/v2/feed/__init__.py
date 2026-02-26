@@ -36,16 +36,28 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         # Add filters and order
         parts = []
         qps = self.request.GET
-        if filters := qps.get("filters"):
-            filters = urllib.parse.unquote(filters)
-            if bf := json.loads(filters).get("bookmark", ""):
-                bf = "reading" if bf == "IN_PROGRESS" else bf.lower()
-            parts.append(bf)
-        if q := qps.get("query"):
-            search_query = urllib.parse.unquote(q)
+        if (
+            (filters := qps.get("filters"))
+            and (filters := urllib.parse.unquote(filters))
+            and (filters := json.loads(filters))
+        ):
+            filter_keys = []
+            for key, value in filters.items():
+                if not value:
+                    continue
+                if key == "bookmark":
+                    bf = "reading" if value == "IN_PROGRESS" else value.lower()
+                    parts.append(bf)
+                else:
+                    filter_keys.append(key)
+            if filter_keys:
+                parts += sorted(filter_keys)
+        if (q := qps.get("query")) and (search_query := urllib.parse.unquote(q)):
             parts.append(search_query)
-        if (order_by := qps.get("orderBy")) and order_by != "sort_name":
-            order_by = _ORDER_BY_SUBTITLE_MAP.get(order_by, order_by)
+        if q := qps.get("query") and (
+            (order_by := qps.get("orderBy")) and order_by != "sort_name"
+        ):
+            order_by = _ORDER_BY_SUBTITLE_MAP.get(order_by, order_by)  # pyright: ignore[reportPossiblyUnboundVariable, reportArgumentType, reportCallIssue]
             parts.append(order_by)
         if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
             parts.append("desc")
