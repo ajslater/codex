@@ -1,5 +1,6 @@
 """Publication Methods for OPDS v2.0 feed."""
 
+import json
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from math import floor
@@ -39,12 +40,6 @@ _MD_CREDIT_MAP = MappingProxyType(
 
 class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
     """Publication Manifest Divina Extended Metadata."""
-
-    @staticmethod
-    def _add_credits(md, pks, key, roles) -> None:
-        """Add credits to metadata."""
-        if credit_objs := get_credits(pks, roles, exclude=False):
-            md[key] = credit_objs
 
     def _publication_identifier(self, obj) -> str:
         rel = GroupACLMixin.get_rel_prefix(Identifier)
@@ -150,6 +145,32 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # https://readium.org/webpub-manifest/schema/subject-object.schema.json
         m2m_objs = get_m2m_objects(obj.ids)
         return [subj.name for subjs in m2m_objs.values() for subj in subjs]
+
+    def _add_credit_link(self, credit_obj):
+        kwargs = {"group": "s", "pks": (), "page": 1}
+        person = credit_obj.person
+        filters = {"credits": [person.pk]}
+        filters = json.dumps(filters)
+        query_params = {
+            "topGroup": "s",
+            "filters": filters,
+            "title": person.name,
+        }
+        href_data = HrefData(kwargs, query_params, url_name="opds:v2:feed")
+        link_data = LinkData(
+            Rel.FACET,
+            href_data,
+            mime_type=MimeType.OPDS_JSON,
+        )
+        link = self.link(link_data)
+        credit_obj.links = [link]
+
+    def _add_credits(self, md, pks, key, roles) -> None:
+        """Add credits to metadata."""
+        if credit_objs := get_credits(pks, roles, exclude=False):
+            for credit_obj in credit_objs:
+                self._add_credit_link(credit_obj)
+            md[key] = credit_objs
 
     def _publication_credits(self, obj, md) -> None:
         for key, roles in _MD_CREDIT_MAP.items():

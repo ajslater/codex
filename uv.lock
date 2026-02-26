@@ -659,7 +659,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.9.19"
+version = "1.9.20"
 source = { editable = "." }
 dependencies = [
     { name = "aioprocessing" },

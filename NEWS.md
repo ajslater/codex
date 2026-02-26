@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.20
+
+- Features
+    - OPDS v2 credits now link to filtered views of the credited person.
+
 ## v1.9.19
 
 - Fixes
