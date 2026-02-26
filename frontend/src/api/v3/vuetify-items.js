@@ -25,7 +25,7 @@ const toVuetifyItem = function (item) {
         vuetifyItem = { value, title: item.name };
       }
     } else if (NULL_PKS.has(item.pk)) {
-      vuetifyItem = undefined;
+      vuetifyItem = { value: item.pk, title: "None" };
     } else {
       vuetifyItem = { value: item.pk, title: item.name };
     }
@@ -60,6 +60,7 @@ export const toVuetifyItems = function ({
 
   // Case insensitive search for filter-sub-menu
   const lowerCaseFilter = filter ? filter.toLowerCase() : filter;
+  let noneItem;
 
   let computedItems = [];
   for (const item of sourceItems) {
@@ -69,12 +70,20 @@ export const toVuetifyItems = function ({
       (!lowerCaseFilter ||
         vuetifyItem?.title?.toLowerCase().includes(lowerCaseFilter))
     ) {
-      computedItems.push(vuetifyItem);
+      if (vuetifyItem.value === -1) {
+        noneItem = vuetifyItem;
+      } else {
+        computedItems.push(vuetifyItem);
+      }
     }
   }
   if (sort) {
     const sortFunc = numeric ? vuetifyItemCompareNumeric : vuetifyItemCompare;
     computedItems = computedItems.sort(sortFunc);
+  }
+  if (noneItem) {
+    // Prepend noneItem if it exists.
+    computedItems.unshift(noneItem);
   }
   return computedItems;
 };
