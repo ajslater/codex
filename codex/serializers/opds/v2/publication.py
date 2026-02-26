@@ -8,20 +8,31 @@ from codex.serializers.opds.v2.links import OPDS2LinkListField
 from codex.serializers.opds.v2.metadata import OPDS2MetadataSerializer
 
 
-class OPDS2ContributorSerializer(Serializer):
+class OPDS2SubjectSerializer(Serializer):
+    """
+    Subject Object. Can be nearly any tag type.
+
+    https://readium.org/webpub-manifest/schema/subject.schema.json
+    """
+
+    name = CharField(read_only=True)
+    # X code = CharField(read_only=True, required=True)
+    # X scheme = URIField(read_only=True, required=False)
+    links = OPDS2LinkListField(read_only=True, required=False)
+    # X sort_as = CharField(read_only=True, required=False)  language-map.schema.json
+
+
+class OPDS2ContributorSerializer(OPDS2SubjectSerializer):
     """
     Credit Object.
 
     https://readium.org/webpub-manifest/schema/contributor.schema.json
     """
 
-    name = CharField(read_only=True)
     identifier = CharField(read_only=True, required=False)
     # X alt_identifier = CharField(read_only=True, required=False)
-    # X sort_as = CharField(read_only=True, required=False)  unused
     role = CharField(read_only=True, source="role_name", required=False)
     # X role = CharListField(read_only=True)  unused
-    links = OPDS2LinkListField(read_only=True)
 
 
 class OPDS2BelongsToObjectSerializer(Serializer):
@@ -88,7 +99,7 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     contributor = OPDS2ContributorSerializer(many=True, required=False)
     publisher = CharField(read_only=True, required=False)
     imprint = CharField(read_only=True, required=False)
-    subject = ListField(child=CharField(read_only=True), read_only=True, required=False)
+    subject = OPDS2SubjectSerializer(many=True, required=False)
     layout = CharField(read_only=True, required=False)
     reading_progression = CharField(read_only=True, required=False)  # choice field
     # X duration = InteField(read_only=True, required=False)

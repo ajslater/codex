@@ -6,11 +6,12 @@ from datetime import datetime
 from math import floor
 from types import MappingProxyType
 
-from django.db.models import F
+from django.db.models import F, QuerySet
 from typing_extensions import override
 
+from codex.models.base import BaseModel, NamedModel
 from codex.models.identifier import Identifier
-from codex.models.named import StoryArcNumber
+from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
@@ -140,21 +141,15 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return belongs_to
 
-    def _publication_subject(self, obj) -> list:
-        # Subjects can also have links
-        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
-        m2m_objs = get_m2m_objects(obj.ids)
-        return [subj.name for subjs in m2m_objs.values() for subj in subjs]
-
-    def _add_credit_link(self, credit_obj):
+    def _add_tag_link(self, obj: BaseModel, filter_key: str, subfield: str = ""):
         kwargs = {"group": "s", "pks": (), "page": 1}
-        person = credit_obj.person
-        filters = {"credits": [person.pk]}
+        value: NamedModel = getattr(obj, subfield) if subfield else obj  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        filters = {filter_key: [value.pk]}
         filters = json.dumps(filters)
         query_params = {
             "topGroup": "s",
             "filters": filters,
-            "title": person.name,
+            "title": value.name,
         }
         href_data = HrefData(kwargs, query_params, url_name="opds:v2:feed")
         link_data = LinkData(
@@ -163,18 +158,32 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             mime_type=MimeType.OPDS_JSON,
         )
         link = self.link(link_data)
-        credit_obj.links = [link]
+        obj.links = (link,)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
-    def _add_credits(self, md, pks, key, roles) -> None:
+    def _publication_subject(self, obj) -> tuple[NamedModel, ...]:
+        m2m_objs = get_m2m_objects(obj.ids)
+        flat_subjs = []
+        for key, subjs in m2m_objs.items():
+            filter_key = key + "s"
+            for subj in subjs:
+                self._add_tag_link(subj, filter_key)
+                flat_subjs.append(subj)
+        return tuple(flat_subjs)
+
+    def _add_credits(self, pks, roles) -> QuerySet[Credit] | None:
         """Add credits to metadata."""
         if credit_objs := get_credits(pks, roles, exclude=False):
             for credit_obj in credit_objs:
-                self._add_credit_link(credit_obj)
-            md[key] = credit_objs
+                self._add_tag_link(credit_obj, "credits", "person")
+            return credit_objs
+        return None
 
-    def _publication_credits(self, obj, md) -> None:
+    def _publication_credits(self, obj) -> Mapping[str, tuple[Credit, ...]]:
+        credit_md = {}
         for key, roles in _MD_CREDIT_MAP.items():
-            self._add_credits(md, obj.ids, key, roles)
+            if credit_objs := self._add_credits(obj.ids, roles):
+                credit_md[key] = credit_objs
+        return credit_md
 
     @override
     def _publication_metadata(self, obj, zero_pad) -> dict:
@@ -195,7 +204,8 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             md["belongs_to"] = belongs_to
         if subject := self._publication_subject(obj):
             md["subject"] = subject
-        self._publication_credits(obj, md)
+        if credit_md := self._publication_credits(obj):
+            md.update(credit_md)
         return md
 
 
