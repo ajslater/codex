@@ -1,11 +1,6 @@
 // Shared functions for most metadata components.
-import { vuetifyNullCode } from "@/choices/browser-choices.json";
-export const NULL_PKS = new Set([
-  "",
-  vuetifyNullCode,
-  vuetifyNullCode.toString(),
-  undefined,
-]);
+import { vuetifyNullCode as VUETIFY_NULL_CODE } from "@/choices/browser-choices.json";
+export const NULL_PKS = new Set(["", VUETIFY_NULL_CODE, undefined, null]);
 
 const toVuetifyItem = function (item) {
   /*
@@ -25,7 +20,7 @@ const toVuetifyItem = function (item) {
         vuetifyItem = { value, title: item.name };
       }
     } else if (NULL_PKS.has(item.pk)) {
-      vuetifyItem = { value: item.pk, title: "None" };
+      vuetifyItem = { value: item.pk, title: "(None)" };
     } else {
       vuetifyItem = { value: item.pk, title: item.name };
     }
@@ -70,8 +65,9 @@ export const toVuetifyItems = function ({
       (!lowerCaseFilter ||
         vuetifyItem?.title?.toLowerCase().includes(lowerCaseFilter))
     ) {
-      if (vuetifyItem.value === -1) {
+      if (NULL_PKS.has(vuetifyItem.value)) {
         noneItem = vuetifyItem;
+        noneItem.value = VUETIFY_NULL_CODE;
       } else {
         computedItems.push(vuetifyItem);
       }

@@ -5,7 +5,6 @@ from types import MappingProxyType
 from rest_framework.fields import (
     BooleanField,
     CharField,
-    ListField,
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
@@ -21,6 +20,7 @@ from codex.serializers.fields.browser import BookmarkFilterField
 from codex.serializers.fields.vuetify import (
     VuetifyFileTypeChoiceField,
     VuetifyReadingDirectionChoiceField,
+    VuetifyReadOnlyListField,
 )
 from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
@@ -57,42 +57,32 @@ class BrowserSettingsFilterSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
     # Dynamic filters
-    age_rating = ListField(child=VuetifyCharField(), required=False, read_only=True)
-    characters = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    country = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    credits = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    critical_rating = ListField(
-        child=VuetifyDecimalField(max_digits=5, decimal_places=2),
-        required=False,
-        read_only=True,
+    age_rating = VuetifyReadOnlyListField()
+    characters = VuetifyReadOnlyListField()
+    country = VuetifyReadOnlyListField()
+    credits = VuetifyReadOnlyListField()
+    critical_rating = VuetifyReadOnlyListField(
+        child=VuetifyDecimalField(max_digits=5, decimal_places=2)
     )
-    decade = ListField(child=VuetifyDecadeField(), required=False, read_only=True)
-    file_type = ListField(
-        child=VuetifyFileTypeChoiceField(), required=False, read_only=True
+    decade = VuetifyReadOnlyListField(child=VuetifyDecadeField)
+    file_type = VuetifyReadOnlyListField(child=VuetifyFileTypeChoiceField)
+    genres = VuetifyReadOnlyListField()
+    identifier_source = VuetifyReadOnlyListField()
+    language = VuetifyReadOnlyListField()
+    locations = VuetifyReadOnlyListField()
+    monochrome = VuetifyReadOnlyListField(child=VuetifyBooleanField)
+    original_format = VuetifyReadOnlyListField()
+    reading_direction = VuetifyReadOnlyListField(
+        child=VuetifyReadingDirectionChoiceField
     )
-    genres = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    identifier_source = ListField(
-        child=VuetifyCharField(), required=False, read_only=True
-    )
-    language = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    locations = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    monochrome = ListField(child=VuetifyBooleanField(), required=False, read_only=True)
-    original_format = ListField(
-        child=VuetifyCharField(), required=False, read_only=True
-    )
-    reading_direction = ListField(
-        child=VuetifyReadingDirectionChoiceField(), required=False, read_only=True
-    )
-    series_groups = ListField(
-        child=VuetifyIntegerField(), required=False, read_only=True
-    )
-    stories = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    story_arcs = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    tagger = ListField(child=VuetifyCharField(), required=False, read_only=True)
-    tags = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    teams = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    universes = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
-    year = ListField(child=VuetifyIntegerField(), required=False, read_only=True)
+    series_groups = VuetifyReadOnlyListField()
+    stories = VuetifyReadOnlyListField()
+    story_arcs = VuetifyReadOnlyListField()
+    tagger = VuetifyReadOnlyListField()
+    tags = VuetifyReadOnlyListField()
+    teams = VuetifyReadOnlyListField()
+    universes = VuetifyReadOnlyListField()
+    year = VuetifyReadOnlyListField()
 
 
 class BrowserChoicesIntegerPkSerializer(Serializer):

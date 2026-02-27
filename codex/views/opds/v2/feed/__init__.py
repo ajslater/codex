@@ -42,7 +42,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             and (filters := json.loads(filters))
         ):
             filter_keys = []
-            for key, value in filters.items():
+            for key, value in filters.items():  # ty: ignore[unresolved-attribute]
                 if not value:
                     continue
                 if key == "bookmark":
