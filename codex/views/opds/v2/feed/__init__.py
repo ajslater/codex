@@ -31,27 +31,34 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
     IS_START_PAGE: bool = False
 
+    def _subtitle_filters(self, qps: Mapping) -> list[str]:
+        parts = []
+        if not (
+            (filters := qps.get("filters"))
+            and (filters := urllib.parse.unquote(filters))
+            and (filters := json.loads(filters))
+        ):
+            return parts
+
+        filter_keys = []
+        for key, value in filters.items():  # ty: ignore[unresolved-attribute]
+            if not value:
+                continue
+            if key == "bookmark":
+                bf = "reading" if value == "IN_PROGRESS" else value.lower()
+                parts.append(bf)
+            else:
+                filter_keys.append(key)
+        if filter_keys:
+            parts += sorted(filter_keys)
+        return parts
+
     def _subtitle(self) -> str:
         """Subtitle for main feed."""
         # Add filters and order
         parts = []
         qps = self.request.GET
-        if (
-            (filters := qps.get("filters"))
-            and (filters := urllib.parse.unquote(filters))
-            and (filters := json.loads(filters))
-        ):
-            filter_keys = []
-            for key, value in filters.items():  # ty: ignore[unresolved-attribute]
-                if not value:
-                    continue
-                if key == "bookmark":
-                    bf = "reading" if value == "IN_PROGRESS" else value.lower()
-                    parts.append(bf)
-                else:
-                    filter_keys.append(key)
-            if filter_keys:
-                parts += sorted(filter_keys)
+        parts += self._subtitle_filters(qps)
         if (q := qps.get("query")) and (search_query := urllib.parse.unquote(q)):
             parts.append(search_query)
         if q := qps.get("query") and (

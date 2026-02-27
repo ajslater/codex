@@ -37,6 +37,19 @@ _MD_CREDIT_MAP = MappingProxyType(
         "narrator": {"Narrator"},
     }
 )
+_PUBLICATION_FIELD_MAP: MappingProxyType[str, str] = MappingProxyType(
+    {
+        "description": "summary",
+        "publisher": "publisher_name",
+        "imprint": "imprint_name",
+    }
+)
+
+_PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
+    "identifier",
+    "belongs_to",
+    "subject",
+)
 
 
 class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
@@ -188,22 +201,23 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
     @override
     def _publication_metadata(self, obj, zero_pad) -> dict:
         md = super()._publication_metadata(obj, zero_pad)
-        if desc := obj.summary:
-            md["description"] = desc
+
+        # Direct attribute to key mappings
+        for md_key, attr in _PUBLICATION_FIELD_MAP:
+            if value := getattr(obj, attr, None):
+                md[md_key] = value
+
+        # Special cases with transforms
         if lang := obj.language:
             md["language"] = lang.name
-        if publisher := obj.publisher_name:
-            md["publisher"] = publisher
-        if imprint := obj.imprint_name:
-            md["imprint"] = imprint
         if layout := obj.reading_direction:
-            md["layout"] = layout if layout != "ttb" else "scrolled"
-        if identifier := self._publication_identifier(obj):
-            md["identifier"] = identifier
-        if belongs_to := self._publication_belongs_to(obj):
-            md["belongs_to"] = belongs_to
-        if subject := self._publication_subject(obj):
-            md["subject"] = subject
+            md["layout"] = "scrolled" if layout == "ttb" else layout
+
+        # Method-based keys
+        for key in _PUBLICATION_METHOD_KEYS:
+            if value := getattr(self, f"_publication_{key}")(obj):
+                md[key] = value
+
         if credit_md := self._publication_credits(obj):
             md.update(credit_md)
         return md
