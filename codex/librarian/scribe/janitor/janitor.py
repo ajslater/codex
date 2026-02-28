@@ -44,6 +44,7 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexSyncTask,
 )
+from codex.librarian.tasks import LibrarianTask
 from codex.models import Timestamp
 
 _JANITOR_STATII = (
@@ -67,6 +68,35 @@ _JANITOR_STATII = (
     RemoveCoversStatus,
 )
 
+_NIGHTLY_TASK_CLASSES: tuple[type[LibrarianTask], ...] = (
+    CodexLatestVersionTask,
+    JanitorAdoptOrphanFoldersTask,
+    JanitorForeignKeyCheckTask,
+    JanitorIntegrityCheckTask,
+    JanitorFTSIntegrityCheckTask,
+    JanitorCleanFKsTask,
+    JanitorCleanCoversTask,
+    JanitorCleanupSessionsTask,
+    JanitorCleanupBookmarksTask,
+    SearchIndexSyncTask,
+    SearchIndexOptimizeTask,
+    JanitorVacuumTask,
+    JanitorBackupTask,
+    CoverRemoveOrphansTask,
+)
+_JANITOR_METHOD_MAP: dict[type, str] = {
+    JanitorVacuumTask: "vacuum_db",
+    JanitorCleanFKsTask: "cleanup_fks",
+    JanitorCleanCoversTask: "cleanup_custom_covers",
+    JanitorCleanupSessionsTask: "cleanup_sessions",
+    JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
+    JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
+    JanitorForeignKeyCheckTask: "foreign_key_check",
+    JanitorFTSIntegrityCheckTask: "fts_integrity_check",
+    JanitorFTSRebuildTask: "fts_rebuild",
+    JanitorNightlyTask: "queue_nightly_tasks",
+}
+
 
 class Janitor(JanitorCodexUpdate):
     """Janitor inline task runner."""
@@ -75,56 +105,26 @@ class Janitor(JanitorCodexUpdate):
         """Queue all the janitor tasks."""
         try:
             self.status_controller.start_many(_JANITOR_STATII)
-            tasks = (
-                CodexLatestVersionTask(),
-                JanitorAdoptOrphanFoldersTask(),
-                JanitorForeignKeyCheckTask(),
-                JanitorIntegrityCheckTask(),
-                JanitorFTSIntegrityCheckTask(),
-                JanitorCleanFKsTask(),
-                JanitorCleanCoversTask(),
-                JanitorCleanupSessionsTask(),
-                JanitorCleanupBookmarksTask(),
-                SearchIndexSyncTask(),
-                SearchIndexOptimizeTask(),
-                JanitorVacuumTask(),
-                JanitorBackupTask(),
-                CoverRemoveOrphansTask(),
-            )
-            for task in tasks:
-                self.librarian_queue.put(task)
+            for task_class in _NIGHTLY_TASK_CLASSES:
+                self.librarian_queue.put(task_class())
             Timestamp.touch(Timestamp.Choices.JANITOR)
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
 
-    def handle_task(self, task) -> None:  # noqa: PLR0912,C901
+    def handle_task(self, task) -> None:
         """Run Janitor tasks as the librarian process directly."""
         try:
+            # Simple task dispatch
+            if method_name := _JANITOR_METHOD_MAP.get(type(task)):
+                getattr(self, method_name)()
+                return
+
+            # Tasks with special parameters
             match task:
-                case JanitorVacuumTask():
-                    self.vacuum_db()
                 case JanitorBackupTask():
                     self.backup_db(show_status=True)
-                case JanitorCleanFKsTask():
-                    self.cleanup_fks()
-                case JanitorCleanCoversTask():
-                    self.cleanup_custom_covers()
-                case JanitorCleanupSessionsTask():
-                    self.cleanup_sessions()
-                case JanitorCleanupBookmarksTask():
-                    self.cleanup_orphan_bookmarks()
-                case JanitorImportForceAllFailedTask():
-                    self.force_update_all_failed_imports()
-                case JanitorForeignKeyCheckTask():
-                    self.foreign_key_check()
                 case JanitorIntegrityCheckTask():
                     self.integrity_check(long=task.long)
-                case JanitorFTSIntegrityCheckTask():
-                    self.fts_integrity_check()
-                case JanitorFTSRebuildTask():
-                    self.fts_rebuild()
-                case JanitorNightlyTask():
-                    self.queue_nightly_tasks()
                 case JanitorCodexUpdateTask():
                     self.update_codex(force=task.force)
                 case _:

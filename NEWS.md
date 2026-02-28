@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.20
+
+- Features
+    - Browser filters now show selected filters more clearly in the menus.
+    - Fix filtering on credits when clicking on metadata chips.
+    - OPDS v2 credits and subjects now link to views filtered on the tag.
+
 ## v1.9.19
 
 - Fixes

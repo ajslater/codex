@@ -26,7 +26,7 @@ from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
-from codex.librarian.tasks import LibrarianShutdownTask, WakeCronTask
+from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -52,6 +52,12 @@ _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
 )
 LibrarianThreads = NamedTuple("LibrarianThreads", tuple(_THREAD_CLASS_MAP.items()))  # ty: ignore[invalid-named-tuple]
+_THREAD_QUEUE_TASK_MAP: dict[type, str] = {
+    CoverTask: "cover_thread",
+    BookmarkTask: "bookmark_thread",
+    NotifierTask: "notifier_thread",
+    WatchdogEventTask: "watchdog_event_batcher_thread",
+}
 
 
 class LibrarianDaemon(Process):
@@ -75,22 +81,27 @@ class LibrarianDaemon(Process):
         self.run_loop = True
         self._reversed_threads = ()
 
-    def _process_task(self, task) -> None:  # noqa: C901
+    def _sync_watchdog_observers(self) -> None:
+        for observer in self._observers:
+            observer.sync_library_watches()
+
+    def _restart_codex(self, task: LibrarianTask) -> None:
+        restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
+        restarter.handle_task(task)
+
+    def _process_task(self, task) -> None:
         """Process an individual task popped off the queue."""
+        # Simply requeue tasks to the handler thread.
+        for task_type, thread_attr in _THREAD_QUEUE_TASK_MAP.items():
+            if isinstance(task, task_type):
+                getattr(self._threads, thread_attr).queue.put(task)
+            return
         match task:
-            case CoverTask():
-                self._threads.cover_thread.queue.put(task)
-            case BookmarkTask():
-                self._threads.bookmark_thread.queue.put(task)
-            case NotifierTask():
-                self._threads.notifier_thread.queue.put(task)
-            case WatchdogEventTask():
-                self._threads.watchdog_event_batcher_thread.queue.put(task)
             case ScribeTask():
+                # Special put method does queue put preprocessing.
                 self._threads.scribe_thread.put(task)
             case WatchdogSyncTask():
-                for observer in self._observers:
-                    observer.sync_library_watches()
+                self._sync_watchdog_observers()
             case WatchdogPollLibrariesTask():
                 self._threads.library_polling_observer.poll(
                     task.library_ids, force=task.force
@@ -98,8 +109,7 @@ class LibrarianDaemon(Process):
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():
-                restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
-                restarter.handle_task(task)
+                self._restart_codex(task)
             case LibrarianShutdownTask():
                 self.log.info(f"Shutting down {self.name}...")
                 self.run_loop = False

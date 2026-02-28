@@ -6,6 +6,7 @@
         density="compact"
         variant="plain"
         :title="title"
+        :active="isActive"
         :append-icon="filterMenuIcon"
         @click="setUIFilterMode(name)"
       />
@@ -55,21 +56,15 @@
           @update:selected="selected"
         >
           <v-list-item
-            v-if="hasNone"
-            :key="-1"
-            title="None"
-            :value="-1"
-            class="noneItem"
-            density="compact"
-            variant="plain"
-          />
-          <v-list-item
             v-for="item of vuetifyItems"
-            :key="item.value"
-            :title="itemTitle(item)"
-            :value="item.value"
             density="compact"
             variant="plain"
+            :key="item.value"
+            :value="item.value"
+            :title="itemTitle(item)"
+            :active="item.active"
+            :disabled="item.active"
+            :append-icon="item.icon"
           />
         </v-list>
       </div>
@@ -79,6 +74,7 @@
 
 <script>
 import {
+  mdiCheck,
   mdiChevronLeft,
   mdiChevronRight,
   mdiChevronRightCircle,
@@ -140,11 +136,16 @@ export default {
       } else {
         items = this.choices;
       }
-      return toVuetifyItems({
+      const vItems = toVuetifyItems({
         items,
         filter: this.query,
         numeric: this.isNumeric,
       });
+      for (const item of vItems) {
+        item.active = this.filter?.includes(item.value);
+        item.icon = item.active ? mdiCheck : undefined;
+      }
+      return vItems;
     },
     title() {
       return capitalCase(this.name);
@@ -152,10 +153,11 @@ export default {
     lowerTitle() {
       return this.title.toLowerCase();
     },
+    isActive() {
+      return this.filter && this.filter.length > 0;
+    },
     filterMenuIcon() {
-      return this.filter && this.filter.length > 0
-        ? mdiChevronRightCircle
-        : mdiChevronRight;
+      return this.isActive ? mdiChevronRightCircle : mdiChevronRight;
     },
     isClearable() {
       return this.filter?.length;
@@ -221,17 +223,9 @@ export default {
   /* has to be less than the menu height */
 }
 
-.noneItem :deep(.v-item-title) {
-  color: rbg(var(--v-theme-textDisabled)) !important;
-}
-
 .filterValuesProgress {
   margin: 10px;
   width: 88%;
-}
-
-.noneItem {
-  opacity: 0.5;
 }
 
 .clearFilter {
