@@ -52,7 +52,7 @@ _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
 )
 LibrarianThreads = NamedTuple("LibrarianThreads", tuple(_THREAD_CLASS_MAP.items()))  # ty: ignore[invalid-named-tuple]
-_THREAD_QUEUE_MAP: dict[type, str] = {
+_THREAD_QUEUE_TASK_MAP: dict[type, str] = {
     CoverTask: "cover_thread",
     BookmarkTask: "bookmark_thread",
     NotifierTask: "notifier_thread",
@@ -92,8 +92,9 @@ class LibrarianDaemon(Process):
     def _process_task(self, task) -> None:
         """Process an individual task popped off the queue."""
         # Simply requeue tasks to the handler thread.
-        if thread_attr := _THREAD_QUEUE_MAP.get(type(task)):
-            getattr(self._threads, thread_attr).queue.put(task)
+        for task_type, thread_attr in _THREAD_QUEUE_TASK_MAP.items():
+            if isinstance(task, task_type):
+                getattr(self._threads, thread_attr).queue.put(task)
             return
         match task:
             case ScribeTask():
