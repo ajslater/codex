@@ -20,7 +20,7 @@ const toVuetifyItem = function (item) {
         vuetifyItem = { value, title: item.name };
       }
     } else if (NULL_PKS.has(item.pk)) {
-      vuetifyItem = { value: item.pk, title: "(None)" };
+      vuetifyItem = { value: item.pk, title: "None" };
     } else {
       vuetifyItem = { value: item.pk, title: item.name };
     }

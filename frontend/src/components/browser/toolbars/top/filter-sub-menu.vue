@@ -223,10 +223,6 @@ export default {
   /* has to be less than the menu height */
 }
 
-.noneItem :deep(.v-item-title) {
-  color: rbg(var(--v-theme-textDisabled)) !important;
-}
-
 .filterValuesProgress {
   margin: 10px;
   width: 88%;
