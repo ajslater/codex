@@ -135,7 +135,7 @@ export const useMetadataStore = defineStore("metadata", {
       return sortedRoles;
     },
     credits(state) {
-      return this.mapTag(state._mappedCredits, state._sortedRoles);
+      return this.mapTag(state._mappedCredits, state._sortedRoles, "credits");
     },
     identifiers(state) {
       const identifiers = [];
@@ -224,7 +224,7 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return { mainTags, regularTags };
     },
-    mapTag(tagSource, keys) {
+    mapTag(tagSource, keys, filter = undefined) {
       const tagMap = {};
 
       for (const key of keys) {
@@ -248,7 +248,9 @@ export const useMetadataStore = defineStore("metadata", {
           regularTags = tags;
         }
 
-        tagMap[tagName] = { filter: key, tags: regularTags, mainTags };
+        filter = filter ? filter : key;
+
+        tagMap[tagName] = { filter, tags: regularTags, mainTags };
       }
       return tagMap;
     },
