@@ -1,7 +1,12 @@
-#!/bin/bash
-# lint the frontend
-set -euo pipefail
+#!/usr/bin/env bash
+# Lint checks
+set -euxo pipefail
 
+uv run mbake validate Makefile cfg/*.mk
+
+# Javascript, JSON, Markdown, YAML #####
 npm run lint
-npx prettier --check .
-uv run mbake validate Makefile
+
+bin/lint-darwin.sh
+
+uv run bin/roman.py -i .prettierignore .

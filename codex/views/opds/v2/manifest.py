@@ -203,7 +203,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         md = super()._publication_metadata(obj, zero_pad)
 
         # Direct attribute to key mappings
-        for md_key, attr in _PUBLICATION_FIELD_MAP:
+        for md_key, attr in _PUBLICATION_FIELD_MAP.items():
             if value := getattr(obj, attr, None):
                 md[md_key] = value
 
