@@ -1,5 +1,4 @@
 SHELL := /usr/bin/env bash
-include ../cfg/help.mk
 
 .PHONY: clean
 ## Remove static_build contents
