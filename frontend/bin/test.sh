@@ -1,7 +1,7 @@
-#!/bin/bash
-# Run all frontend tests
+#!/usr/bin/env bash
+# Run all tests
 set -euxo pipefail
-
-cd "$(dirname "$0")"
-
-npm run test:ci
+mkdir -p test-results
+LOGLEVEL=DEBUG uv run --group test pytest "$@"
+# pytest-cov leaves .coverage.$HOST.$PID.$RAND files around while coverage itself doesn't
+uv run --group test coverage erase || true
