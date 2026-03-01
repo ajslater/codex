@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.22
+
+- Fixes
+    - Fix many batch jobs not running. Including polling and importing.
+
 ## v1.9.21
 
 - Fixes
