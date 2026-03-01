@@ -95,7 +95,7 @@ class LibrarianDaemon(Process):
         for task_type, thread_attr in _THREAD_QUEUE_TASK_MAP.items():
             if isinstance(task, task_type):
                 getattr(self._threads, thread_attr).queue.put(task)
-            return
+                return
         match task:
             case ScribeTask():
                 # Special put method does queue put preprocessing.
@@ -103,9 +103,7 @@ class LibrarianDaemon(Process):
             case WatchdogSyncTask():
                 self._sync_watchdog_observers()
             case WatchdogPollLibrariesTask():
-                self._threads.library_polling_observer.poll(
-                    task.library_ids, force=task.force
-                )
+                self._threads.library_polling_observer.poll(task)
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():

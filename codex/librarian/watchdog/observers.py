@@ -21,6 +21,7 @@ from codex.librarian.watchdog.handlers import (
     CodexCustomCoverEventHandler,
     CodexLibraryEventHandler,
 )
+from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask
 from codex.librarian.worker import WorkerMixin
 from codex.models import Library
 
@@ -196,21 +197,21 @@ class LibraryPollingObserver(UatuObserver):
             emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
         )
 
-    def poll(self, library_pks, *, force: bool) -> None:
+    def poll(self, task: WatchdogPollLibrariesTask) -> None:
         """Poll each requested emitter."""
         try:
             qs = Library.objects.all()
-            if library_pks:
-                qs = qs.filter(pk__in=library_pks)
+            if task.library_ids:
+                qs = qs.filter(pk__in=task.library_ids)
             paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
                 polling_emitter: DatabasePollingEmitter = emitter  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
                 if emitter.watch.path in paths:
-                    polling_emitter.poll(force=force)
+                    polling_emitter.poll(force=task.force)
         except Exception:
             self.log.exception(
-                f"{self.__class__.__name__}.poll({library_pks}, {force})"
+                f"{self.__class__.__name__}.poll({task.library_ids}, {task.force})"
             )
 
     @override

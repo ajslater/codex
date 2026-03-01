@@ -8,6 +8,7 @@ import COMMON_API from "@/api/v3/common";
 import READER_API, { getComicPageSource } from "@/api/v3/reader";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import READER_CHOICES from "@/choices/reader-choices.json";
+import READER_DEFAULTS from "@/choices/reader-defaults.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
@@ -72,6 +73,7 @@ const DEFAULT_ARC = {
 };
 Object.freeze(DEFAULT_ARC);
 
+/*
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by SCREEN, small to WIDTH;
   const vw = Math.max(
@@ -80,6 +82,7 @@ const getGlobalFitToDefault = () => {
   );
   return vw > 600 ? "S" : "W";
 };
+*/
 
 const ensureNoTwoPageVertical = (settings) => {
   // No two pages with vertical
@@ -95,19 +98,19 @@ export const useReaderStore = defineStore("reader", {
   state: () => ({
     // static
     choices: {
-      fitTo: READER_CHOICES.fitTo,
-      readingDirection: READER_CHOICES.readingDirection,
+      fitTo: READER_CHOICES.FIT_TO,
+      readingDirection: READER_CHOICES.READING_DIRECTION,
       nullValues: SETTINGS_NULL_VALUES,
     },
 
     // server
     readerSettings: {
-      fitTo: getGlobalFitToDefault(),
-      twoPages: READER_CHOICES.twoPages,
-      readingDirection: "ltr",
-      readRtlInReverse: READER_CHOICES.readRtlInReverse,
-      finishOnLastPage: READER_CHOICES.finishOnLastPage,
-      pageTransition: true,
+      fitTo: READER_DEFAULTS.fitTo,
+      twoPages: READER_DEFAULTS.twoPages,
+      readingDirection: READER_DEFAULTS.readingDirection,
+      readRtlInReverse: READER_DEFAULTS.readRtlInReverse,
+      finishOnLastPage: READER_DEFAULTS.finishOnLastPage,
+      pageTransition: READER_DEFAULTS.page_transition,
     },
     books: deepClone(BOOKS_NULL),
     arcs: {},

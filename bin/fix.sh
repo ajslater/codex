@@ -5,7 +5,7 @@ set -euxo pipefail
 #####################
 ###### Makefile #####
 #####################
-uv run mbake format Makefile
+uv run mbake format Makefile cfg/*.mk
 
 ################
 # Ignore files #

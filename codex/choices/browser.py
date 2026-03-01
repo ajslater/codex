@@ -52,12 +52,12 @@ _IDENTIFIER_SOURCES = MappingProxyType(
 )
 BROWSER_CHOICES = MappingProxyType(
     {
-        "bookmark_filter": BROWSER_BOOKMARK_FILTER_CHOICES,
-        "order_by": BROWSER_ORDER_BY_CHOICES,
-        "top_group": BROWSER_TOP_GROUP_CHOICES,
-        "vuetify_null_code": VUETIFY_NULL_CODE,
-        "settings_group": {**_GROUP_NAMES},
-        "identifier_sources": _IDENTIFIER_SOURCES,
+        "BOOKMARK_FILTER": BROWSER_BOOKMARK_FILTER_CHOICES,
+        "ORDER_BY": BROWSER_ORDER_BY_CHOICES,
+        "TOP_GROUP": BROWSER_TOP_GROUP_CHOICES,
+        "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
+        "SETTINGS_GROUP": {**_GROUP_NAMES},
+        "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
     }
 )
 

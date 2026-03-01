@@ -1,5 +1,4 @@
 SHELL := /usr/bin/env bash
-DEVENV_SRC ?= ../../devenv
 
 include cfg/codex-frontend.mk
 # include cfg/django.mk

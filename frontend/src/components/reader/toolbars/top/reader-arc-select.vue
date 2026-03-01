@@ -41,7 +41,7 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { topGroup as GROUP_LABELS } from "@/choices/browser-map";
+import { TOP_GROUP } from "@/choices/browser-map";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -76,7 +76,7 @@ export default {
       }
       for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
-          let subtitle = GROUP_LABELS[group];
+          let subtitle = TOP_GROUP[group];
           if (group !== "s") {
             subtitle = subtitle.slice(0, -1);
           }
