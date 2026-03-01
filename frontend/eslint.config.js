@@ -6,11 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import vueEslintParser from "vue-eslint-parser";
 
-import baseConfig, {
-  CONFIGS,
-  FLAT_ALL,
-  FLAT_RECOMMENDED,
-} from "../cfg/eslint.config.js";
+import baseConfig, { CONFIGS, FLAT_RECOMMENDED } from "../cfg/eslint.config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +33,7 @@ export default [
       ...eslintPluginVue.configs["flat/essential"].rules,
       ...eslintPluginVue.configs["flat/strongly-recommended"].rules,
       ...eslintPluginVue.configs[FLAT_RECOMMENDED].rules,
-      ...eslintPluginVueScopedCSS.configs[FLAT_ALL].rules,
+      ...eslintPluginVueScopedCSS.configs.all.rules,
     },
   },
   {
