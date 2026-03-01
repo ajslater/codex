@@ -6,11 +6,8 @@ import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
-import {
-  identifierSources as IDENTIFIER_SOURCES,
-  topGroup as GROUP_NAMES,
-} from "@/choices/browser-map.json";
-import { readingDirection as READING_DIRECTION } from "@/choices/reader-map.json";
+import { IDENTIFIER_SOURCES, TOP_GROUP } from "@/choices/browser-map.json";
+import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
@@ -61,9 +58,9 @@ export const useBrowserStore = defineStore("browser", {
   state: () => ({
     choices: {
       static: Object.freeze({
-        bookmark: BROWSER_CHOICES.bookmarkFilter,
-        groupNames: GROUP_NAMES,
-        settingsGroup: BROWSER_CHOICES.settingsGroup,
+        bookmark: BROWSER_CHOICES.BOOKMARK_FILTER,
+        groupNames: TOP_GROUP,
+        settingsGroup: BROWSER_CHOICES.SETTINGS_GROUP,
         readingDirection: READING_DIRECTION,
         identifierSources: IDENTIFIER_SOURCES,
       }),
@@ -111,7 +108,7 @@ export const useBrowserStore = defineStore("browser", {
   getters: {
     groupNames() {
       const groupNames = {};
-      for (const [key, pluralName] of Object.entries(GROUP_NAMES)) {
+      for (const [key, pluralName] of Object.entries(TOP_GROUP)) {
         groupNames[key] =
           pluralName === "Series" ? pluralName : pluralName.slice(0, -1);
       }
@@ -119,7 +116,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     topGroupChoices() {
       const choices = [];
-      for (const item of BROWSER_CHOICES.topGroup) {
+      for (const item of BROWSER_CHOICES.TOP_GROUP) {
         if (this._isRootGroupEnabled(item.value)) {
           choices.push(item);
         }
@@ -127,11 +124,11 @@ export const useBrowserStore = defineStore("browser", {
       return choices;
     },
     topGroupChoicesMaxLen() {
-      return this._maxLenChoices(BROWSER_CHOICES.topGroup);
+      return this._maxLenChoices(BROWSER_CHOICES.TOP_GROUP);
     },
     orderByChoices(state) {
       const choices = [];
-      for (const item of BROWSER_CHOICES.orderBy) {
+      for (const item of BROWSER_CHOICES.ORDER_BY) {
         if (
           (item.value === "path" && !state.page.adminFlags.folderView) ||
           (item.value === "child_count" && state.page.modelGroup === "c") ||
@@ -147,10 +144,10 @@ export const useBrowserStore = defineStore("browser", {
       return choices;
     },
     orderByChoicesMaxLen() {
-      return this._maxLenChoices(BROWSER_CHOICES.orderBy);
+      return this._maxLenChoices(BROWSER_CHOICES.ORDER_BY);
     },
     filterByChoicesMaxLen() {
-      return this._maxLenChoices(BROWSER_CHOICES.bookmarkFilter);
+      return this._maxLenChoices(BROWSER_CHOICES.BOOKMARK_FILTER);
     },
     isAuthorized() {
       return useAuthStore().isAuthorized;

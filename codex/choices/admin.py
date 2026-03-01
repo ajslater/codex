@@ -37,7 +37,7 @@ ADMIN_TASK_GROUPS: MappingProxyType[
     str, tuple[dict[str, str | tuple[dict[str, str], ...]], ...]
 ] = MappingProxyType(
     {
-        "tasks": (
+        "ADMIN_TASKS": (
             {
                 "title": "Libraries",
                 "tasks": (

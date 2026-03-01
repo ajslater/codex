@@ -11,7 +11,7 @@ from codex.choices.admin import ADMIN_TASK_GROUPS
 _ADMIN_TASK_CHOICES = tuple(
     sorted(
         item["value"]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
-        for group in ADMIN_TASK_GROUPS["tasks"]
+        for group in ADMIN_TASK_GROUPS["ADMIN_TASKS"]
         for item in group["tasks"]
     )
 )
