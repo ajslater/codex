@@ -22,7 +22,7 @@
           v-bind="props"
           :title="internalItem.title"
           :value="internalItem.value"
-          @click="onItemClick(item.value)"
+          @click="change(internalItem.value)"
         />
       </template>
     </v-combobox>
@@ -127,9 +127,6 @@ export default {
     },
     onKeyDownEnter() {
       this.change(this.path);
-    },
-    onItemClick(event) {
-      this.change(event);
     },
   },
 };
