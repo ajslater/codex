@@ -119,9 +119,9 @@ export default {
       this.change(this.path);
     },
     onClear() {
-      this.clearFolders(this.orignalPath)
+      this.clearFolders(this.originalPath)
         .then(() => {
-          return this.change(this.orginalPath);
+          return this.change(this.originalPath);
         })
         .catch(console.error);
     },
