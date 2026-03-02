@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.23
+
+- Fixes
+    - Fix admin tasks tab crash
+    - Fix Library folder picker showing bad data
+
 ## v1.9.22
 
 - Fixes
