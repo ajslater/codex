@@ -177,8 +177,11 @@ class Volume(BrowserGroupModel):
         else:
             number_str = str(number)
             is_year = len(number_str) == cls.YEAR_LEN
-            numbers_strs = (number_str, str(number_to))
-            numbers_str = "-".join(numbers_strs)
+            if number_to is not None:
+                numbers_strs = (number_str, str(number_to))
+                numbers_str = "-".join(numbers_strs)
+            else:
+                numbers_str = number_str
             rep = f"({numbers_str})" if is_year else f"v{numbers_str}"
         return rep
 

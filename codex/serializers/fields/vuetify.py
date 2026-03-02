@@ -1,7 +1,11 @@
 """Custom Vuetify fields."""
 
+import inspect
+from typing import override
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
+from rest_framework.fields import Field, ListField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -21,7 +25,13 @@ class VuetifyNullCodeFieldMixin:
 
     def to_internal_value(self, data):
         """Convert numeric null code to None."""
+        data = super().to_internal_value(data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return None if data == self.NULL_CODE else data
+
+    def to_representation(self, data):
+        """Convert None to numeric null code."""
+        data = self.NULL_CODE if data is None else data
+        return super().to_representation(data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
 
 class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
@@ -71,3 +81,41 @@ class VuetifyDecadeField(VuetifyIntegerField):
     def __init__(self, *args, **kwargs) -> None:
         """Use decade validator."""
         super().__init__(*args, validators=self.VALIDATORS, **kwargs)
+
+
+class VuetifyListField(ListField):
+    """List with a default child and required args."""
+
+    CHILD_CLASS: type[Field] = VuetifyIntegerField
+    READ_ONLY: bool = False
+
+    def __init__(
+        self, *args, child: type[Field] | Field | None = None, required=False, **kwargs
+    ):
+        """List with a default child and required."""
+        child_instance: Field
+        if not child:
+            child_instance = self.CHILD_CLASS()
+        elif inspect.isclass(child):
+            child_instance = child()
+        else:
+            child_instance = child
+
+        kwargs.setdefault("read_only", self.READ_ONLY)
+
+        super().__init__(*args, child=child_instance, required=required, **kwargs)
+
+    @override
+    def to_representation(self, value: list) -> list:
+        """
+        List of object instances -> List of dicts of primitive datatypes.
+
+        Remove superclass's None filter.
+        """
+        return [self.child.to_representation(item) for item in value]
+
+
+class VuetifyReadOnlyListField(VuetifyListField):
+    """Vuetify Read Only List Field."""
+
+    READ_ONLY = True

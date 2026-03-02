@@ -58,7 +58,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         else:
             title = Comic.get_title(
                 obj,
-                volume=False,
+                volume=True,
                 name=False,
                 filename_fallback=title_filename_fallback,
                 zero_pad=zero_pad,

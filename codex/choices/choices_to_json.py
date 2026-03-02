@@ -37,6 +37,7 @@ _MAP_DUMPS = MappingProxyType(
         "admin-tasks.json": ADMIN_TASK_GROUPS,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
+        "reader-defaults.json": READER_DEFAULTS,
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,
     }

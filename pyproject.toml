@@ -17,7 +17,7 @@ dependencies = [
   "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=2.2",
+  "comicbox[pdf]~=2.2.1",
   "dateparser~=1.2",
   "django~=6.0",
   "djangorestframework~=3.16",
@@ -50,7 +50,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "1.9.18"
+version = "1.9.23"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"

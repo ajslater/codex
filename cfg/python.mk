@@ -1,5 +1,3 @@
-export MERGE_PYTHON=1
-
 .PHONY: clean
 ## Clean python caches
 ## @category Clean
@@ -45,11 +43,16 @@ V :=
 version:
 	bin/version.sh $(V)
 
+.PHONY: fix-python
+## Fix python lint errors
+## @category Fix
+fix-python:
+	./bin/fix-python.sh
+
 .PHONY: fix
 ## Fix python lint errors
 ## @category Fix
-fix::
-	./bin/fix-python.sh
+fix:: fix-python
 
 .PHONY: typecheck
 ## Static typecheck

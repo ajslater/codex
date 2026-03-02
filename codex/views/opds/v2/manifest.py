@@ -1,15 +1,17 @@
 """Publication Methods for OPDS v2.0 feed."""
 
+import json
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from math import floor
 from types import MappingProxyType
 from typing import override
 
-from django.db.models import F
+from django.db.models import F, QuerySet
 
+from codex.models.base import BaseModel, NamedModel
 from codex.models.identifier import Identifier
-from codex.models.named import StoryArcNumber
+from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
@@ -35,16 +37,23 @@ _MD_CREDIT_MAP = MappingProxyType(
         "narrator": {"Narrator"},
     }
 )
+_PUBLICATION_FIELD_MAP: MappingProxyType[str, str] = MappingProxyType(
+    {
+        "description": "summary",
+        "publisher": "publisher_name",
+        "imprint": "imprint_name",
+    }
+)
+
+_PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
+    "identifier",
+    "belongs_to",
+    "subject",
+)
 
 
 class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
     """Publication Manifest Divina Extended Metadata."""
-
-    @staticmethod
-    def _add_credits(md, pks, key, roles) -> None:
-        """Add credits to metadata."""
-        if credit_objs := get_credits(pks, roles, exclude=False):
-            md[key] = credit_objs
 
     def _publication_identifier(self, obj) -> str:
         rel = GroupACLMixin.get_rel_prefix(Identifier)
@@ -90,15 +99,19 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         }
         number = obj.issue_number
         ts = floor(datetime.timestamp(obj.updated_at))
-        query_params = {"ts": ts, "topGroup": "p"}
+        query_params = {
+            "ts": ts,
+            "topGroup": "p",
+        }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
     def _publication_belongs_to_folder(self, obj) -> list:
         if not self.is_allowed(obj):
             return []
-        name = obj.path
-        pks = [obj.parent_folder.pk]
+        folder = obj.parent_folder
+        name = folder.path
+        pks = [folder.pk]
         kwargs = {"group": "f", "pks": pks, "page": 1}
         number = None
         ts = floor(datetime.timestamp(obj.updated_at))
@@ -141,36 +154,72 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return belongs_to
 
-    def _publication_subject(self, obj) -> list:
-        # Subjects can also have links
-        # https://readium.org/webpub-manifest/schema/subject-object.schema.json
-        m2m_objs = get_m2m_objects(obj.ids)
-        return [subj.name for subjs in m2m_objs.values() for subj in subjs]
+    def _add_tag_link(self, obj: BaseModel, filter_key: str, subfield: str = ""):
+        kwargs = {"group": "s", "pks": (), "page": 1}
+        value: NamedModel = getattr(obj, subfield) if subfield else obj  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        filters = {filter_key: [value.pk]}
+        filters = json.dumps(filters)
+        query_params = {
+            "topGroup": "s",
+            "filters": filters,
+            "title": value.name,
+        }
+        href_data = HrefData(kwargs, query_params, url_name="opds:v2:feed")
+        link_data = LinkData(
+            Rel.FACET,
+            href_data,
+            mime_type=MimeType.OPDS_JSON,
+        )
+        link = self.link(link_data)
+        obj.links = (link,)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
-    def _publication_credits(self, obj, md) -> None:
+    def _publication_subject(self, obj) -> tuple[NamedModel, ...]:
+        m2m_objs = get_m2m_objects(obj.ids)
+        flat_subjs = []
+        for key, subjs in m2m_objs.items():
+            filter_key = key + "s"
+            for subj in subjs:
+                self._add_tag_link(subj, filter_key)
+                flat_subjs.append(subj)
+        return tuple(flat_subjs)
+
+    def _add_credits(self, pks, roles) -> QuerySet[Credit] | None:
+        """Add credits to metadata."""
+        if credit_objs := get_credits(pks, roles, exclude=False):
+            for credit_obj in credit_objs:
+                self._add_tag_link(credit_obj, "credits", "person")
+            return credit_objs
+        return None
+
+    def _publication_credits(self, obj) -> Mapping[str, tuple[Credit, ...]]:
+        credit_md = {}
         for key, roles in _MD_CREDIT_MAP.items():
-            self._add_credits(md, obj.ids, key, roles)
+            if credit_objs := self._add_credits(obj.ids, roles):
+                credit_md[key] = credit_objs
+        return credit_md
 
     @override
     def _publication_metadata(self, obj, zero_pad) -> dict:
         md = super()._publication_metadata(obj, zero_pad)
-        if desc := obj.summary:
-            md["description"] = desc
+
+        # Direct attribute to key mappings
+        for md_key, attr in _PUBLICATION_FIELD_MAP.items():
+            if value := getattr(obj, attr, None):
+                md[md_key] = value
+
+        # Special cases with transforms
         if lang := obj.language:
             md["language"] = lang.name
-        if publisher := obj.publisher_name:
-            md["publisher"] = publisher
-        if imprint := obj.imprint_name:
-            md["imprint"] = imprint
         if layout := obj.reading_direction:
-            md["layout"] = layout if layout != "ttb" else "scrolled"
-        if identifier := self._publication_identifier(obj):
-            md["identifier"] = identifier
-        if belongs_to := self._publication_belongs_to(obj):
-            md["belongs_to"] = belongs_to
-        if subject := self._publication_subject(obj):
-            md["subject"] = subject
-        self._publication_credits(obj, md)
+            md["layout"] = "scrolled" if layout == "ttb" else layout
+
+        # Method-based keys
+        for key in _PUBLICATION_METHOD_KEYS:
+            if value := getattr(self, f"_publication_{key}")(obj):
+                md[key] = value
+
+        if credit_md := self._publication_credits(obj):
+            md.update(credit_md)
         return md
 
 

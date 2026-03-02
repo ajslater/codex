@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 READER_CHOICES = MappingProxyType(
     {
-        "fit_to": MappingProxyType(
+        "FIT_TO": MappingProxyType(
             {
                 "S": "Fit to Screen",
                 "W": "Fit to Width",
@@ -12,7 +12,7 @@ READER_CHOICES = MappingProxyType(
                 "O": "Original Size",
             }
         ),
-        "reading_direction": MappingProxyType(
+        "READING_DIRECTION": MappingProxyType(
             {
                 "ltr": "Left to Right",
                 "rtl": "Right to Left",
@@ -25,7 +25,7 @@ READER_CHOICES = MappingProxyType(
 READER_DEFAULTS = MappingProxyType(
     {
         "finish_on_last_page": True,
-        "fit_to": "S",
+        "fit_to": "W",
         "reading_direction": "ltr",
         "read_rtl_in_reverse": False,
         "two_pages": False,

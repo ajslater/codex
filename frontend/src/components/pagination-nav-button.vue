@@ -33,7 +33,9 @@ export default {
 
 <style scoped lang="scss">
 .paginationNavButton {
+  color: rbg(var(--v-theme-textPrimary));
 }
+
 .narrowButton {
   margin-inline-start: 0 !important;
   margin-inline-end: 0 !important;

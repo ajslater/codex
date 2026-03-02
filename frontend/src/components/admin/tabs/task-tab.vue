@@ -11,7 +11,7 @@
       </span>
     </div>
     <div
-      v-for="group in tasks"
+      v-for="group in ADMIN_TASKS"
       :key="group.title"
       fixed-header
       class="taskGroup"
@@ -75,13 +75,14 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { tasks } from "@/choices/admin-tasks.json";
+import { ADMIN_TASKS } from "@/choices/admin-tasks.json";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 const SELECT_GROUPS = ["Notify"];
 Object.freeze(SELECT_GROUPS);
+Object.freeze(ADMIN_TASKS);
 
 export default {
   name: "AdminTasksTab",
@@ -94,7 +95,7 @@ export default {
       selectValues: {
         Notify: "notify_library_changed",
       },
-      tasks,
+      ADMIN_TASKS,
     };
   },
   computed: {
@@ -105,7 +106,7 @@ export default {
     selectMaps() {
       // Construct a value keyed map from the vuetified task list.
       const maps = {};
-      for (const group of tasks) {
+      for (const group of ADMIN_TASKS) {
         if (SELECT_GROUPS.includes(group.title)) {
           maps[group.title] = {};
           for (const item of group.tasks) {

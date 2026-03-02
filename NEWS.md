@@ -6,6 +6,40 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.23
+
+- Fixes
+    - Fix admin tasks tab crash
+    - Fix Library folder picker showing bad data
+
+## v1.9.22
+
+- Fixes
+    - Fix many batch jobs not running. Including polling and importing.
+
+## v1.9.21
+
+- Fixes
+    - Fix OPDS v2 manifest crash
+
+## v1.9.20
+
+- Features
+    - Browser filters now show selected filters more clearly in the menus.
+    - Fix filtering on credits when clicking on metadata chips.
+    - OPDS v2 credits and subjects now link to views filtered on the tag.
+
+## v1.9.19
+
+- Fixes
+    - Fix PDF date parsing bug on import.
+    - Fix comic names with null volume_to field.
+    - Provide volume name in comic title for OPDS v2 as there's no volume view
+      available.
+    - Fix OPDS v2 folder as collection naming.
+- Dev Notes
+    - Vuetify 4.0 frontend
+
 ## v1.9.18
 
 - Fixes
