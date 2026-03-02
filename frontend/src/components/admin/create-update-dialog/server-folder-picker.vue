@@ -1,6 +1,7 @@
 <template>
   <div id="folderPicker">
     <v-combobox
+      ref="folderPicker"
       v-model="path"
       v-model:menu="menuOpen"
       v-bind="$attrs"
@@ -22,7 +23,7 @@
           v-bind="props"
           :title="internalItem.title"
           :value="internalItem.value"
-          @click="change(internalItem.value)"
+          @click="onItemClick(internalItem.value)"
         />
       </template>
     </v-combobox>
@@ -44,13 +45,13 @@ import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminServerFolderPicker",
-  emits: ["change", "menu"],
+  emits: ["change"],
   data() {
     return {
-      path: "",
-      originalPath: "",
-      showHidden: false,
       menuOpen: false,
+      originalPath: "",
+      path: "",
+      showHidden: false,
     };
   },
   computed: {
@@ -68,13 +69,6 @@ export default {
       return this.showHidden ? "Hide" : "Show";
     },
   },
-  watch: {
-    menuOpen(to) {
-      if (to) {
-        this.$emit("menu", to);
-      }
-    },
-  },
   created() {
     this.loadFolders()
       .then(() => {
@@ -83,6 +77,19 @@ export default {
         return true;
       })
       .catch(console.warn);
+  },
+  mounted() {
+    // Options watch is flakier than if done in mounted.
+    this.$watch(
+      () => this.$refs.folderPicker?.isValid,
+      (isValid) => {
+        if (isValid === false) {
+          this.$nextTick(() => {
+            this.$refs.comboboxRef?.focus();
+          });
+        }
+      },
+    );
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
@@ -97,25 +104,21 @@ export default {
       } else {
         relativePath = this.rootFolder;
       }
-      const isMenuOpen = this.menuOpen;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
         .then(() => {
-          /*
-           * menuProps: closeOnContentClick doesn't seem to work.
-           *  menu still flashes, not great.
-           */
-          this.menuOpen = isMenuOpen;
-          let changePath = "";
           if (this.formErrors.length === 0) {
-            this.path = changePath = this.rootFolder;
+            this.path = this.rootFolder;
+            this.$emit("change", this.path);
+          } else {
+            this.$nextTick(() => {
+              this.$refs.comboboxRef?.focus();
+            });
           }
-          return this.$emit("change", changePath);
         })
         .catch(console.warn);
     },
     onBlur() {
-      this.menuOpen = false;
       this.change(this.path);
     },
     onClear() {
@@ -127,6 +130,9 @@ export default {
     },
     onKeyDownEnter() {
       this.change(this.path);
+    },
+    onItemClick(path) {
+      this.change(path);
     },
   },
 };
