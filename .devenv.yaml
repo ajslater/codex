@@ -1,9 +1,0 @@
-features:
-  - common
-  - node_root
-  - docs
-  - docker
-  - ci
-  - python
-  - frontend
-  - django
