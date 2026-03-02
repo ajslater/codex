@@ -106,7 +106,7 @@ export default {
     selectMaps() {
       // Construct a value keyed map from the vuetified task list.
       const maps = {};
-      for (const group of tasks) {
+      for (const group of ADMIN_TASKS) {
         if (SELECT_GROUPS.includes(group.title)) {
           maps[group.title] = {};
           for (const item of group.tasks) {
