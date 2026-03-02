@@ -100,5 +100,6 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
             )
         except Exception as exc:
             logger.warning(f"Syncing FTS for M2M Updates: {exc}")
+            logger.exception(exc)
         finally:
             self.metadata.pop(FTS_UPDATED_M2MS, None)

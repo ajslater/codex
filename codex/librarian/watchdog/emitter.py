@@ -3,11 +3,11 @@
 from multiprocessing.queues import Queue
 from pathlib import Path
 from threading import Condition
+from typing import override
 
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
-from typing_extensions import override
 from watchdog.events import FileSystemEvent
 from watchdog.observers.api import (
     DEFAULT_EMITTER_TIMEOUT,

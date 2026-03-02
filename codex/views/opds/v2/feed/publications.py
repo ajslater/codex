@@ -3,10 +3,10 @@
 from collections.abc import Iterable
 from datetime import datetime
 from math import floor
+from typing import override
 from urllib.parse import quote_plus
 
 from caseconverter import snakecase
-from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH

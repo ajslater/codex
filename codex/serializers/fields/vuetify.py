@@ -1,6 +1,7 @@
 """Custom Vuetify fields."""
 
 import inspect
+from typing import override
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
@@ -11,7 +12,6 @@ from rest_framework.serializers import (
     DecimalField,
     IntegerField,
 )
-from typing_extensions import override
 
 from codex.choices.browser import VUETIFY_NULL_CODE
 from codex.models.choices import FileTypeChoices, ReadingDirectionChoices

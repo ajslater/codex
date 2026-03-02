@@ -1,12 +1,13 @@
 """Custom Django DB functions."""
 
+from typing import override
+
 from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import Func
 from django.db.models.fields import CharField, FloatField, TextField
 from django.db.models.fields.json import JSONField
 from django.db.models.fields.related import OneToOneField
 from django.db.models.lookups import Lookup
-from typing_extensions import override
 
 from codex.models.fields import CleaningCharField, CleaningTextField
 
@@ -15,6 +16,7 @@ class JsonGroupArray(Aggregate):
     """Sqlite3 JSON_GROUP_ARRAY function."""
 
     allow_distinct = True
+    allow_order_by = True
     function = "JSON_GROUP_ARRAY"
     name = "JsonGroupArray"
 

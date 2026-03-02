@@ -1,12 +1,13 @@
 """Custom Compiler to force group_by."""
 # If any group_by() is attached to the QuerySet, it completely overrides the compiler computed group_by
 
+from typing import Self, override
+
 from django.db import connections
 from django.db.models import Manager
 from django.db.models.query import QuerySet
 from django.db.models.sql.compiler import SQLCompiler
 from django.db.models.sql.query import Query
-from typing_extensions import Self, override
 
 
 class GroupBySQLCompiler(SQLCompiler):

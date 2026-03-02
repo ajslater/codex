@@ -1,9 +1,10 @@
 """Views for reading comic books."""
 
+from typing import override
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.serializers.reader import ReaderComicsSerializer, ReaderViewInputSerializer
 from codex.views.reader.books import ReaderBooksView

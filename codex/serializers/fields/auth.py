@@ -1,6 +1,7 @@
 """Custom fields."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import override
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from rest_framework.exceptions import ValidationError
@@ -8,7 +9,6 @@ from rest_framework.serializers import (
     CharField,
     IntegerField,
 )
-from typing_extensions import override
 
 
 class TimestampField(IntegerField):
@@ -24,7 +24,7 @@ class TimestampField(IntegerField):
     @override
     def to_internal_value(self, data) -> datetime:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
         """Convert from castable, likely string to datetime."""
-        return datetime.fromtimestamp(float(data) / 1000, tz=timezone.utc)
+        return datetime.fromtimestamp(float(data) / 1000, tz=UTC)
 
 
 def validate_timezone(data):

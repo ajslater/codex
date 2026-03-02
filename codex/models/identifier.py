@@ -1,5 +1,7 @@
 """Identifier Models."""
 
+from typing import override
+
 from django.db.models import (
     CASCADE,
     CharField,
@@ -7,7 +9,6 @@ from django.db.models import (
     TextChoices,
     URLField,
 )
-from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, BaseModel, NamedModel
 from codex.models.fields import CleaningCharField
