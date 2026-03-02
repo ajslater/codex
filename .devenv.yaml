@@ -1,5 +1,6 @@
 features:
   - common
+  - node_root
   - docs
   - docker
   - ci
