@@ -74,7 +74,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         if data.authenticate:
             link["properties"]["authenticate"] = data.authenticate
 
-    def link(self, data) -> dict | None:
+    def link(self, data: LinkData) -> dict | None:
         """Create a link element."""
         if data.href:
             href = data.href
