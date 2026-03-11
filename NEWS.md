@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.24
+
+- Fixes
+    - Fix OPDS v2 numberOfItems pagination sum.
+
 ## v1.9.23
 
 - Fixes
