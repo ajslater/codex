@@ -13,7 +13,7 @@ from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
 class BrowserPaginateView(BrowserPageInBoundsView):
     """Paginate Groups and Books."""
 
-    def _paginate_section(self, qs, page) -> QuerySet:
+    def _paginate_section(self, qs: QuerySet, page: int) -> QuerySet:
         """Paginate a group or Comic section."""
         orphans = 0 if self.model_group == "f" or self.params.get("q") else 5
         paginator = Paginator(qs, MAX_OBJ_PER_PAGE, orphans=orphans)
@@ -28,7 +28,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
 
         return qs
 
-    def _paginate_groups(self, group_qs):
+    def _paginate_groups(self, group_qs: QuerySet):
         """Paginate the group object list before books."""
         page = self.kwargs.get("page", 1)
         return self._paginate_section(group_qs, page)
@@ -55,7 +55,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         return page_book_qs
 
     def paginate(
-        self, group_qs, book_qs, group_count
+        self, group_qs: QuerySet, book_qs: QuerySet, group_count: int
     ) -> tuple[QuerySet, QuerySet, int, int]:
         """Paginate the queryset into a group and book object lists."""
         if self.TARGET == "opds2":
