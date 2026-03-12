@@ -14,9 +14,9 @@ import eslintPluginMath from "eslint-plugin-math";
 import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
-import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
+// import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
-import eslintPluginPromise from "eslint-plugin-promise";
+// import eslintPluginPromise from "eslint-plugin-promise";
 import eslintPluginRegexp from "eslint-plugin-regexp";
 import eslintPluginSecurity from "eslint-plugin-security";
 import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
@@ -40,7 +40,7 @@ export const CONFIGS = {
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginMath.configs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
-    ...eslintPluginPromise.configs[FLAT_ALL],
+    // ...eslintPluginPromise.configs[FLAT_ALL],
     ...eslintPluginRegexp.configs.all,
     ...eslintPluginSonarjs.configs.all,
     ...eslintPluginUnicorn.configs.all,
@@ -89,7 +89,7 @@ export default defineConfig([
       "typings/",
     ],
   },
-  eslintPluginNoUseExtendNative.configs.recommended,
+  // eslintPluginNoUseExtendNative.configs.recommended,
   eslintPluginSecurity.configs.recommended,
   eslintPluginStylistic.configs.all,
   eslintPluginPrettierRecommended,

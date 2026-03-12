@@ -1,3 +1,6 @@
+DEVENV_DOCKER := 1
+export DEVENV_DOCKER
+
 .PHONY: fix
 ## Fix docker lint errors
 ## @category Fix

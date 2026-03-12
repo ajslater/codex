@@ -1,15 +1,21 @@
 import eslintPluginVitest from "@vitest/eslint-plugin";
 import eslintPluginConfigPrettier from "eslint-config-prettier";
+import { createOxcImportResolver } from "eslint-import-resolver-oxc";
 import eslintPluginVue from "eslint-plugin-vue";
 import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 import path from "path";
 import { fileURLToPath } from "url";
 import vueEslintParser from "vue-eslint-parser";
 
-import baseConfig, { CONFIGS, FLAT_RECOMMENDED } from "../cfg/eslint.config.js";
+import baseConfig, {
+  CONFIGS,
+  FLAT_RECOMMENDED,
+} from "../cfg/eslint.config.base.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const SRC_PATH = path.resolve(__dirname, "src");
 
 export default [
   ...baseConfig,
@@ -59,11 +65,13 @@ export default [
         "vue-eslint-parser": [".vue"],
         "@eslint/json": [".json"],
       },
-      "import/resolver": {
-        alias: {
-          map: [["@", path.resolve(__dirname, "src")]],
-        },
-      },
+      "import-x/resolver-next": [
+        createOxcImportResolver({
+          alias: {
+            "@": [SRC_PATH],
+          },
+        }),
+      ],
     },
   },
   {

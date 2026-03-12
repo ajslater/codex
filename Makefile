@@ -7,7 +7,7 @@ include cfg/python.mk
 include cfg/docker.mk
 include cfg/ci.mk
 include cfg/docs.mk
-include cfg/node_root.mk
+include cfg/node.mk
 include cfg/common.mk
 include cfg/help.mk
 
