@@ -66,6 +66,14 @@
       "preset-prettier"
     ]
   },
+  "overrides": {
+    "eslint-plugin-no-use-extend-native": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-promise": {
+      "eslint": "$eslint"
+    }
+  },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.0",
     "@eslint/js": "^10.0.1",
@@ -86,7 +94,9 @@
     "eslint-plugin-mdx": "^3.1.5",
     "eslint-plugin-no-secrets": "^2.1.1",
     "eslint-plugin-no-unsanitized": "^4.1.5",
+    "eslint-plugin-no-use-extend-native": "^0.7.2",
     "eslint-plugin-prettier": "^5.2.2",
+    "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-regexp": "^3.0.0",
     "eslint-plugin-scanjs-rules": "^0.2.1",
     "eslint-plugin-security": "^4.0.0",

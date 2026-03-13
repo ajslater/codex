@@ -113,8 +113,10 @@ build::
 	uv build
 endif
 
+ifndef OVERRIDE_PUBLISH
 .PHONY: publish
 ## Publish package to pypi
 ## @category Deploy
 publish:
 	uv publish
+endif
