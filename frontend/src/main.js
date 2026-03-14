@@ -7,7 +7,6 @@ import VueDragScroller from "vue-drag-scroller";
 
 import App from "@/app.vue";
 import router from "@/plugins/router";
-import { setupNativeSock } from "@/plugins/vue-native-sock";
 import vuetify from "@/plugins/vuetify";
 import { setupStore } from "@/stores/store";
 
@@ -15,7 +14,6 @@ const app = createApp(App);
 
 app.use(vuetify);
 setupStore(app);
-setupNativeSock(app);
 app.use(router);
 app.use(createHead());
 app.mixin(VueHeadMixin);

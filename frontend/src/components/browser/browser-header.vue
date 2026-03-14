@@ -38,7 +38,7 @@ export default {
 }
 
 .codexHeadToolbar {
-  padding-top: env(5px + safe-area-inset-top);
+  padding-top: calc(5px + env(safe-area-inset-top));
   padding-left: calc(10px + env(safe-area-inset-left) / 4);
   padding-right: calc(10px + env(safe-area-inset-right) / 4);
 }

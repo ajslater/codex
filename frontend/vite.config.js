@@ -1,4 +1,3 @@
-import eslintPlugin from "@nabla/vite-plugin-eslint";
 import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
 import fs from "fs";
@@ -7,6 +6,7 @@ import path from "path";
 import toml from "toml";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
+import eslintPlugin from "vite-plugin-eslint2";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
 
@@ -69,7 +69,7 @@ const config = defineConfig(({ mode }) => {
       dynamicBase({
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
-      eslintPlugin,
+      eslintPlugin(),
       run([
         {
           name: "Choices to JSON",
