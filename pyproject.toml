@@ -4,7 +4,6 @@ classifiers = [
   "Environment :: Web Environment",
   "Framework :: Django :: 5.1",
   "Intended Audience :: End Users/Desktop",
-  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: JavaScript",
