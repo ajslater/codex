@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 DEVENV_SRC ?= ../devenv
-export DEVENV_SRC
+# export DEVENV_SRC
 DEVENV_COMMON := 1
 export DEVENV_COMMON
 
