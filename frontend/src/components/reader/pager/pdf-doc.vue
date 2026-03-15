@@ -18,6 +18,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
+import { useWindowSize } from "@vueuse/core";
 
 import { useReaderStore, VERTICAL_READING_DIRECTIONS } from "@/stores/reader";
 
@@ -30,11 +31,9 @@ export default {
     src: { type: String, required: true },
   },
   emits: ["load", "error", "unauthorized"],
-  data() {
-    return {
-      innerHeight: window.innerHeight,
-      innerWidth: window.innerWidth,
-    };
+  setup() {
+    const { width, height } = useWindowSize();
+    return { innerWidth: width, innerHeight: height };
   },
   computed: {
     ...mapState(useReaderStore, {
@@ -76,18 +75,8 @@ export default {
       return this.bookSettings.fitToClass;
     },
   },
-  mounted() {
-    window.addEventListener("resize", this.onResize);
-  },
-  beforeUnmount() {
-    window.removeEventListener("resize", this.onResize);
-  },
   methods: {
     ...mapActions(useReaderStore, ["getBookSettings", "routeToPage"]),
-    onResize() {
-      this.innerHeight = window.innerHeight;
-      this.innerWidth = window.innerWidth;
-    },
     onLoad() {
       this.$emit("load");
     },
