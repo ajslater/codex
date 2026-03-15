@@ -697,7 +697,6 @@ dependencies = [
     { name = "djangorestframework-camel-case" },
     { name = "drf-spectacular" },
     { name = "fnvhash" },
-    { name = "humanfriendly" },
     { name = "humanize" },
     { name = "hypercorn", extra = ["h3"] },
     { name = "loguru" },
@@ -773,7 +772,6 @@ requires-dist = [
     { name = "djangorestframework-camel-case", specifier = "~=1.4" },
     { name = "drf-spectacular", specifier = "~=0.28" },
     { name = "fnvhash", specifier = "~=0.1" },
-    { name = "humanfriendly", specifier = "~=10.0" },
     { name = "humanize", specifier = "~=4.12" },
     { name = "hypercorn", extras = ["h3"], specifier = "~=0.17" },
     { name = "loguru", specifier = "~=0.7.3" },
@@ -1609,18 +1607,6 @@ version = "0.1.13"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/be/31/a76f4bfa885f93b8167cb4c85cf32b54d1f64384d0b897d45bc6d19b7b45/htmlmin2-0.1.13-py3-none-any.whl", hash = "sha256:75609f2a42e64f7ce57dbff28a39890363bde9e7e5885db633317efbdf8c79a2", size = 34486, upload-time = "2023-03-14T21:28:30.388Z" },
-]
-
-[[package]]
-name = "humanfriendly"
-version = "10.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyreadline3", marker = "sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/3f/2c29224acb2e2df4d2046e4c73ee2662023c58ff5b113c4c1adac0886c43/humanfriendly-10.0.tar.gz", hash = "sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc", size = 360702, upload-time = "2021-09-17T21:40:43.31Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f0/0f/310fb31e39e2d734ccaa2c0fb981ee41f7bd5056ce9bc29b2248bd569169/humanfriendly-10.0-py2.py3-none-any.whl", hash = "sha256:1697e1a8a8f550fd43c2865cd84542fc175a61dcb779b6fee18cf6b6ccba1477", size = 86794, upload-time = "2021-09-17T21:40:39.897Z" },
 ]
 
 [[package]]
@@ -2940,15 +2926,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/da/dc9e5e10bc56056bd8c33e533517cb327752cbaf172688bba3c23f6b2318/pyppmd-1.3.1-cp314-cp314t-win32.whl", hash = "sha256:de87f7acd575fb07a4ff42d41bcc071570fe759a36f345f1f54f574ecfccfc5b", size = 43016, upload-time = "2025-11-27T22:08:40.234Z" },
     { url = "https://files.pythonhosted.org/packages/fa/a0/46dc15549ad2c0427a9825730e6bdf342045ad410543368afd4389a16f36/pyppmd-1.3.1-cp314-cp314t-win_amd64.whl", hash = "sha256:76e4800aa67292b4cc80058fd29b39e02a5dded721af9fe5654f356ef24307f4", size = 48636, upload-time = "2025-11-27T22:08:41.45Z" },
     { url = "https://files.pythonhosted.org/packages/a1/7b/7e9a83848de928c26f0ab3ee105c0da63a932a0804a94807205e6313e73a/pyppmd-1.3.1-cp314-cp314t-win_arm64.whl", hash = "sha256:e066cbf1d335fe20480cd8ecc10848ba78d99fe6d1e44ea00def48feaf46afdf", size = 46402, upload-time = "2025-11-27T22:08:42.804Z" },
-]
-
-[[package]]
-name = "pyreadline3"
-version = "3.5.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0f/49/4cea918a08f02817aabae639e3d0ac046fef9f9180518a3ad394e22da148/pyreadline3-3.5.4.tar.gz", hash = "sha256:8d57d53039a1c75adba8e50dd3d992b28143480816187ea5efbd5c78e6c885b7", size = 99839, upload-time = "2024-09-19T02:40:10.062Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/dc/491b7661614ab97483abf2056be1deee4dc2490ecbf7bff9ab5cdbac86e1/pyreadline3-3.5.4-py3-none-any.whl", hash = "sha256:eaf8e6cc3c49bcccf145fc6067ba8643d1df34d604a1ec0eccbf7a18e6d3fae6", size = 83178, upload-time = "2024-09-19T02:40:08.598Z" },
 ]
 
 [[package]]

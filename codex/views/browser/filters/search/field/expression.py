@@ -17,7 +17,6 @@ from django.db.models import (
     TextField,
 )
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
-from humanfriendly import parse_size
 
 from codex.settings import FALSY
 
@@ -29,6 +28,16 @@ _LIKE_QUERY_VALUE = re.compile(r"\S\*+\S")
 _ICONTAINS_QUERY_VALUE = re.compile(r"^(\*.*\*|[^*].*[^*]|^\**$)$")
 _IENDSWITH_QEURY_VALUE = re.compile(r"^\*")
 _ISTARTSWITH_QEURY_VALUE = re.compile(r"\*$")
+_SIZE_UNITS = {"b": 1, "kb": 1024, "mb": 1024**2, "gb": 1024**3, "tb": 1024**4}
+
+
+def parse_size(s: str) -> int:
+    """Parse human friendly byte sizes."""
+    s = s.strip().lower()
+    for suffix, multiplier in _SIZE_UNITS.items():
+        if s.endswith(suffix):
+            return int(float(s[: -len(suffix)].strip()) * multiplier)
+    return int(s)
 
 
 def _parse_issue_value(value) -> tuple | tuple[None, None]:

@@ -26,7 +26,6 @@ dependencies = [
   "django~=5.2.11",
   "drf-spectacular~=0.28",
   "fnvhash~=0.1",
-  "humanfriendly~=10.0",
   "humanize~=4.12",
   "hypercorn[h3]~=0.17",
   "loguru~=0.7.3",
