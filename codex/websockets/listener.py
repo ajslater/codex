@@ -1,5 +1,6 @@
 """Listens to the Broadcast Queue and sends its messages to channels."""
 
+import asyncio
 from queue import Empty
 from types import MappingProxyType
 
@@ -55,7 +56,7 @@ class BroadcastListener:
         self.log.success(f"{self.__class__.__name__} started.")
         while True:
             try:
-                event = await self.queue.coro_get()
+                event = await asyncio.to_thread(self.queue.get)
                 if event is None:
                     break
                 await self.broadcast_group(event)

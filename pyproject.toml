@@ -12,7 +12,6 @@ classifiers = [
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 dependencies = [
-  "aioprocessing~=2.0",
   "bidict~=0.23",
   "channels~=4.2",
   "comicbox[pdf]~=2.2.1",

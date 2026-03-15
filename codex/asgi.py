@@ -12,7 +12,7 @@ from django.core.asgi import get_asgi_application
 
 from codex.applications.lifespan import LifespanApplication
 from codex.applications.websocket import WEBSOCKET_APPLICATION
-from codex.websockets.aio_queue import BROADCAST_QUEUE
+from codex.websockets.mp_queue import BROADCAST_QUEUE
 
 application = ProtocolTypeRouter(
     {

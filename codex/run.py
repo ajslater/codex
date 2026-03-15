@@ -16,7 +16,7 @@ from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.startup.logger_init import init_logging
 from codex.version import VERSION
-from codex.websockets.aio_queue import BROADCAST_QUEUE
+from codex.websockets.mp_queue import BROADCAST_QUEUE
 
 
 def codex_startup() -> bool:

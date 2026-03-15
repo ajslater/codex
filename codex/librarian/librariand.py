@@ -6,7 +6,6 @@ from threading import Lock, active_count
 from types import MappingProxyType
 from typing import Any, NamedTuple
 
-from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
 from django.db import close_old_connections
 from typing_extensions import override
@@ -63,7 +62,7 @@ _THREAD_QUEUE_TASK_MAP: dict[type, str] = {
 class LibrarianDaemon(Process):
     """Librarian Process."""
 
-    def __init__(self, logger_, queue: Queue, broadcast_queue: AioQueue) -> None:
+    def __init__(self, logger_, queue: Queue, broadcast_queue: Queue) -> None:
         """Init process."""
         self.log = logger_
         name = self.__class__.__name__
