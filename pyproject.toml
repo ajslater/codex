@@ -25,7 +25,6 @@ dependencies = [
   "djangorestframework~=3.16",
   "django~=5.2.11",
   "drf-spectacular~=0.28",
-  "fnvhash~=0.1",
   "humanize~=4.12",
   "hypercorn[h3]~=0.17",
   "loguru~=0.7.3",
@@ -37,6 +36,7 @@ dependencies = [
   "tzlocal~=5.0",
   "watchdog~=6.0",
   "whitenoise[brotli]~=6.0",
+  "xxhash>=3.6.0",
   "zipstream-ng~=1.8",
 ]
 description = "A comic archive web server."

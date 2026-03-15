@@ -1,8 +1,7 @@
 """Cover Path functions."""
 
 from pathlib import Path
-
-from fnvhash import fnv1a_32
+from zlib import adler32
 
 from codex.settings import ROOT_CACHE_PATH
 
@@ -19,7 +18,7 @@ class CoverPathMixin:
     @classmethod
     def _hex_path(cls, pk) -> Path:
         """Translate an integer into an efficient filesystem path."""
-        fnv = fnv1a_32(bytes(str(pk).zfill(cls._ZFILL), "utf-8"))
+        fnv = adler32(bytes(str(pk).zfill(cls._ZFILL), "utf-8"))
         hex_str = format(fnv, f"0{cls._ZFILL}x")
         parts = [
             hex_str[i : i + cls._PATH_STEP]
