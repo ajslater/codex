@@ -69,7 +69,7 @@ export default {
       if (this.isBanner) {
         marginClass += "Banner";
       }
-      classes[marginClass] = true;
+      Reflect.set(classes, marginClass, true);
       return classes;
     },
     showBrowseItems() {

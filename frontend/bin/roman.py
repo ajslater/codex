@@ -6,6 +6,8 @@ Detects shell scripts by shebang.
 Inspired by @defunctzombie
 """
 
+from __future__ import annotations
+
 import re
 import sys
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
@@ -15,7 +17,7 @@ from typing import TYPE_CHECKING
 from pathspec import PathSpec
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence  # noqa: TC004
+    from collections.abc import Generator, Sequence
 
 # ---------------------------------------------------------------------------
 # Constants

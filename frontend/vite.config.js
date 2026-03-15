@@ -1,6 +1,6 @@
-import eslintPlugin from "@nabla/vite-plugin-eslint";
 import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
+import checker from "vite-plugin-checker";
 import fs from "fs";
 import { hostname } from "os";
 import path from "path";
@@ -66,10 +66,15 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vuetify({ autoImport: true }),
+      checker({
+        eslint: {
+          lintCommand: "eslint --cache .", // "./src/**/*.{js,vue}"',
+          useFlatConfig: true,
+        },
+      }),
       dynamicBase({
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
-      eslintPlugin,
       run([
         {
           name: "Choices to JSON",

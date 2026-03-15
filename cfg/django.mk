@@ -1,3 +1,6 @@
+DEVENV_DJANGO := 1
+export DEVENV_DJANGO
+
 .PHONY: fix
 ## Fix django lint errors in templates
 ## @category Fix

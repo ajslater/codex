@@ -24,11 +24,12 @@ class BrowserSettingsView(SettingsView):
     SESSION_KEY: str = SettingsView.BROWSER_SESSION_KEY
 
     @staticmethod
-    def _validate_browse_top_group(params, group, top_group) -> None:
+    def _validate_browse_top_group(params, group: str, top_group: str) -> None:
         """Validate top group for browse groups."""
         show = params["show"]
         if group == "r" or (
-            show.get(top_group)
+            group in GROUP_ORDER
+            and show.get(top_group)
             and GROUP_ORDER.index(top_group) < GROUP_ORDER.index(group)
         ):
             return
@@ -41,7 +42,7 @@ class BrowserSettingsView(SettingsView):
             params["top_group"] = "c"
 
     @classmethod
-    def _validate_top_group(cls, params, group, top_group) -> None:
+    def _validate_top_group(cls, params, group: str, top_group: str) -> None:
         """Validate top group."""
         if group == top_group:
             return

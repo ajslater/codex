@@ -146,8 +146,8 @@ import { getPDFInBrowserURL } from "@/api/v3/reader";
 import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
-const ATTRS = ["fitTo", "readingDirection", "twoPages"];
-Object.freeze(ATTRS);
+const ATTRS = Object.freeze(["fitTo", "readingDirection", "twoPages"]);
+import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "ReaderSettingsPanel",
@@ -180,7 +180,7 @@ export default {
           return true;
         }
         for (const attr of ATTRS) {
-          const val = state.books?.current.settings[attr];
+          const val = Reflect.get(state.books?.current.settings, attr);
           if (!state.choices.nullValues.has(val)) {
             return false;
           }
@@ -212,13 +212,9 @@ export default {
       return this.isVertical && this.isPDF;
     },
   },
-  mounted() {
-    document.addEventListener("keyup", this._keyUpListener);
+  created() {
+    useEventListener(document, "keyup", this._keyUpListener);
   },
-  beforeUnmount() {
-    document.removeEventListener("keyup", this._keyUpListener);
-  },
-
   methods: {
     ...mapActions(useReaderStore, [
       "clearSettingsLocal",
@@ -235,7 +231,7 @@ export default {
     },
     choicesWithoutNull(attr) {
       const choices = [];
-      for (const choice of this.choices[attr]) {
+      for (const choice of Reflect.get(this.choices, attr)) {
         if (choice.value) {
           choices.push(choice);
         }

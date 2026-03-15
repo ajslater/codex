@@ -23,20 +23,22 @@ from codex.librarian.watchdog.events import (
     EVENT_TYPE_START_POLL,
 )
 
-_IMPORT_TASK_PARAMS = MappingProxyType(
-    {
-        "dirs_moved": {},
-        "dirs_modified": set(),
-        "dirs_deleted": set(),
-        "files_moved": {},
-        "files_modified": set(),
-        "files_created": set(),
-        "files_deleted": set(),
-        "covers_moved": {},
-        "covers_modified": set(),
-        "covers_created": set(),
-        "covers_deleted": set(),
-    }
+_IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
+    MappingProxyType(
+        {
+            "dirs_moved": {},
+            "dirs_modified": set(),
+            "dirs_deleted": set(),
+            "files_moved": {},
+            "files_modified": set(),
+            "files_created": set(),
+            "files_deleted": set(),
+            "covers_moved": {},
+            "covers_modified": set(),
+            "covers_created": set(),
+            "covers_deleted": set(),
+        }
+    )
 )
 
 
@@ -50,7 +52,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     def create_import_task_args(library_id: int) -> dict:
         """Create import task args."""
         args = deepcopy(dict(_IMPORT_TASK_PARAMS))
-        args["library_id"] = library_id  # pyright: ignore[reportArgumentType]
+        args["library_id"] = library_id
         return args
 
     @staticmethod

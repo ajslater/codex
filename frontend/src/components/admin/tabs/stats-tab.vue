@@ -97,7 +97,7 @@ export default {
         const label = this.keyToLabel(key);
         const labelValue =
           key === "system" ? `${value.name} ${value.release}` : value;
-        table[label] = labelValue;
+        Reflect.set(table, label, labelValue);
       }
       return table;
     },
@@ -107,8 +107,8 @@ export default {
         if (key == "apiKey") {
           continue;
         }
-        const label = CONFIG_LABELS[key];
-        table[label] = value;
+        const label = Reflect.get(CONFIG_LABELS, key);
+        Reflect.set(table, label, value);
       }
       return table;
     },
@@ -116,14 +116,14 @@ export default {
       const table = {};
       for (const [key, countObj] of Object.entries(this.stats?.sessions)) {
         const countTable = {};
-        const lookup = LOOKUPS[key];
+        const lookup = Reflect.get(LOOKUPS, key);
         for (const [typeKey, count] of Object.entries(countObj)) {
-          let typeLabel;
-          typeLabel = lookup ? lookup[snakeCase(typeKey)] : typeKey;
-          countTable[typeLabel] = count;
+          const typeLabel = lookup
+            ? Reflect.get(lookup, snakeCase(typeKey))
+            : typeKey;
+          Reflect.set(countTable, typeLabel, count);
         }
-        const label = this.keyToLabel(key);
-        table[label] = countTable;
+        Reflect.set(table, label, countTable);
       }
       return table;
     },
@@ -134,7 +134,7 @@ export default {
         if (label !== "Series") {
           label += "s";
         }
-        table[label] = value;
+        Reflect.set(table, label, value);
       }
       return table;
     },
@@ -145,7 +145,7 @@ export default {
           key === "unknown"
             ? capitalCase(key)
             : this.keyToLabel(key).toUpperCase();
-        table[label] = value;
+        Reflect.set(table, label, value);
       }
       return table;
     },
@@ -157,7 +157,7 @@ export default {
         if (INDENT_KEYS.has(key)) {
           label = label.replace(/^\w+ /, "+");
         }
-        table[label] = value;
+        Reflect.set(table, label, value);
       }
       return table;
     },

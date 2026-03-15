@@ -4,7 +4,6 @@ classifiers = [
   "Environment :: Web Environment",
   "Framework :: Django :: 5.1",
   "Intended Audience :: End Users/Desktop",
-  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: JavaScript",
@@ -50,7 +49,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "1.9.23"
+version = "1.9.24"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"

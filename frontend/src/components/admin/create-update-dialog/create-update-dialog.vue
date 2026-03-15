@@ -96,7 +96,7 @@ export default {
     validate() {
       let changed = false;
       for (const [key, value] of Object.entries(this.row)) {
-        if (!dequal(this.oldRow[key], value)) {
+        if (!dequal(Reflect.get(this.oldRow, key), value)) {
           changed = true;
           break;
         }
@@ -127,7 +127,7 @@ export default {
       }
       const updateRow = {};
       for (const key of this.inputs.UPDATE_KEYS) {
-        updateRow[key] = deepClone(this.oldRow[key]);
+        Reflect.set(updateRow, key, deepClone(Reflect.get(this.oldRow, key)));
       }
       return updateRow;
     },
@@ -135,8 +135,8 @@ export default {
       // only pass diff from old user as update
       const updateRow = {};
       for (const [key, value] of Object.entries(this.row)) {
-        if (!dequal(this.oldRow[key], value)) {
-          updateRow[key] = value;
+        if (!dequal(Reflect.get(this.oldRow, key), value)) {
+          Reflect.set(updateRow, key, value);
         }
       }
       this.updateRow(this.table, this.oldRow.pk, updateRow)

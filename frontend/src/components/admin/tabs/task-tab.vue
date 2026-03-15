@@ -39,8 +39,8 @@
             <v-btn
               v-else
               block
-              @click="librarianTask(item.value, item.title)"
               :text="item.title"
+              @click="librarianTask(item.value, item.title)"
             />
             <div class="taskDesc">
               {{ item.desc }}
@@ -56,13 +56,13 @@
         />
         <v-btn
           block
+          :text="selectAttr(group.title, 'title')"
           @click="
             librarianTask(
               selectValues[group.title],
               selectAttr(group.title, 'title'),
             )
           "
-          :text="selectAttr(group.title, 'title')"
         />
         <div class="taskDesc">
           {{ selectAttr(group.title, "desc") }}
@@ -121,8 +121,10 @@ export default {
     ...mapActions(useAdminStore, ["librarianTask"]),
     selectAttr(title, attr) {
       // Get the attribute from the map lookup
-      const value = this.selectValues[title];
-      return this.selectMaps[title][value][attr];
+      const value = Reflect.get(this.selectValues, title);
+      const titleMap = Reflect.get(this.selectMaps, title);
+      const valueMap = Reflect.get(titleMap, value);
+      return Reflect.get(valueMap, attr);
     },
   },
 };

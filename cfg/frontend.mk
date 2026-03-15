@@ -1,3 +1,6 @@
+DEVENV_FRONTEND := 1
+export DEVENV_FRONTEND
+
 .PHONY: clean-frontend
 ## Clean frontend
 ## @category Clean

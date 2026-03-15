@@ -18,7 +18,7 @@ from codex.views.const import EPOCH_START
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
-_ORDER_BY_SUBTITLE_MAP = MappingProxyType(
+_ORDER_BY_SUBTITLE_MAP: MappingProxyType[str, str] = MappingProxyType(
     {"bookmark_updated_at": "read", "created_at": "added", "date": "published"}
 )
 
@@ -59,14 +59,15 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         parts = []
         qps = self.request.GET
         parts += self._subtitle_filters(qps)
-        if (q := qps.get("query")) and (search_query := urllib.parse.unquote(q)):
-            parts.append(search_query)
-        if q := qps.get("query") and (
-            (order_by := qps.get("orderBy")) and order_by != "sort_name"
-        ):
-            order_by = _ORDER_BY_SUBTITLE_MAP.get(order_by, order_by)  # pyright: ignore[reportPossiblyUnboundVariable, reportArgumentType, reportCallIssue]
-            parts.append(order_by)
-        if (order_reverse := qps.get("orderReverse")) and order_reverse not in FALSY:
+        if q := qps.get("query"):
+            if search_query := urllib.parse.unquote(q):
+                parts.append(search_query)
+            if (order_by := qps.get("orderBy", "")) and order_by != "sort_name":
+                order_by = _ORDER_BY_SUBTITLE_MAP.get(order_by, order_by)
+                parts.append(order_by)
+        if (
+            order_reverse := qps.get("orderReverse", False)
+        ) and order_reverse not in FALSY:
             parts.append("desc")
         return ", ".join(parts) if parts else ""
 
@@ -86,10 +87,8 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
         return result
 
-    def _feed_metadata(
-        self, title: str, total_count: int, mtime: datetime | None
-    ) -> MappingProxyType:
-        number_of_items = total_count
+    def _feed_metadata(self, title: str, mtime: datetime | None) -> MappingProxyType:
+        number_of_items = self._opds_number_of_books + self._opds_number_of_groups
         current_page = self.kwargs.get("page")
         md = {
             "title": title,
@@ -144,13 +143,13 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     @override
     def get_object(self) -> MappingProxyType:
         """Get the browser page and serialize it for this subclass."""
-        group_qs, book_qs, _, total_count, zero_pad, mtime = self.group_and_books
+        group_qs, book_qs, _, _, zero_pad, mtime = self.group_and_books
         # convert browser_page into opds pagej
         browser_title = self.get_browser_page_title()
         title = "Start" if self.IS_START_PAGE else self._title(browser_title)
 
         # opds page
-        metadata = self._feed_metadata(title, total_count, mtime)
+        metadata = self._feed_metadata(title, mtime)
 
         # links
         up_route = self.get_last_route()

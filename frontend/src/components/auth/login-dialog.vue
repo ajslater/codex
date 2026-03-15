@@ -77,12 +77,18 @@ import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
+import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "AuthLoginDialog",
   components: {
     SubmitFooter,
     CodexListItem,
+  },
+  setup() {
+    useEventListener(globalThis, "keyup", (event) => {
+      event.stopImmediatePropagation();
+    });
   },
   data() {
     return {
@@ -163,16 +169,11 @@ export default {
       deep: true,
     },
   },
-  mounted() {
-    globalThis.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    globalThis.removeEventListener("keyup", this._keyUpListener);
-  },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     doAuth(mode) {
-      return this[mode](this.credentials)
+      return Reflect.get(this, mode)
+        .call(this, this.credentials)
         .then(() => {
           this.showLoginDialog = this.formErrors && this.formErrors.length > 0;
           return this.showLoginDialog;
@@ -191,10 +192,6 @@ export default {
           return this.doAuth(mode);
         })
         .catch(console.error);
-    },
-    _keyUpListener(event) {
-      // stop keys from activating reader shortcuts.
-      event.stopImmediatePropagation();
     },
   },
 };

@@ -24,6 +24,7 @@
 
 <script>
 import { mapActions, mapState, mapWritableState } from "pinia";
+import { useWindowSize } from "@vueuse/core";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
 import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
@@ -41,14 +42,12 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
+  setup() {
+    const { width, height } = useWindowSize();
+    return { innerWidth: width, innerHeight: height };
+  },
   data() {
     return {
-      /*
-       * If the window is small on mount, the intersection observer
-       * goes crazy and scrolls to 0.
-       */
-      innerHeight: window.innerHeight,
-      innerWidth: window.innerWidth,
       intersectorOn: false,
       programmaticScroll: false,
       intersectOptions: {
@@ -86,13 +85,9 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("resize", this.onResize);
     setTimeout(() => {
       this.scrollToPage(this.storePage);
     }, TIMEOUT);
-  },
-  beforeUnmount() {
-    window.removeEventListener("resize", this.onResize);
   },
   methods: {
     ...mapActions(useReaderStore, [
@@ -118,8 +113,7 @@ export default {
         this.setBookChangeFlag("prev");
       } else if (this.storePage === this.book.maxPage) {
         const scrollTopMax = el.scrollTopMax || el.scrollHeight - el.clientTop;
-
-        if (window.innerHeight + scrollTop + 1 >= scrollTopMax) {
+        if (this.innerHeight + scrollTop + 1 >= scrollTopMax) {
           this.setBookChangeFlag("next");
         }
       }
@@ -136,10 +130,6 @@ export default {
       setTimeout(() => {
         this.programmaticScroll = false;
       }, TIMEOUT);
-    },
-    onResize() {
-      this.innerHeight = window.innerHeight;
-      this.innerWidth = window.innerWidth;
     },
   },
 };

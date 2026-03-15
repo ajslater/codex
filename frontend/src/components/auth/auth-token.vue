@@ -61,15 +61,15 @@ export default {
       return this.clipBoardEnabled ? TOOLTIP : undefined;
     },
   },
+  created() {
+    this.getToken();
+  },
   methods: {
     ...mapActions(useAuthStore, ["getToken", "updateToken"]),
     resetToken() {
       this.updateToken();
       this.showTooltip.show = false;
     },
-  },
-  created() {
-    this.getToken();
   },
 };
 </script>

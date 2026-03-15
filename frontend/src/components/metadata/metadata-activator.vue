@@ -1,11 +1,11 @@
 <template>
   <v-btn
-    @mouseenter="onMouseEnter"
     aria-label="tags"
     class="tagButton cardControlButton"
     :variant="variant"
     :icon="mdiTagOutline"
     title="Tags"
+    @mouseenter="onMouseEnter"
     @click.prevent
   />
 </template>
@@ -23,7 +23,10 @@ export default {
     toolbar: { type: Boolean, require: true },
   },
   data() {
-    return { mdiTagOutline };
+    return {
+      mdiTagOutline,
+      importedIds: new Set(),
+    };
   },
   computed: {
     ...mapState(useAuthStore, {
@@ -39,11 +42,11 @@ export default {
       if (
         this.lazyImportEnabled &&
         this.book.group === "c" &&
-        !this.book.hasMetadata
+        !this.importedIds.has(this.book.pk)
       ) {
         const ids = this.book.ids || [this.book.pk];
         this.lazyImport({ group: this.book.group, ids });
-        this.book.hasMetadata = true;
+        this.importedIds.add(this.book.pk);
       }
     },
   },

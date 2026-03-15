@@ -184,19 +184,22 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         return [self.link(link_data)]
 
     def _get_publication_section_metadata(
-        self, title, subtitle, number_of_items, items_per_page
+        self,
+        title: str,
+        subtitle: str,
+        number_of_items: int | None,
+        items_per_page: int,
     ) -> dict:
         current_page = self.kwargs.get("page", 1)
-        if number_of_items is None:
-            number_of_items = self._opds_number_of_books
         metadata = {
             "title": title,
             "current_page": current_page,
             "items_per_page": items_per_page,
-            "number_of_items": number_of_items,
         }
         if subtitle:
             metadata["subtitle"] = subtitle
+        if number_of_items:
+            metadata["number_of_items"] = self._opds_number_of_books
         return metadata
 
     def get_publications(

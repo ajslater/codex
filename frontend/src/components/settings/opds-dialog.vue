@@ -24,7 +24,7 @@
       <OPDSUrl
         title="v2.0"
         :url-path="opdsURLs.v2"
-        subtitle="Supported in some newer clients"
+        subtitle="Supported in newer clients (like Stump)"
       />
     </div>
     <PlaceholderLoading v-else />

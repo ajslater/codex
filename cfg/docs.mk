@@ -1,3 +1,6 @@
+DEVENV_DOCS := 1
+export DEVENV_DOCS
+
 .PHONY: docs
 ## Build doc site
 ## @category Docs
