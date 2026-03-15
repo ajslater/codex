@@ -82,6 +82,7 @@
 <script>
 import { mdiLockReset } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
+import { useEventListener } from "@vueuse/core";
 
 import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
@@ -108,6 +109,11 @@ export default {
       type: String,
       default: "default",
     },
+  },
+  setup() {
+    useEventListener(globalThis, "keyup", (event) => {
+      event.stopImmediatePropagation();
+    });
   },
   data() {
     return {
@@ -180,12 +186,6 @@ export default {
       deep: true,
     },
   },
-  mounted() {
-    globalThis.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    globalThis.removeEventListener("keyup", this._keyUpListener);
-  },
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
@@ -214,10 +214,6 @@ export default {
           }
         })
         .catch(console.error);
-    },
-    _keyUpListener(event) {
-      // stop keys from activating reader shortcuts.
-      event.stopImmediatePropagation();
     },
   },
 };
