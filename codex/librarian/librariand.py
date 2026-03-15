@@ -4,12 +4,11 @@ from copy import copy
 from multiprocessing import Process, Queue
 from threading import Lock, active_count
 from types import MappingProxyType
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, override
 
 from aioprocessing.queues import AioQueue
 from caseconverter import snakecase
 from django.db import close_old_connections
-from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread  # typos:ignore
 from codex.librarian.bookmark.tasks import BookmarkTask

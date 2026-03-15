@@ -1,6 +1,5 @@
 """Purge comic covers."""
 
-import os
 import shutil
 from abc import ABC
 from pathlib import Path
@@ -82,7 +81,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             db_cover_paths = self.get_cover_paths(pks, custom=False)
 
             orphan_cover_paths = set()
-            for root, _, filenames in os.walk(cover_root):
+            for root, _, filenames in cover_root.walk():
                 root_path = Path(root)
                 for fn in filenames:
                     fs_cover_path = root_path / fn

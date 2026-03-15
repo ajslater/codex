@@ -10,8 +10,8 @@ and then re-serialize everything in this batcher and the event Handler
 from contextlib import suppress
 from copy import deepcopy
 from types import MappingProxyType
+from typing import override
 
-from typing_extensions import override
 from watchdog.events import EVENT_TYPE_MOVED, FileSystemEvent
 
 from codex.librarian.memory import get_mem_limit

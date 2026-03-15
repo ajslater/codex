@@ -2,8 +2,7 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
-
-from typing_extensions import override
+from typing import override
 
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask

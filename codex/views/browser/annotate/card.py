@@ -70,4 +70,8 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         qs = self._annotate_has_metadata(qs)
-        return qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))
+        return qs.annotate(
+            updated_ats=JsonGroupArray(
+                "updated_at", distinct=True, order_by="updated_at"
+            )
+        )

@@ -1,5 +1,7 @@
 """Serializers for the browser view."""
 
+from typing import override
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -7,7 +9,6 @@ from rest_framework.serializers import (
     IntegerField,
     Serializer,
 )
-from typing_extensions import override
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer

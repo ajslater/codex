@@ -2,8 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-
-from typing_extensions import override
+from typing import override
 
 
 @dataclass

@@ -1,7 +1,8 @@
 """Version View."""
 
+from typing import override
+
 from rest_framework.response import Response
-from typing_extensions import override
 
 from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE

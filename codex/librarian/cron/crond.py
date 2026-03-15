@@ -3,9 +3,9 @@
 from threading import Condition, Event
 from time import sleep
 from types import MappingProxyType
+from typing import override
 
 from django.utils import timezone as django_timezone
-from typing_extensions import override
 
 from codex.librarian.scribe.janitor.scheduled_time import get_janitor_time
 from codex.librarian.scribe.janitor.tasks import JanitorNightlyTask

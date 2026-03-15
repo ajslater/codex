@@ -1,9 +1,9 @@
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 
 import sys
+from typing import Any
 
 from loguru import logger
-from typing_extensions import Any
 
 from codex.settings import DEBUG, LOG_PATH, LOG_RETENTION, LOG_ROTATION, LOGLEVEL
 

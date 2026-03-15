@@ -2,7 +2,7 @@
 
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.db.models import Q
 from pyparsing import (
@@ -14,7 +14,6 @@ from pyparsing import (
     infix_notation,
     printables,
 )
-from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN
 from codex.models.comic import Comic
@@ -37,7 +36,7 @@ ParserElement.enable_packrat()
 class BoolOperandBase(ABC):
     """Hold context."""
 
-    def __init__(self, context) -> None:
+    def __init__(self, context):
         """Initialize context."""
         self.context = context
 
@@ -50,7 +49,7 @@ class BoolOperandBase(ABC):
 class BoolOperand(BoolOperandBase):
     """Hacky Base for injecting rel."""
 
-    def __init__(self, tokens, context) -> None:
+    def __init__(self, tokens, context):
         """Initialize value from first token."""
         super().__init__(context)
         self.value = tokens[0]
@@ -92,7 +91,7 @@ class BoolOperand(BoolOperandBase):
 class BoolNot(BoolOperandBase):
     """NOT Operand."""
 
-    def __init__(self, tokens, context) -> None:
+    def __init__(self, tokens, context):
         """Initialize args from first token."""
         super().__init__(context)
         self.arg = tokens[0][1]
@@ -114,7 +113,7 @@ class BoolBinaryOperand(BoolOperandBase):
 
     OP: str = ""
 
-    def __init__(self, tokens, context) -> None:
+    def __init__(self, tokens, context):
         """Initialize args from first two tokens."""
         super().__init__(context)
         self.args = tokens[0][0::2]

@@ -2,9 +2,9 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import override
 
 from loguru import logger
-from typing_extensions import override
 
 from codex.librarian.bookmark.latest_version import CodexLatestVersionUpdater
 from codex.librarian.bookmark.tasks import (

@@ -1,8 +1,9 @@
 """Sanitied Fields."""
 
+from typing import override
+
 from nh3 import clean
 from rest_framework.fields import CharField
-from typing_extensions import override
 
 
 class SanitizedCharField(CharField):

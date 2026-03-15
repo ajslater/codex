@@ -1,9 +1,10 @@
 """Browser session view."""
 
+from typing import override
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.serializers.browser.settings import (
     BrowserSettingsInputSerializer,

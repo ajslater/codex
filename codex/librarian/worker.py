@@ -1,9 +1,9 @@
 """Mixin because watchdog Observers already inherit from Thread.."""
 
 from multiprocessing.queues import Queue
+from typing import override
 
 from loguru._logger import Logger
-from typing_extensions import override
 
 from codex.librarian.status_controller import StatusController
 
