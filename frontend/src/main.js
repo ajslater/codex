@@ -3,7 +3,7 @@ import "vuetify/styles"; // Global CSS has to be imported
 
 import { createHead, VueHeadMixin } from "@unhead/vue/client";
 import { createApp } from "vue";
-import VueDragScroller from "vue-drag-scroller";
+import dragScrollDirective from "@/plugins/drag-scroll";
 
 import router from "@/plugins/router";
 import vuetify from "@/plugins/vuetify";
@@ -13,15 +13,14 @@ import App from "@/app.vue";
 
 const app = createApp(App);
 
+app.config.performance = import.meta.env.PROD;
+
 app.use(vuetify);
 setupStore(app);
 app.use(router);
 app.use(createHead());
 app.mixin(VueHeadMixin);
-// App level include fixes not working with mouse left button drag.
-app.use(VueDragScroller);
-
-app.config.performance = import.meta.env.PROD;
+app.directive("drag-scroller", dragScrollDirective);
 
 router
   .isReady()

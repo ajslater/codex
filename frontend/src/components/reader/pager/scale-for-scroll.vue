@@ -56,6 +56,7 @@ export default {
       this.setSettingsClient({ scale });
     },
     scaleReset() {
+      console.debug("reset");
       this.setSettingsClient({ scale: SCALE_DEFAULT });
     },
   },

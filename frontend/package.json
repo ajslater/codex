@@ -26,7 +26,6 @@
     "temporal-polyfill": "^0.3.0",
     "text-case": "^1.2.9",
     "vue": "^3.5.12",
-    "vue-drag-scroller": "^1.9.0",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^5.0.0",
     "vuetify": "^4.0.0",
