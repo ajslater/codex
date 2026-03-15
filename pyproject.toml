@@ -13,7 +13,6 @@ classifiers = [
 ]
 dependencies = [
   "aioprocessing~=2.0",
-  "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
   "comicbox[pdf]~=2.2.1",
@@ -40,7 +39,6 @@ dependencies = [
   "tzlocal~=5.0",
   "versio~=0.5",
   "watchdog~=6.0",
-  "websocket-client~=1.2",
   "whitenoise[brotli]~=6.0",
   "zipstream-ng~=1.8",
 ]
