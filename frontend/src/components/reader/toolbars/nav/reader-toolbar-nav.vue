@@ -32,6 +32,7 @@ import ReaderBookChangeNavButton from "@/components/reader/toolbars/nav/reader-b
 import ReaderNavButton from "@/components/reader/toolbars/nav/reader-nav-button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
+import { useEventListener } from "@vueuse/core";
 
 const PREV = "prev";
 const NEXT = "next";
@@ -85,11 +86,8 @@ export default {
       return this.isReadInReverse ? "prev" : "next";
     },
   },
-  mounted() {
-    document.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    document.removeEventListener("keyup", this._keyUpListener);
+  created() {
+    useEventListener(document, "keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useReaderStore, [

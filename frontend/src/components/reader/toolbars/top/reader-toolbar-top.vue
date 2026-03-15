@@ -60,6 +60,7 @@ import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
+import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "ReaderTitleToolbar",
@@ -131,11 +132,8 @@ export default {
       }
     },
   },
-  mounted() {
-    document.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    document.removeEventListener("keyup", this._keyUpListener);
+  created() {
+    useEventListener(document, "keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
