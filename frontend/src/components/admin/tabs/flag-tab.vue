@@ -101,9 +101,9 @@ export default {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
     setError(name, field) {
       if (this.formErrors && this.formErrors.length > 0) {
-        this.errors[name] = this.formErrors[0][field];
+        Reflect.set(this.errors, name, Reflect.get(this.formErrors[0], field));
       } else {
-        delete this.errors[name];
+        Reflect.deleteProperty(this.errors, name);
       }
     },
     changeCol(name, field, val) {

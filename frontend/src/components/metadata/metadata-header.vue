@@ -142,9 +142,7 @@ export default {
       md: (state) => state.md,
     }),
     collectionTitle() {
-      if (this.md.collectionTitle) {
-        return `${this.md.collectionTitle}:`;
-      }
+      return this.md.collectionTitle ? `${this.md.collectionTitle}:` : "";
     },
     date() {
       if (!this.md.year && !this.md.month && !this.md.day) {
@@ -189,8 +187,10 @@ export default {
         return pages;
       }
       if (this.md.page !== undefined) {
-        // Show if any bookmark at all.
-        // +1 to page for math with pageCount
+        /*
+         * Show if any bookmark at all.
+         * +1 to page for math with pageCount
+         */
         const humanBookmark = NUMBER_FORMAT.format(this.md.page + 1);
         pages += this.$vuetify.display.smAndDown
           ? `${humanBookmark} / `

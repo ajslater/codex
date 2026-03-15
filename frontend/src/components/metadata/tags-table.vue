@@ -5,7 +5,7 @@
         v-for="[key, { filter, tags, mainTags }] of Object.entries(tagMap)"
         :key="key"
       >
-        <td class="key keyLink" v-if="keyMap && keyMap[key] && keyMap[key].url">
+        <td v-if="keyMap && keyMap[key] && keyMap[key].url" class="key keyLink">
           <a href="keyMap[key].url"
             >{{ key }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
           >
@@ -15,7 +15,7 @@
           <MetadataTags
             :filter="filter"
             :values="tags"
-            :mainValues="mainTags"
+            :main-values="mainTags"
           />
         </td>
       </tr>
@@ -33,15 +33,15 @@ export default {
   components: {
     MetadataTags,
   },
-  data() {
-    return { mdiOpenInNew };
-  },
   props: {
     keyMap: { type: Object, default: undefined },
     tagMap: {
       type: Object,
       required: true,
     },
+  },
+  data() {
+    return { mdiOpenInNew };
   },
   computed: {
     show() {

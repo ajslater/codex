@@ -56,7 +56,7 @@ export default {
         const bParts = b.split(".");
 
         for (const [i, aPart] of aParts.entries()) {
-          if (+aPart > +bParts[i]) {
+          if (+aPart > +Reflect.get(bParts, i)) {
             return true;
           }
         }

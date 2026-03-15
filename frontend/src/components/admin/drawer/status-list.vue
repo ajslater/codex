@@ -50,9 +50,6 @@ export default {
       show: (state) => state.librarianStatuses.length > 0,
     }),
   },
-  created() {
-    this.load();
-  },
   watch: {
     show(to) {
       if (to) {
@@ -64,6 +61,9 @@ export default {
         this.updateTime();
       }
     },
+  },
+  created() {
+    this.load();
   },
   mounted() {
     this.updateTime();

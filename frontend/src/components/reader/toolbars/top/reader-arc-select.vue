@@ -76,11 +76,11 @@ export default {
       }
       for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
-          let subtitle = TOP_GROUP[group];
+          let subtitle = Reflect.get(TOP_GROUP, group);
           if (group !== "s") {
             subtitle = subtitle.slice(0, -1);
           }
-          const prependIcon = ARC_ICONS[group];
+          const prependIcon = Reflect.get(ARC_ICONS, group);
           const appendIcon =
             group === this.arc?.group && ids == this.arc?.ids ? mdiCheck : "";
           const value = { group, ids, prependIcon, ...arcInfo };
@@ -121,7 +121,7 @@ export default {
       this.loadBooks({ arc });
     },
     prependIcon(group) {
-      return ARC_ICONS[group];
+      return Reflect.get(ARC_ICONS, group);
     },
   },
 };

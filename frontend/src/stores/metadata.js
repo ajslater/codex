@@ -4,7 +4,7 @@ import { capitalCase } from "text-case";
 import API from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
 
-const HEAD_ROLES = [
+const HEAD_ROLES = Object.freeze([
   // writer
   "writer",
   "author",
@@ -51,9 +51,8 @@ const HEAD_ROLES = [
   "editor",
   "edits",
   "editing",
-];
-Object.freeze(HEAD_ROLES);
-const TAGS = [
+]);
+const TAGS = Object.freeze([
   "genres",
   "characters",
   // identifiers
@@ -64,10 +63,8 @@ const TAGS = [
   "storyArcNumbers",
   "tags",
   "universes",
-];
-Object.freeze(TAGS);
-const MAIN_TAGS = new Set(["Characters", "Teams"]);
-Object.freeze(MAIN_TAGS);
+]);
+const MAIN_TAGS = Object.freeze(new Set(["Characters", "Teams"]));
 
 function compareByLastName(a, b) {
   const aLast = a.name.split(" ").pop();

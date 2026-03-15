@@ -1,12 +1,12 @@
 import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
+import checker from "vite-plugin-checker";
 import fs from "fs";
 import { hostname } from "os";
 import path from "path";
 import toml from "toml";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
-import eslintPlugin from "vite-plugin-eslint2";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
 
@@ -66,10 +66,15 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vuetify({ autoImport: true }),
+      checker({
+        eslint: {
+          lintCommand: "eslint --cache .", // "./src/**/*.{js,vue}"',
+          useFlatConfig: true,
+        },
+      }),
       dynamicBase({
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
-      eslintPlugin(),
       run([
         {
           name: "Choices to JSON",

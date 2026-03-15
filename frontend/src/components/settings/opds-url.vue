@@ -16,6 +16,7 @@ const TOOLTIP = "Copy URL to clipboard";
 
 export default {
   name: "OPDSUrl",
+  components: { ClipBoard },
   props: {
     title: {
       type: String,
@@ -30,7 +31,6 @@ export default {
       required: true,
     },
   },
-  components: { ClipBoard },
   data() {
     return {
       mdiRss,

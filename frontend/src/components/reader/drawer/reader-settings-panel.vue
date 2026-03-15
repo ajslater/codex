@@ -180,7 +180,7 @@ export default {
           return true;
         }
         for (const attr of ATTRS) {
-          const val = state.books?.current.settings[attr];
+          const val = Reflect.get(state.books?.current.settings, attr);
           if (!state.choices.nullValues.has(val)) {
             return false;
           }
@@ -235,7 +235,7 @@ export default {
     },
     choicesWithoutNull(attr) {
       const choices = [];
-      for (const choice of this.choices[attr]) {
+      for (const choice of Reflect.get(this.choices, attr)) {
         if (choice.value) {
           choices.push(choice);
         }

@@ -14,11 +14,11 @@ import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
+import eslintPluginPerfectionist from "eslint-plugin-perfectionist";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginPromise from "eslint-plugin-promise";
 import eslintPluginRegexp from "eslint-plugin-regexp";
 import eslintPluginSecurity from "eslint-plugin-security";
-import eslintPluginSimpleImportSort from "eslint-plugin-simple-import-sort";
 import eslintPluginSonarjs from "eslint-plugin-sonarjs";
 import eslintPluginToml from "eslint-plugin-toml";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
@@ -38,14 +38,13 @@ export const CONFIGS = {
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginMath.configs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
+    ...eslintPluginPerfectionist.configs["recommended-natural"],
     ...eslintPluginPromise.configs[FLAT_ALL],
     ...eslintPluginRegexp.configs.all,
     ...eslintPluginSonarjs.configs.all,
     ...eslintPluginUnicorn.configs.all,
     plugins: {
       depend: eslintPluginDepend,
-      "no-secrets": eslintPluginNoSecrets,
-      "simple-import-sort": eslintPluginSimpleImportSort,
       sonarjs: eslintPluginSonarjs,
       unicorn: eslintPluginUnicorn,
     },
@@ -54,14 +53,12 @@ export const CONFIGS = {
     },
     rules: {
       "@stylistic/multiline-comment-style": "off", // Multiple bugs with this rule
-      "import-x/order": "off",
+      // "import-x/order": "off",
       "max-params": ["warn", 4],
       "no-console": "warn",
       "no-debugger": "warn",
       "no-secrets/no-secrets": "error",
       "security/detect-object-injection": "off",
-      "simple-import-sort/exports": "warn",
-      "simple-import-sort/imports": "warn",
     },
   },
 };
@@ -99,6 +96,10 @@ export default defineConfig([
     },
     linterOptions: {
       reportUnusedDisableDirectives: "warn",
+    },
+    plugins: {
+      "no-secrets": eslintPluginNoSecrets,
+      perfectionist: eslintPluginPerfectionist,
     },
     rules: {
       "prettier/prettier": "warn",

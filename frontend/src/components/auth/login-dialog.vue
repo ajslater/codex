@@ -172,7 +172,8 @@ export default {
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     doAuth(mode) {
-      return this[mode](this.credentials)
+      return Reflect.get(this, mode)
+        .call(this, this.credentials)
         .then(() => {
           this.showLoginDialog = this.formErrors && this.formErrors.length > 0;
           return this.showLoginDialog;

@@ -5,6 +5,7 @@
         <v-icon v-if="item.icon">
           {{ item.icon }}
         </v-icon>
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <span v-else v-html="item.text" />
       </v-breadcrumbs-item>
     </template>
@@ -54,7 +55,7 @@ export default {
             tooltipText = "Top";
           } else {
             tooltipText = crumb.pks == 0 ? "All " : "";
-            tooltipText += this.groupNames[group];
+            tooltipText += Reflect.get(this.groupNames, group);
           }
           const tooltip = { text: tooltipText, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
@@ -83,7 +84,7 @@ export default {
       } else if (title) {
         icon = "";
       } else {
-        icon = GROUP_ICON_MAP[group];
+        icon = Reflect.get(GROUP_ICON_MAP, group);
       }
       return icon;
     },
