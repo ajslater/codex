@@ -37,7 +37,6 @@ dependencies = [
   "requests~=2.24",
   "typing-extensions~=4.14",
   "tzlocal~=5.0",
-  "versio~=0.5",
   "watchdog~=6.0",
   "whitenoise[brotli]~=6.0",
   "zipstream-ng~=1.8",

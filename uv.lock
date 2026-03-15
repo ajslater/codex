@@ -708,7 +708,6 @@ dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
     { name = "tzlocal" },
-    { name = "versio" },
     { name = "watchdog" },
     { name = "whitenoise", extra = ["brotli"] },
     { name = "zipstream-ng" },
@@ -786,7 +785,6 @@ requires-dist = [
     { name = "requests", specifier = "~=2.24" },
     { name = "typing-extensions", specifier = "~=4.14" },
     { name = "tzlocal", specifier = "~=5.0" },
-    { name = "versio", specifier = "~=0.5" },
     { name = "watchdog", specifier = "~=6.0" },
     { name = "whitenoise", extras = ["brotli"], specifier = "~=6.0" },
     { name = "zipstream-ng", specifier = "~=1.8" },
@@ -3897,15 +3895,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1d/f4/9f6440fd271892e00c963226a9c13b072bb75613354cdbb769ae2d885c16/urnparse-0.2.2.tar.gz", hash = "sha256:907b8f6365aa453368d27f2d62e5d18606c4148a6d8d0dec7d62439888da4b28", size = 5915, upload-time = "2024-05-13T08:47:45.529Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/2c/b3941ede58eb540cc00a2941d1e70aa16e0c7732ae56319b6aba366e3094/urnparse-0.2.2-py2.py3-none-any.whl", hash = "sha256:5bf3ce5ffbfcfbc7412c006c64eceb2531e2d91cf94d1103433684bb68913946", size = 5906, upload-time = "2024-05-13T08:47:43.948Z" },
-]
-
-[[package]]
-name = "versio"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/89/83/7a7d329cb8939b3b8c05c45cbf2c2af73499a417aa6306da2ccbf2be8638/Versio-0.5.0.tar.gz", hash = "sha256:64b3bb4cc285b5c7cf3afb3ea63bc6b0df1e7cb1db14e77a8b7ec81b8c8b058e", size = 31327, upload-time = "2022-01-11T22:43:05.657Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/12/2b9ca783aea66cb246b2997448a0842e11953037427e39731541cf439692/Versio-0.5.0-py3-none-any.whl", hash = "sha256:68fde9c516bf352d9912a401202555dd9d7c4e2626f578fe41a7079159e43003", size = 12920, upload-time = "2022-01-11T22:43:04.013Z" },
 ]
 
 [[package]]
