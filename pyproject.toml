@@ -96,7 +96,7 @@ test = [
   "pytest-gitignore~=1.3",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
-ci = ["requests~=2.32"]
+ci = []
 
 [build-system]
 requires = ["uv_build~=0.10.0"]
