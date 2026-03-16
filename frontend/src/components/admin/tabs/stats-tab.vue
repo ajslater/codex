@@ -123,6 +123,7 @@ export default {
             : typeKey;
           Reflect.set(countTable, typeLabel, count);
         }
+        const label = this.keyToLabel(key);
         Reflect.set(table, label, countTable);
       }
       return table;
