@@ -236,8 +236,7 @@ export default {
           choices.push(choice);
         }
       }
-      Object.freeze(choices);
-      return choices;
+      return Object.freeze(choices);
     },
     _keyUpListener(event) {
       event.stopPropagation();

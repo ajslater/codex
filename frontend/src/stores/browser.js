@@ -11,37 +11,28 @@ import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { range } from "@/util";
+import Breadcrumbs from "../components/browser/toolbars/breadcrumbs/breadcrumbs.vue";
 
-const GROUPS = "rpisvc";
-Object.freeze(GROUPS);
-export const GROUPS_REVERSED = [...GROUPS].reverse().join("");
-Object.freeze(GROUPS_REVERSED);
-const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
-Object.freeze(HTTP_REDIRECT_CODES);
-const DEFAULT_BOOKMARK_VALUES = new Set([
-  undefined,
-
-  null,
-  BROWSER_DEFAULTS.bookmarkFilter,
-]);
-Object.freeze(DEFAULT_BOOKMARK_VALUES);
-const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
-Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
-const NO_REDIRECT_ON_SEARCH_GROUPS = new Set(["a", "c", "f"]);
-Object.freeze(NO_REDIRECT_ON_SEARCH_GROUPS);
-const NON_BROWSE_GROUPS = new Set(["a", "f"]);
-Object.freeze(NON_BROWSE_GROUPS);
+const GROUPS = Object.freeze("rpisvc");
+export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse().join(""));
+const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
+const DEFAULT_BOOKMARK_VALUES = Object.freeze(
+  new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
+);
+const ALWAYS_ENABLED_TOP_GROUPS = Object.freeze(new Set(["a", "c"]));
+const NO_REDIRECT_ON_SEARCH_GROUPS = Object.freeze(new Set(["a", "c", "f"]));
+const NON_BROWSE_GROUPS = Object.freeze(new Set(["a", "f"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
-const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
-Object.freeze(COVER_KEYS);
-const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse", "q"];
-Object.freeze(DYNAMIC_COVER_KEYS);
-const FILTER_ONLY_KEYS = ["filters", "q"];
-Object.freeze(FILTER_ONLY_KEYS);
-const PAGE_LOAD_KEYS = ["breadcrumbs"];
-Object.freeze(PAGE_LOAD_KEYS);
-const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
-Object.freeze(METADATA_LOAD_KEYS);
+const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
+const DYNAMIC_COVER_KEYS = Object.freeze([
+  "filters",
+  "orderBy",
+  "orderReverse",
+  "q",
+]);
+const FILTER_ONLY_KEYS = Objcet.freeze(["filters", "q"]);
+const PAGE_LOAD_KEYS = Object.freeze(["breadcrumbs"]);
+const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -596,7 +587,8 @@ export const useBrowserStore = defineStore("browser", {
       await API.getBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
           const { breadcrumbs, ...page } = response.data;
-          Object.freeze({ page });
+          Object.freeze(breadcrumbs);
+          Object.freeze(page);
           this.$patch((state) => {
             state.settings.breadcrumbs = breadcrumbs;
             state.page = page;

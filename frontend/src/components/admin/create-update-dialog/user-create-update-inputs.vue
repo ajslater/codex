@@ -48,17 +48,20 @@ import { mapActions, mapState } from "pinia";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["username", "isStaff", "isActive", "groups"];
-Object.freeze(UPDATE_KEYS);
-const EMPTY_ROW = {
+const UPDATE_KEYS = Object.freeze([
+  "username",
+  "isStaff",
+  "isActive",
+  "groups",
+]);
+const EMPTY_ROW = Object.freeze({
   username: "",
   password: "",
   passwordConfirm: "",
   isStaff: false,
   isActive: true,
   groups: [],
-};
-Object.freeze(EMPTY_ROW);
+});
 
 export default {
   name: "AdminUserCreateUpdateInputs",

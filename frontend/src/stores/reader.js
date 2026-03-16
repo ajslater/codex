@@ -30,29 +30,26 @@ const DIRECTION_REVERSE_MAP = Object.freeze({
   prev: "next",
   next: "prev",
 });
-const PREFETCH_LINK = { rel: "prefetch", as: "image" };
-Object.freeze(PREFETCH_LINK);
-export const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
-Object.freeze(VERTICAL_READING_DIRECTIONS);
-export const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
-Object.freeze(REVERSE_READING_DIRECTIONS);
-const OPPOSITE_READING_DIRECTIONS = {
-  ltr: "rtl",
-  rtl: "ltr",
-  ttb: "btt",
-  btt: "ttb",
-};
-Object.freeze(OPPOSITE_READING_DIRECTIONS);
+const PREFETCH_LINK = Object.freeze({ rel: "prefetch", as: "image" });
+export const VERTICAL_READING_DIRECTIONS = Object.freeze(
+  new Set(["ttb", "btt"]),
+);
+export const REVERSE_READING_DIRECTIONS = Object.freeze(
+  new Set(["rtl", "btt"]),
+);
 export const SCALE_DEFAULT = 1;
-const FIT_TO_CLASSES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
-Object.freeze(FIT_TO_CLASSES);
-const BOOKS_NULL = {
+const FIT_TO_CLASSES = Object.freeze({
+  S: "Screen",
+  W: "Width",
+  H: "Height",
+  O: "Original",
+});
+const BOOKS_NULL = Object.freeze({
   current: undefined,
   prev: false,
   next: false,
-};
-Object.freeze(BOOKS_NULL);
-const ROUTES_NULL = {
+});
+const ROUTES_NULL = Object.freeze({
   prev: false,
   next: false,
   books: {
@@ -60,24 +57,11 @@ const ROUTES_NULL = {
     next: false,
   },
   close: undefined,
-};
-Object.freeze(ROUTES_NULL);
-const DEFAULT_ARC = {
+});
+const DEFAULT_ARC = Object.freeze({
   group: "s",
   ids: [],
-};
-Object.freeze(DEFAULT_ARC);
-
-/*
-const getGlobalFitToDefault = () => {
-  // Big screens default to fit by SCREEN, small to WIDTH;
-  const vw = Math.max(
-    document.documentElement.clientWidth || 0,
-    window.innerWidth || 0,
-  );
-  return vw > 600 ? "S" : "W";
-};
-*/
+});
 
 const ensureNoTwoPageVertical = (settings) => {
   // No two pages with vertical
@@ -129,7 +113,7 @@ export const useReaderStore = defineStore("reader", {
   getters: {
     activeSettings(state) {
       // the empty settings guarantee here is for vitest.
-      return state.getBookSettings(state.books.current) || {};
+      return this.getBookSettings(state.books.current) || {};
     },
     activeTitle(state) {
       const book = state.books.current;

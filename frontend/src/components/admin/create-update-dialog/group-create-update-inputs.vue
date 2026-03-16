@@ -57,15 +57,13 @@ import AdminRelationPicker from "@/components/admin/create-update-dialog/relatio
 import GroupChip from "@/components/admin/group-chip.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["name", "userSet", "librarySet", "exclude"];
-Object.freeze(UPDATE_KEYS);
-const EMPTY_ROW = {
+const UPDATE_KEYS = Object.freeze(["name", "userSet", "librarySet", "exclude"]);
+const EMPTY_ROW = Object.freeze({
   name: "",
   userSet: [],
   librarySet: [],
   exclude: false,
-};
-Object.freeze(EMPTY_ROW);
+});
 
 export default {
   name: "AdminGroupCreateUpdateInputs",
