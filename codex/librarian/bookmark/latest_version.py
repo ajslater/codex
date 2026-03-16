@@ -2,8 +2,8 @@
 
 import json
 from datetime import timedelta
+from urllib.request import urlopen
 
-import requests
 from django.utils import timezone
 
 from codex.librarian.scribe.janitor.status import JanitorCodexLatestVersionStatus
@@ -24,7 +24,7 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
     @staticmethod
     def _fetch_latest_version():
         """Fetch Latest Remotely."""
-        response = requests.get(_REPO_URL, timeout=_REPO_TIMEOUT)
+        response = urlopen(_REPO_URL, timeout=_REPO_TIMEOUT)  # noqa: S310
         return json.loads(response.text)["info"]["version"]
 
     def update_latest_version(self, *, force: bool, update: bool = False) -> None:

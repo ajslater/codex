@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
+import { toRaw } from "vue";
 import { mapActions, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
@@ -31,7 +31,7 @@ export default {
     ...mapState(useReaderStore, {
       toRoute(state) {
         const params = state?.routes?.books[this.direction];
-        return params ? { params: deepClone(params) } : "";
+        return params ? { params: structuredClone(toRaw(params)) } : "";
       },
     }),
     title() {

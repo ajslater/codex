@@ -9,11 +9,11 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostringlist
+from zlib import adler32
 
 from comicbox.enums.comicbox import IdSources
 from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 from comicbox.schemas.comicinfo import ComicInfoSchema
-from fnvhash import fnv1a_32
 from PIL import Image
 from pycountry import languages
 
@@ -289,7 +289,7 @@ def create_test_file(path):
 def _hex_path(num):
     """Translate an integer into an efficient filesystem path."""
     num_str = f"{num:07}"
-    fnv = fnv1a_32(bytes(num_str, "utf-8"))
+    fnv = adler32(bytes(num_str, "utf-8"))
     hex_str = format(fnv, f"0{HEX_FILL}x")
     parts = [hex_str[i : i + PATH_STEP] for i in range(0, len(hex_str), PATH_STEP)]
     path = Path("/".join(parts))

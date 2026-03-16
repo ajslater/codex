@@ -49,8 +49,8 @@
 </template>
 
 <script>
+import { toRaw } from "vue";
 import { mdiClose } from "@mdi/js";
-import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
@@ -112,11 +112,9 @@ export default {
       return height;
     },
     closeRoute() {
-      const route = deepClone(this.closeBookRoute);
-      const params = deepClone(route.params);
-      delete params["name"];
-      route.params = params;
-      return route;
+      const params = structuredClone(toRaw(this.closeBookRoute.params));
+      delete params.name;
+      return { ...this.closeBookRoute, params };
     },
     metadataBook() {
       const book = { ...this.currentBook };

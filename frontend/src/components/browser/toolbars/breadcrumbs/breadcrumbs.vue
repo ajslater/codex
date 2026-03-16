@@ -19,8 +19,8 @@ import {
   mdiFolderOutline,
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
-import deepClone from "deep-clone";
 import { mapState } from "pinia";
+import { toRaw } from "vue";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -68,7 +68,7 @@ export default {
   },
   methods: {
     getTo(crumb, parentPks) {
-      const params = deepClone(crumb);
+      const params = structuredClone(toRaw(crumb));
       delete params["name"];
       const to = { name: "browser", params };
       to.query = { ts: this.timestamp };

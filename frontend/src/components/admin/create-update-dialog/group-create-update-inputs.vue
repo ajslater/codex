@@ -51,7 +51,6 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
@@ -89,7 +88,7 @@ export default {
           (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
         ],
       },
-      row: { ...EMPTY_ROW, ...deepClone(this.oldRow) },
+      row: { ...EMPTY_ROW, ...structuredClone(this.oldRow) },
     };
   },
   computed: {
@@ -111,7 +110,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = deepClone(to);
+        this.row = structuredClone(to);
       },
       deep: true,
     },

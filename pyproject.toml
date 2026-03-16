@@ -12,8 +12,6 @@ classifiers = [
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 dependencies = [
-  "aioprocessing~=2.0",
-  "ansicolors~=1.1",
   "bidict~=0.23",
   "channels~=4.2",
   "comicbox[pdf]~=2.2.1",
@@ -26,8 +24,6 @@ dependencies = [
   "django-rest-registration~=0.9",
   "django-vite~=3.1",
   "drf-spectacular~=0.28",
-  "fnvhash~=0.1",
-  "humanfriendly~=10.0",
   "humanize~=4.12",
   "hypercorn[h3]~=0.17",
   "loguru~=0.7.3",
@@ -35,12 +31,11 @@ dependencies = [
   "Pillow~=12.0",
   "psutil~=7.1",
   "pyparsing~=3.2",
-  "requests~=2.24",
+  "typing-extensions~=4.14",
   "tzlocal~=5.0",
-  "versio~=0.5",
   "watchdog~=6.0",
-  "websocket-client~=1.2",
   "whitenoise[brotli]~=6.0",
+  "xxhash>=3.6.0",
   "zipstream-ng~=1.8",
 ]
 description = "A comic archive web server."
@@ -49,7 +44,7 @@ license = "GPL-3.0-only"
 name = "codex"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "1.9.24"
+version = "1.9.25"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"

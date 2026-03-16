@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.9.25
+
+- Change
+    - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
+
 ## v1.9.24
 
 - Fixes
