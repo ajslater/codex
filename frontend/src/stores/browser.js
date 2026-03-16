@@ -587,11 +587,9 @@ export const useBrowserStore = defineStore("browser", {
       await API.getBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
           const { breadcrumbs, ...page } = response.data;
-          Object.freeze(breadcrumbs);
-          Object.freeze(page);
           this.$patch((state) => {
-            state.settings.breadcrumbs = breadcrumbs;
-            state.page = page;
+            state.settings.breadcrumbs = Object.freeze(breadcrumbs);
+            state.page = Object.freeze(page);
             if (
               (state.settings.orderBy === "search_score" && !page.fts) ||
               (state.settings.orderBy === "child_count" &&
