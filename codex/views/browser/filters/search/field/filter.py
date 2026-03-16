@@ -1,8 +1,11 @@
 """Parse the browser query by removing field queries and doing them with the ORM."""
 
+from typing import Any
+
 from django.db.models import Q
 from loguru import logger
 
+from codex.models.base import BaseModel
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.browser.filters.search.field.column import parse_field
 from codex.views.browser.filters.search.field.parse import get_field_query
@@ -12,9 +15,10 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
     """Parse the browser query by removing field queries and doing them with the ORM."""
 
     @staticmethod
-    def _combine_q(q, other_q, op):
+    def _combine_q(q: Q, other_q: tuple[str, Any] | Q, op: str) -> Q:
         if isinstance(other_q, tuple):
-            rel, val = other_q
+            rel: str
+            rel, val = other_q  # ty: ignore[invalid-assignment]
             if rel.endswith("__like") and val == "%":
                 # Remove likes that would match everything
                 return q
@@ -26,7 +30,9 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         return q
 
     @classmethod
-    def _hoist_filters(cls, filter_q_list, exclude_q_list, new_q) -> None:
+    def _hoist_filters(
+        cls, filter_q_list: list[Q], exclude_q_list: list[Q], new_q: Q
+    ) -> None:
         """Peel top layer of queries into multiple filter and exclude clauses."""
         # This makes m2m queries behave more as expected and may optimize fk queries.
         if new_q.connector == Q.AND:
@@ -42,12 +48,19 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             filter_q_list[0] = cls._combine_q(filter_q_list[0], new_q, new_q.connector)
 
     def _parse_field_query(
-        self, col, exp, model, filter_q_list, exclude_q_list
+        self,
+        col: str,
+        exp: str,
+        model: type[BaseModel],
+        filter_q_list: list[Q],
+        exclude_q_list: list[Q],
     ) -> None:
         try:
             rel_class, rel, many_to_many = parse_field(col)
 
-            if q := get_field_query(rel, rel_class, exp, model, many_to_many):
+            if q := get_field_query(
+                rel, rel_class, exp, model, many_to_many=many_to_many
+            ):
                 self._hoist_filters(filter_q_list, exclude_q_list, q)
         except Exception as exc:
             token = f"{col}:{exp}"

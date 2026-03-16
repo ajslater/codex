@@ -583,11 +583,11 @@ dependencies = [
     { name = "drf-spectacular" },
     { name = "humanize" },
     { name = "hypercorn", extra = ["h3"] },
+    { name = "lark" },
     { name = "loguru" },
     { name = "nh3" },
     { name = "pillow" },
     { name = "psutil" },
-    { name = "pyparsing" },
     { name = "typing-extensions" },
     { name = "tzlocal" },
     { name = "watchdog" },
@@ -654,11 +654,11 @@ requires-dist = [
     { name = "drf-spectacular", specifier = "~=0.28" },
     { name = "humanize", specifier = "~=4.12" },
     { name = "hypercorn", extras = ["h3"], specifier = "~=0.17" },
+    { name = "lark", specifier = "~=1.2" },
     { name = "loguru", specifier = "~=0.7.3" },
     { name = "nh3", specifier = "~=0.2" },
     { name = "pillow", specifier = "~=12.0" },
     { name = "psutil", specifier = "~=7.1" },
-    { name = "pyparsing", specifier = "~=3.2" },
     { name = "typing-extensions", specifier = "~=4.14" },
     { name = "tzlocal", specifier = "~=5.0" },
     { name = "watchdog", specifier = "~=6.0" },
@@ -1766,6 +1766,15 @@ wheels = [
 ]
 
 [[package]]
+name = "lark"
+version = "1.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/34/28fff3ab31ccff1fd4f6c7c7b0ceb2b6968d8ea4950663eadcb5720591a0/lark-1.3.1.tar.gz", hash = "sha256:b426a7a6d6d53189d318f2b6236ab5d6429eaf09259f1ca33eb716eed10d2905", size = 382732, upload-time = "2025-10-27T18:25:56.653Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/3d/14ce75ef66813643812f3093ab17e46d3a206942ce7376d31ec2d36229e7/lark-1.3.1-py3-none-any.whl", hash = "sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12", size = 113151, upload-time = "2025-10-27T18:25:54.882Z" },
+]
+
+[[package]]
 name = "loguru"
 version = "0.7.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2721,15 +2730,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/62/46/0ebc803cf0c50eba4f6a175a51a22394188fd18e589a498216d65ae7c1ae/pyoxipng-9.1.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:02c8df2c62c6ed09d9ae07b83481481bb707faf1e91244d1e7c2a8ef0357cc3c", size = 841278, upload-time = "2025-08-21T13:44:13.002Z" },
     { url = "https://files.pythonhosted.org/packages/06/6b/7b9a473b0d4435c687281837fec4609eddedc7e8112901888a5cb999df9a/pyoxipng-9.1.1-cp313-cp313-win32.whl", hash = "sha256:f7b29240fac6be4e3b1d9db2398d251ddf127030faffdfff639d910695b68537", size = 438727, upload-time = "2025-08-21T13:44:27.757Z" },
     { url = "https://files.pythonhosted.org/packages/6e/50/3c4042cb356223d29269a485aa8dd8a03922af7db58a66feb5e252252391/pyoxipng-9.1.1-cp313-cp313-win_amd64.whl", hash = "sha256:9b807afd9e93d7f41cf74e6a23fba390b40004777ec70081543cb9ef62834d5e", size = 459299, upload-time = "2025-08-21T13:44:22.46Z" },
-]
-
-[[package]]
-name = "pyparsing"
-version = "3.3.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f3/91/9c6ee907786a473bf81c5f53cf703ba0957b23ab84c264080fb5a450416f/pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc", size = 6851574, upload-time = "2026-01-21T03:57:59.36Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/bd/c038d7cc38edc1aa5bf91ab8068b63d4308c66c4c8bb3cbba7dfbc049f9c/pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d", size = 122781, upload-time = "2026-01-21T03:57:55.912Z" },
 ]
 
 [[package]]
