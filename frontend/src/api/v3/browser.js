@@ -1,5 +1,3 @@
-import deepClone from "deep-clone";
-
 import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
@@ -51,7 +49,7 @@ const getBrowserPage = ({ group, pks, page }, data, ts) => {
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
   const mtime = settings.mtime;
-  const data = deepClone(settings);
+  const data = structuredClone(settings);
   delete data.mtime;
   const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });

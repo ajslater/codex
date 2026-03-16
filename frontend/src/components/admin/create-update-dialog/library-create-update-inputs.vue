@@ -41,7 +41,6 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
@@ -113,7 +112,7 @@ export default {
           },
         ],
       },
-      row: deepClone(this.oldRow || EMPTY_ROW),
+      row: structuredClone(this.oldRow || EMPTY_ROW),
     };
   },
   computed: {
@@ -134,7 +133,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = deepClone(to);
+        this.row = structuredClone(to);
       },
       deep: true,
     },

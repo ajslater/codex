@@ -1,4 +1,3 @@
-import deepClone from "deep-clone";
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
@@ -529,7 +528,7 @@ export const useBrowserStore = defineStore("browser", {
      * ROUTE
      */
     routeToPage(page) {
-      const route = deepClone(router.currentRoute.value);
+      const route = structuredClone(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.warn);
     },

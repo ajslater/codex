@@ -1,5 +1,4 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import deepClone from "deep-clone";
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
@@ -13,28 +12,24 @@ import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
-const NULL_READER_SETTINGS = {
+const NULL_READER_SETTINGS = Object.freeze({
   // Must be null so xior doesn't throw them out when sending.
   fitTo: "",
   twoPages: null,
   readingDirection: "",
   readRtlInReverse: null,
-};
+});
 
-Object.freeze(NULL_READER_SETTINGS);
-const NULL_CLIENT_SETTINGS = {
+const NULL_CLIENT_SETTINGS = Object.freeze({
   cacheBook: false,
-};
-Object.freeze(NULL_CLIENT_SETTINGS);
+});
 
-const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
-Object.freeze(SETTINGS_NULL_VALUES);
+const SETTINGS_NULL_VALUES = Object.freeze(new Set(["", null, undefined]));
 
-const DIRECTION_REVERSE_MAP = {
+const DIRECTION_REVERSE_MAP = Object.freeze({
   prev: "next",
   next: "prev",
-};
-Object.freeze(DIRECTION_REVERSE_MAP);
+});
 const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 Object.freeze(PREFETCH_LINK);
 export const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
@@ -112,7 +107,7 @@ export const useReaderStore = defineStore("reader", {
       finishOnLastPage: READER_DEFAULTS.finishOnLastPage,
       pageTransition: READER_DEFAULTS.page_transition,
     },
-    books: deepClone(BOOKS_NULL),
+    books: structuredClone(BOOKS_NULL),
     arcs: {},
     arc: { group: "s", ids: [] },
     mtime: 0,
@@ -120,7 +115,7 @@ export const useReaderStore = defineStore("reader", {
     // local reader
     empty: false,
     page: undefined,
-    routes: deepClone(ROUTES_NULL),
+    routes: structuredClone(ROUTES_NULL),
     bookChange: undefined,
     reactWithScroll: false,
     clientSettings: {
@@ -217,7 +212,7 @@ export const useReaderStore = defineStore("reader", {
       }
       if (!(book.pk in this.bookSettings)) {
         // Mask the book settings over the global settings.
-        const resultSettings = deepClone(SETTINGS_NULL_VALUES);
+        const resultSettings = structuredClone(SETTINGS_NULL_VALUES);
         let bookSettings = book ? book.settings : {};
         bookSettings = this.setReadRTLInReverse(bookSettings);
         const allSettings = [this.readerSettings, bookSettings];
@@ -352,8 +347,8 @@ export const useReaderStore = defineStore("reader", {
         state.arc = DEFAULT_ARC;
         state.mtime = 0;
         state.settingsLoaded = false;
-        state.books = deepClone(BOOKS_NULL);
-        state.routes = deepClone(ROUTES_NULL);
+        state.books = structuredClone(BOOKS_NULL);
+        state.routes = structuredClone(ROUTES_NULL);
         state.bookSettings = {};
       });
     },

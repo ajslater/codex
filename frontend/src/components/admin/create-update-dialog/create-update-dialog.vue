@@ -27,7 +27,6 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
 import { dequal } from "dequal";
 import { mapActions } from "pinia";
 
@@ -96,7 +95,7 @@ export default {
     validate() {
       let changed = false;
       for (const [key, value] of Object.entries(this.row)) {
-        if (!dequal(Reflect.get(this.oldRow, key), value)) {
+        if (!(this.oldRow && dequal(Reflect.get(this.oldRow, key), value))) {
           changed = true;
           break;
         }
@@ -123,11 +122,15 @@ export default {
     },
     getRow(show) {
       if (!show || !this.oldRow) {
-        return deepClone(this.inputs.EMPTY_ROW);
+        return structuredClone(this.inputs.EMPTY_ROW);
       }
       const updateRow = {};
       for (const key of this.inputs.UPDATE_KEYS) {
-        Reflect.set(updateRow, key, deepClone(Reflect.get(this.oldRow, key)));
+        Reflect.set(
+          updateRow,
+          key,
+          structuredClone(Reflect.get(this.oldRow, key)),
+        );
       }
       return updateRow;
     },
