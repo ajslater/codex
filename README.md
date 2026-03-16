@@ -249,16 +249,20 @@ The default config directory is `config/` directly under the working directory
 you run codex from. You may specify an alternate config directory with the
 environment variable `CODEX_CONFIG_DIR`.
 
-The config directory contains a file named `hypercorn.toml` where you can
-specify ports and bind addresses. If no `hypercorn.toml` is present Codex copies
-a default one to that directory on startup.
+The config directory contains a file named `codex.toml` where you can specify
+ports and bind addresses. If no `codex.toml` is present Codex copies a default
+one to that directory on startup. Environment variables override values set in
+the TOML file.
 
-The default values for the config options are:
+The default values for the server config options are:
 
 ```toml
-bind = ["0.0.0.0:9810"]
-quick_bind = ["0.0.0.0:9810"]
-root_path = "/codex"
+[server]
+host = "0.0.0.0"
+port = 9810
+
+[server.url]
+root_path = ""
 ```
 
 The config directory also holds the main sqlite database, the Whoosh search
@@ -337,9 +341,10 @@ proxy_set_header Connection "Upgrade" location /codex {
 }
 ```
 
-Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
+Specify a reverse proxy sub path (if you have one) in `config/codex.toml`
 
 ```toml
+[server.url]
 root_path = "/codex"
 ```
 

@@ -1,4 +1,4 @@
-"""The main runnable for codex. Sets up codex and runs hypercorn."""
+"""Initialize logging for codex."""
 
 import sys
 

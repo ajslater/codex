@@ -6,12 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.9.25
+## v1.10.0
 
+- Change
+    - Codex now uses the granian http server instead of hypercorn.
+    - All config has moved to config/codex.toml. Your hypercorn config should be
+      migrated automatically.
+        - Environment variables can be specified in codex.toml as well, but
+          environment variables override config file settings.
+    - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 - Fixes
     - Fix reader close button receiving nonsensical route.
-- Change
-    - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 
 ## v1.9.24
 

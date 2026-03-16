@@ -1,0 +1,51 @@
+# Codex Configuration File
+# Copy to config/codex.toml and edit as needed.
+# Environment variables override values in this file.
+# See README.md for full documentation.
+
+# [server]
+# Granian ASGI server settings
+# host = "0.0.0.0"
+# port = 9810
+# Number of worker processes. 1 is recommended for containerized environments.
+# workers = 1
+# HTTP version: "auto", "1", or "2"
+# http = "auto"
+# Enable websockets (required for Codex live updates)
+# websockets = true
+
+# [server.url]
+# HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
+# root_path = ""
+
+# [logging]
+# Log level: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
+# loglevel = "INFO"
+# Log retention period
+# log_retention = "6 months"
+# Set to false to disable console logging
+# log_to_console = true
+# Set to false to disable file logging
+# log_to_file = true
+
+# [importer]
+# This can be a number or "auto" for Codex to guess a good value.
+# https://github.com/ajslater/codex#bulk-database-updates-fail
+# max_import_batch_size = "auto"
+# search_sync_batch_memory_ratio = 3.2
+# link_fk_batch_size = 20000
+# link_m2m_batch_size = 20000
+# delete_max_chunk_size = 1000
+
+# [browser]
+# Uncomment and adjust these only if you know what you're doing.
+# slow_query_limit = 0.5
+# max_obj_per_page = 100
+# filter_batch_size = 900
+
+# [throttle]
+# Rate limiting (requests per minute). 0 = disabled.
+# anon = 0
+# user = 0
+# opds = 0
+# opensearch = 0

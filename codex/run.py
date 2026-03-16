@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
-"""The main runnable for codex. Sets up codex and runs hypercorn."""
+"""The main runnable for codex. Sets up codex and runs granian."""
 
 import asyncio
 from os import execv
 
 from django.db import connection
-from hypercorn.asyncio import serve
+from granian.constants import HTTPModes, Interfaces
+from granian.server.embed import Server
 from loguru import logger
 
 from codex.asgi import application
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.settings import HYPERCORN_CONFIG
+from codex.settings import (
+    GRANIAN_HOST,
+    GRANIAN_HTTP,
+    GRANIAN_WEBSOCKETS,
+    PORT,
+)
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.startup.logger_init import init_logging
@@ -49,18 +55,38 @@ def codex_shutdown() -> None:
         restart()
 
 
+def _build_server() -> Server:
+    """
+    Build the granian embedded server.
+
+    Note: the embed server runs workers as asyncio tasks (single-worker only),
+    which lets us integrate cleanly with the SHUTDOWN_EVENT lifecycle.
+    """
+    return Server(
+        application,
+        interface=Interfaces.ASGI,
+        address=GRANIAN_HOST,
+        port=PORT,
+        websockets=GRANIAN_WEBSOCKETS,
+        http=HTTPModes(GRANIAN_HTTP),
+    )
+
+
+async def _serve(server: Server) -> None:
+    """Run granian until SHUTDOWN_EVENT fires, then stop gracefully."""
+    server_task = asyncio.create_task(server.serve())
+    await SHUTDOWN_EVENT.wait()
+    server.stop()
+    await server_task
+
+
 def run() -> None:
     """Run Codex."""
     logger.success(f"Running Codex v{VERSION}")
     librarian = LibrarianDaemon(logger, LIBRARIAN_QUEUE, BROADCAST_QUEUE)
     librarian.start()
-    asyncio.run(
-        serve(
-            application,  # pyright: ignore[reportArgumentType]
-            HYPERCORN_CONFIG,
-            shutdown_trigger=SHUTDOWN_EVENT.wait,
-        )
-    )
+    server = _build_server()
+    asyncio.run(_serve(server))
     librarian.stop()
 
 

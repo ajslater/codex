@@ -25,12 +25,13 @@ dependencies = [
   "django~=5.2.11",
   "drf-spectacular~=0.28",
   "humanize~=4.12",
-  "hypercorn[h3]~=0.17",
+  "granian~=2.7",
   "lark~=1.2",
   "loguru~=0.7.3",
   "nh3~=0.2",
   "Pillow~=12.0",
   "psutil~=7.1",
+  "tomli~=2.0; python_version < '3.11'",
   "typing-extensions~=4.14",
   "tzlocal~=5.0",
   "watchdog~=6.0",
@@ -44,7 +45,7 @@ readme = "README.md"
 license = "GPL-3.0-only"
 name = "codex"
 requires-python = ">=3.10"
-version = "1.9.25"
+version = "1.10.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -361,7 +362,7 @@ ignore-overlong-task-comments = true
 "tests/*" = ["D101", "D102", "T203"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
-"codex/settings/*" = ["T201"]
+# "codex/settings/*" = ["T201"]
 "ci/cleanup-repo.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 

@@ -17,7 +17,13 @@ from types import MappingProxyType
 from comicbox.config import get_config
 from loguru import logger
 
-from codex.settings.hypercorn import load_hypercorn_config
+from codex.settings.config import (
+    get_bool,
+    get_float,
+    get_int,
+    get_str,
+    load_codex_config,
+)
 from codex.settings.secret_key import get_secret_key
 from codex.settings.timezone import get_time_zone
 from codex.settings.whitenoise import immutable_file_test
@@ -36,54 +42,77 @@ def not_falsy_env(name):
 
 DEBUG = not_falsy_env("DEBUG")
 BUILD = not_falsy_env("BUILD")
-# Slow query middleware
-# limit in seconds
-SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", "0.5"))
 LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
 LOG_REQUEST = not_falsy_env("CODEX_LOG_REQUEST")
 LOG_AUTH_HEADERS = not_falsy_env("CODEX_LOG_AUTH_HEADERS")
 # Misc
 VITE_HOST = environ.get("VITE_HOST")
-LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
-MAX_OBJ_PER_PAGE = int(environ.get("CODEX_BROWSER_MAX_OBJ_PER_PAGE", "100"))
-# Search sync query
-SEARCH_SYNC_BATCH_MEMORY_RATIO = float(
-    environ.get("CODEX_SEARCH_SYNC_BATCH_MEMORY_RATIO", "3.2")
-)
-# sqlite parser breaks with more than 1000 variables in a query and
-# django only fixes this in the bulk_create & bulk_update functions.
-# So for complicated queries I gotta batch them myself. These batch sizes
-# are only a proxy for query terms, but it works.
-# FILTER_BATCH_SIZE of 990 errors sometimes.
-FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
-LINK_FK_BATCH_SIZE = int(environ.get("CODEX_LINK_FK_BATCH_SIZE", "20000"))
-LINK_M2M_BATCH_SIZE = int(environ.get("CODEX_LINK_M2M_BATCH_SIZE", "20000"))
-DELETE_MAX_CHUNK_SIZE = int(environ.get("CODEX_DELETE_MAX_CHUNK_SIZE", "1000"))
 
-
-####################################
-# Documented Environment Variables #
-####################################
-LOGLEVEL = environ.get("LOGLEVEL", "TRACE" if DEBUG else "INFO")
+# Base paths (needed before loading config)
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
-RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+CODEX_PATH = BASE_DIR / "codex"
+
+# Unified configuration: config/codex.toml + environment variable overrides
+CODEX_CONFIG_TOML = CONFIG_PATH / "codex.toml"
+CODEX_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/codex.toml.default"
+CODEX_CONFIG = load_codex_config(CODEX_CONFIG_TOML, CODEX_CONFIG_TOML_DEFAULT)
+
+#######################################
+# Env vars override via config loader #
+#######################################
+# Granian server settings
+GRANIAN_HOST = get_str(CODEX_CONFIG, "server.host", default="0.0.0.0")  # noqa: S104
+PORT = get_int(CODEX_CONFIG, "server.port", default=9810)
+GRANIAN_WORKERS = get_int(CODEX_CONFIG, "server.workers", default=1)
+GRANIAN_HTTP = get_str(CODEX_CONFIG, "server.http", default="auto")
+GRANIAN_WEBSOCKETS = get_bool(CODEX_CONFIG, "server.websockets", default=True)
+ROOT_PATH = get_str(CODEX_CONFIG, "server.url.root_path", default="")
+
+# Logging
+LOGLEVEL = get_str(
+    CODEX_CONFIG, "logging.loglevel", default="TRACE" if DEBUG else "INFO"
+)
+LOG_RETENTION = get_str(CODEX_CONFIG, "logging.log_retention", default="6 months")
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
-LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
-LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
+LOG_TO_CONSOLE = get_bool(CODEX_CONFIG, "logging.log_to_console", default=True)
+LOG_TO_FILE = get_bool(CODEX_CONFIG, "logging.log_to_file", default=True)
+
+# Importer
+MAX_IMPORT_BATCH_SIZE = get_str(
+    CODEX_CONFIG, "importer.max_import_batch_size", default="auto"
+)
+SEARCH_SYNC_BATCH_MEMORY_RATIO = get_float(
+    CODEX_CONFIG, "importer.search_sync_batch_memory_ratio", default=3.2
+)
+LINK_FK_BATCH_SIZE = get_int(CODEX_CONFIG, "importer.link_fk_batch_size", default=20000)
+LINK_M2M_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
+)
+DELETE_MAX_CHUNK_SIZE = get_int(
+    CODEX_CONFIG, "importer.delete_max_chunk_size", default=1000
+)
+
+# Browser Performance
+SLOW_QUERY_LIMIT = get_float(CODEX_CONFIG, "browser.slow_query_limit", default=0.5)
+MAX_OBJ_PER_PAGE = get_int(CODEX_CONFIG, "browser.max_obj_per_page", default=100)
+FILTER_BATCH_SIZE = get_int(CODEX_CONFIG, "browser.filter_batch_size", default=900)
+
+# Throttle
+THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
+THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
+THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
+THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
+
+# Env-only flags
+RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
 AUTH_REMOTE_USER = not_falsy_env("CODEX_AUTH_REMOTE_USER")
-THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", "0"))
-THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", "0"))
-THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", "0"))
-THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", "0"))
 FIX_FOREIGN_KEYS = not_falsy_env("CODEX_FIX_FOREIGN_KEYS")
 INTEGRITY_CHECK = not_falsy_env("CODEX_INTEGRITY_CHECK")
 FTS_INTEGRITY_CHECK = not_falsy_env("CODEX_FTS_INTEGRITY_CHECK")
 FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 
-# Base paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-CODEX_PATH = BASE_DIR / "codex"
 CUSTOM_COVERS_SUBDIR = "custom-covers"
 CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
 CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
@@ -290,22 +319,12 @@ LANGUAGE_CODE = "en-us"
 USE_I18N = True
 TIME_ZONE = get_time_zone(TZ)
 
-# Hypercorn
-HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
-HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
-HYPERCORN_CONFIG = load_hypercorn_config(
-    HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
-)
-PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 # WHITENOISE_KEEP_ONLY_HASHED_FILES is still not usable with vite chunking
 WHITENOISE_STATIC_PREFIX = "static/"
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"
-ROOT_PATH = HYPERCORN_CONFIG.root_path
 STATIC_URL = (
     ROOT_PATH + "/" + WHITENOISE_STATIC_PREFIX
     if ROOT_PATH

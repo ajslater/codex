@@ -14,11 +14,12 @@ from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
 from codex.settings import (
     AUTH_REMOTE_USER,
+    CODEX_CONFIG_TOML,
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
-    HYPERCORN_CONFIG,
-    HYPERCORN_CONFIG_TOML,
+    DEBUG,
     RESET_ADMIN,
+    ROOT_PATH,
 )
 from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
@@ -191,9 +192,9 @@ def codex_init() -> bool:
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
-    logger.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
-    if HYPERCORN_CONFIG.use_reloader:
-        logger.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")
+    logger.info(f"Codex is being serverd from url root_path: {ROOT_PATH}")
+    if DEBUG:
+        logger.info(f"Will reload granian if {CODEX_CONFIG_TOML} changes")
     if AUTH_REMOTE_USER:
         logger.info("Remote User authorization enabled.")
     return True
