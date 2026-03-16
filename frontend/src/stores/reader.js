@@ -165,8 +165,12 @@ export const useReaderStore = defineStore("reader", {
     },
     closeBookRoute(state) {
       const route = { name: "browser" };
-      route.params =
-        state.routes.close || useBrowserStore()?.settings?.breadcrumbs?.at(-1);
+      if (state.routes.close) {
+        route.params = state.routes.close;
+      } else {
+        const breadcrumbs = useBrowserStore()?.settings?.breadcrumbs;
+        route.params = breadcrumbs?.findLast((b) => b.group !== "c");
+      }
       if (route.params) {
         const cardPk = state.books?.current?.pk;
         if (cardPk) {

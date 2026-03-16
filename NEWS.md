@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.9.25
 
+- Fixes
+    - Fix reader close button receiving nonsensical route.
 - Change
     - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 
