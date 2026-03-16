@@ -11,7 +11,6 @@ import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { range } from "@/util";
-import Breadcrumbs from "../components/browser/toolbars/breadcrumbs/breadcrumbs.vue";
 
 const GROUPS = Object.freeze("rpisvc");
 export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse().join(""));
@@ -30,7 +29,7 @@ const DYNAMIC_COVER_KEYS = Object.freeze([
   "orderReverse",
   "q",
 ]);
-const FILTER_ONLY_KEYS = Objcet.freeze(["filters", "q"]);
+const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
 const PAGE_LOAD_KEYS = Object.freeze(["breadcrumbs"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
