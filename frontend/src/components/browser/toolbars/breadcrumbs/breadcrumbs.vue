@@ -24,18 +24,18 @@ import { toRaw } from "vue";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
-const GROUP_ICON_MAP = {
+
+const GROUP_ICON_MAP = Object.freeze({
   f: mdiFolderOutline,
   r: mdiFormatVerticalAlignTop,
   p: mdiChessRook,
   i: mdiFeather,
   s: mdiBookshelf,
-};
+});
 
 export default {
   name: "BrowserBreadcrumbs",
   computed: {
-    ...mapState(useBrowserStore, ["groupNames"]),
     ...mapState(useCommonStore, ["timestamp"]),
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
@@ -64,6 +64,7 @@ export default {
         }
         return vueCrumbs;
       },
+      groupNames: (state) => state.groupNames,
     }),
   },
   methods: {

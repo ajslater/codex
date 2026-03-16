@@ -37,10 +37,10 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
+      isAuthorized: (state) => state.isAuthorized,
+      isBanner: (state) => state.isBanner,
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapState(useAuthStore, ["isAuthorized", "isBanner"]),
-    ...mapState(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
@@ -57,6 +57,7 @@ export default {
       numPages: (state) => state.page.numPages,
       query: (state) => state.settings.q,
       isSearchOpen: (state) => state.isSearchOpen,
+      isSearchMode: (state) => state.isSearchMode,
     }),
     browsePaneClasses() {
       const classes = {
