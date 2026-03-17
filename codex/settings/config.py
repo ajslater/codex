@@ -2,6 +2,7 @@
 
 import shutil
 import sys
+from collections.abc import Mapping, MutableMapping
 from os import environ
 from pathlib import Path
 
@@ -67,12 +68,12 @@ _ENV_OVERRIDES: dict[str, str] = {
 }
 
 
-def _deep_get(data: dict, keypath: str, default=None):
+def _deep_get(data: Mapping, keypath: str, default=None):
     """Traverse nested dicts by a tuple of keys."""
     current = data
     keys = keypath.split(".")
     for key in keys:
-        if not isinstance(current, dict):
+        if not isinstance(current, Mapping):
             return default
         current = current.get(key)
         if current is None:
@@ -80,7 +81,7 @@ def _deep_get(data: dict, keypath: str, default=None):
     return current
 
 
-def _deep_set(data: dict, keypath: str, value) -> None:
+def _deep_set(data: MutableMapping, keypath: str, value) -> None:
     """Set a value in a nested dict, creating intermediate dicts as needed."""
     keys = keypath.split(".")
     for key in keys[:-1]:
@@ -97,7 +98,7 @@ def _ensure_config(config_toml: Path, config_toml_default: Path) -> None:
         logger.info(f"Copied default config to {config_toml}")
 
 
-def _apply_env_overrides(config: dict) -> None:
+def _apply_env_overrides(config: MutableMapping) -> None:
     """Apply environment variable overrides on top of the TOML values."""
     for env_name, keypath in _ENV_OVERRIDES.items():
         env_val = environ.get(env_name)
@@ -105,7 +106,7 @@ def _apply_env_overrides(config: dict) -> None:
             _deep_set(config, keypath, env_val)
 
 
-def load_codex_config(config_toml: Path, config_toml_default: Path) -> dict:
+def load_codex_config(config_toml: Path, config_toml_default: Path) -> Mapping:
     """Load the unified codex config from TOML, then overlay env vars."""
     _ensure_config(config_toml, config_toml_default)
     with config_toml.open("rb") as fh:
@@ -117,25 +118,25 @@ def load_codex_config(config_toml: Path, config_toml_default: Path) -> dict:
 # Convenience typed accessors
 
 
-def get_str(config: dict, keypath: str, default: str = "") -> str:
+def get_str(config: Mapping, keypath: str, default: str = "") -> str:
     """Get a string value from the config."""
     val = _deep_get(config, keypath, default)
     return str(val) if val is not None else default
 
 
-def get_int(config: dict, keypath: str, default: int = 0) -> int:
+def get_int(config: Mapping, keypath: str, default: int = 0) -> int:
     """Get an integer value from the config."""
     val = _deep_get(config, keypath, default)
     return int(val)  # pyright: ignore[reportArgumentType]
 
 
-def get_float(config: dict, keypath: str, default: float = 0.0) -> float:
+def get_float(config: Mapping, keypath: str, default: float = 0.0) -> float:
     """Get a float value from the config."""
     val = _deep_get(config, keypath, default)
     return float(val)  # pyright: ignore[reportArgumentType]
 
 
-def get_bool(config: dict, keypath: str, *, default: bool = False) -> bool:
+def get_bool(config: Mapping, keypath: str, *, default: bool = False) -> bool:
     """Get a boolean value from the config."""
     val = _deep_get(config, keypath)
     if val is None:
