@@ -30,7 +30,7 @@ _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
             "dirs_deleted": set(),
             "files_moved": {},
             "files_modified": set(),
-            "files_created": set(),
+            "files_added": set(),
             "files_deleted": set(),
             "covers_moved": {},
             "covers_modified": set(),
@@ -68,15 +68,15 @@ class WatcherEventBatcherThread(AggregateMessageQueuedThread):
         cls._remove_paths(args, "files_deleted", "files_moved")
 
         # added
-        args["files_created"] -= args["files_deleted"]
+        args["files_added"] -= args["files_deleted"]
         files_dest_paths = set(args["files_moved"].values())
-        args["files_created"] -= files_dest_paths
+        args["files_added"] -= files_dest_paths
 
         # modified
         args["dirs_modified"] -= args["dirs_deleted"]
         args["dirs_modified"] -= set(args["dirs_moved"].values())
 
-        args["files_modified"] -= args["files_created"]
+        args["files_modified"] -= args["files_added"]
         args["files_modified"] -= args["files_deleted"]
         args["files_modified"] -= files_dest_paths
 
@@ -160,6 +160,7 @@ class WatcherEventBatcherThread(AggregateMessageQueuedThread):
         args = self.cache.pop(library_id)
         self._subtract_args_items(args)
         self.deduplicate_events(args)
+        args["files_created"] = args.pop("files_added")
         return ImportTask(**args)
 
     def _send_import_task(self, library_id: int) -> None:

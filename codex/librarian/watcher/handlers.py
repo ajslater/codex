@@ -80,7 +80,7 @@ _DIFF_FIELD_EVENT_MAP: tuple[tuple[str, WatcherChange, bool, bool], ...] = (
     # diff_attr, change_type, is_directory, is_cover
     ("files_deleted", WatcherChange.deleted, False, False),
     ("files_modified", WatcherChange.modified, False, False),
-    ("files_created", WatcherChange.added, False, False),
+    ("files_added", WatcherChange.added, False, False),
     ("dirs_deleted", WatcherChange.deleted, True, False),
     ("dirs_modified", WatcherChange.moved, True, False),
 )
