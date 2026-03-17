@@ -3,20 +3,13 @@
 from dataclasses import dataclass
 
 from codex.librarian.tasks import LibrarianTask
-from codex.librarian.watcher.events import PollEvent, WatchEvent
+from codex.librarian.watcher.events import WatchEvent
+from codex.librarian.watcher.poller.events import PollEvent
 
 
 @dataclass
 class WatcherTask(LibrarianTask):
     """Watcher tasks."""
-
-
-@dataclass
-class WatcherPollLibrariesTask(WatcherTask):
-    """Tell poller to poll these libraries now."""
-
-    library_ids: frozenset
-    force: bool
 
 
 @dataclass

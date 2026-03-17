@@ -15,13 +15,6 @@ class WatcherChange(IntEnum):
     moved = deleted + 1
 
 
-class PollEventType(IntEnum):
-    """Poll evenv type."""
-
-    start = 1
-    finish = 2
-
-
 @dataclass(frozen=True, slots=True)
 class WatchEvent:
     """A filesystem change event."""
@@ -37,11 +30,3 @@ class WatchEvent:
         """Return the ImportTask field name this event maps to."""
         prefix = "covers" if self.is_cover else "dirs" if self.is_directory else "files"
         return f"{prefix}_{self.change.name}"
-
-
-@dataclass(frozen=True, slots=True)
-class PollEvent:
-    """Signal the event batcher about poll boundaries."""
-
-    poll_type: PollEventType
-    force: bool = False

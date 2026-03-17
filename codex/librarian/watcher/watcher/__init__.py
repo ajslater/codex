@@ -7,11 +7,11 @@ from watchfiles import Change, watch
 
 from codex.librarian.threads import NamedThread
 from codex.librarian.watcher.events import WatcherChange
-from codex.librarian.watcher.handlers import (
+from codex.librarian.watcher.tasks import WatcherEventTask
+from codex.librarian.watcher.watcher.handlers import (
     transform_custom_cover_change,
     transform_library_change,
 )
-from codex.librarian.watcher.tasks import WatcherEventTask
 from codex.models import Library
 
 

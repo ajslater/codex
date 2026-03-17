@@ -9,26 +9,22 @@ from humanize import naturaldelta
 from typing_extensions import override
 
 from codex.librarian.threads import NamedThread
-from codex.librarian.watcher.const import (
-    DIR_NOT_FOUND_TIMEOUT,
-    DOCKER_UNMOUNTED_FN,
-)
-from codex.librarian.watcher.events import (
+from codex.librarian.watcher.poller.events import (
     PollEvent,
     PollEventType,
+    events_from_diff,
 )
-from codex.librarian.watcher.poller.handlers import events_from_diff
 from codex.librarian.watcher.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.watcher.poller.snapshot_diff import SnapshotDiff
-from codex.librarian.watcher.status import WatcherPollStatus
-from codex.librarian.watcher.tasks import (
-    WatcherEventTask,
-    WatcherPollLibrariesTask,
-)
+from codex.librarian.watcher.poller.status import WatcherPollStatus
+from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
+from codex.librarian.watcher.tasks import WatcherEventTask
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 from codex.views.const import EPOCH_START
 
+DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
+_DIR_NOT_FOUND_TIMEOUT = 15 * 60
 _LIBRARY_ONLY = (
     "path",
     "poll",
@@ -92,18 +88,18 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
         if not watch_path.is_dir():
             self.log.warning(f"Library {library.path} not found. Not polling.")
-            return DIR_NOT_FOUND_TIMEOUT
+            return _DIR_NOT_FOUND_TIMEOUT
 
         if unmounted_marker.exists():
             warning = f"Library {library.path} looks like an unmounted docker volume. Not polling."
             self.log.warning(warning)
-            return DIR_NOT_FOUND_TIMEOUT
+            return _DIR_NOT_FOUND_TIMEOUT
 
         if not tuple(watch_path.iterdir()):
             self.log.warning(
                 f"{library.path} is empty. Suspect unmounted. Not polling."
             )
-            return DIR_NOT_FOUND_TIMEOUT
+            return _DIR_NOT_FOUND_TIMEOUT
 
         if library.update_in_progress:
             self.log.debug(f"Library {library.path} update in progress. Not polling.")

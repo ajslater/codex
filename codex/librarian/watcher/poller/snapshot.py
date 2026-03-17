@@ -6,8 +6,8 @@ from itertools import chain
 from pathlib import Path
 from stat import S_ISDIR
 
-from codex.librarian.watcher.const import COMIC_MATCHER
-from codex.librarian.watcher.handlers import (
+from codex.librarian.watcher.filters import (
+    COMIC_MATCHER,
     match_folder_cover,
     match_group_cover_image,
     match_suffix,

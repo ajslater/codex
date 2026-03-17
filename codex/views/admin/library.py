@@ -13,10 +13,8 @@ from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.watcher.tasks import (
-    WatcherPollLibrariesTask,
-    WatcherSyncTask,
-)
+from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
+from codex.librarian.watcher.tasks import WatcherSyncTask
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,

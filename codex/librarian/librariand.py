@@ -28,9 +28,9 @@ from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
 from codex.librarian.watcher.event_batcherd import WatcherEventBatcherThread
 from codex.librarian.watcher.poller import LibraryPollerThread
+from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
 from codex.librarian.watcher.tasks import (
     WatcherEventTask,
-    WatcherPollLibrariesTask,
     WatcherSyncTask,
 )
 from codex.librarian.watcher.watcher import LibraryWatcherThread

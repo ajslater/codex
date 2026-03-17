@@ -58,10 +58,8 @@ from codex.librarian.scribe.tasks import (
     UpdateGroupsTask,
 )
 from codex.librarian.tasks import LibrarianTask
-from codex.librarian.watcher.tasks import (
-    WatcherPollLibrariesTask,
-    WatcherSyncTask,
-)
+from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
+from codex.librarian.watcher.tasks import WatcherSyncTask
 from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer

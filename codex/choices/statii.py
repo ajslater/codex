@@ -16,7 +16,7 @@ from codex.librarian.scribe.importer.statii.search import IMPORTER_SEARCH_INDEX_
 from codex.librarian.scribe.janitor.status import JANITOR_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII
-from codex.librarian.watcher.status import WATCHER_STATII
+from codex.librarian.watcher.poller.status import WATCHER_STATII
 
 _STATII = (
     RESTARTER_STATII,

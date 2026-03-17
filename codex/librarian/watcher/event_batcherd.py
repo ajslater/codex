@@ -16,10 +16,12 @@ from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.threads import AggregateMessageQueuedThread
 from codex.librarian.watcher.events import (
-    PollEvent,
-    PollEventType,
     WatcherChange,
     WatchEvent,
+)
+from codex.librarian.watcher.poller.events import (
+    PollEvent,
+    PollEventType,
 )
 
 _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
