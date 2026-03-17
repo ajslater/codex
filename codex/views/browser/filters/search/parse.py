@@ -10,7 +10,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.choices.search import FIELDMAP
 from codex.models import AdminFlag
 from codex.models.comic import ComicFTS
-from codex.settings import MAX_OBJ_PER_PAGE
+from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
 
 _FTS_COLUMNS = frozenset(
@@ -243,4 +243,4 @@ class SearchFilterView(BrowserFTSFilter):
         if not self.search_mode:
             return 0
         page = self.kwargs.get("page", 1)
-        return page * MAX_OBJ_PER_PAGE + 1
+        return page * BROWSER_MAX_OBJ_PER_PAGE + 1

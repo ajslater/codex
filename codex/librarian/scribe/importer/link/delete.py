@@ -12,7 +12,7 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.link.prepare import LinkComicsImporterPrepare
 from codex.models import Comic
 from codex.models.base import BaseModel
-from codex.settings import FILTER_BATCH_SIZE
+from codex.settings import IMPORTER_FILTER_BATCH_SIZE
 
 if TYPE_CHECKING:
     from django.db.models.fields.related import ManyToManyRel
@@ -75,7 +75,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
 
         start = 0
         while start < num_rows:
-            end = start + FILTER_BATCH_SIZE
+            end = start + IMPORTER_FILTER_BATCH_SIZE
             batch_rows = rows[start:end]
             count = self._delete_m2m_field_batch(
                 column_name, through_model, batch_rows, comic_ids
@@ -88,7 +88,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
                 )
 
             self.status_controller.update(status)
-            start += FILTER_BATCH_SIZE
+            start += IMPORTER_FILTER_BATCH_SIZE
 
         self._delete_m2m_fts_entries(field_name, comic_ids)
 

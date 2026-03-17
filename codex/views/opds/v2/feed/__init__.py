@@ -13,7 +13,7 @@ from typing_extensions import override
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
-from codex.settings import FALSY, MAX_OBJ_PER_PAGE
+from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
 from codex.views.const import EPOCH_START
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
@@ -93,7 +93,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         md = {
             "title": title,
             "number_of_items": number_of_items,
-            "items_per_page": MAX_OBJ_PER_PAGE,
+            "items_per_page": BROWSER_MAX_OBJ_PER_PAGE,
             "current_page": current_page,
         }
         if mtime:

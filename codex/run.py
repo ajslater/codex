@@ -15,8 +15,9 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.settings import (
     GRANIAN_HOST,
     GRANIAN_HTTP,
+    GRANIAN_PORT,
+    GRANIAN_URL_PATH_PREFIX,
     GRANIAN_WEBSOCKETS,
-    PORT,
 )
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
@@ -66,9 +67,10 @@ def _build_server() -> Server:
         application,
         interface=Interfaces.ASGI,
         address=GRANIAN_HOST,
-        port=PORT,
+        port=GRANIAN_PORT,
         websockets=GRANIAN_WEBSOCKETS,
         http=HTTPModes(GRANIAN_HTTP),
+        url_path_prefix=GRANIAN_URL_PATH_PREFIX,
     )
 
 

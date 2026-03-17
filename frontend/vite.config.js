@@ -16,7 +16,7 @@ let rootPath;
 try {
   // for dev & build
   const CODEX_CONF = toml.parse(fs.readFileSync("../config/codex.toml"));
-  rootPath = CODEX_CONF?.server?.url?.root_path || "";
+  rootPath = CODEX_CONF?.server?.url_path_prefix || "";
 } catch {
   rootPath = "";
 }

@@ -18,8 +18,8 @@ from codex.settings import (
     CUSTOM_COVERS_DIR,
     CUSTOM_COVERS_SUBDIR,
     DEBUG,
+    GRANIAN_URL_PATH_PREFIX,
     RESET_ADMIN,
-    ROOT_PATH,
 )
 from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
@@ -192,7 +192,13 @@ def codex_init() -> bool:
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
-    logger.info(f"Codex is being serverd from url root_path: {ROOT_PATH}")
+    if GRANIAN_URL_PATH_PREFIX:
+        path_prefix_log = (
+            f"Codex is being served from url path prefix: {GRANIAN_URL_PATH_PREFIX}"
+        )
+    else:
+        path_prefix_log = "Codex is being served without a url path prefix."
+    logger.info(path_prefix_log)
     if DEBUG:
         logger.info(f"Will reload granian if {CODEX_CONFIG_TOML} changes")
     if AUTH_REMOTE_USER:

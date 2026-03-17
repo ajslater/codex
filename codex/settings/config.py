@@ -25,27 +25,45 @@ _ENV_OVERRIDES: dict[str, str] = {
     "GRANIAN_WORKERS": "server.workers",
     "GRANIAN_HTTP": "server.http",
     "GRANIAN_WEBSOCKETS": "server.websockets",
-    "CODEX_ROOT_PATH": "server.url.root_path",
+    "GRANIAN_URL_PATH_PREFIX": "server.url_path_prefix",
     # Logging
     "LOGLEVEL": "logging.loglevel",
-    "LOG_RETENTION": "logging.log_retention",
+    "CODEX_LOG_RETENTION": "logging.log_retention",
+    "LOG_RETENTION": "logging.log_retention",  # Old
     "CODEX_LOG_TO_CONSOLE": "logging.log_to_console",
     "CODEX_LOG_TO_FILE": "logging.log_to_file",
     # Import
-    "CODEX_MAX_IMPORT_BATCH_SIZE": "import.max_import_batch_size",
-    "CODEX_LINK_FK_BATCH_SIZE": "import.link_fk_batch_size",
-    "CODEX_LINK_M2M_BATCH_SIZE": "import.link_m2m_batch_size",
-    "CODEX_DELETE_MAX_CHUNK_SIZE": "import.delete_max_chunk_size",
-    "CODEX_SEARCH_SYNC_BATCH_MEMORY_RATIO": "import.search_sync_batch_memory_ratio",
+    "CODEX_IMPORTER_LINK_FK_BATCH_SIZE": "importer.link_fk_batch_size",
+    "CODEX_IMPORTER_LINK_M2M_BATCH_SIZE": "importer.link_m2m_batch_size",
+    "CODEX_IMPORTER_DELETE_MAX_CHUNK_SIZE": "importer.delete_max_chunk_size",
+    "CODEX_IMPORTER_SEARCH_SYNC_BATCH_MEMORY_RATIO": "importer.search_sync_batch_memory_ratio",
+    "CODEX_IMPORTER_FILTER_BATCH_SIZE": "browser.filter_batch_size",
+    # Importer Old
+    "CODEX_LINK_FK_BATCH_SIZE": "importer.link_fk_batch_size",  # Old
+    "CODEX_LINK_M2M_BATCH_SIZE": "importer.link_m2m_batch_size",  # Old
+    "CODEX_DELETE_MAX_CHUNK_SIZE": "importer.delete_max_chunk_size",  # Old
+    "CODEX_SEARCH_SYNC_BATCH_MEMORY_RATIO": "importer.search_sync_batch_memory_ratio",  # Old
+    "CODEX_FILTER_BATCH_SIZE": "browser.filter_batch_size",  # Old
     # Browser
-    "CODEX_SLOW_QUERY_LIMIT": "browser.slow_query_limit",
     "CODEX_BROWSER_MAX_OBJ_PER_PAGE": "browser.max_obj_per_page",
-    "CODEX_FILTER_BATCH_SIZE": "browser.filter_batch_size",
-    # Throttl
+    "CODEX_MAX_OBJ_PER_PAGE": "browser.max_obj_per_page",  # Old
+    # Throttle
     "CODEX_THROTTLE_ANON": "throttle.anon",
     "CODEX_THROTTLE_USER": "throttle.user",
     "CODEX_THROTTLE_OPDS": "throttle.opds",
     "CODEX_THROTTLE_OPENSEARCH": "throttle.opensearch",
+    # Auth
+    "CODEX_AUTH_REMOTE_USER": "auth.remote_user",
+    # Debug
+    "CODEX_DEBUG_LOG_AUTH_HEADERS": "debug.log_auth_headers",
+    "CODEX_DEBUG_SLOW_QUERY_LIMIT": "debug.slow_query_limit",
+    "CODEX_DEBUG_LOG_RESPONSE_TIME": "debug.log_response_time",
+    "CODEX_DEBUG_LOG_REQUEST": "debug.log_request",
+    # Old Debug
+    "CODEX_LOG_AUTH_HEADERS": "debug.log_auth_headers",
+    "CODEX_SLOW_QUERY_LIMIT": "debug.slow_query_limit",
+    "CODEX_LOG_RESPONSE_TIME": "debug.log_response_time",
+    "CODEX_LOG_REQUEST": "debug.log_request",
 }
 
 

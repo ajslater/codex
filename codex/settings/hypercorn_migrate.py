@@ -15,7 +15,7 @@ else:
 
 HYPERCORN_FN = "hypercorn.toml"
 DEFAULT_CONFIG_HEAD_COUNT = 5
-DEFAULT_CONFIG_TAIL_START = 14
+DEFAULT_CONFIG_TAIL_START = 18
 
 # Default bind used to detect the common case.
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
@@ -103,15 +103,11 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
         "# Enable websockets (required for Codex live updates)",
         "# websockets = true",
     ]
-
-    server_url_line = ""
-    root_path_line = ""
+    url_path_prefix_line = ""
     if not root_path:
-        server_url_line = "# "
-        root_path_line = "# "
-    server_url_line += "[server.url]"
-    root_path_line += f'root_path = "{root_path}"'
-    lines += ["", server_url_line, root_path_line]
+        url_path_prefix_line = "# "
+    url_path_prefix_line += f'url_path_prefix = "{root_path}"'
+    lines += [url_path_prefix_line]
 
     # Tail of the default config files
     lines += config_tail

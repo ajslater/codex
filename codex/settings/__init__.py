@@ -42,9 +42,6 @@ def not_falsy_env(name):
 
 DEBUG = not_falsy_env("DEBUG")
 BUILD = not_falsy_env("BUILD")
-LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
-LOG_REQUEST = not_falsy_env("CODEX_LOG_REQUEST")
-LOG_AUTH_HEADERS = not_falsy_env("CODEX_LOG_AUTH_HEADERS")
 # Misc
 VITE_HOST = environ.get("VITE_HOST")
 
@@ -64,11 +61,11 @@ CODEX_CONFIG = load_codex_config(CODEX_CONFIG_TOML, CODEX_CONFIG_TOML_DEFAULT)
 #######################################
 # Granian server settings
 GRANIAN_HOST = get_str(CODEX_CONFIG, "server.host", default="0.0.0.0")  # noqa: S104
-PORT = get_int(CODEX_CONFIG, "server.port", default=9810)
+GRANIAN_PORT = get_int(CODEX_CONFIG, "server.port", default=9810)
 GRANIAN_WORKERS = get_int(CODEX_CONFIG, "server.workers", default=1)
 GRANIAN_HTTP = get_str(CODEX_CONFIG, "server.http", default="auto")
 GRANIAN_WEBSOCKETS = get_bool(CODEX_CONFIG, "server.websockets", default=True)
-ROOT_PATH = get_str(CODEX_CONFIG, "server.url.root_path", default="")
+GRANIAN_URL_PATH_PREFIX = get_str(CODEX_CONFIG, "server.url_path_prefix", default="")
 
 # Logging
 LOGLEVEL = get_str(
@@ -80,24 +77,26 @@ LOG_TO_CONSOLE = get_bool(CODEX_CONFIG, "logging.log_to_console", default=True)
 LOG_TO_FILE = get_bool(CODEX_CONFIG, "logging.log_to_file", default=True)
 
 # Importer
-MAX_IMPORT_BATCH_SIZE = get_str(
-    CODEX_CONFIG, "importer.max_import_batch_size", default="auto"
+IMPORTER_DELETE_MAX_CHUNK_SIZE = get_int(
+    CODEX_CONFIG, "importer.delete_max_chunk_size", default=1000
 )
-SEARCH_SYNC_BATCH_MEMORY_RATIO = get_float(
+IMPORTER_FILTER_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.filter_batch_size", default=900
+)
+IMPORTER_SEARCH_SYNC_BATCH_MEMORY_RATIO = get_float(
     CODEX_CONFIG, "importer.search_sync_batch_memory_ratio", default=3.2
 )
-LINK_FK_BATCH_SIZE = get_int(CODEX_CONFIG, "importer.link_fk_batch_size", default=20000)
-LINK_M2M_BATCH_SIZE = get_int(
-    CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
+IMPORTER_LINK_FK_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.link_fk_batch_size", default=20000
 )
-DELETE_MAX_CHUNK_SIZE = get_int(
-    CODEX_CONFIG, "importer.delete_max_chunk_size", default=1000
+IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
 )
 
 # Browser Performance
-SLOW_QUERY_LIMIT = get_float(CODEX_CONFIG, "browser.slow_query_limit", default=0.5)
-MAX_OBJ_PER_PAGE = get_int(CODEX_CONFIG, "browser.max_obj_per_page", default=100)
-FILTER_BATCH_SIZE = get_int(CODEX_CONFIG, "browser.filter_batch_size", default=900)
+BROWSER_MAX_OBJ_PER_PAGE = get_int(
+    CODEX_CONFIG, "browser.max_obj_per_page", default=100
+)
 
 # Throttle
 THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
@@ -105,14 +104,29 @@ THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
 THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
 THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
 
-# Env-only flags
+# Auth
+AUTH_REMOTE_USER = get_bool(CODEX_CONFIG, "auth.remote_user", default=False)
+
+# Debug
+DEBUG_LOG_AUTH_HEADERS = get_bool(CODEX_CONFIG, "debug.log_auth_headers", default=False)
+DEBUG_LOG_REQUEST = get_bool(CODEX_CONFIG, "debug.log_request", default=False)
+DEBUG_LOG_RESPONSE_TIME = get_bool(
+    CODEX_CONFIG, "debug.log_response_time", default=False
+)
+DEBUG_SLOW_QUERY_LIMIT = get_float(CODEX_CONFIG, "debug.slow_query_limit", default=0.5)
+
+# Repair (Not config variables)
 RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
-AUTH_REMOTE_USER = not_falsy_env("CODEX_AUTH_REMOTE_USER")
 FIX_FOREIGN_KEYS = not_falsy_env("CODEX_FIX_FOREIGN_KEYS")
 INTEGRITY_CHECK = not_falsy_env("CODEX_INTEGRITY_CHECK")
 FTS_INTEGRITY_CHECK = not_falsy_env("CODEX_FTS_INTEGRITY_CHECK")
 FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 
+################
+# End env vars #
+################
+
+# Covers
 CUSTOM_COVERS_SUBDIR = "custom-covers"
 CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
 CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
@@ -221,11 +235,11 @@ def _get_middleware() -> tuple:
             "nplusone.ext.django.NPlusOneMiddleware",
         ]
 
-    if LOG_RESPONSE_TIME:
+    if DEBUG_LOG_RESPONSE_TIME:
         middleware += [
             "codex.middleware.LogResponseTimeMiddleware",
         ]
-    if LOG_REQUEST:
+    if DEBUG_LOG_REQUEST:
         middleware += [
             "codex.middleware.LogRequestMiddleware",
         ]
@@ -326,8 +340,8 @@ WHITENOISE_STATIC_PREFIX = "static/"
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = (
-    ROOT_PATH + "/" + WHITENOISE_STATIC_PREFIX
-    if ROOT_PATH
+    GRANIAN_URL_PATH_PREFIX + "/" + WHITENOISE_STATIC_PREFIX
+    if GRANIAN_URL_PATH_PREFIX
     else WHITENOISE_STATIC_PREFIX
 )
 STORAGES = {
