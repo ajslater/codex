@@ -1,4 +1,4 @@
-"""Mixin because watchdog Observers already inherit from Thread.."""
+"""Mixin for common librarian thread attributes."""
 
 from multiprocessing.queues import Queue
 
