@@ -76,7 +76,21 @@ LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = get_bool(CODEX_CONFIG, "logging.log_to_console", default=True)
 LOG_TO_FILE = get_bool(CODEX_CONFIG, "logging.log_to_file", default=True)
 
-# Importer
+# Browser Performance
+BROWSER_MAX_OBJ_PER_PAGE = get_int(
+    CODEX_CONFIG, "browser.max_obj_per_page", default=100
+)
+
+# Throttle
+THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
+THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
+THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
+THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
+
+# Auth
+AUTH_REMOTE_USER = get_bool(CODEX_CONFIG, "auth.remote_user", default=False)
+
+# Importer - Undocumented
 IMPORTER_DELETE_MAX_CHUNK_SIZE = get_int(
     CODEX_CONFIG, "importer.delete_max_chunk_size", default=1000
 )
@@ -93,21 +107,7 @@ IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
 )
 
-# Browser Performance
-BROWSER_MAX_OBJ_PER_PAGE = get_int(
-    CODEX_CONFIG, "browser.max_obj_per_page", default=100
-)
-
-# Throttle
-THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
-THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
-THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
-THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
-
-# Auth
-AUTH_REMOTE_USER = get_bool(CODEX_CONFIG, "auth.remote_user", default=False)
-
-# Debug
+# Debug - Undocumented
 DEBUG_LOG_AUTH_HEADERS = get_bool(CODEX_CONFIG, "debug.log_auth_headers", default=False)
 DEBUG_LOG_REQUEST = get_bool(CODEX_CONFIG, "debug.log_request", default=False)
 DEBUG_LOG_RESPONSE_TIME = get_bool(
