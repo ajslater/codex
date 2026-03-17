@@ -1,5 +1,5 @@
 """
-Transform raw filesystem changes into codex events.
+Transform raw filesystem changes into watcher events.
 
 These functions classify file changes by matching against comic and cover
 file patterns, producing the appropriate WatchEvent instances.
