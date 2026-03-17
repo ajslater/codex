@@ -26,14 +26,14 @@ from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
-from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
-from codex.librarian.watchdog.poller import LibraryPollerThread
-from codex.librarian.watchdog.tasks import (
-    WatchdogEventTask,
-    WatchdogPollLibrariesTask,
-    WatchdogSyncTask,
+from codex.librarian.watcher.event_batcherd import WatcherEventBatcherThread
+from codex.librarian.watcher.poller import LibraryPollerThread
+from codex.librarian.watcher.tasks import (
+    WatcherEventTask,
+    WatcherPollLibrariesTask,
+    WatcherSyncTask,
 )
-from codex.librarian.watchdog.watcher import LibraryWatcherThread
+from codex.librarian.watcher.watcher import LibraryWatcherThread
 
 _THREAD_CLASSES = (
     BookmarkThread,
@@ -43,7 +43,7 @@ _THREAD_CLASSES = (
     LibraryPollerThread,
     NotifierThread,
     ScribeThread,
-    WatchdogEventBatcherThread,
+    WatcherEventBatcherThread,
 )
 _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
@@ -53,7 +53,7 @@ _THREAD_QUEUE_TASK_MAP: dict[type, str] = {
     CoverTask: "cover_thread",
     BookmarkTask: "bookmark_thread",
     NotifierTask: "notifier_thread",
-    WatchdogEventTask: "watchdog_event_batcher_thread",
+    WatcherEventTask: "watcher_event_batcher_thread",
 }
 
 
@@ -77,7 +77,7 @@ class LibrarianDaemon(Process):
         self.run_loop = True
         self._reversed_threads = ()
 
-    def _sync_watchdog_observers(self) -> None:
+    def _sync_watchers(self) -> None:
         self._threads.library_watcher_thread.restart()
         self._threads.library_poller_thread.wake()
 
@@ -96,9 +96,9 @@ class LibrarianDaemon(Process):
             case ScribeTask():
                 # Special put method does queue put preprocessing.
                 self._threads.scribe_thread.put(task)
-            case WatchdogSyncTask():
-                self._sync_watchdog_observers()
-            case WatchdogPollLibrariesTask():
+            case WatcherSyncTask():
+                self._sync_watchers()
+            case WatcherPollLibrariesTask():
                 self._threads.library_poller_thread.poll(task)
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
@@ -174,7 +174,7 @@ class LibrarianDaemon(Process):
         """
         Process tasks from the queue.
 
-        This process also runs the crond thread and the Watchdog Observer
+        This process also runs the crond thread and the watcher Observer
         threads.
         """
         self._startup()

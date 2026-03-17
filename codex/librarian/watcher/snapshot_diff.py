@@ -1,14 +1,13 @@
 """
 Compute the diff between two snapshots.
 
-Replaces watchdog's DirectorySnapshotDiff with a standalone implementation
-that supports inode-based move detection and optional device-ignoring for
+Supports inode-based move detection and optional device-ignoring for
 Docker/complex filesystems.
 """
 
 from dataclasses import dataclass
 
-from codex.librarian.watchdog.snapshot import Snapshot
+from codex.librarian.watcher.snapshot import Snapshot
 
 
 @dataclass

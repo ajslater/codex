@@ -58,9 +58,9 @@ from codex.librarian.scribe.tasks import (
     UpdateGroupsTask,
 )
 from codex.librarian.tasks import LibrarianTask
-from codex.librarian.watchdog.tasks import (
-    WatchdogPollLibrariesTask,
-    WatchdogSyncTask,
+from codex.librarian.watcher.tasks import (
+    WatcherPollLibrariesTask,
+    WatcherSyncTask,
 )
 from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
@@ -89,7 +89,7 @@ _TASK_MAP = MappingProxyType(
         "db_integrity_check": JanitorIntegrityCheckTask(),
         "db_fts_integrity_check": JanitorFTSIntegrityCheckTask(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
-        "watchdog_sync": WatchdogSyncTask(),
+        "watcher_sync": WatcherSyncTask(),
         "codex_latest_version": CodexLatestVersionTask(force=True),
         "codex_update": JanitorCodexUpdateTask(force=False),
         "codex_shutdown": CodexShutdownTask(),
@@ -108,8 +108,8 @@ _TASK_MAP = MappingProxyType(
         "cleanup_covers": CoverRemoveOrphansTask(),
         "librarian_clear_status": ClearLibrarianStatusTask(),
         "force_update_all_failed_imports": JanitorImportForceAllFailedTask(),
-        "poll": WatchdogPollLibrariesTask(frozenset(), force=False),
-        "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
+        "poll": WatcherPollLibrariesTask(frozenset(), force=False),
+        "poll_force": WatcherPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
         "adopt_folders": JanitorAdoptOrphanFoldersTask(),
@@ -140,7 +140,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             task = NotifierTask(Notifications.BOOKMARK.value, group)
         else:
             task = _TASK_MAP.get(name)
-        if pk and isinstance(task, WatchdogPollLibrariesTask):
+        if pk and isinstance(task, WatcherPollLibrariesTask):
             task.library_ids = frozenset({pk})
         return task
 

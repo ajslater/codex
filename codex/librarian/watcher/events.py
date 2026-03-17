@@ -1,10 +1,4 @@
-"""
-Codex filesystem event dataclasses.
-
-These replace the watchdog event classes with simple dataclasses that carry
-just the information codex needs: a path, a change type, and classification
-flags for directories and covers.
-"""
+"""Codex filesystem watcher event dataclasses."""
 
 from dataclasses import dataclass
 from enum import IntEnum

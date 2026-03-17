@@ -15,7 +15,7 @@ __all__ = ("CustomCover", "FailedImport")
 
 
 class WatchedPath(BaseModel):
-    """A filesystem path with data for Watchdog."""
+    """A filesystem path with data for Watcher diffs."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
     parent_folder: ForeignKey | None = ForeignKey(

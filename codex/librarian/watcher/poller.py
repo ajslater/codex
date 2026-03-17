@@ -9,21 +9,21 @@ from humanize import naturaldelta
 from typing_extensions import override
 
 from codex.librarian.threads import NamedThread
-from codex.librarian.watchdog.const import (
+from codex.librarian.watcher.const import (
     DIR_NOT_FOUND_TIMEOUT,
     DOCKER_UNMOUNTED_FN,
 )
-from codex.librarian.watchdog.events import (
+from codex.librarian.watcher.events import (
     PollEvent,
     PollEventType,
 )
-from codex.librarian.watchdog.handlers import events_from_diff
-from codex.librarian.watchdog.snapshot import DatabaseSnapshot, DiskSnapshot
-from codex.librarian.watchdog.snapshot_diff import SnapshotDiff
-from codex.librarian.watchdog.status import WatchdogPollStatus
-from codex.librarian.watchdog.tasks import (
-    WatchdogEventTask,
-    WatchdogPollLibrariesTask,
+from codex.librarian.watcher.handlers import events_from_diff
+from codex.librarian.watcher.snapshot import DatabaseSnapshot, DiskSnapshot
+from codex.librarian.watcher.snapshot_diff import SnapshotDiff
+from codex.librarian.watcher.status import WatcherPollStatus
+from codex.librarian.watcher.tasks import (
+    WatcherEventTask,
+    WatcherPollLibrariesTask,
 )
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
@@ -60,7 +60,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         with self._cond:
             self._cond.notify()
 
-    def poll(self, task: WatchdogPollLibrariesTask) -> None:
+    def poll(self, task: WatcherPollLibrariesTask) -> None:
         """Trigger an immediate poll for specific libraries."""
         with self._cond:
             self._pending_poll_ids = task.library_ids
@@ -165,16 +165,16 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
         pk = library.pk
         # Signal batcher: poll starting
-        start = WatchdogEventTask(pk, PollEvent(PollEventType.start, force=force))
+        start = WatcherEventTask(pk, PollEvent(PollEventType.start, force=force))
         self.librarian_queue.put(start)
 
         # Send all diff events
         for event in events_from_diff(diff):
-            task = WatchdogEventTask(pk, event)
+            task = WatcherEventTask(pk, event)
             self.librarian_queue.put(task)
 
         # Signal batcher: poll finished — flush the batch
-        finish = WatchdogEventTask(pk, PollEvent(PollEventType.finish, force=force))
+        finish = WatcherEventTask(pk, PollEvent(PollEventType.finish, force=force))
         self.librarian_queue.put(finish)
 
     def _poll_library(self, library: Library, *, force: bool) -> None:
@@ -182,7 +182,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         if self.db_write_lock.locked():
             self.log.warning(f"Database locked, not polling {library.path}.")
             return
-        status = WatchdogPollStatus(subtitle=library.path)
+        status = WatcherPollStatus(subtitle=library.path)
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {library.path}...")

@@ -161,9 +161,6 @@ def _get_logging() -> dict[str, int | dict]:
         loggers.update(
             {
                 "urllib3.connectionpool": {"level": "INFO"},
-                "watchdog": {
-                    "level": "INFO",
-                },
                 "PIL": {
                     "level": "INFO",
                 },

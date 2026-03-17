@@ -8,8 +8,8 @@ file patterns, producing the appropriate WatchEvent instances.
 import re
 from pathlib import Path
 
-from codex.librarian.watchdog.const import COMIC_MATCHER, IMAGE_MATCHER
-from codex.librarian.watchdog.events import (
+from codex.librarian.watcher.const import COMIC_MATCHER, IMAGE_MATCHER
+from codex.librarian.watcher.events import (
     WatcherChange,
     WatchEvent,
 )

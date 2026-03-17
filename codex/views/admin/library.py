@@ -13,9 +13,9 @@ from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.watchdog.tasks import (
-    WatchdogPollLibrariesTask,
-    WatchdogSyncTask,
+from codex.librarian.watcher.tasks import (
+    WatcherPollLibrariesTask,
+    WatcherSyncTask,
 )
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
@@ -30,7 +30,7 @@ from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 class AdminLibraryViewSet(AdminModelViewSet):
     """Admin Library Viewset."""
 
-    _WATCHDOG_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
+    _WATCHer_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
 
     queryset = (
         Library.objects.prefetch_related("groups")
@@ -43,11 +43,11 @@ class AdminLibraryViewSet(AdminModelViewSet):
     serializer_class = LibrarySerializer
 
     @classmethod
-    def _sync_watchdog(cls, validated_keys=None) -> None:
+    def _sync_watcher(cls, validated_keys=None) -> None:
         if validated_keys is None or validated_keys.intersection(
-            cls._WATCHDOG_SYNC_FIELDS
+            cls._WATCHer_SYNC_FIELDS
         ):
-            task = WatchdogSyncTask()
+            task = WatcherSyncTask()
             LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
@@ -64,7 +64,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
 
     @staticmethod
     def _poll(pk, force) -> None:
-        task = WatchdogPollLibrariesTask(frozenset({pk}), force)
+        task = WatcherPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
 
     @override
@@ -77,7 +77,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
             path=serializer.validated_data["path"]
         )
         self._create_library_folder(library)
-        self._sync_watchdog()
+        self._sync_watcher()
         self._poll(library.pk, force=False)
 
     @override
@@ -91,7 +91,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         super().perform_update(serializer)
         if "groupSet" in validated_keys:
             self._on_change()
-        self._sync_watchdog(validated_keys)
+        self._sync_watcher(validated_keys)
         self._poll(pk, force=False)
 
     @override
@@ -100,7 +100,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if instance.covers_only:
             raise NotSupportedError
         super().perform_destroy(instance)
-        self._sync_watchdog()
+        self._sync_watcher()
         self._on_change()
 
 

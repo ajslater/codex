@@ -15,7 +15,7 @@ from typing_extensions import override
 from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.threads import AggregateMessageQueuedThread
-from codex.librarian.watchdog.events import (
+from codex.librarian.watcher.events import (
     PollEvent,
     PollEventType,
     WatcherChange,
@@ -41,7 +41,7 @@ _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
 )
 
 
-class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
+class WatcherEventBatcherThread(AggregateMessageQueuedThread):
     """Batch filesystem events into bulk database import tasks."""
 
     MAX_DELAY = 60.0

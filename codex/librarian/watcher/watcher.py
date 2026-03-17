@@ -6,12 +6,12 @@ from typing_extensions import override
 from watchfiles import Change, watch
 
 from codex.librarian.threads import NamedThread
-from codex.librarian.watchdog.events import WatcherChange
-from codex.librarian.watchdog.handlers import (
+from codex.librarian.watcher.events import WatcherChange
+from codex.librarian.watcher.handlers import (
     transform_custom_cover_change,
     transform_library_change,
 )
-from codex.librarian.watchdog.tasks import WatchdogEventTask
+from codex.librarian.watcher.tasks import WatcherEventTask
 from codex.models import Library
 
 
@@ -101,7 +101,7 @@ class LibraryWatcherThread(NamedThread):
                 events = transform_library_change(change, path)
 
             for event in events:
-                task = WatchdogEventTask(library_pk, event)
+                task = WatcherEventTask(library_pk, event)
                 self.librarian_queue.put(task)
 
     def _watch_loop(self) -> None:

@@ -59,9 +59,9 @@ ADMIN_TASK_GROUPS: MappingProxyType[
                         "confirm": "This can take a long time",
                     },
                     {
-                        "value": "watchdog_sync",
-                        "title": "Sync Watchdog with DB",
-                        "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library",
+                        "value": "watcher_sync",
+                        "title": "Sync Watcher with DB",
+                        "desc": "Ensure the file Watcher is enabled per database preferences for each library",
                     },
                     {
                         "value": "import_abort",

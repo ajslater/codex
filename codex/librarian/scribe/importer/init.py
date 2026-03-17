@@ -113,7 +113,7 @@ class InitImporter(WorkerStatusBase):
         )
 
     def _wait_for_filesystem_ops_to_finish(self) -> bool:
-        """Watchdog sends events before filesystem events finish, so wait for them."""
+        """Watcher sends events before filesystem events finish, so wait for them."""
         started_checking = time()
 
         # Don't wait for deletes to complete.
@@ -178,7 +178,7 @@ class InitImporter(WorkerStatusBase):
         return comics_log
 
     def _log_task(self) -> None:
-        """Log the watchdog event self.task."""
+        """Log the fs watcher event self.task."""
         if not self._is_log_debug_task:
             return
 
