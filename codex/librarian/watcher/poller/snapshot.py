@@ -7,10 +7,9 @@ from pathlib import Path
 from stat import S_ISDIR
 
 from codex.librarian.watcher.filters import (
-    COMIC_MATCHER,
+    match_comic,
     match_folder_cover,
     match_group_cover_image,
-    match_suffix,
 )
 from codex.models import Comic, CustomCover, FailedImport, Folder
 
@@ -74,7 +73,7 @@ class DiskSnapshot(Snapshot):
             if self._covers_only:
                 if not match_group_cover_image(path):
                     continue
-            elif not (match_suffix(COMIC_MATCHER, path) or match_folder_cover(path)):
+            elif not (match_comic(path) or match_folder_cover(path)):
                 continue
             try:
                 st = entry.stat(follow_symlinks=False)

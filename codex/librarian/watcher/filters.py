@@ -10,6 +10,7 @@ from codex.models import CustomCover
 from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
 
 _IMAGE_REGEX = r"\.(jpe?g|webp|png|gif|bmp)"
+_IMAGE_MATCHER: re.Pattern = re.compile(_IMAGE_REGEX, re.IGNORECASE)
 
 
 def _build_comic_matcher() -> re.Pattern:
@@ -32,20 +33,27 @@ def _build_comic_matcher() -> re.Pattern:
     return re.compile(comic_regex, re.IGNORECASE)
 
 
-COMIC_MATCHER: re.Pattern = _build_comic_matcher()
-IMAGE_MATCHER: re.Pattern = re.compile(_IMAGE_REGEX, re.IGNORECASE)
+_COMIC_MATCHER: re.Pattern = _build_comic_matcher()
 
 
-def match_suffix(pattern: re.Pattern, path: Path) -> bool:
-    """Match suffix with pettern."""
+def _match_suffix(pattern: re.Pattern, path: Path) -> bool:
+    """Match suffix with pattern."""
     return bool(path and path.suffix and pattern.match(path.suffix) is not None)
+
+
+def match_comic(path: Path) -> bool:
+    """Match comic file."""
+    return _match_suffix(_COMIC_MATCHER, path)
+
+
+def match_image(path: Path) -> bool:
+    """Match image file."""
+    return _match_suffix(_IMAGE_MATCHER, path)
 
 
 def match_folder_cover(path: Path) -> bool:
     """Match a folder cover image (e.g. cover.jpg next to comics)."""
-    return path.stem == CustomCover.FOLDER_COVER_STEM and match_suffix(
-        IMAGE_MATCHER, path
-    )
+    return path.stem == CustomCover.FOLDER_COVER_STEM and match_image(path)
 
 
 def match_group_cover_image(path: Path) -> bool:
@@ -54,5 +62,5 @@ def match_group_cover_image(path: Path) -> bool:
     return (
         parent.parent == CUSTOM_COVERS_DIR
         and str(parent.name) in CUSTOM_COVERS_GROUP_DIRS
-        and match_suffix(IMAGE_MATCHER, path)
+        and match_image(path)
     )

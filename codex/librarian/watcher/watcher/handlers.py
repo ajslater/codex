@@ -12,10 +12,9 @@ from codex.librarian.watcher.events import (
     WatchEvent,
 )
 from codex.librarian.watcher.filters import (
-    COMIC_MATCHER,
+    match_comic,
     match_folder_cover,
     match_group_cover_image,
-    match_suffix,
 )
 
 
@@ -31,7 +30,7 @@ def transform_library_change(
 
     path = Path(path_str)
 
-    if match_suffix(COMIC_MATCHER, path):
+    if match_comic(path):
         events.append(WatchEvent(src_path=path_str, change=change))
 
     if match_folder_cover(path):
