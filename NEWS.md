@@ -9,7 +9,8 @@ border-radius: 128px;
 ## v1.10.0
 
 - Change
-    - Codex now uses the granian http server instead of hypercorn.
+    - Codex now uses the smaller, faster granian http server instead of
+      hypercorn.
     - All config has moved to config/codex.toml. Your hypercorn config should be
       migrated automatically.
         - Environment variables can be specified in codex.toml as well, but
