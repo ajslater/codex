@@ -21,6 +21,8 @@ DEFAULT_CONFIG_TAIL_START = 18
 # Default bind used to detect the common case.
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 _DEFAULT_PORT = 9810
+_DEFAULT_WORKERS = 1
+_DEFAULT_URL_PATH_PREFIX = ""
 
 
 def _parse_bind(bind_list: list[str]) -> tuple[str, int]:
@@ -117,9 +119,20 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
     lines: list[str] = config_head
     host = old["host"]
     port = old["port"]
+    workers = old["workers"]
+    root_path = old["root_path"]
     server_line = (
         "# "
-        if (not host or host == _DEFAULT_HOST) and (not port or port == _DEFAULT_PORT)
+        if (
+            all(
+                (
+                    not host or host == _DEFAULT_HOST,
+                    not port or port == _DEFAULT_PORT,
+                    not workers or workers == _DEFAULT_WORKERS,
+                    not root_path or root_path == _DEFAULT_URL_PATH_PREFIX,
+                )
+            )
+        )
         else ""
     )
     server_line += "[server]"
@@ -131,7 +144,6 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
     lines.append(
         "# Number of worker processes. 1 is recommended for containerized environments."
     )
-    workers = old["workers"]
     _build_codex_toml_line(lines, "workers", workers, 1)
 
     lines += [
@@ -140,7 +152,6 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
         "# Enable websockets (required for Codex live updates)",
         "# websockets = true",
     ]
-    root_path = old["root_path"]
     _build_codex_toml_line(lines, "url_path_prefix", root_path, "")
 
     # Tail of the default config files
