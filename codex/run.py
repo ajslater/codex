@@ -110,6 +110,7 @@ def run() -> None:
 
 def main() -> None:
     """Set up and run Codex."""
+    logger.debug(f"Starting {PACKAGE_NAME}")
     setproctitle(PACKAGE_NAME)
     init_logging()
     if codex_startup():
