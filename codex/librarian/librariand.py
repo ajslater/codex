@@ -51,7 +51,7 @@ _THREAD_QUEUE_TASK_MAP: dict[type, str] = {
     CoverTask: "cover_thread",
     BookmarkTask: "bookmark_thread",
     NotifierTask: "notifier_thread",
-    FSEventTask: "fs_event_batcher_thread",
+    FSEventTask: "fsevent_batcher_thread",
 }
 
 
