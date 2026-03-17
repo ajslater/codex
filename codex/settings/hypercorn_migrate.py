@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
 
@@ -56,15 +57,52 @@ def _toml_value(val: object) -> str:
     return f'"{val}"'
 
 
-def _build_codex_toml(old: dict, default_toml: Path) -> str:
-    """Convert a parsed hypercorn config dict into codex.toml text."""
+def _transform_hypercorn_config(old: dict):
     host = _DEFAULT_HOST
     port = _DEFAULT_PORT
     if "bind" in old:
         raw = old["bind"]
         host, port = _parse_bind(raw if isinstance(raw, list) else [str(raw)])
+    old["host"] = host
+    try:
+        old["port"] = int(port)
+    except ValueError:
+        old["port"] = _DEFAULT_PORT
+    try:
+        workers = int(old.get("workers", 1))
+    except ValueError:
+        workers = 1
+    old["workers"] = workers
+    old["root_path"] = old.get("root_path", "")
 
-    root_path = str(old.get("root_path", ""))
+
+def _build_codex_toml_line(lines: list[str], key: str, value, default):
+    line = "# " if not value or value == default else ""
+    if isinstance(value, str):
+        line = '"' + value + '"'
+    line += f"{key} = {value}"
+    lines.append(line)
+
+
+def _append_granian_ssl_comment(lines: list[str], old: dict[str, Any]):
+    # Just in case someone got way too clever.
+    certfile = old.get("certfile")
+    keyfile = old.get("keyfile")
+    if certfile or keyfile:
+        lines += [
+            "",
+            "# TLS was configured in hypercorn.toml.",
+            "# Granian uses environment variables instead:",
+        ]
+        if certfile:
+            lines.append(f'#   GRANIAN_SSL_CERTIFICATE="{certfile}"')
+        if keyfile:
+            lines.append(f'#   GRANIAN_SSL_KEYFILE="{keyfile}"')
+
+
+def _build_codex_toml(old: dict, default_toml: Path) -> str:
+    """Convert a parsed hypercorn config dict into codex.toml text."""
+    _transform_hypercorn_config(old)
 
     with default_toml.open() as f:
         default_lines = f.readlines()
@@ -77,52 +115,38 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
 
     # Head of default config file
     lines: list[str] = config_head
+    host = old["host"]
+    port = old["port"]
     server_line = (
         "# "
         if (not host or host == _DEFAULT_HOST) and (not port or port == _DEFAULT_PORT)
         else ""
     )
     server_line += "[server]"
-    host_line = "# " if not host or host == _DEFAULT_HOST else ""
-    host_line += f"host = {host}"
-    port_line = "# " if not port or port == _DEFAULT_PORT else ""
-    port_line += f"port = {port}"
-    lines += [server_line, "# Granian ASGI server settings", host_line, port_line]
+    _build_codex_toml_line(lines, "host", host, _DEFAULT_HOST)
+    _build_codex_toml_line(lines, "port", port, _DEFAULT_PORT)
+    lines += [server_line, "# Granian ASGI server settings"]
 
     # Just in case someone got clever
-    if (workers := old.get("workers")) and workers > 1:
-        workers_line = f"workers = {int(workers)}"
-    else:
-        workers_line = "# workers = 1"
+    lines.append(
+        "# Number of worker processes. 1 is recommended for containerized environments."
+    )
+    workers = old["workers"]
+    _build_codex_toml_line(lines, "workers", workers, 1)
 
     lines += [
-        "# Number of worker processes. 1 is recommended for containerized environments.",
-        workers_line,
         '# HTTP version: "auto", "1", or "2"',
         '# http = "auto"',
         "# Enable websockets (required for Codex live updates)",
         "# websockets = true",
     ]
-    url_path_prefix_line = ""
-    if not root_path:
-        url_path_prefix_line = "# "
-    url_path_prefix_line += f'url_path_prefix = "{root_path}"'
-    lines += [url_path_prefix_line]
+    root_path = old["root_path"]
+    _build_codex_toml_line(lines, "url_path_prefix", root_path, "")
 
     # Tail of the default config files
     lines += config_tail
 
-    # Just in case someone got way too clever.
-    if "certfile" in old or "keyfile" in old:
-        lines += [
-            "",
-            "# TLS was configured in hypercorn.toml.",
-            "# Granian uses environment variables instead:",
-        ]
-        if "certfile" in old:
-            lines.append(f'#   GRANIAN_SSL_CERTIFICATE="{old["certfile"]}"')
-        if "keyfile" in old:
-            lines.append(f'#   GRANIAN_SSL_KEYFILE="{old["keyfile"]}"')
+    _append_granian_ssl_comment(lines, old)
 
     lines.append("")
     return "\n".join(lines)
