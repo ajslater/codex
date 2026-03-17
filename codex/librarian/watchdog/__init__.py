@@ -1,1 +1,1 @@
-"""Custom Watchdog Observers for Codex Libraries."""
+"""File system watching for Codex libraries using watchfiles."""

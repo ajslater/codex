@@ -8,7 +8,6 @@ from typing import Any, NamedTuple
 
 from caseconverter import snakecase
 from django.db import close_old_connections
-from setproctitle import setproctitle
 from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread  # typos:ignore
@@ -28,22 +27,20 @@ from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
-from codex.librarian.watchdog.observers import (
-    LibraryEventObserver,
-    LibraryPollingObserver,
-)
+from codex.librarian.watchdog.poller import LibraryPollerThread
 from codex.librarian.watchdog.tasks import (
     WatchdogEventTask,
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
+from codex.librarian.watchdog.watcher import LibraryWatcherThread
 
 _THREAD_CLASSES = (
     BookmarkThread,
     CoverThread,
     CronThread,
-    LibraryEventObserver,
-    LibraryPollingObserver,
+    LibraryWatcherThread,
+    LibraryPollerThread,
     NotifierThread,
     ScribeThread,
     WatchdogEventBatcherThread,
@@ -72,7 +69,6 @@ class LibrarianDaemon(Process):
         self.broadcast_queue = broadcast_queue
         startup_tasks = (
             JanitorAdoptOrphanFoldersTask(),
-            WatchdogSyncTask(),
             SearchIndexSyncTask(),
         )
 
@@ -82,8 +78,8 @@ class LibrarianDaemon(Process):
         self._reversed_threads = ()
 
     def _sync_watchdog_observers(self) -> None:
-        for observer in self._observers:
-            observer.sync_library_watches()
+        self._threads.library_watcher_thread.restart()
+        self._threads.library_poller_thread.wake()
 
     def _restart_codex(self, task: LibrarianTask) -> None:
         restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
@@ -103,7 +99,7 @@ class LibrarianDaemon(Process):
             case WatchdogSyncTask():
                 self._sync_watchdog_observers()
             case WatchdogPollLibrariesTask():
-                self._threads.library_polling_observer.poll(task)
+                self._threads.library_poller_thread.poll(task)
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():
@@ -131,10 +127,6 @@ class LibrarianDaemon(Process):
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
         self._threads = LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
-        self._observers = (  # pyright: ignore[reportUninitializedInstanceVariable]
-            self._threads.library_event_observer,
-            self._threads.library_polling_observer,
-        )
         self.log.debug("Threads created")
 
     def _start_threads(self) -> None:
@@ -147,7 +139,6 @@ class LibrarianDaemon(Process):
     def _startup(self) -> None:
         """Initialize threads."""
         self.log.debug(f"Started {self.name}.")
-        setproctitle(snakecase(self.name))
         # Janitor created in init.
         self._create_threads()  # can't do this in init.
         self._start_threads()

@@ -1,8 +1,7 @@
 """Force update events for failed imports."""
 
-from watchdog.events import FileModifiedEvent
-
 from codex.librarian.scribe.janitor.vacuum import JanitorVacuum
+from codex.librarian.watchdog.events import WatcherChange, WatchEvent
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.models import FailedImport, Library
 
@@ -16,7 +15,7 @@ class JanitorUpdateFailedImports(JanitorVacuum):
             library=library_id
         ).values_list("path", flat=True)
         for path in failed_import_paths:
-            event = FileModifiedEvent(path)
+            event = WatchEvent(src_path=path, change=WatcherChange.modified)
             task = WatchdogEventTask(library_id, event)
             self.librarian_queue.put(task)
 

@@ -129,7 +129,9 @@ FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 # Covers
 CUSTOM_COVERS_SUBDIR = "custom-covers"
 CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
-CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
+CUSTOM_COVERS_GROUP_DIRS = frozenset(
+    {"publishers", "imprints", "series", "volumes", "story-arcs"}
+)
 
 
 def create_custom_cover_group_dirs() -> None:

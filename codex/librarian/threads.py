@@ -21,6 +21,9 @@ class BreakLoopError(Exception):
 class NamedThread(Thread, WorkerStatusMixin, ABC):
     """A thread that sets its name for ps."""
 
+    SHUTDOWN_MSG: str | tuple = "shutdown"
+    SHUTDOWN_TIMEOUT = 5
+
     def __init__(
         self,
         logger_: Logger,
@@ -40,12 +43,16 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
         self.log.debug(f"Started {self.name}")
         setproctitle(self.name)
 
+    @override
+    def join(self, timeout=None) -> None:
+        """End the thread."""
+        self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
+        super().join(self.SHUTDOWN_TIMEOUT)
+        self.log.debug(f"{self.__class__.__name__} joined.")
+
 
 class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
-
-    SHUTDOWN_MSG: str | tuple = "shutdown"
-    SHUTDOWN_TIMEOUT = 5
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize with overridden name and as a daemon thread."""
@@ -92,13 +99,6 @@ class QueuedThread(NamedThread, ABC):
     def stop(self) -> None:
         """Stop the thread."""
         self.queue.put(self.SHUTDOWN_MSG)
-
-    @override
-    def join(self, timeout=None) -> None:
-        """End the thread."""
-        self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
-        super().join(self.SHUTDOWN_TIMEOUT)
-        self.log.debug(f"{self.__class__.__name__} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):

@@ -1,10 +1,9 @@
 """
-Batch watchdog events into bulk database tasks.
+Batch filesystem events into bulk database import tasks.
 
-Watchdog actually starts events as bulk events with the DirSnapshotDiff
-but the built-in filesystem event emitters serialize them, so the most
-consistent thing is for the DBEmitter to serialize them in the same way
-and then re-serialize everything in this batcher and the event Handler
+Events from both the watchfiles watcher and the database poller are
+aggregated here by library, deduplicated, and sent to the importer as
+ImportTask instances.
 """
 
 from contextlib import suppress
@@ -12,15 +11,15 @@ from copy import deepcopy
 from types import MappingProxyType
 
 from typing_extensions import override
-from watchdog.events import EVENT_TYPE_MOVED, FileSystemEvent
 
 from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.threads import AggregateMessageQueuedThread
-from codex.librarian.watchdog.const import EVENT_CLASS_DIFF_ALL_MAP
 from codex.librarian.watchdog.events import (
-    EVENT_TYPE_FINISH_POLL,
-    EVENT_TYPE_START_POLL,
+    PollEvent,
+    PollEventType,
+    WatcherChange,
+    WatchEvent,
 )
 
 _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
@@ -35,7 +34,7 @@ _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
             "files_deleted": set(),
             "covers_moved": {},
             "covers_modified": set(),
-            "covers_created": set(),
+            "covers_added": set(),
             "covers_deleted": set(),
         }
     )
@@ -43,7 +42,7 @@ _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
 
 
 class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
-    """Batch watchdog events into bulk database tasks."""
+    """Batch filesystem events into bulk database import tasks."""
 
     MAX_DELAY = 60.0
     MAX_ITEMS_PER_GB = 50000
@@ -54,11 +53,6 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         args = deepcopy(dict(_IMPORT_TASK_PARAMS))
         args["library_id"] = library_id
         return args
-
-    @staticmethod
-    def key_for_event(event: FileSystemEvent) -> str:
-        """Return the args field name for the event."""
-        return EVENT_CLASS_DIFF_ALL_MAP[type(event)]
 
     @staticmethod
     def _remove_paths(args, deleted_key: str, moved_key: str) -> None:
@@ -73,7 +67,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         cls._remove_paths(args, "dirs_deleted", "dirs_moved")
         cls._remove_paths(args, "files_deleted", "files_moved")
 
-        # created
+        # added
         args["files_created"] -= args["files_deleted"]
         files_dest_paths = set(args["files_moved"].values())
         args["files_created"] -= files_dest_paths
@@ -87,7 +81,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         args["files_modified"] -= files_dest_paths
 
         args["covers_modified"] -= args["covers_deleted"]
-        args["covers_modified"] -= args["covers_created"]
+        args["covers_modified"] -= args["covers_added"]
 
     def __init__(self, *args, **kwargs) -> None:
         """Set the total items for limiting db ops per batch."""
@@ -96,13 +90,13 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         mem_limit_gb = get_mem_limit("g")
         self.max_items = int(self.MAX_ITEMS_PER_GB * mem_limit_gb)
 
-    def _args_field_by_event(self, library_id: int, event: FileSystemEvent):
-        """Translate event class names into field names."""
+    def _args_field_by_event(self, library_id: int, event: WatchEvent):
+        """Translate an event into the corresponding import task field."""
         if library_id not in self.cache:
             self.cache[library_id] = self.create_import_task_args(library_id)
-        if key := EVENT_CLASS_DIFF_ALL_MAP.get(type(event)):
-            args_field = self.cache[library_id].get(key)
-        else:
+        key = event.diff_key
+        args_field = self.cache[library_id].get(key)
+        if args_field is None:
             reason = f"Unhandled event, not batching: {event}"
             raise ValueError(reason)
         return args_field
@@ -113,7 +107,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         event = item.event
         try:
             args_field = self._args_field_by_event(item.library_id, event)
-            if event.event_type == EVENT_TYPE_MOVED:
+            if event.change == WatcherChange.moved:
                 args_field[event.src_path] = event.dest_path
             else:
                 args_field.add(event.src_path)
@@ -126,14 +120,14 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
                 f" Sending batch of {self._total_items} to importer."
             )
             self.log.info(reason)
-            # Send all items
             self.timed_out()
 
     def _set_check_metadata_mtime(self, item) -> None:
         pk = item.library_id
         if pk not in self.cache:
             self.cache[pk] = self.create_import_task_args(pk)
-        self.cache[pk]["check_metadata_mtime"] = not item.event.force
+        poll_event: PollEvent = item.event
+        self.cache[pk]["check_metadata_mtime"] = not poll_event.force
 
     def _start_poll(self, item) -> None:
         self.set_last_send()
@@ -145,11 +139,12 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
 
     @override
     def process_item(self, item) -> None:
-        event_type = item.event.event_type
-        if event_type == EVENT_TYPE_START_POLL:
-            self._start_poll(item)
-        elif event_type == EVENT_TYPE_FINISH_POLL:
-            self._finish_poll(item)
+        event = item.event
+        if isinstance(event, PollEvent):
+            if event.poll_type == PollEventType.start:
+                self._start_poll(item)
+            elif event.poll_type == PollEventType.finish:
+                self._finish_poll(item)
         else:
             super().process_item(item)
 

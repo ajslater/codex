@@ -1,0 +1,136 @@
+"""Filesystem and database snapshot classes for change detection."""
+
+import os
+from collections.abc import Iterator
+from itertools import chain
+from pathlib import Path
+from stat import S_ISDIR
+
+from codex.models import Comic, CustomCover, FailedImport, Folder
+
+
+class Snapshot:
+    """Base snapshot: a mapping of paths to stat results."""
+
+    def __init__(self) -> None:
+        """Initialize empty snapshot."""
+        self._stat_info: dict[str, os.stat_result] = {}
+        self._inode_to_path: dict[tuple[int, ...] | int, str] = {}
+
+    def _set_lookups(self, path: str, st: os.stat_result) -> None:
+        """Populate the lookup dicts for a single path."""
+        self._stat_info[path] = st
+        inode_key = (st.st_ino, st.st_dev)
+        self._inode_to_path[inode_key] = path
+
+    @property
+    def paths(self) -> frozenset[str]:
+        """All known paths."""
+        return frozenset(self._stat_info.keys())
+
+    def inode(self, path: str) -> tuple[int, int]:
+        """Return (inode, device) for a path."""
+        st = self._stat_info[path]
+        return (st.st_ino, st.st_dev)
+
+    def path(self, inode) -> str | None:
+        """Return the path for an inode key, or None."""
+        return self._inode_to_path.get(inode)
+
+    def mtime(self, path: str) -> float:
+        """Return mtime for a path."""
+        return self._stat_info[path].st_mtime
+
+    def size(self, path: str) -> int:
+        """Return size for a path."""
+        return self._stat_info[path].st_size
+
+    def is_dir(self, path: str) -> bool:
+        """Return whether path is a directory."""
+        return S_ISDIR(self._stat_info[path].st_mode)
+
+
+class DiskSnapshot(Snapshot):
+    """Snapshot of the filesystem taken by walking a directory tree."""
+
+    def __init__(self, root: str, *, recursive: bool = True) -> None:
+        """Walk the directory and stat every entry."""
+        super().__init__()
+        root_stat = Path(root).stat()
+        self._set_lookups(root, root_stat)
+        self._walk(root, recursive=recursive)
+
+    def _walk(self, root: str, *, recursive: bool) -> None:
+        """Walk the directory tree and populate lookups."""
+        for entry in os.scandir(root):
+            try:
+                st = entry.stat(follow_symlinks=False)
+            except OSError:
+                continue
+            path = entry.path
+            self._set_lookups(path, st)
+            if recursive and entry.is_dir(follow_symlinks=False):
+                self._walk(path, recursive=True)
+
+
+class DatabaseSnapshot(Snapshot):
+    """Snapshot of what the Codex database knows about a library's files."""
+
+    _MODELS = (Folder, Comic, FailedImport, CustomCover)
+    _COVERS_ONLY_MODELS = (CustomCover,)
+    _STAT_LEN = 10
+
+    def __init__(
+        self,
+        root: str,
+        *,
+        logger_,
+        force: bool = False,
+        covers_only: bool = False,
+    ) -> None:
+        """Build snapshot from database records for the given library root."""
+        super().__init__()
+        self.log = logger_
+        if not Path(root).is_dir():
+            self.log.warning(f"{root} not found, cannot snapshot.")
+            return
+
+        # Add the library root itself
+        root_stat = Path(root).stat()
+        self._set_lookups(root, root_stat)
+
+        models = self._COVERS_ONLY_MODELS if covers_only else self._MODELS
+        for wp in chain.from_iterable(self._walk(root, models)):
+            st = self._create_stat(wp, force=force)
+            self._set_lookups(wp["path"], st)
+
+    @staticmethod
+    def _walk(root: str, models: tuple) -> Iterator:
+        """Yield querysets of {path, stat} dicts for each model."""
+        for model in models:
+            yield (
+                model.objects.filter(library__path=root)
+                .order_by("path")
+                .values("path", "stat")
+            )
+
+    def _create_stat(self, wp: dict, *, force: bool) -> os.stat_result:
+        """Turn a database JSON stat array into an os.stat_result."""
+        stat = wp["stat"]
+        if not stat or len(stat) != self._STAT_LEN or not stat[1]:
+            path = Path(wp["path"])
+            if path.exists():
+                self.log.debug(f"Force modify path with missing db stat: {path}")
+                stat = list(path.stat())
+                stat[8] = 0.0  # Fake mtime triggers modified event
+            else:
+                self.log.debug(
+                    f"Force delete missing path with missing db stat: {path}"
+                )
+                stat = list(Comic.ZERO_STAT)
+
+        if force:
+            stat = list(stat)
+            stat[8] = 0.0  # Fake mtime triggers modified event
+
+        return os.stat_result(tuple(stat))

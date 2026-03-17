@@ -1,63 +1,53 @@
-"""Codex Filesystem Events."""
+"""
+Codex filesystem event dataclasses.
 
-from abc import ABC
+These replace the watchdog event classes with simple dataclasses that carry
+just the information codex needs: a path, a change type, and classification
+flags for directories and covers.
+"""
+
 from dataclasses import dataclass
+from enum import IntEnum
 
-from watchdog.events import (
-    FileCreatedEvent,
-    FileDeletedEvent,
-    FileModifiedEvent,
-    FileMovedEvent,
-    FileSystemEvent,
-)
-
-EVENT_TYPE_START_POLL = "start_poll"
-EVENT_TYPE_FINISH_POLL = "finish_poll"
+from watchfiles import Change
 
 
-class CoverMovedEvent(FileMovedEvent):
-    """Cover Modified."""
+class WatcherChange(IntEnum):
+    """Extend watchfiles Change to include moved."""
 
-    is_cover = True
-    is_synthetic = True
-
-
-class CoverModifiedEvent(FileModifiedEvent):
-    """Cover Modified."""
-
-    is_cover = True
-    is_synthetic = True
+    added = Change.added
+    modified = Change.modified
+    deleted = Change.deleted
+    moved = deleted + 1
 
 
-class CoverCreatedEvent(FileCreatedEvent):
-    """Cover Created."""
+class PollEventType(IntEnum):
+    """Poll evenv type."""
 
-    is_cover = True
-    is_synthetic = True
-
-
-class CoverDeletedEvent(FileDeletedEvent):
-    """Cover Deleted."""
-
-    is_cover = True
-    is_synthetic = True
+    start = 1
+    finish = 2
 
 
-@dataclass(unsafe_hash=True)
-class CodexPollEvent(FileSystemEvent, ABC):
-    """Coex poll event."""
+@dataclass(frozen=True, slots=True)
+class WatchEvent:
+    """A filesystem change event."""
 
+    src_path: str
+    change: WatcherChange
+    is_directory: bool = False
+    is_cover: bool = False
+    dest_path: str = ""  # Only populated for moved events
+
+    @property
+    def diff_key(self) -> str:
+        """Return the ImportTask field name this event maps to."""
+        prefix = "covers" if self.is_cover else "dirs" if self.is_directory else "files"
+        return f"{prefix}_{self.change.name}"
+
+
+@dataclass(frozen=True, slots=True)
+class PollEvent:
+    """Signal the event batcher about poll boundaries."""
+
+    poll_type: PollEventType
     force: bool = False
-    is_synthetic = True
-
-
-class StartPollEvent(CodexPollEvent):
-    """Start Import Task."""
-
-    event_type = EVENT_TYPE_START_POLL
-
-
-class FinishPollEvent(CodexPollEvent):
-    """Finish Import Task."""
-
-    event_type = EVENT_TYPE_FINISH_POLL

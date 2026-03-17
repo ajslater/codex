@@ -35,10 +35,10 @@ dependencies = [
   "tomli~=2.0; python_version < '3.11'",
   "typing-extensions~=4.14",
   "tzlocal~=5.0",
-  "watchdog~=6.0",
   "whitenoise[brotli]~=6.0",
   "xxhash>=3.6.0",
   "zipstream-ng~=1.8",
+  "watchfiles>=1.1.1",
 ]
 description = "A comic archive web server."
 keywords = ["cb7", "cbr", "cbt", "cbz", "comic", "pdf"]

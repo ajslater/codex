@@ -2,9 +2,8 @@
 
 from dataclasses import dataclass
 
-from watchdog.events import FileSystemEvent
-
 from codex.librarian.tasks import LibrarianTask
+from codex.librarian.watchdog.events import PollEvent, WatchEvent
 
 
 @dataclass
@@ -14,7 +13,7 @@ class WatchdogTask(LibrarianTask):
 
 @dataclass
 class WatchdogPollLibrariesTask(WatchdogTask):
-    """Tell observer to poll these libraries now."""
+    """Tell poller to poll these libraries now."""
 
     library_ids: frozenset
     force: bool
@@ -25,7 +24,7 @@ class WatchdogEventTask(WatchdogTask):
     """Task for filesystem events."""
 
     library_id: int
-    event: FileSystemEvent
+    event: WatchEvent | PollEvent
 
 
 @dataclass
