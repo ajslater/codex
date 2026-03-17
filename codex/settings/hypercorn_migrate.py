@@ -79,7 +79,7 @@ def _transform_hypercorn_config(old: dict):
 def _build_codex_toml_line(lines: list[str], key: str, value, default):
     line = "# " if not value or value == default else ""
     if isinstance(value, str):
-        line = '"' + value + '"'
+        value = '"' + value + '"'
     line += f"{key} = {value}"
     lines.append(line)
 
