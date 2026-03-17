@@ -5,6 +5,7 @@ from itertools import chain
 from bidict import frozenbidict
 
 from codex.librarian.covers.status import COVERS_STATII
+from codex.librarian.fs.poller.status import FS_STATII
 from codex.librarian.restarter.status import RESTARTER_STATII
 from codex.librarian.scribe.importer.statii.create import CREATE_STATII
 from codex.librarian.scribe.importer.statii.delete import REMOVE_STATII
@@ -16,12 +17,11 @@ from codex.librarian.scribe.importer.statii.search import IMPORTER_SEARCH_INDEX_
 from codex.librarian.scribe.janitor.status import JANITOR_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII
-from codex.librarian.watcher.poller.status import WATCHER_STATII
 
 _STATII = (
     RESTARTER_STATII,
     COVERS_STATII,
-    WATCHER_STATII,
+    FS_STATII,
     JANITOR_STATII,
     SEARCH_INDEX_STATII,
     SCRIBE_STATII,

@@ -1,4 +1,4 @@
-"""Codex filesystem watcher event dataclasses."""
+"""Codex filesystem event dataclasses."""
 
 from dataclasses import dataclass
 from enum import IntEnum
@@ -6,7 +6,7 @@ from enum import IntEnum
 from watchfiles import Change
 
 
-class WatcherChange(IntEnum):
+class FSChange(IntEnum):
     """Extend watchfiles Change to include moved."""
 
     added = Change.added
@@ -16,11 +16,11 @@ class WatcherChange(IntEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class WatchEvent:
+class FSEvent:
     """A filesystem change event."""
 
     src_path: str
-    change: WatcherChange
+    change: FSChange
     is_directory: bool = False
     is_cover: bool = False
     dest_path: str = ""  # Only populated for moved events

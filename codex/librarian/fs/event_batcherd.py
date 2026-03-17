@@ -12,17 +12,17 @@ from types import MappingProxyType
 
 from typing_extensions import override
 
-from codex.librarian.memory import get_mem_limit
-from codex.librarian.scribe.importer.tasks import ImportTask
-from codex.librarian.threads import AggregateMessageQueuedThread
-from codex.librarian.watcher.events import (
-    WatcherChange,
-    WatchEvent,
+from codex.librarian.fs.events import (
+    FSChange,
+    FSEvent,
 )
-from codex.librarian.watcher.poller.events import (
+from codex.librarian.fs.poller.events import (
     PollEvent,
     PollEventType,
 )
+from codex.librarian.memory import get_mem_limit
+from codex.librarian.scribe.importer.tasks import ImportTask
+from codex.librarian.threads import AggregateMessageQueuedThread
 
 _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
     MappingProxyType(
@@ -43,7 +43,7 @@ _IMPORT_TASK_PARAMS: MappingProxyType[str, int | set[int] | dict[str, str]] = (
 )
 
 
-class WatcherEventBatcherThread(AggregateMessageQueuedThread):
+class FSEventBatcherThread(AggregateMessageQueuedThread):
     """Batch filesystem events into bulk database import tasks."""
 
     MAX_DELAY = 60.0
@@ -92,7 +92,7 @@ class WatcherEventBatcherThread(AggregateMessageQueuedThread):
         mem_limit_gb = get_mem_limit("g")
         self.max_items = int(self.MAX_ITEMS_PER_GB * mem_limit_gb)
 
-    def _args_field_by_event(self, library_id: int, event: WatchEvent):
+    def _args_field_by_event(self, library_id: int, event: FSEvent):
         """Translate an event into the corresponding import task field."""
         if library_id not in self.cache:
             self.cache[library_id] = self.create_import_task_args(library_id)
@@ -109,7 +109,7 @@ class WatcherEventBatcherThread(AggregateMessageQueuedThread):
         event = item.event
         try:
             args_field = self._args_field_by_event(item.library_id, event)
-            if event.change == WatcherChange.moved:
+            if event.change == FSChange.moved:
                 args_field[event.src_path] = event.dest_path
             else:
                 args_field.add(event.src_path)

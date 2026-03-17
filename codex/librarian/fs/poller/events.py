@@ -3,18 +3,18 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from codex.librarian.watcher.events import (
-    WatcherChange,
-    WatchEvent,
+from codex.librarian.fs.events import (
+    FSChange,
+    FSEvent,
 )
 
-_DIFF_FIELD_EVENT_MAP: tuple[tuple[str, WatcherChange, bool, bool], ...] = (
+_DIFF_FIELD_EVENT_MAP: tuple[tuple[str, FSChange, bool, bool], ...] = (
     # diff_attr, change_type, is_directory, is_cover
-    ("files_deleted", WatcherChange.deleted, False, False),
-    ("files_modified", WatcherChange.modified, False, False),
-    ("files_added", WatcherChange.added, False, False),
-    ("dirs_deleted", WatcherChange.deleted, True, False),
-    ("dirs_modified", WatcherChange.modified, True, False),
+    ("files_deleted", FSChange.deleted, False, False),
+    ("files_modified", FSChange.modified, False, False),
+    ("files_added", FSChange.added, False, False),
+    ("dirs_deleted", FSChange.deleted, True, False),
+    ("dirs_modified", FSChange.modified, True, False),
 )
 
 _DIFF_MOVED_FIELD_EVENT_MAP: tuple[tuple[str, bool, bool], ...] = (
@@ -39,12 +39,12 @@ class PollEvent:
     force: bool = False
 
 
-def events_from_diff(diff) -> tuple[WatchEvent, ...]:
-    """Convert a SnapshotDiff into a sequence of WatchEvents."""
-    events: list[WatchEvent] = []
+def events_from_diff(diff) -> tuple[FSEvent, ...]:
+    """Convert a SnapshotDiff into a sequence of FSEvents."""
+    events: list[FSEvent] = []
     events.extend(
         [
-            WatchEvent(
+            FSEvent(
                 src_path=src_path,
                 change=change,
                 is_directory=is_dir,
@@ -56,9 +56,9 @@ def events_from_diff(diff) -> tuple[WatchEvent, ...]:
     )
     events.extend(
         [
-            WatchEvent(
+            FSEvent(
                 src_path=src_path,
-                change=WatcherChange.moved,
+                change=FSChange.moved,
                 is_directory=is_dir,
                 is_cover=is_cover,
                 dest_path=dest_path,

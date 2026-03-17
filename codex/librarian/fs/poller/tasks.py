@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 
-from codex.librarian.watcher.tasks import WatcherTask
+from codex.librarian.fs.tasks import FSTask
 
 
 @dataclass
-class WatcherPollLibrariesTask(WatcherTask):
+class FSPollLibrariesTask(FSTask):
     """Tell poller to poll these libraries now."""
 
     library_ids: frozenset

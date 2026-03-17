@@ -7,7 +7,7 @@ Docker/complex filesystems.
 
 from dataclasses import dataclass
 
-from codex.librarian.watcher.poller.snapshot import Snapshot
+from codex.librarian.fs.poller.snapshot import Snapshot
 
 
 @dataclass

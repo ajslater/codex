@@ -17,6 +17,12 @@ from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ig
 )
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
+from codex.librarian.fs.event_batcherd import FSEventBatcherThread
+from codex.librarian.fs.poller import LibraryPollerThread
+from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
+from codex.librarian.fs.tasks import FSEventTask
+from codex.librarian.fs.watcher import LibraryWatcherThread
+from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.restarter.restarter import CodexRestarter
@@ -26,14 +32,6 @@ from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
-from codex.librarian.watcher.event_batcherd import WatcherEventBatcherThread
-from codex.librarian.watcher.poller import LibraryPollerThread
-from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
-from codex.librarian.watcher.tasks import (
-    WatcherEventTask,
-    WatcherSyncTask,
-)
-from codex.librarian.watcher.watcher import LibraryWatcherThread
 
 _THREAD_CLASSES = (
     BookmarkThread,
@@ -43,7 +41,7 @@ _THREAD_CLASSES = (
     LibraryPollerThread,
     NotifierThread,
     ScribeThread,
-    WatcherEventBatcherThread,
+    FSEventBatcherThread,
 )
 _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
@@ -53,7 +51,7 @@ _THREAD_QUEUE_TASK_MAP: dict[type, str] = {
     CoverTask: "cover_thread",
     BookmarkTask: "bookmark_thread",
     NotifierTask: "notifier_thread",
-    WatcherEventTask: "watcher_event_batcher_thread",
+    FSEventTask: "fs_event_batcher_thread",
 }
 
 
@@ -77,9 +75,8 @@ class LibrarianDaemon(Process):
         self.run_loop = True
         self._reversed_threads = ()
 
-    def _sync_watchers(self) -> None:
+    def _restart_fs_watcher(self) -> None:
         self._threads.library_watcher_thread.restart()
-        self._threads.library_poller_thread.wake()
 
     def _restart_codex(self, task: LibrarianTask) -> None:
         restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
@@ -96,9 +93,9 @@ class LibrarianDaemon(Process):
             case ScribeTask():
                 # Special put method does queue put preprocessing.
                 self._threads.scribe_thread.put(task)
-            case WatcherSyncTask():
-                self._sync_watchers()
-            case WatcherPollLibrariesTask():
+            case FSWatcherRestartTask():
+                self._restart_fs_watcher()
+            case FSPollLibrariesTask():
                 self._threads.library_poller_thread.poll(task)
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()

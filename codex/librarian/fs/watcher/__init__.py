@@ -5,13 +5,9 @@ from threading import Event
 from typing_extensions import override
 from watchfiles import Change, watch
 
+from codex.librarian.fs.tasks import FSEventTask
+from codex.librarian.fs.watcher.events import watchfile_changes_to_events
 from codex.librarian.threads import NamedThread
-from codex.librarian.watcher.events import WatcherChange
-from codex.librarian.watcher.tasks import WatcherEventTask
-from codex.librarian.watcher.watcher.handlers import (
-    transform_custom_cover_change,
-    transform_library_change,
-)
 from codex.models import Library
 
 
@@ -36,9 +32,9 @@ class LibraryWatcherThread(NamedThread):
         added = new_paths - old_paths
         removed = old_paths - new_paths
         if added:
-            self.log.info(f"Watcher adding paths: {added}")
+            self.log.info(f"FS adding paths: {added}")
         if removed:
-            self.log.info(f"Watcher removing paths: {removed}")
+            self.log.info(f"FS removing paths: {removed}")
 
     def _update_paths_from_db(self) -> None:
         """Query the database for current library paths to watch."""
@@ -94,14 +90,12 @@ class LibraryWatcherThread(NamedThread):
                 continue
             library_pk, covers_only = result
 
-            change = WatcherChange(change_enum)
-            if covers_only:
-                events = transform_custom_cover_change(change, path)
-            else:
-                events = transform_library_change(change, path)
+            events = watchfile_changes_to_events(
+                change_enum, path, covers_only=covers_only
+            )
 
             for event in events:
-                task = WatcherEventTask(library_pk, event)
+                task = FSEventTask(library_pk, event)
                 self.librarian_queue.put(task)
 
     def _watch_loop(self) -> None:
@@ -128,7 +122,7 @@ class LibraryWatcherThread(NamedThread):
             except FileNotFoundError as exc:
                 self.log.warning(f"Watch path disappeared: {exc}")
             except Exception:
-                self.log.exception("Watcher error")
+                self.log.exception("FS error")
 
     @override
     def run(self) -> None:

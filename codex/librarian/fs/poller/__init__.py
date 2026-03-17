@@ -8,17 +8,17 @@ from django.utils import timezone
 from humanize import naturaldelta
 from typing_extensions import override
 
-from codex.librarian.threads import NamedThread
-from codex.librarian.watcher.poller.events import (
+from codex.librarian.fs.poller.events import (
     PollEvent,
     PollEventType,
     events_from_diff,
 )
-from codex.librarian.watcher.poller.snapshot import DatabaseSnapshot, DiskSnapshot
-from codex.librarian.watcher.poller.snapshot_diff import SnapshotDiff
-from codex.librarian.watcher.poller.status import WatcherPollStatus
-from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
-from codex.librarian.watcher.tasks import WatcherEventTask
+from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
+from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
+from codex.librarian.fs.poller.status import FSPollStatus
+from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
+from codex.librarian.fs.tasks import FSEventTask
+from codex.librarian.threads import NamedThread
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 from codex.views.const import EPOCH_START
@@ -56,7 +56,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         with self._cond:
             self._cond.notify()
 
-    def poll(self, task: WatcherPollLibrariesTask) -> None:
+    def poll(self, task: FSPollLibrariesTask) -> None:
         """Trigger an immediate poll for specific libraries."""
         with self._cond:
             self._pending_poll_ids = task.library_ids
@@ -161,16 +161,16 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
         pk = library.pk
         # Signal batcher: poll starting
-        start = WatcherEventTask(pk, PollEvent(PollEventType.start, force=force))
+        start = FSEventTask(pk, PollEvent(PollEventType.start, force=force))
         self.librarian_queue.put(start)
 
         # Send all diff events
         for event in events_from_diff(diff):
-            task = WatcherEventTask(pk, event)
+            task = FSEventTask(pk, event)
             self.librarian_queue.put(task)
 
         # Signal batcher: poll finished — flush the batch
-        finish = WatcherEventTask(pk, PollEvent(PollEventType.finish, force=force))
+        finish = FSEventTask(pk, PollEvent(PollEventType.finish, force=force))
         self.librarian_queue.put(finish)
 
     def _poll_library(self, library: Library, *, force: bool) -> None:
@@ -178,7 +178,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         if self.db_write_lock.locked():
             self.log.warning(f"Database locked, not polling {library.path}.")
             return
-        status = WatcherPollStatus(subtitle=library.path)
+        status = FSPollStatus(subtitle=library.path)
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {library.path}...")

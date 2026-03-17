@@ -11,10 +11,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from typing_extensions import override
 
+from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
+from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.watcher.poller.tasks import WatcherPollLibrariesTask
-from codex.librarian.watcher.tasks import WatcherSyncTask
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,
@@ -45,7 +45,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if validated_keys is None or validated_keys.intersection(
             cls._WATCHer_SYNC_FIELDS
         ):
-            task = WatcherSyncTask()
+            task = FSWatcherRestartTask()
             LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
@@ -62,7 +62,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
 
     @staticmethod
     def _poll(pk, force) -> None:
-        task = WatcherPollLibrariesTask(frozenset({pk}), force)
+        task = FSPollLibrariesTask(frozenset({pk}), force)
         LIBRARIAN_QUEUE.put(task)
 
     @override
