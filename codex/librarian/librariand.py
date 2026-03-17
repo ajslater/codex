@@ -18,7 +18,7 @@ from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ig
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
 from codex.librarian.fs.event_batcherd import FSEventBatcherThread
-from codex.librarian.fs.poller import LibraryPollerThread
+from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
 from codex.librarian.fs.tasks import FSEventTask
 from codex.librarian.fs.watcher import LibraryWatcherThread
