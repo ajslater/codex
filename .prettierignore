@@ -11,8 +11,8 @@ __pycache__
 *Dockerfile
 cache
 codex/_vendor
+codex/static
 codex/static_build
-codex/static_root
 codex/static_src/img/*.svg
 codex/templates/**/*.html
 codex/templates/**/*.xml

@@ -54,7 +54,7 @@ build/
 celerybeat-schedule
 celerybeat.pid
 codex/static_build/
-codex/static_root/
+codex/static/
 comics
 config
 coverage.xml

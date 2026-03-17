@@ -164,7 +164,7 @@ exclude = [
   "**/node_modules",
   "codex/_vendor",
   "codex/static_build",
-  "codex/static_root",
+  "codex/static",
   "comics",
   "config",
   "dist",
@@ -198,7 +198,7 @@ reportUnusedParameter = false
 builtin = "clear,code,rare"
 check-hidden = true
 ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./node_modules,./package-lock.json,./package.json,./site,./test-results,/uv.lock"
+skip = "*~,.*,./codex/_vendor,./codex/static_build,./codex/static,./comics,./config,./dist,./frontend/coverage,./node_modules,./package-lock.json,./package.json,./site,./test-results,/uv.lock"
 
 [tool.complexipy]
 failed = true
@@ -225,7 +225,7 @@ omit = [
   "*__pycache__*",
   "codex/_vendor/*",
   "codex/static_build/*",
-  "codex/static_root/*",
+  "codex/static/*",
   "comics/*",
   "dist/*",
   "frontend/*",
@@ -255,7 +255,7 @@ pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
 [tool.radon]
-exclude = "*~,.*,.*/*,__pycache__/*,codex/_vendor/*,codex/static_build/*,codex/static_root/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*"
+exclude = "*~,.*,.*/*,__pycache__/*,codex/_vendor/*,codex/static_build/*,codex/static/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*"
 
 [tool.ruff]
 builtins = ["ic"]
@@ -264,7 +264,7 @@ extend-exclude = [
   "**/__pycache__",
   "codex/_vendor",
   "codex/static_build",
-  "codex/static_root",
+  "codex/static",
   "dist",
   "frontend",
   "site",
@@ -362,7 +362,6 @@ ignore-overlong-task-comments = true
 "tests/*" = ["D101", "D102", "T203"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
-# "codex/settings/*" = ["T201"]
 "ci/cleanup-repo.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 
@@ -380,7 +379,7 @@ exclude = [
   "**/node_modules",
   "codex/_vendor",
   "codex/static_build",
-  "codex/static_root",
+  "codex/static",
   "comics",
   "dist",
   "frontend",
@@ -402,7 +401,7 @@ exclude = [
   "*/node_modules*",
   "codex/_vendor",
   "codex/static_build/",
-  "codex/static_root/",
+  "codex/static/",
   "comics/",
   "dist/",
   "frontend/",
@@ -414,7 +413,7 @@ min_confidence = 61
 sort_by_size = true
 
 [tool.djlint]
-extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static_root,./comics,dist,site,test-results,typings"
+extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static,./comics,dist,site,test-results,typings"
 ignore = "H030,H031"
 profile = "django"
 use_gitignore = true

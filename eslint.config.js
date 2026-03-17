@@ -15,7 +15,7 @@ export default defineConfig([
     ignores: [
       "codex/_vendor/",
       "codex/static_build/",
-      "codex/static_root/",
+      "codex/static/",
       "codex/templates/*.html", // Handled by djlint
       "codex/templates/**/*.html", // Handled by djlint
       "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
