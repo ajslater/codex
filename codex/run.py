@@ -8,11 +8,13 @@ from django.db import connection
 from granian.constants import HTTPModes, Interfaces
 from granian.server.embed import Server
 from loguru import logger
+from setproctitle import setproctitle
 
 from codex.asgi import application
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.settings import (
+    DEBUG,
     GRANIAN_HOST,
     GRANIAN_HTTP,
     GRANIAN_PORT,
@@ -22,7 +24,7 @@ from codex.settings import (
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.startup.logger_init import init_logging
-from codex.version import VERSION
+from codex.version import PACKAGE_NAME, VERSION
 from codex.websockets.mp_queue import BROADCAST_QUEUE
 
 
@@ -74,9 +76,23 @@ def _build_server() -> Server:
     )
 
 
+async def _watch_for_changes() -> None:
+    """Watch source files and trigger restart on changes."""
+    from watchfiles import awatch
+
+    async for _changes in awatch("codex"):
+        logger.info("File changes detected, restarting...")
+        RESTART_EVENT.set()
+        SHUTDOWN_EVENT.set()
+        break
+
+
 async def _serve(server: Server) -> None:
     """Run granian until SHUTDOWN_EVENT fires, then stop gracefully."""
     server_task = asyncio.create_task(server.serve())
+    if DEBUG:
+        asyncio.create_task(_watch_for_changes())  # noqa: RUF006
+
     await SHUTDOWN_EVENT.wait()
     server.stop()
     await server_task
@@ -94,6 +110,7 @@ def run() -> None:
 
 def main() -> None:
     """Set up and run Codex."""
+    setproctitle(PACKAGE_NAME)
     init_logging()
     if codex_startup():
         run()

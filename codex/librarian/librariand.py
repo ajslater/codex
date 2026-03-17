@@ -8,6 +8,7 @@ from typing import Any, NamedTuple
 
 from caseconverter import snakecase
 from django.db import close_old_connections
+from setproctitle import setproctitle
 from typing_extensions import override
 
 from codex.librarian.bookmark.bookmarkd import BookmarkThread  # typos:ignore
@@ -146,6 +147,7 @@ class LibrarianDaemon(Process):
     def _startup(self) -> None:
         """Initialize threads."""
         self.log.debug(f"Started {self.name}.")
+        setproctitle(snakecase(self.name))
         # Janitor created in init.
         self._create_threads()  # can't do this in init.
         self._start_threads()

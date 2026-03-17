@@ -8,6 +8,7 @@ from threading import Thread
 
 from django.db import close_old_connections
 from loguru._logger import Logger
+from setproctitle import setproctitle
 from typing_extensions import override
 
 from codex.librarian.worker import WorkerStatusMixin
@@ -37,6 +38,7 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
     def run_start(self) -> None:
         """First thing to do when running a new thread."""
         self.log.debug(f"Started {self.name}")
+        setproctitle(self.name)
 
 
 class QueuedThread(NamedThread, ABC):
