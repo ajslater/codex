@@ -6,6 +6,12 @@ from itertools import chain
 from pathlib import Path
 from stat import S_ISDIR
 
+from codex.librarian.watcher.const import COMIC_MATCHER
+from codex.librarian.watcher.handlers import (
+    match_folder_cover,
+    match_group_cover_image,
+    match_suffix,
+)
 from codex.models import Comic, CustomCover, FailedImport, Folder
 
 
@@ -53,9 +59,10 @@ class Snapshot:
 class DiskSnapshot(Snapshot):
     """Snapshot of the filesystem taken by walking a directory tree."""
 
-    def __init__(self, root: str, *, recursive: bool = True) -> None:
+    def __init__(self, root: str, *, covers_only: bool, recursive: bool = True) -> None:
         """Walk the directory and stat every entry."""
         super().__init__()
+        self._covers_only = covers_only
         root_stat = Path(root).stat()
         self._set_lookups(root, root_stat)
         self._walk(root, recursive=recursive)
@@ -63,6 +70,12 @@ class DiskSnapshot(Snapshot):
     def _walk(self, root: str, *, recursive: bool) -> None:
         """Walk the directory tree and populate lookups."""
         for entry in os.scandir(root):
+            path = Path(entry.path)
+            if self._covers_only:
+                if not match_group_cover_image(path):
+                    continue
+            elif not (match_suffix(COMIC_MATCHER, path) or match_folder_cover(path)):
+                continue
             try:
                 st = entry.stat(follow_symlinks=False)
             except OSError:

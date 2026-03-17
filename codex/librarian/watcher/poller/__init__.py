@@ -17,9 +17,9 @@ from codex.librarian.watcher.events import (
     PollEvent,
     PollEventType,
 )
-from codex.librarian.watcher.handlers import events_from_diff
-from codex.librarian.watcher.snapshot import DatabaseSnapshot, DiskSnapshot
-from codex.librarian.watcher.snapshot_diff import SnapshotDiff
+from codex.librarian.watcher.poller.handlers import events_from_diff
+from codex.librarian.watcher.poller.snapshot import DatabaseSnapshot, DiskSnapshot
+from codex.librarian.watcher.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.watcher.status import WatcherPollStatus
 from codex.librarian.watcher.tasks import (
     WatcherEventTask,
@@ -135,7 +135,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             force=force,
             covers_only=covers_only,
         )
-        disk_snap = DiskSnapshot(library.path, recursive=True)
+        disk_snap = DiskSnapshot(library.path, covers_only=covers_only, recursive=True)
 
         if len(disk_snap.paths) <= 1:
             self.log.warning(f"{library.path} dir snapshot is empty. Not polling.")

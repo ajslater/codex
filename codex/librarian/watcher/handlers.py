@@ -19,25 +19,25 @@ from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
 # Suffix matchers
 
 
-def _match_suffix(pattern: re.Pattern, path: Path) -> bool:
+def match_suffix(pattern: re.Pattern, path: Path) -> bool:
+    """Match suffix with pettern."""
     return bool(path and path.suffix and pattern.match(path.suffix) is not None)
 
 
-def _match_folder_cover(path: Path) -> bool:
+def match_folder_cover(path: Path) -> bool:
     """Match a folder cover image (e.g. cover.jpg next to comics)."""
-    return path.stem == CustomCover.FOLDER_COVER_STEM and _match_suffix(
+    return path.stem == CustomCover.FOLDER_COVER_STEM and match_suffix(
         IMAGE_MATCHER, path
     )
 
 
-def _match_group_cover_image(path_str: str) -> bool:
+def match_group_cover_image(path: Path) -> bool:
     """Match a custom group cover image in the custom-covers directory."""
-    path = Path(path_str)
     parent = path.parent
     return (
         parent.parent == CUSTOM_COVERS_DIR
         and str(parent.name) in CUSTOM_COVERS_GROUP_DIRS
-        and _match_suffix(IMAGE_MATCHER, path)
+        and match_suffix(IMAGE_MATCHER, path)
     )
 
 
@@ -45,7 +45,7 @@ def _match_group_cover_image(path_str: str) -> bool:
 
 
 def transform_library_change(
-    change: WatcherChange, path: str
+    change: WatcherChange, path_str: str
 ) -> tuple[WatchEvent, ...]:
     """
     Transform a watchfiles change into codex events for a comic library.
@@ -54,70 +54,21 @@ def transform_library_change(
     """
     events: list[WatchEvent] = []
 
-    ppath = Path(path)
+    path = Path(path_str)
 
-    if _match_suffix(COMIC_MATCHER, ppath):
-        events.append(WatchEvent(src_path=path, change=change))
+    if match_suffix(COMIC_MATCHER, path):
+        events.append(WatchEvent(src_path=path_str, change=change))
 
-    if _match_folder_cover(ppath):
-        events.append(WatchEvent(src_path=path, change=change, is_cover=True))
+    if match_folder_cover(path):
+        events.append(WatchEvent(src_path=path_str, change=change, is_cover=True))
 
     return tuple(events)
 
 
 def transform_custom_cover_change(
-    change: WatcherChange, path: str
+    change: WatcherChange, path_str: str
 ) -> tuple[WatchEvent, ...]:
     """Transform a watchfiles change into codex events for the custom cover dir."""
-    if _match_group_cover_image(path):
-        return (WatchEvent(src_path=path, change=change, is_cover=True),)
+    if match_group_cover_image(Path(path_str)):
+        return (WatchEvent(src_path=path_str, change=change, is_cover=True),)
     return ()
-
-
-# Poller handlers (snapshot diff: has moved events, dirs, full classification)
-
-_DIFF_FIELD_EVENT_MAP: tuple[tuple[str, WatcherChange, bool, bool], ...] = (
-    # diff_attr, change_type, is_directory, is_cover
-    ("files_deleted", WatcherChange.deleted, False, False),
-    ("files_modified", WatcherChange.modified, False, False),
-    ("files_added", WatcherChange.added, False, False),
-    ("dirs_deleted", WatcherChange.deleted, True, False),
-    ("dirs_modified", WatcherChange.moved, True, False),
-)
-
-_DIFF_MOVED_FIELD_EVENT_MAP: tuple[tuple[str, bool, bool], ...] = (
-    # diff_attr, is_directory, is_cover
-    ("files_moved", False, False),
-    ("dirs_moved", True, False),
-)
-
-
-def events_from_diff(diff) -> tuple[WatchEvent, ...]:
-    """Convert a SnapshotDiff into a sequence of WatchEvents."""
-    events: list[WatchEvent] = []
-    events.extend(
-        [
-            WatchEvent(
-                src_path=src_path,
-                change=change,
-                is_directory=is_dir,
-                is_cover=is_cover,
-            )
-            for attr, change, is_dir, is_cover in _DIFF_FIELD_EVENT_MAP
-            for src_path in getattr(diff, attr)
-        ]
-    )
-    events.extend(
-        [
-            WatchEvent(
-                src_path=src_path,
-                change=WatcherChange.moved,
-                is_directory=is_dir,
-                is_cover=is_cover,
-                dest_path=dest_path,
-            )
-            for attr, is_dir, is_cover in _DIFF_MOVED_FIELD_EVENT_MAP
-            for src_path, dest_path in getattr(diff, attr)
-        ]
-    )
-    return tuple(events)

@@ -161,6 +161,7 @@ class WatcherEventBatcherThread(AggregateMessageQueuedThread):
         self._subtract_args_items(args)
         self.deduplicate_events(args)
         args["files_created"] = args.pop("files_added")
+        args["covers_created"] = args.pop("covers_added")
         return ImportTask(**args)
 
     def _send_import_task(self, library_id: int) -> None:
