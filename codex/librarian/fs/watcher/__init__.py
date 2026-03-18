@@ -1,14 +1,41 @@
 """Filesystem watcher using watchfiles."""
 
+from pathlib import Path
 from threading import Event
 
 from typing_extensions import override
 from watchfiles import Change, watch
 
+from codex.librarian.fs.events import FSChange, FSEvent
+from codex.librarian.fs.filters import (
+    match_comic,
+    match_folder_cover,
+    match_group_cover_image,
+)
 from codex.librarian.fs.tasks import FSEventTask
-from codex.librarian.fs.watcher.events import watchfile_changes_to_events
 from codex.librarian.threads import NamedThread
 from codex.models import Library
+
+
+class CodexWatchFilter:
+    """Watchfiles watcher class for both types of library."""
+
+    def __init__(self, covers_only_paths: set[str]):
+        """Set covers_only_paths."""
+        self._covers_only_paths = covers_only_paths
+
+    def __call__(self, change: Change, path: str) -> bool:  # noqa: ARG002
+        """Filter method."""
+        ppath = Path(path)
+        covers_only = False
+        for covers_only_path in self._covers_only_paths:
+            if ppath.is_relative_to(covers_only_path):
+                covers_only = True
+                break
+
+        if covers_only:
+            return match_group_cover_image(ppath)
+        return ppath.is_dir() or match_comic(ppath) or match_folder_cover(ppath)
 
 
 class LibraryWatcherThread(NamedThread):
@@ -89,17 +116,14 @@ class LibraryWatcherThread(NamedThread):
             if not result:
                 continue
             library_pk, covers_only = result
-
-            events = watchfile_changes_to_events(
-                change_enum, path, covers_only=covers_only
-            )
-
-            for event in events:
-                task = FSEventTask(library_pk, event)
-                self.librarian_queue.put(task)
+            change = FSChange(change_enum)
+            event = FSEvent(src_path=path, change=change, is_cover=covers_only)
+            task = FSEventTask(library_pk, event)
+            self.librarian_queue.put(task)
 
     def _watch_loop(self) -> None:
         """Run the watchfiles loop, restarting when paths change."""
+        watch_filter = CodexWatchFilter(self._covers_only_paths)
         while not self._shutdown_event.is_set():
             self._restart_event.clear()
             paths = list(self._library_paths.keys())
@@ -115,6 +139,7 @@ class LibraryWatcherThread(NamedThread):
                     *paths,
                     stop_event=self._restart_event,
                     recursive=True,
+                    watch_filter=watch_filter,
                 ):
                     if self._shutdown_event.is_set():
                         return
