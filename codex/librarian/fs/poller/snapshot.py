@@ -58,31 +58,43 @@ class Snapshot:
 class DiskSnapshot(Snapshot):
     """Snapshot of the filesystem taken by walking a directory tree."""
 
-    def __init__(self, root: str, *, covers_only: bool, recursive: bool = True) -> None:
+    def __init__(
+        self,
+        root: str,
+        *,
+        covers_only: bool,
+        recursive: bool = True,
+        follow_symlinks: bool = True,
+    ) -> None:
         """Walk the directory and stat every entry."""
         super().__init__()
         self._covers_only = covers_only
+        self._recursive = recursive
+        self._follow_symlinks = follow_symlinks
         root_stat = Path(root).stat()
         self._set_lookups(root, root_stat)
-        self._walk(root, recursive=recursive)
+        self._walk(root)
 
-    def _walk(self, root: str, *, recursive: bool) -> None:
+    def _walk(self, root: str) -> None:
         """Walk the directory tree and populate lookups."""
         for entry in os.scandir(root):
             path = Path(entry.path)
-            if self._covers_only:
+            is_dir = entry.is_dir(follow_symlinks=self._follow_symlinks)
+            if is_dir:
+                if not self._recursive:
+                    continue
+            elif self._covers_only:
                 if not match_group_cover_image(path):
                     continue
             elif not (match_comic(path) or match_folder_cover(path)):
                 continue
             try:
-                st = entry.stat(follow_symlinks=False)
+                st = entry.stat(follow_symlinks=self._follow_symlinks)
             except OSError:
                 continue
-            path = entry.path
-            self._set_lookups(path, st)
-            if recursive and entry.is_dir(follow_symlinks=False):
-                self._walk(path, recursive=True)
+            self._set_lookups(entry.path, st)
+            if is_dir:
+                self._walk(entry.path)
 
 
 class DatabaseSnapshot(Snapshot):

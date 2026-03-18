@@ -131,7 +131,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             force=force,
             covers_only=covers_only,
         )
-        disk_snap = DiskSnapshot(library.path, covers_only=covers_only, recursive=True)
+        disk_snap = DiskSnapshot(library.path, covers_only=covers_only)
 
         if len(disk_snap.paths) <= 1:
             self.log.warning(f"{library.path} dir snapshot is empty. Not polling.")
