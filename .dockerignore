@@ -22,8 +22,8 @@ __pycache__
 *~
 *Dockerfile
 cache
+codex/static
 codex/static_build
-codex/static_root
 comics
 config
 dev*

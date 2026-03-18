@@ -21,13 +21,12 @@ import AppBanner from "@/components/banner.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 
-const TITLES = {
+const TITLES = Object.freeze({
   400: "Bad Request",
   403: "Forbidden",
   404: "Page Not Found",
   500: "Server Error",
-};
-Object.freeze(TITLES);
+});
 
 export default {
   name: "HttpError",

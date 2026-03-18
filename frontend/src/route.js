@@ -1,5 +1,4 @@
-const REVERSE_READING_DIRECTIONS = new Set("rtl", "btt");
-Object.freeze(REVERSE_READING_DIRECTIONS);
+const REVERSE_READING_DIRECTIONS = Object.freeze(new Set("rtl", "btt"));
 export const getReaderRoute = (
   { ids, page, readingDirection, pageCount },
   importMetadata,

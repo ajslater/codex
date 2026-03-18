@@ -32,7 +32,7 @@ WORKDIR /app
 COPY . .
 
 VOLUME /app/codex/static_build
-VOLUME /app/codex/static_root
+VOLUME /app/codex/static
 VOLUME /app/dist
 VOLUME /app/test-results
 VOLUME /app/frontend/src/choices

@@ -12,7 +12,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import AdminFlag, Comic
 from codex.models.groups import BrowserGroupModel, Folder
-from codex.settings import MAX_OBJ_PER_PAGE
+from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.const import HrefData, Link, LinkData
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
@@ -208,7 +208,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         zero_pad: int,
         title: str,
         subtitle: str = "",
-        items_per_page=MAX_OBJ_PER_PAGE,
+        items_per_page=BROWSER_MAX_OBJ_PER_PAGE,
         link_spec=None,
         number_of_items: int | None = None,
     ) -> list:

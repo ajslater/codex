@@ -6,13 +6,18 @@ import { useCommonStore } from "@/stores/common";
 
 const warnError = (error) => console.warn(error);
 
-const IRREGULAR_PLURALS = {
+const IRREGULAR_PLURALS = Object.freeze({
   LibrarianStatus: "LibrarianStatuses",
   Library: "Libraries",
-};
-Object.freeze(IRREGULAR_PLURALS);
-export const TABS = ["Users", "Groups", "Libraries", "Flags", "Tasks", "Stats"];
-Object.freeze(TABS);
+});
+export const TABS = Object.freeze([
+  "Users",
+  "Groups",
+  "Libraries",
+  "Flags",
+  "Tasks",
+  "Stats",
+]);
 
 const getTablePlural = (table) => {
   if (table in IRREGULAR_PLURALS) {

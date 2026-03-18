@@ -80,8 +80,7 @@ import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
-const SELECT_GROUPS = ["Notify"];
-Object.freeze(SELECT_GROUPS);
+const SELECT_GROUPS = Object.freeze(["Notify"]);
 Object.freeze(ADMIN_TASKS);
 
 export default {

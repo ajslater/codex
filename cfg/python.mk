@@ -75,11 +75,16 @@ ty:
 complexity:
 	./bin/lint-complexity.sh
 
+.PHONY: lint-python
+## Lint python
+## @category Lint
+lint-python:
+	./bin/lint-python.sh
+
 .PHONY: lint
 ## Lint python
 ## @category Lint
-lint::
-	./bin/lint-python.sh
+lint:: lint-python
 
 .PHONY: uml
 ## Create a UML class diagram

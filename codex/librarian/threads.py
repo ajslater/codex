@@ -9,6 +9,7 @@ from typing import override
 
 from django.db import close_old_connections
 from loguru._logger import Logger
+from setproctitle import setproctitle
 
 from codex.librarian.worker import WorkerStatusMixin
 
@@ -19,6 +20,9 @@ class BreakLoopError(Exception):
 
 class NamedThread(Thread, WorkerStatusMixin, ABC):
     """A thread that sets its name for ps."""
+
+    SHUTDOWN_MSG: str | tuple = "shutdown"
+    SHUTDOWN_TIMEOUT = 5
 
     def __init__(
         self,
@@ -37,13 +41,18 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
     def run_start(self) -> None:
         """First thing to do when running a new thread."""
         self.log.debug(f"Started {self.name}")
+        setproctitle(self.name)
+
+    @override
+    def join(self, timeout=None) -> None:
+        """End the thread."""
+        self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
+        super().join(self.SHUTDOWN_TIMEOUT)
+        self.log.debug(f"{self.__class__.__name__} joined.")
 
 
 class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
-
-    SHUTDOWN_MSG: str | tuple = "shutdown"
-    SHUTDOWN_TIMEOUT = 5
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize with overridden name and as a daemon thread."""
@@ -90,13 +99,6 @@ class QueuedThread(NamedThread, ABC):
     def stop(self) -> None:
         """Stop the thread."""
         self.queue.put(self.SHUTDOWN_MSG)
-
-    @override
-    def join(self, timeout=None) -> None:
-        """End the thread."""
-        self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
-        super().join(self.SHUTDOWN_TIMEOUT)
-        self.log.debug(f"{self.__class__.__name__} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):

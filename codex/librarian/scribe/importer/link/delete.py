@@ -1,6 +1,5 @@
 """Delete stale m2ms."""
 
-from itertools import batched
 from typing import TYPE_CHECKING
 
 from django.db.models import ManyToManyField, Q
@@ -13,7 +12,7 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.link.prepare import LinkComicsImporterPrepare
 from codex.models import Comic
 from codex.models.base import BaseModel
-from codex.settings import FILTER_BATCH_SIZE
+from codex.settings import IMPORTER_FILTER_BATCH_SIZE
 
 if TYPE_CHECKING:
     from django.db.models.fields.related import ManyToManyRel
@@ -74,19 +73,22 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         through_model = self.get_through_model(field)
         comic_ids = set()
 
-        if rows:
-            for batch_rows in batched(rows, FILTER_BATCH_SIZE):
-                count = self._delete_m2m_field_batch(
-                    column_name, through_model, batch_rows, comic_ids
+        start = 0
+        while start < num_rows:
+            end = start + IMPORTER_FILTER_BATCH_SIZE
+            batch_rows = rows[start:end]
+            count = self._delete_m2m_field_batch(
+                column_name, through_model, batch_rows, comic_ids
+            )
+            status.complete += count
+            total_field_count += count
+            if count:
+                self.log.info(
+                    f"Deleted {total_field_count}/{num_rows} stale {field_name} relations for altered comics.",
                 )
-                status.complete += count
-                total_field_count += count
-                if count:
-                    self.log.info(
-                        f"Deleted {total_field_count}/{num_rows} stale {field_name} relations for altered comics.",
-                    )
 
-                self.status_controller.update(status)
+            self.status_controller.update(status)
+            start += IMPORTER_FILTER_BATCH_SIZE
 
         self._delete_m2m_fts_entries(field_name, comic_ids)
 

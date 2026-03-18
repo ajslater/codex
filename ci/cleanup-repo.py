@@ -2,12 +2,12 @@
 """Remove old tags from a docker repo."""
 
 import argparse
+import json
 import sys
 import time
 from datetime import datetime
 from getpass import getpass
-
-import requests
+from urllib.request import Request, urlopen
 
 API_BASE = "https://hub.docker.com/v2"
 HTTP_OK = 200
@@ -18,9 +18,12 @@ API_TIMEOUT = 10
 def login(username, password):
     """Docker login."""
     url = f"{API_BASE}/users/login/"
-    resp = requests.post(
-        url,
-        json={"username": username, "password": password},
+    payload = {"username": username, "password": password}
+    data = json.dumps(payload).encode("utf-8")
+
+    request = Request(url, data=data, method="POST")  # noqa: S310
+    resp = urlopen(  # noqa: S310
+        request,
         timeout=API_TIMEOUT,
     )
     if resp.status_code != HTTP_OK:
@@ -37,9 +40,10 @@ def fetch_all_tags(namespace, repo, token):
     headers = {"Authorization": f"JWT {token}"}
     tags = []
     while url:
-        r = requests.get(url, headers=headers, timeout=API_TIMEOUT)
-        r.raise_for_status()
-        data = r.json()
+        request = Request(url, headers=headers)  # noqa: S310
+        response = urlopen(request, timeout=API_TIMEOUT)  # noqa: S310
+        response.raise_for_status()
+        data = response.json()
         tags.extend(data["results"])
         url = data.get("next")
     return tags
@@ -50,7 +54,8 @@ def delete_tag(namespace, repo, tag, token, retries=3, delay=2):
     headers = {"Authorization": f"JWT {token}"}
     url = f"{API_BASE}/repositories/{namespace}/{repo}/tags/{tag}/"
     for attempt in range(1, retries + 1):
-        resp = requests.delete(url, headers=headers, timeout=API_TIMEOUT)
+        request = Request(url, headers=headers, method="DELETE")  # noqa: S310
+        resp = urlopen(request, timeout=API_TIMEOUT)  # noqa: S310
         if resp.status_code == HTTP_NO_CONTENT:
             return True
         print(

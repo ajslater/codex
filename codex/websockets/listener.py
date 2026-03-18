@@ -6,9 +6,10 @@ from types import MappingProxyType
 
 from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
-from wsproto.frame_protocol import CloseReason
 
 from codex.websockets.consumers import ChannelGroups
+
+WS_NORMAL_CLOSURE = 1000
 
 
 class BroadcastListener:
@@ -19,7 +20,7 @@ class BroadcastListener:
             "group": ChannelGroups.ALL.name,
             "message": {
                 "type": "websocket_disconnect",
-                "code": CloseReason.NORMAL_CLOSURE.value,
+                "code": WS_NORMAL_CLOSURE,
             },
         }
     )

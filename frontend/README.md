@@ -12,4 +12,4 @@ reloading dev server is your best bet.
 
 The Django collectstatic script packages the vite rolled up modules from
 `codex/static_build/` and packages them with the main server app in
-`codex/static_root/`.
+`codex/static/`.

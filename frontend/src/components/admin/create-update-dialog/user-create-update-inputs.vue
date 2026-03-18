@@ -44,21 +44,25 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
+import { toRaw } from "vue";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["username", "isStaff", "isActive", "groups"];
-Object.freeze(UPDATE_KEYS);
-const EMPTY_ROW = {
+const UPDATE_KEYS = Object.freeze([
+  "username",
+  "isStaff",
+  "isActive",
+  "groups",
+]);
+const EMPTY_ROW = Object.freeze({
   username: "",
   password: "",
   passwordConfirm: "",
   isStaff: false,
   isActive: true,
   groups: [],
-};
-Object.freeze(EMPTY_ROW);
+});
 
 export default {
   name: "AdminUserCreateUpdateInputs",
@@ -85,7 +89,7 @@ export default {
           (v) => v === this.row.password || "Passwords must match",
         ],
       },
-      row: structuredClone(this.oldRow || EMPTY_ROW),
+      row: structuredClone(toRaw(this.oldRow) || EMPTY_ROW),
     };
   },
   computed: {
@@ -106,7 +110,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = structuredClone(to);
+        this.row = structuredClone(toRaw(to));
       },
       deep: true,
     },

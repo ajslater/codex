@@ -1,7 +1,5 @@
 """Query the missing foreign keys methods."""
 
-from itertools import batched
-
 from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
     FK_KEYS,
@@ -21,7 +19,7 @@ from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTag
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
 from codex.models.named import Universe
-from codex.settings import FILTER_BATCH_SIZE
+from codex.settings import IMPORTER_FILTER_BATCH_SIZE
 from codex.util import flatten
 
 
@@ -59,7 +57,8 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
     def _query_missing_models_batch(
         self,
         model: type[BaseModel],
-        batch_proposed_key_tuples: tuple,
+        start: int,
+        all_proposed_key_values: tuple,
         proposed_values_map: dict[tuple, set[tuple]],
         create_values: set[tuple],
         update_values: set[tuple],
@@ -67,6 +66,8 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         status: Status,
     ) -> None:
         # Do this in batches so as not to exceed the 1k sqlite query depth limit
+        end = start + IMPORTER_FILTER_BATCH_SIZE
+        batch_proposed_key_tuples = all_proposed_key_values[start:end]
         num_in_batch = len(batch_proposed_key_tuples)
 
         existing_values_map = self.query_existing_mds(model, batch_proposed_key_tuples)
@@ -129,9 +130,11 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         status: Status,
     ) -> int:
         """Find missing foreign key models."""
-        num_all_proposed_values = len(proposed_values_map)
-        if not num_all_proposed_values:
+        if not proposed_values_map:
             return 0
+        num_all_proposed_values = len(proposed_values_map)
+        proposed_key_values = tuple(proposed_values_map.keys())
+        start = 0
 
         vnp = model._meta.verbose_name_plural
         title = vnp.title() if vnp else ""
@@ -141,18 +144,18 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         update_values = set()
         fts_values = {}
 
-        for batch_proposed_key_tuples in batched(
-            proposed_values_map.keys(), FILTER_BATCH_SIZE
-        ):
+        while start < num_all_proposed_values:
             self._query_missing_models_batch(
                 model,
-                batch_proposed_key_tuples,
+                start,
+                proposed_key_values,
                 proposed_values_map,
                 create_values,
                 update_values,
                 fts_values,
                 status,
             )
+            start += IMPORTER_FILTER_BATCH_SIZE
 
         self._finish_query_missing(model, create_values, CREATE_FKS, title)
         self._finish_query_missing(model, update_values, UPDATE_FKS, title)

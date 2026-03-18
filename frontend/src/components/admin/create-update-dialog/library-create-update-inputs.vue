@@ -42,22 +42,21 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
+import { toRaw } from "vue";
 
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];
-Object.freeze(UPDATE_KEYS);
-const EMPTY_ROW = {
+const UPDATE_KEYS = Object.freeze(["events", "poll", "pollEvery", "groups"]);
+const EMPTY_ROW = Object.freeze({
   path: "",
   events: true,
   poll: true,
   pollEvery: "01:00:00",
   groups: [],
-};
-Object.freeze(EMPTY_ROW);
+});
 
 const isPathParent = (path, potentialChildPath) => {
   // Normalize the paths to avoid issues with different directory separator characters
@@ -112,7 +111,7 @@ export default {
           },
         ],
       },
-      row: structuredClone(this.oldRow || EMPTY_ROW),
+      row: structuredClone(toRaw(this.oldRow) || EMPTY_ROW),
     };
   },
   computed: {
@@ -133,7 +132,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = structuredClone(to);
+        this.row = structuredClone(toRaw(to));
       },
       deep: true,
     },

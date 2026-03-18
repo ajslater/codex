@@ -47,27 +47,26 @@ const API_TOOLTIP = "Copy API Key to clipboard";
 import { ORDER_BY, TOP_GROUP } from "@/choices/browser-map.json";
 import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
-const LOOKUPS = {
+const LOOKUPS = Object.freeze({
   topGroup: TOP_GROUP,
   orderBy: ORDER_BY,
   fitTo: FIT_TO,
   readingDirection: READING_DIRECTION,
-};
-const CONFIG_LABELS = {
+});
+const CONFIG_LABELS = Object.freeze({
   authGroupCount: "Authorization Groups",
   libraryCount: "Libraries",
   userAnonymousCount: "Anonymous Users",
   userRegisteredCount: "Registered Users",
-};
-Object.freeze(CONFIG_LABELS);
-Object.freeze(LOOKUPS);
-const INDENT_KEYS = new Set([
-  "creditPersonsCount",
-  "creditRolesCount",
-  "identifierSourcesCount",
-  "storyArcNumbersCount",
-]);
-Object.freeze(INDENT_KEYS);
+});
+const INDENT_KEYS = Object.freeze(
+  new Set([
+    "creditPersonsCount",
+    "creditRolesCount",
+    "identifierSourcesCount",
+    "storyArcNumbersCount",
+  ]),
+);
 
 export default {
   name: "AdminTasksTab",

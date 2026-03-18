@@ -15,10 +15,8 @@ import package_json from "./package.json";
 let rootPath;
 try {
   // for dev & build
-  const HYPERCORN_CONF = toml.parse(
-    fs.readFileSync("../config/hypercorn.toml"),
-  );
-  rootPath = HYPERCORN_CONF.root_path || "";
+  const CODEX_CONF = toml.parse(fs.readFileSync("../config/codex.toml"));
+  rootPath = CODEX_CONF?.server?.url_path_prefix || "";
 } catch {
   rootPath = "";
 }

@@ -18,7 +18,7 @@ from codex.models import (
     Library,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
-from codex.settings import MAX_OBJ_PER_PAGE
+from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -168,7 +168,7 @@ class BrowserView(BrowserTitleView):
         book_qs, book_count = self._get_book_queryset()
 
         # Paginate
-        num_pages = ceil((group_count + book_count) / MAX_OBJ_PER_PAGE)
+        num_pages = ceil((group_count + book_count) / BROWSER_MAX_OBJ_PER_PAGE)
         self.check_page_in_bounds(num_pages)
         group_qs, book_qs, page_group_count, page_book_count = self.paginate(
             group_qs, book_qs, group_count

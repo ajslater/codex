@@ -3,15 +3,14 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
 
-const ERROR_KEYS = [
+const ERROR_KEYS = Object.freeze([
   "detail",
   "oldPassword",
   "password",
   "username",
   "passwordConfirm",
   "path",
-];
-Object.freeze(ERROR_KEYS);
+]);
 
 const getErrors = (xiorError) => {
   let errors = [];

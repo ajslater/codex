@@ -16,6 +16,12 @@ from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ig
 )
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
+from codex.librarian.fs.event_batcherd import FSEventBatcherThread
+from codex.librarian.fs.poller.poller import LibraryPollerThread
+from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
+from codex.librarian.fs.tasks import FSEventTask
+from codex.librarian.fs.watcher import LibraryWatcherThread
+from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.restarter.restarter import CodexRestarter
@@ -25,26 +31,16 @@ from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
-from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
-from codex.librarian.watchdog.observers import (
-    LibraryEventObserver,
-    LibraryPollingObserver,
-)
-from codex.librarian.watchdog.tasks import (
-    WatchdogEventTask,
-    WatchdogPollLibrariesTask,
-    WatchdogSyncTask,
-)
 
 _THREAD_CLASSES = (
     BookmarkThread,
     CoverThread,
     CronThread,
-    LibraryEventObserver,
-    LibraryPollingObserver,
+    LibraryWatcherThread,
+    LibraryPollerThread,
     NotifierThread,
     ScribeThread,
-    WatchdogEventBatcherThread,
+    FSEventBatcherThread,
 )
 _THREAD_CLASS_MAP = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
@@ -54,7 +50,7 @@ _THREAD_QUEUE_TASK_MAP: dict[type, str] = {
     CoverTask: "cover_thread",
     BookmarkTask: "bookmark_thread",
     NotifierTask: "notifier_thread",
-    WatchdogEventTask: "watchdog_event_batcher_thread",
+    FSEventTask: "fsevent_batcher_thread",
 }
 
 
@@ -70,7 +66,6 @@ class LibrarianDaemon(Process):
         self.broadcast_queue = broadcast_queue
         startup_tasks = (
             JanitorAdoptOrphanFoldersTask(),
-            WatchdogSyncTask(),
             SearchIndexSyncTask(),
         )
 
@@ -79,9 +74,8 @@ class LibrarianDaemon(Process):
         self.run_loop = True
         self._reversed_threads = ()
 
-    def _sync_watchdog_observers(self) -> None:
-        for observer in self._observers:
-            observer.sync_library_watches()
+    def _restart_fs_watcher(self) -> None:
+        self._threads.library_watcher_thread.restart()
 
     def _restart_codex(self, task: LibrarianTask) -> None:
         restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
@@ -98,10 +92,10 @@ class LibrarianDaemon(Process):
             case ScribeTask():
                 # Special put method does queue put preprocessing.
                 self._threads.scribe_thread.put(task)
-            case WatchdogSyncTask():
-                self._sync_watchdog_observers()
-            case WatchdogPollLibrariesTask():
-                self._threads.library_polling_observer.poll(task)
+            case FSWatcherRestartTask():
+                self._restart_fs_watcher()
+            case FSPollLibrariesTask():
+                self._threads.library_poller_thread.poll(task)
             case WakeCronTask():
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():
@@ -129,10 +123,6 @@ class LibrarianDaemon(Process):
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
         self._threads = LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
-        self._observers = (  # pyright: ignore[reportUninitializedInstanceVariable]
-            self._threads.library_event_observer,
-            self._threads.library_polling_observer,
-        )
         self.log.debug("Threads created")
 
     def _start_threads(self) -> None:
@@ -180,7 +170,7 @@ class LibrarianDaemon(Process):
         """
         Process tasks from the queue.
 
-        This process also runs the crond thread and the Watchdog Observer
+        This process also runs the crond thread and the watcher Observer
         threads.
         """
         self._startup()
