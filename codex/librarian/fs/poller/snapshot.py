@@ -17,8 +17,11 @@ from codex.models import Comic, CustomCover, FailedImport, Folder
 class Snapshot:
     """Base snapshot: a mapping of paths to stat results."""
 
-    def __init__(self) -> None:
+    def __init__(self, root: str, logger_, *, covers_only: bool) -> None:
         """Initialize empty snapshot."""
+        self._root = root
+        self.log = logger_
+        self._covers_only = covers_only
         self._stat_info: dict[str, os.stat_result] = {}
         self._inode_to_path: dict[tuple[int, ...] | int, str] = {}
 
@@ -61,19 +64,23 @@ class DiskSnapshot(Snapshot):
     def __init__(
         self,
         root: str,
+        logger_,
         *,
         covers_only: bool,
         recursive: bool = True,
         follow_symlinks: bool = True,
     ) -> None:
         """Walk the directory and stat every entry."""
-        super().__init__()
-        self._covers_only = covers_only
+        super().__init__(root, logger_, covers_only=covers_only)
         self._recursive = recursive
         self._follow_symlinks = follow_symlinks
-        root_stat = Path(root).stat()
-        self._set_lookups(root, root_stat)
-        self._walk(root)
+        self._init_walk()
+
+    def _init_walk(self):
+        """Walk disk fs tree."""
+        root_stat = Path(self._root).stat()
+        self._set_lookups(self._root, root_stat)
+        self._walk(self._root)
 
     def _walk(self, root: str) -> None:
         """Walk the directory tree and populate lookups."""
@@ -107,25 +114,30 @@ class DatabaseSnapshot(Snapshot):
     def __init__(
         self,
         root: str,
-        *,
         logger_,
-        force: bool = False,
+        *,
         covers_only: bool = False,
+        force: bool = False,
     ) -> None:
         """Build snapshot from database records for the given library root."""
-        super().__init__()
-        self.log = logger_
-        if not Path(root).is_dir():
-            self.log.warning(f"{root} not found, cannot snapshot.")
+        super().__init__(root, logger_, covers_only=covers_only)
+        self._force = force
+        self._init_walk()
+
+    def _init_walk(self):
+        """Walk database fs tree."""
+        root_path = Path(self._root)
+        if not root_path.is_dir():
+            self.log.warning(f"{self._root} not found, cannot snapshot.")
             return
 
         # Add the library root itself
-        root_stat = Path(root).stat()
-        self._set_lookups(root, root_stat)
+        root_stat = root_path.stat()
+        self._set_lookups(self._root, root_stat)
 
-        models = self._COVERS_ONLY_MODELS if covers_only else self._MODELS
-        for wp in chain.from_iterable(self._walk(root, models)):
-            st = self._create_stat(wp, force=force)
+        models = self._COVERS_ONLY_MODELS if self._covers_only else self._MODELS
+        for wp in chain.from_iterable(self._walk(self._root, models)):
+            st = self._create_stat(wp, force=self._force)
             self._set_lookups(wp["path"], st)
 
     @staticmethod
