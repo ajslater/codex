@@ -195,20 +195,17 @@ def _detect_moves(
 def _process_change_added(
     library_pk: int,
     path: str,
-    library_lookup: Callable[[str], tuple[int, bool] | None],
     added_files: list[tuple[str, int, bool]],
     dir_add_events: list[tuple[int, FSEvent]],
     *,
     covers_only: bool,
 ):
-    p = Path(path)
-    if p.is_dir():
-        # Expand directory addition into child file events
+    """If a directory is added. Add events for all it's on disk children."""
+    # Feels like watchfiles should do this itself.
+    if Path(path).is_dir():
         for event in _expand_dir_added(path, covers_only=covers_only):
-            lib_result = library_lookup(event.src_path)
-            if lib_result:
-                added_files.append((event.src_path, lib_result[0], lib_result[1]))
-                dir_add_events.append((lib_result[0], event))
+            added_files.append((event.src_path, library_pk, covers_only))
+            dir_add_events.append((library_pk, event))
     else:
         added_files.append((path, library_pk, covers_only))
 
@@ -216,18 +213,18 @@ def _process_change_added(
 def _process_change_deleted(
     library_pk: int,
     path: str,
-    dir_delete_expansions: list[tuple[int, FSEvent]],
+    dir_delete_events: list[tuple[int, FSEvent]],
     deleted_files: list[tuple[str, int, bool]],
     *,
     covers_only: bool,
 ):
-    # For deletes, we can't check is_dir() — the path is gone.
-    # Check the DB to see if it was a known folder.
+    """If a delete was a db folder, dive the db and create events for all children."""
+    # Feels like watchfiles should do this itself.
     is_known_dir = Folder.objects.filter(library_id=library_pk, path=path).exists()
     if is_known_dir:
         for event in _expand_dir_deleted(path, library_pk):
             if event.is_directory:
-                dir_delete_expansions.append((library_pk, event))
+                dir_delete_events.append((library_pk, event))
             else:
                 deleted_files.append((event.src_path, library_pk, event.is_cover))
     else:
@@ -241,11 +238,12 @@ def _process_change_modified(
     *,
     covers_only: bool,
 ):
-    p = Path(path)
-    change = FSChange.modified
-    is_dir = p.is_dir()
+    """Store modified changes unaltered."""
     event = FSEvent(
-        src_path=path, change=change, is_directory=is_dir, is_cover=covers_only
+        src_path=path,
+        change=FSChange.modified,
+        is_directory=Path(path).is_dir(),
+        is_cover=covers_only,
     )
     file_events.append((library_pk, event))
 
@@ -256,7 +254,7 @@ def _process_change(
     change_enum: Change,
     added_files: list[tuple[str, int, bool]],
     dir_add_events: list[tuple[int, FSEvent]],
-    dir_delete_expansions: list[tuple[int, FSEvent]],
+    dir_delete_events: list[tuple[int, FSEvent]],
     deleted_files: list[tuple[str, int, bool]],
     file_events: list[tuple[int, FSEvent]],
 ):
@@ -269,7 +267,6 @@ def _process_change(
         _process_change_added(
             library_pk,
             path,
-            library_lookup,
             added_files,
             dir_add_events,
             covers_only=covers_only,
@@ -278,7 +275,7 @@ def _process_change(
         _process_change_deleted(
             library_pk,
             path,
-            dir_delete_expansions,
+            dir_delete_events,
             deleted_files,
             covers_only=covers_only,
         )
@@ -300,12 +297,13 @@ def process_changes(
     """
     # Separate changes by type, filtering to relevant files.
     # Track dir adds/deletes for expansion; file adds/deletes for move detection.
-    added_files: list[tuple[str, int, bool]] = []  # (path, lib_pk, covers_only)
+    added_files: list[tuple[str, int, bool]] = []  # path, lib_pk, covers_only
     deleted_files: list[tuple[str, int, bool]] = []
     file_events: list[tuple[int, FSEvent]] = []  # non-add/delete events (modified)
     dir_add_events: list[tuple[int, FSEvent]] = []
-    dir_delete_expansions: list[tuple[int, FSEvent]] = []
+    dir_delete_events: list[tuple[int, FSEvent]] = []
 
+    # Add missing events for added and deleted folders
     for change_enum, path in changes:
         _process_change(
             library_lookup,
@@ -313,10 +311,11 @@ def process_changes(
             change_enum,
             added_files,
             dir_add_events,
-            dir_delete_expansions,
+            dir_delete_events,
             deleted_files,
             file_events,
         )
+
     # Detect moves from matching inodes between deleted and added
     move_events, matched_added, matched_deleted = _detect_moves(
         added_files, deleted_files
@@ -353,7 +352,7 @@ def process_changes(
     )
 
     # Add dir delete events (these are always emitted — not subject to move matching)
-    output.extend(dir_delete_expansions)
+    output.extend(dir_delete_events)
 
     # Add modified events
     output.extend(file_events)
