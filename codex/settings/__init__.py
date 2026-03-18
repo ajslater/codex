@@ -341,13 +341,10 @@ TIME_ZONE = get_time_zone(TZ)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 # WHITENOISE_KEEP_ONLY_HASHED_FILES is still not usable with vite chunking
 # If it is, than maybe don't need this immutable_file_test
-WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static"
-STATIC_URL = (
-    GRANIAN_URL_PATH_PREFIX
-    + ("/" if not GRANIAN_URL_PATH_PREFIX.endswith("/") else "")
-    + "static/"
-)
+WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
+WHITENOISE_STATIC_PREFIX = "/static"  # otherwise is based on STATIC_URL
+STATIC_URL = GRANIAN_URL_PATH_PREFIX.rstrip("/") + WHITENOISE_STATIC_PREFIX + "/"
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"

@@ -20,9 +20,10 @@ try {
 } catch {
   rootPath = "";
 }
-const BASE_PATH = rootPath + "/static/";
-
+const STATIC_DIR_NAME = "static";
+const BASE_PATH = `${rootPath}/${STATIC_DIR_NAME}/`;
 const IS_TEST_ENV = process.env.NODE_ENV === "test";
+
 const defineObj = {
   CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
 };
@@ -38,6 +39,11 @@ const config = defineConfig(({ mode }) => {
   const DEV = mode === "development";
   // https://github.com/vitejs/vite/issues/19242
   const ALLOWED_HOSTS = DEV ? [hostname().toLowerCase()] : [];
+  let publicPathPrefix = "window.CODEX.APP_PATH";
+  if (PROD) {
+    publicPathPrefix += ".substring(1)";
+  }
+  const PUBLIC_PATH = `${publicPathPrefix} + "${STATIC_DIR_NAME}"`;
 
   return {
     base: BASE_PATH,
@@ -71,7 +77,7 @@ const config = defineConfig(({ mode }) => {
         },
       }),
       dynamicBase({
-        publicPath: 'window.CODEX.APP_PATH + "static"',
+        publicPath: PUBLIC_PATH,
       }),
       run([
         {
