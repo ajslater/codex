@@ -42,6 +42,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
+import { toRaw } from "vue";
 
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
@@ -110,7 +111,7 @@ export default {
           },
         ],
       },
-      row: structuredClone(this.oldRow || EMPTY_ROW),
+      row: structuredClone(toRaw(this.oldRow) || EMPTY_ROW),
     };
   },
   computed: {

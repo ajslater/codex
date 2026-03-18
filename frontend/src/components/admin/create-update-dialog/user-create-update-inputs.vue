@@ -44,6 +44,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
+import { toRaw } from "vue";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -88,7 +89,7 @@ export default {
           (v) => v === this.row.password || "Passwords must match",
         ],
       },
-      row: structuredClone(this.oldRow || EMPTY_ROW),
+      row: structuredClone(toRaw(this.oldRow) || EMPTY_ROW),
     };
   },
   computed: {

@@ -29,7 +29,7 @@
 <script>
 import { dequal } from "dequal";
 import { mapActions } from "pinia";
-
+import { toRaw } from "vue";
 import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/create-update-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -126,11 +126,9 @@ export default {
       }
       const updateRow = {};
       for (const key of this.inputs.UPDATE_KEYS) {
-        Reflect.set(
-          updateRow,
-          key,
-          structuredClone(Reflect.get(this.oldRow, key)),
-        );
+        const rawVal = toRaw(Reflect.get(this.oldRow, key));
+        const val = structuredClone(rawVal);
+        Reflect.set(updateRow, key, val);
       }
       return updateRow;
     },

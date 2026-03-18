@@ -52,6 +52,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
+import { toRaw } from "vue";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import GroupChip from "@/components/admin/group-chip.vue";
@@ -86,7 +87,7 @@ export default {
           (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
         ],
       },
-      row: { ...EMPTY_ROW, ...structuredClone(this.oldRow) },
+      row: { ...EMPTY_ROW, ...structuredClone(toRaw(this.oldRow)) },
     };
   },
   computed: {
