@@ -25,9 +25,12 @@ class CodexWatchFilter:
         self._covers_only_paths = covers_only_paths
 
     def __call__(self, change: Change, path: str) -> bool:
-        """Filter method."""
-        # Deleted paths can't be inspected on disk (is_dir() would be False).
-        # Let them all through; event processing filters by DB and suffix.
+        """
+        Filter method.
+
+        Deleted paths can't be inspected on disk, so let them all through;
+        event processing filters by DB lookup and suffix matching instead.
+        """
         if change == Change.deleted:
             return True
 
@@ -116,8 +119,7 @@ class LibraryWatcherThread(NamedThread):
 
     def _process_changes(self, changes: set[tuple[Change, str]]) -> None:
         """Route watchfiles changes through processing to the librarian queue."""
-        processed = process_changes(changes, self._find_library)
-        for library_pk, event in processed:
+        for library_pk, event in process_changes(changes, self._find_library):
             task = FSEventTask(library_pk, event)
             self.librarian_queue.put(task)
 
