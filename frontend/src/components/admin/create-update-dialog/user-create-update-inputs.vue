@@ -110,7 +110,7 @@ export default {
     },
     oldRow: {
       handler(to) {
-        this.row = structuredClone(to);
+        this.row = structuredClone(toRaw(to));
       },
       deep: true,
     },
