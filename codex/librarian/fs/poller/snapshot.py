@@ -13,23 +13,29 @@ from codex.librarian.fs.filters import (
 )
 from codex.models import Comic, CustomCover, FailedImport, Folder
 
+IGNORE_ST_DEV = 0
+
 
 class Snapshot:
     """Base snapshot: a mapping of paths to stat results."""
 
-    def __init__(self, root: str, logger_, *, covers_only: bool) -> None:
+    def __init__(
+        self, root: str, logger_, *, covers_only: bool, ignore_device: bool = True
+    ) -> None:
         """Initialize empty snapshot."""
         self._root = root
         self.log = logger_
         self._covers_only = covers_only
+        self._ignore_device = ignore_device
         self._stat_info: dict[str, os.stat_result] = {}
-        self._inode_to_path: dict[tuple[int, ...] | int, str] = {}
+        self._device_inode_to_path: dict[tuple[int, int], str] = {}
 
     def _set_lookups(self, path: str, st: os.stat_result) -> None:
         """Populate the lookup dicts for a single path."""
         self._stat_info[path] = st
-        inode_key = (st.st_ino, st.st_dev)
-        self._inode_to_path[inode_key] = path
+        st_dev = IGNORE_ST_DEV if self._ignore_device else st.st_dev
+        inode_key = (st_dev, st.st_ino)
+        self._device_inode_to_path[inode_key] = path
 
     @property
     def paths(self) -> frozenset[str]:
@@ -37,13 +43,15 @@ class Snapshot:
         return frozenset(self._stat_info.keys())
 
     def inode(self, path: str) -> tuple[int, int]:
-        """Return (inode, device) for a path."""
+        """Return (device, inode) for a path."""
         st = self._stat_info[path]
-        return (st.st_ino, st.st_dev)
+        return (st.st_dev, st.st_ino)
 
-    def path(self, inode) -> str | None:
-        """Return the path for an inode key, or None."""
-        return self._inode_to_path.get(inode)
+    def path(self, st_lookup: tuple[int, int]) -> str | None:
+        """Return the path for an device, inode pair."""
+        if self._ignore_device:
+            st_lookup = (IGNORE_ST_DEV, st_lookup[1])
+        return self._device_inode_to_path.get(st_lookup)
 
     def mtime(self, path: str) -> float:
         """Return mtime for a path."""
@@ -69,9 +77,12 @@ class DiskSnapshot(Snapshot):
         covers_only: bool,
         recursive: bool = True,
         follow_symlinks: bool = True,
+        ignore_device: bool = True,
     ) -> None:
         """Walk the directory and stat every entry."""
-        super().__init__(root, logger_, covers_only=covers_only)
+        super().__init__(
+            root, logger_, covers_only=covers_only, ignore_device=ignore_device
+        )
         self._recursive = recursive
         self._follow_symlinks = follow_symlinks
         self._init_walk()
@@ -117,10 +128,13 @@ class DatabaseSnapshot(Snapshot):
         logger_,
         *,
         covers_only: bool = False,
+        ignore_device: bool = True,
         force: bool = False,
     ) -> None:
         """Build snapshot from database records for the given library root."""
-        super().__init__(root, logger_, covers_only=covers_only)
+        super().__init__(
+            root, logger_, covers_only=covers_only, ignore_device=ignore_device
+        )
         self._force = force
         self._init_walk()
 

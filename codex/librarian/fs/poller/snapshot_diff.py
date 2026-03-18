@@ -50,11 +50,9 @@ class SnapshotDiff:
         ref: Snapshot,
         snapshot: Snapshot,
         *,
-        ignore_device: bool,
-        inode_only_modified: bool,
+        inode_only_modified: bool = True,
     ) -> None:
         """Compute the diff between ref (old/database) and snapshot (new/disk)."""
-        self._ignore_device = ignore_device
         self._inode_only_modified = inode_only_modified
 
         data = _DiffData(
@@ -86,16 +84,9 @@ class SnapshotDiff:
         self.files_modified = list(data.modified - dir_modified_set)
         self.files_moved = list(data.moved - dir_moved_set)
 
-    def _get_inode(self, snapshot: Snapshot, path: str):
-        """Get inode, optionally ignoring device."""
-        result = snapshot.inode(path)
-        if self._ignore_device:
-            return result[0]
-        return result
-
     def _is_inode_equal(self, data: _DiffData, path: str) -> bool:
         """Return whether inodes match between ref and snapshot."""
-        return self._get_inode(data.ref, path) == self._get_inode(data.snapshot, path)
+        return data.ref.inode(path) == data.snapshot.inode(path)
 
     def _is_stats_equal(self, data: _DiffData, old_path: str, new_path: str) -> bool:
         """Return whether mtime and size match."""
@@ -116,13 +107,13 @@ class SnapshotDiff:
     def _find_moved_paths(self, data: _DiffData) -> None:
         """Detect moves by matching inodes between deleted and added sets."""
         for old_path in tuple(data.deleted):
-            inode = self._get_inode(data.ref, old_path)
+            inode = data.ref.inode(old_path)
             if new_path := data.snapshot.path(inode):
                 data.deleted.remove(old_path)
                 data.moved.add((old_path, new_path))
 
         for new_path in tuple(data.added):
-            inode = self._get_inode(data.snapshot, new_path)
+            inode = data.snapshot.inode(new_path)
             if old_path := data.ref.path(inode):
                 data.added.remove(new_path)
                 data.moved.add((old_path, new_path))

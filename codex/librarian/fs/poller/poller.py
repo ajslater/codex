@@ -121,21 +121,23 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
     def _get_diff(self, library: Library, *, force: bool) -> SnapshotDiff | None:
         """Compute the diff between DB and disk for a library."""
         covers_only = library.covers_only
+        ignore_device = True
         db_snap = DatabaseSnapshot(
             library.path,
-            logger_=self.log,
-            force=force,
+            self.log,
             covers_only=covers_only,
+            ignore_device=ignore_device,
+            force=force,
         )
-        disk_snap = DiskSnapshot(library.path, self.log, covers_only=covers_only)
+        disk_snap = DiskSnapshot(
+            library.path, self.log, covers_only=covers_only, ignore_device=ignore_device
+        )
 
         if len(disk_snap.paths) <= 1:
             self.log.warning(f"{library.path} dir snapshot is empty. Not polling.")
             return None
 
-        return SnapshotDiff(
-            db_snap, disk_snap, ignore_device=True, inode_only_modified=True
-        )
+        return SnapshotDiff(db_snap, disk_snap)
 
     def _queue_poll_events(self, library: Library, *, force: bool) -> None:
         """Run the snapshot diff and queue resulting events."""
