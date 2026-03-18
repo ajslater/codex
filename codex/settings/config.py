@@ -1,20 +1,13 @@
 """Load and merge the unified codex.toml config with environment variable overrides."""
 
 import shutil
-import sys
+import tomllib
 from collections.abc import Mapping, MutableMapping
 from os import environ
 from pathlib import Path
 
 from loguru import logger
 
-if sys.version_info >= (3, 11):
-    import tomllib  # pyright: ignore[reportUnreachable]
-else:
-    try:
-        import tomllib  # ty: ignore[unresolved-import]
-    except ModuleNotFoundError:
-        import tomli as tomllib
 from codex.settings.hypercorn_migrate import migrate_hypercorn_config
 
 # Environment variable name to TOML key path mapping

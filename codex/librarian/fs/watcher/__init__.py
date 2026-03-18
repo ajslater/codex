@@ -2,8 +2,8 @@
 
 from pathlib import Path
 from threading import Event
+from typing import override
 
-from typing_extensions import override
 from watchfiles import Change, watch
 
 from codex.librarian.fs.filters import (

@@ -2,11 +2,11 @@
 
 from pathlib import Path
 from threading import Condition, Event
+from typing import override
 
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
-from typing_extensions import override
 
 from codex.librarian.fs.poller.events import PollEvent, PollEventType
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot

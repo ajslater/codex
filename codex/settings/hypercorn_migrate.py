@@ -1,18 +1,10 @@
 """Migrate hypercorn.toml to codex.toml."""
 
-import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
 from loguru import logger
-
-if sys.version_info >= (3, 11):
-    import tomllib  # pyright: ignore[reportUnreachable]
-else:
-    try:
-        import tomllib  # ty: ignore[unresolved-import]
-    except ModuleNotFoundError:
-        import tomli as tomllib
 
 HYPERCORN_FN = "hypercorn.toml"
 DEFAULT_CONFIG_HEAD_COUNT = 5
