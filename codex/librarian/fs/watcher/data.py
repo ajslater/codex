@@ -1,3 +1,10 @@
+"""Dataclass for events post processing changes."""
+
+from dataclasses import dataclass, field
+
+from codex.librarian.fs.events import FSEvent
+
+
 @dataclass
 class ChangeBatch:
     """Accumulated changes from a single watchfiles batch."""
