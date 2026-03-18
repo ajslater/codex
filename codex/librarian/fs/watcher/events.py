@@ -248,7 +248,7 @@ def _process_change_modified(
     file_events.append((library_pk, event))
 
 
-def _process_change(
+def _add_missing_child_events(
     library_lookup: Callable[[str], tuple[int, bool] | None],
     path: str,
     change_enum: Change,
@@ -283,39 +283,9 @@ def _process_change(
         _process_change_modified(library_pk, path, file_events, covers_only=covers_only)
 
 
-def process_changes(
-    changes: set[tuple[Change, str]],
-    library_lookup: Callable[[str], tuple[int, bool] | None],
-) -> list[tuple[int, FSEvent]]:
-    """
-    Process a batch of raw watchfiles changes into (library_pk, FSEvent) pairs.
-
-    Args:
-        changes: raw watchfiles change set
-        library_lookup: callable(path) returning (library_pk, covers_only) or None
-
-    """
-    # Separate changes by type, filtering to relevant files.
-    # Track dir adds/deletes for expansion; file adds/deletes for move detection.
-    added_files: list[tuple[str, int, bool]] = []  # path, lib_pk, covers_only
-    deleted_files: list[tuple[str, int, bool]] = []
-    file_events: list[tuple[int, FSEvent]] = []  # non-add/delete events (modified)
-    dir_add_events: list[tuple[int, FSEvent]] = []
-    dir_delete_events: list[tuple[int, FSEvent]] = []
-
-    # Add missing events for added and deleted folders
-    for change_enum, path in changes:
-        _process_change(
-            library_lookup,
-            path,
-            change_enum,
-            added_files,
-            dir_add_events,
-            dir_delete_events,
-            deleted_files,
-            file_events,
-        )
-
+def _consolidate_move_events(
+    added_files, deleted_files, dir_add_events, library_lookup
+):
     # Detect moves from matching inodes between deleted and added
     move_events, matched_added, matched_deleted = _detect_moves(
         added_files, deleted_files
@@ -351,15 +321,55 @@ def process_changes(
         if path not in matched_deleted
     )
 
+    # Add dir-added child events that weren't matched as moves
+    for lib_pk, event in dir_add_events:
+        if event.src_path not in matched_added:
+            output.append((lib_pk, event))
+
+    return output
+
+
+def process_changes(
+    changes: set[tuple[Change, str]],
+    library_lookup: Callable[[str], tuple[int, bool] | None],
+) -> list[tuple[int, FSEvent]]:
+    """
+    Process a batch of raw watchfiles changes into (library_pk, FSEvent) pairs.
+
+    Args:
+        changes: raw watchfiles change set
+        library_lookup: callable(path) returning (library_pk, covers_only) or None
+
+    """
+    # Separate changes by type, filtering to relevant files.
+    # Track dir adds/deletes for expansion; file adds/deletes for move detection.
+    added_files: list[tuple[str, int, bool]] = []  # path, lib_pk, covers_only
+    deleted_files: list[tuple[str, int, bool]] = []
+    file_events: list[tuple[int, FSEvent]] = []  # non-add/delete events (modified)
+    dir_add_events: list[tuple[int, FSEvent]] = []
+    dir_delete_events: list[tuple[int, FSEvent]] = []
+
+    # Add missing events for added and deleted folders
+    for change_enum, path in changes:
+        _add_missing_child_events(
+            library_lookup,
+            path,
+            change_enum,
+            added_files,
+            dir_add_events,
+            dir_delete_events,
+            deleted_files,
+            file_events,
+        )
+
+    output = _consolidate_move_events(
+        added_files, deleted_files, dir_add_events, library_lookup
+    )
+
     # Add dir delete events (these are always emitted — not subject to move matching)
     output.extend(dir_delete_events)
 
     # Add modified events
     output.extend(file_events)
-
-    # Add dir-added child events that weren't matched as moves
-    for lib_pk, event in dir_add_events:
-        if event.src_path not in matched_added:
-            output.append((lib_pk, event))
 
     return output
