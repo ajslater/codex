@@ -119,6 +119,8 @@ class LibraryWatcherThread(NamedThread):
 
     def _process_changes(self, changes: set[tuple[Change, str]]) -> None:
         """Route watchfiles changes through processing to the librarian queue."""
+        # Watchfiles does not expand events for added or removed directories or do move detection
+        # So handle this myself.
         for library_pk, event in process_changes(changes, self._find_library):
             task = FSEventTask(library_pk, event)
             self.librarian_queue.put(task)
