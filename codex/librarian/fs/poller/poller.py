@@ -8,11 +8,7 @@ from django.utils import timezone
 from humanize import naturaldelta
 from typing_extensions import override
 
-from codex.librarian.fs.poller.events import (
-    PollEvent,
-    PollEventType,
-    events_from_diff,
-)
+from codex.librarian.fs.poller.events import PollEvent, PollEventType
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.fs.poller.status import FSPollStatus
@@ -165,7 +161,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         self.librarian_queue.put(start)
 
         # Send all diff events
-        for event in events_from_diff(diff):
+        for event in diff.to_events():
             task = FSEventTask(pk, event)
             self.librarian_queue.put(task)
 
