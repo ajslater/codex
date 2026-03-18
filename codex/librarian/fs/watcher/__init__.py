@@ -6,13 +6,13 @@ from threading import Event
 from typing_extensions import override
 from watchfiles import Change, watch
 
-from codex.librarian.fs.events import FSChange, FSEvent
 from codex.librarian.fs.filters import (
     match_comic,
     match_folder_cover,
     match_group_cover_image,
 )
 from codex.librarian.fs.tasks import FSEventTask
+from codex.librarian.fs.watcher.events import process_changes
 from codex.librarian.threads import NamedThread
 from codex.models import Library
 
@@ -24,8 +24,13 @@ class CodexWatchFilter:
         """Set covers_only_paths."""
         self._covers_only_paths = covers_only_paths
 
-    def __call__(self, change: Change, path: str) -> bool:  # noqa: ARG002
+    def __call__(self, change: Change, path: str) -> bool:
         """Filter method."""
+        # Deleted paths can't be inspected on disk (is_dir() would be False).
+        # Let them all through; event processing filters by DB and suffix.
+        if change == Change.deleted:
+            return True
+
         ppath = Path(path)
         covers_only = False
         for covers_only_path in self._covers_only_paths:
@@ -110,14 +115,9 @@ class LibraryWatcherThread(NamedThread):
         return None
 
     def _process_changes(self, changes: set[tuple[Change, str]]) -> None:
-        """Route watchfiles changes through handlers to the librarian queue."""
-        for change_enum, path in changes:
-            result = self._find_library(path)
-            if not result:
-                continue
-            library_pk, covers_only = result
-            change = FSChange(change_enum)
-            event = FSEvent(src_path=path, change=change, is_cover=covers_only)
+        """Route watchfiles changes through processing to the librarian queue."""
+        processed = process_changes(changes, self._find_library)
+        for library_pk, event in processed:
             task = FSEventTask(library_pk, event)
             self.librarian_queue.put(task)
 
