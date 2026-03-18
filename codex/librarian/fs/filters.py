@@ -1,4 +1,4 @@
-"""Filter files."""
+"""Filter files with regexes."""
 
 import re
 from pathlib import Path

@@ -9,12 +9,12 @@ from codex.librarian.tasks import LibrarianTask
 
 @dataclass
 class FSTask(LibrarianTask):
-    """Watcher tasks."""
+    """Filesystem tasks."""
 
 
 @dataclass
 class FSEventTask(FSTask):
-    """Task for filesystem events."""
+    """Task for filesystem events and poll start and stop events."""
 
     library_id: int
     event: FSEvent | PollEvent
