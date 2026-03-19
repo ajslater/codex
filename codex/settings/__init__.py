@@ -15,7 +15,9 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
-from django.utils.csp import CSP
+from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
+    CSP,
+)
 from loguru import logger
 
 from codex.settings.config import (
@@ -174,6 +176,7 @@ SECURE_CSP = {
     "default-src": [CSP.SELF],
     "script-src": [
         CSP.SELF,
+        CSP.NONCE,
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
     ],
