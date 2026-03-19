@@ -73,11 +73,10 @@
 import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import authFormMixin from "@/components/auth/auth-form-mixin";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
-import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "AuthLoginDialog",
@@ -85,11 +84,7 @@ export default {
     SubmitFooter,
     CodexListItem,
   },
-  setup() {
-    useEventListener(globalThis, "keyup", (event) => {
-      event.stopImmediatePropagation();
-    });
-  },
+  mixins: [authFormMixin],
   data() {
     return {
       rules: {
@@ -115,16 +110,11 @@ export default {
         password: "",
         passwordConfirm: "",
       },
-      submitButtonEnabled: false,
       registerMode: false,
       mdiLogin,
     };
   },
   computed: {
-    ...mapState(useCommonStore, {
-      formErrors: (state) => state.form.errors,
-      formSuccess: (state) => state.form.success,
-    }),
     ...mapState(useAuthStore, {
       adminFlags: (state) => state.adminFlags,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
@@ -150,23 +140,6 @@ export default {
           this.$refs.form.reset();
         }
       }
-    },
-    credentials: {
-      handler() {
-        const form = this.$refs.form;
-        if (form) {
-          form
-            .validate()
-            .then(({ valid }) => {
-              this.submitButtonEnabled = valid;
-              return this.submitButtonEnabled;
-            })
-            .catch(console.error);
-        } else {
-          this.submitButtonEnabled = false;
-        }
-      },
-      deep: true,
     },
   },
   methods: {
