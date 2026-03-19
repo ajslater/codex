@@ -8,12 +8,17 @@ border-radius: 128px;
 
 ## v1.10.0
 
-- Change
+- 🚨 Codex now requires Python 3.12 🚨
+- Performance
     - Codex now uses the granian http server instead of hypercorn.
     - All config has moved to config/codex.toml. Your hypercorn config should be
       migrated automatically.
         - Environment variables can be specified in codex.toml as well, but
           environment variables override config file settings.
+    - The file watcher and poller now use one thread each no matter how many
+      libraries you have.
+- Changes
+    - Django 6 requires python 3.12.
     - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 - Fixes
     - Fix reader close button receiving nonsensical route.
