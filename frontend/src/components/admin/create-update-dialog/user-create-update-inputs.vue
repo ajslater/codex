@@ -43,10 +43,10 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
-import { toRaw } from "vue";
+import { mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
+import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = Object.freeze([
@@ -69,13 +69,7 @@ export default {
   components: {
     AdminRelationPicker,
   },
-  props: {
-    oldRow: {
-      type: [Object, Boolean],
-      default: false,
-    },
-  },
-  emits: ["change"],
+  mixins: [createUpdateInputsMixin],
   data() {
     return {
       rules: {
@@ -89,7 +83,6 @@ export default {
           (v) => v === this.row.password || "Passwords must match",
         ],
       },
-      row: structuredClone(toRaw(this.oldRow) || EMPTY_ROW),
     };
   },
   computed: {
@@ -100,23 +93,6 @@ export default {
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
     },
-  },
-  watch: {
-    row: {
-      handler(to) {
-        this.$emit("change", to);
-      },
-      deep: true,
-    },
-    oldRow: {
-      handler(to) {
-        this.row = structuredClone(toRaw(to));
-      },
-      deep: true,
-    },
-  },
-  methods: {
-    ...mapActions(useAdminStore, ["nameSet"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,
