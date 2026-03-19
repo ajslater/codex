@@ -76,10 +76,12 @@ export const useAdminStore = defineStore("admin", {
     },
   },
   actions: {
+    /** Guard: returns true and early-exits the caller if not admin. */
+    _requireAdmin() {
+      return !this.isUserAdmin;
+    },
     async loadTable(table) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       const pluralTable = getTablePlural(table);
       const apiFn = "get" + pluralTable;
       await API[apiFn]()
@@ -97,14 +99,13 @@ export const useAdminStore = defineStore("admin", {
         .catch(warnError);
     },
     loadTables(tables) {
+      if (this._requireAdmin()) return false;
       for (const table of tables) {
         this.loadTable(table);
       }
     },
     async loadFolders(path, showHidden) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       await API.getFolders(path, showHidden)
         .then((response) => {
           this.folderPicker = response.data;
@@ -113,15 +114,11 @@ export const useAdminStore = defineStore("admin", {
         .catch(useCommonStore().setErrors);
     },
     async clearFolders(root) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       this.folderPicker = { root, folders: [""] };
     },
     async createRow(table, data) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       const apiFn = "create" + table;
       const commonStore = useCommonStore();
       await API[apiFn](data)
@@ -132,9 +129,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(commonStore.setErrors);
     },
     async updateRow(table, pk, data) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       const apiFn = "update" + table;
       const commonStore = useCommonStore();
       await API[apiFn](pk, data)
@@ -145,9 +140,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(commonStore.setErrors);
     },
     async changeUserPassword(pk, data) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
       await API.changeUserPassword(pk, data)
         .then((response) => {
@@ -157,9 +150,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(commonStore.setErrors);
     },
     async deleteRow(table, pk) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       const apiFn = "delete" + table;
       const commonStore = useCommonStore();
       await API[apiFn](pk)
@@ -170,15 +161,14 @@ export const useAdminStore = defineStore("admin", {
         .catch(commonStore.setErrors);
     },
     async librarianTask(task, text, libraryId) {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
       await API.postLibrarianTask({ task, libraryId })
         .then(() => commonStore.setSuccess(text))
         .catch(commonStore.setErrors);
     },
     nameSet(rows, nameKey, oldRow, dupeCheck) {
+      if (this._requireAdmin()) return false;
       const names = new Set();
       if (rows) {
         for (const obj of rows) {
@@ -190,6 +180,7 @@ export const useAdminStore = defineStore("admin", {
       return names;
     },
     async loadStats() {
+      if (this._requireAdmin()) return false;
       await API.getStats()
         .then((response) => {
           this.stats = response.data;
@@ -198,9 +189,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(console.warn);
     },
     async loadAllStatuses() {
-      if (!this.isUserAdmin) {
-        return false;
-      }
+      if (this._requireAdmin()) return false;
       await API.getAllLibrarianStatuses()
         .then((response) => {
           if (Array.isArray(response.data)) {
@@ -211,6 +200,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(console.warn);
     },
     async updateAPIKey() {
+      if (this._requireAdmin()) return false;
       await API.updateAPIKey()
         .then(() => {
           return true;
