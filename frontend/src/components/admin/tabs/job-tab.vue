@@ -1,6 +1,6 @@
 <template>
   <div id="jobs">
-    <div id="lastJob" class="jobCard">
+    <div class="jobCard">
       <div id="lastTaskLabel">Last Job Queued</div>
       <div id="lastJobResult">
         <span v-if="formSuccess" id="success">{{ formSuccess }}</span>
@@ -133,10 +133,10 @@
                       v-if="status.active || status.preactive"
                       class="statusTime"
                     >
-                      {{ statusDuration(status) }}
+                      {{ getStatusDuration(status) }}
                     </span>
                     <span v-else-if="status.updatedAt" class="statusUpdated">
-                      {{ statusUpdatedAgo(status) }}
+                      {{ getStatusUpdatedAgo(status) }}
                     </span>
                   </div>
                   <div
@@ -177,9 +177,17 @@ import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { ADMIN_JOBS } from "@/choices/admin-jobs.json";
-import STATUS_TITLES from "@/choices/admin-status-titles.json";
+import {
+  hasNumbers,
+  isIndeterminate,
+  nf,
+  statusDuration,
+  statusProgress,
+  statusTitle,
+  statusUpdatedAgo,
+} from "@/components/admin/status-helpers";
+import { useNowTimer } from "@/components/admin/use-now-timer";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -190,6 +198,10 @@ export default {
   name: "AdminJobsTab",
   components: {
     ConfirmDialog,
+  },
+  setup() {
+    const { now } = useNowTimer();
+    return { now };
   },
   data() {
     return {
@@ -203,7 +215,6 @@ export default {
         Notify: "notify_library_changed",
       },
       manualExpanded: {},
-      now: Date.now(),
     };
   },
   computed: {
@@ -234,17 +245,8 @@ export default {
       return maps;
     },
   },
-  watch: {
-    allStatuses() {
-      this.now = Date.now();
-    },
-  },
   created() {
     this.loadAllStatuses();
-    this.startTimer();
-  },
-  unmounted() {
-    this.stopTimer();
   },
   methods: {
     ...mapActions(useAdminStore, ["librarianTask", "loadAllStatuses"]),
@@ -344,60 +346,18 @@ export default {
       parts.push(`${total} tasks`);
       return parts.join(", ");
     },
-    statusTitle(statusType) {
-      // eslint-disable-next-line security/detect-object-injection
-      return STATUS_TITLES[statusType] || statusType;
-    },
-    statusDuration(status) {
-      if (status.active) {
-        const activeTime = new Date(status.active).getTime();
-        return getFormattedDuration(activeTime, this.now);
-      }
-      if (status.preactive) {
-        return "pending";
-      }
-      return "";
-    },
-    statusUpdatedAgo(status) {
-      if (!status.updatedAt) {
-        return "";
-      }
-      const updatedTime = new Date(status.updatedAt).getTime();
-      const ago = getFormattedDuration(updatedTime, this.now);
-      return `${ago} ago`;
-    },
-    hasNumbers(status) {
-      return (
-        Number.isInteger(status.complete) || Number.isInteger(status.total)
-      );
-    },
-    isIndeterminate(status) {
-      return (
-        status.active && (!status.total || !Number.isInteger(status.complete))
-      );
-    },
-    statusProgress(status) {
-      if (!status.total || this.isIndeterminate(status)) {
-        return 0;
-      }
-      return (100 * +status.complete) / +status.total;
-    },
-    nf(val) {
-      return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
-    },
+    // --- Status helpers (delegated to status-helpers.js) ---
 
-    // --- Timer ---
-
-    startTimer() {
-      this._timer = setInterval(() => {
-        this.now = Date.now();
-      }, 1000);
+    statusTitle,
+    hasNumbers,
+    isIndeterminate,
+    statusProgress,
+    nf,
+    getStatusDuration(status) {
+      return statusDuration(status, this.now);
     },
-    stopTimer() {
-      if (this._timer) {
-        clearInterval(this._timer);
-        this._timer = null;
-      }
+    getStatusUpdatedAgo(status) {
+      return statusUpdatedAgo(status, this.now);
     },
   },
 };
@@ -408,9 +368,6 @@ export default {
   max-width: 700px;
   margin-left: auto;
   margin-right: auto;
-}
-
-#lastJob {
 }
 
 #lastTaskLabel {
