@@ -11,4 +11,4 @@ class LibrarianStatusSerializer(BaseModelSerializer):
         """Configure the model."""
 
         model = LibrarianStatus
-        exclude = ("preactive", "created_at", "updated_at")
+        exclude = ("created_at",)

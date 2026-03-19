@@ -4,7 +4,7 @@
     class="progress"
     :indeterminate="!progress"
     :model-value="progress"
-    aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
+    aria-label="`Librarian jobs in progress ${Math.round(progress)}%`"
   />
 </template>
 
@@ -16,17 +16,20 @@ import { useAdminStore } from "@/stores/admin";
 export default {
   name: "AdminSettingsButtonProgress",
   computed: {
-    ...mapState(useAdminStore, ["librarianStatuses"]),
+    ...mapState(useAdminStore, ["activeLibrarianStatuses"]),
     progressEnabled: function () {
-      return this.librarianStatuses.length > 0;
+      return this.activeLibrarianStatuses.length > 0;
     },
     progress: function () {
       let complete = 0;
       let total = 0;
-      if (!this.librarianStatuses || this.librarianStatuses.length === 0) {
+      if (
+        !this.activeLibrarianStatuses ||
+        this.activeLibrarianStatuses.length === 0
+      ) {
         return;
       }
-      for (const status of this.librarianStatuses) {
+      for (const status of this.activeLibrarianStatuses) {
         if (
           status.total === null ||
           status.total === undefined ||
@@ -44,7 +47,7 @@ export default {
     },
   },
   created() {
-    this.loadTable("LibrarianStatus");
+    this.loadTable("ActiveLibrarianStatus");
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable"]),

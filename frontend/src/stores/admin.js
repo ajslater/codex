@@ -7,7 +7,7 @@ import { useCommonStore } from "@/stores/common";
 const warnError = (error) => console.warn(error);
 
 const IRREGULAR_PLURALS = Object.freeze({
-  LibrarianStatus: "LibrarianStatuses",
+  ActiveLibrarianStatus: "ActiveLibrarianStatuses",
   Library: "Libraries",
 });
 export const TABS = Object.freeze([
@@ -15,7 +15,7 @@ export const TABS = Object.freeze([
   "Groups",
   "Libraries",
   "Flags",
-  "Tasks",
+  "Jobs",
   "Stats",
 ]);
 
@@ -28,7 +28,8 @@ const getTablePlural = (table) => {
 
 export const useAdminStore = defineStore("admin", {
   state: () => ({
-    librarianStatuses: [],
+    allLibrarianStatuses: [],
+    activeLibrarianStatuses: [],
     unseenFailedImports: false,
     users: [],
     groups: [],
@@ -192,6 +193,19 @@ export const useAdminStore = defineStore("admin", {
       await API.getStats()
         .then((response) => {
           this.stats = response.data;
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async loadAllStatuses() {
+      if (!this.isUserAdmin) {
+        return false;
+      }
+      await API.getAllLibrarianStatuses()
+        .then((response) => {
+          if (Array.isArray(response.data)) {
+            this.allLibrarianStatuses = response.data;
+          }
           return true;
         })
         .catch(console.warn);

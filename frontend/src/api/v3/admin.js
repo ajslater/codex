@@ -91,9 +91,14 @@ const postLibrarianTask = async (data) => {
 
 // STATUSES
 
-const getLibrarianStatuses = () => {
+const getActiveLibrarianStatuses = () => {
   const params = { ts: Date.now() };
   return HTTP.get("/admin/librarian/status", { params });
+};
+
+const getAllLibrarianStatuses = () => {
+  const params = { ts: Date.now() };
+  return HTTP.get("/admin/librarian/status/all", { params });
 };
 
 const getStats = () => {
@@ -113,11 +118,12 @@ export default {
   deleteLibrary,
   deleteGroup,
   deleteUser,
+  getAllLibrarianStatuses,
   getFailedImports,
   getFlags,
   getFolders,
   getGroups,
-  getLibrarianStatuses,
+  getActiveLibrarianStatuses,
   getLibraries,
   getStats,
   getUsers,

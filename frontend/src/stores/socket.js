@@ -92,6 +92,11 @@ export const useSocketStore = defineStore("socket", () => {
     adminStore?.loadTables(tables);
   }
 
+  async function adminLoadAllStatuses() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadAllStatuses();
+  }
+
   function reloadBrowser() {
     if (currentRouteName() === "browser") {
       useBrowserStore().loadMtimes();
@@ -169,7 +174,8 @@ export const useSocketStore = defineStore("socket", () => {
         libraryNotified();
         break;
       case messages.LIBRARIAN_STATUS:
-        adminLoadTables(["LibrarianStatus"]);
+        adminLoadTables(["ActiveLibrarianStatus"]);
+        adminLoadAllStatuses();
         break;
       case messages.FAILED_IMPORTS:
         failedImportsNotified();

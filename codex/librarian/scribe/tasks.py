@@ -31,3 +31,7 @@ class ImportAbortTask(ScribeTask):
 
 class SearchIndexSyncAbortTask(ScribeTask):
     """Abort current search index sync."""
+
+
+class CleanupAbortTask(ScribeTask):
+    """Abort running cleanup/janitor tasks."""

@@ -6,13 +6,17 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.choices.admin import ADMIN_TASK_GROUPS
+from codex.choices.jobs import ADMIN_JOBS
 
-_ADMIN_TASK_CHOICES = tuple(
+_ADMIN_JOB_CHOICES = tuple(
     sorted(
-        item["value"]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
-        for group in ADMIN_TASK_GROUPS["ADMIN_TASKS"]
-        for item in group["tasks"]
+        {item["value"] for group in ADMIN_JOBS["ADMIN_JOBS"] for item in group["jobs"]}
+        | {
+            variant["value"]
+            for group in ADMIN_JOBS["ADMIN_JOBS"]
+            for item in group["jobs"]
+            for variant in item.get("variants", ())
+        }
     )
 )
 
@@ -20,5 +24,5 @@ _ADMIN_TASK_CHOICES = tuple(
 class AdminLibrarianTaskSerializer(Serializer):
     """Get tasks from front end."""
 
-    task = ChoiceField(choices=_ADMIN_TASK_CHOICES)
+    task = ChoiceField(choices=_ADMIN_JOB_CHOICES)
     library_id = IntegerField(required=False)

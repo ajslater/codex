@@ -21,6 +21,7 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexerTask,
 )
 from codex.librarian.scribe.tasks import (
+    CleanupAbortTask,
     ImportAbortTask,
     LazyImportComicsTask,
     SearchIndexSyncAbortTask,
@@ -114,6 +115,10 @@ class ScribeThread(QueuedThread):
         elif isinstance(task, ImportAbortTask):
             self.abort_import_event.set()
             self.log.debug("Import abort signal given.")
+            return
+        elif isinstance(task, CleanupAbortTask):
+            self.abort_cleanup_event.set()
+            self.log.debug("Cleanup abort signal given.")
             return
         priority = get_task_priority(task)
         item = (priority, task)

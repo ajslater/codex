@@ -22,6 +22,9 @@ border-radius: 128px;
     - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 - Fixes
     - Fix reader close button receiving nonsensical route.
+- Features
+    - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
+      and job progress.
 
 ## v1.9.24
 

@@ -11,14 +11,14 @@
         />
         <div class="settingsHeader">Librarian Tasks</div>
         <v-expand-transition
-          v-for="status of librarianStatuses"
+          v-for="status of activeLibrarianStatuses"
           :key="status.id"
         >
           <StatusListItem :status="status" :now="now" />
         </v-expand-transition>
       </div>
       <v-list-item-title v-else id="noTasksRunning">
-        No librarian tasks running
+        No librarian jobs running
       </v-list-item-title>
     </v-expand-transition>
   </v-list-item>
@@ -46,8 +46,8 @@ export default {
       isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),
     ...mapState(useAdminStore, {
-      librarianStatuses: (state) => state.librarianStatuses,
-      show: (state) => state.librarianStatuses.length > 0,
+      activeLibrarianStatuses: (state) => state.activeLibrarianStatuses,
+      show: (state) => state.activeLibrarianStatuses.length > 0,
     }),
   },
   watch: {
@@ -71,7 +71,7 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
     load() {
-      this.loadTable("LibrarianStatus");
+      this.loadTable("ActiveLibrarianStatus");
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");

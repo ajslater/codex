@@ -55,6 +55,7 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexSyncTask,
 )
 from codex.librarian.scribe.tasks import (
+    CleanupAbortTask,
     ImportAbortTask,
     SearchIndexSyncAbortTask,
     UpdateGroupsTask,
@@ -79,6 +80,7 @@ _TASK_MAP = MappingProxyType(
         "search_index_remove_stale": SearchIndexCleanStaleTask(),
         "import_abort": ImportAbortTask(),
         "search_index_abort": SearchIndexSyncAbortTask(),
+        "cleanup_abort": CleanupAbortTask(),
         "search_index_optimize": SearchIndexOptimizeTask(),
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),
@@ -115,12 +117,19 @@ _TASK_MAP = MappingProxyType(
 )
 
 
-class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
-    """Librarian Task Statuses."""
+class AdminLibrarianStatusActiveViewSet(AdminReadOnlyModelViewSet):
+    """Librarian Task Statuses (active/preactive only)."""
 
     queryset = LibrarianStatus.objects.filter(
         Q(preactive__isnull=False) | Q(active__isnull=False)
     ).order_by("preactive", "active", "pk")
+    serializer_class = LibrarianStatusSerializer
+
+
+class AdminLibrarianStatusAllViewSet(AdminReadOnlyModelViewSet):
+    """All Librarian Task Statuses including inactive (for Jobs tab)."""
+
+    queryset = LibrarianStatus.objects.all().order_by("pk")
     serializer_class = LibrarianStatusSerializer
 
 
