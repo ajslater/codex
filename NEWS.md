@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.10.0
+## v1.10.0 Rusty
 
 - 🚨 Codex now requires Python 3.12 🚨
 - Performance
