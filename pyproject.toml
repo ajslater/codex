@@ -16,16 +16,16 @@ dependencies = [
   "channels~=4.2",
   "comicbox[pdf]~=2.2.1",
   "dateparser~=1.2",
-  "django~=6.0",
-  "djangorestframework~=3.16",
-  "djangorestframework-camel-case~=1.4",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",
   "django-rest-registration~=0.9",
   "django-vite~=3.1",
+  "djangorestframework-camel-case~=1.4",
+  "djangorestframework~=3.16",
+  "django~=6.0",
   "drf-spectacular~=0.28",
-  "humanize~=4.12",
   "granian~=2.7",
+  "humanize~=4.12",
   "lark~=1.2",
   "loguru~=0.7.3",
   "nh3~=0.2",
@@ -35,17 +35,16 @@ dependencies = [
   "tomli~=2.0; python_version < '3.11'",
   "typing-extensions~=4.14",
   "tzlocal~=5.0",
-  "whitenoise[brotli]~=6.0",
-  "xxhash>=3.6.0",
-  "zipstream-ng~=1.8",
   "watchfiles>=1.1.1",
+  "whitenoise[brotli]~=6.0",
+  "zipstream-ng~=1.8",
 ]
 description = "A comic archive web server."
 keywords = ["cb7", "cbr", "cbt", "cbz", "comic", "pdf"]
-license = "GPL-3.0-only"
-name = "codex"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "GPL-3.0-only"
+name = "codex"
 version = "1.10.0"
 [[project.authors]]
 name = "AJ Slater"
@@ -78,19 +77,18 @@ lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
   "complexipy~=5.1",
-  "djangorestframework-types~=0.9",
+  "django-schema-graph~=3.1",
   "django-types~=0.22",
+  "djangorestframework-types~=0.9",
   "djlint~=1.36",
+  "icecream~=2.1",
   "mbake~=1.4.5",
   "pathspec~=1.0.4",
   "radon~=6.0",
   "ruff~=0.15",
-  "ty~=0.0.18",
   "types-python-dateutil~=2.9",
+  "ty~=0.0.18",
   "vulture~=2.3",
-  # In lint for types
-  "django-schema-graph~=3.1",
-  "icecream~=2.1",
 ]
 test = [
   "coverage~=7.0",
@@ -166,8 +164,8 @@ exclude = [
   "**/__pycache__",
   "**/node_modules",
   "codex/_vendor",
-  "codex/static_build",
   "codex/static",
+  "codex/static_build",
   "comics",
   "config",
   "dist",
@@ -201,7 +199,7 @@ reportUnusedParameter = false
 builtin = "clear,code,rare"
 check-hidden = true
 ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./codex/_vendor,./codex/static_build,./codex/static,./comics,./config,./dist,./frontend/coverage,./node_modules,./package-lock.json,./package.json,./site,./test-results,/uv.lock"
+skip = "*~,.*,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package-lock.json,./package.json,./site,./test-results,/uv.lock"
 
 [tool.complexipy]
 failed = true
@@ -227,8 +225,8 @@ omit = [
   "*/.*",
   "*__pycache__*",
   "codex/_vendor/*",
-  "codex/static_build/*",
   "codex/static/*",
+  "codex/static_build/*",
   "comics/*",
   "dist/*",
   "frontend/*",
@@ -258,7 +256,7 @@ pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
 [tool.radon]
-exclude = "*~,.*,.*/*,__pycache__/*,codex/_vendor/*,codex/static_build/*,codex/static/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*"
+exclude = "*~,.*,.*/*,__pycache__/*,codex/_vendor/*,codex/static/*,codex/static_build/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*"
 
 [tool.ruff]
 builtins = ["ic"]
@@ -266,8 +264,8 @@ extend-exclude = [
   "**/.*",
   "**/__pycache__",
   "codex/_vendor",
-  "codex/static_build",
   "codex/static",
+  "codex/static_build",
   "dist",
   "frontend",
   "site",
@@ -381,8 +379,8 @@ exclude = [
   "**/__pycache__",
   "**/node_modules",
   "codex/_vendor",
-  "codex/static_build",
   "codex/static",
+  "codex/static_build",
   "comics",
   "dist",
   "frontend",
@@ -403,8 +401,8 @@ exclude = [
   "*/__pycache__*",
   "*/node_modules*",
   "codex/_vendor",
-  "codex/static_build/",
   "codex/static/",
+  "codex/static_build/",
   "comics/",
   "dist/",
   "frontend/",
