@@ -115,20 +115,20 @@ export const useMetadataStore = defineStore("metadata", {
         lowercaseRoleMap[originalRole.toLowerCase()] = originalRole;
       }
 
-      const sortedRoles = [];
+      const sortedRoles = new Set();
       for (const role of HEAD_ROLES) {
         const originalRole = lowercaseRoleMap[role];
         if (!originalRole) {
           continue;
         }
-        sortedRoles.push(originalRole);
+        sortedRoles.add(originalRole);
         delete lowercaseRoleMap[role];
         if (!Object.keys(lowercaseRoleMap).length) {
           break;
         }
       }
-      roles.sort();
-      sortedRoles.push(roles);
+      const sortedRolesList = [...sortedRoles];
+      sortedRolesList.sort();
       return sortedRoles;
     },
     credits(state) {

@@ -1,6 +1,6 @@
 """Metadata query fk & m2m intersections."""
 
-from django.db.models import Count
+from django.db.models import CharField, Count, F, ManyToManyField, Value
 from django.db.models.query import QuerySet
 
 from codex.librarian.scribe.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIELDS
@@ -45,46 +45,12 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             groups[field_name] = qs
         return groups
 
-    @staticmethod
-    def _get_optimized_m2m_query(qs):
-        optimizers = M2M_QUERY_OPTIMIZERS.get(qs.model, {})
-        if prefetch := optimizers.get("prefetch"):
-            qs = qs.prefetch_related(*prefetch)
-        if select := optimizers.get("select", ("identifier",)):
-            qs = qs.select_related(*select)
-        only = optimizers.get("only", ("name", "identifier"))
-        return qs.only(*only)
-
-    def _get_m2m_intersection_query(self, field_name: str, comic_pks: frozenset[int]):
-        """Get intersection query for one field."""
-        model = Comic._meta.get_field(field_name).related_model
-        if not model:
-            reason = f"No model found for comic field: {field_name}"
-            raise ValueError(reason)
-
-        intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-        intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
-            count=len(comic_pks)
-        )
-        return self._get_optimized_m2m_query(intersection_qs)
-
     def _get_comic_pks(self, filtered_qs: QuerySet) -> frozenset[int]:
         pk_field = self.rel_prefix + "pk"
         comic_pks = filtered_qs.distinct().values_list(pk_field, flat=True)
         # In fts mode the join doesn't work for the query.
         # Evaluating it now is probably faster than running the filter for every m2m anyway.
         return frozenset(comic_pks)
-
-    def _query_m2m_intersections(self, comic_pks: frozenset[int]) -> dict:
-        """Query the through models to figure out m2m intersections."""
-        # Speed ok, but still does a query per m2m model
-        m2m_intersections = {}
-
-        for field in COMIC_M2M_FIELDS:
-            m2m_intersections[field.name] = self._get_m2m_intersection_query(
-                field.name, comic_pks
-            )
-        return m2m_intersections
 
     def _get_fk_intersection_query(
         self, field_name: str, comic_pks: frozenset[int], rel: str
@@ -111,6 +77,56 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
                 field.name, comic_pks, rel
             )
         return fk_intersections
+
+    @staticmethod
+    def _get_m2m_intersection_query(
+        field: ManyToManyField, comic_pks: frozenset[int], num_comics: int
+    ) -> QuerySet:
+        """Build a through table queryst for a ManyToManyField."""
+        through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
+        rel_field_name = field.m2m_reverse_field_name()
+        qs = through.objects.filter(comic_id__in=comic_pks)
+        qs = qs.values(related_id=F(rel_field_name + "_id"))
+        qs = qs.annotate(cnt=Count("comic_id"))
+        qs = qs.filter(cnt=num_comics)
+        qs = qs.annotate(field_name=Value(field.name, output_field=CharField()))
+        return qs.values_list("field_name", "related_id")
+
+    @staticmethod
+    def _get_optimized_m2m_query(qs):
+        optimizers = M2M_QUERY_OPTIMIZERS.get(qs.model, {})
+        if prefetch := optimizers.get("prefetch"):
+            qs = qs.prefetch_related(*prefetch)
+        if select := optimizers.get("select", ("identifier",)):
+            qs = qs.select_related(*select)
+        only = optimizers.get("only", ("name", "identifier"))
+        return qs.only(*only)
+
+    def _query_m2m_intersections(self, comic_pks: frozenset[int]) -> dict:
+        """Query m2m intersections with a single query."""
+        num_comics = len(comic_pks)
+
+        # Build one union query across all through tables
+        queries = []
+        for field in COMIC_M2M_FIELDS:
+            qs = self._get_m2m_intersection_query(field, comic_pks, num_comics)
+            queries.append(qs)
+
+        combined = queries[0].union(*queries[1:], all=True)
+
+        # Partition results by field name
+        pk_map: dict[str, list[int]] = {}
+        for field_name, related_id in combined:
+            pk_map.setdefault(field_name, []).append(related_id)
+
+        # Hydrate with ORM querysets (preserves select/prefetch optimizers)
+        m2m_intersections = {}
+        for field in COMIC_M2M_FIELDS:
+            pks = pk_map.get(field.name, [])
+            qs = field.related_model.objects.filter(pk__in=pks)
+            m2m_intersections[field.name] = self._get_optimized_m2m_query(qs)
+
+        return m2m_intersections
 
     def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict]:
         """Query complex intersections."""
