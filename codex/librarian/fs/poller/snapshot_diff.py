@@ -49,12 +49,8 @@ class SnapshotDiff:
         self,
         ref: Snapshot,
         snapshot: Snapshot,
-        *,
-        inode_only_modified: bool = True,
     ) -> None:
         """Compute the diff between ref (old/database) and snapshot (new/disk)."""
-        self._inode_only_modified = inode_only_modified
-
         data = _DiffData(
             ref=ref,
             snapshot=snapshot,
@@ -98,11 +94,7 @@ class SnapshotDiff:
         """Check unchanged paths for inode changes (file replaced in-place)."""
         for path in data.unchanged:
             if not self._is_inode_equal(data, path):
-                if self._inode_only_modified:
-                    data.modified.add(path)
-                else:
-                    data.added.add(path)
-                    data.deleted.add(path)
+                data.modified.add(path)
 
     def _find_moved_paths(self, data: _DiffData) -> None:
         """Detect moves by matching inodes between deleted and added sets."""
