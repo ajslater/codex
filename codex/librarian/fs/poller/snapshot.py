@@ -30,11 +30,15 @@ class Snapshot:
         self._stat_info: dict[str, os.stat_result] = {}
         self._device_inode_to_path: dict[tuple[int, int], str] = {}
 
+    def _inode(self, st: os.stat_result) -> tuple[int, int]:
+        """Build a device:inode Key."""
+        st_dev = IGNORE_ST_DEV if self._ignore_device else st.st_dev
+        return (st_dev, st.st_ino)
+
     def _set_lookups(self, path: str, st: os.stat_result) -> None:
         """Populate the lookup dicts for a single path."""
         self._stat_info[path] = st
-        st_dev = IGNORE_ST_DEV if self._ignore_device else st.st_dev
-        inode_key = (st_dev, st.st_ino)
+        inode_key = self._inode(st)
         self._device_inode_to_path[inode_key] = path
 
     @property
@@ -45,12 +49,10 @@ class Snapshot:
     def inode(self, path: str) -> tuple[int, int]:
         """Return (device, inode) for a path."""
         st = self._stat_info[path]
-        return (st.st_dev, st.st_ino)
+        return self._inode(st)
 
     def path(self, st_lookup: tuple[int, int]) -> str | None:
         """Return the path for an device, inode pair."""
-        if self._ignore_device:
-            st_lookup = (IGNORE_ST_DEV, st_lookup[1])
         return self._device_inode_to_path.get(st_lookup)
 
     def mtime(self, path: str) -> float:
