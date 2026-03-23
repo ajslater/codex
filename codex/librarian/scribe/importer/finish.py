@@ -37,13 +37,8 @@ _FINISH_STATII = (*IMPORTER_STATII, *SEARCH_INDEX_STATII, *SCRIBE_STATII)
 class FinishImporter(InitImporter):
     """Initialize, run and finish a bulk import."""
 
-    def finish(self) -> None:
-        """Perform final tasks when the apply is done."""
-        if self.abort_event.is_set():
-            self.log.info("Import task aborted early.")
-        self.abort_event.clear()
-        self.library.end_update()
-        self.status_controller.finish_many(_FINISH_STATII)
+    def _log_finish(self) -> None:
+        """Log Finish."""
         elapsed_time = time() - self.start_time.timestamp()
         elapsed = naturaldelta(elapsed_time)
         if self.counts.changed():
@@ -66,5 +61,14 @@ class FinishImporter(InitImporter):
         else:
             log_txt = f"No updates necessary for library {self.library.path}. Finished in {elapsed}."
         self.log.success(log_txt)
+
+    def finish(self) -> None:
+        """Perform final tasks when the apply is done."""
+        if self.abort_event.is_set():
+            self.log.info("Import task aborted early.")
+        self.abort_event.clear()
+        self.library.end_update()
+        self.status_controller.finish_many(_FINISH_STATII)
+        self._log_finish()
         if self.counts.failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_CHANGED_TASK)
