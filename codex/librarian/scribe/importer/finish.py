@@ -37,27 +37,31 @@ _FINISH_STATII = (*IMPORTER_STATII, *SEARCH_INDEX_STATII, *SCRIBE_STATII)
 class FinishImporter(InitImporter):
     """Initialize, run and finish a bulk import."""
 
+    def _get_log_finish_changed_text(self, elapsed, elapsed_time) -> str:
+        cache.clear()
+        log_txt = f"Imported library {self.library.path} in {elapsed}"
+        if self.counts.comic:
+            cps = round(self.counts.comic / elapsed_time, 1)
+            cps = intcomma(cps)
+            log_txt += f" at {cps} comics per second"
+        else:
+            log_txt += " but no comics were imported"
+        log_txt += "."
+
+        for attr, suffix in _REPORT_MAP.items():
+            if value := getattr(self.counts, attr):
+                value = intcomma(value)
+                log_txt += f" {value} {suffix}."
+        self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+
+        return log_txt
+
     def _log_finish(self) -> None:
         """Log Finish."""
         elapsed_time = time() - self.start_time.timestamp()
         elapsed = naturaldelta(elapsed_time)
         if self.counts.changed():
-            cache.clear()
-            log_txt = f"Imported library {self.library.path} in {elapsed}"
-            if self.counts.comic:
-                cps = round(self.counts.comic / elapsed_time, 1)
-                cps = intcomma(cps)
-                log_txt += f" at {cps} comics per second"
-            else:
-                log_txt += " but no comics were imported"
-            log_txt += "."
-
-            for attr, suffix in _REPORT_MAP.items():
-                if value := getattr(self.counts, attr):
-                    value = intcomma(value)
-                    log_txt += f" {value} {suffix}."
-
-            self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+            log_txt = self._get_log_finish_changed_text(elapsed, elapsed_time)
         else:
             log_txt = f"No updates necessary for library {self.library.path}. Finished in {elapsed}."
         self.log.success(log_txt)
