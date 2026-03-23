@@ -3,6 +3,7 @@ __pycache__
 !docker/debian.sources
 .*cache
 .circleci
+.claude
 .coverage*
 .docker-token
 .DS_Store

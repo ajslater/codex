@@ -75,6 +75,7 @@ export default defineConfig([
       "**/node_modules/",
       "**/package-lock.json",
       "*~",
+      ".claude",
       ".git/",
       ".*cache/",
       ".venv/",
