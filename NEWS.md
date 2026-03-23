@@ -8,23 +8,26 @@ border-radius: 128px;
 
 ## v1.10.0 Rusty
 
-- 🚨 Codex now requires Python 3.12 🚨
-- Performance
-    - Codex now uses the granian http server instead of hypercorn.
-    - All config has moved to config/codex.toml. Your hypercorn config should be
-      migrated automatically.
-        - Environment variables can be specified in codex.toml as well, but
-          environment variables override config file settings.
-    - The file watcher and poller now use one thread each no matter how many
-      libraries you have.
-- Changes
+- 🚨 Big Changes 🚨
     - Django 6 requires python 3.12.
+    - Unified configuration:
+        - Your hypercorn.toml config will be migrated automatically to
+          codex.toml. Options previously only configurable with environment
+          variables may now be also be specified in codex.toml.
+        - Some of the environment variable names have changed, but old values
+          are still respected for compatibility.
     - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 - Fixes
+    - Fix erroneous "Bookmark" filter appearing in filter menu when a read state
+      is selected.
     - Fix reader close button receiving nonsensical route.
 - Features
     - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
       and job progress.
+- Performance Improvements
+    - Codex now uses the Granian http server instead of Hypercorn.
+    - The file watcher and poller now use one thread each no matter how many
+      libraries you have.
 
 ## v1.9.24
 
