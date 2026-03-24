@@ -29,6 +29,8 @@ _NON_FTS_COLUMNS = frozenset(
         "issue",
         "issue_number",
         "issue_suffix",
+        "main_character",
+        "main_team",
         "month",
         "monochrome",
         "notes",
@@ -60,6 +62,14 @@ _TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
 _ALIAS_FIELD_MAP = MappingProxyType(
     {value: key for key, values in FIELDMAP.items() for value in values}
+)
+# Compound aliases expand into OR queries across multiple columns.
+# Individual aliases (protag, lead) are resolved to "protagonist" by
+# _ALIAS_FIELD_MAP via FIELDMAP before reaching this map.
+_COMPOUND_COLUMN_MAP = MappingProxyType(
+    {
+        "protagonist": ("main_character", "main_team"),
+    }
 )
 
 
@@ -105,21 +115,31 @@ class SearchFilterView(BrowserFTSFilter):
                 return True
         return False
 
+    def _add_field_token(self, preop, col, exp, field_tokens) -> None:
+        """Add a field token entry with the given preop."""
+        if not preop:
+            preop = "and"
+        if preop not in field_tokens:
+            field_tokens[preop] = set()
+        field_tokens[preop].add((col, exp))
+
     def _parse_column_match(
         self, preop, col, exp, field_tokens
     ) -> bool:  # , fts_tokens):
-        col = _ALIAS_FIELD_MAP.get(col.lower(), col)
+        col = _ALIAS_FIELD_MAP.get(col.lower(), col.lower())
+
+        # Compound aliases expand into OR queries across multiple columns.
+        # Store the tuple of cols as the field_token key; filter.py ORs them.
+        if compound_cols := _COMPOUND_COLUMN_MAP.get(col):
+            self._add_field_token(preop, compound_cols, exp, field_tokens)
+            return True
+
         if col not in _VALID_COLUMNS:
             return True
         if col == "path" and not self._is_path_column_allowed():
             return True
         if col in _NON_FTS_COLUMNS or self._is_column_operators_used(exp):
-            if not preop:
-                preop = "and"
-            if preop not in field_tokens:
-                field_tokens[preop] = set()
-            field_token = (col, exp)
-            field_tokens[preop].add(field_token)
+            self._add_field_token(preop, col, exp, field_tokens)
             return True
         return False
 
