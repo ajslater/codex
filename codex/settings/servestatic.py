@@ -1,4 +1,4 @@
-"""Whitenoise setup functions."""
+"""Servestatic setup functions."""
 
 import re
 

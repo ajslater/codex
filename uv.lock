@@ -61,11 +61,11 @@ wheels = [
 
 [[package]]
 name = "astroid"
-version = "4.1.1"
+version = "4.1.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a2/4c/569eefb533ce71bc9f4f12a4a0d7f0ba27e500681dec1312d4657e849d20/astroid-4.1.1.tar.gz", hash = "sha256:445d831fe785df8c670bbb46b900b8424b82f85b4af187103f71a63a63ebed43", size = 412522, upload-time = "2026-02-23T02:36:30.315Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/fd/24475b7cfb70298e8921bc077adb46a3fe77887422545d8a061573e130ee/astroid-4.1.2.tar.gz", hash = "sha256:d6c4a52bfcda4bbeb7359dead642b0248b90f7d9a07e690230bd86fefd6d37f1", size = 414896, upload-time = "2026-03-22T19:16:42.075Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/53/bac4724684064bfee95ece0bb6caf3887e509006845e25388a12cac26d0c/astroid-4.1.1-py3-none-any.whl", hash = "sha256:6b28522096f7e7a36ffcf3be60e77de15e2411ab3a713184beac33fb8f20c0c9", size = 279273, upload-time = "2026-02-23T02:36:28.676Z" },
+    { url = "https://files.pythonhosted.org/packages/54/97/4ee9b0438e85bf0a808a89ef0be357319252ab27e1b313ae0aef7aeaa5a6/astroid-4.1.2-py3-none-any.whl", hash = "sha256:21312e682c0866dc5a309ee57e4b88ea92751b9955a58b1c31371cbbeb088707", size = 279956, upload-time = "2026-03-22T19:16:40.062Z" },
 ]
 
 [[package]]
@@ -421,11 +421,11 @@ dependencies = [
     { name = "nh3" },
     { name = "pillow" },
     { name = "psutil" },
+    { name = "servestatic", extra = ["brotli"] },
     { name = "setproctitle" },
     { name = "typing-extensions" },
     { name = "tzlocal" },
     { name = "watchfiles" },
-    { name = "whitenoise", extra = ["brotli"] },
     { name = "zipstream-ng" },
 ]
 
@@ -493,12 +493,12 @@ requires-dist = [
     { name = "nh3", specifier = "~=0.2" },
     { name = "pillow", specifier = "~=12.0" },
     { name = "psutil", specifier = "~=7.1" },
+    { name = "servestatic", extras = ["brotli"], specifier = "~=4.1" },
     { name = "setproctitle", specifier = "~=1.3.7" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = "~=2.0" },
     { name = "typing-extensions", specifier = "~=4.14" },
     { name = "tzlocal", specifier = "~=5.0" },
     { name = "watchfiles", specifier = ">=1.1.1" },
-    { name = "whitenoise", extras = ["brotli"], specifier = "~=6.0" },
     { name = "zipstream-ng", specifier = "~=1.8" },
 ]
 
@@ -1371,11 +1371,11 @@ wheels = [
 
 [[package]]
 name = "jsonpointer"
-version = "3.1.0"
+version = "3.1.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/48/bf/9ecc036fbc15cf4153ea6ed4dbeed31ef043f762cccc9d44a534be8319b0/jsonpointer-3.1.0.tar.gz", hash = "sha256:f9b39abd59ba8c1de8a4ff16141605d2a8dacc4dd6cf399672cf237bfe47c211", size = 9000, upload-time = "2026-03-20T21:47:09.982Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/c7/af399a2e7a67fd18d63c40c5e62d3af4e67b836a2107468b6a5ea24c4304/jsonpointer-3.1.1.tar.gz", hash = "sha256:0b801c7db33a904024f6004d526dcc53bbb8a4a0f4e32bfd10beadf60adf1900", size = 9068, upload-time = "2026-03-23T22:32:32.458Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/25/cebb241a435cbf4626b5ea096d8385c04416d7ca3082a15299b746e248fa/jsonpointer-3.1.0-py3-none-any.whl", hash = "sha256:f82aa0f745001f169b96473348370b43c3f581446889c41c807bab1db11c8e7b", size = 7651, upload-time = "2026-03-20T21:47:08.792Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/6a/a83720e953b1682d2d109d3c2dbb0bc9bf28cc1cbc205be4ef4be5da709d/jsonpointer-3.1.1-py3-none-any.whl", hash = "sha256:8ff8b95779d071ba472cf5bc913028df06031797532f08a7d5b602d8b2a488ca", size = 7659, upload-time = "2026-03-23T22:32:31.568Z" },
 ]
 
 [[package]]
@@ -2672,6 +2672,23 @@ wheels = [
 ]
 
 [[package]]
+name = "servestatic"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/e2/161d810da87b9b16ee49cabba3da6fa8578351a26ced838bd3956a0f7aae/servestatic-4.1.0.tar.gz", hash = "sha256:40e6162a5bf38f0dd0ff259c1bb60c5249f9828d8d4713e382004726850fa111", size = 31073, upload-time = "2026-03-07T09:04:44.005Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/df/82d9a9fcb607f8e9e81e481f6164e653a30a0b23340f48c34f41fb71db7d/servestatic-4.1.0-py3-none-any.whl", hash = "sha256:4936d59a91c918ffe96481a9beb2c6338f07c236bb27f4a35d244ac0c64a7b57", size = 37629, upload-time = "2026-03-07T09:04:42.62Z" },
+]
+
+[package.optional-dependencies]
+brotli = [
+    { name = "brotli" },
+]
+
+[[package]]
 name = "setproctitle"
 version = "1.3.7"
 source = { registry = "https://pypi.org/simple" }
@@ -2966,11 +2983,11 @@ wheels = [
 
 [[package]]
 name = "types-python-dateutil"
-version = "2.9.0.20260305"
+version = "2.9.0.20260323"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1d/c7/025c624f347e10476b439a6619a95f1d200250ea88e7ccea6e09e48a7544/types_python_dateutil-2.9.0.20260305.tar.gz", hash = "sha256:389717c9f64d8f769f36d55a01873915b37e97e52ce21928198d210fbd393c8b", size = 16885, upload-time = "2026-03-05T04:00:47.409Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e9/02/f72df9ef5ffc4f959b83cb80c8aa03eb8718a43e563ecd99ccffe265fa89/types_python_dateutil-2.9.0.20260323.tar.gz", hash = "sha256:a107aef5841db41ace381dbbbd7e4945220fc940f7a72172a0be5a92d9ab7164", size = 16897, upload-time = "2026-03-23T04:15:14.829Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0a/77/8c0d1ec97f0d9707ad3d8fa270ab8964e7b31b076d2f641c94987395cc75/types_python_dateutil-2.9.0.20260305-py3-none-any.whl", hash = "sha256:a3be9ca444d38cadabd756cfbb29780d8b338ae2a3020e73c266a83cc3025dd7", size = 18419, upload-time = "2026-03-05T04:00:46.392Z" },
+    { url = "https://files.pythonhosted.org/packages/92/c1/b661838b97453e699a215451f2e22cee750eaaf4ea4619b34bdaf01221a4/types_python_dateutil-2.9.0.20260323-py3-none-any.whl", hash = "sha256:a23a50a07f6eb87e729d4cb0c2eb511c81761eeb3f505db2c1413be94aae8335", size = 18433, upload-time = "2026-03-23T04:15:13.683Z" },
 ]
 
 [[package]]
@@ -3165,20 +3182,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0b/02/ae6ceac1baeda530866a85075641cec12989bd8d31af6d5ab4a3e8c92f47/webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923", size = 9721, upload-time = "2017-04-05T20:21:34.189Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78", size = 11774, upload-time = "2017-04-05T20:21:32.581Z" },
-]
-
-[[package]]
-name = "whitenoise"
-version = "6.12.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cb/2a/55b3f3a4ec326cd077c1c3defeee656b9298372a69229134d930151acd01/whitenoise-6.12.0.tar.gz", hash = "sha256:f723ebb76a112e98816ff80fcea0a6c9b8ecde835f8ddda25df7a30a3c2db6ad", size = 26841, upload-time = "2026-02-27T00:05:42.028Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/eb/d5583a11486211f3ebd4b385545ae787f32363d453c19fffd81106c9c138/whitenoise-6.12.0-py3-none-any.whl", hash = "sha256:fc5e8c572e33ebf24795b47b6a7da8da3c00cff2349f5b04c02f28d0cc5a3cc2", size = 20302, upload-time = "2026-02-27T00:05:40.086Z" },
-]
-
-[package.optional-dependencies]
-brotli = [
-    { name = "brotli" },
 ]
 
 [[package]]

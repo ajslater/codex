@@ -28,8 +28,8 @@ from codex.settings.config import (
     load_codex_config,
 )
 from codex.settings.secret_key import get_secret_key
+from codex.settings.servestatic import immutable_file_test
 from codex.settings.timezone import get_time_zone
-from codex.settings.whitenoise import immutable_file_test
 
 ###########################
 # Constants & Env Helpers #
@@ -254,7 +254,7 @@ def _get_installed_apps() -> tuple:
         installed_apps += ["nplusone.ext.django", "schema_graph"]
 
     installed_apps += [
-        "whitenoise.runserver_nostatic",
+        "servestatic.runserver_nostatic",
         "django.contrib.staticfiles",
         "rest_framework",
         "rest_framework.authtoken",
@@ -284,7 +284,7 @@ def _get_middleware() -> tuple:
     middleware = [
         "corsheaders.middleware.CorsMiddleware",
         "django.middleware.security.SecurityMiddleware",
-        "whitenoise.middleware.WhiteNoiseMiddleware",
+        "servestatic.middleware.ServeStaticMiddleware",
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
@@ -416,15 +416,15 @@ TIME_ZONE = get_time_zone(TZ)
 # Static Files #
 ################
 
-# WHITENOISE_KEEP_ONLY_HASHED_FILES is still not usable with vite chunking
+# SERVESTATIC_KEEP_ONLY_HASHED_FILES is still not usable with vite chunking
 # If it is, than maybe don't need this immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static"
-WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
-WHITENOISE_STATIC_PREFIX = "/static"  # otherwise is based on STATIC_URL
-STATIC_URL = GRANIAN_URL_PATH_PREFIX.rstrip("/") + WHITENOISE_STATIC_PREFIX + "/"
+SERVESTATIC_IMMUTABLE_FILE_TEST = immutable_file_test
+SERVESTATIC_STATIC_PREFIX = "/static"  # otherwise is based on STATIC_URL
+STATIC_URL = GRANIAN_URL_PATH_PREFIX.rstrip("/") + SERVESTATIC_STATIC_PREFIX + "/"
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        "BACKEND": "servestatic.storage.CompressedManifestStaticFilesStorage",
     }
 }
 STATICFILES_DIRS = (
