@@ -1,6 +1,7 @@
 import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
+import { toRaw } from "vue";
 
 const getBrowserHrefPath = ({ group, pks, query, ts }) => {
   const params = serializeParams(query, ts);
@@ -49,7 +50,8 @@ const getBrowserPage = ({ group, pks, page }, data, ts) => {
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
   const mtime = settings.mtime;
-  const data = structuredClone(settings);
+  const filters = toRaw(settings.filters);
+  const data = structuredClone({ ...settings, filters });
   delete data.mtime;
   const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
