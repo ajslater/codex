@@ -83,7 +83,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         field: ManyToManyField, comic_pks: frozenset[int], num_comics: int
     ) -> QuerySet:
         """Build a through table queryst for a ManyToManyField."""
-        through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
+        through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         rel_field_name = field.m2m_reverse_field_name()
         qs = through.objects.filter(comic_id__in=comic_pks)
         qs = qs.values(related_id=F(rel_field_name + "_id"))
