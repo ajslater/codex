@@ -24,6 +24,7 @@ border-radius: 128px;
 - Features
     - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
       and job progress.
+    - Browser Pane refreshes with a click/touch pull control.
 - Performance Improvements
     - Codex now uses the Granian http server instead of Hypercorn.
     - The file watcher and poller now use one thread each no matter how many
