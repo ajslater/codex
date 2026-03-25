@@ -45,6 +45,48 @@ def _get_disk_inode(path: str) -> int | None:
         return None
 
 
+def _detect_one_move(
+    add_idx: int,
+    add_value: tuple[int, FSEvent],
+    deleted_by_inode,
+    move_events,
+    matched_added,
+    matched_deleted,
+) -> None:
+    add_lib_pk, add_event = add_value
+    disk_inode = _get_disk_inode(add_event.src_path)
+    if not disk_inode:
+        return
+
+    match = deleted_by_inode.get(disk_inode)
+    if not match:
+        return
+
+    del_idx, del_lib_pk, del_event = match
+    # Only match within the same library
+    if add_lib_pk != del_lib_pk:
+        return
+
+    is_dir = Path(add_event.src_path).is_dir()
+    is_cover = add_event.is_cover or del_event.is_cover
+
+    move_events.append(
+        (
+            add_lib_pk,
+            FSEvent(
+                src_path=del_event.src_path,
+                change=FSChange.moved,
+                dest_path=add_event.src_path,
+                is_directory=is_dir,
+                is_cover=is_cover,
+            ),
+        )
+    )
+    matched_added.add(add_idx)
+    matched_deleted.add(del_idx)
+    del deleted_by_inode[disk_inode]
+
+
 def detect_moves(batch: ChangeBatch) -> list[tuple[int, FSEvent]]:
     """
     Match deleted+added pairs by inode to detect moves.
@@ -66,39 +108,15 @@ def detect_moves(batch: ChangeBatch) -> list[tuple[int, FSEvent]]:
     matched_added: set[int] = set()  # indices into batch.added
     matched_deleted: set[int] = set()  # indices into batch.deleted
 
-    for add_idx, (add_lib_pk, add_event) in enumerate(batch.added):
-        disk_inode = _get_disk_inode(add_event.src_path)
-        if not disk_inode:
-            continue
-
-        match = deleted_by_inode.get(disk_inode)
-        if not match:
-            continue
-
-        del_idx, del_lib_pk, del_event = match
-        # Only match within the same library
-        if add_lib_pk != del_lib_pk:
-            continue
-
-        is_dir = Path(add_event.src_path).is_dir()
-        is_cover = add_event.is_cover or del_event.is_cover
-
-        move_events.append(
-            (
-                add_lib_pk,
-                FSEvent(
-                    src_path=del_event.src_path,
-                    change=FSChange.moved,
-                    dest_path=add_event.src_path,
-                    is_directory=is_dir,
-                    is_cover=is_cover,
-                ),
-            )
+    for add_idx, add_val in enumerate(batch.added):
+        _detect_one_move(
+            add_idx,
+            add_val,
+            deleted_by_inode,
+            move_events,
+            matched_added,
+            matched_deleted,
         )
-        matched_added.add(add_idx)
-        matched_deleted.add(del_idx)
-        del deleted_by_inode[disk_inode]
-
     # Remove matched entries from added and deleted (reverse order to keep indices valid)
     batch.added = [
         pair for idx, pair in enumerate(batch.added) if idx not in matched_added
