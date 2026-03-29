@@ -119,7 +119,7 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
     field
     for field in Comic._meta.get_fields()
-    if (field.many_to_many and field.concrete)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    if (field.many_to_many and not field.auto_created)
 )
 COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(field.name for field in COMIC_M2M_FIELDS)
 COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
