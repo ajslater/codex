@@ -1,4 +1,4 @@
-"""Consts and maps for import."""
+"""BULK_CREATE_COMIC_FIELDSConsts and maps for import."""
 
 from types import MappingProxyType, SimpleNamespace
 
@@ -117,7 +117,9 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
     )
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-    field for field in Comic._meta.get_fields() if field.many_to_many
+    field
+    for field in Comic._meta.get_fields()
+    if (field.many_to_many and field.concrete)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 )
 COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(field.name for field in COMIC_M2M_FIELDS)
 COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
@@ -320,7 +322,9 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(
         field.name
         for field in Comic._meta.get_fields()
-        if (not field.many_to_many)
+        # Concrete check protects against SettingsReader reverse relations being updated
+        if field.concrete  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        and (not field.many_to_many)
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )
 )

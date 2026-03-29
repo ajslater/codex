@@ -18,7 +18,11 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
 )
 _FIELD_TYPE_MAP = MappingProxyType(
     {
-        **{field.name: field.__class__ for field in Comic._meta.get_fields()},
+        **{
+            field.name: field.__class__
+            for field in Comic._meta.get_fields()
+            if field.concrete  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        },
         "role": ManyToManyField,
         "issue": CharField,
     }
