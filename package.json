@@ -103,7 +103,7 @@
     "eslint-plugin-security": "^4.0.0",
     "eslint-plugin-sonarjs": "^4.0.0",
     "eslint-plugin-toml": "^1.0.0",
-    "eslint-plugin-unicorn": "^63.0.0",
+    "eslint-plugin-unicorn": "^64.0.0",
     "eslint-plugin-vue": "^10.0.0",
     "eslint-plugin-vue-scoped-css": "^3.0.0",
     "eslint-plugin-yml": "^3.0.0",
