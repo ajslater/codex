@@ -98,7 +98,8 @@ class GroupByQuerySet(QuerySet):
     def demote_joins(self, tables) -> Self:
         """Force INNER JOINS."""
         obj = self._chain()  # pyright: ignore[reportAttributeAccessIssue]
-        obj.query.demote_joins(tables)
+        if valid_tables := tables & set(obj.query.alias_map):
+            obj.query.demote_joins(valid_tables)
         return obj
 
 
