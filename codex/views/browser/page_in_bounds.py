@@ -5,7 +5,6 @@ from typing import Any
 from loguru import logger
 
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
-from codex.views.util import Route
 
 
 class BrowserPageInBoundsView(BrowserAnnotateCardView):
@@ -21,44 +20,14 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
         pks = pks or (0,)
         return {"group": group, "pks": pks, "page": new_page}
 
-    def _get_up_breadcrumbs(self) -> list:
-        """Walk up the breadcrumbs to get the next level up."""
-        breadcrumbs = self.params.get("breadcrumbs", [])
-        new_breadcrumbs = []
-        level = False
+    def _get_up_page_redirect(self) -> tuple[dict, None]:
+        """Get a parent route to redirect to when page is out of bounds."""
         group = self.kwargs.get("group")
-        pks = self.kwargs.get("pks")
-        page = self.kwargs.get("page", 1)
-        current_route = Route(group=group, pks=pks, page=page)
-        for crumb in reversed(breadcrumbs):
-            if not level:
-                crumb_route = Route(**crumb)
-                level = current_route & crumb_route
-                continue
-            new_breadcrumbs = [crumb, *new_breadcrumbs]
-
-        if not new_breadcrumbs:
-            if group not in ("f", "a"):
-                group = "r"
-            top_route = {"group": group, "pks": (), "page": 1}
-            new_breadcrumbs = [top_route]
-        return new_breadcrumbs
-
-    def _get_up_page_redirect(self) -> tuple[dict, dict]:
-        """Walk up the breadcrumbs."""
-        try:
-            up_breadcrumbs = self._get_up_breadcrumbs()
-            route_mask = up_breadcrumbs[-1]
-            settings_mask = {"breadcrumbs": up_breadcrumbs}
-            logger.debug("Redirect up a level.")
-        except IndexError:
-            group = self.kwargs.get("group")
-            pks = "0"
-            new_page = 1
-            route_mask = {"group": group, "pks": pks, "page": new_page}
-            settings_mask = {"breadcrumbs": [route_mask]}
-            logger.debug("Redirect to all at current group.")
-        return route_mask, settings_mask
+        if group not in ("f", "a"):
+            group = "r"
+        route_mask = {"group": group, "pks": (), "page": 1}
+        logger.debug("Redirect up a level.")
+        return route_mask, None
 
     def _handle_page_out_of_bounds(self, num_pages) -> None:
         """Handle out of bounds redirect."""

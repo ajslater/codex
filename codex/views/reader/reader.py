@@ -1,5 +1,6 @@
 """Views for reading comic books."""
 
+from collections.abc import Mapping
 from typing import override
 
 from drf_spectacular.utils import extend_schema
@@ -15,11 +16,10 @@ class ReaderView(ReaderBooksView):
 
     serializer_class: type[BaseSerializer] | None = ReaderComicsSerializer
 
-    SESSION_KEY: str = "reader"
     TARGET: str = "reader"
 
     @override
-    def get_object(self) -> dict[str, dict | int | None]:
+    def get_object(self) -> dict[str, Mapping | int | None]:
         """Get the previous and next comics in a group or story arc."""
         # get_arcs & get_book_collection populates those arc self valirables.
         # So order is important.

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-import { breadcrumbs } from "@/choices/browser-defaults.json";
+import { lastRoute } from "@/choices/browser-defaults.json";
 const MainAdmin = () => import("@/admin.vue");
 const MainBrowser = () => import("@/browser.vue");
 const HttpError = () => import("@/http-error.vue");
@@ -15,7 +15,7 @@ const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 
 const LAST_ROUTE = {
   name: "browser",
-  params: globalThis.CODEX.LAST_ROUTE || breadcrumbs[0],
+  params: globalThis.CODEX.LAST_ROUTE || lastRoute,
 };
 
 const routes = [

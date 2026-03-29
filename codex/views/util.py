@@ -26,14 +26,6 @@ class Route:
         """Breadcrumb equality."""
         return cmp and hash(self) == hash(cmp)
 
-    def __and__(self, cmp) -> bool:
-        """Breadcrumb intersection."""
-        return (
-            (cmp is not None)
-            and (self.group == cmp.group)
-            and (self.pks == cmp.pks or bool(set(self.pks) & set(cmp.pks)))
-        )
-
 
 def pop_name(kwargs: Mapping) -> Mapping:
     """Pop name from a mapping route."""

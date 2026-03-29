@@ -10,7 +10,6 @@ import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
-import { range } from "@/util";
 
 const GROUPS = Object.freeze("rpisvc");
 export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse().join(""));
@@ -30,7 +29,6 @@ const DYNAMIC_COVER_KEYS = Object.freeze([
   "q",
 ]);
 const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
-const PAGE_LOAD_KEYS = Object.freeze(["breadcrumbs"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
 const redirectRoute = (route) => {
@@ -56,7 +54,7 @@ export const useBrowserStore = defineStore("browser", {
       dynamic: undefined,
     },
     settings: {
-      breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,
+      breadcrumbs: [],
       customCovers: BROWSER_DEFAULTS.customCovers,
       dynamicCovers: BROWSER_DEFAULTS.dynamicCovers,
       filters: {},
@@ -209,9 +207,6 @@ export const useBrowserStore = defineStore("browser", {
     },
     filterOnlySettings(state) {
       return this._filterSettings(state, FILTER_ONLY_KEYS);
-    },
-    pageLoadSettings(state) {
-      return this._filterSettings(state, PAGE_LOAD_KEYS);
     },
     metadataSettings(state) {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
@@ -498,22 +493,6 @@ export const useBrowserStore = defineStore("browser", {
     setPageMtime(mtime) {
       globalThis.mtime = mtime;
     },
-    async updateBreadcrumbs(oldBreadcrumbs) {
-      const breadcrumbs = this.settings.breadcrumbs || [];
-      const indexes = range(breadcrumbs.length).reverse();
-      for (const index of indexes) {
-        const oldCrumb = oldBreadcrumbs[index];
-        const newCrumb = breadcrumbs[index];
-        if (!dequal(oldCrumb, newCrumb)) {
-          if (newCrumb.name === null) {
-            // For volumes
-            newCrumb.name = "";
-          }
-          API.updateSettings({ breadcrumbs });
-          break;
-        }
-      }
-    },
     /*
      * ROUTE
      */
@@ -582,7 +561,6 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         return this.loadSettings();
       }
-      const oldBreadcrumbs = this.settings.breadcrumbs;
       await API.getBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
           const { breadcrumbs, ...page } = response.data;
@@ -604,8 +582,6 @@ export const useBrowserStore = defineStore("browser", {
         .catch(this.handlePageError);
       if (updateSettings) {
         API.updateSettings(this.settings);
-      } else {
-        this.updateBreadcrumbs(oldBreadcrumbs);
       }
     },
     async loadAvailableFilterChoices() {

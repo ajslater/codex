@@ -5,6 +5,7 @@ from django.views.decorators.cache import cache_control
 
 from codex.urls.const import PAGE_MAX_AGE
 from codex.views.download import DownloadView
+from codex.views.reader.comic_settings import ReaderComicSettingsView
 from codex.views.reader.page import ReaderPageView
 from codex.views.reader.reader import ReaderView
 from codex.views.reader.settings import ReaderSettingsView
@@ -21,6 +22,11 @@ urlpatterns = [
         name="page",
     ),
     path("settings", ReaderSettingsView.as_view(), name="settings"),
+    path(
+        "<int:pk>/settings",
+        ReaderComicSettingsView.as_view(),
+        name="comic_settings",
+    ),
     #
     #
     # Download

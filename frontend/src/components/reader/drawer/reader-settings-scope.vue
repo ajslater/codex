@@ -1,129 +1,71 @@
 <template>
-  <div class="settingsSubHeader">Comic Settings Scope</div>
-  <v-radio-group
-    v-model="isGlobalScope"
-    class="scopeRadioGroup readerCodexListItem"
-    density="compact"
-    hide-details="auto"
-  >
-    <v-radio
-      v-for="item of scopeItems"
-      :key="item.value"
-      :label="item.title"
-      :value="item.value"
-    />
-  </v-radio-group>
-  <v-expand-transition>
-    <div id="readerScopedSettings" class="readerCodexListItem">
-      <v-radio-group
-        class="displayRadioGroup"
-        density="compact"
-        label="Display"
-        hide-details="auto"
-        :model-value="selectedSettings.fitTo"
-        @update:model-value="settingsDialogChanged({ fitTo: $event })"
-      >
-        <v-radio
-          v-for="item in fitToChoices"
-          :key="item.value"
-          :label="item.title"
-          :value="item.value"
+  <v-expansion-panels v-model="openPanels" multiple>
+    <v-expansion-panel value="global">
+      <v-expansion-panel-title class="scopePanelTitle">
+        Default Settings
+      </v-expansion-panel-title>
+      <v-expansion-panel-text>
+        <ReaderSettingsControls
+          :settings="globalSettings"
+          @update="updateGlobalSettings"
         />
-      </v-radio-group>
-      <v-checkbox
-        :disabled="disableTwoPages"
-        class="scopedCheckbox"
-        density="compact"
-        label="Two pages"
-        hide-details="auto"
-        :model-value="selectedSettings.twoPages"
-        :true-value="true"
-        :indeterminate="
-          selectedSettings.twoPages === null ||
-          selectedSettings.twoPages === undefined
-        "
-        @update:model-value="settingsDialogChanged({ twoPages: $event })"
-      />
-      <v-radio-group
-        class="displayRadioGroup"
-        density="compact"
-        label="Reading Direction"
-        hide-details="auto"
-        :model-value="selectedSettings.readingDirection"
-        @update:model-value="
-          settingsDialogChanged({ readingDirection: $event })
-        "
-      >
-        <v-radio
-          v-for="item in readingDirectionChoices"
-          :key="item.value"
-          :label="item.title"
-          :value="item.value"
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+    <v-expansion-panel value="comic" :disabled="!validBook">
+      <v-expansion-panel-title class="scopePanelTitle">
+        Comic Settings
+      </v-expansion-panel-title>
+      <v-expansion-panel-text>
+        <ReaderSettingsControls
+          :settings="comicSettings"
+          show-clear
+          :clear-disabled="isClearDisabled"
+          @update="updateComicSettings"
+          @clear="clearComicSettings"
         />
-      </v-radio-group>
-      <v-checkbox
-        :model-value="selectedSettings.readRtlInReverse"
-        class="scopedCheckbox"
-        density="compact"
-        label="Read RTL Comics LTR"
-        hide-details="auto"
-        :true-value="true"
-        @update:model-value="
-          settingsDialogChanged({ readRtlInReverse: $event })
-        "
-      />
-
-      <v-btn
-        v-if="!isGlobalScope"
-        id="clearSettingsButton"
-        v-tooltip="{
-          openDelay,
-          text: 'Use the default settings for all comics for this comic',
-        }"
-        :disabled="isClearSettingsButtonDisabled"
-        @click="clearSettingsLocal"
-      >
-        Clear Settings
-      </v-btn>
-    </div>
-  </v-expand-transition>
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+  </v-expansion-panels>
   <v-divider />
 </template>
 
 <script>
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 import { useEventListener } from "@vueuse/core";
 
-const ATTRS = Object.freeze(["fitTo", "readingDirection", "twoPages"]);
+import ReaderSettingsControls from "./reader-settings-controls.vue";
+
+const ATTRS = Object.freeze([
+  "fitTo",
+  "readingDirection",
+  "twoPages",
+  "readRtlInReverse",
+  "finishOnLastPage",
+  "pageTransition",
+  "cacheBook",
+]);
 
 export default {
   name: "ReaderSettingsScope",
+  components: { ReaderSettingsControls },
   data() {
     return {
-      isGlobalScope: false,
-      openDelay: 2000,
-      scopeItems: [
-        { title: "Only this comic", value: false },
-        { title: "Default for all comics", value: true },
-      ],
+      openPanels: [],
     };
   },
   computed: {
     ...mapState(useAuthStore, ["isAuthDialogOpen"]),
-    ...mapState(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
     ...mapState(useReaderStore, {
-      choices: (state) => state.choices,
-      validBook: (state) => Boolean(state.books?.current),
-      selectedSettings(state) {
-        return this.isGlobalScope || !state.books?.current
-          ? state.readerSettings
-          : state.books?.current.settings;
+      globalSettings: (state) => state.readerSettings,
+      comicSettings(state) {
+        return state.books?.current?.settings || {};
       },
-      isClearSettingsButtonDisabled(state) {
-        if (this.isGlobalScope || !state.books?.current) {
+      validBook: (state) => Boolean(state.books?.current),
+      isClearDisabled(state) {
+        if (!state.books?.current) {
           return true;
         }
         for (const attr of ATTRS) {
@@ -135,42 +77,16 @@ export default {
         return true;
       },
     }),
-    ...mapWritableState(useReaderStore, ["readRtlInReverse"]),
-    fitToChoices() {
-      return this.choicesWithoutNull("fitTo");
-    },
-    readingDirectionChoices() {
-      return this.choicesWithoutNull("readingDirection");
-    },
-    disableTwoPages() {
-      return this.isVertical || (this.isPDF && this.cacheBook);
-    },
   },
   created() {
     useEventListener(document, "keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "clearSettingsLocal",
-      "setSettingsGlobal",
-      "setSettingsLocal",
+      "clearComicSettings",
+      "updateGlobalSettings",
+      "updateComicSettings",
     ]),
-    settingsDialogChanged(data) {
-      if (this.isGlobalScope) {
-        this.setSettingsGlobal(data);
-      } else {
-        this.setSettingsLocal(data);
-      }
-    },
-    choicesWithoutNull(attr) {
-      const choices = [];
-      for (const choice of Reflect.get(this.choices, attr)) {
-        if (choice.value) {
-          choices.push(choice);
-        }
-      }
-      return Object.freeze(choices);
-    },
     _keyUpListener(event) {
       event.stopPropagation();
       if (this.isAuthDialogOpen) {
@@ -192,7 +108,7 @@ export default {
           break;
         case "2":
           updates = {
-            twoPages: !this.selectedSettings.twoPages,
+            twoPages: !this.comicSettings.twoPages,
           };
           break;
         case "l":
@@ -217,7 +133,7 @@ export default {
           break;
       }
       if (updates) {
-        this.setSettingsLocal(updates);
+        this.updateComicSettings(updates);
       }
       /*
        * metadata and close are attached to to title-toolbar
@@ -229,34 +145,28 @@ export default {
 </script>
 
 <style scoped lang="scss">
-// settingsSubHeader defined in settings/settings-drawer.vue
-.scopeRadioGroup {
-  padding-top: 10px;
-  padding-bottom: 4px;
+:deep(.v-expansion-panel) {
+  background-color: rgb(var(--v-theme-background));
 }
 
-.scopedCheckbox {
-  padding-left: 6px;
-  padding-top: 5px;
-  padding-bottom: 10px;
-}
-
-.readerCodexListItem {
+.scopePanelTitle {
   padding-left: 15px;
-  padding-right: env(safe-area-inset-right);
+  padding-right: 10px;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-textDisabled));
 }
 
-#clearSettingsButton {
-  margin-top: 6px;
-  margin-bottom: 4px;
+:deep(.v-expansion-panel-title--active) {
+  min-height: 48px !important;
 }
 
-#readerScopedSettings {
-  background-color: rgba(var(--v-theme-surface));
-  margin-left: 10px;
-  padding-left: 5px;
-  padding-top: 4px;
-  margin-right: 8px;
-  margin-bottom: 5px;
+:deep(.v-expansion-panel--active:not(:first-child)) {
+  // Fix for default behavior that makes an unsightly margin on active
+  margin-top: 0px;
+}
+
+:deep(.v-expansion-panel-text__wrapper) {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 </style>

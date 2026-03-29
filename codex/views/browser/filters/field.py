@@ -5,7 +5,7 @@ from types import MappingProxyType
 from django.db.models.query_utils import Q
 
 from codex.views.browser.filters.group import GroupFilterView
-from codex.views.session import (
+from codex.views.settings.const import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,
@@ -16,6 +16,32 @@ _FILTER_REL_MAP = MappingProxyType(
         CREDIT_PERSON_UI_FIELD: "credits__person",
         STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
         IDENTIFIER_TYPE_UI_FIELD: "identifiers__source",
+    }
+)
+_FILTER_ATTRIBUTES: frozenset[str] = frozenset(
+    {
+        "age_rating",
+        "characters",
+        "country",
+        CREDIT_PERSON_UI_FIELD,
+        "critical_rating",
+        "decade",
+        "file_type",
+        "genres",
+        IDENTIFIER_TYPE_UI_FIELD,
+        "language",
+        "locations",
+        "monochrome",
+        "original_format",
+        "reading_direction",
+        "series_groups",
+        "stories",
+        STORY_ARC_UI_FIELD,
+        "tagger",
+        "tags",
+        "teams",
+        "universes",
+        "year",
     }
 )
 
@@ -45,7 +71,7 @@ class ComicFieldFilterView(GroupFilterView):
     def get_all_comic_field_filters(cls, rel_prefix, filters) -> Q:
         """Get all comicfiled filters for rel_prefix."""
         comic_field_filter = Q()
-        for field in cls.FILTER_ATTRIBUTES:
+        for field in _FILTER_ATTRIBUTES:
             filter_list = filters.get(field, [])
             comic_field_filter &= cls._filter_by_comic_field(
                 field, rel_prefix, filter_list

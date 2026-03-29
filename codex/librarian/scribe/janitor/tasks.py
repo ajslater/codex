@@ -44,6 +44,10 @@ class JanitorCleanupBookmarksTask(JanitorTask):
     """Clean unused bookmarks."""
 
 
+class JanitorCleanupSettingsTask(JanitorTask):
+    """Clean orphan settings rows."""
+
+
 class JanitorForeignKeyCheckTask(JanitorTask):
     """Check and repair foreign keys integrity."""
 

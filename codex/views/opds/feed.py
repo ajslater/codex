@@ -6,10 +6,10 @@ from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 
 from codex.views.browser.browser import BrowserView
 from codex.views.mixins import UserActiveMixin
-from codex.views.opds.session import OPDSBrowserSessionMixin
+from codex.views.opds.settings import OPDSBrowserSettingsMixin
 
 
-class OPDSBrowserView(OPDSBrowserSessionMixin, UserActiveMixin, BrowserView):
+class OPDSBrowserView(OPDSBrowserSettingsMixin, UserActiveMixin, BrowserView):
     """OPDS Browser View."""
 
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)

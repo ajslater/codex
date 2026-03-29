@@ -7,10 +7,10 @@ from loguru import logger
 
 from codex.serializers.fields.reader import VALID_ARC_GROUPS
 from codex.serializers.reader import ReaderViewInputSerializer
-from codex.views.session import SessionView
+from codex.views.reader.settings import ReaderSettingsWriteView
 
 
-class ReaderParamsView(SessionView):
+class ReaderParamsView(ReaderSettingsWriteView):
     """Reader initialization."""
 
     input_serializer_class = ReaderViewInputSerializer
@@ -25,8 +25,8 @@ class ReaderParamsView(SessionView):
         arc = params.get("arc", {})
         group = arc.get("group", "")
         if not group:
-            top_group = self.get_from_session(
-                "top_group", session_key=self.BROWSER_SESSION_KEY
+            top_group: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
+                "top_group", browser=True
             )
             group = "s" if top_group in "rpi" else top_group
         if group not in VALID_ARC_GROUPS:
@@ -58,11 +58,11 @@ class ReaderParamsView(SessionView):
                 serializer = self.input_serializer_class(data=self.request.GET)
                 serializer.is_valid(raise_exception=True)
 
-                params = self.load_params_from_session()
+                params = self.load_params_from_settings()
                 if serializer.validated_data:
                     params.update(serializer.validated_data)
                 self._ensure_arc(params)
-                self.save_params_to_session(params)
+                self.save_params_to_settings(params)
                 self._params = MappingProxyType(params)
             except Exception:
                 logger.exception("validate")

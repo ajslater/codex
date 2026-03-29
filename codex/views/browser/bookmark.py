@@ -65,6 +65,6 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
     def params(self):
         """Retrieve params but don't save them."""
         if self._params is None:
-            params = self.load_params_from_session()
+            params = self.load_params_from_settings()
             self._params = MappingProxyType(params)
         return self._params

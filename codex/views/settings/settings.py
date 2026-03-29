@@ -6,13 +6,18 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.serializers.settings import SettingsInputSerializer
-from codex.views.session import SessionView
+from codex.views.settings.base import SettingsWriteView
 
 
-class SettingsView(SessionView, ABC):
+class SettingsView(SettingsWriteView, ABC):
     """Settings View."""
 
     input_serializer_class: type[SettingsInputSerializer] = SettingsInputSerializer
+
+    # When True, null and empty values are stripped from PATCH data
+    # so that existing settings are never blanked out.
+    REJECT_NULL_UPDATES: bool = False
+    _NULL_VALUES: frozenset = frozenset(("", None))
 
     def validate_settings_get(self, validated_data, params: dict) -> dict:  # noqa: ARG002
         """Change bad settings."""
@@ -25,7 +30,7 @@ class SettingsView(SessionView, ABC):
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
         only = validated_data.get("only") if validated_data else None
-        params = self.load_params_from_session(only=only)
+        params = self.load_params_from_settings(only=only)
         params = self.validate_settings_get(validated_data, params)
         serializer = self.get_serializer(params)
         return Response(serializer.data)
@@ -36,9 +41,11 @@ class SettingsView(SessionView, ABC):
         data = self.request.data
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        # Reader has arc validation, but not really
-        params = self.load_params_from_session()
-        params.update(serializer.validated_data)
-        self.save_params_to_session(params)
+        updates = serializer.validated_data
+        if self.REJECT_NULL_UPDATES:
+            updates = {k: v for k, v in updates.items() if v not in self._NULL_VALUES}
+        params = self.load_params_from_settings()
+        params.update(updates)
+        self.save_params_to_settings(params)
         serializer = self.get_serializer(params)
         return Response(serializer.data)

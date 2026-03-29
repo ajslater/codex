@@ -1,17 +1,15 @@
 """Browser breadcrumbs calculations."""
 
-from contextlib import suppress
-from dataclasses import asdict
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.db.models import QuerySet
-from loguru import logger
 
 from codex.models import (
     BrowserGroupModel,
     Comic,
     Imprint,
+    Series,
     Volume,
 )
 from codex.models.groups import Publisher
@@ -19,25 +17,35 @@ from codex.views.browser.paginate import BrowserPaginateView
 from codex.views.const import (
     FOLDER_GROUP,
     GROUP_MODEL_MAP,
-    GROUP_NAME_MAP,
-    GROUP_ORDER,
     STORY_ARC_GROUP,
 )
 from codex.views.util import Route
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from codex.models.groups import Folder
 
 _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
-    type[BrowserGroupModel], tuple[str | None, ...]
+    type[BrowserGroupModel], tuple[str, ...]
 ] = MappingProxyType(
     {
         Comic: ("series", "volume"),
-        Volume: ("series",),
+        Volume: ("series", "imprint", "publisher"),
+        Series: ("imprint", "publisher"),
         Imprint: ("publisher",),
     }
+)
+
+# Map from group letter to the FK attribute chain for walking up the hierarchy.
+# Each entry is (parent_group_letter, attribute_on_instance).
+_GROUP_PARENT_CHAIN: MappingProxyType[str, tuple[tuple[str, str], ...]] = (
+    MappingProxyType(
+        {
+            "v": (("s", "series"), ("i", "imprint"), ("p", "publisher")),
+            "s": (("i", "imprint"), ("p", "publisher")),
+            "i": (("p", "publisher"),),
+            "p": (),
+        }
+    )
 )
 
 
@@ -68,11 +76,9 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             group_query = model.objects.none()
         else:
             reason = f"{group}__in={pks} does not exist!"
-            settings_mask = {"breadcrumbs": []}
             self.raise_redirect(
                 reason,
                 route_mask={"group": group},
-                settings_mask=settings_mask,
             )
         return group_query  # pyright: ignore[reportPossiblyUnboundVariable]
 
@@ -92,219 +98,79 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 if not model:
                     model = Publisher
                 group_query = model.objects.none()
-            group_instance: BrowserGroupModel | None = group_query.first()
-            self._group_instance = group_instance
+            self._group_instance = group_query.first()
         return self._group_instance  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
 
-    def _init_breadcrumbs(self, valid_groups) -> tuple:
-        """Load breadcrumbs and determine if they should be searched for a graft."""
-        breadcrumbs: tuple[Mapping[str, str | tuple[int, ...] | int], ...] = tuple(
-            self.params.get("breadcrumbs", ())
-        )
-        old_breadcrumbs = [Route(**crumb) for crumb in breadcrumbs]
-        invalid = not old_breadcrumbs or old_breadcrumbs[-1].group not in valid_groups
-        if invalid:
-            old_breadcrumbs = []
-        return old_breadcrumbs, invalid
-
-    def _breadcrumbs_save(self, breadcrumbs) -> None:
-        """Save the breadcrumbs to params."""
-        params = dict(self.params)
-        params["breadcrumbs"] = tuple(asdict(crumb) for crumb in breadcrumbs)
-        # The only place I rewrite params
-        self._params: MappingProxyType[str, Any] | None = MappingProxyType(params)
-
-    def _breadcrumbs_graft_or_create_story_arc(self) -> tuple[tuple[Route, ...], bool]:
-        """Graft or create story_arc breadcrumbs."""
-        old_breadcrumbs, changed = self._init_breadcrumbs(STORY_ARC_GROUP)
-
+    def _build_group_breadcrumbs(self) -> tuple[Route, ...]:
+        """Build breadcrumbs for browse group mode by walking FK parents."""
+        gi = self.group_instance
+        group = self.kwargs["group"]
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        gi = self.group_instance
-        name = gi.name if gi else ""
-        group_crumb = Route(STORY_ARC_GROUP, pks, page, name)
 
-        if old_breadcrumbs and old_breadcrumbs[-1] & group_crumb:
-            # Graft. Hurray
-            breadcrumbs = old_breadcrumbs
-        else:
-            # Create
-            new_breadcrumbs = [group_crumb]
-            if group_crumb.pks and 0 not in group_crumb.pks:
-                # Add head.
-                new_breadcrumbs = [Route(STORY_ARC_GROUP, ()), *new_breadcrumbs]
-            changed = True
-            breadcrumbs = new_breadcrumbs
+        if not gi:
+            return (Route("r", (), 1, ""),)
 
-        return tuple(breadcrumbs), changed
+        # Start with current crumb
+        crumbs: list[Route] = [Route(group, pks, page, gi.name)]
 
-    @staticmethod
-    def _breadcrumb_find_branch(reverse_breadcrumbs, crumb) -> list[Route] | None:
-        """Find a graftable breadcrumb branch."""
-        for index, breadcrumb in enumerate(reverse_breadcrumbs):
-            if breadcrumb & crumb:
-                return list(reversed(reverse_breadcrumbs[index:]))
-        return None
+        # Walk up the parent chain via FKs
+        vng = self.valid_nav_groups
+        parent_chain = _GROUP_PARENT_CHAIN.get(group, ())
+        for parent_group, attr in parent_chain:
+            if parent_group not in vng:
+                continue
+            if parent := getattr(gi, attr, None):
+                crumbs.append(Route(parent_group, (parent.pk,), 1, parent.name))
+            else:
+                crumbs.append(Route(parent_group, (), 1, ""))
 
-    def _breadcrumbs_graft_or_create_folder(self) -> tuple[tuple[Route, ...], bool]:
-        """Graft or create folder breadcrumbs."""
-        old_breadcrumbs, changed = self._init_breadcrumbs(FOLDER_GROUP)
+        # Always add root
+        crumbs.append(Route("r", (), 1, ""))
+        crumbs.reverse()
+        return tuple(crumbs)
 
-        reversed_breadcrumbs = list(reversed(old_breadcrumbs))
-
+    def _build_folder_breadcrumbs(self) -> tuple[Route, ...]:
+        """Build breadcrumbs for folder mode by walking parent_folder FKs."""
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
         folder: Folder | None = self.group_instance  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         name = folder.name if folder and pks else ""
-        group_crumb = Route(FOLDER_GROUP, pks, page, name)
-        new_breadcrumbs = []
 
-        while True:
-            branch = self._breadcrumb_find_branch(reversed_breadcrumbs, group_crumb)
-            if branch and not branch[0].pks:
-                # Branch must have the top as a head.
-                # Graft. Hurray.
-                new_breadcrumbs = branch + new_breadcrumbs
-                break
+        crumbs: list[Route] = [Route(FOLDER_GROUP, pks, page, name)]
 
-            # Add head
-            new_breadcrumbs = [group_crumb, *new_breadcrumbs]
-            changed = True
-            if not group_crumb.pks:
-                break
+        # Walk up the parent_folder chain
+        while folder and folder.parent_folder:
+            folder = folder.parent_folder
+            crumbs.append(Route(FOLDER_GROUP, (folder.pk,), 1, folder.name))  # pyright: ignore[reportOptionalMemberAccess]
 
-            # parent next
-            if not folder:
-                break
-            if folder := folder.parent_folder:
-                parent_pks = (folder.pk,)
-                parent_name = folder.name
-            else:
-                parent_pks = ()
-                parent_name = ""
-            group_crumb = Route(FOLDER_GROUP, parent_pks, 1, parent_name)
+        # Add folder root if not already there
+        if crumbs[-1].pks:
+            crumbs.append(Route(FOLDER_GROUP, (), 1, ""))
 
-        breadcrumbs = new_breadcrumbs
+        crumbs.reverse()
+        return tuple(crumbs)
 
-        return tuple(breadcrumbs), changed
-
-    def _get_breadcrumbs_group_crumb(self, group) -> Route:
-        """Create the crumb for this group."""
+    def _build_story_arc_breadcrumbs(self) -> tuple[Route, ...]:
+        """Build breadcrumbs for story arc mode."""
+        pks = self.kwargs["pks"]
+        page = self.kwargs["page"]
         gi = self.group_instance
-        if not gi:
-            pks = ()
-            page = 1
-            name = ""
-        elif group == self.kwargs["group"]:
-            # create self crumb
-            pks = self.kwargs["pks"]
-            page = self.kwargs["page"]
-            name = gi.name
-        else:
-            page = 1
-            if (attr := GROUP_NAME_MAP.get(group)) and (
-                parent_group := getattr(gi, attr, None)
-            ):
-                pks = (parent_group.pk,)
-                name = parent_group.name
-            else:
-                pks = ()
-                name = ""
+        name = gi.name if gi else ""
 
-        return Route(group, pks, page, name)
+        crumbs: list[Route] = [Route(STORY_ARC_GROUP, pks, page, name)]
 
-    def _breadcrumbs_graft_or_create_group_crumb(
-        self, group, old_breadcrumbs, new_breadcrumbs, changed
-    ) -> tuple[bool, bool]:
-        """Graft or create one browse group breadcrumb."""
-        group_crumb = self._get_breadcrumbs_group_crumb(group)
+        # Add story arc root if viewing a specific arc
+        if pks and 0 not in pks:
+            crumbs.insert(0, Route(STORY_ARC_GROUP, (), 1, ""))
 
-        if old_breadcrumbs and (
-            (group_crumb == old_breadcrumbs[-1])
-            or (
-                (changed and (group_crumb & old_breadcrumbs[-1]))
-                and not old_breadcrumbs[0].pks
-            )
-        ):
-            # Graft. Hurray
-            new_breadcrumbs[0:0] = old_breadcrumbs
-            done = True
-        else:
-            # Insert the new node
-            new_breadcrumbs.insert(0, group_crumb)
-            changed = True
-            done = False
-        return done, changed
+        return tuple(crumbs)
 
-    def _breadcrumbs_graft_or_create_group(
-        self,
-        level,
-        group,
-        browser_group_index,
-        old_breadcrumbs,
-        new_breadcrumbs,
-        changed,
-        done,
-    ) -> bool:
-        with suppress(ValueError):
-            level = level or GROUP_ORDER.index(group) <= browser_group_index
-        if level:
-            done, changed = self._breadcrumbs_graft_or_create_group_crumb(
-                group, old_breadcrumbs, new_breadcrumbs, changed
-            )
-        try:
-            if old_breadcrumbs and GROUP_ORDER.index(
-                old_breadcrumbs[-1].group
-            ) >= GROUP_ORDER.index(group):
-                # Trim old_breadcrumbs to match to group
-                old_breadcrumbs.pop(-1)
-        except ValueError:
-            old_breadcrumbs.clear()
-        return done
-
-    def _breadcrumbs_graft_or_create_groups(self) -> tuple[tuple[Route, ...], bool]:
-        """Graft or create browse group breadcrumbs."""
-        old_breadcrumbs, changed = self._init_breadcrumbs(GROUP_ORDER)
-
-        vng = self.valid_nav_groups
-        test_groups = tuple(reversed(vng[:-1]))
-        new_breadcrumbs = []
-        level = done = False
-        try:
-            browser_group_index = GROUP_ORDER.index(self.kwargs["group"])
-        except ValueError:
-            browser_group_index = -1
-
-        for group in test_groups:
-            try:
-                if done := self._breadcrumbs_graft_or_create_group(
-                    level,
-                    group,
-                    browser_group_index,
-                    old_breadcrumbs,
-                    new_breadcrumbs,
-                    changed,
-                    done,
-                ):
-                    break
-            except Exception:
-                logger.exception("group loop")
-
-        return tuple(new_breadcrumbs), changed
-
-    def get_breadcrumbs(
-        self,
-    ) -> tuple[Route, ...]:
-        """Graft or create breadcrumbs by browser mode."""
+    def get_breadcrumbs(self) -> tuple[Route, ...]:
+        """Compute breadcrumbs by browser mode from FK hierarchy."""
         group = self.kwargs["group"]
         if group == FOLDER_GROUP:
-            breadcrumbs, changed = self._breadcrumbs_graft_or_create_folder()
-        elif group == STORY_ARC_GROUP:
-            breadcrumbs, changed = self._breadcrumbs_graft_or_create_story_arc()
-        else:
-            breadcrumbs, changed = self._breadcrumbs_graft_or_create_groups()
-
-        if changed:
-            self._breadcrumbs_save(breadcrumbs)
-
-        return breadcrumbs
+            return self._build_folder_breadcrumbs()
+        if group == STORY_ARC_GROUP:
+            return self._build_story_arc_breadcrumbs()
+        return self._build_group_breadcrumbs()

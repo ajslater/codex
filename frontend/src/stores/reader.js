@@ -13,15 +13,13 @@ import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = Object.freeze({
-  // Must be null so xior doesn't throw them out when sending.
   fitTo: "",
   twoPages: null,
   readingDirection: "",
   readRtlInReverse: null,
-});
-
-const NULL_CLIENT_SETTINGS = Object.freeze({
-  cacheBook: false,
+  finishOnLastPage: null,
+  pageTransition: null,
+  cacheBook: null,
 });
 
 const SETTINGS_NULL_VALUES = Object.freeze(new Set(["", null, undefined]));
@@ -90,6 +88,7 @@ export const useReaderStore = defineStore("reader", {
       readRtlInReverse: READER_DEFAULTS.readRtlInReverse,
       finishOnLastPage: READER_DEFAULTS.finishOnLastPage,
       pageTransition: READER_DEFAULTS.page_transition,
+      cacheBook: READER_DEFAULTS.cache_book,
     },
     books: structuredClone(BOOKS_NULL),
     arcs: {},
@@ -103,7 +102,6 @@ export const useReaderStore = defineStore("reader", {
     bookChange: undefined,
     reactWithScroll: false,
     clientSettings: {
-      cacheBook: false,
       scale: SCALE_DEFAULT,
     },
     showToolbars: false,
@@ -142,9 +140,9 @@ export const useReaderStore = defineStore("reader", {
     isPDF(state) {
       return state.books?.current?.fileType == "PDF";
     },
-    cacheBook(state) {
+    cacheBook() {
       return (
-        state.clientSettings.cacheBook &&
+        this.activeSettings.cacheBook &&
         !(this.isPDF && this.activeSettings.isVertical)
       );
     },
@@ -311,7 +309,7 @@ export const useReaderStore = defineStore("reader", {
     /*
      * MUTATIONS
      */
-    _updateGlobalSettings(updates) {
+    _applyGlobalSettings(updates) {
       // Doing this with $patch breaks reactivity
       this.$patch((state) => {
         state.readerSettings = {
@@ -404,17 +402,17 @@ export const useReaderStore = defineStore("reader", {
         window.scrollTo(0, 0);
       }
     },
-    async loadReaderSettings() {
-      READER_API.getReaderSettings()
+    async loadGlobalSettings() {
+      READER_API.getGlobalSettings()
         .then((response) => {
           const data = response.data;
-          this._updateGlobalSettings(data);
+          this._applyGlobalSettings(data);
         })
         .catch(console.error);
     },
     async loadBooks({ params, arc, mtime }) {
       if (!this.settingsLoaded) {
-        this.loadReaderSettings();
+        this.loadGlobalSettings();
       }
       const route = router.currentRoute.value;
       if (!params) {
@@ -497,23 +495,24 @@ export const useReaderStore = defineStore("reader", {
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       if (
-        this.readerSettings.finishOnLastPage &&
+        this.activeSettings.finishOnLastPage &&
         page >= this.books.current.maxPage
       ) {
         updates["finished"] = true;
       }
       await BROWSER_API.updateGroupBookmarks(groupParams, {}, updates);
     },
-    async setSettingsLocal(updates) {
+    async updateComicSettings(updates) {
       const newBookSettings = {
         ...this.books.current.settings,
         ...updates,
       };
       ensureNoTwoPageVertical(newBookSettings);
-      const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await BROWSER_API.updateGroupBookmarks(groupParams, {}, newBookSettings)
+      const pk = +this.books.current.pk;
+      await READER_API.updateComicSettings(pk, newBookSettings)
         .then(() => {
           this.books.current.settings = newBookSettings;
+          this.bookSettings = {};
         })
         .catch(console.error);
     },
@@ -523,20 +522,19 @@ export const useReaderStore = defineStore("reader", {
         ...updates,
       };
     },
-    async clearSettingsLocal() {
-      await this.setSettingsLocal(NULL_READER_SETTINGS);
-      this.setSettingsClient(NULL_CLIENT_SETTINGS);
+    async clearComicSettings() {
+      await this.updateComicSettings(NULL_READER_SETTINGS);
     },
-    async setSettingsGlobal(updates) {
+    async updateGlobalSettings(updates) {
       const newReaderSettings = {
         ...this.readerSettings,
         ...updates,
       };
-      await READER_API.updateReaderSettings(newReaderSettings)
+      await READER_API.updateGlobalSettings(newReaderSettings)
         .then((response) => {
           const data = response.data;
-          this._updateGlobalSettings(data);
-          this.clearSettingsLocal();
+          this._applyGlobalSettings(data);
+          this.clearComicSettings();
         })
         .catch(console.error);
     },
