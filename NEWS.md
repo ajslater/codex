@@ -23,10 +23,10 @@ border-radius: 128px;
     - Fix reader close button receiving nonsensical route.
     - Fix check latest version of Codex bug.
 - Features
+    - Reader Settings are now available for Series, Parent Folder and Story Arc
     - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
       and job progress.
     - Browser Pane refreshes with a click/touch pull control.
-    - The Reader Settings UI is now expanding controls.
 - Performance Improvements
     - Codex now uses the Granian http server instead of Hypercorn.
     - The file watcher and poller now use one thread each no matter how many

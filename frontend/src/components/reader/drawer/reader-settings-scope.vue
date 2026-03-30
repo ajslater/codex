@@ -11,6 +11,23 @@
         />
       </v-expansion-panel-text>
     </v-expansion-panel>
+    <v-expansion-panel value="intermediate" :disabled="!hasIntermediate">
+      <v-expansion-panel-title class="scopePanelTitle">
+        <div class="intermediateTitleWrap">
+          <span>{{ intermediateTitle }}</span>
+          <span class="intermediateSubtitle">{{ intermediateName }}</span>
+        </div>
+      </v-expansion-panel-title>
+      <v-expansion-panel-text>
+        <ReaderSettingsControls
+          :settings="intermediateSettingsData"
+          show-clear
+          :clear-disabled="isIntermediateClearDisabled"
+          @update="updateIntermediateSettings"
+          @clear="clearIntermediateSettings"
+        />
+      </v-expansion-panel-text>
+    </v-expansion-panel>
     <v-expansion-panel value="comic" :disabled="!validBook">
       <v-expansion-panel-title class="scopePanelTitle">
         Comic Settings
@@ -48,6 +65,12 @@ const ATTRS = Object.freeze([
   "cacheBook",
 ]);
 
+const SCOPE_TYPE_TITLES = Object.freeze({
+  s: "Series Settings",
+  f: "Folder Settings",
+  a: "Story Arc Settings",
+});
+
 export default {
   name: "ReaderSettingsScope",
   components: { ReaderSettingsControls },
@@ -59,7 +82,10 @@ export default {
   computed: {
     ...mapState(useAuthStore, ["isAuthDialogOpen"]),
     ...mapState(useReaderStore, {
-      globalSettings: (state) => state.readerSettings,
+      globalSettings: (state) => state.globalSettings,
+      intermediateSettingsData: (state) => state.intermediateSettings || {},
+      intermediateInfo: (state) => state.intermediateInfo,
+      nullValues: (state) => state.choices.nullValues,
       comicSettings(state) {
         return state.books?.current?.settings || {};
       },
@@ -77,6 +103,36 @@ export default {
         return true;
       },
     }),
+    hasIntermediate() {
+      return Boolean(this.intermediateInfo);
+    },
+    intermediateTitle() {
+      if (!this.intermediateInfo) {
+        return "Group Settings";
+      }
+      return (
+        SCOPE_TYPE_TITLES[this.intermediateInfo.scopeType] || "Group Settings"
+      );
+    },
+    intermediateName() {
+      return this.intermediateInfo?.name || "";
+    },
+    isIntermediateClearDisabled() {
+      if (!this.intermediateInfo) {
+        return true;
+      }
+      const settings = this.intermediateSettingsData;
+      if (!settings) {
+        return true;
+      }
+      for (const attr of ATTRS) {
+        const val = Reflect.get(settings, attr);
+        if (!this.nullValues.has(val)) {
+          return false;
+        }
+      }
+      return true;
+    },
   },
   created() {
     useEventListener(document, "keyup", this._keyUpListener);
@@ -84,9 +140,24 @@ export default {
   methods: {
     ...mapActions(useReaderStore, [
       "clearComicSettings",
+      "clearIntermediateSettings",
       "updateGlobalSettings",
       "updateComicSettings",
+      "updateIntermediateSettings",
     ]),
+    _updateOpenPanelSettings(updates) {
+      // Dispatch to the most specific open expansion panel.
+      if (this.openPanels.includes("comic")) {
+        this.updateComicSettings(updates);
+      } else if (this.openPanels.includes("intermediate")) {
+        this.updateIntermediateSettings(updates);
+      } else if (this.openPanels.includes("global")) {
+        this.updateGlobalSettings(updates);
+      } else {
+        // No panel open — default to comic.
+        this.updateComicSettings(updates);
+      }
+    },
     _keyUpListener(event) {
       event.stopPropagation();
       if (this.isAuthDialogOpen) {
@@ -133,7 +204,7 @@ export default {
           break;
       }
       if (updates) {
-        this.updateComicSettings(updates);
+        this._updateOpenPanelSettings(updates);
       }
       /*
        * metadata and close are attached to to title-toolbar
@@ -154,6 +225,18 @@ export default {
   padding-right: 10px;
   font-weight: bolder;
   color: rgb(var(--v-theme-textDisabled));
+}
+
+.intermediateTitleWrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.intermediateSubtitle {
+  font-size: 0.75rem;
+  font-weight: normal;
+  opacity: 0.7;
 }
 
 :deep(.v-expansion-panel-title--active) {

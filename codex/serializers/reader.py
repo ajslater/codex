@@ -37,6 +37,13 @@ class ReaderSettingsSerializer(Serializer):
     cache_book = BooleanField(allow_null=True, required=False)
 
 
+class ReaderScopedUpdateSerializer(ReaderSettingsSerializer):
+    """Input for scoped settings PATCH."""
+
+    scope = CharField(required=True)
+    scope_pk = IntegerField(required=False, allow_null=True, default=None)
+
+
 class ReaderBookmarkSerializer(Serializer):
     """Bookmark data for reader (page progress)."""
 

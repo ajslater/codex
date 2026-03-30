@@ -51,7 +51,7 @@ export default {
       bookChange: (state) => state.bookChange,
       currentBookPk: (state) => state.books?.current?.pk || 0,
       bookRoutes: (state) => state.routes.books,
-      transition: (state) => state.readerSettings.pageTransition,
+      transition: (state) => state.globalSettings.pageTransition,
     }),
     bookChangePrev() {
       return this.bookChangeShow("prev");

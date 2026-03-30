@@ -2,36 +2,28 @@ import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
-const API_READER_SETTINGS_PATH = "/c/settings";
-
-const getGlobalSettings = () => {
-  const params = serializeParams({});
-  return HTTP.get(API_READER_SETTINGS_PATH, { params });
-};
-
-const updateGlobalSettings = (data) => {
-  return HTTP.patch(API_READER_SETTINGS_PATH, data);
-};
-
 const _getBookPath = (pk) => {
   return `c/${pk}`;
+};
+
+const getSettings = (pk, scopes, storyArcPk) => {
+  const basePath = pk ? `${_getBookPath(pk)}/settings` : "c/settings";
+  const queryParams = { scopes: scopes.join(",") };
+  if (storyArcPk) {
+    queryParams.story_arc_pk = storyArcPk;
+  }
+  const params = serializeParams(queryParams);
+  return HTTP.get(basePath, { params });
+};
+
+const updateSettings = (data) => {
+  return HTTP.patch("c/settings", data);
 };
 
 const getReaderInfo = (pk, data, ts) => {
   const params = serializeParams(data, ts);
   const bookPath = _getBookPath(pk);
   return HTTP.get(bookPath, { params });
-};
-
-const getComicSettings = (pk) => {
-  const bookAPIPath = _getBookPath(pk);
-  const params = serializeParams({});
-  return HTTP.get(`${bookAPIPath}/settings`, { params });
-};
-
-const updateComicSettings = (pk, data) => {
-  const bookPath = _getBookPath(pk);
-  return HTTP.patch(`${bookPath}/settings`, data);
 };
 
 const _getReaderAPIPath = (pk) => {
@@ -63,10 +55,8 @@ export const getPDFInBrowserURL = ({ pk, mtime }) => {
 };
 
 export default {
-  getComicSettings,
-  getGlobalSettings,
   getReaderInfo,
+  getSettings,
   getPDFInBrowserURL,
-  updateComicSettings,
-  updateGlobalSettings,
+  updateSettings,
 };

@@ -58,7 +58,7 @@ export default {
       nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
       storePk: (state) => state.books.current.pk,
-      transition: (state) => state.readerSettings.pageTransition,
+      transition: (state) => state.globalSettings.pageTransition,
     }),
     bookSettings() {
       return this.getBookSettings(this.book);
