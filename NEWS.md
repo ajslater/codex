@@ -21,6 +21,7 @@ border-radius: 128px;
     - Fix erroneous "Bookmark" filter appearing in filter menu when a read state
       is selected.
     - Fix reader close button receiving nonsensical route.
+    - Fix check latest version of Codex bug.
 - Features
     - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
       and job progress.
