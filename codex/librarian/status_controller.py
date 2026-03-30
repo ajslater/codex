@@ -14,7 +14,7 @@ from loguru._logger import Logger
 
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.status import Status
-from codex.models import LibrarianStatus
+from codex.models.admin import LibrarianStatus
 
 
 def get_default(field):
@@ -111,29 +111,6 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
-    @staticmethod
-    def _finish_status_prepare(
-        positive_statii: MappingProxyType[str, Status | type[Status]],
-        updates: dict[str, Any],
-    ) -> tuple[list, list]:
-        # Filter all active or preactive statii
-        ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
-        if positive_statii:
-            ls_filter_dict: dict[str, Any] = {"status_type__in": positive_statii.keys()}
-            # Filter on status codes
-            ls_filter &= Q(**ls_filter_dict)
-        lses = LibrarianStatus.objects.filter(ls_filter)
-        update_ls = []
-        log_statii = []
-        for ls in lses.iterator():
-            for key, value in updates.items():
-                setattr(ls, key, value)
-            update_ls.append(ls)
-            status = positive_statii.get(ls.status_type)
-            if isinstance(status, Status):
-                log_statii.append(status)
-        return update_ls, log_statii
-
     def _log_finish(self, status: Status, *, clear_subtitle: bool) -> None:
         """Log finish of status with stats."""
         level = "INFO"
@@ -180,15 +157,24 @@ class StatusController:
                 # But if statii was empty this is a finish all command.
                 return
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
-            update_ls, log_statii = self._finish_status_prepare(
-                positive_statii, updates
-            )
-            LibrarianStatus.objects.bulk_update(update_ls, tuple(updates.keys()))
+
+            if positive_statii:
+                # Finish specific statuses unconditionally by status_type.
+                # Don't require active/preactive to be set — subtasks may
+                # have already been individually finished.
+                ls_filter = Q(status_type__in=positive_statii.keys())
+            else:
+                # Clear-all: only touch rows that are currently active.
+                ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
+
+            LibrarianStatus.objects.filter(ls_filter).update(**updates)
             self._enqueue_notifier_task(notify=notify)
+
             if not positive_statii:
                 self.log.info("Cleared all librarian statuses")
-            for status in log_statii:
-                self._log_finish(status, clear_subtitle=clear_subtitle)
+            for status in positive_statii.values():
+                if isinstance(status, Status):
+                    self._log_finish(status, clear_subtitle=clear_subtitle)
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
 

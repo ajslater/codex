@@ -74,27 +74,44 @@ def init_timestamps() -> None:
 
 def init_librarian_statuses() -> None:
     """Init librarian statuses."""
+    # Remove old statuses from previous versions of codex.
     _delete_orphans(
         LibrarianStatus,
         "status_type",
         LibrarianStatus.StatusChoices.values,
     )
 
+    # Create any missing statuses with defaults.
     for status_type, title in LibrarianStatus.StatusChoices.choices:
-        _, created = LibrarianStatus.objects.update_or_create(
+        _, created = LibrarianStatus.objects.get_or_create(
             defaults=STATUS_DEFAULTS, status_type=status_type
         )
         if created:
             logger.debug(f"Created {title} LibrarianStatus.")
 
+    # Reset any statuses left in a non-default state (jobs interrupted by
+    # shutdown) without touching statuses already at defaults.
+    # This ensures that updated_at is preserved across restarts.
+    non_default_filter = (
+        Q(preactive__isnull=False)
+        | Q(active__isnull=False)
+        | Q(complete__isnull=False)
+        | Q(total__isnull=False)
+        | ~Q(subtitle="")
+    )
+    if count := LibrarianStatus.objects.filter(non_default_filter).update(
+        **STATUS_DEFAULTS, updated_at=Now()
+    ):
+        logger.debug(f"Reset {count} interrupted LibrarianStatuses to defaults.")
 
-def clear_library_status() -> None:
-    """Unset the update_in_progress flag for all libraries."""
-    count = Library.objects.filter(update_in_progress=True).update(
+
+def init_libraries() -> None:
+    """Reset libraries that were mid-update when the server stopped."""
+    lib_count = Library.objects.filter(update_in_progress=True).update(
         update_in_progress=False, updated_at=Now()
     )
-    if count:
-        logger.debug(f"Reset {count} Libraries' update_in_progress flag")
+    if lib_count:
+        logger.debug(f"Reset {lib_count} Libraries' update_in_progress flag.")
 
 
 def init_custom_cover_dir() -> None:
@@ -179,7 +196,7 @@ def ensure_db_rows() -> None:
     init_admin_flags()
     init_timestamps()
     init_librarian_statuses()
-    clear_library_status()
+    init_libraries()
     init_custom_cover_dir()
     update_custom_covers_for_config_dir()
     create_missing_auth_tokens()

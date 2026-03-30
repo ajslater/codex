@@ -6,7 +6,7 @@ from pathlib import Path
 from comicbox.box import Comicbox
 from loguru import logger
 
-from codex.models import CustomCover
+from codex.models.paths import CustomCover
 from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
 
 _IMAGE_REGEX = r"\.(jpe?g|webp|png|gif|bmp)"

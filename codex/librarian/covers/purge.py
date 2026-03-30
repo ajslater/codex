@@ -57,19 +57,19 @@ class CoverPurgeThread(CoverCreateThread, ABC):
     def purge_all_comic_covers(self, librarian_queue) -> None:
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")
-        changed = False
+        status = RemoveCoversStatus()
         try:
+            self.status_controller.start(status)
             if self.COVERS_ROOT.exists():
                 shutil.rmtree(self.COVERS_ROOT)
-                changed = True
-            if self.COVERS_ROOT.exists():
+            if self.CUSTOM_COVERS_ROOT.exists():
                 shutil.rmtree(self.CUSTOM_COVERS_ROOT)
-                changed = True
             self.log.success("Removed entire comic cover cache and custom cover cache.")
         except OSError as exc:
             self.log.warning(exc)
-        if changed:
-            librarian_queue.put(COVERS_CHANGED_TASK)
+        finally:
+            self.status_controller.finish(status)
+        librarian_queue.put(COVERS_CHANGED_TASK)
 
     def _cleanup_orphan_covers(self, cover_class, cover_root, name) -> None:
         """Remove all orphan cover thumbs."""

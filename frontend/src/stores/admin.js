@@ -28,7 +28,7 @@ const getTablePlural = (table) => {
 
 export const useAdminStore = defineStore("admin", {
   state: () => ({
-    allLibrarianStatuses: [],
+    allLibrarianStatuses: {},
     activeLibrarianStatuses: [],
     unseenFailedImports: false,
     users: [],
@@ -193,7 +193,11 @@ export const useAdminStore = defineStore("admin", {
       await API.getAllLibrarianStatuses()
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.allLibrarianStatuses = response.data;
+            const map = {};
+            for (const status of response.data) {
+              map[status.statusType] = status;
+            }
+            this.allLibrarianStatuses = map;
           }
           return true;
         })

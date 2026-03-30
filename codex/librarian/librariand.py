@@ -20,8 +20,8 @@ from codex.librarian.fs.event_batcherd import FSEventBatcherThread
 from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
 from codex.librarian.fs.tasks import FSEventTask
-from codex.librarian.fs.watcher import LibraryWatcherThread
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
+from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.restarter.restarter import CodexRestarter
@@ -30,6 +30,7 @@ from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
+from codex.librarian.status_controller import StatusController
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
 
 _THREAD_CLASSES = (
@@ -64,6 +65,7 @@ class LibrarianDaemon(Process):
         super().__init__(name=name, daemon=False)
         self.queue = queue
         self.broadcast_queue = broadcast_queue
+        self.status_controller = StatusController(logger_, queue)
         startup_tasks = (
             JanitorAdoptOrphanFoldersTask(),
             SearchIndexSyncTask(),

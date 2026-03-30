@@ -102,7 +102,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             "Ensure the file Watcher is updated per database"
                             " preferences for each library"
                         ),
-                        "statuses": (),
+                        "statuses": ("WRS",),
                     },
                 ),
             },

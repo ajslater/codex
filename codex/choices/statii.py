@@ -6,6 +6,7 @@ from bidict import frozenbidict
 
 from codex.librarian.covers.status import COVERS_STATII
 from codex.librarian.fs.poller.status import FS_STATII
+from codex.librarian.fs.watcher.status import WATCHER_STATII
 from codex.librarian.restarter.status import RESTARTER_STATII
 from codex.librarian.scribe.importer.statii.create import CREATE_STATII
 from codex.librarian.scribe.importer.statii.delete import REMOVE_STATII
@@ -22,6 +23,7 @@ _STATII = (
     RESTARTER_STATII,
     COVERS_STATII,
     FS_STATII,
+    WATCHER_STATII,
     JANITOR_STATII,
     SEARCH_INDEX_STATII,
     SCRIBE_STATII,

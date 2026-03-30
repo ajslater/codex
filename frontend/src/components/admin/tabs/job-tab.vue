@@ -77,6 +77,9 @@
               </div>
             </div>
             <div class="jobActions">
+              <span v-if="jobLastRun(job)" class="jobLastRun">
+                {{ jobLastRun(job) }}
+              </span>
               <ConfirmDialog
                 v-if="activeConfirm(job)"
                 :key="activeValue(job)"
@@ -192,6 +195,7 @@ import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 const SELECT_GROUPS = Object.freeze(["Notify"]);
+const NIGHTLY_JOB_VALUE = "janitor_nightly";
 Object.freeze(ADMIN_JOBS);
 
 export default {
@@ -225,13 +229,6 @@ export default {
     ...mapState(useAdminStore, {
       allStatuses: (state) => state.allLibrarianStatuses,
     }),
-    statusMap() {
-      const map = {};
-      for (const status of this.allStatuses) {
-        map[status.statusType] = status;
-      }
-      return map;
-    },
     groupSelectMaps() {
       const maps = {};
       for (const group of ADMIN_JOBS) {
@@ -243,6 +240,41 @@ export default {
         }
       }
       return maps;
+    },
+    isNightlyRunning() {
+      /*
+       * Nightly is running when start_many sets preactive on multiple
+       * subtask statuses at once. Individual tasks only set active,
+       * never preactive, so ≥2 preactive statuses is a reliable signal.
+       */
+      let preactiveCount = 0;
+      for (const group of ADMIN_JOBS) {
+        for (const job of group.jobs) {
+          if (job.value !== NIGHTLY_JOB_VALUE) continue;
+          for (const code of job.statuses || []) {
+            // eslint-disable-next-line security/detect-object-injection
+            const status = this.allStatuses[code];
+            if (status && status.preactive !== null) {
+              preactiveCount++;
+              if (preactiveCount >= 2) return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+  },
+  watch: {
+    allStatuses() {
+      // Auto-collapse panels for jobs that are no longer active.
+      for (const group of ADMIN_JOBS) {
+        if (SELECT_GROUPS.includes(group.title)) continue;
+        for (const job of group.jobs) {
+          if (job.value in this.manualExpanded && !this.isJobActive(job)) {
+            delete this.manualExpanded[job.value];
+          }
+        }
+      }
     },
   },
   created() {
@@ -294,10 +326,17 @@ export default {
       if (!job.statuses || job.statuses.length === 0) {
         return [];
       }
+      /*
+       * Don't show nightly subtask progress unless the nightly
+       * parent job itself is running.
+       */
+      if (job.value === NIGHTLY_JOB_VALUE && !this.isNightlyRunning) {
+        return [];
+      }
       const result = [];
       for (const code of job.statuses) {
         // eslint-disable-next-line security/detect-object-injection
-        const status = this.statusMap[code];
+        const status = this.allStatuses[code];
         if (status) {
           result.push(status);
         }
@@ -305,6 +344,9 @@ export default {
       return result;
     },
     isJobActive(job) {
+      if (job.value === NIGHTLY_JOB_VALUE) {
+        return this.isNightlyRunning;
+      }
       return this.jobStatuses(job).some(
         (s) => s.active !== null || s.preactive !== null,
       );
@@ -358,6 +400,34 @@ export default {
     },
     getStatusUpdatedAgo(status) {
       return statusUpdatedAgo(status, this.now);
+    },
+    jobLastRun(job) {
+      if (!job.statuses || job.statuses.length === 0) {
+        return "";
+      }
+      /*
+       * Look at raw statuses (bypassing nightly gate) so we can
+       * show last run time even when the job isn't active.
+       */
+      let latest = 0;
+      for (const code of job.statuses) {
+        // eslint-disable-next-line security/detect-object-injection
+        const status = this.allStatuses[code];
+        if (!status) continue;
+        if (status.active !== null || status.preactive !== null) {
+          // Job is currently running — don't show last run.
+          return "";
+        }
+        if (status.updatedAt) {
+          const t = new Date(status.updatedAt).getTime();
+          if (t > latest) latest = t;
+        }
+      }
+      if (!latest) return "";
+      return statusUpdatedAgo(
+        { updatedAt: new Date(latest).toISOString() },
+        this.now,
+      );
     },
   },
 };
@@ -434,6 +504,13 @@ export default {
 
 .jobTitle {
   font-weight: 500;
+}
+
+.jobLastRun {
+  font-weight: normal;
+  font-size: 0.8em;
+  color: rgb(var(--v-theme-textDisabled));
+  margin-left: 8px;
 }
 
 .jobDesc {
