@@ -119,7 +119,6 @@
     "remark-preset-lint-markdown-style-guide": "^6.0.1",
     "remark-preset-lint-recommended": "^7.0.1",
     "remark-preset-prettier": "^2.0.2",
-    "svgo": "^4.0.0",
-    "toml": "^3.0.0"
+    "svgo": "^4.0.0"
   }
 }
