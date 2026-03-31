@@ -795,7 +795,8 @@ class Migration(migrations.Migration):
             model_name="settingsbrowser",
             name="show",
             field=models.ForeignKey(
-                default=1,
+                # Created by RunPython above.
+                default=1,  # ty: ignore[invalid-argument-type]
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
                 to="codex.settingsbrowsershow",
