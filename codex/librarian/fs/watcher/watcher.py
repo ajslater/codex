@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from threading import Event
+from time import sleep
 from typing import override
 
 from watchfiles import Change, watch
@@ -16,6 +17,8 @@ from codex.librarian.fs.watcher.events import process_changes
 from codex.librarian.fs.watcher.status import FSWatcherRestartStatus
 from codex.librarian.threads import NamedThread
 from codex.models import Library
+
+_MAX_PATH_WATCH_RETRIES = 1
 
 
 class CodexWatchFilter:
@@ -131,22 +134,40 @@ class LibraryWatcherThread(NamedThread):
             task = FSEventTask(library_pk, event)
             self.librarian_queue.put(task)
 
+    def _get_extant_paths(self, paths: list[str]) -> list[str]:
+        extant_paths = []
+        for path in paths:
+            retry = 0
+            while retry <= _MAX_PATH_WATCH_RETRIES:
+                if Path(path).is_dir():
+                    extant_paths.append(path)
+                    level = "INFO" if retry else "DEBUG"
+                    self.log.log(level, f"Watching {path}")
+                    break
+                self.log.warning(f"Waiting 5 seconds for {path} to appear...")
+                sleep(5)
+                retry += 1
+            else:
+                self.log.warning(f"{path} does not seem to exist, not watching.")
+
+        plural = "s" if len(extant_paths) != 1 else ""
+        self.log.info(f"Watching {len(extant_paths)} library path{plural} for events.")
+        return extant_paths
+
     def _watch_loop(self) -> None:
         """Run the watchfiles loop, restarting when paths change."""
         watch_filter = CodexWatchFilter(self._covers_only_paths)
         while not self._shutdown_event.is_set():
             self._restart_event.clear()
             paths = list(self._library_paths.keys())
-
             if not paths:
                 # No paths to watch — wait for a sync signal
                 self._restart_event.wait(timeout=5.0)
                 continue
-
-            self.log.info(f"Watching {len(paths)} library path(s) for events.")
+            extant_paths = self._get_extant_paths(paths)
             try:
                 for changes in watch(
-                    *paths,
+                    *extant_paths,
                     stop_event=self._restart_event,
                     recursive=True,
                     watch_filter=watch_filter,
