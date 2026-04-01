@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.10.0 Rusty
+## v1.10.0 Rust modules & Settings Features
 
 - 🚨 Big Changes 🚨
     - Django 6 requires python 3.12.
