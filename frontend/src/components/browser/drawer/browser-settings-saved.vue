@@ -69,8 +69,8 @@
     <div class="saveDialog">
       <div class="saveDialogTitle">Overwrite View</div>
       <div>
-        A saved view named "<strong>{{ saveName }}</strong>" already exists.
-        Overwrite it?
+        A saved view named "<strong>{{ saveName }}</strong
+        >" already exists. Overwrite it?
       </div>
       <div class="saveDialogActions">
         <v-btn size="small" @click="showOverwriteConfirm = false">

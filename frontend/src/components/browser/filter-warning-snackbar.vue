@@ -1,15 +1,8 @@
 <template>
-  <v-snackbar
-    v-model="show"
-    color="warning"
-    timeout="5000"
-    location="bottom"
-  >
+  <v-snackbar v-model="show" color="warning" timeout="5000" location="bottom">
     Some filters could not fully apply: {{ fields }}
     <template #actions>
-      <v-btn variant="text" @click="clearSavedSettingsSnackbar">
-        Close
-      </v-btn>
+      <v-btn variant="text" @click="clearSavedSettingsSnackbar"> Close </v-btn>
     </template>
   </v-snackbar>
 </template>
