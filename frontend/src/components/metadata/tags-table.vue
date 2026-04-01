@@ -5,8 +5,8 @@
         v-for="[key, { filter, tags, mainTags }] of Object.entries(tagMap)"
         :key="key"
       >
-        <td v-if="keyMap && keyMap[key] && keyMap[key].url" class="key keyLink">
-          <a href="keyMap[key].url"
+        <td v-if="keyMap && keyMap[key]?.url" class="key keyLink">
+          <a :href="keyMap[key].url"
             >{{ key }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
           >
         </td>

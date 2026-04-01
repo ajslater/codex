@@ -22,7 +22,9 @@ border-radius: 128px;
       is selected.
     - Fix reader close button receiving nonsensical route.
     - Fix check latest version of Codex bug.
+    - Tags page sometimes had erroneous links went nowhere.
 - Features
+    - Browser can save and load named views.
     - Reader Settings are now available for Series, Parent Folder and Story Arc
     - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
       and job progress.

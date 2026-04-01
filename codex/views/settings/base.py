@@ -23,10 +23,9 @@ from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 from codex.views.settings.const import (
     BROWSER_CREATE_ARGS,
     BROWSER_FILTER_ARGS,
+    SETTINGS_BROWSER_SELECT_RELATED,
     SHOW_KEYS,
 )
-
-_SETTINGS_BROWSER_SELECT_RELATED = ("show", "filters", "last_route")
 
 
 class SettingsReadView(AuthFilterGenericAPIView, ABC):
@@ -80,7 +79,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
     ) -> SettingsBrowser | SettingsReader | None:
         instance = model.objects.filter(user=user, **base_filter)
         if model is SettingsBrowser:
-            instance = instance.select_related(*_SETTINGS_BROWSER_SELECT_RELATED)
+            instance = instance.select_related(*SETTINGS_BROWSER_SELECT_RELATED)
         if only:
             instance = instance.only(*only)
         instance = instance.first()
@@ -107,7 +106,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
     ):
         instance = model.objects.filter(session_id=session_key, **base_filter)
         if model is SettingsBrowser:
-            instance = instance.select_related(*_SETTINGS_BROWSER_SELECT_RELATED)
+            instance = instance.select_related(*SETTINGS_BROWSER_SELECT_RELATED)
         elif only:
             instance = instance.only(*only)
         instance = instance.first()
@@ -140,7 +139,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
         SettingsBrowserLastRoute.objects.create(browser=instance)
         # Re-fetch with select_related so the reverse OneToOne accessors work.
         return SettingsBrowser.objects.select_related(
-            "show", "filters", "last_route"
+            *SETTINGS_BROWSER_SELECT_RELATED
         ).get(pk=instance.pk)
 
     def _get_or_create_settings(
@@ -195,7 +194,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
         )
 
     @staticmethod
-    def _browser_instance_to_dict(instance: SettingsBrowser) -> dict:
+    def browser_instance_to_dict(instance: SettingsBrowser) -> dict:
         """
         Convert a SettingsBrowser instance to the params dict.
 
@@ -244,7 +243,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
             only=only,
         )
         if isinstance(instance, SettingsBrowser):
-            return self._browser_instance_to_dict(instance)
+            return self.browser_instance_to_dict(instance)
         return self._reader_instance_to_dict(instance)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
 
     def _load_browser_settings_data(self, only: Sequence[str] | None = None) -> dict:
@@ -256,7 +255,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
             BROWSER_CREATE_ARGS,
             only=only,
         )
-        return self._browser_instance_to_dict(instance)
+        return self.browser_instance_to_dict(instance)
 
     # Public API — read-only
 

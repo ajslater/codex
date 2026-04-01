@@ -94,6 +94,22 @@ const getLazyImport = ({ group, pks }) => {
   return HTTP.get(`/${group}/${pks}/import`);
 };
 
+const getSavedSettingsList = () => {
+  return HTTP.get("/r/settings/saved");
+};
+
+const saveSettings = (name) => {
+  return HTTP.post("/r/settings/saved", { name });
+};
+
+const loadSavedSettings = (pk) => {
+  return HTTP.get(`/r/settings/saved/${pk}`);
+};
+
+const deleteSavedSettings = (pk) => {
+  return HTTP.delete(`/r/settings/saved/${pk}`);
+};
+
 export default {
   getAvailableFilterChoices,
   getBrowserHref,
@@ -106,4 +122,8 @@ export default {
   getLazyImport,
   updateGroupBookmarks,
   updateSettings,
+  getSavedSettingsList,
+  saveSettings,
+  loadSavedSettings,
+  deleteSavedSettings,
 };

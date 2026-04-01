@@ -91,6 +91,9 @@ export const useBrowserStore = defineStore("browser", {
     isSearchOpen: false,
     isSearchHelpOpen: false,
     searchHideTimeout: undefined,
+    // Saved settings
+    savedSettingsList: [],
+    savedSettingsSnackbar: [],
   }),
   getters: {
     groupNames() {
@@ -636,6 +639,66 @@ export const useBrowserStore = defineStore("browser", {
       this._validateAndSaveSettings(settings);
       // ignore redirect
       router.push(route).catch(console.error);
+    },
+    /*
+     * SAVED SETTINGS
+     */
+    async loadSavedSettingsList() {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.getSavedSettingsList()
+        .then((response) => {
+          this.savedSettingsList = Object.freeze(
+            response.data.savedSettings || [],
+          );
+          return true;
+        })
+        .catch(console.error);
+    },
+    async saveCurrentSettings(name) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.saveSettings(name)
+        .then(() => {
+          this.loadSavedSettingsList();
+          return true;
+        })
+        .catch(console.error);
+    },
+    async loadSavedSettings(pk) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.loadSavedSettings(pk)
+        .then((response) => {
+          const { settings, filterWarnings } = response.data;
+          if (settings) {
+            this._validateAndSaveSettings(settings);
+            this.browserPageLoaded = true;
+            this.loadBrowserPage(undefined, true);
+          }
+          if (filterWarnings && filterWarnings.length > 0) {
+            this.savedSettingsSnackbar = filterWarnings;
+          }
+          return true;
+        })
+        .catch(console.error);
+    },
+    async deleteSavedSettings(pk) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.deleteSavedSettings(pk)
+        .then(() => {
+          this.loadSavedSettingsList();
+          return true;
+        })
+        .catch(console.error);
+    },
+    clearSavedSettingsSnackbar() {
+      this.savedSettingsSnackbar = [];
     },
   },
 });

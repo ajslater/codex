@@ -1,4 +1,5 @@
 <template>
+  <BrowserSettingsSaved />
   <BrowserSettingsGroup />
   <BrowserSettingsCovers />
   <BrowserSettingsMisc />
@@ -7,6 +8,7 @@
 import BrowserSettingsCovers from "./browser-settings-covers.vue";
 import BrowserSettingsGroup from "./browser-settings-group.vue";
 import BrowserSettingsMisc from "./browser-settings-misc.vue";
+import BrowserSettingsSaved from "./browser-settings-saved.vue";
 
 export default {
   name: "BrowserSettingsPanel",
@@ -14,6 +16,7 @@ export default {
     BrowserSettingsCovers,
     BrowserSettingsGroup,
     BrowserSettingsMisc,
+    BrowserSettingsSaved,
   },
 };
 </script>

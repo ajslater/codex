@@ -4,6 +4,7 @@
     <BrowserMain />
     <BrowserNavToolbar />
     <BrowserSettingsDrawer />
+    <FilterWarningSnackbar />
   </v-main>
   <Unauthorized v-else />
 </template>
@@ -13,6 +14,7 @@ import { mapActions, mapState } from "pinia";
 
 import BrowserHeader from "@/components/browser/browser-header.vue";
 import BrowserSettingsDrawer from "@/components/browser/drawer/browser-settings-drawer.vue";
+import FilterWarningSnackbar from "@/components/browser/filter-warning-snackbar.vue";
 import BrowserMain from "@/components/browser/main.vue";
 import BrowserNavToolbar from "@/components/browser/toolbars/nav/browser-toolbar-nav.vue";
 import Unauthorized from "@/components/unauthorized.vue";
@@ -26,6 +28,7 @@ export default {
     BrowserMain,
     BrowserNavToolbar,
     BrowserSettingsDrawer,
+    FilterWarningSnackbar,
     Unauthorized,
   },
   computed: {
