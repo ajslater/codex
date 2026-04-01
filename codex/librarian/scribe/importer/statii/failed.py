@@ -11,7 +11,7 @@ class ImporterFailedImportStatus(ImporterStatus, ABC):
     ITEM_NAME = "failed imports"
 
 
-class ImporterFailedImportsQueryStatus(ImporterFailedImportStatus, ABC):
+class ImporterFailedImportsQueryStatus(ImporterFailedImportStatus):
     """Importer Failed Imports Query Statii."""
 
     CODE = "IFQ"
@@ -19,14 +19,14 @@ class ImporterFailedImportsQueryStatus(ImporterFailedImportStatus, ABC):
     _verbed = "Queried"
 
 
-class ImporterFailedImportsUpdateStatus(ImporterFailedImportStatus, ABC):
+class ImporterFailedImportsUpdateStatus(ImporterFailedImportStatus):
     """Importer Failed Imports Update Statii."""
 
     CODE = "IFU"
     VERB = "Update"
 
 
-class ImporterFailedImportsCreateStatus(ImporterFailedImportStatus, ABC):
+class ImporterFailedImportsCreateStatus(ImporterFailedImportStatus):
     """Importer Failed Imports Create Statii."""
 
     CODE = "IFC"
@@ -34,7 +34,7 @@ class ImporterFailedImportsCreateStatus(ImporterFailedImportStatus, ABC):
     _verbed = "Marked Failed"
 
 
-class ImporterFailedImportsDeleteStatus(ImporterFailedImportStatus, ABC):
+class ImporterFailedImportsDeleteStatus(ImporterFailedImportStatus):
     """Importer Failed Imports Create Statii."""
 
     CODE = "IFD"
