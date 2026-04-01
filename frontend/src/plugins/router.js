@@ -60,7 +60,24 @@ const routes = [
   { name: "404", path: "/:pathMatch(.*)*", redirect: "/error/404" },
 ];
 
-export default new createRouter({
+const router = new createRouter({
   history: createWebHistory(globalThis.CODEX.APP_PATH),
   routes,
 });
+
+router.afterEach((to) => {
+  // Strip the ts cache-busting query param from the visible URL.
+  // Vue Router's $route watcher already captured the value before this fires.
+  if (to.query?.ts !== undefined) {
+    const { ts, ...query } = to.query;
+    const cleanRoute = router.resolve({
+      name: to.name,
+      params: to.params,
+      query,
+      hash: to.hash,
+    });
+    history.replaceState(history.state, "", cleanRoute.href);
+  }
+});
+
+export default router;

@@ -493,9 +493,6 @@ export const useBrowserStore = defineStore("browser", {
       this.isSearchHelpOpen = value;
       this.startSearchHideTimeout();
     },
-    setPageMtime(mtime) {
-      globalThis.mtime = mtime;
-    },
     /*
      * ROUTE
      */
