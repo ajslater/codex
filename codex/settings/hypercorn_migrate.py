@@ -128,9 +128,9 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
         else ""
     )
     server_line += "[server]"
+    lines += [server_line, "# Granian ASGI server settings"]
     _build_codex_toml_line(lines, "host", host, _DEFAULT_HOST)
     _build_codex_toml_line(lines, "port", port, _DEFAULT_PORT)
-    lines += [server_line, "# Granian ASGI server settings"]
 
     # Just in case someone got clever
     lines.append(
@@ -147,7 +147,7 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
     _build_codex_toml_line(lines, "url_path_prefix", root_path, "")
 
     # Tail of the default config files
-    lines += config_tail
+    lines += ["", *config_tail]
 
     _append_granian_ssl_comment(lines, old)
 
