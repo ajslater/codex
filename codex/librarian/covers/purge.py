@@ -50,7 +50,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
 
     def purge_comic_covers(self, pks: frozenset[int], *, custom: bool) -> int:
         """Purge a set a cover paths."""
-        cover_paths = self.get_cover_paths(pks, custom)
+        cover_paths = self.get_cover_paths(pks, custom=custom)
         cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
         return self.purge_cover_paths(cover_paths, cover_root)
 
@@ -71,7 +71,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             self.status_controller.finish(status)
         librarian_queue.put(COVERS_CHANGED_TASK)
 
-    def _cleanup_orphan_covers(self, cover_class, cover_root, name) -> None:
+    def _cleanup_orphan_covers(self, cover_class, cover_root: Path, name: str) -> None:
         """Remove all orphan cover thumbs."""
         status = FindOrphanCoversStatus()
         try:
