@@ -23,6 +23,7 @@ border-radius: 128px;
     - Fix reader close button receiving nonsensical route.
     - Fix check latest version of Codex bug.
     - Tags page sometimes had erroneous links went nowhere.
+    - Fixed some foreign key integrity fixing bugs.
 - Features
     - Browser can save and load named views.
     - Reader Settings are now available for Series, Parent Folder and Story Arc
