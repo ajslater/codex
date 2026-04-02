@@ -28,7 +28,6 @@ DEPS=(
   bin/pm
   bin/roman.py
   bin/test-python.sh
-  bin/test.sh
   ci/dist-builder.Dockerfile
   eslint.config.js
   package.json
