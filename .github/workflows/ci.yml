@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - pre-release
+      - main
+      - "*-ci"
+      - gha
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint, test, and build the Python wheel (amd64 only)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Lint, Test & Build Dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build dist-builder image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/Dockerfile
+          target: dist-builder
+          load: true
+          tags: dist-builder:ci
+          cache-from: type=gha,scope=dist-builder
+          cache-to: type=gha,scope=dist-builder,mode=max
+
+      - name: Start CI container
+        run: |
+          mkdir -p dist test-results
+          docker create --name ci \
+            -v "${{ github.workspace }}/dist:/app/dist" \
+            -v "${{ github.workspace }}/test-results:/app/test-results" \
+            dist-builder:ci sleep infinity
+          docker start ci
+
+      - name: Lint
+        run: docker exec ci make lint
+
+      - name: "Frontend: Test"
+        run: docker exec ci make test-frontend
+
+      - name: "Frontend: Build"
+        run: docker exec ci make build-frontend -o build-choices
+
+      - name: "Backend: Test"
+        run: docker exec ci make collectstatic django-check test-python -o build-frontend
+
+      - name: Build Distribution
+        run: docker exec ci make build-only
+
+      - name: Stop CI container
+        if: always()
+        run: docker rm -f ci || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Build multi-arch Docker image, push to Docker Hub, publish to PyPI
+  # ---------------------------------------------------------------------------
+  build-and-deploy:
+    name: Build & Deploy
+    needs: test
+    if: github.ref != 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Determine version & tags
+        id: meta
+        run: |
+          VERSION=$(uv version --short)
+          WHEEL="codex-${VERSION}-py3-none-any.whl"
+          TAGS="docker.io/ajslater/codex:${VERSION}"
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            TAGS="${TAGS},docker.io/ajslater/codex:latest"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "wheel=${WHEEL}" >> "$GITHUB_OUTPUT"
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/Dockerfile
+          target: final
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            CODEX_WHEEL=${{ steps.meta.outputs.wheel }}
+            CODEX_VERSION=${{ steps.meta.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          provenance: false
+          cache-from: |
+            type=gha,scope=dist-builder
+            type=gha,scope=final
+          cache-to: type=gha,scope=final,mode=max
+
+      - name: Publish to PyPI
+        run: uv publish dist/*
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Discord notification
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_STATUS_WEBHOOK }}
+          STATUS: ${{ job.status }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then exit 0; fi
+          MSG="**${{ github.actor }}** · \`${{ github.ref_name }}\` · ${STATUS}"
+          curl -sS -H "Content-Type: application/json" \
+            -d "{\"content\": \"${MSG}\"}" "$WEBHOOK" || true
