@@ -1,6 +1,5 @@
 import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
-import { watch } from "vue";
 
 import { WS_URL } from "@/api/v3/notify";
 import { messages } from "@/choices/websocket-messages.json";
@@ -47,7 +46,7 @@ function stopHeartbeat() {
 }
 
 export const useSocketStore = defineStore("socket", () => {
-  const { status, data, open } = useWebSocket(WS_URL, {
+  const { status, open } = useWebSocket(WS_URL, {
     immediate: true,
     autoReconnect: {
       retries: RECONNECT_RETRIES,
@@ -59,6 +58,9 @@ export const useSocketStore = defineStore("socket", () => {
     onConnected(ws) {
       startHeartbeat(ws);
       console.debug("[socket] Connected.");
+    },
+    onMessage(_ws, event) {
+      dispatchMessage(event.data);
     },
     onError(ws, event) {
       console.error("[socket] Error on", ws.url, event);
@@ -73,8 +75,6 @@ export const useSocketStore = defineStore("socket", () => {
       );
     },
   });
-
-  // watch(status, (s) => console.debug("[socket] Status: ", s));
 
   // Lazy admin store loader
 
@@ -149,7 +149,7 @@ export const useSocketStore = defineStore("socket", () => {
 
   // Message Dispatcher
 
-  watch(data, (message) => {
+  function dispatchMessage(message) {
     if (!message) return;
     console.debug("[socket] message:", message);
     switch (message) {
@@ -184,7 +184,7 @@ export const useSocketStore = defineStore("socket", () => {
       default:
         console.debug("Unhandled WebSocket message:", message);
     }
-  });
+  }
 
   // Public open for recconnect when user changes.
   const reopen = () => {

@@ -23,6 +23,7 @@ border-radius: 128px;
     - Fix erroneous "Bookmark" filter appearing in filter menu when a read state
       is selected.
     - Fix reader close button receiving nonsensical route.
+    - Fix job status messages sometimes not being updated correctly.
     - Fix check latest version of Codex bug.
     - Tags page sometimes had erroneous links went nowhere.
     - Fixed some foreign key integrity fixing bugs.
