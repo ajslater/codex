@@ -399,7 +399,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.10.0a0"
+version = "1.10.0a1"
 source = { editable = "." }
 dependencies = [
     { name = "bidict" },
@@ -2673,14 +2673,14 @@ wheels = [
 
 [[package]]
 name = "servestatic"
-version = "4.1.0"
+version = "4.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/e2/161d810da87b9b16ee49cabba3da6fa8578351a26ced838bd3956a0f7aae/servestatic-4.1.0.tar.gz", hash = "sha256:40e6162a5bf38f0dd0ff259c1bb60c5249f9828d8d4713e382004726850fa111", size = 31073, upload-time = "2026-03-07T09:04:44.005Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/fd/9124426f7cd47a9dc005849ad85606745cc602a4a13039534fa685fa2104/servestatic-4.2.0.tar.gz", hash = "sha256:b1188412188b5ca9f6f086962c081f27a52d2cc5cfec6453045b6060cc37f8b1", size = 33247, upload-time = "2026-04-02T03:07:01.906Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/df/82d9a9fcb607f8e9e81e481f6164e653a30a0b23340f48c34f41fb71db7d/servestatic-4.1.0-py3-none-any.whl", hash = "sha256:4936d59a91c918ffe96481a9beb2c6338f07c236bb27f4a35d244ac0c64a7b57", size = 37629, upload-time = "2026-03-07T09:04:42.62Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/ce/ec6bb13086b9c72806b7587a8340f26c0a50ff9c6b4ee452b598fe0f4edc/servestatic-4.2.0-py3-none-any.whl", hash = "sha256:2c00d294b768f62011d5d0a45e7bffb93e5b5bdf9e33139fba064915cf1b36d0", size = 40412, upload-time = "2026-04-02T03:07:00.487Z" },
 ]
 
 [package.optional-dependencies]
