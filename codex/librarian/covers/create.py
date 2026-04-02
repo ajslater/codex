@@ -1,14 +1,12 @@
 """Create comic cover paths."""
 
 from abc import ABC
-from collections.abc import Sequence
 from io import BytesIO
 from multiprocessing.queues import Queue
 from pathlib import Path
 from time import time
 
 from comicbox.box import Comicbox
-from django.db.models.query import ValuesQuerySet
 from humanize import naturaldelta
 from PIL import Image
 
@@ -126,9 +124,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             status.increment_complete()
         self.status_controller.update(status)
 
-    def _bulk_create_comic_covers(
-        self, pks: Sequence[int] | ValuesQuerySet, *, custom: bool
-    ) -> int:
+    def _bulk_create_comic_covers(self, pks, *, custom: bool) -> int:
         """Create bulk comic covers."""
         num_comics = len(pks)
         if not num_comics:
