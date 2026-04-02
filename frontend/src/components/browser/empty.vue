@@ -76,7 +76,9 @@ export default {
       return !this.librariesExist && this.isUserAdmin;
     },
     actionText() {
-      return this.isFiltersClearable ? "Clear Filters and Search" : "";
+      return this.librariesExist && this.isFiltersClearable
+        ? "Clear Filters and Search"
+        : "";
     },
   },
   methods: {
