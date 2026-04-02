@@ -155,14 +155,12 @@ def _build_codex_toml(old: dict, default_toml: Path) -> str:
     return "\n".join(lines)
 
 
-def migrate_hypercorn_config(
-    config_dir: Path, codex_toml: Path, default_toml: Path
-) -> None:
+def migrate_hypercorn_config(codex_toml: Path, default_toml: Path) -> None:
     """Convert hypercorn.toml to codex.toml."""
     if codex_toml.exists():
         return
 
-    hypercorn_toml = config_dir / HYPERCORN_FN
+    hypercorn_toml = codex_toml.parent / HYPERCORN_FN
     if not hypercorn_toml.exists():
         return
 

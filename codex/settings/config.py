@@ -85,8 +85,9 @@ def _deep_set(data: MutableMapping, keypath: str, value) -> None:
 def _ensure_config(config_toml: Path, config_toml_default: Path) -> None:
     """Ensure that a valid config exists."""
     if not config_toml.exists():
-        migrate_hypercorn_config(config_toml.parent, config_toml, config_toml_default)
+        migrate_hypercorn_config(config_toml, config_toml_default)
     if not config_toml.exists():
+        config_toml.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(config_toml_default, config_toml)
         logger.info(f"Copied default config to {config_toml}")
 
