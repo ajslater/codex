@@ -186,7 +186,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         except Exception:
             self.log.exception(f"Poll {library.path}")
         finally:
-            self.status_controller.finish(status, clear_subtitle=False)
+            self.status_controller.finish(status)
 
     #############
     # Main loop #

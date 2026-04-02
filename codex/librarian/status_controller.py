@@ -111,7 +111,7 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
-    def _log_finish(self, status: Status, *, clear_subtitle: bool) -> None:
+    def _log_finish(self, status: Status) -> None:
         """Log finish of status with stats."""
         level = "INFO"
         suffix = ""
@@ -130,9 +130,6 @@ class StatusController:
         if status.log_success:
             level = "SUCCESS"
 
-        if clear_subtitle:
-            status.subtitle = ""
-
         prefix_parts = filter(
             None, (status.verbed(), count, status.ITEM_NAME, status.subtitle)
         )
@@ -145,7 +142,6 @@ class StatusController:
         statii: Iterable[Status | type[Status] | None],
         *,
         notify: bool = True,
-        clear_subtitle=True,
     ) -> None:
         """Finish all librarian statuses."""
         positive_statii: MappingProxyType[str, Status | type[Status]] = (
@@ -167,22 +163,26 @@ class StatusController:
                 # Clear-all: only touch rows that are currently active.
                 ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
 
-            LibrarianStatus.objects.filter(ls_filter).update(**updates)
-            self._enqueue_notifier_task(notify=notify)
+            update_statii = LibrarianStatus.objects.filter(ls_filter)
+            # Save statii for individual reporting.
+            updated_statii = update_statii.values()
+            update_statii.update(**updates)
 
-            if not positive_statii:
+            # Log when done.
+            if positive_statii:
+                for status in updated_statii:
+                    if isinstance(status, Status):
+                        self._log_finish(status)
+            else:
                 self.log.info("Cleared all librarian statuses")
-            for status in positive_statii.values():
-                if isinstance(status, Status):
-                    self._log_finish(status, clear_subtitle=clear_subtitle)
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
+        finally:
+            self._enqueue_notifier_task(notify=notify)
 
-    def finish(
-        self, status: Status | None, *, notify: bool = True, clear_subtitle=True
-    ) -> None:
+    def finish(self, status: Status | None, *, notify: bool = True) -> None:
         """Finish a librarian status."""
         try:
-            self.finish_many((status,), notify=notify, clear_subtitle=clear_subtitle)
+            self.finish_many((status,), notify=notify)
         except Exception as exc:
             self.log.warning(exc)
