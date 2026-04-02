@@ -160,6 +160,7 @@ export const useSocketStore = defineStore("socket", () => {
         reloadBrowser();
         break;
       case messages.COVERS:
+        useCommonStore().setTimestamp();
         reloadBrowser();
         break;
       case messages.GROUPS:
