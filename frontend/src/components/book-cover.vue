@@ -42,7 +42,7 @@ export default {
     },
     mtime: {
       type: Number,
-      default: Date.now(),
+      default: 0,
     },
   },
   data() {
