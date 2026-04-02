@@ -137,6 +137,15 @@ class StatusController:
 
         self.log.log(level, f"{prefix}{suffix}.")
 
+    def _finish_many_log(self, updated_statii, *, is_positive_statii: bool):
+        """Log when done."""
+        if is_positive_statii:
+            for status in updated_statii:
+                if isinstance(status, Status):
+                    self._log_finish(status)
+        else:
+            self.log.info("Cleared all librarian statuses")
+
     def finish_many(
         self,
         statii: Iterable[Status | type[Status] | None],
@@ -148,12 +157,13 @@ class StatusController:
             MappingProxyType({status.CODE: status for status in statii if status})
         )
         try:
+            # Construct update query
             if statii and not positive_statii:
                 # if statii has elements but they were all None, this is a noop.
                 # But if statii was empty this is a finish all command.
+                # This fires an extra LIBRARIAN_STATUS notification if none. idk if that's appropriate.
                 return
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
-
             if positive_statii:
                 # Finish specific statuses unconditionally by status_type.
                 # Don't require active/preactive to be set — subtasks may
@@ -163,18 +173,15 @@ class StatusController:
                 # Clear-all: only touch rows that are currently active.
                 ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
 
+            # Perform updates
             update_statii = LibrarianStatus.objects.filter(ls_filter)
             # Save statii for individual reporting.
             updated_statii = update_statii.values()
             update_statii.update(**updates)
 
-            # Log when done.
-            if positive_statii:
-                for status in updated_statii:
-                    if isinstance(status, Status):
-                        self._log_finish(status)
-            else:
-                self.log.info("Cleared all librarian statuses")
+            self._finish_many_log(
+                updated_statii, is_positive_statii=bool(positive_statii)
+            )
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
         finally:
