@@ -18,6 +18,8 @@ border-radius: 128px;
           are still respected for compatibility.
     - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 - Fixes
+    - Fix old dynamic covers displaying when database had changed due to
+      imports.
     - Fix erroneous "Bookmark" filter appearing in filter menu when a read state
       is selected.
     - Fix reader close button receiving nonsensical route.
