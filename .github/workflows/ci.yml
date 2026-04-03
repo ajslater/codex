@@ -169,6 +169,18 @@ jobs:
             "${IMAGE}:${VERSION}-amd64" \
             "${IMAGE}:${VERSION}-arm64"
 
+      - name: Clean up per-arch tags
+        run: |
+          VERSION=$(uv version --short)
+          TOKEN=$(curl -s -H "Content-Type: application/json" \
+            -d '{"username":"${{ secrets.DOCKER_USER }}","password":"${{ secrets.DOCKER_PASS }}"}' \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+          for arch in amd64 arm64; do
+            curl -s -X DELETE \
+              -H "Authorization: JWT ${TOKEN}" \
+              "https://hub.docker.com/v2/repositories/ajslater/codex/tags/${VERSION}-${arch}/" || true
+          done
+
       - name: Publish to PyPI
         run: uv publish dist/*
         env:
