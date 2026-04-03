@@ -118,7 +118,11 @@
               </span>
             </button>
             <v-expand-transition>
-              <div v-if="isExpanded(job)" class="statusRows">
+              <div
+                v-if="isExpanded(job)"
+                class="statusRows"
+                @click="loadAllStatuses"
+              >
                 <div
                   v-for="status in jobStatuses(job)"
                   :key="status.statusType"
@@ -326,13 +330,6 @@ export default {
       if (!job.statuses || job.statuses.length === 0) {
         return [];
       }
-      /*
-       * Don't show nightly subtask progress unless the nightly
-       * parent job itself is running.
-       */
-      if (job.value === NIGHTLY_JOB_VALUE && !this.isNightlyRunning) {
-        return [];
-      }
       const result = [];
       for (const code of job.statuses) {
         // eslint-disable-next-line security/detect-object-injection
@@ -357,6 +354,13 @@ export default {
       );
     },
     isExpanded(job) {
+      if (job.value === NIGHTLY_JOB_VALUE) {
+        /*
+         * Don't show nightly subtask progress unless the nightly
+         * parent job itself is running.
+         */
+        return this.isNightlyRunning;
+      }
       if (job.value in this.manualExpanded) {
         return this.manualExpanded[job.value];
       }

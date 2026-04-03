@@ -67,7 +67,7 @@ class SnapshotDiff:
 
         self.dirs_added = [p for p in data.added if snapshot.is_dir(p)]
         self.dirs_deleted = [p for p in data.deleted if ref.is_dir(p)]
-        self.dirs_modified = [p for p in data.modified if ref.is_dir(p)]
+        self.dirs_modified = [p for p in data.modified if snapshot.is_dir(p)]
         self.dirs_moved = [(f, t) for f, t in data.moved if ref.is_dir(f)]
 
         dir_added_set = set(self.dirs_added)

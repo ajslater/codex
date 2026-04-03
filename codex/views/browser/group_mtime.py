@@ -71,7 +71,12 @@ class BrowserGroupMtimeView(BrowserFilterView):
             page_mtime=page_mtime,
             bookmark_filter=self.is_bookmark_filtered,
         )
-        mua = Max("updated_at", default=EPOCH_START_DATETIMEFIELD)
+        # For group models, traverse to Comic.updated_at via rel_prefix.
+        # The group model's own updated_at is not reliably refreshed by
+        # bulk_update / bulk_create(update_conflicts) because auto_now
+        # only fires on Model.save().
+        prefix = self.get_rel_prefix(model)
+        mua = Max(prefix + "updated_at", default=EPOCH_START_DATETIMEFIELD)
         mbua = self.get_max_bookmark_updated_at_aggregate(
             model, default=EPOCH_START_DATETIMEFIELD
         )

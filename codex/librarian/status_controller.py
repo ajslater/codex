@@ -111,7 +111,7 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
-    def _log_finish(self, status: Status, *, clear_subtitle: bool) -> None:
+    def _log_finish(self, status: Status) -> None:
         """Log finish of status with stats."""
         level = "INFO"
         suffix = ""
@@ -130,9 +130,6 @@ class StatusController:
         if status.log_success:
             level = "SUCCESS"
 
-        if clear_subtitle:
-            status.subtitle = ""
-
         prefix_parts = filter(
             None, (status.verbed(), count, status.ITEM_NAME, status.subtitle)
         )
@@ -140,24 +137,33 @@ class StatusController:
 
         self.log.log(level, f"{prefix}{suffix}.")
 
+    def _finish_many_log(self, updated_statii, *, is_positive_statii: bool):
+        """Log when done."""
+        if is_positive_statii:
+            for status in updated_statii:
+                if isinstance(status, Status):
+                    self._log_finish(status)
+        else:
+            self.log.info("Cleared all librarian statuses")
+
     def finish_many(
         self,
         statii: Iterable[Status | type[Status] | None],
         *,
         notify: bool = True,
-        clear_subtitle=True,
     ) -> None:
         """Finish all librarian statuses."""
         positive_statii: MappingProxyType[str, Status | type[Status]] = (
             MappingProxyType({status.CODE: status for status in statii if status})
         )
         try:
+            # Construct update query
             if statii and not positive_statii:
                 # if statii has elements but they were all None, this is a noop.
                 # But if statii was empty this is a finish all command.
+                # This fires an extra LIBRARIAN_STATUS notification if none. idk if that's appropriate.
                 return
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
-
             if positive_statii:
                 # Finish specific statuses unconditionally by status_type.
                 # Don't require active/preactive to be set — subtasks may
@@ -167,22 +173,23 @@ class StatusController:
                 # Clear-all: only touch rows that are currently active.
                 ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
 
-            LibrarianStatus.objects.filter(ls_filter).update(**updates)
-            self._enqueue_notifier_task(notify=notify)
+            # Perform updates
+            update_statii = LibrarianStatus.objects.filter(ls_filter)
+            # Save statii for individual reporting.
+            updated_statii = update_statii.values()
+            update_statii.update(**updates)
 
-            if not positive_statii:
-                self.log.info("Cleared all librarian statuses")
-            for status in positive_statii.values():
-                if isinstance(status, Status):
-                    self._log_finish(status, clear_subtitle=clear_subtitle)
+            self._finish_many_log(
+                updated_statii, is_positive_statii=bool(positive_statii)
+            )
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
+        finally:
+            self._enqueue_notifier_task(notify=notify)
 
-    def finish(
-        self, status: Status | None, *, notify: bool = True, clear_subtitle=True
-    ) -> None:
+    def finish(self, status: Status | None, *, notify: bool = True) -> None:
         """Finish a librarian status."""
         try:
-            self.finish_many((status,), notify=notify, clear_subtitle=clear_subtitle)
+            self.finish_many((status,), notify=notify)
         except Exception as exc:
             self.log.warning(exc)

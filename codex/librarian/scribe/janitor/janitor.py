@@ -121,7 +121,8 @@ class Janitor(JanitorCodexUpdate):
         try:
             # Simple task dispatch
             if method_name := _JANITOR_METHOD_MAP.get(type(task)):
-                getattr(self, method_name)()
+                method = getattr(self, method_name)
+                method()
                 return
 
             # Tasks with special parameters

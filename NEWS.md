@@ -18,11 +18,15 @@ border-radius: 128px;
           are still respected for compatibility.
     - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
 - Fixes
+    - Fix old dynamic covers displaying when database had changed due to
+      imports.
     - Fix erroneous "Bookmark" filter appearing in filter menu when a read state
       is selected.
     - Fix reader close button receiving nonsensical route.
+    - Fix job status messages sometimes not being updated correctly.
     - Fix check latest version of Codex bug.
     - Tags page sometimes had erroneous links went nowhere.
+    - Fixed some foreign key integrity fixing bugs.
 - Features
     - Browser can save and load named views.
     - Reader Settings are now available for Series, Parent Folder and Story Arc
