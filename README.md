@@ -8,6 +8,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## 🚨 Announcements 2026-April-03 🚨
+
+### Docker
+
+The Docker image has moved to
+[ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex)
+Dockerhub images will continue to be produced for a little while.
+
+### Discord
+
+The support Discord has moved to
+[Codex Comic Server](https://discord.gg/CU5kKxv7kg) The Mylar #codex-support
+channel will eventually be abandoned.
+
 ## ✨ Features
 
 - Codex is a web server.
@@ -52,9 +66,11 @@ Codex has a [NEWS file](NEWS.md) to summarize changes that affect users.
 
 ### Install & Run with Docker
 
-Run the official [Docker Image](https://hub.docker.com/r/ajslater/codex).
-Instructions for running the docker image are on the Docker Hub README. This is
-the recommended way to run Codex.
+Run the official
+[Docker Image](https://github.com/ajslater/codex/pkgs/container/codex) at
+ghcr.io/ajslater/codex.
+
+Read the [Docker instructions](docs/DOCKER.md)
 
 You'll then want to read the [Administration](#administration) section of this
 document.
@@ -138,7 +154,7 @@ Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the
-[Native Windows Dependencies Installation Document](WINDOWS.md).
+[Native Windows Dependencies Installation Document](docs/WINDOWS.md).
 
 #### Run Codex Natively
 
@@ -636,4 +652,4 @@ for a list of commands.
 
 ## 😊 Enjoy
 
-![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)
+![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](docs/strange.jpg)

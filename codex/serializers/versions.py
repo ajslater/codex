@@ -9,3 +9,4 @@ class VersionsSerializer(Serializer):
 
     installed = CharField(read_only=True)
     latest = CharField(read_only=True)
+    warning = CharField(read_only=True)

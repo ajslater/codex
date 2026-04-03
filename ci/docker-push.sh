@@ -20,6 +20,15 @@ for arch in "${ARCHES[@]}"; do
 done
 
 docker buildx imagetools create \
+  --annotation "index:org.opencontainers.image.title=Codex" \
+  --annotation "index:org.opencontainers.image.description=Codex Comic Server" \
+  --annotation "index:org.opencontainers.image.version=${CODEX_VERSION}" \
+  --annotation "index:org.opencontainers.image.authors=AJ Slater <aj@slater.net>" \
+  --annotation "index:org.opencontainers.image.url=https://codex-reader.app" \
+  --annotation "index:org.opencontainers.image.source=https://github.com/ajslater/codex" \
+  --annotation "index:org.opencontainers.image.licenses=GPL-3.0-only" \
+  --annotation "index:org.opencontainers.image.deprecated=true" \
+  --annotation "index:org.opencontainers.image.description=This image has moved to ghcr.io/ajslater/codex" \
   "${TAG_ARGS[@]}" \
   "${IMAGE_ARGS[@]}"
 

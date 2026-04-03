@@ -9,14 +9,15 @@ border-radius: 128px;
 ## v1.10.0 Rust modules & Settings Features
 
 - 🚨 Big Changes 🚨
-    - Django 6 requires python 3.12.
+    - Docker repo has changed to ghcr.io/ajslater/codex
+    - Django 6 requires python >=3.12.
     - Unified configuration:
         - Your hypercorn.toml config will be migrated automatically to
           codex.toml. Options previously only configurable with environment
           variables may now be also be specified in codex.toml.
         - Some of the environment variable names have changed, but old values
           are still respected for compatibility.
-    - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
+    - Replaced the thumbnail filename algorithm. Thumbnails will regenerate.
 - Fixes
     - Fix old dynamic covers displaying when database had changed due to
       imports.

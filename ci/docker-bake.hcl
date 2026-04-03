@@ -76,5 +76,16 @@ target "codex-arch" {
     tags = [
       "docker.io/ajslater/codex-arch:${CODEX_ARCH_VERSION}",
     ]
+    annotations = [
+      "manifest:org.opencontainers.image.title=Codex",
+      "manifest:org.opencontainers.image.description=Codex Comic Server",
+      "manifest:org.opencontainers.image.version=${PKG_VERSION}",
+      "manifest:org.opencontainers.image.authors=AJ Slater <aj@slater.net>",
+      "manifest:org.opencontainers.image.url=https://codex-reader.app",
+      "manifest:org.opencontainers.image.source=https://github.com/ajslater/codex",
+      "manifest:org.opencontainers.image.licenses=GPL-3.0-only",
+      "manifest:org.opencontainers.image.deprecated=true",
+      "manifest:org.opencontainers.image.description=This image has moved to ghcr.io/ajslater/codex"
+    ]
     output = [ "type=registry" ]
   }

@@ -13,8 +13,7 @@
 ###############################################################################
 
 # ---- Stage 1: runtime-base (slim, no build tools) --------------------------
-FROM ajslater/python-debian:3.14.2-slim-trixie_0 AS runtime-base
-LABEL maintainer="AJ Slater <aj@slater.net>"
+FROM ajslater/python-debian:3.14.3-slim-trixie_2 AS runtime-base
 
 COPY ci/debian.sources /etc/apt/sources.list.d/
 
@@ -39,7 +38,6 @@ RUN apt-get clean \
 # ---- Stage 2: builder (build tools + Node for compilation) -----------------
 FROM nikolaik/python-nodejs:python3.14-nodejs24 AS builder
 # nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
-LABEL maintainer="AJ Slater <aj@slater.net>"
 
 COPY ci/debian.sources /etc/apt/sources.list.d/
 
@@ -65,10 +63,6 @@ RUN apt-get clean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ARG CODEX_BUILDER_BASE_VERSION
-ARG CODEX_BASE_VERSION
-FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION} AS codex-built
-ARG CODEX_WHEEL
 WORKDIR /app
 
 # hadolint ignore=DL3013,DL3042
@@ -140,17 +134,16 @@ RUN set -eux \
     # Remove the installed wheel
     && rm -f /tmp/${CODEX_WHEEL}
 
-FROM ajslater/codex-base:${CODEX_BASE_VERSION}
+# ---- Stage 5: final (production image) ------------------------------------
+FROM runtime-base AS final
 ARG CODEX_VERSION
 LABEL org.opencontainers.image.title="Codex" \
+    org.opencontainers.image.description="Codex Comic Server" \
     org.opencontainers.image.version="${CODEX_VERSION}" \
     org.opencontainers.image.authors="AJ Slater <aj@slater.net>" \
-    org.opencontainers.image.url="https://codex-reader-app" \
+    org.opencontainers.image.url="https://codex-reader.app" \
     org.opencontainers.image.source="https://github.com/ajslater/codex" \
-    org.opencontainers.image.licenses="GPL-3.0-only" \
-    org.opencontainers.image.deprecated="true" \
-    org.opencontainers.image.description="This image has moved to ghcr.io/ajslater/codex"
-ENV DOCKER_IMAGE_DEPRECATED="This docker image has moved to ghcr.io/ajslater/codex. This may be the last version on docker.io"
+    org.opencontainers.image.licenses="GPL-3.0-only"
 
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
 RUN mkdir -p /home/abc/.config/comicbox \
