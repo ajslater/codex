@@ -14,7 +14,7 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     name: Lint, Test & Build Dist
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
 
@@ -28,8 +28,8 @@ jobs:
           target: dist-builder
           load: true
           tags: dist-builder:ci
-          cache-from: type=gha,scope=dist-builder
-          cache-to: type=gha,scope=dist-builder,mode=max
+          cache-from: type=gha,scope=dist-builder-amd64
+          cache-to: type=gha,scope=dist-builder-amd64,mode=max
 
       - name: Start CI container
         run: |
@@ -73,17 +73,24 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # Build multi-arch Docker image, push to Docker Hub, publish to PyPI
+  # Build per-arch Docker images natively and push to Docker Hub
   # ---------------------------------------------------------------------------
-  build-and-deploy:
-    name: Build & Deploy
+  build:
+    name: Build (${{ matrix.arch }})
     needs: test
     if: github.ref != 'refs/heads/develop'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
     steps:
       - uses: actions/checkout@v6
-
-      - uses: docker/setup-qemu-action@v4
 
       - uses: docker/setup-buildx-action@v4
 
@@ -99,36 +106,68 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
 
-      - name: Determine version & tags
+      - name: Determine version
         id: meta
         run: |
           VERSION=$(uv version --short)
           WHEEL="codex-${VERSION}-py3-none-any.whl"
-          TAGS="docker.io/ajslater/codex:${VERSION}"
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            TAGS="${TAGS},docker.io/ajslater/codex:latest"
-          fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "wheel=${WHEEL}" >> "$GITHUB_OUTPUT"
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
-      - name: Build & push multi-arch image
+      - name: Build & push arch image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ci/Dockerfile
           target: final
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
+          provenance: false
           build-args: |
             CODEX_WHEEL=${{ steps.meta.outputs.wheel }}
             CODEX_VERSION=${{ steps.meta.outputs.version }}
-          tags: ${{ steps.meta.outputs.tags }}
-          provenance: false
+          tags: docker.io/ajslater/codex:${{ steps.meta.outputs.version }}-${{ matrix.arch }}
           cache-from: |
-            type=gha,scope=dist-builder
-            type=gha,scope=final
-          cache-to: type=gha,scope=final,mode=max
+            type=gha,scope=dist-builder-${{ matrix.arch }}
+            type=gha,scope=final-${{ matrix.arch }}
+          cache-to: type=gha,scope=final-${{ matrix.arch }},mode=max
+
+  # ---------------------------------------------------------------------------
+  # Create multi-arch manifest, publish to PyPI, notify
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - uses: astral-sh/setup-uv@v4
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create multi-arch manifest & push
+        run: |
+          VERSION=$(uv version --short)
+          IMAGE=docker.io/ajslater/codex
+          TAG_ARGS=(-t "${IMAGE}:${VERSION}")
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            TAG_ARGS+=(-t "${IMAGE}:latest")
+          fi
+          docker buildx imagetools create \
+            "${TAG_ARGS[@]}" \
+            "${IMAGE}:${VERSION}-amd64" \
+            "${IMAGE}:${VERSION}-arm64"
 
       - name: Publish to PyPI
         run: uv publish dist/*
