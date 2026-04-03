@@ -13,7 +13,7 @@
 ###############################################################################
 
 # ---- Stage 1: runtime-base (slim, no build tools) --------------------------
-FROM ajslater/python-debian:3.14.3-slim-trixie_0 AS runtime-base
+FROM ajslater/python-debian:3.14.2-slim-trixie_0 AS runtime-base
 LABEL maintainer="AJ Slater <aj@slater.net>"
 
 COPY ci/debian.sources /etc/apt/sources.list.d/
@@ -35,9 +35,6 @@ RUN apt-get clean \
         zlib1g \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# hadolint ignore=DL3013,DL3042
-RUN pip3 install --no-cache --upgrade pip
 
 # ---- Stage 2: builder (build tools + Node for compilation) -----------------
 FROM nikolaik/python-nodejs:python3.14-nodejs24 AS builder
@@ -117,6 +114,25 @@ ARG CODEX_WHEEL
 COPY dist/${CODEX_WHEEL} /tmp/${CODEX_WHEEL}
 # hadolint ignore=DL3059,DL3013
 RUN PYMUPDF_SETUP_PY_LIMITED_API=0 pip3 install --no-cache-dir /tmp/${CODEX_WHEEL}
+
+# Slim down /usr/local before it gets copied to the final image
+# hadolint ignore=DL3059
+RUN set -eux \
+    # Remove pip, setuptools, wheel — not needed at runtime
+    && pip3 uninstall -y pip setuptools wheel 2>/dev/null || true \
+    && rm -rf /usr/local/bin/pip* \
+    # Strip debug symbols from shared libraries (~30-50% size reduction on .so files)
+    && find /usr/local -name '*.so' -exec strip --strip-unneeded {} + 2>/dev/null || true \
+    && find /usr/local -name '*.so.*' -exec strip --strip-unneeded {} + 2>/dev/null || true \
+    # Remove Python bytecode caches (regenerated on first import)
+    && find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local -name '*.pyc' -delete 2>/dev/null || true \
+    # Remove package metadata that is not needed at runtime
+    && find /usr/local -type d -name 'tests' -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local -type d -name 'test' -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local -name '*.pyi' -delete 2>/dev/null || true \
+    # Remove the installed wheel
+    && rm -f /tmp/${CODEX_WHEEL}
 
 # ---- Stage 5: final (production image) ------------------------------------
 FROM runtime-base AS final
