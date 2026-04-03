@@ -9,7 +9,7 @@ border-radius: 128px;
 ## v1.10.0 Rust modules & Settings Features
 
 - 🚨 Big Changes 🚨
-    - Docker repo has changed to ghcr.io/ajslater/codex
+    - The docker repo has changed to ghcr.io/ajslater/codex
     - Django 6 requires python >=3.12.
     - Unified configuration:
         - Your hypercorn.toml config will be migrated automatically to
