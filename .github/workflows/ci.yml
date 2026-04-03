@@ -1,0 +1,229 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - pre-release
+      - main
+      - "*-ci"
+
+env:
+  IMAGE: ghcr.io/ajslater/codex
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint, test, and build the Python wheel (amd64 only)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Lint, Test & Build Dist
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build dist-builder image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ci/Dockerfile
+          target: dist-builder
+          load: true
+          tags: dist-builder:ci
+          cache-from: type=gha,scope=dist-builder-amd64
+          cache-to: type=gha,scope=dist-builder-amd64,mode=max
+
+      - name: Start CI container
+        run: |
+          mkdir -p dist test-results
+          docker create --name ci \
+            -v "${{ github.workspace }}/dist:/app/dist" \
+            -v "${{ github.workspace }}/test-results:/app/test-results" \
+            dist-builder:ci sleep infinity
+          docker start ci
+
+      - name: Lint
+        run: docker exec ci make lint
+
+      - name: "Frontend: Test"
+        run: docker exec ci make test-frontend
+
+      - name: "Frontend: Build"
+        run: docker exec ci make build-frontend -o build-choices
+
+      - name: "Backend: Test"
+        run: docker exec ci make collectstatic django-check test-python -o build-frontend
+
+      - name: Build Distribution
+        run: docker exec ci make build-only
+
+      - name: Stop CI container
+        if: always()
+        run: docker rm -f ci || true
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+
+      - name: Discord notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_STATUS_WEBHOOK }}
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          content: Test ${{ github.ref_name }}  \#${{ github.run_number }}
+          description: Tested and built distribution for Codex
+          color: 0x00ff00
+          url: "https://github.com/ajslater/codex/actions/runs/${{ github.run_number }}"
+
+  # ---------------------------------------------------------------------------
+  # Build per-arch Docker images natively and push to ghcr.io
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build (${{ matrix.arch }})
+    needs: test
+    if: github.ref != 'refs/heads/develop'
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Determine version
+        id: meta
+        run: |
+          VERSION=$(uv version --short)
+          WHEEL="codex-${VERSION}-py3-none-any.whl"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "wheel=${WHEEL}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push arch image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ci/Dockerfile
+          target: final
+          push: true
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          build-args: |
+            CODEX_WHEEL=${{ steps.meta.outputs.wheel }}
+            CODEX_VERSION=${{ steps.meta.outputs.version }}
+          tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}-${{ matrix.arch }}
+          cache-from: |
+            type=gha,scope=dist-builder-${{ matrix.arch }}
+            type=gha,scope=final-${{ matrix.arch }}
+          cache-to: type=gha,scope=final-${{ matrix.arch }},mode=max
+
+  # ---------------------------------------------------------------------------
+  # Create multi-arch manifest, publish to PyPI, clean up arch tags, notify
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: astral-sh/setup-uv@v4
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create multi-arch manifest & push
+        run: |
+          VERSION=$(uv version --short)
+          TAG_ARGS=(-t "${IMAGE}:${VERSION}")
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            TAG_ARGS+=(-t "${IMAGE}:latest")
+          fi
+          docker buildx imagetools create \
+            "${TAG_ARGS[@]}" \
+            "${IMAGE}:${VERSION}-amd64" \
+            "${IMAGE}:${VERSION}-arm64"
+
+      - name: Clean up per-arch tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(uv version --short)
+          for arch in amd64 arm64; do
+            TAG="${VERSION}-${arch}"
+            VID=$(gh api \
+              "/users/ajslater/packages/container/codex/versions" \
+              --jq ".[] | select(.metadata.container.tags | index(\"${TAG}\")) | .id")
+            if [ -n "$VID" ]; then
+              gh api --method DELETE \
+                "/users/ajslater/packages/container/codex/versions/${VID}" || true
+              echo "Deleted ${TAG} (version ${VID})"
+            fi
+          done
+
+      - name: Publish to PyPI
+        run: echo Publish to PyPI disabled # uv publish dist/*
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Discord notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_STATUS_WEBHOOK }}
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          content: Deploy ${{ github.ref_name }}  \#${{ github.run_number }}
+          description: Deployed Codex
+          color: 0x00ff00
+          url: "https://github.com/ajslater/codex/actions/runs/${{ github.run_number }}"
