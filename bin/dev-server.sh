@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run the codex server
 set -euxo pipefail
 THIS_DIR="$(dirname "$0")/.."
