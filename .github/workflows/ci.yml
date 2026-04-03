@@ -79,6 +79,17 @@ jobs:
           path: test-results/
           retention-days: 7
 
+      - name: Discord notification
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_STATUS_WEBHOOK }}
+          STATUS: ${{ job.status }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then exit 0; fi
+          MSG="**${{ github.actor }}** · \`${{ github.ref_name }}\` · #${{ github.run_number }} · **Test** · ${STATUS}"
+          curl -sS -H "Content-Type: application/json" \
+            -d "{\"content\": \"${MSG}\"}" "$WEBHOOK" || true
+
   # ---------------------------------------------------------------------------
   # Build per-arch Docker images natively and push to ghcr.io
   # ---------------------------------------------------------------------------
@@ -201,7 +212,7 @@ jobs:
           done
 
       - name: Publish to PyPI
-        run: uv publish dist/*
+        run: echo Publish to PyPI disabled # uv publish dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
@@ -212,6 +223,6 @@ jobs:
           STATUS: ${{ job.status }}
         run: |
           if [ -z "$WEBHOOK" ]; then exit 0; fi
-          MSG="**${{ github.actor }}** · \`${{ github.ref_name }}\` · ${STATUS}"
+          MSG="**${{ github.actor }}** · \`${{ github.ref_name }}\` · #${{ github.run_number }} · **Deploy** · ${STATUS}"
           curl -sS -H "Content-Type: application/json" \
             -d "{\"content\": \"${MSG}\"}" "$WEBHOOK" || true
