@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run a main method in an arbitrary module
 set -euxo pipefail
 THIS_DIR="$(dirname "$0")"

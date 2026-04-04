@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run the codex server
 set -euxo pipefail
 THIS_DIR="$(dirname "$0")/.."
@@ -11,5 +11,7 @@ export PYTHONPATH="${PYTHONPATH:-}:$THIS_DIR"
 export PYTHONWARNINGS=always
 #export CODEX_THROTTLE_OPDS=10
 #export CODEX_THROTTLE_USER=10
+export DJANGO_SETTINGS_MODULE=codex.settings
 #uv run python3 -X tracemalloc ./codex/run.py
+#uv run righttyper --all-files --overwrite codex/run.py
 uv run python3 ./codex/run.py

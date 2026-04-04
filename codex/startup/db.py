@@ -11,12 +11,11 @@ from loguru import logger
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.janitor.integrity import (
-    cleanup_custom_cover_libraries,
-    fix_foreign_keys,
     fts_integrity_check,
     fts_rebuild,
     integrity_check,
 )
+from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_foreign_keys
 from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.settings import (
     BACKUP_DB_PATH,
@@ -27,6 +26,7 @@ from codex.settings import (
     FTS_REBUILD,
     INTEGRITY_CHECK,
 )
+from codex.startup.custom_cover_libraries import cleanup_custom_cover_libraries
 from codex.version import VERSION
 
 _REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"

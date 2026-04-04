@@ -1,6 +1,5 @@
 """Purge comic covers."""
 
-import os
 import shutil
 from abc import ABC
 from pathlib import Path
@@ -51,28 +50,28 @@ class CoverPurgeThread(CoverCreateThread, ABC):
 
     def purge_comic_covers(self, pks: frozenset[int], *, custom: bool) -> int:
         """Purge a set a cover paths."""
-        cover_paths = self.get_cover_paths(pks, custom)
+        cover_paths = self.get_cover_paths(pks, custom=custom)
         cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
         return self.purge_cover_paths(cover_paths, cover_root)
 
     def purge_all_comic_covers(self, librarian_queue) -> None:
         """Purge every comic cover."""
         self.log.debug("Removing entire comic cover cache.")
-        changed = False
+        status = RemoveCoversStatus()
         try:
+            self.status_controller.start(status)
             if self.COVERS_ROOT.exists():
                 shutil.rmtree(self.COVERS_ROOT)
-                changed = True
-            if self.COVERS_ROOT.exists():
+            if self.CUSTOM_COVERS_ROOT.exists():
                 shutil.rmtree(self.CUSTOM_COVERS_ROOT)
-                changed = True
             self.log.success("Removed entire comic cover cache and custom cover cache.")
         except OSError as exc:
             self.log.warning(exc)
-        if changed:
-            librarian_queue.put(COVERS_CHANGED_TASK)
+        finally:
+            self.status_controller.finish(status)
+        librarian_queue.put(COVERS_CHANGED_TASK)
 
-    def _cleanup_orphan_covers(self, cover_class, cover_root, name) -> None:
+    def _cleanup_orphan_covers(self, cover_class, cover_root: Path, name: str) -> None:
         """Remove all orphan cover thumbs."""
         status = FindOrphanCoversStatus()
         try:
@@ -82,7 +81,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             db_cover_paths = self.get_cover_paths(pks, custom=False)
 
             orphan_cover_paths = set()
-            for root, _, filenames in os.walk(cover_root):
+            for root, _, filenames in cover_root.walk():
                 root_path = Path(root)
                 for fn in filenames:
                     fs_cover_path = root_path / fn

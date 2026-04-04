@@ -2,28 +2,32 @@ import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
-// URLS
-const _getReaderPath = (pk) => {
+const _getBookPath = (pk) => {
   return `c/${pk}`;
+};
+
+const getSettings = (pk, scopes, storyArcPk) => {
+  const basePath = pk ? `${_getBookPath(pk)}/settings` : "c/settings";
+  const queryParams = { scopes: scopes.join(",") };
+  if (storyArcPk) {
+    queryParams.story_arc_pk = storyArcPk;
+  }
+  const params = serializeParams(queryParams);
+  return HTTP.get(basePath, { params });
+};
+
+const updateSettings = (data) => {
+  return HTTP.patch("c/settings", data);
 };
 
 const getReaderInfo = (pk, data, ts) => {
   const params = serializeParams(data, ts);
-  const bookPath = _getReaderPath(pk);
+  const bookPath = _getBookPath(pk);
   return HTTP.get(bookPath, { params });
 };
 
-const getReaderSettings = () => {
-  const params = serializeParams({});
-  return HTTP.get(`c/settings`, { params });
-};
-
-const updateReaderSettings = (data) => {
-  return HTTP.patch(`c/settings`, data);
-};
-
 const _getReaderAPIPath = (pk) => {
-  return globalThis.CODEX.API_V3_PATH + _getReaderPath(pk);
+  return globalThis.CODEX.API_V3_PATH + _getBookPath(pk);
 };
 
 export const getComicPageSource = ({ pk, page, mtime }) => {
@@ -33,26 +37,26 @@ export const getComicPageSource = ({ pk, page, mtime }) => {
 
 export const getComicDownloadURL = ({ pk }, fn, ts) => {
   // Gets used by an HTTP.get so already has base path.
-  const bookPath = _getReaderPath(pk);
+  const bookPath = _getBookPath(pk);
   fn = fn ? encodeURIComponent(fn) : `comic-${pk}.cbz`;
   return `${bookPath}/download/${fn}?ts=${ts}`;
 };
 
 export const getDownloadPageURL = ({ pk, page, mtime }) => {
   // Gets used by an HTTP.get so already has base path.
-  const bookPath = _getReaderPath(pk);
+  const bookPath = _getBookPath(pk);
   return `${bookPath}/${page}/page.jpg?ts=${mtime}`;
 };
 
 export const getPDFInBrowserURL = ({ pk, mtime }) => {
   // Raw URL needs leading slash
-  const bookPath = _getReaderPath(pk);
+  const bookPath = _getBookPath(pk);
   return `/${bookPath}/book.pdf?ts=${mtime}`;
 };
 
 export default {
   getReaderInfo,
-  getReaderSettings,
+  getSettings,
   getPDFInBrowserURL,
-  updateReaderSettings,
+  updateSettings,
 };

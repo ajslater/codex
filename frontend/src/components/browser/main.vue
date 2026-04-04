@@ -1,12 +1,17 @@
 <template>
   <v-main id="browsePane" :class="browsePaneClasses">
-    <div v-if="showBrowseItems" id="browsePaneContainer">
+    <v-pull-to-refresh
+      v-if="showBrowseItems"
+      id="browsePaneRefreshContainer"
+      :pull-down-threshold="64"
+      @load="load"
+    >
       <BrowserCard
         v-for="item in cards"
         :key="`${item.group}${item.ids}`"
         :item="item"
       />
-    </div>
+    </v-pull-to-refresh>
     <PlaceholderLoading v-else-if="showPlaceHolder" class="placeholder" />
     <BrowserEmptyState v-else />
     <div
@@ -20,13 +25,14 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
 import BrowserEmptyState from "@/components/browser/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
 export default {
   name: "BrowserMain",
@@ -34,13 +40,14 @@ export default {
     BrowserCard,
     BrowserEmptyState,
     PlaceholderLoading,
+    VPullToRefresh,
   },
   computed: {
     ...mapState(useAuthStore, {
+      isAuthorized: (state) => state.isAuthorized,
+      isBanner: (state) => state.isBanner,
       nonUsers: (state) => state.adminFlags.nonUsers,
     }),
-    ...mapState(useAuthStore, ["isAuthorized", "isBanner"]),
-    ...mapState(useBrowserStore, ["isSearchMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
@@ -57,6 +64,7 @@ export default {
       numPages: (state) => state.page.numPages,
       query: (state) => state.settings.q,
       isSearchOpen: (state) => state.isSearchOpen,
+      isSearchMode: (state) => state.isSearchMode,
     }),
     browsePaneClasses() {
       const classes = {
@@ -69,7 +77,7 @@ export default {
       if (this.isBanner) {
         marginClass += "Banner";
       }
-      classes[marginClass] = true;
+      Reflect.set(classes, marginClass, true);
       return classes;
     },
     showBrowseItems() {
@@ -96,6 +104,12 @@ export default {
       return res;
     },
   },
+  methods: {
+    ...mapActions(useBrowserStore, ["loadMtimes"]),
+    async load({ done }) {
+      await this.loadMtimes().then(done);
+    },
+  },
 };
 </script>
 
@@ -107,6 +121,7 @@ export default {
 $top-toolbar-margin: 102px;
 $card-margin: 32px;
 $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
+$bottom-margin: 20px;
 
 #browsePane {
   margin-left: max($card-margin, env(safe-area-inset-left));
@@ -117,6 +132,7 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
 
 .browsePane {
   margin-top: $browse-pane-margin-top;
+  overflow: hidden; // scroll is handled by the refresh container
 }
 
 .browsePaneSearch {
@@ -131,7 +147,13 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
   margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
 }
 
-#browsePaneContainer {
+#browsePaneRefreshContainer {
+  height: calc(100vh - $top-toolbar-margin - $card-margin - $bottom-margin);
+  overflow: auto;
+  overscroll-behavior-y: contain;
+}
+
+#browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
   margin-top: $card-margin;
   display: grid;
   grid-template-columns: repeat(auto-fit, bookcover.$cover-width);
@@ -168,7 +190,8 @@ $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
     margin-bottom: max($small-card-margin, env(safe-area-inset-bottom));
   }
 
-  #browsePaneContainer {
+  #browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
+    margin-top: $small-card-margin;
     grid-template-columns: repeat(auto-fit, bookcover.$small-cover-width);
     grid-gap: $small-card-margin;
     justify-content: space-evenly;

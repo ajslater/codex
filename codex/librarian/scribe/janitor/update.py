@@ -3,7 +3,7 @@
 import subprocess
 import sys
 
-from versio.version import Version
+from packaging.version import Version
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.restarter.tasks import CodexRestartTask
@@ -25,13 +25,16 @@ class JanitorCodexUpdate(JanitorCleanup):
             return result
         ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
         latest_version = ts.version
-        versio_latest_version = Version(latest_version)
+        packaging_latest_version = Version(latest_version)
 
-        installed_versio_version = Version(VERSION)
-        if versio_latest_version.parts[1] and not installed_versio_version.parts[1]:  # pyright: ignore[reportIndexIssue]
+        installed_packaging_version = Version(VERSION)
+        if (
+            packaging_latest_version.is_prerelease
+            and not installed_packaging_version.is_prerelease
+        ):
             pre_blurb = "latest version is a prerelease. But installed version is not."
         else:
-            result = versio_latest_version > installed_versio_version
+            result = packaging_latest_version > installed_packaging_version
             pre_blurb = ""
         self.log.debug(f"{latest_version=} > {VERSION=} = {result}{pre_blurb}")
         return result

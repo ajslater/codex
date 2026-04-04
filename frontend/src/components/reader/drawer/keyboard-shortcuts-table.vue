@@ -139,8 +139,4 @@ export default {
 .shortcutsTable td:first-child {
   width: 105px;
 }
-
-.keyIcon {
-  margin: 0;
-}
 </style>

@@ -47,30 +47,29 @@ const API_TOOLTIP = "Copy API Key to clipboard";
 import { ORDER_BY, TOP_GROUP } from "@/choices/browser-map.json";
 import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
-const LOOKUPS = {
+const LOOKUPS = Object.freeze({
   topGroup: TOP_GROUP,
   orderBy: ORDER_BY,
   fitTo: FIT_TO,
   readingDirection: READING_DIRECTION,
-};
-const CONFIG_LABELS = {
+});
+const CONFIG_LABELS = Object.freeze({
   authGroupCount: "Authorization Groups",
   libraryCount: "Libraries",
   userAnonymousCount: "Anonymous Users",
   userRegisteredCount: "Registered Users",
-};
-Object.freeze(CONFIG_LABELS);
-Object.freeze(LOOKUPS);
-const INDENT_KEYS = new Set([
-  "creditPersonsCount",
-  "creditRolesCount",
-  "identifierSourcesCount",
-  "storyArcNumbersCount",
-]);
-Object.freeze(INDENT_KEYS);
+});
+const INDENT_KEYS = Object.freeze(
+  new Set([
+    "creditPersonsCount",
+    "creditRolesCount",
+    "identifierSourcesCount",
+    "storyArcNumbersCount",
+  ]),
+);
 
 export default {
-  name: "AdminTasksTab",
+  name: "AdminStatsTab",
   components: {
     ClipBoard,
     ConfirmDialog,
@@ -97,7 +96,7 @@ export default {
         const label = this.keyToLabel(key);
         const labelValue =
           key === "system" ? `${value.name} ${value.release}` : value;
-        table[label] = labelValue;
+        Reflect.set(table, label, labelValue);
       }
       return table;
     },
@@ -107,8 +106,8 @@ export default {
         if (key == "apiKey") {
           continue;
         }
-        const label = CONFIG_LABELS[key];
-        table[label] = value;
+        const label = Reflect.get(CONFIG_LABELS, key);
+        Reflect.set(table, label, value);
       }
       return table;
     },
@@ -116,14 +115,15 @@ export default {
       const table = {};
       for (const [key, countObj] of Object.entries(this.stats?.sessions)) {
         const countTable = {};
-        const lookup = LOOKUPS[key];
+        const lookup = Reflect.get(LOOKUPS, key);
         for (const [typeKey, count] of Object.entries(countObj)) {
-          let typeLabel;
-          typeLabel = lookup ? lookup[snakeCase(typeKey)] : typeKey;
-          countTable[typeLabel] = count;
+          const typeLabel = lookup
+            ? Reflect.get(lookup, snakeCase(typeKey))
+            : typeKey;
+          Reflect.set(countTable, typeLabel, count);
         }
         const label = this.keyToLabel(key);
-        table[label] = countTable;
+        Reflect.set(table, label, countTable);
       }
       return table;
     },
@@ -134,7 +134,7 @@ export default {
         if (label !== "Series") {
           label += "s";
         }
-        table[label] = value;
+        Reflect.set(table, label, value);
       }
       return table;
     },
@@ -145,7 +145,7 @@ export default {
           key === "unknown"
             ? capitalCase(key)
             : this.keyToLabel(key).toUpperCase();
-        table[label] = value;
+        Reflect.set(table, label, value);
       }
       return table;
     },
@@ -157,7 +157,7 @@ export default {
         if (INDENT_KEYS.has(key)) {
           label = label.replace(/^\w+ /, "+");
         }
-        table[label] = value;
+        Reflect.set(table, label, value);
       }
       return table;
     },

@@ -3,6 +3,7 @@
     <div class="timerLabel">{{ label }}</div>
     <div class="timerFields">
       <v-number-input
+        v-model="days"
         class="timerNumber"
         density="compact"
         filled
@@ -12,11 +13,11 @@
         inset
         :min="0"
         :max="365"
-        v-model="days"
         :disabled="disabled"
         @update:model-value="update"
       />
       <v-number-input
+        v-model="hours"
         class="timerNumber"
         density="compact"
         filled
@@ -26,11 +27,11 @@
         inset
         :min="0"
         :max="23"
-        v-model="hours"
         :disabled="disabled"
         @update:model-value="update"
       />
       <v-number-input
+        v-model="minutes"
         class="timerNumber"
         density="compact"
         filled
@@ -40,7 +41,6 @@
         inset
         :min="0"
         :max="59"
-        v-model="minutes"
         :disabled="disabled"
         @update:model-value="update"
       />
@@ -50,7 +50,6 @@
 
 <script>
 import { mdiTimerRefreshOutline } from "@mdi/js";
-import { VMaskInput } from "vuetify/labs/VMaskInput";
 
 const DEFAULT_DAYS = 0;
 const DEFAULT_HOURS = 1;
@@ -61,7 +60,6 @@ const DURATION_RE =
   /^(?<days>[0-3]?\d?\d\s)?(?<hours>[01]?\d|2[0-3]):(?<minutes>[0-5]\d):\d{2}$/;
 export default {
   name: "DurationInput",
-  components: { VMaskInput },
   props: {
     label: {
       type: String,
@@ -85,14 +83,6 @@ export default {
       minutes: DEFAULT_MINUTES,
     };
   },
-  created() {
-    const { days, hours, minutes } = this.djangoDurationToFields(
-      this.modelValue,
-    );
-    this.days = days;
-    this.hours = hours;
-    this.minutes = minutes;
-  },
   computed: {
     value: {
       get() {
@@ -100,6 +90,14 @@ export default {
       },
       // set(value) {},
     },
+  },
+  created() {
+    const { days, hours, minutes } = this.djangoDurationToFields(
+      this.modelValue,
+    );
+    this.days = days;
+    this.hours = hours;
+    this.minutes = minutes;
   },
   methods: {
     update() {
@@ -140,11 +138,6 @@ export default {
 .timerFields {
   display: flex;
   flex-wrap: none;
-}
-
-.timerIcon {
-  color: rgb(var(--v-theme-textSecondary));
-  margin-right: 5px;
 }
 
 .timerNumber {

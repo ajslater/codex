@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Build json choices for frontend using special script.
 set -euo pipefail
 THIS_DIR="$(dirname "$0")/.."

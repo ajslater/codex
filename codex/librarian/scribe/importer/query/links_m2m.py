@@ -10,7 +10,7 @@ from codex.librarian.scribe.importer.query.links_fk import QueryPruneLinksFKs
 from codex.models.base import BaseModel, NamedModel
 from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
-from codex.settings import LINK_M2M_BATCH_SIZE
+from codex.settings import IMPORTER_LINK_M2M_BATCH_SIZE
 
 
 class QueryPruneLinksM2M(QueryPruneLinksFKs):
@@ -86,7 +86,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
             .prefetch_related(*COMIC_M2M_FIELD_NAMES)
             .only(*COMIC_M2M_FIELD_NAMES)
         )
-        for comic in comics.iterator(chunk_size=LINK_M2M_BATCH_SIZE):
+        for comic in comics.iterator(chunk_size=IMPORTER_LINK_M2M_BATCH_SIZE):
             self._query_prune_comic_m2m_links_comic(comic, status)
 
     def query_prune_comic_m2m_links(self, status) -> None:

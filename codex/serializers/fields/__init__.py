@@ -4,7 +4,7 @@ from codex.serializers.fields.auth import TimestampField, TimezoneField
 from codex.serializers.fields.group import BrowseGroupField
 from codex.serializers.fields.reader import FitToField, ReadingDirectionField
 from codex.serializers.fields.sanitized import SanitizedCharField
-from codex.serializers.fields.session import SessionKeyField
+from codex.serializers.fields.settings import SettingsKeyField
 from codex.serializers.fields.stats import (
     CountDictField,
     SerializerChoicesField,
@@ -25,7 +25,7 @@ __all__ = (
     "ReadingDirectionField",
     "SanitizedCharField",
     "SerializerChoicesField",
-    "SessionKeyField",
+    "SettingsKeyField",
     "StringListMultipleChoiceField",
     "TimestampField",
     "TimezoneField",

@@ -5,8 +5,8 @@
       :title="logoutTitle"
       @click.stop="logout"
     />
-    <ChangePasswordDialog v-if="showChangePassword" :user="user" />
-    <AuthTokenDialog :user="user" />
+    <ChangePasswordDialog v-if="showExtras" :user="user" />
+    <AuthTokenDialog v-if="showExtras" :user="user" />
   </div>
   <AuthLoginDialog v-else />
 </template>
@@ -30,7 +30,7 @@ export default {
     CodexListItem,
   },
   props: {
-    showChangePassword: {
+    showExtras: {
       type: Boolean,
       default: true,
     },

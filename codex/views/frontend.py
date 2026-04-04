@@ -8,14 +8,12 @@ from rest_framework.response import Response
 from rest_framework.utils.serializer_helpers import ReturnDict
 
 from codex.serializers.route import RouteSerializer
+from codex.views.browser.settings import BrowserSettingsReadView
 from codex.views.mixins import UserActiveMixin
-from codex.views.session import SessionView
 
 
-class IndexView(SessionView, UserActiveMixin):
+class IndexView(BrowserSettingsReadView, UserActiveMixin):
     """The main app."""
-
-    SESSION_KEY: str = SessionView.BROWSER_SESSION_KEY
 
     permission_classes: Sequence[type[BasePermission]] = (AllowAny,)
     renderer_classes: Sequence[type[BaseRenderer]] = [TemplateHTMLRenderer]

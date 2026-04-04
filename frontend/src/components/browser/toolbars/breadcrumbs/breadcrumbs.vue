@@ -5,6 +5,7 @@
         <v-icon v-if="item.icon">
           {{ item.icon }}
         </v-icon>
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <span v-else v-html="item.text" />
       </v-breadcrumbs-item>
     </template>
@@ -18,23 +19,23 @@ import {
   mdiFolderOutline,
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
-import deepClone from "deep-clone";
 import { mapState } from "pinia";
+import { toRaw } from "vue";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
-const GROUP_ICON_MAP = {
+
+const GROUP_ICON_MAP = Object.freeze({
   f: mdiFolderOutline,
   r: mdiFormatVerticalAlignTop,
   p: mdiChessRook,
   i: mdiFeather,
   s: mdiBookshelf,
-};
+});
 
 export default {
   name: "BrowserBreadcrumbs",
   computed: {
-    ...mapState(useBrowserStore, ["groupNames"]),
     ...mapState(useCommonStore, ["timestamp"]),
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
@@ -54,7 +55,7 @@ export default {
             tooltipText = "Top";
           } else {
             tooltipText = crumb.pks == 0 ? "All " : "";
-            tooltipText += this.groupNames[group];
+            tooltipText += Reflect.get(this.groupNames, group);
           }
           const tooltip = { text: tooltipText, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
@@ -63,11 +64,12 @@ export default {
         }
         return vueCrumbs;
       },
+      groupNames: (state) => state.groupNames,
     }),
   },
   methods: {
     getTo(crumb, parentPks) {
-      const params = deepClone(crumb);
+      const params = structuredClone(toRaw(crumb));
       delete params["name"];
       const to = { name: "browser", params };
       to.query = { ts: this.timestamp };
@@ -83,7 +85,7 @@ export default {
       } else if (title) {
         icon = "";
       } else {
-        icon = GROUP_ICON_MAP[group];
+        icon = Reflect.get(GROUP_ICON_MAP, group);
       }
       return icon;
     },

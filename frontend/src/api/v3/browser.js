@@ -1,8 +1,7 @@
-import deepClone from "deep-clone";
-
 import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
+import { toRaw } from "vue";
 
 const getBrowserHrefPath = ({ group, pks, query, ts }) => {
   const params = serializeParams(query, ts);
@@ -51,7 +50,8 @@ const getBrowserPage = ({ group, pks, page }, data, ts) => {
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
   const mtime = settings.mtime;
-  const data = deepClone(settings);
+  const filters = toRaw(settings.filters);
+  const data = structuredClone({ ...settings, filters });
   delete data.mtime;
   const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
@@ -94,6 +94,22 @@ const getLazyImport = ({ group, pks }) => {
   return HTTP.get(`/${group}/${pks}/import`);
 };
 
+const getSavedSettingsList = () => {
+  return HTTP.get("/r/settings/saved");
+};
+
+const saveSettings = (name) => {
+  return HTTP.post("/r/settings/saved", { name });
+};
+
+const loadSavedSettings = (pk) => {
+  return HTTP.get(`/r/settings/saved/${pk}`);
+};
+
+const deleteSavedSettings = (pk) => {
+  return HTTP.delete(`/r/settings/saved/${pk}`);
+};
+
 export default {
   getAvailableFilterChoices,
   getBrowserHref,
@@ -106,4 +122,8 @@ export default {
   getLazyImport,
   updateGroupBookmarks,
   updateSettings,
+  getSavedSettingsList,
+  saveSettings,
+  loadSavedSettings,
+  deleteSavedSettings,
 };

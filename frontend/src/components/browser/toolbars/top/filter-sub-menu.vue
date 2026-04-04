@@ -57,9 +57,9 @@
         >
           <v-list-item
             v-for="item of vuetifyItems"
+            :key="item.value"
             density="compact"
             variant="plain"
-            :key="item.value"
             :value="item.value"
             :title="itemTitle(item)"
             :active="item.active"

@@ -15,10 +15,9 @@
             size="large"
             density="compact"
             variant="plain"
+            text="Close Book"
             @click="onCloseBook"
-          >
-            Close Book
-          </v-btn>
+          />
         </v-toolbar-items>
         <v-spacer />
         <v-toolbar-items v-if="!empty">
@@ -49,8 +48,8 @@
 </template>
 
 <script>
+import { toRaw } from "vue";
 import { mdiClose } from "@mdi/js";
-import deepClone from "deep-clone";
 import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
@@ -60,6 +59,7 @@ import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
+import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "ReaderTitleToolbar",
@@ -111,11 +111,9 @@ export default {
       return height;
     },
     closeRoute() {
-      const route = deepClone(this.closeBookRoute);
-      const params = deepClone(route.params);
-      delete params["name"];
-      route.params = params;
-      return route;
+      const params = structuredClone(toRaw(this.closeBookRoute.params));
+      delete params.name;
+      return { ...this.closeBookRoute, params };
     },
     metadataBook() {
       const book = { ...this.currentBook };
@@ -131,11 +129,8 @@ export default {
       }
     },
   },
-  mounted() {
-    document.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    document.removeEventListener("keyup", this._keyUpListener);
+  created() {
+    useEventListener(document, "keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),

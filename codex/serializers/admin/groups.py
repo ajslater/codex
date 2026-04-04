@@ -1,12 +1,11 @@
 """Admin group serializers."""
 
-from typing import Any
+from typing import Any, override
 
 from django.contrib.auth.models import Group
 from rest_framework.serializers import (
     BooleanField,
 )
-from typing_extensions import override
 
 from codex.models.admin import GroupAuth
 from codex.serializers.models.base import BaseModelSerializer

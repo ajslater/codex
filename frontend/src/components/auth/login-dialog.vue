@@ -73,10 +73,10 @@
 import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import authFormMixin from "@/components/auth/auth-form-mixin";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AuthLoginDialog",
@@ -84,6 +84,7 @@ export default {
     SubmitFooter,
     CodexListItem,
   },
+  mixins: [authFormMixin],
   data() {
     return {
       rules: {
@@ -109,16 +110,11 @@ export default {
         password: "",
         passwordConfirm: "",
       },
-      submitButtonEnabled: false,
       registerMode: false,
       mdiLogin,
     };
   },
   computed: {
-    ...mapState(useCommonStore, {
-      formErrors: (state) => state.form.errors,
-      formSuccess: (state) => state.form.success,
-    }),
     ...mapState(useAuthStore, {
       adminFlags: (state) => state.adminFlags,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
@@ -145,34 +141,12 @@ export default {
         }
       }
     },
-    credentials: {
-      handler() {
-        const form = this.$refs.form;
-        if (form) {
-          form
-            .validate()
-            .then(({ valid }) => {
-              this.submitButtonEnabled = valid;
-              return this.submitButtonEnabled;
-            })
-            .catch(console.error);
-        } else {
-          this.submitButtonEnabled = false;
-        }
-      },
-      deep: true,
-    },
-  },
-  mounted() {
-    globalThis.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    globalThis.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     doAuth(mode) {
-      return this[mode](this.credentials)
+      return Reflect.get(this, mode)
+        .call(this, this.credentials)
         .then(() => {
           this.showLoginDialog = this.formErrors && this.formErrors.length > 0;
           return this.showLoginDialog;
@@ -191,10 +165,6 @@ export default {
           return this.doAuth(mode);
         })
         .catch(console.error);
-    },
-    _keyUpListener(event) {
-      // stop keys from activating reader shortcuts.
-      event.stopImmediatePropagation();
     },
   },
 };

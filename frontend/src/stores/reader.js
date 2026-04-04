@@ -1,5 +1,4 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import deepClone from "deep-clone";
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
@@ -13,51 +12,42 @@ import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
-const NULL_READER_SETTINGS = {
-  // Must be null so xior doesn't throw them out when sending.
+const NULL_READER_SETTINGS = Object.freeze({
   fitTo: "",
   twoPages: null,
   readingDirection: "",
   readRtlInReverse: null,
-};
+  finishOnLastPage: null,
+  pageTransition: null,
+  cacheBook: null,
+});
 
-Object.freeze(NULL_READER_SETTINGS);
-const NULL_CLIENT_SETTINGS = {
-  cacheBook: false,
-};
-Object.freeze(NULL_CLIENT_SETTINGS);
+const SETTINGS_NULL_VALUES = Object.freeze(new Set(["", null, undefined]));
 
-const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
-Object.freeze(SETTINGS_NULL_VALUES);
-
-const DIRECTION_REVERSE_MAP = {
+const DIRECTION_REVERSE_MAP = Object.freeze({
   prev: "next",
   next: "prev",
-};
-Object.freeze(DIRECTION_REVERSE_MAP);
-const PREFETCH_LINK = { rel: "prefetch", as: "image" };
-Object.freeze(PREFETCH_LINK);
-export const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
-Object.freeze(VERTICAL_READING_DIRECTIONS);
-export const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
-Object.freeze(REVERSE_READING_DIRECTIONS);
-const OPPOSITE_READING_DIRECTIONS = {
-  ltr: "rtl",
-  rtl: "ltr",
-  ttb: "btt",
-  btt: "ttb",
-};
-Object.freeze(OPPOSITE_READING_DIRECTIONS);
+});
+const PREFETCH_LINK = Object.freeze({ rel: "prefetch", as: "image" });
+export const VERTICAL_READING_DIRECTIONS = Object.freeze(
+  new Set(["ttb", "btt"]),
+);
+export const REVERSE_READING_DIRECTIONS = Object.freeze(
+  new Set(["rtl", "btt"]),
+);
 export const SCALE_DEFAULT = 1;
-const FIT_TO_CLASSES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
-Object.freeze(FIT_TO_CLASSES);
-const BOOKS_NULL = {
+const FIT_TO_CLASSES = Object.freeze({
+  S: "Screen",
+  W: "Width",
+  H: "Height",
+  O: "Original",
+});
+const BOOKS_NULL = Object.freeze({
   current: undefined,
   prev: false,
   next: false,
-};
-Object.freeze(BOOKS_NULL);
-const ROUTES_NULL = {
+});
+const ROUTES_NULL = Object.freeze({
   prev: false,
   next: false,
   books: {
@@ -65,24 +55,11 @@ const ROUTES_NULL = {
     next: false,
   },
   close: undefined,
-};
-Object.freeze(ROUTES_NULL);
-const DEFAULT_ARC = {
+});
+const DEFAULT_ARC = Object.freeze({
   group: "s",
   ids: [],
-};
-Object.freeze(DEFAULT_ARC);
-
-/*
-const getGlobalFitToDefault = () => {
-  // Big screens default to fit by SCREEN, small to WIDTH;
-  const vw = Math.max(
-    document.documentElement.clientWidth || 0,
-    window.innerWidth || 0,
-  );
-  return vw > 600 ? "S" : "W";
-};
-*/
+});
 
 const ensureNoTwoPageVertical = (settings) => {
   // No two pages with vertical
@@ -104,15 +81,18 @@ export const useReaderStore = defineStore("reader", {
     },
 
     // server
-    readerSettings: {
+    globalSettings: {
       fitTo: READER_DEFAULTS.fitTo,
       twoPages: READER_DEFAULTS.twoPages,
       readingDirection: READER_DEFAULTS.readingDirection,
       readRtlInReverse: READER_DEFAULTS.readRtlInReverse,
       finishOnLastPage: READER_DEFAULTS.finishOnLastPage,
       pageTransition: READER_DEFAULTS.page_transition,
+      cacheBook: READER_DEFAULTS.cache_book,
     },
-    books: deepClone(BOOKS_NULL),
+    intermediateSettings: {},
+    intermediateInfo: null,
+    books: structuredClone(BOOKS_NULL),
     arcs: {},
     arc: { group: "s", ids: [] },
     mtime: 0,
@@ -120,11 +100,10 @@ export const useReaderStore = defineStore("reader", {
     // local reader
     empty: false,
     page: undefined,
-    routes: deepClone(ROUTES_NULL),
+    routes: structuredClone(ROUTES_NULL),
     bookChange: undefined,
     reactWithScroll: false,
     clientSettings: {
-      cacheBook: false,
       scale: SCALE_DEFAULT,
     },
     showToolbars: false,
@@ -134,7 +113,7 @@ export const useReaderStore = defineStore("reader", {
   getters: {
     activeSettings(state) {
       // the empty settings guarantee here is for vitest.
-      return state.getBookSettings(state.books.current) || {};
+      return this.getBookSettings(state.books.current) || {};
     },
     activeTitle(state) {
       const book = state.books.current;
@@ -163,9 +142,9 @@ export const useReaderStore = defineStore("reader", {
     isPDF(state) {
       return state.books?.current?.fileType == "PDF";
     },
-    cacheBook(state) {
+    cacheBook() {
       return (
-        state.clientSettings.cacheBook &&
+        this.activeSettings.cacheBook &&
         !(this.isPDF && this.activeSettings.isVertical)
       );
     },
@@ -186,8 +165,12 @@ export const useReaderStore = defineStore("reader", {
     },
     closeBookRoute(state) {
       const route = { name: "browser" };
-      route.params =
-        state.routes.close || useBrowserStore()?.settings?.breadcrumbs?.at(-1);
+      if (state.routes.close) {
+        route.params = state.routes.close;
+      } else {
+        const breadcrumbs = useBrowserStore()?.settings?.breadcrumbs;
+        route.params = breadcrumbs?.findLast((b) => b.group !== "c");
+      }
       if (route.params) {
         const cardPk = state.books?.current?.pk;
         if (cardPk) {
@@ -206,7 +189,7 @@ export const useReaderStore = defineStore("reader", {
      */
     setReadRTLInReverse(bookSettings) {
       // Special setting for RTL books
-      return this.readerSettings.readRtlInReverse &&
+      return this.globalSettings.readRtlInReverse &&
         bookSettings.readingDirection === "rtl"
         ? { ...bookSettings, readingDirection: "ltr" }
         : bookSettings;
@@ -216,11 +199,15 @@ export const useReaderStore = defineStore("reader", {
         return {};
       }
       if (!(book.pk in this.bookSettings)) {
-        // Mask the book settings over the global settings.
-        const resultSettings = deepClone(SETTINGS_NULL_VALUES);
+        // Mask the book settings over intermediate over global settings.
+        const resultSettings = structuredClone(SETTINGS_NULL_VALUES);
         let bookSettings = book ? book.settings : {};
         bookSettings = this.setReadRTLInReverse(bookSettings);
-        const allSettings = [this.readerSettings, bookSettings];
+        const allSettings = [
+          this.globalSettings,
+          this.intermediateSettings,
+          bookSettings,
+        ];
 
         for (const settings of allSettings) {
           for (const [key, val] of Object.entries(settings)) {
@@ -328,11 +315,11 @@ export const useReaderStore = defineStore("reader", {
     /*
      * MUTATIONS
      */
-    _updateGlobalSettings(updates) {
+    _applyGlobalSettings(updates) {
       // Doing this with $patch breaks reactivity
       this.$patch((state) => {
-        state.readerSettings = {
-          ...state.readerSettings,
+        state.globalSettings = {
+          ...state.globalSettings,
           ...updates,
         };
         state.bookSettings = {};
@@ -352,9 +339,11 @@ export const useReaderStore = defineStore("reader", {
         state.arc = DEFAULT_ARC;
         state.mtime = 0;
         state.settingsLoaded = false;
-        state.books = deepClone(BOOKS_NULL);
-        state.routes = deepClone(ROUTES_NULL);
+        state.books = structuredClone(BOOKS_NULL);
+        state.routes = structuredClone(ROUTES_NULL);
         state.bookSettings = {};
+        state.intermediateSettings = {};
+        state.intermediateInfo = null;
       });
     },
     /*
@@ -421,17 +410,19 @@ export const useReaderStore = defineStore("reader", {
         window.scrollTo(0, 0);
       }
     },
-    async loadReaderSettings() {
-      READER_API.getReaderSettings()
+    async loadGlobalSettings() {
+      READER_API.getSettings(null, ["g"])
         .then((response) => {
-          const data = response.data;
-          this._updateGlobalSettings(data);
+          const data = response.data?.scopes?.g;
+          if (data) {
+            this._applyGlobalSettings(data);
+          }
         })
         .catch(console.error);
     },
     async loadBooks({ params, arc, mtime }) {
       if (!this.settingsLoaded) {
-        this.loadReaderSettings();
+        this.loadGlobalSettings();
       }
       const route = router.currentRoute.value;
       if (!params) {
@@ -480,6 +471,11 @@ export const useReaderStore = defineStore("reader", {
             state.mtime = data.mtime;
             state.bookSettings = {};
           });
+
+          // Load all three settings layers for the current comic.
+          if (books.current?.pk) {
+            this.loadAllSettings(+books.current.pk);
+          }
           return true;
         })
         .catch((error) => {
@@ -514,23 +510,29 @@ export const useReaderStore = defineStore("reader", {
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       if (
-        this.readerSettings.finishOnLastPage &&
+        this.activeSettings.finishOnLastPage &&
         page >= this.books.current.maxPage
       ) {
         updates["finished"] = true;
       }
       await BROWSER_API.updateGroupBookmarks(groupParams, {}, updates);
     },
-    async setSettingsLocal(updates) {
+    async updateComicSettings(updates) {
       const newBookSettings = {
         ...this.books.current.settings,
         ...updates,
       };
       ensureNoTwoPageVertical(newBookSettings);
-      const groupParams = { group: "c", ids: [+this.books.current.pk] };
-      await BROWSER_API.updateGroupBookmarks(groupParams, {}, newBookSettings)
+      const pk = +this.books.current.pk;
+      const payload = {
+        ...newBookSettings,
+        scope: "c",
+        scopePk: pk,
+      };
+      await READER_API.updateSettings(payload)
         .then(() => {
           this.books.current.settings = newBookSettings;
+          this.bookSettings = {};
         })
         .catch(console.error);
     },
@@ -540,20 +542,96 @@ export const useReaderStore = defineStore("reader", {
         ...updates,
       };
     },
-    async clearSettingsLocal() {
-      await this.setSettingsLocal(NULL_READER_SETTINGS);
-      this.setSettingsClient(NULL_CLIENT_SETTINGS);
+    async clearComicSettings() {
+      await this.updateComicSettings(NULL_READER_SETTINGS);
     },
-    async setSettingsGlobal(updates) {
-      const newReaderSettings = {
-        ...this.readerSettings,
-        ...updates,
-      };
-      await READER_API.updateReaderSettings(newReaderSettings)
+    _getStoryArcPk() {
+      // When browsing by story arc, pass the first arc id for scoped settings.
+      if (this.arc?.group === "a" && this.arc?.ids?.length) {
+        return this.arc.ids[0];
+      }
+      return null;
+    },
+    async loadAllSettings(pk) {
+      if (!pk) {
+        return;
+      }
+      const arcGroup = this.arc?.group || "s";
+      const storyArcPk = this._getStoryArcPk();
+      await READER_API.getSettings(pk, ["g", arcGroup, "c"], storyArcPk)
         .then((response) => {
           const data = response.data;
-          this._updateGlobalSettings(data);
-          this.clearSettingsLocal();
+          const scopes = data.scopes || {};
+          const scopeInfo = data.scopeInfo || {};
+
+          // Determine the canonical intermediate scope key.
+          const intermediateKey = ["s", "f", "a"].find((k) => k in scopes);
+
+          this.$patch((state) => {
+            if (scopes.g) {
+              state.globalSettings = {
+                ...state.globalSettings,
+                ...scopes.g,
+              };
+            }
+            state.intermediateSettings =
+              (intermediateKey && scopes[intermediateKey]) || {};
+            state.intermediateInfo =
+              intermediateKey && scopeInfo[intermediateKey]
+                ? {
+                    scopeType: intermediateKey,
+                    scopePk: scopeInfo[intermediateKey].pk,
+                    name: scopeInfo[intermediateKey].name,
+                  }
+                : null;
+            if (scopes.c && state.books.current) {
+              state.books.current.settings = scopes.c;
+            }
+            state.bookSettings = {};
+          });
+        })
+        .catch(console.error);
+    },
+    async updateIntermediateSettings(updates) {
+      if (!this.intermediateInfo) {
+        return;
+      }
+      const newSettings = {
+        ...this.intermediateSettings,
+        ...updates,
+      };
+      ensureNoTwoPageVertical(newSettings);
+      const payload = {
+        ...newSettings,
+        scope: this.intermediateInfo.scopeType,
+        scopePk: this.intermediateInfo.scopePk,
+      };
+      await READER_API.updateSettings(payload)
+        .then(() => {
+          this.$patch((state) => {
+            state.intermediateSettings = newSettings;
+            state.bookSettings = {};
+          });
+        })
+        .catch(console.error);
+    },
+    async clearIntermediateSettings() {
+      await this.updateIntermediateSettings(NULL_READER_SETTINGS);
+    },
+    async updateGlobalSettings(updates) {
+      const newGlobalSettings = {
+        ...this.globalSettings,
+        ...updates,
+      };
+      const payload = {
+        ...newGlobalSettings,
+        scope: "g",
+      };
+      await READER_API.updateSettings(payload)
+        .then((response) => {
+          const data = response.data;
+          this._applyGlobalSettings(data);
+          this.clearComicSettings();
         })
         .catch(console.error);
     },

@@ -10,7 +10,7 @@
     >
       <div class="login">
         <AdminBrowserLink v-if="showAdminBrowserLink" />
-        <AuthMenu :show-change-password="false" />
+        <AuthMenu :show-extras="false" />
       </div>
     </EmptyState>
     <PlaceholderLoading v-else id="unauthorizedPlaceholder" />

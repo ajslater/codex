@@ -28,14 +28,14 @@ export default {
       mdiBookRemoveOutline,
     };
   },
+  created() {
+    this.setShowToolbars();
+  },
   methods: {
     ...mapActions(useReaderStore, ["loadBooks", "setShowToolbars"]),
     onAction() {
       this.loadBooks({ mtime: Date.now() });
     },
-  },
-  created() {
-    this.setShowToolbars();
   },
 };
 </script>

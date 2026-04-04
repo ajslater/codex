@@ -37,15 +37,14 @@ import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const GROUP_MAP = {
+const GROUP_MAP = Object.freeze({
   p: "publisher",
   i: "imprint",
   s: "series",
   v: "volume",
   f: "folder",
   a: "storyArc",
-};
-Object.freeze(GROUP_MAP);
+});
 
 export default {
   name: "MetadataControls",

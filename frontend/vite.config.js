@@ -1,6 +1,6 @@
-import eslintPlugin from "@nabla/vite-plugin-eslint";
 import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
+import checker from "vite-plugin-checker";
 import fs from "fs";
 import { hostname } from "os";
 import path from "path";
@@ -15,16 +15,15 @@ import package_json from "./package.json";
 let rootPath;
 try {
   // for dev & build
-  const HYPERCORN_CONF = toml.parse(
-    fs.readFileSync("../config/hypercorn.toml"),
-  );
-  rootPath = HYPERCORN_CONF.root_path || "";
+  const CODEX_CONF = toml.parse(fs.readFileSync("../config/codex.toml"));
+  rootPath = CODEX_CONF?.server?.url_path_prefix || "";
 } catch {
   rootPath = "";
 }
-const BASE_PATH = rootPath + "/static/";
-
+const STATIC_DIR_NAME = "static";
+const BASE_PATH = `${rootPath}/${STATIC_DIR_NAME}/`;
 const IS_TEST_ENV = process.env.NODE_ENV === "test";
+
 const defineObj = {
   CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
 };
@@ -40,6 +39,11 @@ const config = defineConfig(({ mode }) => {
   const DEV = mode === "development";
   // https://github.com/vitejs/vite/issues/19242
   const ALLOWED_HOSTS = DEV ? [hostname().toLowerCase()] : [];
+  let publicPathPrefix = "window.CODEX.APP_PATH";
+  if (PROD) {
+    publicPathPrefix += ".substring(1)";
+  }
+  const PUBLIC_PATH = `${publicPathPrefix} + "${STATIC_DIR_NAME}"`;
 
   return {
     base: BASE_PATH,
@@ -66,10 +70,15 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vuetify({ autoImport: true }),
-      dynamicBase({
-        publicPath: 'window.CODEX.APP_PATH + "static"',
+      checker({
+        eslint: {
+          lintCommand: "eslint --cache .", // "./src/**/*.{js,vue}"',
+          useFlatConfig: true,
+        },
       }),
-      eslintPlugin,
+      dynamicBase({
+        publicPath: PUBLIC_PATH,
+      }),
       run([
         {
           name: "Choices to JSON",

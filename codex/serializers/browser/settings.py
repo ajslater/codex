@@ -1,5 +1,7 @@
 """Serializers for the browser view."""
 
+from typing import override
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -7,12 +9,10 @@ from rest_framework.serializers import (
     IntegerField,
     Serializer,
 )
-from typing_extensions import override
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
-from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
 from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import SimpleRouteSerializer
@@ -26,6 +26,27 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     i = BooleanField()
     s = BooleanField()
     v = BooleanField()
+
+
+class BrowserSettingsLastRouteSerializer(Serializer):
+    """Last route for browser settings output."""
+
+    group = CharField()
+    pks = CharField()
+    page = IntegerField()
+
+    @override
+    def to_representation(self, instance) -> dict:
+        """Handle both dicts and SettingsBrowserLastRoute model instances."""
+        if not isinstance(instance, dict):
+            # Model instance
+            pks = instance.pks
+            instance = {
+                "group": instance.group,
+                "pks": tuple(pks) if pks else (0,),
+                "page": instance.page,
+            }
+        return instance
 
 
 class BrowserFilterChoicesInputSerializer(JSONFieldSerializer):
@@ -69,10 +90,15 @@ class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
 
     @override
     def to_internal_value(self, data) -> dict:
-        if "q" not in data and (query := data.get("query")):
-            # parse query param for opds v2
-            data = data.copy()
-            data["q"] = query
+        if "q" not in data:
+            if search := data.get("search"):
+                # Accept "search" as an alias for "q".
+                data = data.copy()
+                data["q"] = search
+            elif query := data.get("query"):
+                # parse query param for opds v2
+                data = data.copy()
+                data["q"] = query
         return super().to_internal_value(data)
 
 
@@ -91,11 +117,6 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     This is the only browse serializer that's submitted.
     """
 
-    JSON_FIELDS: frozenset[str] = frozenset(
-        BrowserSettingsSerializerBase.JSON_FIELDS | {"breadcrumbs"}
-    )
-
-    breadcrumbs = BreadcrumbsField(required=False)
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
     always_show_filename = BooleanField(required=False)

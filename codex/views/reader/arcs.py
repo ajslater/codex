@@ -1,8 +1,7 @@
 """Reader get Arcs methods."""
 
-from collections.abc import Mapping
-from datetime import datetime, timezone
-from types import MappingProxyType
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
@@ -12,14 +11,15 @@ from codex.models.named import StoryArc
 from codex.util import max_none
 from codex.views.const import (
     EPOCH_START,
-    FOLDER_GROUP,
     STORY_ARC_GROUP,
 )
 from codex.views.reader.params import ReaderParamsView
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 _COMIC_ARC_FIELD_NAMES = ("series", "volume", "parent_folder")
 _STORY_ARC_ONLY = ("name", "ids", "updated_ats")
-_BROWSE_GROUP_SET = frozenset("rpisv")
 _UPDATED_ATS_DATE_FORMAT_STR = "%Y-%m-%d %H:%M:%S.%f"
 
 
@@ -38,8 +38,8 @@ class ReaderArcsView(ReaderParamsView):
                 if not efv_flag:
                     continue
             else:
-                show = self.get_from_session(
-                    "show", session_key=self.BROWSER_SESSION_KEY
+                show: Mapping = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
+                    "show", browser=True
                 )
                 group = field_name[0]
                 if not show.get(group):
@@ -47,60 +47,17 @@ class ReaderArcsView(ReaderParamsView):
             field_names.append(field_name)
         return tuple(field_names)
 
-    def _get_group_pks_from_breadcrumbs(self) -> MappingProxyType | dict:
-        """Set Multi-Group pks from breadcrumbs to the cache."""
-        group_pks = {}
-        top_group = self.get_from_session(
-            "top_group", session_key=self.BROWSER_SESSION_KEY
-        )
-        arc_group = self.params["arc"]["group"]
-        if arc_group != top_group and not (
-            {top_group, arc_group}.issubset(_BROWSE_GROUP_SET)
-        ):
-            # Only do this if we might get a match.
-            return group_pks
-
-        breadcrumbs = self.get_from_session(
-            "breadcrumbs", session_key=self.BROWSER_SESSION_KEY
-        )
-
-        index = len(breadcrumbs) - 1
-        min_index = (
-            max(index - 1, 0) if top_group in (FOLDER_GROUP, STORY_ARC_GROUP) else 0
-        )
-        while index > min_index:
-            crumb = breadcrumbs[index]
-            crumb_group = crumb.get("group")
-            if crumb_group in "pi":
-                break
-            group_pks[crumb_group] = crumb.get("pks", ())
-            if crumb_group != "v":
-                break
-            index -= 1
-        return MappingProxyType(group_pks)
-
+    @staticmethod
     def _get_group_arc(
-        self,
         comic: Comic,
-        group_pks: Mapping,
         field_name: str,
         arcs: dict,
         max_mtime: int | None,
     ):
-        """Append the series or volume arc."""
+        """Append the series, volume, or folder arc from the comic's own FKs."""
         group = getattr(comic, field_name)
-        arc_ids = tuple(group_pks.get(group, ()))
-        if group.pk not in arc_ids:
-            arc_ids = (group.pk,)
-
-        if len(arc_ids) > 1:
-            mtimes = group.model.objects.filter(pk__in=arc_ids).values_list(
-                "updated_at", flat=True
-            )
-            mtime = max_none(*mtimes)
-        else:
-            mtime = group.updated_at
-
+        arc_ids = (group.pk,)
+        mtime = group.updated_at
         max_mtime = max_none(max_mtime, mtime)
 
         group_letter = "f" if field_name == "parent_folder" else field_name[0]
@@ -115,8 +72,10 @@ class ReaderArcsView(ReaderParamsView):
 
         qs = qs.group_by("sort_name")  # pyright: ignore[reportAttributeAccessIssue]
         qs = qs.annotate(
-            ids=JsonGroupArray("id", distinct=True),
-            updated_ats=JsonGroupArray("updated_at", distinct=True),
+            ids=JsonGroupArray("id", distinct=True, order_by="id"),
+            updated_ats=JsonGroupArray(
+                "updated_at", distinct=True, order_by="updated_at"
+            ),
         )
         qs = qs.order_by("sort_name").only("name")
 
@@ -126,9 +85,7 @@ class ReaderArcsView(ReaderParamsView):
             arc = {"name": sa.name}
             ids = tuple(sorted(set(sa.ids)))
             updated_ats = (
-                datetime.strptime(ua, _UPDATED_ATS_DATE_FORMAT_STR).replace(
-                    tzinfo=timezone.utc
-                )
+                datetime.strptime(ua, _UPDATED_ATS_DATE_FORMAT_STR).replace(tzinfo=UTC)
                 for ua in sa.updated_ats
             )
             mtime = max_none(EPOCH_START, *updated_ats)
@@ -168,13 +125,10 @@ class ReaderArcsView(ReaderParamsView):
             .get(pk=comic_pk)
         )
 
-        group_pks = self._get_group_pks_from_breadcrumbs()
         arcs = {}
         max_mtime = None
         for field_name in field_names:
-            max_mtime = self._get_group_arc(
-                comic, group_pks, field_name, arcs, max_mtime
-            )
+            max_mtime = self._get_group_arc(comic, field_name, arcs, max_mtime)
         max_mtime = self._get_story_arcs(comic, arcs, max_mtime)
         self._set_selected_arc(arcs)
         return arcs, max_mtime

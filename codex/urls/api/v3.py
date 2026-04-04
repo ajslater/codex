@@ -1,7 +1,10 @@
 """codex:api:v3 URL Configuration."""
 
 from django.urls import include, path
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerSplitView,
+)
 
 from codex.views.browser.mtime import MtimeView
 from codex.views.opds.urls import OPDSURLsView
@@ -20,7 +23,7 @@ urlpatterns = [
     path("opds-urls", OPDSURLsView.as_view(), name="opds_urls"),
     path(
         "",
-        SpectacularSwaggerView.as_view(url_name="api:v3:schema"),
+        SpectacularSwaggerSplitView.as_view(url_name="api:v3:schema"),
         name="base",
     ),
 ]

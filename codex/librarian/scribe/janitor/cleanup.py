@@ -11,6 +11,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupCoversStatus,
     JanitorCleanupSessionsStatus,
+    JanitorCleanupSettingsStatus,
     JanitorCleanupTagsStatus,
 )
 from codex.models import (
@@ -43,6 +44,7 @@ from codex.models import (
 )
 from codex.models.bookmark import Bookmark
 from codex.models.paths import CustomCover
+from codex.models.settings import SettingsBrowser, SettingsReader
 
 _FK_MODELS = (
     Identifier,
@@ -106,6 +108,9 @@ def _create_reverse_rel_map() -> MappingProxyType:
 _MODEL_REVERSE_EMPTY_FILTER_MAP = _create_reverse_rel_map()
 _BOOKMARK_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user", "comic")), True
+)
+_SETTINGS_ORPHAN_FILTER = dict.fromkeys(
+    (f"{rel}__isnull" for rel in ("session", "user")), True
 )
 
 
@@ -197,5 +202,20 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             count, _ = orphan_bms.delete()
             level = "INFO" if count else "DEBUG"
             self.log.log(level, f"Deleted {count} orphan bookmarks.")
+        finally:
+            self.status_controller.finish(status)
+
+    def cleanup_orphan_settings(self) -> None:
+        """Delete settings rows without both a user and a session."""
+        status = JanitorCleanupSettingsStatus()
+        try:
+            self.status_controller.start(status)
+            total = 0
+            for model in (SettingsBrowser, SettingsReader):
+                orphans = model.objects.filter(**_SETTINGS_ORPHAN_FILTER)
+                count, _ = orphans.delete()
+                total += count
+            level = "INFO" if total else "DEBUG"
+            self.log.log(level, f"Deleted {total} orphan settings rows.")
         finally:
             self.status_controller.finish(status)

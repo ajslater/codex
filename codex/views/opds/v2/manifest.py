@@ -5,9 +5,9 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from math import floor
 from types import MappingProxyType
+from typing import override
 
 from django.db.models import F, QuerySet
-from typing_extensions import override
 
 from codex.models.base import BaseModel, NamedModel
 from codex.models.identifier import Identifier

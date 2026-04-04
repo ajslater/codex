@@ -13,9 +13,9 @@ from codex.models import (
     Comic,
     Library,
 )
+from codex.models.settings import SettingsBrowser, SettingsReader
 from codex.version import VERSION
 from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
-from codex.views.session import SessionView
 
 _KEY_MODELS_MAP = MappingProxyType(
     {
@@ -28,12 +28,18 @@ _DOCKERENV_PATH = Path("/.dockerenv")
 _CGROUP_PATH = Path("/proc/self/cgroup")
 _USER_STATS = MappingProxyType(
     {
-        SessionView.BROWSER_SESSION_KEY: ("top_group", "order_by", "dynamic_covers"),
-        SessionView.READER_SESSION_KEY: (
-            "finish_on_last_page",
-            "fit_to",
-            "reading_direction",
-        ),
+        "browser": {
+            "model": SettingsBrowser,
+            "keys": ("top_group", "order_by", "dynamic_covers"),
+        },
+        "reader": {
+            "model": SettingsReader,
+            "keys": (
+                "finish_on_last_page",
+                "fit_to",
+                "reading_direction",
+            ),
+        },
     }
 )
 
@@ -83,12 +89,9 @@ class CodexStats:
         return obj
 
     @staticmethod
-    def _aggregate_session_key(
-        session, session_key, session_subkeys, user_stats
-    ) -> None:
-        session_dict = session.get(session_key, {})
-        for key in session_subkeys:
-            value = session_dict.get(key)
+    def _aggregate_settings_instance(instance, subkeys, user_stats) -> None:
+        for key in subkeys:
+            value = getattr(instance, key, None)
             if value is None:
                 continue
             if key not in user_stats:
@@ -102,13 +105,17 @@ class CodexStats:
         """Return the number of anonymous sessions."""
         sessions = Session.objects.all()
         anon_session_count = 0
-        user_stats = {}
         for encoded_session in sessions:
             session = encoded_session.get_decoded()
             if not session.get("_auth_user_id"):
                 anon_session_count += 1
-            for session_key, subkeys in _USER_STATS.items():
-                cls._aggregate_session_key(session, session_key, subkeys, user_stats)
+
+        user_stats = {}
+        for info in _USER_STATS.values():
+            model = info["model"]
+            subkeys = info["keys"]
+            for instance in model.objects.all():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+                cls._aggregate_settings_instance(instance, subkeys, user_stats)
 
         return user_stats, anon_session_count
 

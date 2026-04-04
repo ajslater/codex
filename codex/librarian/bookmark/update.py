@@ -10,14 +10,10 @@ from codex.librarian.notifier.tasks import NotifierTask
 from codex.models import Bookmark, Comic
 from codex.views.auth import GroupACLMixin
 
-_VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
 _BOOKMARK_UPDATE_FIELDS = frozenset(
     {
         "page",
         "finished",
-        "fit_to",
-        "two_pages",
-        "reading_direction",
     }
 )
 
@@ -51,7 +47,6 @@ class BookmarkUpdateMixin(GroupACLMixin):
         update_bookmarks = []
         for bm in existing_bookmarks:
             cls._update_bookmarks_validate_page(bm, updates)
-            cls._update_bookmarks_validate_two_pages(bm, updates)
             for key, value in updates.items():
                 setattr(bm, key, value)
             bm.updated_at = Now()
@@ -70,16 +65,6 @@ class BookmarkUpdateMixin(GroupACLMixin):
             # Auto finish on bookmark last page
             bm.finished = True
         updates["page"] = page
-
-    @staticmethod
-    def _update_bookmarks_validate_two_pages(bm, updates) -> None:
-        """Force vertical view to not use two pages."""
-        if bm.two_pages and bool(
-            {bm.reading_direction, updates.get("reading_direction")}.intersection(
-                _VERTICAL_READING_DIRECTIONS
-            )
-        ):
-            updates["two_pages"] = None
 
     @staticmethod
     def _notify_library_changed(uid) -> None:
@@ -126,20 +111,10 @@ class BookmarkUpdateMixin(GroupACLMixin):
             create_bookmarks.append(bm)
         return create_bookmarks
 
-    @staticmethod
-    def _create_bookmarks_validate_two_pages(updates) -> None:
-        """Force vertical view to not use two pages."""
-        if (
-            updates.get("two_pages")
-            and updates.get("reading_direction") in _VERTICAL_READING_DIRECTIONS
-        ):
-            updates.pop("two_pages", None)
-
     @classmethod
     def _create_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
         """Create new bookmarks for comics that don't exist yet."""
         count = 0
-        cls._create_bookmarks_validate_two_pages(updates)
         if not updates:
             return count
 

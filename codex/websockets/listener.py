@@ -1,13 +1,15 @@
 """Listens to the Broadcast Queue and sends its messages to channels."""
 
+import asyncio
 from queue import Empty
 from types import MappingProxyType
 
 from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
-from wsproto.frame_protocol import CloseReason
 
 from codex.websockets.consumers import ChannelGroups
+
+WS_NORMAL_CLOSURE = 1000
 
 
 class BroadcastListener:
@@ -18,7 +20,7 @@ class BroadcastListener:
             "group": ChannelGroups.ALL.name,
             "message": {
                 "type": "websocket_disconnect",
-                "code": CloseReason.NORMAL_CLOSURE.value,
+                "code": WS_NORMAL_CLOSURE,
             },
         }
     )
@@ -55,7 +57,7 @@ class BroadcastListener:
         self.log.success(f"{self.__class__.__name__} started.")
         while True:
             try:
-                event = await self.queue.coro_get()
+                event = await asyncio.to_thread(self.queue.get)
                 if event is None:
                     break
                 await self.broadcast_group(event)

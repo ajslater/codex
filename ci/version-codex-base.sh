@@ -8,12 +8,12 @@ DEPS=(
   .dockerignore
   ci/base.Dockerfile
   ci/debian.sources
+  ci/docker-bake.hcl
   ci/docker-build-image.sh
   ci/machine-arch.sh
   ci/version-checksum.sh
   ci/versions-create-env.sh
   ci/versions-env-filename.sh
-  docker-bake.hcl
 )
 
 . ./ci/version-checksum.sh

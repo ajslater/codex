@@ -9,10 +9,10 @@
 </template>
 
 <script>
-import AppBanner from "@/components/banner.vue";
 import BrowserBreadcrumbsToolbar from "@/components/browser/toolbars/breadcrumbs/browser-toolbar-breadcrumbs.vue";
 import BrowserTitleToolbar from "@/components/browser/toolbars/browser-toolbar-title.vue";
 import BrowserSearchToolbar from "@/components/browser/toolbars/search/browser-toolbar-search.vue";
+import AppBanner from "@/components/banner.vue";
 import BrowserTopToolbar from "@/components/browser/toolbars/top/browser-toolbar-top.vue";
 
 export default {
@@ -38,7 +38,7 @@ export default {
 }
 
 .codexHeadToolbar {
-  padding-top: env(5px + safe-area-inset-top);
+  padding-top: calc(5px + env(safe-area-inset-top));
   padding-left: calc(10px + env(safe-area-inset-left) / 4);
   padding-right: calc(10px + env(safe-area-inset-right) / 4);
 }

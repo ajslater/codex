@@ -2,65 +2,26 @@ import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
-// USERS
-
-const createUser = (data) => {
-  return HTTP.post("/admin/user", data);
+// CRUD factory — generates create/getAll/update/destroy for a given admin entity.
+const makeAdminCRUD = (entity) => {
+  const path = `/admin/${entity}`;
+  return {
+    create: (data) => HTTP.post(path, data),
+    getAll: () => HTTP.get(path, { params: serializeParams() }),
+    update: (pk, data) => HTTP.put(`${path}/${pk}/`, data),
+    destroy: (pk) => HTTP.delete(`${path}/${pk}/`),
+  };
 };
 
-const getUsers = () => {
-  const params = serializeParams();
-  return HTTP.get("/admin/user", { params });
-};
+const userCRUD = makeAdminCRUD("user");
+const groupCRUD = makeAdminCRUD("group");
+const libraryCRUD = makeAdminCRUD("library");
 
-const updateUser = (pk, data) => {
-  return HTTP.put(`/admin/user/${pk}/`, data);
-};
+// ONE-OFF ENDPOINTS
 
 const changeUserPassword = (pk, data) => {
   return HTTP.put(`/admin/user/${pk}/password`, data);
 };
-
-const deleteUser = (pk) => {
-  return HTTP.delete(`/admin/user/${pk}/`);
-};
-
-// GROUP
-const createGroup = (data) => {
-  return HTTP.post("/admin/group", data);
-};
-
-const getGroups = () => {
-  const params = serializeParams();
-  return HTTP.get("/admin/group", { params });
-};
-
-const updateGroup = (pk, data) => {
-  return HTTP.put(`/admin/group/${pk}/`, data);
-};
-const deleteGroup = (pk) => {
-  return HTTP.delete(`/admin/group/${pk}/`);
-};
-
-// LIBRARIES
-
-const createLibrary = (data) => {
-  return HTTP.post("/admin/library", data);
-};
-const getLibraries = () => {
-  const params = serializeParams();
-  return HTTP.get("/admin/library", { params });
-};
-
-const updateLibrary = (pk, data) => {
-  return HTTP.put(`/admin/library/${pk}/`, data);
-};
-
-const deleteLibrary = (pk) => {
-  return HTTP.delete(`/admin/library/${pk}/`);
-};
-
-// LIBRARIES MISC
 
 const getFolders = (path, showHidden) => {
   const params = { path, showHidden };
@@ -72,8 +33,6 @@ const getFailedImports = () => {
   return HTTP.get("/admin/failed-import", { params });
 };
 
-// FLAGS
-
 const getFlags = () => {
   const params = serializeParams();
   return HTTP.get("/admin/flag", { params });
@@ -83,17 +42,18 @@ const updateFlag = (key, data) => {
   return HTTP.put(`/admin/flag/${key}/`, data);
 };
 
-// TASKS
-
 const postLibrarianTask = async (data) => {
   return await HTTP.post("/admin/librarian/task", data);
 };
 
-// STATUSES
-
-const getLibrarianStatuses = () => {
+const getActiveLibrarianStatuses = () => {
   const params = { ts: Date.now() };
   return HTTP.get("/admin/librarian/status", { params });
+};
+
+const getAllLibrarianStatuses = () => {
+  const params = { ts: Date.now() };
+  return HTTP.get("/admin/librarian/status/all", { params });
 };
 
 const getStats = () => {
@@ -105,26 +65,29 @@ const updateAPIKey = async () => {
   return await HTTP.put("/admin/api_key");
 };
 
+// Preserve the original function-name keys for dynamic lookup by the admin store
+// (e.g. API["create" + table], API["get" + pluralTable]).
 export default {
+  createUser: userCRUD.create,
+  getUsers: userCRUD.getAll,
+  updateUser: userCRUD.update,
+  deleteUser: userCRUD.destroy,
   changeUserPassword,
-  createGroup,
-  createLibrary,
-  createUser,
-  deleteLibrary,
-  deleteGroup,
-  deleteUser,
+  createGroup: groupCRUD.create,
+  getGroups: groupCRUD.getAll,
+  updateGroup: groupCRUD.update,
+  deleteGroup: groupCRUD.destroy,
+  createLibrary: libraryCRUD.create,
+  getLibraries: libraryCRUD.getAll,
+  updateLibrary: libraryCRUD.update,
+  deleteLibrary: libraryCRUD.destroy,
+  getActiveLibrarianStatuses,
+  getAllLibrarianStatuses,
   getFailedImports,
   getFlags,
   getFolders,
-  getGroups,
-  getLibrarianStatuses,
-  getLibraries,
   getStats,
-  getUsers,
   postLibrarianTask,
   updateAPIKey,
   updateFlag,
-  updateGroup,
-  updateLibrary,
-  updateUser,
 };

@@ -43,36 +43,33 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
+import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["username", "isStaff", "isActive", "groups"];
-Object.freeze(UPDATE_KEYS);
-const EMPTY_ROW = {
+const UPDATE_KEYS = Object.freeze([
+  "username",
+  "isStaff",
+  "isActive",
+  "groups",
+]);
+const EMPTY_ROW = Object.freeze({
   username: "",
   password: "",
   passwordConfirm: "",
   isStaff: false,
   isActive: true,
   groups: [],
-};
-Object.freeze(EMPTY_ROW);
+});
 
 export default {
   name: "AdminUserCreateUpdateInputs",
   components: {
     AdminRelationPicker,
   },
-  props: {
-    oldRow: {
-      type: [Object, Boolean],
-      default: false,
-    },
-  },
-  emits: ["change"],
+  mixins: [createUpdateInputsMixin],
   data() {
     return {
       rules: {
@@ -86,7 +83,6 @@ export default {
           (v) => v === this.row.password || "Passwords must match",
         ],
       },
-      row: deepClone(this.oldRow || EMPTY_ROW),
     };
   },
   computed: {
@@ -97,23 +93,6 @@ export default {
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
     },
-  },
-  watch: {
-    row: {
-      handler(to) {
-        this.$emit("change", to);
-      },
-      deep: true,
-    },
-    oldRow: {
-      handler(to) {
-        this.row = deepClone(to);
-      },
-      deep: true,
-    },
-  },
-  methods: {
-    ...mapActions(useAdminStore, ["nameSet"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,

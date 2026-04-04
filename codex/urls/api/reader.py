@@ -21,6 +21,11 @@ urlpatterns = [
         name="page",
     ),
     path("settings", ReaderSettingsView.as_view(), name="settings"),
+    path(
+        "<int:pk>/settings",
+        ReaderSettingsView.as_view(),
+        name="comic_settings",
+    ),
     #
     #
     # Download

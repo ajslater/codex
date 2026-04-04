@@ -1,6 +1,6 @@
 """Special Redirect Error."""
 
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping
 from copy import deepcopy
 from pprint import pformat
 
@@ -14,7 +14,6 @@ from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
-from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.route import RouteSerializer
 from codex.views.util import pop_name
 
@@ -30,7 +29,7 @@ _OPDS_REDIRECT_SETTINGS_KEYS = tuple(
         | {camelcase(key) for key in _OPDS_REDIRECT_SETTINGS_SNAKE_CASE_KEYS}
     )
 )
-_REDIRECT_SETTINGS_KEYS = ("breadcrumbs", *_OPDS_REDIRECT_SETTINGS_KEYS)
+_REDIRECT_SETTINGS_KEYS = _OPDS_REDIRECT_SETTINGS_KEYS
 
 
 class SeeOtherRedirectError(APIException):
@@ -49,8 +48,6 @@ class SeeOtherRedirectError(APIException):
             value = params.get(key)
             if value in EMPTY_VALUES:
                 continue
-            if key == "breadcrumbs" and isinstance(value, Sequence):
-                value = BreadcrumbsField().to_representation(value)
             final_params[camelcase(key)] = value
 
     def __init__(self, detail) -> None:

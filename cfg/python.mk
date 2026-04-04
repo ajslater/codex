@@ -1,3 +1,6 @@
+DEVENV_PYTHON := 1
+export DEVENV_PYTHON
+
 .PHONY: clean
 ## Clean python caches
 ## @category Clean
@@ -8,7 +11,7 @@ clean::
 .PHONY: install-deps-pip
 ## Update pip and install node packages
 ## @category Install
-install-deps-pip: install-deps-npm
+install-deps-pip:
 	pip install --upgrade pip
 
 .PHONY: install-prod
@@ -32,16 +35,16 @@ update-python:
 .PHONY: update
 ## Update dependencies
 ## @category Update
-update:: update-python update-npm
+update:: update-python
 
 ## Show version. Use V variable to set version
 ## @category Update
 V :=
 .PHONY: version
-## Show or set project version
+## Show or set project version for python
 ## @category Update
-version:
-	bin/version.sh $(V)
+version::
+	bin/version-python.sh $(V)
 
 .PHONY: fix-python
 ## Fix python lint errors
@@ -72,11 +75,16 @@ ty:
 complexity:
 	./bin/lint-complexity.sh
 
+.PHONY: lint-python
+## Lint python
+## @category Lint
+lint-python:
+	./bin/lint-python.sh
+
 .PHONY: lint
 ## Lint python
 ## @category Lint
-lint::
-	./bin/lint-python.sh
+lint:: lint-python
 
 .PHONY: uml
 ## Create a UML class diagram
@@ -110,8 +118,10 @@ build::
 	uv build
 endif
 
+ifndef OVERRIDE_PUBLISH
 .PHONY: publish
 ## Publish package to pypi
 ## @category Deploy
 publish:
 	uv publish
+endif

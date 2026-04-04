@@ -15,17 +15,26 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
+from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
+    CSP,
+)
 from loguru import logger
 
-from codex.settings.hypercorn import load_hypercorn_config
+from codex.settings.config import (
+    get_bool,
+    get_float,
+    get_int,
+    get_str,
+    load_codex_config,
+)
 from codex.settings.secret_key import get_secret_key
+from codex.settings.servestatic import immutable_file_test
 from codex.settings.timezone import get_time_zone
-from codex.settings.whitenoise import immutable_file_test
 
-######################################
-# Undocumented Environment Variables #
-######################################
-# SECURITY WARNING: don't run with debug turned on in production!
+###########################
+# Constants & Env Helpers #
+###########################
+
 FALSY = frozenset({None, "", "false", "0", False, "False"})
 
 
@@ -34,72 +43,175 @@ def not_falsy_env(name):
     return bool(environ.get(name, "").lower() not in FALSY)
 
 
+##############
+# Base Paths #
+##############
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+CODEX_PATH = BASE_DIR / "codex"
+CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
+
+#####################
+# Basic Environment #
+#####################
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not_falsy_env("DEBUG")
 BUILD = not_falsy_env("BUILD")
-# Slow query middleware
-# limit in seconds
-SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", "0.5"))
-LOG_RESPONSE_TIME = not_falsy_env("CODEX_LOG_RESPONSE_TIME")
-LOG_REQUEST = not_falsy_env("CODEX_LOG_REQUEST")
-LOG_AUTH_HEADERS = not_falsy_env("CODEX_LOG_AUTH_HEADERS")
-# Misc
 VITE_HOST = environ.get("VITE_HOST")
-LOG_RETENTION = environ.get("LOG_RETENTION", "6 months")
-MAX_OBJ_PER_PAGE = int(environ.get("CODEX_BROWSER_MAX_OBJ_PER_PAGE", "100"))
-# Search sync query
-SEARCH_SYNC_BATCH_MEMORY_RATIO = float(
-    environ.get("CODEX_SEARCH_SYNC_BATCH_MEMORY_RATIO", "3.2")
-)
-# sqlite parser breaks with more than 1000 variables in a query and
-# django only fixes this in the bulk_create & bulk_update functions.
-# So for complicated queries I gotta batch them myself. These batch sizes
-# are only a proxy for query terms, but it works.
-# FILTER_BATCH_SIZE of 990 errors sometimes.
-FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", "900"))
-LINK_FK_BATCH_SIZE = int(environ.get("CODEX_LINK_FK_BATCH_SIZE", "20000"))
-LINK_M2M_BATCH_SIZE = int(environ.get("CODEX_LINK_M2M_BATCH_SIZE", "20000"))
-DELETE_MAX_CHUNK_SIZE = int(environ.get("CODEX_DELETE_MAX_CHUNK_SIZE", "1000"))
-
-
-####################################
-# Documented Environment Variables #
-####################################
-LOGLEVEL = environ.get("LOGLEVEL", "TRACE" if DEBUG else "INFO")
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
-CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
-RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
+DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
+
+##########################
+# Codex TOML Config Load #
+##########################
+
+CODEX_CONFIG_TOML = CONFIG_PATH / "codex.toml"
+CODEX_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/codex.toml.default"
+CODEX_CONFIG = load_codex_config(CODEX_CONFIG_TOML, CODEX_CONFIG_TOML_DEFAULT)
+
+###################################
+# Codex Config: Server (Granian)  #
+###################################
+
+GRANIAN_HOST = get_str(CODEX_CONFIG, "server.host", default="0.0.0.0")  # noqa: S104
+GRANIAN_PORT = get_int(CODEX_CONFIG, "server.port", default=9810)
+GRANIAN_WORKERS = get_int(CODEX_CONFIG, "server.workers", default=1)
+GRANIAN_HTTP = get_str(CODEX_CONFIG, "server.http", default="auto")
+GRANIAN_WEBSOCKETS = get_bool(CODEX_CONFIG, "server.websockets", default=True)
+GRANIAN_URL_PATH_PREFIX = get_str(CODEX_CONFIG, "server.url_path_prefix", default="")
+
+##############################
+# Codex Config: Logging      #
+##############################
+
+LOGLEVEL = get_str(
+    CODEX_CONFIG, "logging.loglevel", default="TRACE" if DEBUG else "INFO"
+)
+LOG_RETENTION = get_str(CODEX_CONFIG, "logging.log_retention", default="6 months")
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
-LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
-LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
-AUTH_REMOTE_USER = not_falsy_env("CODEX_AUTH_REMOTE_USER")
-THROTTLE_ANON = int(environ.get("CODEX_THROTTLE_ANON", "0"))
-THROTTLE_USER = int(environ.get("CODEX_THROTTLE_USER", "0"))
-THROTTLE_OPDS = int(environ.get("CODEX_THROTTLE_OPDS", "0"))
-THROTTLE_OPENSEARCH = int(environ.get("CODEX_THROTTLE_OPENSEARCH", "0"))
+LOG_TO_CONSOLE = get_bool(CODEX_CONFIG, "logging.log_to_console", default=True)
+LOG_TO_FILE = get_bool(CODEX_CONFIG, "logging.log_to_file", default=True)
+LOG_PATH = LOG_DIR / "codex.log"
+LOG_ROTATION = "10 MB"
+
+##############################
+# Codex Config: Auth         #
+##############################
+
+AUTH_REMOTE_USER = get_bool(CODEX_CONFIG, "auth.remote_user", default=False)
+
+##############################
+# Codex Config: Browser      #
+##############################
+
+BROWSER_MAX_OBJ_PER_PAGE = get_int(
+    CODEX_CONFIG, "browser.max_obj_per_page", default=100
+)
+
+##############################
+# Codex Config: Throttle     #
+##############################
+
+THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
+THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
+THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
+THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
+
+##############################
+# Codex Config: Importer     #
+##############################
+
+IMPORTER_DELETE_MAX_CHUNK_SIZE = get_int(
+    CODEX_CONFIG, "importer.delete_max_chunk_size", default=1000
+)
+IMPORTER_FILTER_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.filter_batch_size", default=900
+)
+IMPORTER_SEARCH_SYNC_BATCH_MEMORY_RATIO = get_float(
+    CODEX_CONFIG, "importer.search_sync_batch_memory_ratio", default=3.2
+)
+IMPORTER_LINK_FK_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.link_fk_batch_size", default=20000
+)
+IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
+)
+
+##############################
+# Codex Config: Debug        #
+##############################
+
+DEBUG_LOG_AUTH_HEADERS = get_bool(CODEX_CONFIG, "debug.log_auth_headers", default=False)
+DEBUG_LOG_REQUEST = get_bool(CODEX_CONFIG, "debug.log_request", default=False)
+DEBUG_LOG_RESPONSE_TIME = get_bool(
+    CODEX_CONFIG, "debug.log_response_time", default=False
+)
+DEBUG_SLOW_QUERY_LIMIT = get_float(CODEX_CONFIG, "debug.slow_query_limit", default=0.5)
+
+##############################
+# Codex Env: Repair Flags    #
+##############################
+
+RESET_ADMIN = not_falsy_env("CODEX_RESET_ADMIN")
 FIX_FOREIGN_KEYS = not_falsy_env("CODEX_FIX_FOREIGN_KEYS")
 INTEGRITY_CHECK = not_falsy_env("CODEX_INTEGRITY_CHECK")
 FTS_INTEGRITY_CHECK = not_falsy_env("CODEX_FTS_INTEGRITY_CHECK")
 FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 
-# Base paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-CODEX_PATH = BASE_DIR / "codex"
-CUSTOM_COVERS_SUBDIR = "custom-covers"
-CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
-CUSTOM_COVERS_GROUP_DIRS = ("publishers", "imprints", "series", "volumes", "story-arcs")
+###############################################
+#                                             #
+#            Django Settings                  #
+#                                             #
+###############################################
 
-
-def create_custom_cover_group_dirs() -> None:
-    """Create custom cover group dirs."""
-    for group_dir in CUSTOM_COVERS_GROUP_DIRS:
-        custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
-        custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
-
-
-create_custom_cover_group_dirs()
+############
+# Security #
+############
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
+ALLOWED_HOSTS = ["*"]
+CORS_ALLOW_CREDENTIALS = True
+if not DEBUG:
+    SECURE_CSP = {
+        "default-src": [CSP.SELF],
+        "script-src": [
+            CSP.SELF,
+            CSP.NONCE,
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
+        ],
+        "style-src": [
+            CSP.SELF,
+            # Titanic amount of work to make this safe with vite
+            CSP.UNSAFE_INLINE,
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
+        ],
+        "img-src": [
+            "data:",
+            CSP.SELF,
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
+        ],
+        "connect-src": [
+            CSP.SELF,
+            "ws:",
+            "wss:",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
+        ],
+    }
+
+# Session
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
+
+# Proxy headers
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+###########
+# Logging #
+###########
 
 
 def _get_logging() -> dict[str, int | dict]:
@@ -116,9 +228,6 @@ def _get_logging() -> dict[str, int | dict]:
         loggers.update(
             {
                 "urllib3.connectionpool": {"level": "INFO"},
-                "watchdog": {
-                    "level": "INFO",
-                },
                 "PIL": {
                     "level": "INFO",
                 },
@@ -127,14 +236,13 @@ def _get_logging() -> dict[str, int | dict]:
     return {"version": 1, "loggers": loggers}
 
 
-LOG_PATH = LOG_DIR / "codex.log"
-LOG_ROTATION = "10 MB"
 LOGGING = _get_logging()
 
-ALLOWED_HOSTS = ["*"]
+######################
+# Installed Apps     #
+######################
 
 
-# Application definition
 def _get_installed_apps() -> tuple:
     installed_apps = [
         "django.contrib.auth",
@@ -148,7 +256,7 @@ def _get_installed_apps() -> tuple:
         installed_apps += ["nplusone.ext.django", "schema_graph"]
 
     installed_apps += [
-        "whitenoise.runserver_nostatic",
+        "servestatic.runserver_nostatic",
         "django.contrib.staticfiles",
         "rest_framework",
         "rest_framework.authtoken",
@@ -169,15 +277,20 @@ def _get_installed_apps() -> tuple:
 
 INSTALLED_APPS = _get_installed_apps()
 
+##############
+# Middleware #
+##############
+
 
 def _get_middleware() -> tuple:
     middleware = [
         "corsheaders.middleware.CorsMiddleware",
         "django.middleware.security.SecurityMiddleware",
-        "whitenoise.middleware.WhiteNoiseMiddleware",
+        "servestatic.middleware.ServeStaticMiddleware",
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
+        "django.middleware.csp.ContentSecurityPolicyMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
     ]
     if AUTH_REMOTE_USER:
@@ -192,11 +305,11 @@ def _get_middleware() -> tuple:
             "nplusone.ext.django.NPlusOneMiddleware",
         ]
 
-    if LOG_RESPONSE_TIME:
+    if DEBUG_LOG_RESPONSE_TIME:
         middleware += [
             "codex.middleware.LogResponseTimeMiddleware",
         ]
-    if LOG_REQUEST:
+    if DEBUG_LOG_REQUEST:
         middleware += [
             "codex.middleware.LogRequestMiddleware",
         ]
@@ -209,7 +322,16 @@ if DEBUG:
     NPLUSONE_LOGGER = logger
     NPLUSONE_LOG_LEVEL = "WARNING"
 
+########################
+# URL & WSGI Routing   #
+########################
+
 ROOT_URLCONF = "codex.urls.root"
+WSGI_APPLICATION = "codex.wsgi.application"
+
+#############
+# Templates #
+#############
 
 CODEX_TEMPLATES = CODEX_PATH / "templates"
 TEMPLATES = [
@@ -220,6 +342,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
+                "django.template.context_processors.csp",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
@@ -228,15 +351,13 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "codex.wsgi.application"
-
-
-# Database
-# https://docs.djangoproject.com/en/dev/ref/settings/#databases
+############
+# Database #
+############
 
 DB_PATH = CONFIG_PATH / "codex.sqlite3"
 
-# Move old DB_PATH
+# Migrate old DB location
 OLD_DB_PATH = CONFIG_PATH / "db.sqlite3"
 if not DB_PATH.exists() and OLD_DB_PATH.exists():
     OLD_DB_PATH.rename(DB_PATH)
@@ -255,12 +376,16 @@ DATABASES = {
         },
     },
 }
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
 # The new DEFAULT_AUTO_FIELD in Django 3.2 is BigAutoField (64 bit),
 #   but it can't be auto migrated. Automigration has been punted to
 #   Django 4.0 at the earliest:
 #   https://code.djangoproject.com/ticket/32674
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+##################
+# Authentication #
+##################
 
 if AUTH_REMOTE_USER:
     AUTHENTICATION_BACKENDS = [
@@ -268,9 +393,7 @@ if AUTH_REMOTE_USER:
         "django.contrib.auth.backends.ModelBackend",
     ]
 
-# Password validation
-# https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
-
+# https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": (
@@ -283,37 +406,27 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+########################
+# Internationalization #
+########################
 
-# Internationalization
-# https://docs.djangoproject.com/en/dev/topics/i18n/
 LANGUAGE_CODE = "en-us"
 USE_I18N = True
 TIME_ZONE = get_time_zone(TZ)
 
-# Hypercorn
-HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
-HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
-HYPERCORN_CONFIG = load_hypercorn_config(
-    HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
-)
-PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
+################
+# Static Files #
+################
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/dev/howto/static-files/
-# WHITENOISE_KEEP_ONLY_HASHED_FILES is still not usable with vite chunking
-WHITENOISE_STATIC_PREFIX = "static/"
-WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
-STATIC_ROOT = CODEX_PATH / "static_root"
-ROOT_PATH = HYPERCORN_CONFIG.root_path
-STATIC_URL = (
-    ROOT_PATH + "/" + WHITENOISE_STATIC_PREFIX
-    if ROOT_PATH
-    else WHITENOISE_STATIC_PREFIX
-)
+STATIC_ROOT = CODEX_PATH / "static"
+SERVESTATIC_IMMUTABLE_FILE_TEST = immutable_file_test
+SERVESTATIC_USE_ZSTD = False  # only a win for dynamic files
+SERVESTATIC_STATIC_PREFIX = "/static"  # otherwise is based on STATIC_URL
+STATIC_URL = GRANIAN_URL_PATH_PREFIX.rstrip("/") + SERVESTATIC_STATIC_PREFIX + "/"
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        # Don't use Manifest storage because vite does that for me and saves space.
+        "BACKEND": "servestatic.storage.CompressedStaticFilesStorage",
     }
 }
 STATICFILES_DIRS = (
@@ -322,11 +435,23 @@ STATICFILES_DIRS = (
 for path in STATICFILES_DIRS:
     path.mkdir(exist_ok=True, parents=True)
 
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
+#########
+# Cache #
+#########
 
-# Setup support for proxy headers
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+ROOT_CACHE_PATH = CONFIG_PATH / "cache"
+DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
+DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": str(DEFAULT_CACHE_PATH),
+    },
+}
+
+##################
+# REST Framework #
+##################
 
 _THROTTLE_MAP = MappingProxyType(
     {
@@ -348,25 +473,31 @@ for scope, value in _THROTTLE_MAP.items():
         rate = f"{rate_value}/min" if value[1] else None
         _THROTTLE_RATES[scope] = rate
 
+_RENDERER_CLASSES = [
+    "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
+]
+if DEBUG:
+    _RENDERER_CLASSES.append(
+        "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer"
+    )
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
         "codex.authentication.BearerTokenAuthentication",
     ),
-    "DEFAULT_RENDERER_CLASSES": (
-        "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
-        "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
-    ),
+    "DEFAULT_RENDERER_CLASSES": tuple(_RENDERER_CLASSES),
     "DEFAULT_PARSER_CLASSES": (
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
-        # "djangorestframework_camel_case.parser.CamelCaseFormParser",
-        # "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": tuple(_THROTTLE_CLASSES),
     "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
+
+#####################
+# REST Registration #
+#####################
 
 REST_REGISTRATION = {
     "REGISTER_VERIFICATION_ENABLED": False,
@@ -388,6 +519,9 @@ REST_REGISTRATION = {
     ),
 }
 
+#####################
+# API Documentation #
+#####################
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Codex API",
@@ -415,23 +549,18 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-CORS_ALLOW_CREDENTIALS = True
 
-ROOT_CACHE_PATH = CONFIG_PATH / "cache"
-DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
-DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": str(DEFAULT_CACHE_PATH),
-    },
-}
-
-INTERNAL_IPS = ("127.0.0.1",)
+############
+# Channels #
+############
 
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
+
+###############
+# Django Vite #
+###############
 
 if DEBUG and not BUILD:
     import socket
@@ -444,9 +573,39 @@ if DEBUG and not BUILD:
         }
     }
 
+############
+# Cachalot #
+############
+
 CACHALOT_UNCACHABLE_TABLES = frozenset(
     {"django_migrations", "django_session", "codex_useractive"}
 )
+
+INTERNAL_IPS = ("127.0.0.1",)
+
+#################
+# Custom Covers #
+#################
+
+CUSTOM_COVERS_SUBDIR = "custom-covers"
+CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
+CUSTOM_COVERS_GROUP_DIRS = frozenset(
+    {"publishers", "imprints", "series", "volumes", "story-arcs"}
+)
+
+
+def create_custom_cover_group_dirs() -> None:
+    """Create custom cover group dirs."""
+    for group_dir in CUSTOM_COVERS_GROUP_DIRS:
+        custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
+        custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
+
+
+create_custom_cover_group_dirs()
+
+############
+# Comicbox #
+############
 
 COMICBOX_CONFIG = get_config(
     {

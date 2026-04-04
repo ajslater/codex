@@ -2,9 +2,9 @@
 
 from pathlib import Path
 from types import MappingProxyType
+from typing import override
 
 from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoices
-from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel
 from codex.models.choices import max_choices_len
@@ -15,7 +15,7 @@ __all__ = ("CustomCover", "FailedImport")
 
 
 class WatchedPath(BaseModel):
-    """A filesystem path with data for Watchdog."""
+    """A filesystem path with data for Watcher diffs."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
     parent_folder: ForeignKey | None = ForeignKey(

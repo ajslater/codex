@@ -1,12 +1,14 @@
 """Version View."""
 
+from typing import override
+
 from rest_framework.response import Response
-from typing_extensions import override
 
 from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import Timestamp
 from codex.serializers.versions import VersionsSerializer
+from codex.settings import DOCKER_IMAGE_DEPRECATED
 from codex.version import VERSION
 from codex.views.auth import AuthGenericAPIView
 
@@ -25,7 +27,11 @@ class VersionView(AuthGenericAPIView):
         else:
             LIBRARIAN_QUEUE.put(CodexLatestVersionTask())
             latest_version = "fetching..."
-        return {"installed": VERSION, "latest": latest_version}
+        return {
+            "installed": VERSION,
+            "latest": latest_version,
+            "warning": DOCKER_IMAGE_DEPRECATED,
+        }
 
     def get(self, *args, **kwargs) -> Response:
         """Get Versions."""

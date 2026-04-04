@@ -1,4 +1,3 @@
-import deepClone from "deep-clone";
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
@@ -11,38 +10,26 @@ import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
-import { range } from "@/util";
 
-const GROUPS = "rpisvc";
-Object.freeze(GROUPS);
-export const GROUPS_REVERSED = [...GROUPS].reverse().join("");
-Object.freeze(GROUPS_REVERSED);
-const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
-Object.freeze(HTTP_REDIRECT_CODES);
-const DEFAULT_BOOKMARK_VALUES = new Set([
-  undefined,
-
-  null,
-  BROWSER_DEFAULTS.bookmarkFilter,
-]);
-Object.freeze(DEFAULT_BOOKMARK_VALUES);
-const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
-Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
-const NO_REDIRECT_ON_SEARCH_GROUPS = new Set(["a", "c", "f"]);
-Object.freeze(NO_REDIRECT_ON_SEARCH_GROUPS);
-const NON_BROWSE_GROUPS = new Set(["a", "f"]);
-Object.freeze(NON_BROWSE_GROUPS);
+const GROUPS = Object.freeze("rpisvc");
+export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse().join(""));
+const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
+const DEFAULT_BOOKMARK_VALUES = Object.freeze(
+  new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
+);
+const ALWAYS_ENABLED_TOP_GROUPS = Object.freeze(new Set(["a", "c"]));
+const NO_REDIRECT_ON_SEARCH_GROUPS = Object.freeze(new Set(["a", "c", "f"]));
+const NON_BROWSE_GROUPS = Object.freeze(new Set(["a", "f"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
-const COVER_KEYS = ["customCovers", "dynamicCovers", "show"];
-Object.freeze(COVER_KEYS);
-const DYNAMIC_COVER_KEYS = ["filters", "orderBy", "orderReverse", "q"];
-Object.freeze(DYNAMIC_COVER_KEYS);
-const FILTER_ONLY_KEYS = ["filters", "q"];
-Object.freeze(FILTER_ONLY_KEYS);
-const PAGE_LOAD_KEYS = ["breadcrumbs"];
-Object.freeze(PAGE_LOAD_KEYS);
-const METADATA_LOAD_KEYS = ["filters", "q", "mtime"];
-Object.freeze(METADATA_LOAD_KEYS);
+const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
+const DYNAMIC_COVER_KEYS = Object.freeze([
+  "filters",
+  "orderBy",
+  "orderReverse",
+  "q",
+]);
+const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
+const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -67,7 +54,7 @@ export const useBrowserStore = defineStore("browser", {
       dynamic: undefined,
     },
     settings: {
-      breadcrumbs: BROWSER_DEFAULTS.breadcrumbs,
+      breadcrumbs: [],
       customCovers: BROWSER_DEFAULTS.customCovers,
       dynamicCovers: BROWSER_DEFAULTS.dynamicCovers,
       filters: {},
@@ -104,6 +91,9 @@ export const useBrowserStore = defineStore("browser", {
     isSearchOpen: false,
     isSearchHelpOpen: false,
     searchHideTimeout: undefined,
+    // Saved settings
+    savedSettingsList: [],
+    savedSettingsSnackbar: [],
   }),
   getters: {
     groupNames() {
@@ -220,9 +210,6 @@ export const useBrowserStore = defineStore("browser", {
     },
     filterOnlySettings(state) {
       return this._filterSettings(state, FILTER_ONLY_KEYS);
-    },
-    pageLoadSettings(state) {
-      return this._filterSettings(state, PAGE_LOAD_KEYS);
     },
     metadataSettings(state) {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
@@ -506,30 +493,11 @@ export const useBrowserStore = defineStore("browser", {
       this.isSearchHelpOpen = value;
       this.startSearchHideTimeout();
     },
-    setPageMtime(mtime) {
-      globalThis.mtime = mtime;
-    },
-    async updateBreadcrumbs(oldBreadcrumbs) {
-      const breadcrumbs = this.settings.breadcrumbs || [];
-      const indexes = range(breadcrumbs.length).reverse();
-      for (const index of indexes) {
-        const oldCrumb = oldBreadcrumbs[index];
-        const newCrumb = breadcrumbs[index];
-        if (!dequal(oldCrumb, newCrumb)) {
-          if (newCrumb.name === null) {
-            // For volumes
-            newCrumb.name = "";
-          }
-          API.updateSettings({ breadcrumbs });
-          break;
-        }
-      }
-    },
     /*
      * ROUTE
      */
     routeToPage(page) {
-      const route = deepClone(router.currentRoute.value);
+      const route = structuredClone(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.warn);
     },
@@ -593,14 +561,12 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         return this.loadSettings();
       }
-      const oldBreadcrumbs = this.settings.breadcrumbs;
       await API.getBrowserPage(route.params, this.settings, mtime)
         .then((response) => {
           const { breadcrumbs, ...page } = response.data;
-          Object.freeze({ page });
           this.$patch((state) => {
-            state.settings.breadcrumbs = breadcrumbs;
-            state.page = page;
+            state.settings.breadcrumbs = Object.freeze(breadcrumbs);
+            state.page = Object.freeze(page);
             if (
               (state.settings.orderBy === "search_score" && !page.fts) ||
               (state.settings.orderBy === "child_count" &&
@@ -616,8 +582,6 @@ export const useBrowserStore = defineStore("browser", {
         .catch(this.handlePageError);
       if (updateSettings) {
         API.updateSettings(this.settings);
-      } else {
-        this.updateBreadcrumbs(oldBreadcrumbs);
       }
     },
     async loadAvailableFilterChoices() {
@@ -672,6 +636,66 @@ export const useBrowserStore = defineStore("browser", {
       this._validateAndSaveSettings(settings);
       // ignore redirect
       router.push(route).catch(console.error);
+    },
+    /*
+     * SAVED SETTINGS
+     */
+    async loadSavedSettingsList() {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.getSavedSettingsList()
+        .then((response) => {
+          this.savedSettingsList = Object.freeze(
+            response.data.savedSettings || [],
+          );
+          return true;
+        })
+        .catch(console.error);
+    },
+    async saveCurrentSettings(name) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.saveSettings(name)
+        .then(() => {
+          this.loadSavedSettingsList();
+          return true;
+        })
+        .catch(console.error);
+    },
+    async loadSavedSettings(pk) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.loadSavedSettings(pk)
+        .then((response) => {
+          const { settings, filterWarnings } = response.data;
+          if (settings) {
+            this._validateAndSaveSettings(settings);
+            this.browserPageLoaded = true;
+            this.loadBrowserPage(undefined, true);
+          }
+          if (filterWarnings && filterWarnings.length > 0) {
+            this.savedSettingsSnackbar = filterWarnings;
+          }
+          return true;
+        })
+        .catch(console.error);
+    },
+    async deleteSavedSettings(pk) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.deleteSavedSettings(pk)
+        .then(() => {
+          this.loadSavedSettingsList();
+          return true;
+        })
+        .catch(console.error);
+    },
+    clearSavedSettingsSnackbar() {
+      this.savedSettingsSnackbar = [];
     },
   },
 });

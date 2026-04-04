@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Find the diffs for two vendored packages.
 # vendor the original package into codex/_vendor_orig before comparing edits
 # Would be slicker if this automated the creation and destruction of _vendor-orig in /tmp

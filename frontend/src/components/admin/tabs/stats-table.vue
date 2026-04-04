@@ -8,7 +8,10 @@
           <td v-if="typeof value === 'object'">
             <v-table class="statsTable" striped="even">
               <tbody>
-                <tr v-for="[subKey, subValue] of Object.entries(value)">
+                <tr
+                  v-for="[subKey, subValue] of Object.entries(value)"
+                  :key="subKey"
+                >
                   <td :class="tdClasses(subKey)">{{ tdLabel(subKey) }}</td>
                   <td>{{ nf(subValue) }}</td>
                 </tr>

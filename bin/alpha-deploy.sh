@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run alpha, test, build and deploy for a local release on one arch
 set -euxo pipefail
 # shellcheck disable=SC1091

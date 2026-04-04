@@ -41,24 +41,22 @@
 </template>
 
 <script>
-import deepClone from "deep-clone";
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
+import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];
-Object.freeze(UPDATE_KEYS);
-const EMPTY_ROW = {
+const UPDATE_KEYS = Object.freeze(["events", "poll", "pollEvery", "groups"]);
+const EMPTY_ROW = Object.freeze({
   path: "",
   events: true,
   poll: true,
   pollEvery: "01:00:00",
   groups: [],
-};
-Object.freeze(EMPTY_ROW);
+});
 
 const isPathParent = (path, potentialChildPath) => {
   // Normalize the paths to avoid issues with different directory separator characters
@@ -85,13 +83,7 @@ export default {
     AdminServerFolderPicker,
     DurationInput,
   },
-  props: {
-    oldRow: {
-      type: [Object, Boolean],
-      default: false,
-    },
-  },
-  emits: ["change"],
+  mixins: [createUpdateInputsMixin],
   data() {
     return {
       rules: {
@@ -113,7 +105,6 @@ export default {
           },
         ],
       },
-      row: deepClone(this.oldRow || EMPTY_ROW),
     };
   },
   computed: {
@@ -124,23 +115,6 @@ export default {
     paths() {
       return this.nameSet(this.normalLibraries, "path", this.oldRow, false);
     },
-  },
-  watch: {
-    row: {
-      handler(to) {
-        this.$emit("change", to);
-      },
-      deep: true,
-    },
-    oldRow: {
-      handler(to) {
-        this.row = deepClone(to);
-      },
-      deep: true,
-    },
-  },
-  methods: {
-    ...mapActions(useAdminStore, ["nameSet"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,

@@ -1,6 +1,6 @@
 """Priority for Scribe tasks in the PriorityQueue."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from codex.librarian.scribe.importer.tasks import (
     ImportTask,
@@ -12,6 +12,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupBookmarksTask,
     JanitorCleanupSessionsTask,
+    JanitorCleanupSettingsTask,
     JanitorCodexUpdateTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
@@ -52,6 +53,7 @@ _SCRIBE_TASK_PRIORITY = (
     JanitorCleanFKsTask,
     JanitorCleanCoversTask,
     JanitorCleanupSessionsTask,
+    JanitorCleanupSettingsTask,
     JanitorCleanupBookmarksTask,
     SearchIndexClearTask,
     SearchIndexCleanStaleTask,
@@ -64,6 +66,6 @@ _SCRIBE_TASK_PRIORITY = (
 
 def get_task_priority(task: ScribeTask) -> tuple[int, float]:
     """Get task priority by index."""
-    now = datetime.now(tz=timezone.utc).timestamp()
+    now = datetime.now(tz=UTC).timestamp()
     priority = _SCRIBE_TASK_PRIORITY.index(type(task))
     return priority, now

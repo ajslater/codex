@@ -2,10 +2,10 @@
   <div class="clipboard" :title="tooltipText" @click.stop="onClick">
     <span class="clipboardTitle">
       {{ title }}
-      <span v-if="enabled" class="iconContainer">
+      <span v-if="isSupported" class="iconContainer">
         <v-icon class="clipboardIcon" size="small" :icon="icon" />
         <v-fade-transition>
-          <span v-show="showTooltip.show" class="copied">Copied</span>
+          <span v-show="copied" class="copied">Copied</span>
         </v-fade-transition>
       </span>
     </span>
@@ -14,6 +14,7 @@
   </div>
 </template>
 <script>
+import { useClipboard } from "@vueuse/core";
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
 
 export default {
@@ -24,39 +25,26 @@ export default {
     subtitle: { type: String, default: "" },
     text: { type: String, required: true },
   },
-  data() {
-    return {
-      showTooltip: { show: false },
-    };
+  setup(props) {
+    const { copy, copied, isSupported } = useClipboard({
+      source: () => props.text,
+      copiedDuring: 5000,
+    });
+    return { copy, copied, isSupported };
   },
   computed: {
-    enabled() {
-      return true || location.protocol == "https:";
-    },
     tooltipText() {
-      return this.enabled ? this.tooltip : undefined;
+      return this.isSupported ? this.tooltip : undefined;
     },
     icon() {
-      return this.showTooltip.show
-        ? mdiClipboardCheckOutline
-        : mdiClipboardOutline;
+      return this.copied ? mdiClipboardCheckOutline : mdiClipboardOutline;
     },
   },
   methods: {
     onClick() {
-      if (!this.enabled) {
-        return;
+      if (this.isSupported) {
+        this.copy().catch(console.warn);
       }
-      navigator.clipboard
-        .writeText(this.text)
-        .then(() => {
-          this.showTooltip.show = true;
-          setTimeout(() => {
-            this.showTooltip.show = false;
-          }, 5000);
-          return true;
-        })
-        .catch(console.warn);
     },
   },
 };
@@ -72,6 +60,7 @@ export default {
 }
 
 .subtitle {
+  padding-left: 0.5em;
   font-size: small;
   font-weight: normal;
   color: rgb(var(--v-theme-textDisabled));

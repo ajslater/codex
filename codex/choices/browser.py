@@ -62,14 +62,13 @@ BROWSER_CHOICES = MappingProxyType(
 )
 
 DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
-_DEFAULT_BROWSER_BREADCRUMBS = (DEFAULT_BROWSER_ROUTE,)
 _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
+_DEFAULT_FILTERS = MappingProxyType({"bookmark": ""})
 BROWSER_DEFAULTS = MappingProxyType(
     {
-        "bookmark_filter": "",
-        "breadcrumbs": _DEFAULT_BROWSER_BREADCRUMBS,
         "custom_covers": True,
         "dynamic_covers": True,
+        "filters": _DEFAULT_FILTERS,
         "order_by": "sort_name",
         "order_reverse": False,
         "q": "",

@@ -8,6 +8,7 @@
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
+import { useSocketStore } from "@/stores/socket";
 
 export default {
   name: "App",
@@ -21,7 +22,7 @@ export default {
       if (to) {
         this.setTimezone();
         // If the user changes resubscribe to channels.
-        this.$socket.close();
+        useSocketStore().reopen();
       }
     },
   },

@@ -1,6 +1,6 @@
 """Common view constants."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import MappingProxyType
 
 from django.contrib.auth.models import Group, User
@@ -47,7 +47,7 @@ COMIC_GROUP = "c"
 GROUP_NAME_MAP = MappingProxyType(
     {"p": "publisher", "i": "imprint", "s": "series", "v": "volume"}
 )
-STATIC_IMG_PATH = CODEX_PATH / "static_root/img"
+STATIC_IMG_PATH = CODEX_PATH / "static/img"
 MISSING_COVER_NAME_MAP = MappingProxyType(
     {
         **GROUP_NAME_MAP,
@@ -150,7 +150,7 @@ CONFIG_MODELS = (
     Session,
 )
 GROUP_MTIME_MODEL_MAP = MappingProxyType({"r": Publisher, "a": StoryArc, "f": Folder})
-EPOCH_START = datetime.fromtimestamp(0, tz=timezone.utc)
+EPOCH_START = datetime.fromtimestamp(0, tz=UTC)
 ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
 NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
 NONE_DATETIMEFIELD = Value(None, DateTimeField())

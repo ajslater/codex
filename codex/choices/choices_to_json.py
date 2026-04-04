@@ -8,16 +8,13 @@ from types import MappingProxyType
 
 from caseconverter import camelcase
 
-from codex.choices.admin import (
-    ADMIN_FLAG_CHOICES,
-    ADMIN_TASK_GROUPS,
-)
+from codex.choices.admin import ADMIN_FLAG_CHOICES
 from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
+from codex.choices.jobs import ADMIN_JOBS
 from codex.choices.notifications import Notifications
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
-from codex.serializers.route import RouteSerializer
 
 _DEFAULTS = MappingProxyType(
     {"browser-choices.json": BROWSER_DEFAULTS, "reader-choices.json": READER_DEFAULTS}
@@ -34,7 +31,7 @@ _DUMPS = MappingProxyType(
 
 _MAP_DUMPS = MappingProxyType(
     {
-        "admin-tasks.json": ADMIN_TASK_GROUPS,
+        "admin-jobs.json": ADMIN_JOBS,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
         "reader-defaults.json": READER_DEFAULTS,
@@ -69,10 +66,7 @@ def _make_json_serializable(data, *, jsonize_keys: bool = True) -> list | dict:
     if isinstance(data, Mapping):
         json_dict = {}
         for key, value in data.items():
-            if key == "breadcrumbs":
-                json_value = tuple(RouteSerializer(dict(route)).data for route in value)  #  pyright: ignore[reportGeneralTypeIssues]
-            else:
-                json_value = _make_json_serializable(value)
+            json_value = _make_json_serializable(value)
             json_key = _json_key(key) if jsonize_keys else key
             json_dict[json_key] = json_value
         return json_dict

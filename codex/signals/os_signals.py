@@ -27,7 +27,7 @@ def _shutdown_signal_handler(*_args) -> None:
     """Initiate Codex Shutdown."""
     if SHUTDOWN_EVENT.is_set():
         return
-    logger.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
+    logger.info("Asking granian to shut down gracefully. Could take 10 seconds...")
     SHUTDOWN_EVENT.set()
 
 

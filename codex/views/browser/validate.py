@@ -113,8 +113,7 @@ class BrowserValidateView(SearchFilterView):
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
             route = {"group": nav_group, "pks": pks, "page": page}
-            breadcrumbs = []
-            settings_mask = {"top_group": valid_top_group, "breadcrumbs": breadcrumbs}
+            settings_mask = {"top_group": valid_top_group}
             self.raise_redirect(reason, route, settings_mask)
 
     def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
@@ -149,11 +148,7 @@ class BrowserValidateView(SearchFilterView):
         if not self.admin_flags["folder_view"]:
             reason = "folder view disabled"
             valid_top_groups = self._get_valid_browse_top_groups()
-            breadcrumbs = []
-            settings_mask = {
-                "top_group": valid_top_groups[0],
-                "breadcrumbs": breadcrumbs,
-            }
+            settings_mask = {"top_group": valid_top_groups[0]}
             self.raise_redirect(reason, settings_mask=settings_mask)
 
         valid_top_groups = (FOLDER_GROUP,)

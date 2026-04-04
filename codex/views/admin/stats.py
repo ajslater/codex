@@ -1,13 +1,12 @@
 """Admin Stats View."""
 
 from types import MappingProxyType
-from typing import Any, ClassVar
+from typing import Any, ClassVar, override
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.serializers import empty
-from typing_extensions import override
 
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import Timestamp

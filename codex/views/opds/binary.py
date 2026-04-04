@@ -1,12 +1,13 @@
 """Binary views with Basic Authentication added."""
 
+from typing import override
+
 from rest_framework.negotiation import BaseContentNegotiation
-from typing_extensions import override
 
 from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.opds.auth import OPDSAuthMixin
-from codex.views.opds.session import OPDSBrowserSessionMixin
+from codex.views.opds.settings import OPDSBrowserSettingsMixin
 from codex.views.reader.page import ReaderPageView
 
 
@@ -30,7 +31,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         return (renderer, renderer.media_type)
 
 
-class OPDSCoverView(OPDSBrowserSessionMixin, CoverView):
+class OPDSCoverView(OPDSBrowserSettingsMixin, CoverView):
     """Cover View with Basic Auth."""
 
 

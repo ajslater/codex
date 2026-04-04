@@ -3,9 +3,8 @@
 import json
 from base64 import a85decode
 from lzma import compress
+from urllib.request import Request, urlopen
 from uuid import uuid4
-
-from requests import Session
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.telemeter.stats import CodexStats
@@ -45,11 +44,9 @@ def _post_stats(data) -> None:
     data_json = json.dumps(data)
     json_bytes = data_json.encode()
     compressed_data = compress(json_bytes)
-    with Session() as session:
-        response = session.post(
-            _POST, data=compressed_data, headers=_HEADERS, timeout=_TIMEOUT
-        )
-        response.raise_for_status()
+    request = Request(_POST, data=compressed_data, headers=_HEADERS, method="POST")  # noqa: S310
+    response = urlopen(request, timeout=_TIMEOUT)  # noqa: S310
+    response.raise_for_status()
 
 
 def _send_telemetry(uuid) -> None:
@@ -73,7 +70,7 @@ def send_telemetry(log) -> None:
         try:
             _send_telemetry(ts.version)
         except Exception as exc:
-            log.debug(f"Failed to send anonyomous stats: {exc}")
+            log.debug(f"Failed to send anonymous stats: {exc}")
         # update updated_at, even on failure to prevent rapid rescheudling.
         ts.save()
     except Exception as exc:

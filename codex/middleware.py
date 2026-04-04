@@ -8,7 +8,11 @@ from django.db import connection
 from django.utils import timezone
 from loguru import logger
 
-from codex.settings import LOG_AUTH_HEADERS, LOG_RESPONSE_TIME, SLOW_QUERY_LIMIT
+from codex.settings import (
+    DEBUG_LOG_AUTH_HEADERS,
+    DEBUG_LOG_RESPONSE_TIME,
+    DEBUG_SLOW_QUERY_LIMIT,
+)
 
 
 class TimezoneMiddleware:
@@ -41,9 +45,9 @@ class LogResponseTimeMiddleware:
         start_time = time()
         response = self.get_response(request)
         response_time = time() - start_time
-        is_slow = response_time > SLOW_QUERY_LIMIT
+        is_slow = response_time > DEBUG_SLOW_QUERY_LIMIT
 
-        if is_slow or LOG_RESPONSE_TIME:
+        if is_slow or DEBUG_LOG_RESPONSE_TIME:
             msg = f"{response_time}s {request.build_absolute_uri()}"
             if is_slow:
                 logger.warning(msg)
@@ -54,8 +58,8 @@ class LogResponseTimeMiddleware:
     def _log_query_times(self) -> None:
         """Log queries if slow or debug."""
         for query in connection.queries:
-            is_slow = float(query["time"]) > SLOW_QUERY_LIMIT
-            if LOG_RESPONSE_TIME or is_slow:
+            is_slow = float(query["time"]) > DEBUG_SLOW_QUERY_LIMIT
+            if DEBUG_LOG_RESPONSE_TIME or is_slow:
                 msg = f"{query['time']}s {query['sql']}"
                 if is_slow:
                     logger.warning(msg)
@@ -77,7 +81,7 @@ class LogRequestMiddleware:
         self.get_response = get_response
 
     def _log_auth_headers(self, request) -> None:
-        if not LOG_AUTH_HEADERS:
+        if not DEBUG_LOG_AUTH_HEADERS:
             return
         filtered_headers = {}
         for key, value in request.headers.items():

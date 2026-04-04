@@ -1,6 +1,7 @@
-// Socket pseudo module for vue-native-sockets
+import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
 
+import { WS_URL } from "@/api/v3/notify";
 import { messages } from "@/choices/websocket-messages.json";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
@@ -9,170 +10,190 @@ import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 import { store } from "@/stores/store";
 
-const USER_GROUP_ROUTES = ["admin-groups", "admin-users", "admin-libraries"];
-Object.freeze(USER_GROUP_ROUTES);
-// vue-native-websockets doesn't put socket stuff in its own module :/
-export const useSocketStore = defineStore("socket", {
-  state: () => ({
-    isConnected: false,
-    reconnectError: false,
-    app: undefined,
-    heartBeatInterval: 5 * 1000,
-    heartBeatTimer: 0,
-  }),
-  getters: {
-    async adminStore() {
-      // Only load the admin store if the user is an admin.
-      if (!useAuthStore().isUserAdmin) {
-        return;
-      }
-      // Returns a promise that must be awaited!
-      return import("@/stores/admin")
-        .then((adminModule) => {
-          return adminModule.useAdminStore();
-        })
-        .catch(console.error);
+const USER_GROUP_ROUTES = Object.freeze([
+  "admin-groups",
+  "admin-users",
+  "admin-libraries",
+]);
+
+const HEARTBEAT_INTERVAL_MS = 5_000;
+const RECONNECT_RETRIES = Infinity;
+const RECONNECT_DELAY_MS = 3_000;
+
+// TODO move to some generic util.
+function currentRouteName() {
+  return router?.currentRoute?.value?.name;
+}
+
+// Manual heartbeat — fire-and-forget empty string, no pong expected.
+// VueUse's built-in heartbeat option closes the connection if no pong is
+// received within its pongTimeout (default 1000ms), which breaks servers
+// that silently consume the ping without echoing anything back.
+let heartbeatTimer = 0;
+
+function startHeartbeat(ws) {
+  stopHeartbeat();
+  heartbeatTimer = globalThis.setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("");
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+function stopHeartbeat() {
+  globalThis.clearInterval(heartbeatTimer);
+  heartbeatTimer = 0;
+}
+
+export const useSocketStore = defineStore("socket", () => {
+  const { status, open } = useWebSocket(WS_URL, {
+    immediate: true,
+    autoReconnect: {
+      retries: RECONNECT_RETRIES,
+      delay: RECONNECT_DELAY_MS,
+      onFailed() {
+        console.error("[socket] Failed to reconnect after all retries");
+      },
     },
-  },
-  actions: {
-    SOCKET_ONOPEN(event) {
-      this.app.config.globalProperties.$socket = event.currentTarget;
-      this.$patch((state) => {
-        state.isConnected = true;
-        state.reconnectError = false;
-      });
-      this.heartBeatTimer = globalThis.setInterval(() => {
-        try {
-          if (this.isConnected) {
-            this.app.config.globalProperties.$socket.send("");
-          }
-        } catch (error) {
-          console.warn("keep-alive", error);
-        }
-      }, this.heartBeatInterval);
+    onConnected(ws) {
+      startHeartbeat(ws);
+      console.debug("[socket] Connected.");
     },
-    SOCKET_ONCLOSE() {
-      this.isConnected = false;
-      globalThis.clearInterval(this.heartBeatTimer);
-      this.heartBeatTimer = 0;
+    onMessage(_ws, event) {
+      dispatchMessage(event.data);
     },
-    SOCKET_ONERROR(event) {
-      console.error("socket error", event);
-      this.$patch((state) => {
-        state.isConnected = false;
-        state.reconnectError = true;
-      });
+    onError(ws, event) {
+      console.error("[socket] Error on", ws.url, event);
     },
-    SOCKET_ONMESSAGE(event) {
-      /*
-       * The main message dispatcher.
-       * Would be nicer if components could add their own listeners.
-       */
-      const message = event.data;
-      console.debug(message);
-      switch (message) {
-        case messages.ADMIN_FLAGS:
-          this.adminFlagsNotified();
-          break;
-        case messages.BOOKMARK:
-          this.bookmarksNotified();
-          break;
-        case messages.COVERS:
-          this.coversNotified();
-          break;
-        case messages.GROUPS:
-          this.groupsNotified();
-          this.libraryNotified();
-          break;
-        case messages.USERS:
-          this.usersNotified();
-          this.libraryNotified();
-          break;
-        case messages.LIBRARY:
-          this.libraryNotified();
-          break;
-        case messages.LIBRARIAN_STATUS:
-          this.adminLoadTables(["LibrarianStatus"]);
-          break;
-        case messages.FAILED_IMPORTS:
-          this.failedImportsNotified();
-          break;
-        default:
-          console.debug("Unhandled websocket message:", message);
-      }
+    onDisconnected(_ws, event) {
+      stopHeartbeat();
+      console.debug(
+        "[socket] Disconnected with code:",
+        event.code,
+        "reason:",
+        event.reason || "(none)",
+      );
     },
-    SOCKET_RECONNECT(count) {
-      console.debug("socket reconnect", count);
-    },
-    SOCKET_RECONNECT_ERROR() {
-      console.error("socket reconnect error");
-      this.reconnectError = true;
-    },
-    async adminLoadTables(tables) {
-      if (this.adminStore) {
-        const adminStore = await this.adminStore;
-        adminStore.loadTables(tables);
-      }
-    },
-    adminFlagsNotified() {
-      useAuthStore().loadAdminFlags();
-      const routeName = router?.currentRoute?.value?.name;
-      if (routeName === "admin-flags") {
-        this.adminLoadTables(["Flag"]);
-      }
-    },
-    reloadBrowser() {
-      const routeName = router?.currentRoute?.value?.name;
-      if (routeName === "browser") {
+  });
+
+  // Lazy admin store loader
+
+  async function getAdminStore() {
+    if (!useAuthStore().isUserAdmin) return undefined;
+    return import("@/stores/admin")
+      .then((m) => m.useAdminStore())
+      .catch(console.error);
+  }
+
+  // Notification handlers
+
+  async function adminLoadTables(tables) {
+    const adminStore = await getAdminStore();
+    adminStore?.loadTables(tables);
+  }
+
+  async function adminLoadAllStatuses() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadAllStatuses();
+  }
+
+  function reloadBrowser() {
+    if (currentRouteName() === "browser") {
+      useBrowserStore().loadMtimes();
+    }
+  }
+
+  function adminFlagsNotified() {
+    useAuthStore().loadAdminFlags();
+    if (currentRouteName() === "admin-flags") {
+      adminLoadTables(["Flag"]);
+    }
+  }
+
+  function groupsNotified() {
+    if (USER_GROUP_ROUTES.includes(currentRouteName())) {
+      adminLoadTables(["Group"]);
+    }
+  }
+
+  function usersNotified() {
+    if (USER_GROUP_ROUTES.includes(currentRouteName())) {
+      adminLoadTables(["User"]);
+    }
+  }
+
+  async function libraryNotified() {
+    useCommonStore().setTimestamp();
+    switch (currentRouteName()) {
+      case "browser":
         useBrowserStore().loadMtimes();
+        break;
+      case "reader":
+        useReaderStore().loadMtimes();
+        break;
+      case "admin-libraries":
+        adminLoadTables(["Library", "FailedImport"]);
+        break;
+      case "admin-stats": {
+        const adminStore = await getAdminStore();
+        adminStore?.loadStats();
+        break;
       }
-    },
-    bookmarksNotified() {
-      this.reloadBrowser();
-    },
-    coversNotified() {
-      this.reloadBrowser();
-    },
-    groupsNotified() {
-      const routeName = router?.currentRoute?.value?.name;
-      if (USER_GROUP_ROUTES.includes(routeName)) {
-        this.adminLoadTables(["Group"]);
-      }
-    },
-    usersNotified() {
-      const routeName = router?.currentRoute?.value?.name;
-      if (USER_GROUP_ROUTES.includes(routeName)) {
-        this.adminLoadTables(["User"]);
-      }
-    },
-    async libraryNotified() {
-      useCommonStore().setTimestamp();
-      const routeName = router?.currentRoute?.value?.name;
-      switch (routeName) {
-        case "browser":
-          useBrowserStore().loadMtimes();
-          break;
-        case "reader":
-          useReaderStore().loadMtimes();
-          break;
-        case "admin-libraries":
-          this.adminLoadTables(["Library", "FailedImport"]);
-          break;
-        case "admin-stats":
-          if (this.adminStore) {
-            const adminStore = await this.adminStore;
-            adminStore.loadStats();
-          }
-          break;
-      }
-    },
-    async failedImportsNotified() {
-      if (this.adminStore) {
-        const adminStore = await this.adminStore;
-        adminStore.unseenFailedImports = true;
-      }
-    },
-  },
+    }
+  }
+
+  async function failedImportsNotified() {
+    const adminStore = await getAdminStore();
+    if (adminStore) adminStore.unseenFailedImports = true;
+  }
+
+  // Message Dispatcher
+
+  function dispatchMessage(message) {
+    if (!message) return;
+    console.debug("[socket] message:", message);
+    switch (message) {
+      case messages.ADMIN_FLAGS:
+        adminFlagsNotified();
+        break;
+      case messages.BOOKMARK:
+        reloadBrowser();
+        break;
+      case messages.COVERS:
+        useCommonStore().setTimestamp();
+        reloadBrowser();
+        break;
+      case messages.GROUPS:
+        groupsNotified();
+        libraryNotified();
+        break;
+      case messages.USERS:
+        usersNotified();
+        libraryNotified();
+        break;
+      case messages.LIBRARY:
+        libraryNotified();
+        break;
+      case messages.LIBRARIAN_STATUS:
+        adminLoadTables(["ActiveLibrarianStatus"]);
+        adminLoadAllStatuses();
+        break;
+      case messages.FAILED_IMPORTS:
+        failedImportsNotified();
+        break;
+      default:
+        console.debug("Unhandled WebSocket message:", message);
+    }
+  }
+
+  // Public open for recconnect when user changes.
+  const reopen = () => {
+    // Don't force a reopen if we're in the middle of connecting.
+    if (status.value == "CONNECTING") return;
+    open(true);
+  };
+
+  return { reopen };
 });
 
 export function useSocketStoreWithOut() {

@@ -10,6 +10,10 @@ from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoi
 from codex.views.browser.cover import CoverView
 from codex.views.browser.download import GroupDownloadView
 from codex.views.browser.metadata import MetadataView
+from codex.views.browser.saved_settings import (
+    SavedBrowserSettingsListView,
+    SavedBrowserSettingsLoadView,
+)
 from codex.views.browser.settings import BrowserSettingsView
 from codex.views.lazy_import import LazyImportView
 
@@ -49,6 +53,19 @@ urlpatterns = [
         name="bookmark",
     ),
     path("settings", never_cache(BrowserSettingsView.as_view()), name="settings"),
+    #
+    #
+    # Saved Settings
+    path(
+        "settings/saved",
+        never_cache(SavedBrowserSettingsListView.as_view()),
+        name="saved_settings_list",
+    ),
+    path(
+        "settings/saved/<int:pk>",
+        never_cache(SavedBrowserSettingsLoadView.as_view()),
+        name="saved_settings_detail",
+    ),
     #
     #
     # Cover

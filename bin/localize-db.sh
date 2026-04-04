@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # copy old database a localize
 set -euo pipefail
 REMOTE_DB=$1

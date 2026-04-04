@@ -81,8 +81,9 @@
 
 <script>
 import { mdiLockReset } from "@mdi/js";
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapWritableState } from "pinia";
 
+import authFormMixin from "@/components/auth/auth-form-mixin";
 import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
@@ -97,6 +98,7 @@ export default {
     CloseButton,
     CodexListItem,
   },
+  mixins: [authFormMixin],
   props: {
     user: { type: Object, required: true },
     isAdminMode: { type: Boolean, default: false },
@@ -136,17 +138,11 @@ export default {
         password: "",
         passwordConfirm: "",
       },
-      submitButtonEnabled: false,
       mdiLockReset,
       showOnlyThisDialog: false,
     };
   },
   computed: {
-    ...mapState(useCommonStore, {
-      formErrors: (state) => state.form.errors,
-      formSuccess: (state) => state.form.success,
-      MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
-    }),
     ...mapWritableState(useAuthStore, ["showChangePasswordDialog"]),
   },
   watch: {
@@ -160,31 +156,6 @@ export default {
         this.clearErrors();
       }
     },
-    credentials: {
-      handler() {
-        const form = this.$refs.form;
-        if (!form) {
-          this.submitButtonEnabled = false;
-          return;
-        }
-        form
-          .validate()
-          .then(({ valid }) => {
-            this.submitButtonEnabled = valid;
-            return this.submitButtonEnabled;
-          })
-          .catch(() => {
-            this.submitButtonEnabled = false;
-          });
-      },
-      deep: true,
-    },
-  },
-  mounted() {
-    globalThis.addEventListener("keyup", this._keyUpListener);
-  },
-  beforeUnmount() {
-    globalThis.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
@@ -214,10 +185,6 @@ export default {
           }
         })
         .catch(console.error);
-    },
-    _keyUpListener(event) {
-      // stop keys from activating reader shortcuts.
-      event.stopImmediatePropagation();
     },
   },
 };

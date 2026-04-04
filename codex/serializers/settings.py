@@ -2,7 +2,7 @@
 
 from rest_framework.serializers import ListSerializer
 
-from codex.serializers.fields import SessionKeyField
+from codex.serializers.fields.settings import SettingsKeyField
 from codex.serializers.mixins import JSONFieldSerializer
 
 
@@ -11,4 +11,4 @@ class SettingsInputSerializer(JSONFieldSerializer):
 
     JSON_PARAMS = frozenset({"only"})
 
-    only = ListSerializer(child=SessionKeyField(), required=False)
+    only = ListSerializer(child=SettingsKeyField(), required=False)

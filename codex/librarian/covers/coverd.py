@@ -1,6 +1,6 @@
 """Functions for dealing with comic cover thumbnails."""
 
-from typing_extensions import override
+from typing import override
 
 from codex.librarian.covers.purge import CoverPurgeThread
 from codex.librarian.covers.tasks import (

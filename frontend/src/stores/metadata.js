@@ -4,7 +4,7 @@ import { capitalCase } from "text-case";
 import API from "@/api/v3/browser";
 import { useBrowserStore } from "@/stores/browser";
 
-const HEAD_ROLES = [
+const HEAD_ROLES = Object.freeze([
   // writer
   "writer",
   "author",
@@ -51,9 +51,8 @@ const HEAD_ROLES = [
   "editor",
   "edits",
   "editing",
-];
-Object.freeze(HEAD_ROLES);
-const TAGS = [
+]);
+const TAGS = Object.freeze([
   "genres",
   "characters",
   // identifiers
@@ -64,10 +63,8 @@ const TAGS = [
   "storyArcNumbers",
   "tags",
   "universes",
-];
-Object.freeze(TAGS);
-const MAIN_TAGS = new Set(["Characters", "Teams"]);
-Object.freeze(MAIN_TAGS);
+]);
+const MAIN_TAGS = Object.freeze(new Set(["Characters", "Teams"]));
 
 function compareByLastName(a, b) {
   const aLast = a.name.split(" ").pop();
@@ -80,14 +77,6 @@ export const useMetadataStore = defineStore("metadata", {
     md: undefined,
   }),
   getters: {
-    roleMap(state) {
-      const rm = {};
-      for (const { role } of state.md.credits) {
-        const roleName = role?.name ? role.name : "Other";
-        rm[roleName] = role;
-      }
-      return rm;
-    },
     _mappedCredits(state) {
       const credits = {};
       if (!state?.md?.credits) {
@@ -118,20 +107,20 @@ export const useMetadataStore = defineStore("metadata", {
         lowercaseRoleMap[originalRole.toLowerCase()] = originalRole;
       }
 
-      const sortedRoles = [];
+      const sortedRoles = new Set();
       for (const role of HEAD_ROLES) {
         const originalRole = lowercaseRoleMap[role];
         if (!originalRole) {
           continue;
         }
-        sortedRoles.push(originalRole);
+        sortedRoles.add(originalRole);
         delete lowercaseRoleMap[role];
         if (!Object.keys(lowercaseRoleMap).length) {
           break;
         }
       }
-      roles.sort();
-      sortedRoles.push(roles);
+      const sortedRolesList = [...sortedRoles];
+      sortedRolesList.sort();
       return sortedRoles;
     },
     credits(state) {
