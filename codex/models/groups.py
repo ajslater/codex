@@ -1,7 +1,8 @@
 """Browser Group models."""
 
+from typing import override
+
 from django.db.models import CASCADE, SET_DEFAULT, ForeignKey
-from typing_extensions import override
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField

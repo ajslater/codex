@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.9.25",
+  "version": "1.10.0",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -40,6 +40,7 @@
     "jsdom-global": "^3.0.2",
     "sass": "^1.55.0",
     "sass-loader": "^16.0",
+    "toml": "^4.0.1",
     "typeface-roboto": "^1.1.13",
     "vite": "^8.0.0",
     "vite-plugin-checker": "^0.12.0",

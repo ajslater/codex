@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
-"""The main runnable for codex. Sets up codex and runs hypercorn."""
+"""The main runnable for codex. Sets up codex and runs granian."""
 
 import asyncio
 from os import execv
 
 from django.db import connection
-from hypercorn.asyncio import serve
+from granian.constants import HTTPModes, Interfaces
+from granian.server.embed import Server
 from loguru import logger
+from setproctitle import setproctitle
 
 from codex.asgi import application
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.settings import HYPERCORN_CONFIG
+from codex.settings import (
+    DEBUG,
+    GRANIAN_HOST,
+    GRANIAN_HTTP,
+    GRANIAN_PORT,
+    GRANIAN_URL_PATH_PREFIX,
+    GRANIAN_WEBSOCKETS,
+)
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.startup.logger_init import init_logging
-from codex.version import VERSION
+from codex.version import PACKAGE_NAME, VERSION
 from codex.websockets.mp_queue import BROADCAST_QUEUE
 
 
@@ -49,23 +58,60 @@ def codex_shutdown() -> None:
         restart()
 
 
+def _build_server() -> Server:
+    """
+    Build the granian embedded server.
+
+    Note: the embed server runs workers as asyncio tasks (single-worker only),
+    which lets us integrate cleanly with the SHUTDOWN_EVENT lifecycle.
+    """
+    return Server(
+        application,
+        interface=Interfaces.ASGI,
+        address=GRANIAN_HOST,
+        port=GRANIAN_PORT,
+        websockets=GRANIAN_WEBSOCKETS,
+        http=HTTPModes(GRANIAN_HTTP),
+        url_path_prefix=GRANIAN_URL_PATH_PREFIX,
+    )
+
+
+async def _watch_for_changes() -> None:
+    """Watch source files and trigger restart on changes."""
+    from watchfiles import awatch
+
+    async for _changes in awatch("codex"):
+        logger.info("File changes detected, restarting...")
+        RESTART_EVENT.set()
+        SHUTDOWN_EVENT.set()
+        break
+
+
+async def _serve(server: Server) -> None:
+    """Run granian until SHUTDOWN_EVENT fires, then stop gracefully."""
+    server_task = asyncio.create_task(server.serve())
+    if DEBUG:
+        asyncio.create_task(_watch_for_changes())  # noqa: RUF006
+
+    await SHUTDOWN_EVENT.wait()
+    server.stop()
+    await server_task
+
+
 def run() -> None:
     """Run Codex."""
     logger.success(f"Running Codex v{VERSION}")
     librarian = LibrarianDaemon(logger, LIBRARIAN_QUEUE, BROADCAST_QUEUE)
     librarian.start()
-    asyncio.run(
-        serve(
-            application,  # pyright: ignore[reportArgumentType]
-            HYPERCORN_CONFIG,
-            shutdown_trigger=SHUTDOWN_EVENT.wait,
-        )
-    )
+    server = _build_server()
+    asyncio.run(_serve(server))
     librarian.stop()
 
 
 def main() -> None:
     """Set up and run Codex."""
+    logger.debug(f"Starting {PACKAGE_NAME}")
+    setproctitle(PACKAGE_NAME)
     init_logging()
     if codex_startup():
         run()

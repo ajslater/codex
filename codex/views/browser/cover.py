@@ -1,16 +1,15 @@
 """Comic cover thumbnail view."""
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, override
 
 from django.db import OperationalError
 from django.db.models.query_utils import Q
-from django.http import FileResponse, HttpResponse
+from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.renderers import BaseRenderer
-from typing_extensions import override
 
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
@@ -146,7 +145,7 @@ class CoverView(BrowserAnnotateOrderView):
         parameters=[BrowserAnnotateOrderView.input_serializer_class],
         responses={(200, content_type): OpenApiTypes.BINARY},
     )
-    def get(self, *args, **kwargs) -> FileResponse | HttpResponse:
+    def get(self, *args, **kwargs) -> HttpResponse:
         """Get comic cover."""
         try:
             try:
@@ -158,9 +157,9 @@ class CoverView(BrowserAnnotateOrderView):
             cover_buffer, cover_path, content_type = self._get_cover_data(
                 pk, custom=custom
             )
-            if cover_buffer:
-                return HttpResponse(cover_buffer, content_type=content_type)
-            return FileResponse(cover_path.open("rb"), content_type=content_type)
+            if not cover_buffer:
+                cover_buffer = cover_path.read_bytes()
+            return HttpResponse(cover_buffer, content_type=content_type)
         except Exception:
             logger.exception("Get cover")
             raise

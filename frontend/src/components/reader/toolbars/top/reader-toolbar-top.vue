@@ -15,10 +15,9 @@
             size="large"
             density="compact"
             variant="plain"
+            text="Close Book"
             @click="onCloseBook"
-          >
-            Close Book
-          </v-btn>
+          />
         </v-toolbar-items>
         <v-spacer />
         <v-toolbar-items v-if="!empty">

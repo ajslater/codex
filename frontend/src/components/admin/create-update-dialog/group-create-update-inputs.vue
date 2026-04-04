@@ -51,9 +51,10 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
+import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import GroupChip from "@/components/admin/group-chip.vue";
 import { useAdminStore } from "@/stores/admin";
 
@@ -71,13 +72,7 @@ export default {
     AdminRelationPicker,
     GroupChip,
   },
-  props: {
-    oldRow: {
-      type: [Object, Boolean],
-      default: false,
-    },
-  },
-  emits: ["change"],
+  mixins: [createUpdateInputsMixin],
   data() {
     return {
       rules: {
@@ -86,7 +81,6 @@ export default {
           (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
         ],
       },
-      row: { ...EMPTY_ROW, ...structuredClone(this.oldRow) },
     };
   },
   computed: {
@@ -98,23 +92,6 @@ export default {
     names() {
       return this.nameSet(this.groups, "name", this.oldRow, true);
     },
-  },
-  watch: {
-    row: {
-      handler(to) {
-        this.$emit("change", to);
-      },
-      deep: true,
-    },
-    oldRow: {
-      handler(to) {
-        this.row = structuredClone(to);
-      },
-      deep: true,
-    },
-  },
-  methods: {
-    ...mapActions(useAdminStore, ["nameSet"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,

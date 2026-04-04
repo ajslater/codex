@@ -70,7 +70,7 @@ def send_telemetry(log) -> None:
         try:
             _send_telemetry(ts.version)
         except Exception as exc:
-            log.debug(f"Failed to send anonyomous stats: {exc}")
+            log.debug(f"Failed to send anonymous stats: {exc}")
         # update updated_at, even on failure to prevent rapid rescheudling.
         ts.save()
     except Exception as exc:

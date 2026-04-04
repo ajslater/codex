@@ -11,14 +11,14 @@
         />
         <div class="settingsHeader">Librarian Tasks</div>
         <v-expand-transition
-          v-for="status of librarianStatuses"
+          v-for="status of activeLibrarianStatuses"
           :key="status.id"
         >
           <StatusListItem :status="status" :now="now" />
         </v-expand-transition>
       </div>
       <v-list-item-title v-else id="noTasksRunning">
-        No librarian tasks running
+        No librarian jobs running
       </v-list-item-title>
     </v-expand-transition>
   </v-list-item>
@@ -28,9 +28,9 @@
 import { mapActions, mapState } from "pinia";
 
 import StatusListItem from "@/components/admin/drawer/status-list-item.vue";
+import { useNowTimer } from "@/components/admin/use-now-timer";
 import CloseButton from "@/components/close-button.vue";
 import { useAdminStore } from "@/stores/admin";
-import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminStatusList",
@@ -38,51 +38,26 @@ export default {
     CloseButton,
     StatusListItem,
   },
-  data() {
-    return { now: Date.now() };
+  setup() {
+    const { now } = useNowTimer();
+    return { now };
   },
   computed: {
-    ...mapState(useCommonStore, {
-      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
-    }),
     ...mapState(useAdminStore, {
-      librarianStatuses: (state) => state.librarianStatuses,
-      show: (state) => state.librarianStatuses.length > 0,
+      activeLibrarianStatuses: (state) => state.activeLibrarianStatuses,
+      show: (state) => state.activeLibrarianStatuses.length > 0,
     }),
-  },
-  watch: {
-    show(to) {
-      if (to) {
-        this.updateTime();
-      }
-    },
-    isSettingsDrawerOpen(to) {
-      if (to) {
-        this.updateTime();
-      }
-    },
   },
   created() {
     this.load();
   },
-  mounted() {
-    this.updateTime();
-  },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
     load() {
-      this.loadTable("LibrarianStatus");
+      this.loadTable("ActiveLibrarianStatus");
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");
-    },
-    updateTime() {
-      this.now = Date.now();
-      setTimeout(() => {
-        if (this.isSettingsDrawerOpen && this.show) {
-          this.updateTime();
-        }
-      }, 1000);
     },
   },
 };

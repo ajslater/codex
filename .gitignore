@@ -2,6 +2,7 @@ __pycache__/
 __pypackages__/
 __snapshots__
 .*cache
+.claude
 .coverage
 .coverage.*
 .coverage*
@@ -54,7 +55,7 @@ build/
 celerybeat-schedule
 celerybeat.pid
 codex/static_build/
-codex/static_root/
+codex/static/
 comics
 config
 coverage.xml

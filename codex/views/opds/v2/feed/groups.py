@@ -5,7 +5,7 @@ from typing import Any
 
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
-from codex.settings import MAX_OBJ_PER_PAGE
+from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
@@ -116,7 +116,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             if paginate:
                 pagination = {
                     "current_page": current_page,
-                    "items_per_page": MAX_OBJ_PER_PAGE,
+                    "items_per_page": BROWSER_MAX_OBJ_PER_PAGE,
                     "number_of_items": self._opds_number_of_groups,
                 }
                 metadata.update(pagination)

@@ -115,8 +115,8 @@ jobs:
           command: ./ci/docker-push.sh
           name: Push multi-arch images to Docker Hub
       - run:
-          command: ./ci/python-publish.sh
-          name: Publish Codex Package to PyPi
+          command: echo Disabled PyPI push # ./ci/python-publish.sh
+          name: Publish Codex Package to PyPI
       - discord/status:
           fail_only: false
           webhook: "${DISCORD_STATUS_WEBHOOK}"

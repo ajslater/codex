@@ -6,12 +6,40 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.9.25
+## v1.10.0 Rust modules & Settings Features
 
+- 🚨 Big Changes 🚨
+    - The docker repo has changed to ghcr.io/ajslater/codex
+    - Django 6 requires python >=3.12.
+    - Unified configuration:
+        - Your hypercorn.toml config will be migrated automatically to
+          codex.toml. Options previously only configurable with environment
+          variables may now be also be specified in codex.toml.
+        - Some of the environment variable names have changed, but old values
+          are still respected for compatibility.
+    - Replaced the thumbnail filename algorithm. Thumbnails will regenerate.
 - Fixes
+    - Fix old dynamic covers displaying when database had changed due to
+      imports.
+    - Fix erroneous "Bookmark" filter appearing in filter menu when a read state
+      is selected.
     - Fix reader close button receiving nonsensical route.
-- Change
-    - Replaced the thumbnail hashing algorithm. Thumbnails will regenerate.
+    - Fix job status messages sometimes not being updated correctly.
+    - Fix check latest version of Codex bug.
+    - Tags page sometimes had erroneous links went nowhere.
+    - Fixed some foreign key integrity fixing bugs.
+- Features
+    - Browser can save and load named views.
+    - Reader Settings are now available for Series, Parent Folder and Story Arc
+    - The Admin Jobs tab is an enhanced tasks tab with start and stop buttons
+      and job progress.
+    - Browser Pane refreshes with a click/touch pull control.
+- Performance Improvements
+    - Codex now uses the Granian http server instead of Hypercorn.
+    - The file watcher and poller now use one thread each no matter how many
+      libraries you have.
+    - Shaved about 80MB off the compressed docker image and 15MB off the python
+      wheel.
 
 ## v1.9.24
 

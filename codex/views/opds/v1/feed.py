@@ -1,20 +1,19 @@
 """OPDS v1 feed."""
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
-from typing_extensions import override
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import OPDS1TemplateSerializer
-from codex.settings import FALSY, MAX_OBJ_PER_PAGE
+from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -91,7 +90,7 @@ class OPDS1FeedView(OPDS1LinksView):
         """Return opensearch:itemsPerPage."""
         try:
             if self.params.get("q"):
-                return MAX_OBJ_PER_PAGE
+                return BROWSER_MAX_OBJ_PER_PAGE
         except Exception:
             logger.exception("Getting OPDS v1 items per page")
 

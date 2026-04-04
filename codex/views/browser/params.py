@@ -7,10 +7,10 @@ from codex.serializers.browser.settings import (
     BrowserSettingsSerializer,
     BrowserSettingsSerializerBase,
 )
-from codex.views.session import SessionView
+from codex.views.browser.settings import BrowserSettingsWriteView
 
 
-class BrowserParamsView(SessionView):
+class BrowserParamsView(BrowserSettingsWriteView):
     """Browser Params Parsing."""
 
     input_serializer_class: type[BrowserSettingsSerializerBase] = (
@@ -20,6 +20,7 @@ class BrowserParamsView(SessionView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
+
         self._params: MappingProxyType[str, Any] | None = None
 
     @property
@@ -28,11 +29,12 @@ class BrowserParamsView(SessionView):
         if self._params is None:
             serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            params = self.load_params_from_session()
+            params = self.load_params_from_settings()
             if serializer.validated_data:
                 params.update(serializer.validated_data)
             self.save_last_route(params)
-            self.save_params_to_session(params)
+            self.save_params_to_settings(params)
+            self.set_order_by_default(params)
             self._params = MappingProxyType(params)
         return self._params
 

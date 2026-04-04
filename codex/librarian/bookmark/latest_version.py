@@ -25,7 +25,9 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
     def _fetch_latest_version():
         """Fetch Latest Remotely."""
         response = urlopen(_REPO_URL, timeout=_REPO_TIMEOUT)  # noqa: S310
-        return json.loads(response.text)["info"]["version"]
+        source = response.read()
+        decoded_source = source.decode("utf-8")
+        return json.loads(decoded_source)["info"]["version"]
 
     def update_latest_version(self, *, force: bool, update: bool = False) -> None:
         """Get the latest version from a remote repo using a cache."""

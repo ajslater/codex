@@ -2,6 +2,7 @@
 
 import base64
 import uuid
+from typing import override
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -15,7 +16,6 @@ from django.db.models import (
     TextChoices,
 )
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.statii import ADMIN_STATUS_TITLES

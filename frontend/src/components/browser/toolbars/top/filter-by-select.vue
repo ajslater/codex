@@ -124,7 +124,11 @@ export default {
         // Add selected filters to choices if they aren't there already.
         if (this.filters && Object.keys(this.filters).length) {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
-            if (filterValue?.length && !names.includes(filterKey)) {
+            if (
+              filterKey != "bookmark" &&
+              filterValue?.length &&
+              !names.includes(filterKey)
+            ) {
               names.push(filterKey);
             }
           }

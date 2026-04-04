@@ -8,7 +8,7 @@ from codex.librarian.scribe.importer.const import (
 )
 from codex.librarian.scribe.importer.query.update_comics import QueryUpdateComics
 from codex.models.comic import Comic
-from codex.settings import LINK_FK_BATCH_SIZE
+from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 
 _QUERY_LINK_FK_PRUNE_ONLY = (
     PATH_FIELD_NAME,
@@ -101,7 +101,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         while start < num_paths:
             if self.abort_event.is_set():
                 return
-            end = start + LINK_FK_BATCH_SIZE
+            end = start + IMPORTER_LINK_FK_BATCH_SIZE
             batch_paths = paths[start:end]
             self._query_prune_comic_fk_links_batch(batch_paths, status)
-            start += LINK_FK_BATCH_SIZE
+            start += IMPORTER_LINK_FK_BATCH_SIZE

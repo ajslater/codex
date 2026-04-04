@@ -1,6 +1,5 @@
 import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
-import { watch } from "vue";
 
 import { WS_URL } from "@/api/v3/notify";
 import { messages } from "@/choices/websocket-messages.json";
@@ -47,7 +46,7 @@ function stopHeartbeat() {
 }
 
 export const useSocketStore = defineStore("socket", () => {
-  const { status, data, open } = useWebSocket(WS_URL, {
+  const { status, open } = useWebSocket(WS_URL, {
     immediate: true,
     autoReconnect: {
       retries: RECONNECT_RETRIES,
@@ -59,6 +58,9 @@ export const useSocketStore = defineStore("socket", () => {
     onConnected(ws) {
       startHeartbeat(ws);
       console.debug("[socket] Connected.");
+    },
+    onMessage(_ws, event) {
+      dispatchMessage(event.data);
     },
     onError(ws, event) {
       console.error("[socket] Error on", ws.url, event);
@@ -74,8 +76,6 @@ export const useSocketStore = defineStore("socket", () => {
     },
   });
 
-  // watch(status, (s) => console.debug("[socket] Status: ", s));
-
   // Lazy admin store loader
 
   async function getAdminStore() {
@@ -90,6 +90,11 @@ export const useSocketStore = defineStore("socket", () => {
   async function adminLoadTables(tables) {
     const adminStore = await getAdminStore();
     adminStore?.loadTables(tables);
+  }
+
+  async function adminLoadAllStatuses() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadAllStatuses();
   }
 
   function reloadBrowser() {
@@ -144,7 +149,7 @@ export const useSocketStore = defineStore("socket", () => {
 
   // Message Dispatcher
 
-  watch(data, (message) => {
+  function dispatchMessage(message) {
     if (!message) return;
     console.debug("[socket] message:", message);
     switch (message) {
@@ -155,6 +160,7 @@ export const useSocketStore = defineStore("socket", () => {
         reloadBrowser();
         break;
       case messages.COVERS:
+        useCommonStore().setTimestamp();
         reloadBrowser();
         break;
       case messages.GROUPS:
@@ -169,7 +175,8 @@ export const useSocketStore = defineStore("socket", () => {
         libraryNotified();
         break;
       case messages.LIBRARIAN_STATUS:
-        adminLoadTables(["LibrarianStatus"]);
+        adminLoadTables(["ActiveLibrarianStatus"]);
+        adminLoadAllStatuses();
         break;
       case messages.FAILED_IMPORTS:
         failedImportsNotified();
@@ -177,7 +184,7 @@ export const useSocketStore = defineStore("socket", () => {
       default:
         console.debug("Unhandled WebSocket message:", message);
     }
-  });
+  }
 
   // Public open for recconnect when user changes.
   const reopen = () => {

@@ -1,10 +1,10 @@
 """Vue Route Serializer."""
 
 from dataclasses import asdict
+from typing import override
 
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
-from typing_extensions import override
 
 from codex.serializers.fields.group import BrowserRouteGroupField
 from codex.serializers.fields.sanitized import SanitizedCharField

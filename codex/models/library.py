@@ -3,6 +3,7 @@
 from datetime import timedelta
 from pathlib import Path
 from types import MappingProxyType
+from typing import override
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -14,7 +15,6 @@ from django.db.models import (
     ManyToManyField,
 )
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import override
 
 from codex.models.base import MAX_PATH_LEN, BaseModel
 

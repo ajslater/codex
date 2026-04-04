@@ -27,8 +27,14 @@
 </template>
 
 <script>
-import STATUS_TITLES from "@/choices/admin-status-titles.json";
-import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
+import {
+  hasNumbers,
+  isIndeterminate,
+  nf,
+  statusDuration,
+  statusProgress,
+  statusTitle,
+} from "@/components/admin/status-helpers";
 
 export default {
   name: "AdminStatusListItem",
@@ -47,37 +53,23 @@ export default {
       return Number.isInteger(this.status.complete);
     },
     showNumbers() {
-      return this.showComplete || Number.isInteger(this.status.total);
+      return hasNumbers(this.status);
     },
     indeterminate() {
-      return (
-        this.status.active &&
-        (!this.status.total || !Number.isInteger(this.status.complete))
-      );
+      return isIndeterminate(this.status);
     },
     progress() {
-      if (!this.status.total || globalThis.indeterminate) {
-        return 0;
-      }
-      return (100 * +this.status.complete) / +this.status.total;
+      return statusProgress(this.status);
     },
     title() {
-      return STATUS_TITLES[this.status.statusType];
-    },
-    activeTime() {
-      return new Date(this.status.active).getTime();
+      return statusTitle(this.status.statusType);
     },
     duration() {
-      if (!this.status.active) {
-        return "";
-      }
-      return getFormattedDuration(this.activeTime, this.now);
+      return statusDuration(this.status, this.now);
     },
   },
   methods: {
-    nf(val) {
-      return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
-    },
+    nf,
   },
 };
 </script>

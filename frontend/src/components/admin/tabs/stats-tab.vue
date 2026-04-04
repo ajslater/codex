@@ -69,7 +69,7 @@ const INDENT_KEYS = Object.freeze(
 );
 
 export default {
-  name: "AdminTasksTab",
+  name: "AdminStatsTab",
   components: {
     ClipBoard,
     ConfirmDialog,

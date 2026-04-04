@@ -2,8 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-
-from typing_extensions import override
+from typing import override
 
 
 @dataclass
@@ -26,14 +25,6 @@ class Route:
     def __eq__(self, cmp) -> bool:
         """Breadcrumb equality."""
         return cmp and hash(self) == hash(cmp)
-
-    def __and__(self, cmp) -> bool:
-        """Breadcrumb intersection."""
-        return (
-            (cmp is not None)
-            and (self.group == cmp.group)
-            and (self.pks == cmp.pks or bool(set(self.pks) & set(cmp.pks)))
-        )
 
 
 def pop_name(kwargs: Mapping) -> Mapping:

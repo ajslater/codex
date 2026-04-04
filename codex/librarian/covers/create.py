@@ -13,6 +13,7 @@ from PIL import Image
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CreateCoversStatus
 from codex.librarian.covers.tasks import CoverSaveToCache
+from codex.librarian.status import Status
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
 from codex.settings import COMICBOX_CONFIG
@@ -102,9 +103,11 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             # zero length file is code for missing.
             cover_path.touch()
 
-    def _bulk_create_comic_cover(self, pk, custom, status) -> None:
+    def _bulk_create_comic_cover(
+        self, pk: int, status: Status, *, custom: bool
+    ) -> None:
         # Create one cover
-        cover_path = self.get_cover_path(pk, custom)
+        cover_path = self.get_cover_path(pk, custom=custom)
         if cover_path.exists():
             status.decrement_total()
         else:
@@ -121,7 +124,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             status.increment_complete()
         self.status_controller.update(status)
 
-    def _bulk_create_comic_covers(self, pks, custom) -> int:
+    def _bulk_create_comic_covers(self, pks, *, custom: bool) -> int:
         """Create bulk comic covers."""
         num_comics = len(pks)
         if not num_comics:
@@ -133,7 +136,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             self.status_controller.start(status)
             for pk in pks:
                 # Create all covers.
-                self._bulk_create_comic_cover(pk, custom, status)
+                self._bulk_create_comic_cover(pk, status, custom=custom)
             desc = "custom" if custom else "comic"
             count = status.complete
             level = "INFO" if count else "DEBUG"

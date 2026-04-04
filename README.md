@@ -2,11 +2,25 @@
 
 A comic archive browser and reader.
 
-<img src="img/logo.svg" style="
+<img src="/img/logo.svg" style="
 height: 128px;
 width: 128px;
 border-radius: 128px;
 " />
+
+## 🚨 Announcements 2026-April-03 🚨
+
+### Docker
+
+The Docker image has moved to
+[ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex)
+Dockerhub images will continue to be produced for a little while.
+
+### Discord
+
+The support Discord has moved to
+[Codex Comic Server](https://discord.gg/CU5kKxv7kg) The Mylar #codex-support
+channel will eventually be abandoned.
 
 ## ✨ Features
 
@@ -52,9 +66,11 @@ Codex has a [NEWS file](NEWS.md) to summarize changes that affect users.
 
 ### Install & Run with Docker
 
-Run the official [Docker Image](https://hub.docker.com/r/ajslater/codex).
-Instructions for running the docker image are on the Docker Hub README. This is
-the recommended way to run Codex.
+Run the official
+[Docker Image](https://github.com/ajslater/codex/pkgs/container/codex) at
+ghcr.io/ajslater/codex.
+
+Read the [Docker instructions](docs/DOCKER.md)
 
 You'll then want to read the [Administration](#administration) section of this
 document.
@@ -138,7 +154,7 @@ Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the
-[Native Windows Dependencies Installation Document](WINDOWS.md).
+[Native Windows Dependencies Installation Document](docs/WINDOWS.md).
 
 #### Run Codex Natively
 
@@ -249,33 +265,52 @@ The default config directory is `config/` directly under the working directory
 you run codex from. You may specify an alternate config directory with the
 environment variable `CODEX_CONFIG_DIR`.
 
-The config directory contains a file named `hypercorn.toml` where you can
-specify ports and bind addresses. If no `hypercorn.toml` is present Codex copies
-a default one to that directory on startup.
-
-The default values for the config options are:
+The config directory contains a file named `codex.toml` where you can specify
+ports and bind addresses. If no `codex.toml` is present Codex copies a default
+one to that directory on startup. e.g.
 
 ```toml
-bind = ["0.0.0.0:9810"]
-quick_bind = ["0.0.0.0:9810"]
-root_path = "/codex"
+[server]
+host = "0.0.0.0"
+port = 9810
+url_path_prefix = ""
 ```
 
-The config directory also holds the main sqlite database, the Whoosh search
-index, a Django cache and comic book cover thumbnails.
+The config directory also holds the main sqlite database, a Django cache and
+comic book cover thumbnails.
 
 ### Environment Variables
+
+Environment variables override values set in the TOML config file.
 
 #### General
 
 - `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
-- `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
-  Remote-User HTTP header. This can be very insecure if not configured properly.
-  Please read the Remote-User docs devoted to it below.
+- `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
+  reads all archive metadata sources and transforms it into a the comicbox
+  schema.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
   `$CWD/config`
+
+##### Server
+
+- `GRANIAN_HOST` the IP or hostname to serve Codex from. Defaults to "0.0.0.0",
+  all interfaces.
+- `GRANIAN_PORT` the port to serve Codex from. Defaults to 9810.
+- `GRANIAN_WORKERS` Number of worker processes. 1 recommended for containerized
+  environments.
+- `GRANIAN_HTTP` HTTP protocol to use. "auto", "1" or "2". Defaults to "auto".
+  Generally you want to serve codex from behind nginx or traefik which will
+  handle the protocol, even HTTP 3, so this should stay on "auto".
+- `GRANIAN_WEBSOCKETS` Enable websockets. Required for codex live updates.
+  Default true.
+- `GRANIAN_URL_PATH_PREFIX` HTTP path prefix for codex (e.g. "/codex" for
+  reverse proxy sub-path). Defaults to "".
+
+##### Repair
+
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults
   when codex starts.
 - `CODEX_FIX_FOREIGN_KEYS=1` will check for and try to repair illegal foreign
@@ -284,18 +319,22 @@ index, a Django cache and comic book cover thumbnails.
 - `CODEX_FTS_INTEGRITY_CHECK=1` will perform an integrity check on the full text
   search index.
 - `CODEX_FTS_REBUILD=1` will rebuild the full text search index.
-- `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
-  reads all archive metadata sources and transforms it into a the comicbox
-  schema.
 
 #### Logging
 
 - `LOGLEVEL` will change how verbose codex's logging is. Valid values are
-  `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
+  `CRITICAL`, `ERROR`, `WARNING`, `SUCCESS`, `INFO`, `DEBUG`, and the overly
+  noisy `TRACE`. The default is `INFO`.
 - `CODEX_LOG_DIR` sets a custom directory for saving logfiles. Defaults to
   `$CODEX_CONFIG_DIR/logs`
+- `CODEX_LOG_RETENTION` how long to keep logs. Defaults to "6 months".
 - `CODEX_LOG_TO_FILE=0` will not log to files.
 - `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
+
+##### Browser
+
+- `CODEX_BROWSER_MAX_OBJ_PER_PAGE` the maximum number of objects per page.
+  Defaults to 100.
 
 #### Throttling
 
@@ -308,6 +347,12 @@ to 2 queries per second.
 - `CODEX_THROTTLE_USER=30` Authenticated users
 - `CODEX_THROTTLE_OPDS=30` The OPDS v1 & v2 APIs (Panels uses this for search)
 - `CODEX_THROTTLE_OPENSEARCH=30` The OPDS v1 Opensearch API
+
+#### Authentication
+
+- `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
+  Remote-User HTTP header. This can be very insecure if not configured properly.
+  Please read the Remote-User docs devoted to it below.
 
 ### Reverse Proxy
 
@@ -337,10 +382,11 @@ proxy_set_header Connection "Upgrade" location /codex {
 }
 ```
 
-Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
+Specify a reverse proxy sub path (if you have one) in `config/codex.toml`
 
 ```toml
-root_path = "/codex"
+[server]
+url_path_prefix = "/codex"
 ```
 
 #### Nginx Reverse Proxy 502 when container refreshes
@@ -417,11 +463,11 @@ administrator to reset your password if you forget it.
 Codex supports OPDS syndication and OPDS streaming. You may find the OPDS url in
 the side drawer. It should take the form:
 
-`http(s)://host.tld(:9810)(/root_path)/opds/v1.2/`
+`http(s)://host.tld(:9810)(/path_prefix)/opds/v1.2/`
 
 or
 
-`http(s)://host.tld(:9810)(/root_path)/opds/v2.0/`
+`http(s)://host.tld(:9810)(/path_prefix)/opds/v2.0/`
 
 #### OPDS v1 Clients
 
@@ -458,7 +504,7 @@ Some OPDS clients allow configuring HTTP Basic authentication in their OPDS
 server settings. If the don't, you will have to add your username and password
 to the URL. In that case the OPDS url will look like:
 
-`http(s)://username:password@codex-server.tld(:9810)(/root_path)/opds/v1.2/`
+`http(s)://username:password@codex-server.tld(:9810)(/path_prefix)/opds/v1.2/`
 
 ##### HTTP Token
 
@@ -569,6 +615,11 @@ and unfortunately isn't practical to remove yet.
 Issues and feature requests are best filed on the
 [Github issue tracker](https://github.com/ajslater/codex/issues).
 
+## 💬 Support
+
+I and other Codex users answer questions on the
+[Codex Comic Server Discord](https://discord.gg/CU5kKxv7kg)
+
 ### 🛠 Develop
 
 Codex's git repo is mirrored on [Github](https://github.com/ajslater/codex/)
@@ -582,13 +633,6 @@ database.
 
 Most of Codex development is now controlled through the Makefile. Type `make`
 for a list of commands.
-
-## 💬 Support
-
-By the generosity of the good people of
-[Mylar](https://github.com/mylar3/mylar3), I and other Codex users answer
-questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
-`#codex-support` channel to ask for help with Codex.
 
 ## 🔗 Links
 
@@ -608,4 +652,4 @@ questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
 
 ## 😊 Enjoy
 
-![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)
+![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](docs/strange.jpg)

@@ -18,6 +18,8 @@ from codex.librarian.covers.tasks import (
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
 )
+from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
+from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import (
     ADMIN_FLAGS_CHANGED_TASK,
@@ -53,15 +55,12 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexSyncTask,
 )
 from codex.librarian.scribe.tasks import (
+    CleanupAbortTask,
     ImportAbortTask,
     SearchIndexSyncAbortTask,
     UpdateGroupsTask,
 )
 from codex.librarian.tasks import LibrarianTask
-from codex.librarian.watchdog.tasks import (
-    WatchdogPollLibrariesTask,
-    WatchdogSyncTask,
-)
 from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
@@ -81,6 +80,7 @@ _TASK_MAP = MappingProxyType(
         "search_index_remove_stale": SearchIndexCleanStaleTask(),
         "import_abort": ImportAbortTask(),
         "search_index_abort": SearchIndexSyncAbortTask(),
+        "cleanup_abort": CleanupAbortTask(),
         "search_index_optimize": SearchIndexOptimizeTask(),
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),
@@ -89,7 +89,7 @@ _TASK_MAP = MappingProxyType(
         "db_integrity_check": JanitorIntegrityCheckTask(),
         "db_fts_integrity_check": JanitorFTSIntegrityCheckTask(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
-        "watchdog_sync": WatchdogSyncTask(),
+        "watcher_restart": FSWatcherRestartTask(),
         "codex_latest_version": CodexLatestVersionTask(force=True),
         "codex_update": JanitorCodexUpdateTask(force=False),
         "codex_shutdown": CodexShutdownTask(),
@@ -108,8 +108,8 @@ _TASK_MAP = MappingProxyType(
         "cleanup_covers": CoverRemoveOrphansTask(),
         "librarian_clear_status": ClearLibrarianStatusTask(),
         "force_update_all_failed_imports": JanitorImportForceAllFailedTask(),
-        "poll": WatchdogPollLibrariesTask(frozenset(), force=False),
-        "poll_force": WatchdogPollLibrariesTask(frozenset(), force=True),
+        "poll": FSPollLibrariesTask(frozenset(), force=False),
+        "poll_force": FSPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
         "adopt_folders": JanitorAdoptOrphanFoldersTask(),
@@ -117,12 +117,19 @@ _TASK_MAP = MappingProxyType(
 )
 
 
-class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
-    """Librarian Task Statuses."""
+class AdminLibrarianStatusActiveViewSet(AdminReadOnlyModelViewSet):
+    """Librarian Task Statuses (active/preactive only)."""
 
     queryset = LibrarianStatus.objects.filter(
         Q(preactive__isnull=False) | Q(active__isnull=False)
     ).order_by("preactive", "active", "pk")
+    serializer_class = LibrarianStatusSerializer
+
+
+class AdminLibrarianStatusAllViewSet(AdminReadOnlyModelViewSet):
+    """All Librarian Task Statuses including inactive (for Jobs tab)."""
+
+    queryset = LibrarianStatus.objects.all().order_by("pk")
     serializer_class = LibrarianStatusSerializer
 
 
@@ -140,7 +147,7 @@ class AdminLibrarianTaskView(AdminAPIView):
             task = NotifierTask(Notifications.BOOKMARK.value, group)
         else:
             task = _TASK_MAP.get(name)
-        if pk and isinstance(task, WatchdogPollLibrariesTask):
+        if pk and isinstance(task, FSPollLibrariesTask):
             task.library_ids = frozenset({pk})
         return task
 

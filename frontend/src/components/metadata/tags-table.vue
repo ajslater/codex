@@ -5,12 +5,7 @@
         v-for="[key, { filter, tags, mainTags }] of Object.entries(tagMap)"
         :key="key"
       >
-        <td v-if="keyMap && keyMap[key] && keyMap[key].url" class="key keyLink">
-          <a href="keyMap[key].url"
-            >{{ key }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
-          >
-        </td>
-        <td v-else class="key">{{ key }}</td>
+        <td class="key">{{ key }}</td>
         <td class="tags">
           <MetadataTags
             :filter="filter"
@@ -34,7 +29,6 @@ export default {
     MetadataTags,
   },
   props: {
-    keyMap: { type: Object, default: undefined },
     tagMap: {
       type: Object,
       required: true,
@@ -54,10 +48,6 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 @use "./table";
-
-.keyLink {
-  color: rgb(var(--v-theme-primary-darken-1));
-}
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .key {

@@ -2,14 +2,13 @@
 
 from itertools import chain
 from types import MappingProxyType
-from typing import Any
+from typing import Any, override
 
 from caseconverter import snakecase
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from typing_extensions import override
 
 from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.models import (
@@ -25,7 +24,7 @@ from codex.serializers.browser.choices import (
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.views.browser.filters.filter import BrowserFilterView
-from codex.views.session import (
+from codex.views.settings.const import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,

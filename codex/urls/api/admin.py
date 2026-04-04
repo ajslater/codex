@@ -13,7 +13,8 @@ from codex.views.admin.library import (
 )
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tasks import (
-    AdminLibrarianStatusViewSet,
+    AdminLibrarianStatusActiveViewSet,
+    AdminLibrarianStatusAllViewSet,
     AdminLibrarianTaskView,
 )
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
@@ -71,8 +72,13 @@ urlpatterns = [
     ),
     path(
         "librarian/status",
-        never_cache(AdminLibrarianStatusViewSet.as_view({**READ})),
+        never_cache(AdminLibrarianStatusActiveViewSet.as_view({**READ})),
         name="librarian_status",
+    ),
+    path(
+        "librarian/status/all",
+        never_cache(AdminLibrarianStatusAllViewSet.as_view({**READ})),
+        name="librarian_status_all",
     ),
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),
     path("stats", AdminStatsView.as_view(), name="stats"),

@@ -8,7 +8,7 @@ EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
 readarray -d '' SOURCE_DEPS < <(find cfg codex frontend tests -type f \( \
   ! -path "*node_modules*" \
   ! -path "*codex/static_build*" \
-  ! -path "*codex/static_root*" \
+  ! -path "*codex/static*" \
   ! -name "*~" \
   ! -name "*.pyc" \
   ! -name ".*cache" \
@@ -28,7 +28,6 @@ DEPS=(
   bin/pm
   bin/roman.py
   bin/test-python.sh
-  bin/test.sh
   ci/dist-builder.Dockerfile
   eslint.config.js
   package.json

@@ -1,0 +1,39 @@
+# Codex Configuration File
+# Copy to config/codex.toml and edit as needed.
+# Environment variables override values in this file.
+# See README.md for full documentation.
+
+# [server]
+# Granian ASGI server settings
+# host = "0.0.0.0"
+# port = 9810
+# Number of worker processes. 1 is recommended for containerized environments.
+# workers = 1
+# HTTP version: "auto", "1", or "2"
+# http = "auto"
+# Enable websockets (required for Codex live updates)
+# websockets = true
+# HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
+# url_path_prefix = ""
+
+# [logging]
+# Log level: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
+# loglevel = "INFO"
+# log_retention = "6 months"
+# log_to_console = true
+# log_to_file = true
+
+# [browser]
+# max_obj_per_page = 100
+
+# [throttle]
+# Rate limiting (requests per minute). 0 = disabled.
+# anon = 0
+# user = 0
+# opds = 0
+# opensearch = 0
+
+# [auth]
+# Allows authentication without authorization via the Remote-User header.
+# Only enable if you have authorization in front of Codex. Dangerous.
+# remote_user = false

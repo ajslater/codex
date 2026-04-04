@@ -28,7 +28,7 @@ ARCH=$(./ci/machine-arch.sh)
 export ARCH
 docker buildx bake \
   --builder codex-builder \
-  --file docker-bake.hcl \
+  --file ci/docker-bake.hcl \
   "$TARGET"
 
 # Clean Repo

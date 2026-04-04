@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Replace relative imports with direct vendor imports
 set -euo pipefail
 MODULE=$1

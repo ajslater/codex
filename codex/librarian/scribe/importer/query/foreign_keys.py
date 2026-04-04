@@ -19,7 +19,7 @@ from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTag
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
 from codex.models.named import Universe
-from codex.settings import FILTER_BATCH_SIZE
+from codex.settings import IMPORTER_FILTER_BATCH_SIZE
 from codex.util import flatten
 
 
@@ -66,7 +66,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         status: Status,
     ) -> None:
         # Do this in batches so as not to exceed the 1k sqlite query depth limit
-        end = start + FILTER_BATCH_SIZE
+        end = start + IMPORTER_FILTER_BATCH_SIZE
         batch_proposed_key_tuples = all_proposed_key_values[start:end]
         num_in_batch = len(batch_proposed_key_tuples)
 
@@ -155,7 +155,7 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
                 fts_values,
                 status,
             )
-            start += FILTER_BATCH_SIZE
+            start += IMPORTER_FILTER_BATCH_SIZE
 
         self._finish_query_missing(model, create_values, CREATE_FKS, title)
         self._finish_query_missing(model, update_values, UPDATE_FKS, title)

@@ -8,6 +8,9 @@
     <div v-if="outdated" id="latest">
       codex v{{ versions.latest }} is available
     </div>
+    <div v-if="versions.warning" id="warning">
+      {{ versions.warning }}
+    </div>
   </v-footer>
 </template>
 
@@ -26,9 +29,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useCommonStore, {
-      versions: (state) => state.versions,
-    }),
+    ...mapState(useCommonStore, ["versions"]),
     ...mapState(useAuthStore, ["isUserAdmin"]),
     outdated: function () {
       return (
@@ -91,5 +92,9 @@ export default {
 
 #latest {
   color: rgb(var(--v-theme-textSecondary));
+}
+
+#warning {
+  color: rgb(230, 189, 13);
 }
 </style>

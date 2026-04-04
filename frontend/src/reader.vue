@@ -51,7 +51,7 @@ export default {
   },
   watch: {
     user() {
-      this.loadReaderSettings();
+      this.loadGlobalSettings();
     },
   },
   created() {
@@ -61,12 +61,12 @@ export default {
     const createdUser = this.user;
     setTimeout(() => {
       if (this.user?.id === createdUser?.id) {
-        this.loadReaderSettings();
+        this.loadGlobalSettings();
       }
     }, wait);
   },
   methods: {
-    ...mapActions(useReaderStore, ["loadReaderSettings", "reset"]),
+    ...mapActions(useReaderStore, ["loadGlobalSettings", "reset"]),
   },
 };
 </script>

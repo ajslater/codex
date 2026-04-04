@@ -70,4 +70,14 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         qs = self._annotate_has_metadata(qs)
-        return qs.annotate(updated_ats=JsonGroupArray("updated_at", distinct=True))
+        # For group models, traverse to Comic.updated_at via rel_prefix.
+        # The group model's own updated_at is not reliably refreshed by
+        # bulk_update / bulk_create(update_conflicts) because auto_now
+        # only fires on Model.save().
+        prefix = "" if qs.model is Comic else self.rel_prefix
+        updated_at_field = prefix + "updated_at"
+        return qs.annotate(
+            updated_ats=JsonGroupArray(
+                updated_at_field, distinct=True, order_by=updated_at_field
+            )
+        )

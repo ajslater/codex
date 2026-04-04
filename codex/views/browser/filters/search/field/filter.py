@@ -68,6 +68,31 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
             logger.warning(msg)
             self.search_error = msg
 
+    def _parse_compound_field_query(
+        self,
+        cols: tuple[str, ...],
+        exp: str,
+        model: type[BaseModel],
+        filter_q_list: list[Q],
+        exclude_q_list: list[Q],
+    ) -> None:
+        """Parse a compound alias (e.g. protagonist) into an OR'd Q across columns."""
+        compound_q = Q()
+        for col in cols:
+            try:
+                rel_class, rel, many_to_many = parse_field(col)
+                if q := get_field_query(
+                    rel, rel_class, exp, model, many_to_many=many_to_many
+                ):
+                    compound_q |= q
+            except Exception as exc:
+                token = f"{col}:{exp}"
+                msg = f"Parsing compound field query {token} - {exc}"
+                logger.warning(msg)
+                self.search_error = msg
+        if compound_q:
+            self._hoist_filters(filter_q_list, exclude_q_list, compound_q)
+
     def get_search_field_filters(self, model, field_token_pairs) -> tuple[list, list]:
         """Parse and apply field query filters."""
         filter_q_list = []
@@ -78,6 +103,11 @@ class BrowserFieldQueryFilter(ComicFieldFilterView):
         filter_q_list.append(Q())
         exclude_q_list.append(Q())
         for col, exp in field_token_pairs:
-            self._parse_field_query(col, exp, model, filter_q_list, exclude_q_list)
+            if isinstance(col, tuple):
+                self._parse_compound_field_query(
+                    col, exp, model, filter_q_list, exclude_q_list
+                )
+            else:
+                self._parse_field_query(col, exp, model, filter_q_list, exclude_q_list)
 
         return filter_q_list, exclude_q_list

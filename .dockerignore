@@ -3,6 +3,7 @@ __pycache__
 !docker/debian.sources
 .*cache
 .circleci
+.claude
 .coverage*
 .docker-token
 .DS_Store
@@ -22,8 +23,8 @@ __pycache__
 *~
 *Dockerfile
 cache
+codex/static
 codex/static_build
-codex/static_root
 comics
 config
 dev*

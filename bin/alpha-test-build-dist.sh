@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run CI test & build for a local alpha release
 set -euxo pipefail
 ./ci/docker-build-image.sh codex-dist-builder
