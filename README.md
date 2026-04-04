@@ -8,19 +8,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## 🚨 Announcements 2026-April-03 🚨
+## 🚨 Announcement 🚨
 
 ### Docker
 
 The Docker image has moved to
-[ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex)
-Dockerhub images will continue to be produced for a little while.
-
-### Discord
-
-The support Discord has moved to
-[Codex Comic Server](https://discord.gg/CU5kKxv7kg) The Mylar #codex-support
-channel will eventually be abandoned.
+[ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex).
+A final docker.io image has been released on dockerhub.
 
 ## ✨ Features
 
@@ -636,7 +630,7 @@ for a list of commands.
 
 ## 🔗 Links
 
-- [Docker Image](https://hub.docker.com/r/ajslater/codex)
+- [Docker Image](https://github.com/ajslater/codex/pkgs/container/codex)
 - [PyPi Package](https://pypi.org/project/codex/)
 - [GitHub Project](https://github.com/ajslater/codex/)
 

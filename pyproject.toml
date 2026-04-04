@@ -54,7 +54,7 @@ email = "aj@slater.net"
 News = "https://codex-comic-reader.readthedocs.io/NEWS/"
 Documentation = "https://codex-comic-reader.readthedocs.io"
 Demo = "https://demo.codex-reader.app/"
-"Docker Image" = "https://hub.docker.com/r/ajslater/codex"
+"Docker Image" = "https://github.com/ajslater/codex/pkgs/container/codex"
 Issues = "https://github.com/ajslater/codex/issues"
 Source = "https://github.com/ajslater/codex"
 
