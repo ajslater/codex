@@ -38,6 +38,8 @@ border-radius: 128px;
     - Codex now uses the Granian http server instead of Hypercorn.
     - The file watcher and poller now use one thread each no matter how many
       libraries you have.
+    - Shaved about 80MB off the compressed docker image and 15MB off the python
+      wheel.
 
 ## v1.9.24
 
