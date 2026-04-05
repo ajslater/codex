@@ -155,3 +155,27 @@ ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
 NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
 NONE_DATETIMEFIELD = Value(None, DateTimeField())
 EPOCH_START_DATETIMEFIELD = Value(EPOCH_START)
+BROWSER_FILTER_KEYS = (
+    "age_rating",
+    "characters",
+    "country",
+    "credits",
+    "critical_rating",
+    "decade",
+    "file_type",
+    "genres",
+    "identifier_source",
+    "language",
+    "locations",
+    "monochrome",
+    "original_format",
+    "reading_direction",
+    "series_groups",
+    "stories",
+    "story_arcs",
+    "tagger",
+    "tags",
+    "teams",
+    "universes",
+    "year",
+)
