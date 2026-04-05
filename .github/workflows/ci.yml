@@ -22,16 +22,14 @@ jobs:
   # ---------------------------------------------------------------------------
   # Lint, test, and build the Python wheel (amd64 only)
   # ---------------------------------------------------------------------------
-  validate:
-    runs-on: ubuntu-latest
-    # This logic ensures the job only runs under your specific conditions
+  test:
+    name: Lint, Test & Build Dist
+    runs-on: ubuntu-24.04
+    # Branch gate logic
     if: |
       github.event_name == 'push' ||
       github.base_ref == 'main' ||
       (github.base_ref == 'develop' && github.head_ref == 'pre-release')
-  test:
-    name: Lint, Test & Build Dist
-    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: read
