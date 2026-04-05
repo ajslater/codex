@@ -8,7 +8,8 @@ border-radius: 128px;
 
 ## v1.10.0
 
--Fixes \- Fix many OPDS v2 links leading to the wrong views.
+- Fixes
+    - Fix many OPDS v2 links leading to the wrong views.
 
 ## v1.10.0 Rust modules & Settings Features
 
