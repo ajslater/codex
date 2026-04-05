@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     # Branch gate logic
     if: |
-      github.event_name == 'push' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       github.base_ref == 'main' ||
       (github.base_ref == 'develop' && github.head_ref == 'pre-release')
     permissions:
