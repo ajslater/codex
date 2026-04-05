@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - "*-ci"
   pull_request:
+    types: [opened, synchronize]
     branches:
+      - main
       - develop
-      - pre-release
 
 env:
   IMAGE: ghcr.io/ajslater/codex
@@ -22,6 +22,13 @@ jobs:
   # ---------------------------------------------------------------------------
   # Lint, test, and build the Python wheel (amd64 only)
   # ---------------------------------------------------------------------------
+  validate:
+    runs-on: ubuntu-latest
+    # This logic ensures the job only runs under your specific conditions
+    if: |
+      github.event_name == 'push' ||
+      github.base_ref == 'main' ||
+      (github.base_ref == 'develop' && github.head_ref == 'pre-release')
   test:
     name: Lint, Test & Build Dist
     runs-on: ubuntu-24.04
