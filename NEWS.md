@@ -6,10 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.10.0
+## v1.10.2
 
 - Fixes
     - Fix many OPDS v2 links leading to the wrong views.
+    - Fix admin update user validation.
+
+## v1.10.1 - Mistaken release
 
 ## v1.10.0 Rust modules & Settings Features
 

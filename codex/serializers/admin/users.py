@@ -24,7 +24,7 @@ class UserChangePasswordSerializer(Serializer, PasswordSerializerMixin):
 class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
     """User Serializer."""
 
-    password = CharField(write_only=True)
+    password = CharField(write_only=True, required=False, allow_blank=True)
     last_active = DateTimeField(
         read_only=True, source="useractive.updated_at", allow_null=True
     )
