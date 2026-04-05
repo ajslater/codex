@@ -123,7 +123,7 @@ class CustomCover(WatchedPath):
         else:
             group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
-        self.group = group  # ty: ignore[invalid-assignment]
+        self.group = group
 
     @override
     def presave(self) -> None:

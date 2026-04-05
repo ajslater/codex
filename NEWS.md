@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.3
+
+- Fixes
+    - Poll all libraries button was not polling all libraries.
+
 ## v1.10.2
 
 - Fixes
