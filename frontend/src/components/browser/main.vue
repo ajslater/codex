@@ -32,6 +32,7 @@ import BrowserEmptyState from "@/components/browser/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { useSelectManyStore } from "@/stores/select-many";
 import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
 export default {
@@ -66,11 +67,17 @@ export default {
       isSearchOpen: (state) => state.isSearchOpen,
       isSearchMode: (state) => state.isSearchMode,
     }),
+    ...mapState(useSelectManyStore, {
+      selectManyActive: (state) => state.active,
+    }),
     browsePaneClasses() {
       const classes = {
         padFooter: this.numPages > 1,
       };
       let marginClass = "browsePane";
+      if (this.selectManyActive) {
+        marginClass += "SelectMany";
+      }
       if (this.isSearchOpen) {
         marginClass += "Search";
       }
@@ -122,6 +129,7 @@ $top-toolbar-margin: 102px;
 $card-margin: 32px;
 $browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
 $bottom-margin: 20px;
+$select-many-height: 40px;
 
 #browsePane {
   margin-left: max($card-margin, env(safe-area-inset-left));
@@ -135,16 +143,38 @@ $bottom-margin: 20px;
   overflow: hidden; // scroll is handled by the refresh container
 }
 
+.browsePaneSelectMany {
+  margin-top: calc($browse-pane-margin-top + $select-many-height) !important;
+}
+
 .browsePaneSearch {
   margin-top: calc($browse-pane-margin-top + 32px) !important;
+}
+
+.browsePaneSelectManySearch {
+  margin-top: calc(
+    $browse-pane-margin-top + $select-many-height + 32px
+  ) !important;
 }
 
 .browsePaneBanner {
   margin-top: calc(20px + $browse-pane-margin-top) !important;
 }
 
+.browsePaneSelectManyBanner {
+  margin-top: calc(
+    20px + $browse-pane-margin-top + $select-many-height
+  ) !important;
+}
+
 .browsePaneSearchBanner {
   margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
+}
+
+.browsePaneSelectManySearchBanner {
+  margin-top: calc(
+    20px + $browse-pane-margin-top + $select-many-height + 32px
+  ) !important;
 }
 
 #browsePaneRefreshContainer {

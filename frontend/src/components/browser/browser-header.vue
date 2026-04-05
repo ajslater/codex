@@ -5,6 +5,7 @@
     <BrowserSearchToolbar class="codexHeadToolbar" />
     <BrowserBreadcrumbsToolbar class="codexHeadToolbar" />
     <BrowserTitleToolbar class="codexHeadToolbar" />
+    <BrowserSelectManyToolbar class="codexHeadToolbar" />
   </header>
 </template>
 
@@ -12,6 +13,7 @@
 import BrowserBreadcrumbsToolbar from "@/components/browser/toolbars/breadcrumbs/browser-toolbar-breadcrumbs.vue";
 import BrowserTitleToolbar from "@/components/browser/toolbars/browser-toolbar-title.vue";
 import BrowserSearchToolbar from "@/components/browser/toolbars/search/browser-toolbar-search.vue";
+import BrowserSelectManyToolbar from "@/components/browser/toolbars/select-many/browser-toolbar-select-many.vue";
 import AppBanner from "@/components/banner.vue";
 import BrowserTopToolbar from "@/components/browser/toolbars/top/browser-toolbar-top.vue";
 
@@ -21,6 +23,7 @@ export default {
     AppBanner,
     BrowserBreadcrumbsToolbar,
     BrowserSearchToolbar,
+    BrowserSelectManyToolbar,
     BrowserTopToolbar,
     BrowserTitleToolbar,
   },

@@ -6,10 +6,6 @@
       :class="multiPkClasses"
       position="top"
     />
-    <div
-      v-if="finished !== true"
-      :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
-    />
     <span v-if="group !== 'c'" class="childCount">
       {{ childCount }}
     </span>
@@ -36,9 +32,6 @@ export default {
     childCount: {
       type: Number,
       default: 1,
-    },
-    finished: {
-      type: Boolean,
     },
     mtime: {
       type: Number,
@@ -91,56 +84,20 @@ export default {
 .coverImg {
   height: bookcover.$cover-height;
   width: bookcover.$cover-width;
-}
-
-.coverImg {
   border-radius: 5px;
 }
 
-/* Top Row */
+/* Child Count - top right */
 .childCount {
   position: absolute;
   top: 0px;
-  left: 0px;
+  right: 0px;
   min-width: 1.5rem;
   padding: 0rem 0.25rem 0rem 0.25rem;
   text-align: center;
   border-radius: 50%;
   background-color: rgb(var(--v-theme-background));
-  color: rbg(var(--v-theme-textPrimary));
-}
-
-/* Flags */
-$bookCoverShadow: rgba(0, 0, 0, 0.75);
-$primary: rgb(var(--v-theme-primary));
-
-.unreadFlag {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: block;
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(
-    45deg,
-    transparent 50%,
-    $bookCoverShadow 60%,
-    $primary 60%
-  );
-  border-top-right-radius: 5px;
-}
-
-.mixedreadFlag {
-  background: linear-gradient(
-    45deg,
-    transparent 50%,
-    $bookCoverShadow 60%,
-    $primary 60% 70%,
-    transparent 70%,
-    $bookCoverShadow 80%,
-    $primary 80% 90%,
-    transparent 90%
-  );
+  color: rgb(var(--v-theme-textPrimary));
 }
 
 .stack2 {
