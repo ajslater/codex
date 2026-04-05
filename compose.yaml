@@ -6,7 +6,8 @@ services:
     image: dist-builder:ci
     container_name: codex-ci
     volumes:
-      - .:/src
+      - ./test-results:/app/test-results
+      - ./dist:/app/dist
     working_dir: /src
     environment:
       - DJANGO_SETTINGS_MODULE=codex.settings.test
