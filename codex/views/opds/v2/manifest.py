@@ -93,7 +93,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         name = obj.series_name if obj.series.name else BLANK_TITLE
         pks: list[int] = [obj.series.pk]
         kwargs: Mapping[str, str | Sequence[int] | int] = {
-            "group": "s",
+            "group": "r",
             "pks": pks,
             "page": 1,
         }
@@ -101,7 +101,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         ts = floor(datetime.timestamp(obj.updated_at))
         query_params = {
             "ts": ts,
-            "topGroup": "p",
+            "topGroup": "s",
         }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)

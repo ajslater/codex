@@ -71,6 +71,8 @@ class AdminUserViewSet(AdminModelViewSet):
     def perform_update(self, serializer) -> None:
         """Add hook after update."""
         data = serializer.validated_data
+        if not data.get("password"):
+            data.pop("password", None)
         if self._is_change_to_current_user() and False in {
             data.get(key) for key in _BAD_CURRENT_USER_FALSE_KEYS
         }:
