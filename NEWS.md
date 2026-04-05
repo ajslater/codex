@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - Poll all libraries button was not polling all libraries.
+    - Fix OPDS v2.0 manifest series link.
 
 ## v1.10.2
 
