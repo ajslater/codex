@@ -13,6 +13,8 @@ border-radius: 128px;
     - Fix OPDS v2 manifest series link.
     - Force OPDS v2 start link to reset filters and order
     - Library server folder picker shows folder menu more consistently.
+- Features
+    - Select many mode in browser for browser actions.
 
 ## v1.10.2
 
