@@ -1,4 +1,15 @@
 services:
+  ci:
+    image: dist-builder:ci
+    container_name: codex-ci
+    volumes:
+      - .:/src
+    working_dir: /src
+    environment:
+      - DJANGO_SETTINGS_MODULE=codex.settings.test
+      - PYTHONUNBUFFERED=1
+    # Keep the container alive so 'docker exec' can run multiple commands
+    entrypoint: [tail, -f, /dev/null]
   codex-dist-builder: &codex-dist-builder
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
   codex-lint:
