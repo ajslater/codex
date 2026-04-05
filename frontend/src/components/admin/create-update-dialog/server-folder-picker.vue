@@ -16,7 +16,7 @@
       variant="filled"
       @blur="onBlur"
       @click:clear="onClear"
-      @keydown.enter="onKeyDownEnter"
+      @keydown.enter.prevent.stop="onKeyDownEnter"
     >
       <template #item="{ internalItem, props }">
         <v-list-item
@@ -69,32 +69,25 @@ export default {
       return this.showHidden ? "Hide" : "Show";
     },
   },
-  created() {
-    this.loadFolders()
-      .then(() => {
-        this.path = this.rootFolder;
-        this.originalPath = this.rootFolder;
-        return true;
-      })
-      .catch(console.warn);
-  },
   mounted() {
-    // Options watch is flakier than if done in mounted.
-    this.$watch(
-      () => this.$refs.folderPicker?.isValid,
-      (isValid) => {
-        if (isValid === false) {
-          this.$nextTick(() => {
-            this.$refs.comboboxRef?.focus();
-          });
-        }
-      },
-    );
+    /*
+     * Delay initial load so the dialog transition completes
+     * and the combobox has its final position for menu placement.
+     */
+    setTimeout(() => {
+      this.loadFolders()
+        .then(() => {
+          this.path = this.rootFolder;
+          this.originalPath = this.rootFolder;
+          return true;
+        })
+        .catch(console.warn);
+    }, 200);
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
-    change(path) {
+    change(path, { openMenu = false } = {}) {
       let relativePath;
       if (path) {
         relativePath =
@@ -110,9 +103,18 @@ export default {
           if (this.formErrors.length === 0) {
             this.path = this.rootFolder;
             this.$emit("change", this.path);
-          } else {
+          }
+          if (openMenu && this.folders.length > 0) {
+            /*
+             * Wait for Vue to process the path change, then wait for
+             * Vuetify's internal reactions to the v-model update to
+             * finish before opening the menu.
+             */
+            this.menuOpen = false;
             this.$nextTick(() => {
-              this.$refs.comboboxRef?.focus();
+              setTimeout(() => {
+                this.menuOpen = true;
+              }, 100);
             });
           }
         })
@@ -129,7 +131,7 @@ export default {
         .catch(console.error);
     },
     onKeyDownEnter() {
-      this.change(this.path);
+      this.change(this.path, { openMenu: true });
     },
     onItemClick(path) {
       this.change(path);
