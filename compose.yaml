@@ -1,5 +1,8 @@
 services:
   ci:
+    build:
+      context: .
+      target: dist-builder
     image: dist-builder:ci
     container_name: codex-ci
     volumes:
