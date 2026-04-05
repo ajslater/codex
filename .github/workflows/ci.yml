@@ -69,14 +69,14 @@ jobs:
 
       - name: Lint
         if: steps.gate.outputs.identical != 'true'
-        run: docker exec ci make lint
+        run: docker exec codex-ci make lint
 
       - name: Tests
         if: steps.gate.outputs.identical != 'true'
-        run: docker exec ci make collectstatic django-check test-python test-frontend
+        run: docker exec codex-ci make collectstatic django-check test-python test-frontend
 
       - name: Build Distribution
-        run: docker exec ci make build-only
+        run: docker exec codex-ci make build-only
 
       - name: Upload Test Results
         if: "!cancelled() && steps.gate.outputs.identical != 'true'"
