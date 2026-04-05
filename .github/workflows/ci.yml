@@ -107,7 +107,7 @@ jobs:
   build:
     name: Build (${{ matrix.arch }})
     needs: test
-    if: github.base_ref == 'main' || github.head_ref == 'pre-release'
+    if: github.event_name == 'push'
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
