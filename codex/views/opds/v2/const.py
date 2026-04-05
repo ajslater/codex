@@ -66,8 +66,8 @@ TOP_GROUPS = (
         "Top Groups",
         (
             Link(Rel.SUB, "Publishers", "r", {"topGroup": "p"}),
-            Link(Rel.SUB, "Series", "p", {"topGroup": "p"}),
-            Link(Rel.SUB, "Issues", "s", {"topGroup": "s"}),
+            Link(Rel.SUB, "Series", "r", {"topGroup": "s"}),
+            Link(Rel.SUB, "Issues", "r", {"topGroup": "c"}),
             Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
             Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
         ),
@@ -109,7 +109,6 @@ FACETS = (
 )
 _PREVIEW_GROUP_PARAMS = MappingProxyType(
     {
-        "topGroup": "s",
         "filters": BookmarkFilters.UNREAD,
     }
 )
@@ -120,9 +119,10 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.FEATURED,
                 "Keep Reading",
-                "s",
+                "r",
                 MappingProxyType(
                     {
+                        "topGroup": "c",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "bookmark_updated_at",
                         "orderReverse": True,
@@ -133,9 +133,10 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.SORT_NEW,
                 "Latest Unread",
-                "s",
+                "r",
                 MappingProxyType(
                     {
+                        "topGroup": "c",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "created_at",
                         "orderReverse": True,
@@ -146,9 +147,10 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.SORT_NEW,
                 "Oldest Unread",
-                "s",
+                "r",
                 MappingProxyType(
                     {
+                        "topGroup": "c",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "date",
                         "orderReverse": False,
