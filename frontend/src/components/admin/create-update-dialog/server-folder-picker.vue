@@ -62,12 +62,6 @@ export default {
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
     }),
-    appendOuterIcon() {
-      return this.showHidden ? this.mdiFolderHidden : this.mdiFolderOutline;
-    },
-    showHiddenTooltipPrefix() {
-      return this.showHidden ? "Hide" : "Show";
-    },
   },
   mounted() {
     /*
@@ -87,6 +81,17 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
+    forceMenuOpen() {
+      /*
+       * Vuetify can leave menuOpen true internally even when the menu
+       * is not displayed. Force a false→true transition so Vue's
+       * reactivity detects a change and Vuetify re-opens the menu.
+       */
+      this.menuOpen = false;
+      this.$nextTick(() => {
+        this.menuOpen = true;
+      });
+    },
     change(path, { openMenu = false } = {}) {
       let relativePath;
       if (path) {
@@ -105,17 +110,7 @@ export default {
             this.$emit("change", this.path);
           }
           if (openMenu && this.folders.length > 0) {
-            /*
-             * Wait for Vue to process the path change, then wait for
-             * Vuetify's internal reactions to the v-model update to
-             * finish before opening the menu.
-             */
-            this.menuOpen = false;
-            this.$nextTick(() => {
-              setTimeout(() => {
-                this.menuOpen = true;
-              }, 100);
-            });
+            this.forceMenuOpen();
           }
         })
         .catch(console.warn);
