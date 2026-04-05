@@ -69,9 +69,6 @@ jobs:
           mkdir -p dist test-results
           docker compose up -d ci
 
-      - name: Debug Container
-        run: docker run --rm dist-builder:ci sh -c "cat Makefile | head -20 && echo '---' && ls cfg/"
-
       - name: Lint
         if: steps.gate.outputs.identical != 'true'
         run: docker exec codex-ci make lint
