@@ -65,7 +65,9 @@ jobs:
           cache-to: type=gha,scope=dist-builder-amd64,mode=max
 
       - name: Start Services
-        run: docker compose up -d ci
+        run: |
+          mkdir -p dist test-results
+          docker compose up -d ci
 
       - name: Lint
         if: steps.gate.outputs.identical != 'true'
