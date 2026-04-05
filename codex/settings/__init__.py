@@ -333,12 +333,23 @@ WSGI_APPLICATION = "codex.wsgi.application"
 #############
 
 CODEX_TEMPLATES = CODEX_PATH / "templates"
+_DEV_LOADERS = MappingProxyType(
+    {
+        "loaders": [
+            # Explicitly use non-cached loaders in dev to prevent handle retention
+            ("django.template.loaders.filesystem.Loader",),
+            ("django.template.loaders.app_directories.Loader",),
+        ]
+    }
+)
+_TEMPLATES_LOADERS = _DEV_LOADERS if DEBUG else {}
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [CODEX_TEMPLATES],
-        "APP_DIRS": True,
+        "APP_DIRS": not DEBUG,
         "OPTIONS": {
+            **_TEMPLATES_LOADERS,
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.csp",
