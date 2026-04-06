@@ -92,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-results
-          path: "**/test-results/*.xml"
+          path: "**/test-results/pytest/*.xml"
 
       - name: Publish Test Report
         if: "!cancelled() && steps.upload-tests.outcome == 'success'"
