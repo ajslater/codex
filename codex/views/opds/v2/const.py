@@ -7,7 +7,6 @@ from types import MappingProxyType
 
 from django.db.models.query import QuerySet
 
-from codex.views.const import BROWSER_FILTER_KEYS
 from codex.views.opds.const import BookmarkFilters, Rel
 
 
@@ -75,18 +74,6 @@ TOP_GROUPS = (
     ),
 )
 
-_START_QUERY_PARAMS = MappingProxyType(
-    {
-        "topGroup": "p",
-        "filters": {
-            **BookmarkFilters.NONE,
-            **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
-        },
-        "orderBy": "sort_name",
-        "orderReverse": False,
-    }
-)
-
 START_GROUPS = (
     LinkGroup(
         "Start (Reset filters & order)",
@@ -95,7 +82,7 @@ START_GROUPS = (
                 Rel.START,
                 "Start",
                 None,
-                _START_QUERY_PARAMS,
+                {},
                 inherit_query_params=False,
             ),
         ),

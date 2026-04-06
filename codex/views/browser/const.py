@@ -1,0 +1,26 @@
+"""Browser consts."""
+
+BROWSER_FILTER_KEYS = (
+    "age_rating",
+    "characters",
+    "country",
+    "credits",
+    "critical_rating",
+    "decade",
+    "file_type",
+    "genres",
+    "identifier_source",
+    "language",
+    "locations",
+    "monochrome",
+    "original_format",
+    "reading_direction",
+    "series_groups",
+    "stories",
+    "story_arcs",
+    "tagger",
+    "tags",
+    "teams",
+    "universes",
+    "year",
+)
