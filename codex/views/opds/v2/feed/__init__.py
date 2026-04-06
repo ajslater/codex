@@ -2,10 +2,10 @@
 
 import json
 import urllib.parse
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import datetime
 from types import MappingProxyType
-from typing import override
+from typing import Any, override
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
@@ -189,11 +189,6 @@ class OPDS2StartView(OPDS2FeedView):
 
     IS_START_PAGE = True
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Reset all params."""
-        super().__init__(*args, **kwargs)
-        self.set_params(DEFAULT_PARAMS)
-
     @override
     @staticmethod
     def _update_feed_modified(
@@ -208,6 +203,10 @@ class OPDS2StartView(OPDS2FeedView):
             feed_metadata = dict(feed_metadata)
             feed_metadata["modified"] = max_modified
         return feed_metadata
+
+    @override
+    def init_params(self) -> MutableMapping[str, Any]:
+        return dict(DEFAULT_PARAMS)
 
     @override
     @extend_schema(
