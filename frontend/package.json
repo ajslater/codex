@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.10.3",
+  "version": "1.10.4",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -37,7 +37,7 @@
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/test-utils": "^2.2.1",
     "@vue/typescript-plugin": "^3.0.1",
-    "jsdom-global": "^3.0.2",
+    "happy-dom": "^18.0.1",
     "sass": "^1.55.0",
     "sass-loader": "^16.0",
     "toml": "^4.0.1",
