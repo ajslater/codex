@@ -76,7 +76,7 @@ jobs:
       - name: Tests
         id: tests
         if: steps.gate.outputs.identical != 'true'
-        run: docker exec codex-ci make collectstatic django-check test-python test-frontend
+        run: docker exec codex-ci make build-choices test-frontend build-frontend collectstatic django-check test-python
 
       - name: Build Distribution
         run: docker exec codex-ci make build-only
