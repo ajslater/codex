@@ -82,7 +82,9 @@ jobs:
         run: docker exec codex-ci make build-only
 
       - name: Stop Services
-        run: docker compose down ci
+        run: |
+          touch .env.package # hack because down is too promiscuous 
+          docker compose down ci
 
       - name: Upload Test Results
         id: upload-tests
