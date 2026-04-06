@@ -399,7 +399,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.10.4"
+version = "1.10.5a0"
 source = { editable = "." }
 dependencies = [
     { name = "bidict" },
