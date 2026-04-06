@@ -104,7 +104,7 @@ const config = defineConfig(({ mode }) => {
       strictPort: true,
     },
     test: {
-      environment: "jsdom",
+      environment: "happy-dom",
       // deps: { inline: ["vuetify"] },
       globals: true,
       server: { deps: { inline: ["vuetify"] } },
