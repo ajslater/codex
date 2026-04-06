@@ -9,7 +9,7 @@ services:
       - ./test-results:/app/test-results
       - ./dist:/app/dist
     environment:
-      - DJANGO_SETTINGS_MODULE=codex.settings.test
+      # - DJANGO_SETTINGS_MODULE=codex.settings
       - PYTHONUNBUFFERED=1
     # Keep the container alive so 'docker exec' can run multiple commands
     entrypoint: [sleep, infinity]
