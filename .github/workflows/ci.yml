@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload Test Results
         id: upload-tests
-        if: "!cancelled() && steps.test.outcome != 'skipped'"
+        if: "!cancelled() && steps.tests.outcome != 'skipped'"
         uses: actions/upload-artifact@v7
         with:
           name: test-results
