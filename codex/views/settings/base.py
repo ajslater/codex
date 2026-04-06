@@ -1,7 +1,7 @@
 """Base classes for settings."""
 
 from abc import ABC
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from types import MappingProxyType
 
@@ -283,20 +283,11 @@ class SettingsWriteView(SettingsReadView):
     """
     Full settings view with params mutation support.
 
-    Adds the higher-level load/save params API, save_last_route,
-    and browser-specific constants used by browser and reader param
-    views.  Views that need to read *and write* settings should
-    inherit from this class (via a concrete browser/reader subclass).
+    Adds the higher-level load/save params API, and browser-specific
+    constants used by browser and reader param views. Views that
+    need to read *and write* settings should inherit from this
+    class (via a concrete browser/reader subclass).
     """
-
-    def save_last_route(self, data: MutableMapping) -> None:
-        """Save last route to data."""
-        last_route = {
-            "group": self.kwargs.get("group", "r"),
-            "pks": self.kwargs.get("pks", (0,)),
-            "page": self.kwargs.get("page", 1),
-        }
-        data["last_route"].update(last_route)
 
     def _get_browser_order_defaults(self) -> dict:
         if group := self.kwargs.get("group"):
