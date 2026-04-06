@@ -81,6 +81,9 @@ jobs:
       - name: Build Distribution
         run: docker exec codex-ci make build-only
 
+      - name: Stop Services
+        run: docker compose down
+
       - name: Upload Test Results
         id: upload-tests
         if: "!cancelled() && steps.test.outcome != 'skipped'"
