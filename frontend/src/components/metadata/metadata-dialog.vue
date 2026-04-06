@@ -1,6 +1,6 @@
 <template>
   <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
-    <template #activator="{ props: activatorProps }">
+    <template v-if="!noActivator" #activator="{ props: activatorProps }">
       <MetadataActivator
         v-bind="activatorProps"
         :book="book"
@@ -10,14 +10,10 @@
     <CloseButton
       class="closeButton"
       title="Close Metadata (esc)"
-      @click="dialog = false"
+      @click="close"
     />
-    <div
-      v-if="showContainer"
-      id="metadataContainer"
-      @keyup.esc="dialog = false"
-    >
-      <MetadataHeader :group="book.group" />
+    <div v-if="showContainer" id="metadataContainer" @keyup.esc="close">
+      <MetadataHeader :group="book.group" :multi-select="isMultiSelect" />
       <MetadataBody :book="book" />
     </div>
     <div v-else id="placeholderContainer">
@@ -67,7 +63,12 @@ export default {
       type: Boolean,
       default: false,
     },
+    noActivator: {
+      type: Boolean,
+      default: false,
+    },
   },
+  emits: ["close"],
   data() {
     return {
       dialog: false,
@@ -84,6 +85,9 @@ export default {
     children() {
       return this.book.childCount || 0;
     },
+    isMultiSelect() {
+      return this.noActivator && (this.book.ids?.length ?? 0) > 1;
+    },
   },
   watch: {
     dialog(to) {
@@ -91,11 +95,22 @@ export default {
         this.dialogOpened();
       } else {
         this.clearMetadata();
+        if (this.noActivator) {
+          this.$emit("close");
+        }
       }
     },
   },
+  created() {
+    if (this.noActivator) {
+      this.dialog = true;
+    }
+  },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
+    close() {
+      this.dialog = false;
+    },
     dialogOpened() {
       const pks = this.book.ids || [this.book.pk];
       const data = {

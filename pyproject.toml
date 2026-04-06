@@ -45,7 +45,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.10.2"
+version = "1.10.3"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -108,8 +108,8 @@ build-backend = "uv_build"
 module-root = ""
 source-include = [
   ".*ignore",
-  ".circlci/**",
   ".env.platforms",
+  ".github/**",
   ".picopt_treestamps.yaml",
   ".readthedocs.yaml",
   ".remarkignore",
@@ -117,7 +117,6 @@ source-include = [
   "Makefile",
   "NEWS.md",
   "bin/**",
-  "ci/**",
   "compose.yaml",
   "docs/DOCKER.md",
   "docs/NEWS",

@@ -1,14 +1,20 @@
 <template>
   <div class="bookCoverWrapper">
+    <v-img
+      v-if="forceGenericCover"
+      :src="genericCoverSrc"
+      class="genericCoverImg"
+    />
     <BookCover
+      v-else
       id="bookCover"
       :group="group"
       :pks="md.ids"
       :child-count="md.childCount"
-      :finished="md.finished"
       :mtime="md.mtime"
     />
     <v-progress-linear
+      v-if="!forceGenericCover"
       class="bookCoverProgress"
       :model-value="md.progress"
       rounded
@@ -34,11 +40,18 @@ export default {
       type: String,
       required: true,
     },
+    forceGenericCover: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
+    genericCoverSrc() {
+      return globalThis.CODEX.STATIC + "img/volume.svg";
+    },
   },
 };
 </script>
@@ -55,12 +68,21 @@ export default {
   padding-top: 0px !important;
 }
 
+.genericCoverImg {
+  width: 165px;
+  opacity: 0.6;
+}
+
 .bookCoverProgress {
   margin-top: -11px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .bookCoverWrapper {
+    width: 100px;
+  }
+
+  .genericCoverImg {
     width: 100px;
   }
 

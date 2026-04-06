@@ -55,7 +55,9 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
     def poll(self, task: FSPollLibrariesTask) -> None:
         """Trigger an immediate poll for specific libraries."""
         with self._cond:
-            self._pending_poll_ids = task.library_ids
+            self._pending_poll_ids = task.library_ids or frozenset(
+                Library.objects.values_list("id", flat=True)
+            )
             self._pending_force = task.force
             self._cond.notify()
 

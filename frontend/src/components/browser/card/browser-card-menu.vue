@@ -64,8 +64,3 @@ export default {
   },
 };
 </script>
-<style scoped lang="scss">
-:deep(.v-icon) {
-  color: rgb(var(--v-theme-textDisabled));
-}
-</style>

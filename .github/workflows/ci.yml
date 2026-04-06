@@ -2,13 +2,10 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
     types: [opened, synchronize]
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
 
 env:
   IMAGE: ghcr.io/ajslater/codex
@@ -25,16 +22,35 @@ jobs:
   test:
     name: Lint, Test & Build Dist
     runs-on: ubuntu-24.04
-    # Branch gate logic
     if: |
-      github.event_name == 'push' ||
-      github.base_ref == 'main' ||
+      github.ref_name == 'main' && github.event_name == 'push' || 
+      github.base_ref == 'main' || 
       (github.base_ref == 'develop' && github.head_ref == 'pre-release')
     permissions:
       contents: read
       packages: read
+      pull-requests: write
+      checks: write
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Only fetch full history for the main push gate
+          fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
+
+      - name: Check for Redundant Tests
+        id: gate
+        if: github.ref_name == 'main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SOURCE_BRANCH=$(gh pr list --state merged --limit 1 --json headRefName --template '{{range .}}{{.headRefName}}{{end}}')
+          if [ -n "$SOURCE_BRANCH" ]; then
+            git fetch origin "$SOURCE_BRANCH" --depth=1
+            if git diff --quiet HEAD "origin/$SOURCE_BRANCH"; then
+              echo "identical=true" >> $GITHUB_OUTPUT
+            fi
+          fi
 
       - uses: docker/setup-buildx-action@v4
 
@@ -42,172 +58,153 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile
           target: dist-builder
           load: true
           tags: dist-builder:ci
           cache-from: type=gha,scope=dist-builder-amd64
           cache-to: type=gha,scope=dist-builder-amd64,mode=max
 
-      - name: Start CI container
+      - name: Start Services
         run: |
           mkdir -p dist test-results
-          docker create --name ci \
-            -v "${{ github.workspace }}/dist:/app/dist" \
-            -v "${{ github.workspace }}/test-results:/app/test-results" \
-            dist-builder:ci sleep infinity
-          docker start ci
+          docker compose up -d ci
 
       - name: Lint
-        run: docker exec ci make lint
+        if: steps.gate.outputs.identical != 'true'
+        run: docker exec codex-ci make lint
 
-      - name: "Frontend: Test"
-        run: docker exec ci make test-frontend
-
-      - name: "Frontend: Build"
-        run: docker exec ci make build-frontend -o build-choices
-
-      - name: "Backend: Test"
-        run: docker exec ci make collectstatic django-check test-python -o build-frontend
+      - name: Tests
+        id: tests
+        if: steps.gate.outputs.identical != 'true'
+        run: docker exec codex-ci make build-choices test-frontend build-frontend collectstatic django-check test-python
 
       - name: Build Distribution
-        run: docker exec ci make build-only
+        run: docker exec codex-ci make build-only
 
-      - name: Stop CI container
-        if: always()
-        run: docker rm -f ci || true
+      - name: Stop Services
+        run: |
+          touch .env.package # hack because down is too promiscuous 
+          docker compose down ci
 
-      - uses: actions/upload-artifact@v6
+      - name: Upload Test Results
+        id: upload-tests
+        if: "!cancelled() && steps.test.outcome != 'skipped'"
+        uses: actions/upload-artifact@v7
         with:
-          name: dist
+          name: test-results
+          path: "**/test-results/*.xml"
+
+      - name: Publish Test Report
+        if: "!cancelled() && steps.upload-tests.outcome == 'success'"
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: "**/test-results/*.xml"
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-dist
           path: dist/
           retention-days: 1
 
-      - uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: test-results
-          path: test-results/
-          retention-days: 7
-
-      - name: Discord notification
-        if: always()
+      - name: Discord notification (Test Results)
+        if: "!cancelled() && steps.gate.outputs.identical != 'true'"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
           status: ${{ job.status }}
-          content: "Test ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'passed' || 'FAILED' }}"
-          description: ${{ job.status == 'success' && 'Tested and built distribution for Codex' || 'Test or build failed' }}
-          color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
+          content: "Tests for ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'passed' || 'FAILED' }}"
           url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
-  # Build per-arch Docker images natively and push to ghcr.io
+  # Build per-arch Docker images natively
   # ---------------------------------------------------------------------------
   build:
     name: Build (${{ matrix.arch }})
     needs: test
     if: github.event_name == 'push'
-    runs-on: ${{ matrix.runner }}
-    permissions:
-      contents: read
-      packages: write
     strategy:
       matrix:
         include:
           - arch: amd64
             runner: ubuntu-24.04
-            platform: linux/amd64
           - arch: arm64
-            runner: ubuntu-24.04-arm
-            platform: linux/arm64
+            runner: linux/arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
-
       - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v4
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Set Build Context
+        run: |
+          VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
+          echo "CODEX_VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "CODEX_WHEEL=$(ls dist/*.whl | xargs basename)" >> $GITHUB_ENV
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/download-artifact@v7
-        with:
-          name: dist
-          path: dist/
-
-      - uses: astral-sh/setup-uv@v4
-
-      - name: Determine version
-        id: meta
-        run: |
-          VERSION=$(uv version --short)
-          WHEEL="codex-${VERSION}-py3-none-any.whl"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "wheel=${WHEEL}" >> "$GITHUB_OUTPUT"
-
-      - name: Build & push arch image
+      - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile
-          target: final
+          platforms: linux/${{ matrix.arch }}
           push: true
-          platforms: ${{ matrix.platform }}
-          provenance: false
           build-args: |
-            CODEX_WHEEL=${{ steps.meta.outputs.wheel }}
-            CODEX_VERSION=${{ steps.meta.outputs.version }}
-          tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}-${{ matrix.arch }}
-          annotations: |
-            manifest:org.opencontainers.image.title=Codex
-            manifest:org.opencontainers.image.description=Codex Comic Server
-            manifest:org.opencontainers.image.version=${{ steps.meta.outputs.version }}
-            manifest:org.opencontainers.image.authors=AJ Slater <aj@slater.net>
-            manifest:org.opencontainers.image.url=https://codex-reader.app
-            manifest:org.opencontainers.image.source=https://github.com/ajslater/codex
-            manifest:org.opencontainers.image.licenses=GPL-3.0-only
-          cache-from: |
-            type=gha,scope=dist-builder-${{ matrix.arch }}
-            type=gha,scope=final-${{ matrix.arch }}
-          cache-to: type=gha,scope=final-${{ matrix.arch }},mode=max
+            CODEX_VERSION=${{ env.CODEX_VERSION }}
+            CODEX_WHEEL=${{ env.CODEX_WHEEL }}
+          tags: ${{ env.IMAGE }}:${{ env.CODEX_VERSION }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=build-${{ matrix.arch }}
+          cache-to: type=gha,scope=build-${{ matrix.arch }},mode=max
 
   # ---------------------------------------------------------------------------
-  # Create multi-arch manifest, publish to PyPI, notify
+  # Create multi-arch manifest and publish
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy
     needs: build
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
       packages: write
     steps:
       - uses: actions/checkout@v6
-
       - uses: docker/setup-buildx-action@v4
+      - uses: astral-sh/setup-uv@v8
 
-      - uses: docker/login-action@v4
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: astral-sh/setup-uv@v4
-
-      - uses: actions/download-artifact@v7
-        with:
-          name: dist
-          path: dist/
-
-      - name: Create multi-arch manifest & push
+      - name: Create and push manifest
         run: |
           VERSION=$(uv version --short)
-          TAG_ARGS=(-t "${IMAGE}:${VERSION}")
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            TAG_ARGS+=(-t "${IMAGE}:latest")
+          TAG_ARGS=("-t" "${IMAGE}:${VERSION}")
+
+          # Positive regex check for Final versions (e.g., 1.2.3)
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            TAG_ARGS+=("-t" "${IMAGE}:latest")
           fi
+
           docker buildx imagetools create \
             --annotation "index:org.opencontainers.image.title=Codex" \
             --annotation "index:org.opencontainers.image.description=Codex Comic Server" \
@@ -225,13 +222,12 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
-      - name: Discord notification
-        if: always()
+      - name: Discord notification (Deploy Results)
+        if: "!cancelled()"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
           status: ${{ job.status }}
           content: "Deploy ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'succeeded' || 'FAILED' }}"
-          description: ${{ job.status == 'success' && 'Deployed Codex' || 'Deploy failed' }}
-          color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
           url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

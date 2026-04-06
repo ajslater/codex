@@ -7,15 +7,29 @@
           :pks="item.ids"
           :mtime="item.mtime"
           :child-count="item.childCount"
-          :finished="item.finished"
+        />
+        <div
+          v-if="selectManyActive"
+          class="cardCoverOverlay selectManyOverlay"
+          :class="{ selected: checked }"
+          :aria-label="linkLabel"
+          @click="toggleItem(item)"
         />
         <router-link
+          v-else
           class="cardCoverOverlay"
           :to="toRoute"
           :aria-label="linkLabel"
         >
           <BrowserCardControls :item="item" :eye-open="Boolean(toRoute)" />
         </router-link>
+        <v-checkbox-btn
+          class="selectManyCheckbox"
+          :class="{ checked }"
+          density="compact"
+          :model-value="checked"
+          @click.stop.prevent="toggleItem(item)"
+        />
       </div>
       <v-progress-linear
         class="bookCoverProgress"
@@ -34,7 +48,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
@@ -42,6 +56,7 @@ import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
+import { useSelectManyStore } from "@/stores/select-many";
 
 const SCROLL_DELAY = 100;
 const HEADER_OFFSET = -170;
@@ -65,6 +80,13 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page.adminFlags.importMetadata,
     }),
+    ...mapState(useSelectManyStore, {
+      selectManyActive: (state) => state.active,
+      isSelected: (state) => state.isSelected,
+    }),
+    checked() {
+      return this.isSelected(this.item);
+    },
     linkLabel() {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
@@ -98,6 +120,7 @@ export default {
     this.scrollToMe();
   },
   methods: {
+    ...mapActions(useSelectManyStore, ["toggleItem"]),
     scrollToMe: function () {
       if (
         !this.$route.hash ||
@@ -161,6 +184,55 @@ export default {
 .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
   background-color: transparent;
   opacity: 1;
+}
+
+/* Select Many Overlay */
+.selectManyOverlay {
+  cursor: pointer;
+}
+
+.selectManyOverlay.selected {
+  border: solid 2px rgb(var(--v-theme-primary)) !important;
+  background-color: rgba(var(--v-theme-primary), 0.15);
+}
+
+/* Checkbox: top left, always present, shown on hover or when checked */
+.selectManyCheckbox {
+  position: absolute !important;
+  top: 2px;
+  left: 2px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.selectManyCheckbox.checked {
+  opacity: 1;
+}
+
+.browserCardCoverWrapper:hover > .browserCardTop > .selectManyCheckbox {
+  opacity: 1;
+}
+
+.selectManyCheckbox :deep(.v-selection-control) {
+  min-height: auto;
+}
+
+.selectManyCheckbox :deep(.v-icon) {
+  color: rgb(var(--v-theme-textDisabled));
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+}
+
+.selectManyCheckbox:hover :deep(.v-icon) {
+  color: rgb(var(--v-theme-linkHover));
+}
+
+.selectManyCheckbox.checked :deep(.v-icon) {
+  color: rgb(var(--v-theme-primary));
+}
+
+.selectManyCheckbox.checked:hover :deep(.v-icon) {
+  color: rgb(var(--v-theme-linkHover));
 }
 
 .bookCoverProgress {

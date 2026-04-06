@@ -7,8 +7,15 @@
       label="Search Query"
       :highlight="true"
     />
-    <MetadataBookCover id="metadataBookCover" :group="group" />
-    <section v-if="md.seriesList?.length === 1" id="seriesHeader">
+    <MetadataBookCover
+      id="metadataBookCover"
+      :group="group"
+      :force-generic-cover="multiSelect"
+    />
+    <section
+      v-if="!multiSelect && md.seriesList?.length === 1"
+      id="seriesHeader"
+    >
       <div id="seriesRow" class="inlineRow">
         <MetadataText
           id="series"
@@ -35,11 +42,11 @@
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
     </section>
-    <span v-if="md.name" id="titleRow">
+    <span v-if="!multiSelect && md.name" id="titleRow">
       {{ collectionTitle }} {{ md.name }}
     </span>
     <MetadataTags
-      v-if="md.seriesList?.length > 1"
+      v-if="!multiSelect && md.seriesList?.length > 1"
       id="seriesTags"
       class="groupTags"
       label="Series"
@@ -48,7 +55,7 @@
     />
     <div>
       <MetadataTags
-        v-if="md.volumeList?.length > 1"
+        v-if="!multiSelect && md.volumeList?.length > 1"
         id="volumeTags"
         class="groupTags"
         label="Volumes"
@@ -57,7 +64,7 @@
       />
     </div>
     <div
-      v-if="md.publisherList?.length === 1"
+      v-if="!multiSelect && md.publisherList?.length === 1"
       id="publisherRow"
       class="inlineRow"
     >
@@ -78,7 +85,7 @@
       />
     </div>
     <MetadataTags
-      v-if="md.publisherList?.length > 1"
+      v-if="!multiSelect && md.publisherList?.length > 1"
       id="publisherTags"
       class="groupTags"
       label="Publishers"
@@ -86,7 +93,7 @@
       filter="p"
     />
     <MetadataTags
-      v-if="md.imprintList?.length > 1"
+      v-if="!multiSelect && md.imprintList?.length > 1"
       id="imprintTags"
       class="groupTags"
       label="Imprints"
@@ -99,10 +106,10 @@
       class="inlineRow"
     >
       <MetadataText :value="pages" />
-      <MetadataText :value="date" class="datePicker" />
+      <MetadataText v-if="!multiSelect" :value="date" class="datePicker" />
     </div>
   </header>
-  <MetadataControls id="controls" :group="group" />
+  <MetadataControls v-if="!multiSelect" id="controls" :group="group" />
 </template>
 
 <script>
@@ -131,6 +138,10 @@ export default {
     group: {
       type: String,
       required: true,
+    },
+    multiSelect: {
+      type: Boolean,
+      default: false,
     },
   },
   computed: {

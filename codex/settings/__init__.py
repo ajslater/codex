@@ -173,33 +173,32 @@ FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
-if not DEBUG:
-    SECURE_CSP = {
-        "default-src": [CSP.SELF],
-        "script-src": [
-            CSP.SELF,
-            CSP.NONCE,
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
-        ],
-        "style-src": [
-            CSP.SELF,
-            # Titanic amount of work to make this safe with vite
-            CSP.UNSAFE_INLINE,
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
-        ],
-        "img-src": [
-            "data:",
-            CSP.SELF,
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
-        ],
-        "connect-src": [
-            CSP.SELF,
-            "ws:",
-            "wss:",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
-        ],
-    }
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [
+        CSP.SELF,
+        CSP.NONCE,
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
+    ],
+    "style-src": [
+        CSP.SELF,
+        # Titanic amount of work to make this safe with vite
+        CSP.UNSAFE_INLINE,
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
+    ],
+    "img-src": [
+        "data:",
+        CSP.SELF,
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
+    ],
+    "connect-src": [
+        CSP.SELF,
+        "ws:",
+        "wss:",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
+    ],
+}
 
 # Session
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
@@ -334,12 +333,23 @@ WSGI_APPLICATION = "codex.wsgi.application"
 #############
 
 CODEX_TEMPLATES = CODEX_PATH / "templates"
+_DEV_LOADERS = MappingProxyType(
+    {
+        "loaders": [
+            # Explicitly use non-cached loaders in dev to prevent handle retention
+            ("django.template.loaders.filesystem.Loader",),
+            ("django.template.loaders.app_directories.Loader",),
+        ]
+    }
+)
+_TEMPLATES_LOADERS = _DEV_LOADERS if DEBUG else {}
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [CODEX_TEMPLATES],
-        "APP_DIRS": True,
+        "APP_DIRS": not DEBUG,
         "OPTIONS": {
+            **_TEMPLATES_LOADERS,
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.csp",
@@ -572,6 +582,8 @@ if DEBUG and not BUILD:
             "dev_server_host": DEV_SERVER_HOST,
         }
     }
+    CSP_SCRIPT_SRC = ("'self'", "http://localhost:5173", "'nonce'")
+    CSP_CONNECT_SRC = ("'self'", "ws://localhost:5173", "http://localhost:5173")
 
 ############
 # Cachalot #

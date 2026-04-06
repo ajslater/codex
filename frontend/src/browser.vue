@@ -20,6 +20,7 @@ import BrowserNavToolbar from "@/components/browser/toolbars/nav/browser-toolbar
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { useSelectManyStore } from "@/stores/select-many";
 
 export default {
   name: "MainBrowser",
@@ -41,6 +42,7 @@ export default {
     $route() {
       window.scrollTo(0, 0);
       this.loadBrowserPage();
+      this.deactivateSelectMany();
     },
     user() {
       this.loadSettings();
@@ -58,6 +60,7 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["loadBrowserPage", "loadSettings"]),
+    ...mapActions(useSelectManyStore, { deactivateSelectMany: "deactivate" }),
   },
 };
 </script>

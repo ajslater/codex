@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.3
+
+- Fixes
+    - Poll all libraries button was not polling all libraries.
+    - Fix OPDS v2 manifest series link.
+    - Force OPDS v2 start link to reset filters and order
+    - Library server folder picker shows folder menu more consistently.
+- Features
+    - Select many mode in browser for browser actions.
+
 ## v1.10.2
 
 - Fixes

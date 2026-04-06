@@ -72,7 +72,7 @@ const config = defineConfig(({ mode }) => {
       vuetify({ autoImport: true }),
       checker({
         eslint: {
-          lintCommand: "eslint --cache .", // "./src/**/*.{js,vue}"',
+          lintCommand: "eslint_d --cache .", // "./src/**/*.{js,vue}"',
           useFlatConfig: true,
         },
       }),
