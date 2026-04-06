@@ -111,9 +111,10 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
           status: ${{ job.status }}
-          content: "Tests for ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'passed' || 'FAILED' }}"
+          title: Lint & Test
+          description: "Tests for ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'passed' || 'FAILED' }}"
+          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
           url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
@@ -230,7 +231,8 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
           status: ${{ job.status }}
-          content: "Deploy ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'succeeded' || 'FAILED' }}"
+          title: Deploy
+          description: "Deploy ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'succeeded' || 'FAILED' }}"
+          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
           url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
