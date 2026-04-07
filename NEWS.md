@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - Reset settings on OPDS start page more consistently.
-    - Attempt at better logging in general for webserver errors.
+    - More logging for webserver errors.
 
 ## v1.10.4-7 - Broken release
 
