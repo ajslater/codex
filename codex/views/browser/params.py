@@ -23,10 +23,6 @@ class BrowserParamsView(BrowserSettingsWriteView):
         super().__init__(*args, **kwargs)
         self._params: MappingProxyType[str, Any] | None = None
 
-    def set_params(self, params: Mapping) -> None:
-        """Manually set the params."""
-        self._params = MappingProxyType(params)
-
     def init_params(self) -> MutableMapping[str, Any]:
         """Get params from stored settings and request."""
         serializer = self.input_serializer_class(data=self.request.GET)
@@ -36,12 +32,28 @@ class BrowserParamsView(BrowserSettingsWriteView):
             params.update(serializer.validated_data)
         return params
 
+    def update_last_route(self, data: MutableMapping) -> None:
+        """Save last route to data."""
+        last_route = data.get("last_route", {})
+        last_route.update(
+            {
+                "group": self.kwargs.get("group", "r"),
+                "pks": self.kwargs.get("pks", (0,)),
+                "page": self.kwargs.get("page", 1),
+            }
+        )
+        data["last_route"] = last_route
+
+    def set_params(self, params: Mapping) -> None:
+        """Manually set the params."""
+        self._params = MappingProxyType(params)
+
     @property
     def params(self) -> MappingProxyType:
         """Validate submitted settings and apply them over the session settings."""
         if self._params is None:
             params = self.init_params()
-            self.save_last_route(params)
+            self.update_last_route(params)
             self.save_params_to_settings(params)
             self.set_order_by_default(params)
             self.set_params(params)
