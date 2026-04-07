@@ -53,14 +53,15 @@ class BrowserParamsView(BrowserSettingsWriteView):
     @property
     def params(self) -> MappingProxyType:
         """Validate submitted settings and apply them over the session settings."""
-        try:
-            if self._params is None:
+        if self._params is None:
+            try:
                 params = self.init_params()
                 self._update_last_route(params)
                 self.save_params_to_settings(params)
                 self.set_order_by_default(params)
                 self.set_params(params)
-            return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
-        except Exception as exc:
-            logger.exception(exc)
-            raise
+            except Exception as exc:
+                # for debugging if this goes awry
+                logger.exception(exc)
+                raise
+        return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]

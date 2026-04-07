@@ -135,12 +135,12 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             groups += self._create_group_from_group_spec(group_spec, paginate=paginate)
         return groups
 
-    def _get_top_groups(self):
+    def get_top_groups(self):
         """Top Nav Groups."""
         return self._create_group(TOP_GROUPS)
 
-    def _get_ordered_groups(self) -> list:
-        # Top Nav Groups
+    def get_ordered_groups(self) -> list:
+        """Ordered Publication Groups."""
         groups = []
         for group_spec in PREVIEW_GROUPS:
             # explode into individual groups
@@ -149,11 +149,12 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
                 groups += pub_section
         return groups
 
-    def _get_start_groups(self):
-        # Top Nav Groups
+    def get_start_groups(self):
+        """Start Groups."""
         return self._create_group(START_GROUPS)
 
-    def _get_groups(self, group_qs, book_qs, title: str, zero_pad: int):
+    def get_groups(self, group_qs, book_qs, title: str, zero_pad: int):
+        """Regular publication groups."""
         groups = []
 
         # Regular Groups
@@ -168,5 +169,6 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
         return groups
 
-    def _get_facets(self):
+    def get_facets(self):
+        """Facet Groups."""
         return self._create_group(FACETS)
