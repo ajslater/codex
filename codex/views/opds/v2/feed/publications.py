@@ -260,8 +260,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
             book_qs,
             zero_pad,
             link_spec.title,
-            "",
-            _PUBLICATION_PREVIEW_LIMIT,
-            link_spec,
+            items_per_page=_PUBLICATION_PREVIEW_LIMIT,
+            link_spec=link_spec,
             number_of_items=book_count,
         )

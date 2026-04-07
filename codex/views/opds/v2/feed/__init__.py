@@ -111,9 +111,9 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     ) -> tuple[tuple, tuple, tuple]:
         groups = []
         navigation = []
-        top_groups = self._get_top_groups()
+        top_groups = self.get_top_groups()
         if self.IS_START_PAGE:
-            groups += self._get_ordered_groups()
+            groups += self.get_ordered_groups()
             first_top_group = next(iter(top_groups), {})
             navigation = first_top_group.get("navigation", [])
             publications = []
@@ -121,14 +121,14 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             # Move the first group's navigation to become the feed navigation.
             # The feed navigation is titled "Browse"" in Stump
             zero_pad = zero_pad or 0
-            regular_groups = self._get_groups(group_qs, book_qs, title, zero_pad)
+            regular_groups = self.get_groups(group_qs, book_qs, title, zero_pad)
             first_regular_group = next(iter(regular_groups), {})
             navigation = first_regular_group.pop("navigation", [])
 
             groups += regular_groups
             groups += top_groups
-            groups += self._get_facets()
-            groups += self._get_start_groups()
+            groups += self.get_facets()
+            groups += self.get_start_groups()
 
             publications = first_regular_group.pop("publications", [])
         return tuple(navigation), tuple(groups), tuple(publications)
