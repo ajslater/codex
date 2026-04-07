@@ -1,5 +1,6 @@
 """Browser session view."""
 
+from collections.abc import MutableMapping
 from typing import override
 
 from drf_spectacular.utils import extend_schema
@@ -28,7 +29,7 @@ class BrowserSettingsReadView(SettingsReadView):
     FILTER_ARGS = BROWSER_FILTER_ARGS
     CREATE_ARGS = BROWSER_CREATE_ARGS
 
-    def set_order_by_default(self, params: dict) -> None:
+    def set_order_by_default(self, params: MutableMapping) -> None:
         """Set dynamic default for null order_by by group."""
         if params["order_by"]:
             return

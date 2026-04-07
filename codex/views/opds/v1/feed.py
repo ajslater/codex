@@ -1,6 +1,6 @@
 """OPDS v1 feed."""
 
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any, override
 
 from drf_spectacular.utils import extend_schema
@@ -164,10 +164,9 @@ class OPDS1StartView(OPDS1FeedView):
 
     IS_START_PAGE = True
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Reset all params."""
-        super().__init__(*args, **kwargs)
-        self.set_params(DEFAULT_PARAMS)
+    @override
+    def init_params(self) -> MutableMapping[str, Any]:
+        return dict(DEFAULT_PARAMS)
 
     @override
     @extend_schema(

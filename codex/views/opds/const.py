@@ -31,7 +31,7 @@ DEFAULT_PARAMS = MappingProxyType(
     {
         "top_group": "p",
         "filters": {
-            "bookmark": BookmarkFilters.NONE,
+            **BookmarkFilters.NONE,
             **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
         },
         "order_by": "sort_name",

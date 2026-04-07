@@ -131,14 +131,11 @@ workflows:
             branches:
               only:
                 - develop
-                - pre-release
                 - main
-                - /.*-ci/
       - build-base-arm64: &filters-release
           filters:
             branches:
               only:
-                - pre-release
                 - main
                 - /.*-ci/
       - test-and-build-dist-amd64:
