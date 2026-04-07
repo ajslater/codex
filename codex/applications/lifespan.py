@@ -6,7 +6,7 @@ from contextlib import suppress
 from loguru import logger
 
 from codex.signals.os_signals import bind_signals_to_loop
-from codex.startup.logger_init import init_logging
+from codex.startup.loguru import loguru_init
 from codex.websockets.listener import BroadcastListener
 
 
@@ -17,7 +17,7 @@ class LifespanApplication:
 
     def __init__(self, broadcast_queue) -> None:
         """Create logger and librarian."""
-        init_logging()
+        loguru_init()
         self.broadcast_queue = broadcast_queue
         self.broadcast_listener = BroadcastListener(logger, broadcast_queue)
         self.broadcast_listener_task = None

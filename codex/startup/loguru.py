@@ -20,7 +20,7 @@ def _log_format() -> str:
     return fmt
 
 
-def init_logging() -> None:
+def loguru_init() -> None:
     """Initialize loguru sinks."""
     logger.level("DEBUG", color="<light-black>")
     logger.level("INFO", color="<white>")

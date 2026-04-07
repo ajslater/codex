@@ -27,6 +27,7 @@ from codex.settings.config import (
     get_str,
     load_codex_config,
 )
+from codex.settings.logging import get_logging_settings
 from codex.settings.secret_key import get_secret_key
 from codex.settings.servestatic import immutable_file_test
 from codex.settings.timezone import get_time_zone
@@ -208,40 +209,11 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+
 ###########
 # Logging #
 ###########
-
-
-def _get_logging() -> dict[str, int | dict]:
-    loggers = {
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": True,
-        },
-    }
-    if LOGLEVEL != "TRACE":
-        loggers.update(
-            {
-                "asyncio": {
-                    "level": "INFO",
-                },
-            }
-        )
-    if not DEBUG:
-        loggers.update(
-            {
-                "urllib3.connectionpool": {"level": "INFO"},
-                "PIL": {
-                    "level": "INFO",
-                },
-            }
-        )
-    return {"version": 1, "loggers": loggers}
-
-
-LOGGING = _get_logging()
+LOGGING = get_logging_settings(LOGLEVEL, debug=DEBUG)
 
 ######################
 # Installed Apps     #
