@@ -214,7 +214,13 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 def _get_logging() -> dict[str, int | dict]:
-    loggers = {}
+    loggers = {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+    }
     if LOGLEVEL != "TRACE":
         loggers.update(
             {
