@@ -60,7 +60,7 @@ class BrowserParamsView(BrowserSettingsWriteView):
                 self.save_params_to_settings(params)
                 self.set_order_by_default(params)
                 self.set_params(params)
-            return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
+            return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type] # noqa: TRY300
         except Exception as exc:
             logger.exception(exc)
             raise
