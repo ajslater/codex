@@ -243,8 +243,8 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 params[snakecase(key)] = value
-        params["show"].update({"p": True, "s": True})  # pyright: ignore[reportCallIssue,reportAttributeAccessIssue,reportArgumentType]
-        params["limit"] = _PUBLICATION_PREVIEW_LIMIT  # pyright: ignore[reportArgumentType]
+        params["show"].update({"p": True, "s": True})  # pyright: ignore[reportCallIssue,reportAttributeAccessIssue,reportArgumentType], # ty: ignore[unresolved-attribute]
+        params["limit"] = _PUBLICATION_PREVIEW_LIMIT  # pyright: ignore[reportArgumentType], # ty:ignore[invalid-assignment]
 
         feed_view.set_params(params)
         return feed_view
