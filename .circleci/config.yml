@@ -130,14 +130,12 @@ workflows:
           filters:
             branches:
               only:
-                - develop
                 - main
       - build-base-arm64: &filters-release
           filters:
             branches:
               only:
                 - main
-                - /.*-ci/
       - test-and-build-dist-amd64:
           <<: *filters-all
           requires:
