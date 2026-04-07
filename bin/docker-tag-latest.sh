@@ -31,6 +31,7 @@ docker buildx imagetools create \
   --tag "$REGISTRY/$IMAGE_NAME:$TARGET_TAG" \
   "$REGISTRY/$IMAGE_NAME:$SOURCE_TAG"
 
+# shellcheck disable=SC2181
 if [ $? -eq 0 ]; then
   echo "Successfully updated $TARGET_TAG"
 else
