@@ -4,6 +4,8 @@ from collections.abc import Mapping, MutableMapping
 from types import MappingProxyType
 from typing import Any
 
+from loguru import logger
+
 from codex.serializers.browser.settings import (
     BrowserSettingsSerializer,
     BrowserSettingsSerializerBase,
@@ -32,7 +34,7 @@ class BrowserParamsView(BrowserSettingsWriteView):
             params.update(serializer.validated_data)
         return params
 
-    def update_last_route(self, data: MutableMapping) -> None:
+    def _update_last_route(self, data: MutableMapping) -> None:
         """Save last route to data."""
         last_route = data.get("last_route", {})
         last_route.update(
@@ -51,10 +53,14 @@ class BrowserParamsView(BrowserSettingsWriteView):
     @property
     def params(self) -> MappingProxyType:
         """Validate submitted settings and apply them over the session settings."""
-        if self._params is None:
-            params = self.init_params()
-            self.update_last_route(params)
-            self.save_params_to_settings(params)
-            self.set_order_by_default(params)
-            self.set_params(params)
-        return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
+        try:
+            if self._params is None:
+                params = self.init_params()
+                self._update_last_route(params)
+                self.save_params_to_settings(params)
+                self.set_order_by_default(params)
+                self.set_params(params)
+            return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
+        except Exception as exc:
+            logger.exception(exc)
+            raise
