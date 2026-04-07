@@ -6,14 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.10.6
+## v1.10.7
 
 - Fixes
     - Reset settings on OPDS start page more consistently.
 
-## v1.10.5 - Broken release
-
-## v1.10.4 - Broken release
+## v1.10.4-6 - Broken release
 
 ## v1.10.3
 
