@@ -22,7 +22,7 @@ fi
 
 # 1. Log in to registry
 echo "Logging in to $REGISTRY..."
-echo "$DOCKER_PASSWORD" | docker login "$REGISTRY" -u "$DOCKER_USER" --password-stdin
+echo "$DOCKER_PASS" | docker login "$REGISTRY" -u "$DOCKER_USER" --password-stdin
 
 # 2. Retag the multi-arch image
 # This creates a new manifest on the registry side without downloading image layers
@@ -31,6 +31,7 @@ docker buildx imagetools create \
   --tag "$REGISTRY/$IMAGE_NAME:$TARGET_TAG" \
   "$REGISTRY/$IMAGE_NAME:$SOURCE_TAG"
 
+# shellcheck disable=SC2181
 if [ $? -eq 0 ]; then
   echo "Successfully updated $TARGET_TAG"
 else
