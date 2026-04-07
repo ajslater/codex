@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/usr/env bash
 # Convenience script for running django manage tasks with uv
 set -euo pipefail
 export PYTHONPATH=.
