@@ -14,9 +14,9 @@ IMAGE_NAME=$2
 SOURCE_TAG=$3
 TARGET_TAG="latest"
 
-# Ensure GITHUB_TOKEN and GITHUB_USER are set in your environment
-if [[ -z "$GITHUB_TOKEN" || -z "$GITHUB_USER" ]]; then
-  echo "Error: GITHUB_TOKEN and GITHUB_USER environment variables must be set."
+# Ensure DOCKER_PASS and DOCKER_USER are set in your environment
+if [[ -z "$DOCKER_PASS" || -z "$DOCKER_USER" ]]; then
+  echo "Error: DOCKER_PASS and DOCKER_USER environment variables must be set."
   exit 1
 fi
 

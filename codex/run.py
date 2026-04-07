@@ -23,7 +23,7 @@ from codex.settings import (
 )
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
-from codex.startup.logger_init import init_logging
+from codex.startup.loguru import loguru_init
 from codex.version import PACKAGE_NAME, VERSION
 from codex.websockets.mp_queue import BROADCAST_QUEUE
 
@@ -112,7 +112,7 @@ def main() -> None:
     """Set up and run Codex."""
     logger.debug(f"Starting {PACKAGE_NAME}")
     setproctitle(PACKAGE_NAME)
-    init_logging()
+    loguru_init()
     if codex_startup():
         run()
     codex_shutdown()
