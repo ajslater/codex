@@ -9,6 +9,7 @@ __pycache__
 .DS_Store
 .env*
 .eslintcache
+.ghrc-token
 .git
 .mypy_cache
 .picopt_timestamp

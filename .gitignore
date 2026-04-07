@@ -15,6 +15,7 @@ __snapshots__
 .env.package
 .env.pushover
 .eslintcache
+.ghrc-token
 .hypothesis/
 .installed.cfg
 .ipynb_checkpoints
