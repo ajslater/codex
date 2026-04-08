@@ -57,7 +57,7 @@ export const useBrowserStore = defineStore("browser", {
       breadcrumbs: [],
       customCovers: BROWSER_DEFAULTS.customCovers,
       dynamicCovers: BROWSER_DEFAULTS.dynamicCovers,
-      filters: {},
+      filters: BROWSER_DEFAULTS.filters,
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
       q: BROWSER_DEFAULTS.q,
@@ -446,14 +446,14 @@ export const useBrowserStore = defineStore("browser", {
       });
       await this.loadBrowserPage(undefined, true);
     },
-    async clearFilters(clearSearch = false) {
+    async clearFilters(clearAll = false) {
       this.$patch((state) => {
-        state.settings.filters = { bookmark: "" };
+        state.settings.filters = BROWSER_DEFAULTS.filters;
         state.filterMode = "base";
-        if (clearSearch) {
-          state.settings.q = "";
-          state.settings.orderBy = "sort_name";
-          state.settings.orderReverse = false;
+        if (clearAll) {
+          state.settings.q = BROWSER_DEFAULTS.q;
+          state.settings.orderBy = BROWSER_DEFAULTS.orderBy;
+          state.settings.orderReverse = BROWSER_DEFAULTS.orderReverse;
         }
         state.browserPageLoaded = true;
       });

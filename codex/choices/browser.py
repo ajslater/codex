@@ -4,6 +4,8 @@ from types import MappingProxyType
 
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 
+from codex.views.browser.const import BROWSER_FILTER_KEYS
+
 BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
     {
         "": "All",
@@ -63,7 +65,12 @@ BROWSER_CHOICES = MappingProxyType(
 
 DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
 _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
-_DEFAULT_FILTERS = MappingProxyType({"bookmark": ""})
+_DEFAULT_FILTERS = MappingProxyType(
+    {
+        "bookmark": "",
+        **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
+    }
+)
 BROWSER_DEFAULTS = MappingProxyType(
     {
         "custom_covers": True,
