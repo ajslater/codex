@@ -6,13 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.10.7
+## v1.10.8
 
 - Fixes
     - Reset settings on OPDS start page more consistently.
-    - Attempt at better logging in general for webserver errors.
+    - More logging for webserver errors.
+    - There's a jump in version numbers because the production build process was
+      broken.
 
-## v1.10.4-6 - Broken release
+## v1.10.4-7 - Broken releases
 
 ## v1.10.3
 

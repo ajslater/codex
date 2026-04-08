@@ -72,10 +72,13 @@ jobs:
         if: steps.gate.outputs.identical != 'true'
         run: docker exec codex-ci make lint
 
+      - name: Build for Tests & Dist
+        run: docker exec codex-ci make build-choices build-frontend collectstatic
+
       - name: Tests
         id: tests
         if: steps.gate.outputs.identical != 'true'
-        run: docker exec codex-ci make build-choices test-frontend build-frontend collectstatic django-check test-python
+        run: docker exec codex-ci make test-frontend django-check test-python -o build-choices
 
       - name: Build Distribution
         run: docker exec codex-ci make build-only
@@ -97,7 +100,7 @@ jobs:
         if: "!cancelled() && steps.upload-tests.outcome == 'success'"
         uses: mikepenz/action-junit-report@v6
         with:
-          report_paths: "**/test-results/*.xml"
+          report_paths: "**/test-results/pytest/*.xml"
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v7

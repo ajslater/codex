@@ -13,6 +13,12 @@ fix::
 lint::
 	uv run --group lint djlint --lint **/templates/**/*.html
 
+.PHONY: django-check
+## Django check
+## @category Test
+django-check:
+	bin/pm check
+
 .PHONY: dev-server
 ## Run the dev webserver
 ## @category Serve
@@ -30,12 +36,6 @@ dev-prod-server: build-frontend collectstatic
 ## @category Build
 collectstatic: build-icons build-frontend
 	bin/collectstatic.sh
-
-.PHONY: django-check
-## Django check
-## @category Build
-django-check:
-	bin/pm check
 
 .PHONY: build-only
 ## Build python package
