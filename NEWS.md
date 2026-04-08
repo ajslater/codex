@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.9
+
+- Fixes
+    - Fix browser settings not clearing with clear button.
+    - Fix search settings not clearing on OPDS start page.
+
 ## v1.10.8
 
 - Fixes
