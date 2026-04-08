@@ -8,7 +8,8 @@ on:
     branches: [main, develop]
 
 env:
-  IMAGE: ghcr.io/ajslater/codex
+  IMAGE: ghcr.io/${{ github.repository }}
+  BUILDER_IMAGE: ghcr.io/${{ github.repository }}/cache:dist-builder-amd64
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 concurrency:
@@ -60,8 +61,8 @@ jobs:
           target: dist-builder
           load: true
           tags: dist-builder:ci
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache:dist-builder-amd64
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache:dist-builder-amd64,mode=max
+          cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}:dist-builder-amd64
+          cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }}:dist-builder-amd64,mode=max
 
       - name: Start Services
         run: |
@@ -107,7 +108,7 @@ jobs:
         with:
           name: python-dist
           path: dist/
-          retention-days: 1
+          retention-days: 2
 
       - name: Discord notification (Test Results)
         if: "!cancelled() && steps.gate.outputs.identical != 'true'"
