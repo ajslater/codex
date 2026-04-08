@@ -60,8 +60,8 @@ jobs:
           target: dist-builder
           load: true
           tags: dist-builder:ci
-          cache-from: type=gha,scope=dist-builder-amd64
-          cache-to: type=gha,scope=dist-builder-amd64,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache:dist-builder-amd64
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache:dist-builder-amd64,mode=max
 
       - name: Start Services
         run: |
