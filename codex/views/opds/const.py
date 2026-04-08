@@ -37,6 +37,7 @@ DEFAULT_PARAMS = MappingProxyType(
         "order_by": "sort_name",
         "order_reverse": False,
         "show": {"p": True, "s": True},
+        "q": "",
     }
 )
 
