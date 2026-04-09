@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from codex.serializers.settings import SettingsInputSerializer
 from codex.views.settings.base import SettingsWriteView
+from codex.views.settings.const import NULL_VALUES
 
 
 class SettingsView(SettingsWriteView, ABC):
@@ -17,7 +18,6 @@ class SettingsView(SettingsWriteView, ABC):
     # When True, null and empty values are stripped from PATCH data
     # so that existing settings are never blanked out.
     REJECT_NULL_UPDATES: bool = False
-    _NULL_VALUES: frozenset = frozenset(("", None))
 
     def validate_settings_get(self, validated_data, params: dict) -> dict:  # noqa: ARG002
         """Change bad settings."""
@@ -43,7 +43,7 @@ class SettingsView(SettingsWriteView, ABC):
         serializer.is_valid(raise_exception=True)
         updates = serializer.validated_data
         if self.REJECT_NULL_UPDATES:
-            updates = {k: v for k, v in updates.items() if v not in self._NULL_VALUES}
+            updates = {k: v for k, v in updates.items() if v not in NULL_VALUES}
         params = self.load_params_from_settings()
         params.update(updates)
         self.save_params_to_settings(params)

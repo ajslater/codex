@@ -17,6 +17,7 @@ from codex.serializers.reader import (
 from codex.views.auth import AuthGenericAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings.base import SettingsReadView, SettingsWriteView
+from codex.views.settings.const import NULL_VALUES
 
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
 # "g" = global (no FK).  "c" = comic.
@@ -36,7 +37,6 @@ SCOPE_MAP = MappingProxyType(
 
 _GLOBAL_SCOPE = "g"
 _COMIC_SCOPE = "c"
-_NULL_VALUES = frozenset(("", None))
 
 
 class ReaderSettingsReadView(SettingsReadView):
@@ -225,7 +225,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
 
         if scope == _GLOBAL_SCOPE:
             # Reject null/blank updates for global to preserve defaults.
-            data = {k: v for k, v in data.items() if v not in _NULL_VALUES}
+            data = {k: v for k, v in data.items() if v not in NULL_VALUES}
             instance = self._get_global_settings()
         else:
             if not scope_pk:
