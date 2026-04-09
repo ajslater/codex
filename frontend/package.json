@@ -37,7 +37,7 @@
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/test-utils": "^2.2.1",
     "@vue/typescript-plugin": "^3.0.1",
-    "happy-dom": "^18.0.1",
+    "happy-dom": "^20.8.9",
     "sass": "^1.55.0",
     "sass-loader": "^16.0",
     "toml": "^4.0.1",

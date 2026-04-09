@@ -38,53 +38,62 @@ jobs:
           # Only fetch full history for the main push gate
           fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
 
-      - name: Check for Redundant Tests
+      - name: Check for Redundant Tests & Existing Dist
         id: gate
         if: github.ref_name == 'main' && github.event_name == 'push'
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SOURCE_BRANCH=$(gh pr list --state merged --limit 1 --json headRefName --template '{{range .}}{{.headRefName}}{{end}}')
-          if [ -n "$SOURCE_BRANCH" ]; then
-            git fetch origin "$SOURCE_BRANCH" --depth=1
-            if git diff --quiet HEAD "origin/$SOURCE_BRANCH"; then
-              echo "identical=true" >> "$GITHUB_OUTPUT"
-            fi
-          fi
+        run: bin/ci-download-dist-if-identical.sh
 
-      - uses: docker/setup-buildx-action@v4
+      - name: Set up Docker Buildx
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build dist-builder image
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: dist-builder
+          target: codex-dist-builder
           load: true
-          tags: dist-builder:ci
+          tags: codex-dist-builder:ci
           cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}:dist-builder-amd64
           cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }}:dist-builder-amd64,mode=max
 
       - name: Start Services
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         run: |
           mkdir -p dist test-results
           docker compose up -d ci
 
       - name: Lint
-        if: steps.gate.outputs.identical != 'true'
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         run: docker exec codex-ci make lint
 
       - name: Build for Tests & Dist
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         run: docker exec codex-ci make build-choices build-frontend collectstatic
 
       - name: Tests
         id: tests
-        if: steps.gate.outputs.identical != 'true'
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         run: docker exec codex-ci make test-frontend django-check test-python -o build-choices
 
       - name: Build Distribution
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         run: docker exec codex-ci make build-only
 
       - name: Stop Services
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         run: |
           touch .env.package # hack because down is too promiscuous 
           docker compose down ci
@@ -111,7 +120,7 @@ jobs:
           retention-days: 2
 
       - name: Discord notification (Test Results)
-        if: "!cancelled() && steps.gate.outputs.identical != 'true'"
+        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
