@@ -22,10 +22,13 @@ from codex.views.settings.const import NULL_VALUES
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
 # "g" = global (no FK).  "c" = comic.
 # p/i/s/v all resolve to series scope.  "f" = folder.  "a" = story_arc.
-SCOPE_MAP = MappingProxyType(
+#
+_GLOBAL_SCOPE = "g"
+_COMIC_SCOPE = "c"
+_SCOPE_MAP = MappingProxyType(
     {
-        "g": (None, None, None),
-        "c": ("comic_id", None, None),
+        _GLOBAL_SCOPE: (None, None, None),
+        _COMIC_SCOPE: ("comic_id", None, None),
         "p": ("series_id", "series_id", Series),
         "i": ("series_id", "series_id", Series),
         "s": ("series_id", "series_id", Series),
@@ -34,9 +37,6 @@ SCOPE_MAP = MappingProxyType(
         "a": ("story_arc_id", None, StoryArc),
     }
 )
-
-_GLOBAL_SCOPE = "g"
-_COMIC_SCOPE = "c"
 
 
 class ReaderSettingsReadView(SettingsReadView):
@@ -148,7 +148,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         return None
 
     def _get_scope(self, scope, scopes_out, comic, scope_info) -> None:
-        config = SCOPE_MAP.get(scope)
+        config = _SCOPE_MAP.get(scope)
         if config is None:
             return
         fk_field, comic_fk, model = config
@@ -191,7 +191,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         comic: Comic | None = None
         needed_comic_fks = set()
         for scope in requested:
-            config = SCOPE_MAP.get(scope)
+            config = _SCOPE_MAP.get(scope)
             if config and config[1]:
                 needed_comic_fks.add(config[1])
         if needed_comic_fks and comic_pk:
@@ -219,7 +219,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         scope = data.pop("scope")
         scope_pk = data.pop("scope_pk", None)
 
-        config = SCOPE_MAP.get(scope)
+        config = _SCOPE_MAP.get(scope)
         if config is None:
             raise ValidationError({"scope": f"Invalid scope: {scope}"})
 
