@@ -21,7 +21,7 @@
       :eager="eager(book.pk)"
       :value="book.pk"
       :transition="transition"
-      :reverse-transitin="transition"
+      :reverse-transition="transition"
     >
       <Pager :book="book" @click="click" />
     </v-window-item>
