@@ -52,6 +52,9 @@ class ReaderSettingsReadView(SettingsReadView):
             "story_arc__isnull": True,
         }
     )
+    CREATE_ARGS = MappingProxyType(
+        {"comic": None, "series": None, "folder": None, "story_arc": None}
+    )
 
 
 class ReaderSettingsWriteView(ReaderSettingsReadView, SettingsWriteView):
@@ -85,16 +88,18 @@ class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
 
     def _get_global_settings(self) -> SettingsReader:
         """Get or create the global reader settings row."""
-        lookup = self._get_settings_lookup(
-            comic__isnull=True,
-            series__isnull=True,
-            folder__isnull=True,
-            story_arc__isnull=True,
-        )
-        instance = SettingsReader.objects.filter(**lookup).first()
+        base_lookup = self._get_settings_lookup()
+        filter_kwargs = {
+            **base_lookup,
+            **ReaderSettingsReadView.FILTER_ARGS,
+        }
+
+        instance = SettingsReader.objects.filter(**filter_kwargs).first()
         if instance is not None:
             return instance
-        return SettingsReader.objects.create(**lookup)
+        return SettingsReader.objects.create(
+            **base_lookup, **ReaderSettingsReadView.CREATE_ARGS
+        )
 
     def _get_scoped_settings(self, scope_fk_field: str, scope_pk: int):
         """Get a scoped SettingsReader row or None."""
