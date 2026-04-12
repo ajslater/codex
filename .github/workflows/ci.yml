@@ -66,8 +66,9 @@ jobs:
           target: codex-dist-builder
           load: true
           tags: codex-dist-builder:ci
-          cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}:dist-builder-amd64
-          cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }}:dist-builder-amd64,mode=max
+
+          cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}
+          cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }},mode=max
 
       - name: Start Services
         if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
