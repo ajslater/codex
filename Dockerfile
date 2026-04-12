@@ -2,12 +2,12 @@
 # Multi-stage Dockerfile for Codex CI and production
 #
 # Targets:
-#   dist-builder  – CI image with all deps + source (lint, test, build wheel)
+#   codex-ci      – CI image with all deps + source (lint, test, build wheel)
 #   final         – Slim production image (default)
 #
 # Usage:
-#   CI:    docker build --target dist-builder -t dist-builder:ci .
-#          docker run dist-builder:ci make lint
+#   CI:    docker build --target codex-ci -t codex-ci:ci .
+#          docker run codex-ci:ci make lint
 #   Prod:  docker build --build-arg CODEX_WHEEL=codex-X.Y.Z-py3-none-any.whl \
 #            --build-arg CODEX_VERSION=X.Y.Z .
 ###############################################################################
@@ -68,8 +68,8 @@ WORKDIR /app
 # hadolint ignore=DL3013,DL3042
 RUN pip3 install --no-cache --upgrade pip
 
-# ---- Stage 3: dist-builder (all deps + source for CI) ---------------------
-FROM builder AS dist-builder
+# ---- Stage 3: codex-ci (all deps + source for CI) -------------------------
+FROM builder AS codex-ci
 
 # hadolint ignore=DL3008
 RUN apt-get clean \

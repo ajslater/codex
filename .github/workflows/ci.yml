@@ -29,7 +29,7 @@ jobs:
       (github.base_ref == 'develop' && github.head_ref == 'pre-release')
     permissions:
       contents: read
-      packages: read
+      packages: write
       checks: write
     steps:
       - name: Checkout
@@ -47,11 +47,11 @@ jobs:
         run: bin/ci-download-dist-if-identical.sh
 
       - name: Set up Docker Buildx
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        if: steps.gate.outputs.dist_found != 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        if: steps.gate.outputs.dist_found != 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -59,7 +59,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build dist-builder image
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        id: build-ci
+        if: steps.gate.outputs.dist_found != 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -71,33 +72,26 @@ jobs:
           cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }},mode=max
 
       - name: Start Services
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        id: start-services
+        if: steps.build-ci.outcome == 'success'
         run: |
           mkdir -p dist test-results
           docker compose up -d ci
 
       - name: Lint
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        id: lint
+        if: steps.start-services.outcome == 'success'
         run: docker exec codex-ci make lint
 
       - name: Build for Tests & Dist
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        id: build-for-tests
+        if: steps.lint.outcome == 'success'
         run: docker exec codex-ci make build-choices build-frontend collectstatic
 
       - name: Tests
         id: tests
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        if: steps.build-for-tests.outcome == 'success'
         run: docker exec codex-ci make test-frontend django-check test-python -o build-choices
-
-      - name: Build Distribution
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
-        run: docker exec codex-ci make build-only
-
-      - name: Stop Services
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
-        run: |
-          touch .env.package # hack because down is too promiscuous 
-          docker compose down ci
 
       - name: Upload Test Results
         id: upload-tests
@@ -113,7 +107,19 @@ jobs:
         with:
           report_paths: "**/test-results/pytest/*.xml"
 
+      - name: Build Distribution
+        id: build-dist
+        if: steps.tests.outcome == 'success'
+        run: docker exec codex-ci make build-only
+
+      - name: Stop Services
+        if: steps.start-services.outcome == 'success'
+        run: |
+          touch .env.package # hack because down is too promiscuous
+          docker compose down ci
+
       - name: Upload dist artifact
+        if: "!cancelled() && steps.gate.output.dist_found == 'true' or steps.build-dist.outcome =='success'"
         uses: actions/upload-artifact@v7
         with:
           name: python-dist
@@ -121,7 +127,7 @@ jobs:
           retention-days: 2
 
       - name: Discord notification (Test Results)
-        if: "!cancelled() && steps.gate.outputs.dist_found != 'true'"
+        if: "!cancelled()"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
