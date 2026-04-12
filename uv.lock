@@ -555,7 +555,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.2.2"
+version = "2.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -584,9 +584,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ed/4d/efa119d4758956710398525e2dfad2a2afad3c8e0f5a4ceafb671a2a1559/comicbox-2.2.2.tar.gz", hash = "sha256:9af0a9edba188950e947371667ae17ab26025544e17e0e0e8ba743fd8d508e31", size = 71173602, upload-time = "2026-04-01T04:52:40.704Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/5d/22514707b0f71e8612fc15d159c938bb95322ef02e4b367f0bea1aef2c1d/comicbox-2.2.3.tar.gz", hash = "sha256:8cf3cf0592025fb95c6b6d2a42772653211a98e8af3bb261ff24cf13cebedc6c", size = 71174938, upload-time = "2026-04-12T20:02:27.104Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/7a/3beb54aedfcb0a84f0089f7187870c59d795f8a5c99f8c8700e1fe417cab/comicbox-2.2.2-py3-none-any.whl", hash = "sha256:e1e2d645776ef083fb65ee6f9f86ef5ee4edec3c3fd29ee243c76b62d7f04303", size = 179674, upload-time = "2026-04-01T04:52:37.437Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/ad/339a82edbb696576cad9b829ad63e5ec8f2888ead6bfabfc1f6638f4edb7/comicbox-2.2.3-py3-none-any.whl", hash = "sha256:da969a9cc134598c803532df3bfb387362f8796a5e3b962d0fc456d0c1adb37f", size = 179675, upload-time = "2026-04-12T20:02:23.768Z" },
 ]
 
 [package.optional-dependencies]
@@ -1225,11 +1225,11 @@ wheels = [
 
 [[package]]
 name = "importlib-resources"
-version = "6.5.2"
+version = "7.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cf/8c/f834fbf984f691b4f7ff60f50b514cc3de5cc08abfc3295564dd89c5e2e7/importlib_resources-6.5.2.tar.gz", hash = "sha256:185f87adef5bcc288449d98fb4fba07cea78bc036455dd44c5fc4a2fe78fed2c", size = 44693, upload-time = "2025-01-03T18:51:56.698Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/06/b56dfa750b44e86157093bc8fca0ab81dccbf5260510de4eaf1cb69b5b99/importlib_resources-7.1.0.tar.gz", hash = "sha256:0722d4c6212489c530f2a145a34c0a7a3b4721bc96a15fada5930e2a0b760708", size = 44985, upload-time = "2026-04-12T16:36:09.232Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/ed/1f1afb2e9e7f38a545d628f864d562a5ae64fe6f7a10e28ffb9b185b4e89/importlib_resources-6.5.2-py3-none-any.whl", hash = "sha256:789cfdc3ed28c78b67a06acb8126751ced69a3d5f79c095a98298cd8a760ccec", size = 37461, upload-time = "2025-01-03T18:51:54.306Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/db/55a262f3606bebcae07cc14095338471ad7c0bbcaa37707e6f0ee49725b7/importlib_resources-7.1.0-py3-none-any.whl", hash = "sha256:1bd7b48b4088eddb2cd16382150bb515af0bd2c70128194392725f82ad2c96a1", size = 37232, upload-time = "2026-04-12T16:36:08.219Z" },
 ]
 
 [[package]]
@@ -1541,11 +1541,11 @@ wheels = [
 
 [[package]]
 name = "marshmallow"
-version = "4.2.4"
+version = "4.3.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/72/31/484ad430fa99de2ec4ed8c374578efcf36f42fbc7c7f91c76ef0a64fcbd0/marshmallow-4.2.4.tar.gz", hash = "sha256:1ab9c798651b9048d127969d9423a0e47510e34100df1d3e24c9d5b6cdc26a86", size = 223104, upload-time = "2026-04-02T13:10:31.893Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/7e/1dbd4096eb7c148cd2841841916f78820bb85a4d80a0c25c02d30815a7fb/marshmallow-4.3.0.tar.gz", hash = "sha256:fb43c53b3fe240b8f6af37223d6ef1636f927ad9bea8ab323afad95dff090880", size = 224485, upload-time = "2026-04-03T21:46:32.72Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/df/7d6d6625ec822d5adf05b55a1a0f53e2f03627c6e841ea5655310b8fda22/marshmallow-4.2.4-py3-none-any.whl", hash = "sha256:06f3a7ec7081e54e8026a8bd5e7c4e0e88bff82a8fa33714a33166917f2b353a", size = 48737, upload-time = "2026-04-02T13:10:30.206Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/e0/ff24e25218bb59eb6290a530cea40651b14068b6e3659b20f9c175179632/marshmallow-4.3.0-py3-none-any.whl", hash = "sha256:46c4fe6984707e3cbd485dfebbf0a59874f58d695aad05c1668d15e8c6e13b46", size = 49148, upload-time = "2026-04-03T21:46:31.241Z" },
 ]
 
 [[package]]
@@ -2528,15 +2528,15 @@ wheels = [
 
 [[package]]
 name = "rich"
-version = "14.3.3"
+version = "15.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b3/c6/f3b320c27991c46f43ee9d856302c70dc2d0fb2dba4842ff739d5f46b393/rich-14.3.3.tar.gz", hash = "sha256:b8daa0b9e4eef54dd8cf7c86c03713f53241884e814f4e2f5fb342fe520f639b", size = 230582, upload-time = "2026-02-19T17:23:12.474Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/25/b208c5683343959b670dc001595f2f3737e051da617f66c31f7c4fa93abc/rich-14.3.3-py3-none-any.whl", hash = "sha256:793431c1f8619afa7d3b52b2cdec859562b950ea0d4b6b505397612db8d5362d", size = 310458, upload-time = "2026-02-19T17:23:13.732Z" },
+    { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
 ]
 
 [[package]]
@@ -2925,16 +2925,16 @@ wheels = [
 
 [[package]]
 name = "treestamps"
-version = "2.5.1"
+version = "2.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ruamel-yaml" },
     { name = "termcolor" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/57/34/ecb2f42bc17f14301ab2eff371c480df5a063f50d1ca88d90a8960d7ccef/treestamps-2.5.1.tar.gz", hash = "sha256:3dd61e368542ee7e99f97f208aa55949afd485abe6d7124bb4621e60af449318", size = 180816, upload-time = "2026-04-10T02:20:45.704Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/8b/c3e94203d1a72ebd2f6d4e1a0094faebae4c54ea5bf2c29b73527b3c2dfe/treestamps-2.5.3.tar.gz", hash = "sha256:bf9ba859dae25e35b317bd94e498411b6b4a03919a9b767e8b7ce55ebcb2084c", size = 181140, upload-time = "2026-04-12T05:11:48.166Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/92/2c/8920151517d1eac794d55cddde88b04e90a79f67b4750b1bfd091f992d12/treestamps-2.5.1-py3-none-any.whl", hash = "sha256:f6a105e0bac38a032d2faf1b02d28b1eacf30fb2bdebb12029990f0b8c1e1e48", size = 15269, upload-time = "2026-04-10T02:20:44.491Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/54/6f0e7bfb1b620151dccfd59682cb8c6774ad3337b74f19d1c8dd26cafade/treestamps-2.5.3-py3-none-any.whl", hash = "sha256:3c144fd4064887ee27d07c8fe995b13024600a1fd5cbb5c16d3f9c9ba8f6377a", size = 15443, upload-time = "2026-04-12T05:11:47.277Z" },
 ]
 
 [[package]]
