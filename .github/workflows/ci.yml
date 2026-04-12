@@ -9,7 +9,7 @@ on:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
-  BUILDER_IMAGE: ghcr.io/${{ github.repository }}/cache:dist-builder-amd64
+  BUILDER_IMAGE: ghcr.io/${{ github.repository }}/cache:ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 concurrency:
@@ -63,9 +63,9 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: codex-dist-builder
+          target: codex-ci
           load: true
-          tags: codex-dist-builder:ci
+          tags: codex-ci:ci
 
           cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}
           cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }},mode=max
