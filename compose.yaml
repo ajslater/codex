@@ -2,8 +2,8 @@ services:
   ci:
     build:
       context: .
-      target: dist-builder
-    image: dist-builder:ci
+      target: codex-ci
+    image: codex-ci:ci
     container_name: codex-ci
     volumes:
       - ./test-results:/app/test-results

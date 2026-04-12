@@ -17,14 +17,18 @@ from codex.serializers.reader import (
 from codex.views.auth import AuthGenericAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings.base import SettingsReadView, SettingsWriteView
+from codex.views.settings.const import NULL_VALUES
 
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
 # "g" = global (no FK).  "c" = comic.
 # p/i/s/v all resolve to series scope.  "f" = folder.  "a" = story_arc.
-SCOPE_MAP = MappingProxyType(
+#
+_GLOBAL_SCOPE = "g"
+_COMIC_SCOPE = "c"
+_SCOPE_MAP = MappingProxyType(
     {
-        "g": (None, None, None),
-        "c": ("comic_id", None, None),
+        _GLOBAL_SCOPE: (None, None, None),
+        _COMIC_SCOPE: ("comic_id", None, None),
         "p": ("series_id", "series_id", Series),
         "i": ("series_id", "series_id", Series),
         "s": ("series_id", "series_id", Series),
@@ -33,10 +37,6 @@ SCOPE_MAP = MappingProxyType(
         "a": ("story_arc_id", None, StoryArc),
     }
 )
-
-_GLOBAL_SCOPE = "g"
-_COMIC_SCOPE = "c"
-_NULL_VALUES = frozenset(("", None))
 
 
 class ReaderSettingsReadView(SettingsReadView):
@@ -51,6 +51,9 @@ class ReaderSettingsReadView(SettingsReadView):
             "folder__isnull": True,
             "story_arc__isnull": True,
         }
+    )
+    CREATE_ARGS = MappingProxyType(
+        {"comic": None, "series": None, "folder": None, "story_arc": None}
     )
 
 
@@ -85,16 +88,18 @@ class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
 
     def _get_global_settings(self) -> SettingsReader:
         """Get or create the global reader settings row."""
-        lookup = self._get_settings_lookup(
-            comic__isnull=True,
-            series__isnull=True,
-            folder__isnull=True,
-            story_arc__isnull=True,
-        )
-        instance = SettingsReader.objects.filter(**lookup).first()
+        base_lookup = self._get_settings_lookup()
+        filter_kwargs = {
+            **base_lookup,
+            **ReaderSettingsReadView.FILTER_ARGS,
+        }
+
+        instance = SettingsReader.objects.filter(**filter_kwargs).first()
         if instance is not None:
             return instance
-        return SettingsReader.objects.create(**lookup)
+        return SettingsReader.objects.create(
+            **base_lookup, **ReaderSettingsReadView.CREATE_ARGS
+        )
 
     def _get_scoped_settings(self, scope_fk_field: str, scope_pk: int):
         """Get a scoped SettingsReader row or None."""
@@ -148,7 +153,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         return None
 
     def _get_scope(self, scope, scopes_out, comic, scope_info) -> None:
-        config = SCOPE_MAP.get(scope)
+        config = _SCOPE_MAP.get(scope)
         if config is None:
             return
         fk_field, comic_fk, model = config
@@ -191,7 +196,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         comic: Comic | None = None
         needed_comic_fks = set()
         for scope in requested:
-            config = SCOPE_MAP.get(scope)
+            config = _SCOPE_MAP.get(scope)
             if config and config[1]:
                 needed_comic_fks.add(config[1])
         if needed_comic_fks and comic_pk:
@@ -219,13 +224,13 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         scope = data.pop("scope")
         scope_pk = data.pop("scope_pk", None)
 
-        config = SCOPE_MAP.get(scope)
+        config = _SCOPE_MAP.get(scope)
         if config is None:
             raise ValidationError({"scope": f"Invalid scope: {scope}"})
 
         if scope == _GLOBAL_SCOPE:
             # Reject null/blank updates for global to preserve defaults.
-            data = {k: v for k, v in data.items() if v not in _NULL_VALUES}
+            data = {k: v for k, v in data.items() if v not in NULL_VALUES}
             instance = self._get_global_settings()
         else:
             if not scope_pk:

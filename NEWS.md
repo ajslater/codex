@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.10
+
+- Fixes
+    - Fix creating non-extant reader global settings.
+
 ## v1.10.9
 
 - Fixes

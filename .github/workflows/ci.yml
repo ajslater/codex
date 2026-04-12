@@ -8,7 +8,8 @@ on:
     branches: [main, develop]
 
 env:
-  IMAGE: ghcr.io/ajslater/codex
+  IMAGE: ghcr.io/${{ github.repository }}
+  BUILDER_IMAGE: ghcr.io/${{ github.repository }}/cache:ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 concurrency:
@@ -28,7 +29,7 @@ jobs:
       (github.base_ref == 'develop' && github.head_ref == 'pre-release')
     permissions:
       contents: read
-      packages: read
+      packages: write
       checks: write
     steps:
       - name: Checkout
@@ -37,56 +38,60 @@ jobs:
           # Only fetch full history for the main push gate
           fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
 
-      - name: Check for Redundant Tests
+      - name: Check for Redundant Tests & Existing Dist
         id: gate
         if: github.ref_name == 'main' && github.event_name == 'push'
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SOURCE_BRANCH=$(gh pr list --state merged --limit 1 --json headRefName --template '{{range .}}{{.headRefName}}{{end}}')
-          if [ -n "$SOURCE_BRANCH" ]; then
-            git fetch origin "$SOURCE_BRANCH" --depth=1
-            if git diff --quiet HEAD "origin/$SOURCE_BRANCH"; then
-              echo "identical=true" >> "$GITHUB_OUTPUT"
-            fi
-          fi
+        run: bin/ci-download-dist-if-identical.sh
 
-      - uses: docker/setup-buildx-action@v4
+      - name: Set up Docker Buildx
+        if: steps.gate.outputs.dist_found != 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: steps.gate.outputs.dist_found != 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build dist-builder image
+        id: build-ci
+        if: steps.gate.outputs.dist_found != 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: dist-builder
+          target: codex-ci
           load: true
-          tags: dist-builder:ci
-          cache-from: type=gha,scope=dist-builder-amd64
-          cache-to: type=gha,scope=dist-builder-amd64,mode=max
+          tags: codex-ci:ci
+
+          cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}
+          cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }},mode=max
 
       - name: Start Services
+        id: start-services
+        if: steps.build-ci.outcome == 'success'
         run: |
           mkdir -p dist test-results
           docker compose up -d ci
 
       - name: Lint
-        if: steps.gate.outputs.identical != 'true'
+        id: lint
+        if: steps.start-services.outcome == 'success'
         run: docker exec codex-ci make lint
 
       - name: Build for Tests & Dist
+        id: build-for-tests
+        if: steps.lint.outcome == 'success'
         run: docker exec codex-ci make build-choices build-frontend collectstatic
 
       - name: Tests
         id: tests
-        if: steps.gate.outputs.identical != 'true'
+        if: steps.build-for-tests.outcome == 'success'
         run: docker exec codex-ci make test-frontend django-check test-python -o build-choices
-
-      - name: Build Distribution
-        run: docker exec codex-ci make build-only
-
-      - name: Stop Services
-        run: |
-          touch .env.package # hack because down is too promiscuous 
-          docker compose down ci
 
       - name: Upload Test Results
         id: upload-tests
@@ -102,15 +107,27 @@ jobs:
         with:
           report_paths: "**/test-results/pytest/*.xml"
 
+      - name: Build Distribution
+        id: build-dist
+        if: steps.tests.outcome == 'success'
+        run: docker exec codex-ci make build-only
+
+      - name: Stop Services
+        if: steps.start-services.outcome == 'success'
+        run: |
+          touch .env.package # hack because down is too promiscuous
+          docker compose down ci
+
       - name: Upload dist artifact
+        if: "!cancelled() && steps.gate.outputs.dist_found == 'true' || steps.build-dist.outcome =='success'"
         uses: actions/upload-artifact@v7
         with:
           name: python-dist
           path: dist/
-          retention-days: 1
+          retention-days: 2
 
       - name: Discord notification (Test Results)
-        if: "!cancelled() && steps.gate.outputs.identical != 'true'"
+        if: "!cancelled()"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}

@@ -25,7 +25,13 @@ class LoguruHandler(Handler):
 
 def get_logging_settings(loglevel: str | int, *, debug: bool) -> dict[str, int | dict]:
     """Get logging for settings."""
-    loggers: dict[str, dict] = {}
+    loggers: dict[str, dict] = {
+        "watchfiles.main": {
+            # DEBUG logs from watchfiles include a 5 second timeout
+            "level": "INFO",
+            "propagate": False,
+        },
+    }
     if loglevel != "TRACE":
         loggers.update(
             {

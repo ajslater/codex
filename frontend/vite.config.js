@@ -1,4 +1,4 @@
-import UnheadVite from "@unhead/addons/vite";
+import { Unhead } from "@unhead/vue/vite";
 import vue from "@vitejs/plugin-vue";
 import checker from "vite-plugin-checker";
 import fs from "fs";
@@ -90,7 +90,8 @@ const config = defineConfig(({ mode }) => {
           ],
         },
       ]),
-      UnheadVite(),
+      Unhead(),
+      //     ValidatePlugin(),
     ],
     publicDir: false,
     resolve: {
