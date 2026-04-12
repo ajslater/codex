@@ -119,7 +119,7 @@ jobs:
           docker compose down ci
 
       - name: Upload dist artifact
-        if: "!cancelled() && steps.gate.output.dist_found == 'true' or steps.build-dist.outcome =='success'"
+        if: "!cancelled() && steps.gate.outputs.dist_found == 'true' || steps.build-dist.outcome =='success'"
         uses: actions/upload-artifact@v7
         with:
           name: python-dist
