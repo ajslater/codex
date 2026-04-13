@@ -18,6 +18,9 @@ _DIFF_FIELD_EVENT_MAP: tuple[tuple[str, FSChange, bool, bool], ...] = (
     ("files_deleted", FSChange.deleted, False, False),
     ("files_modified", FSChange.modified, False, False),
     ("files_added", FSChange.added, False, False),
+    ("covers_deleted", FSChange.deleted, False, True),
+    ("covers_modified", FSChange.modified, False, True),
+    ("covers_added", FSChange.added, False, True),
     ("dirs_deleted", FSChange.deleted, True, False),
     ("dirs_modified", FSChange.modified, True, False),
 )
@@ -25,6 +28,7 @@ _DIFF_FIELD_EVENT_MAP: tuple[tuple[str, FSChange, bool, bool], ...] = (
 _DIFF_MOVED_FIELD_EVENT_MAP: tuple[tuple[str, bool, bool], ...] = (
     # diff_attr, is_directory, is_cover
     ("files_moved", False, False),
+    ("covers_moved", False, True),
     ("dirs_moved", True, False),
 )
 
@@ -44,6 +48,42 @@ class _DiffData:
 
 class SnapshotDiff:
     """Diff between a reference snapshot and a new snapshot."""
+
+    def _init_added(self, data: _DiffData, snapshot: Snapshot):
+        for p in data.added:
+            if snapshot.is_dir(p):
+                self.dirs_added.append(p)
+            elif snapshot.is_cover(p):
+                self.covers_added.append(p)
+            else:
+                self.files_added.append(p)
+
+    def _init_deleted(self, data: _DiffData, ref: Snapshot):
+        for p in data.deleted:
+            if ref.is_dir(p):
+                self.dirs_deleted.append(p)
+            elif ref.is_cover(p):
+                self.covers_deleted.append(p)
+            else:
+                self.files_deleted.append(p)
+
+    def _init_modified(self, data: _DiffData, snapshot: Snapshot):
+        for p in data.modified:
+            if snapshot.is_dir(p):
+                self.dirs_modified.append(p)
+            elif snapshot.is_cover(p):
+                self.covers_modified.append(p)
+            else:
+                self.files_modified.append(p)
+
+    def _init_moved(self, data: _DiffData, ref: Snapshot):
+        for f, t in data.moved:
+            if ref.is_dir(f):
+                self.dirs_moved.append((f, t))
+            elif ref.is_cover(t):
+                self.covers_moved.append((f, t))
+            else:
+                self.files_moved.append((f, t))
 
     def __init__(
         self,
@@ -65,20 +105,25 @@ class SnapshotDiff:
         self._find_moved_paths(data)
         self._find_modified_paths(data)
 
-        self.dirs_added = [p for p in data.added if snapshot.is_dir(p)]
-        self.dirs_deleted = [p for p in data.deleted if ref.is_dir(p)]
-        self.dirs_modified = [p for p in data.modified if snapshot.is_dir(p)]
-        self.dirs_moved = [(f, t) for f, t in data.moved if ref.is_dir(f)]
+        self.dirs_added = []
+        self.covers_added = []
+        self.files_added = []
+        self._init_added(data, snapshot)
 
-        dir_added_set = set(self.dirs_added)
-        dir_deleted_set = set(self.dirs_deleted)
-        dir_modified_set = set(self.dirs_modified)
-        dir_moved_set = set(self.dirs_moved)
+        self.dirs_deleted = []
+        self.covers_deleted = []
+        self.files_deleted = []
+        self._init_deleted(data, ref)
 
-        self.files_added = list(data.added - dir_added_set)
-        self.files_deleted = list(data.deleted - dir_deleted_set)
-        self.files_modified = list(data.modified - dir_modified_set)
-        self.files_moved = list(data.moved - dir_moved_set)
+        self.dirs_modified = []
+        self.covers_modified = []
+        self.files_modified = []
+        self._init_modified(data, snapshot)
+
+        self.dirs_moved = []
+        self.covers_moved = []
+        self.files_moved = []
+        self._init_moved(data, ref)
 
     def _is_inode_equal(self, data: _DiffData, path: str) -> bool:
         """Return whether inodes match between ref and snapshot."""
@@ -134,6 +179,10 @@ class SnapshotDiff:
                 self.dirs_deleted,
                 self.dirs_modified,
                 self.dirs_moved,
+                self.covers_added,
+                self.covers_deleted,
+                self.covers_modified,
+                self.covers_moved,
             )
         )
 

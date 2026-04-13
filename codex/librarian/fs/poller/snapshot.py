@@ -67,6 +67,10 @@ class Snapshot:
         """Return whether path is a directory."""
         return S_ISDIR(self._stat_info[path].st_mode)
 
+    def is_cover(self, path: str) -> bool:
+        """Return whether path is a cover."""
+        return self._covers_only or match_folder_cover(Path(path))
+
 
 class DiskSnapshot(Snapshot):
     """Snapshot of the filesystem taken by walking a directory tree."""
