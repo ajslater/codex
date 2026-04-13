@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.11
+
+- Fixes
+    - Custom covers were not importing.
+
 ## v1.10.10
 
 - Fixes
