@@ -2,21 +2,21 @@
 
 import json
 import urllib.parse
-from collections.abc import Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from types import MappingProxyType
-from typing import Any, override
+from typing import override
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.models import Publisher
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
 from codex.views.const import EPOCH_START
-from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
+from codex.views.opds.const import BLANK_TITLE
+from codex.views.opds.start import OPDSStartViewMixin
 from codex.views.opds.v2.feed.groups import OPDS2FeedGroupsView
 
 _ORDER_BY_SUBTITLE_MAP: MappingProxyType[str, str] = MappingProxyType(
@@ -185,10 +185,8 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         return Response(serializer.data)
 
 
-class OPDS2StartView(OPDS2FeedView):
+class OPDS2StartView(OPDSStartViewMixin, OPDS2FeedView):
     """Start View."""
-
-    IS_START_PAGE = True
 
     @override
     @staticmethod
@@ -204,18 +202,6 @@ class OPDS2StartView(OPDS2FeedView):
             feed_metadata = dict(feed_metadata)
             feed_metadata["modified"] = max_modified
         return feed_metadata
-
-    @override
-    def init_params(self) -> MutableMapping[str, Any]:
-        return dict(DEFAULT_PARAMS)
-
-    @override
-    def _get_group_queryset(self) -> tuple:
-        """Force empty group query on start page."""
-        model = self.model or Publisher
-        qs = model.objects.none().order_by("pk")
-        count = 0
-        return qs, count
 
     @override
     @extend_schema(
