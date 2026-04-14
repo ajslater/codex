@@ -11,6 +11,7 @@ from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.models import Publisher
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
@@ -207,6 +208,14 @@ class OPDS2StartView(OPDS2FeedView):
     @override
     def init_params(self) -> MutableMapping[str, Any]:
         return dict(DEFAULT_PARAMS)
+
+    @override
+    def _get_group_queryset(self) -> tuple:
+        """Force empty group query on start page."""
+        model = self.model or Publisher
+        qs = model.objects.none().order_by("pk")
+        count = 0
+        return qs, count
 
     @override
     @extend_schema(
