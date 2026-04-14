@@ -14,6 +14,7 @@ from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import OPDS1TemplateSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
+from codex.version import VERSION
 from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
 from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -31,6 +32,11 @@ class OPDS1FeedView(OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
+
+    @property
+    def version(self):
+        """Codex version."""
+        return VERSION
 
     @property
     def opds_ns(self):
