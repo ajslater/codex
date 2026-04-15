@@ -32,7 +32,7 @@ const _collectPks = (items) => {
   return [...pks].sort((a, b) => a - b);
 };
 
-export const useSelectManyStore = defineStore("selectMany", {
+export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
   state: () => ({
     active: false,
     selectedItems: new Map(),

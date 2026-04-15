@@ -32,7 +32,7 @@ import BrowserEmptyState from "@/components/browser/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useSelectManyStore } from "@/stores/select-many";
+import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
 export default {
@@ -67,7 +67,7 @@ export default {
       isSearchOpen: (state) => state.isSearchOpen,
       isSearchMode: (state) => state.isSearchMode,
     }),
-    ...mapState(useSelectManyStore, {
+    ...mapState(useBrowserSelectManyStore, {
       selectManyActive: (state) => state.active,
     }),
     browsePaneClasses() {

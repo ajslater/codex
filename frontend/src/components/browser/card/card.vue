@@ -56,7 +56,7 @@ import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
-import { useSelectManyStore } from "@/stores/select-many";
+import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
 const SCROLL_DELAY = 100;
 const HEADER_OFFSET = -170;
@@ -80,7 +80,7 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page.adminFlags.importMetadata,
     }),
-    ...mapState(useSelectManyStore, {
+    ...mapState(useBrowserSelectManyStore, {
       selectManyActive: (state) => state.active,
       isSelected: (state) => state.isSelected,
     }),
