@@ -63,7 +63,7 @@ export default {
         ...(state.page.books ?? []),
       ],
       numPages: (state) => state.page.numPages,
-      query: (state) => state.settings.q,
+      search: (state) => state.settings.search,
       isSearchOpen: (state) => state.isSearchOpen,
       isSearchMode: (state) => state.isSearchMode,
     }),
@@ -97,7 +97,7 @@ export default {
     },
     searchLimitMessage() {
       let res = "";
-      if (!this.query) {
+      if (!this.search) {
         return res;
       }
       const page = +this.$route.params.page;

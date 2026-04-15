@@ -78,7 +78,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "filters": _DEFAULT_FILTERS,
         "order_by": "sort_name",
         "order_reverse": False,
-        "q": "",
+        "search": "",
         "show": _DEFAULT_SHOW,
         "top_group": "p",
         "twenty_four_hour_time": False,

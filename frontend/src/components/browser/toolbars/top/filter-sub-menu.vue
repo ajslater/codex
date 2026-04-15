@@ -30,7 +30,7 @@
           />
           <v-text-field
             v-if="typeof choices === 'object'"
-            v-model="query"
+            v-model="search"
             placeholder="Filter"
             full-width
             density="compact"
@@ -101,7 +101,7 @@ export default {
     return {
       mdiChevronLeft,
       mdiCloseCircleOutline,
-      query: "",
+      search: "",
     };
   },
   computed: {
@@ -138,7 +138,7 @@ export default {
       }
       const vItems = toVuetifyItems({
         items,
-        filter: this.query,
+        filter: this.search,
         numeric: this.isNumeric,
       });
       for (const item of vItems) {
@@ -173,7 +173,7 @@ export default {
     ]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
-      this.query = "";
+      this.search = "";
       if (mode !== "base" && typeof this.choices !== "object") {
         this.loadFilterChoices(mode);
       }

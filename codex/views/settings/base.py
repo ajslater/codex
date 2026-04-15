@@ -205,9 +205,6 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
         for key in instance.DIRECT_KEYS:
             result[key] = getattr(instance, key)
 
-        # The API parameter is "q"; the column is "search".
-        result["q"] = instance.search
-
         # Show — from the related SettingsBrowserShow row.
         show_obj = instance.show
         result["show"] = {k: getattr(show_obj, k) for k in SHOW_KEYS}

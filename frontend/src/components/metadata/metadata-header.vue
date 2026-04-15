@@ -1,9 +1,9 @@
 <template>
   <header id="metadataHeader">
     <MetadataText
-      v-if="q"
+      v-if="search"
       id="search"
-      :value="q"
+      :value="search"
       label="Search Query"
       :highlight="true"
     />
@@ -147,7 +147,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
-      q: (state) => state.settings.q,
+      search: (state) => state.settings.search,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,

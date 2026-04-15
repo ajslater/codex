@@ -90,15 +90,10 @@ class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
 
     @override
     def to_internal_value(self, data) -> dict:
-        if "search" not in data:
-            if q := data.get("q"):
-                # Accept "q" as an alias for "search".
-                data = data.copy()
-                data["search"] = q
-            elif query := data.get("query"):
-                # parse query param for opds v2
-                data = data.copy()
-                data["search"] = query
+        if "search" not in data and (search := data.get("query", data.get("q"))):
+            # Accept "query" or "q" as an alias for "search".
+            data = data.copy()
+            data["search"] = search
         return super().to_internal_value(data)
 
 
