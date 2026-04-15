@@ -13,7 +13,7 @@
 ###############################################################################
 
 # ---- Stage 1: runtime-base (slim, no build tools) --------------------------
-FROM ajslater/python-debian:3.14.3-slim-trixie_2 AS runtime-base
+FROM ghcr.io/ajslater/python-debian:3.14.4-slim-trixie_0 AS runtime-base
 
 COPY ci/debian.sources /etc/apt/sources.list.d/
 

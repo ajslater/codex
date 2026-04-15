@@ -72,33 +72,26 @@ jobs:
           cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }},mode=max
 
       - name: Start Services
+        id: start-services
         if: steps.build-ci.outcome == 'success'
         run: |
           mkdir -p dist test-results
           docker compose up -d ci
 
       - name: Lint
-        if: steps.build-ci.outcome == 'success'
+        id: lint
+        if: steps.start-services.outcome == 'success'
         run: docker exec codex-ci make lint
 
       - name: Build for Tests & Dist
-        if: steps.build-ci.outcome == 'success'
+        id: build-for-tests
+        if: steps.lint.outcome == 'success'
         run: docker exec codex-ci make build-choices build-frontend collectstatic
 
       - name: Tests
         id: tests
-        if: steps.build-ci.outcome == 'success'
+        if: steps.build-for-tests.outcome == 'success'
         run: docker exec codex-ci make test-frontend django-check test-python -o build-choices
-
-      - name: Build Distribution
-        if: steps.build-ci.outcome == 'success'
-        run: docker exec codex-ci make build-only
-
-      - name: Stop Services
-        if: steps.build-ci.outcome == 'success'
-        run: |
-          touch .env.package # hack because down is too promiscuous
-          docker compose down ci
 
       - name: Upload Test Results
         id: upload-tests
@@ -114,7 +107,19 @@ jobs:
         with:
           report_paths: "**/test-results/pytest/*.xml"
 
+      - name: Build Distribution
+        id: build-dist
+        if: steps.tests.outcome == 'success'
+        run: docker exec codex-ci make build-only
+
+      - name: Stop Services
+        if: steps.start-services.outcome == 'success'
+        run: |
+          touch .env.package # hack because down is too promiscuous
+          docker compose down ci
+
       - name: Upload dist artifact
+        if: "!cancelled() && steps.gate.outputs.dist_found == 'true' || steps.build-dist.outcome =='success'"
         uses: actions/upload-artifact@v7
         with:
           name: python-dist
@@ -122,7 +127,7 @@ jobs:
           retention-days: 2
 
       - name: Discord notification (Test Results)
-        if: "!cancelled() && steps.build-ci.outcome == 'success'"
+        if: "!cancelled()"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
@@ -136,7 +141,7 @@ jobs:
   # Build per-arch Docker images natively
   # ---------------------------------------------------------------------------
   build:
-    name: Build (${{ matrix.arch }})
+    name: Build Image (${{ matrix.arch }})
     needs: test
     if: github.event_name == 'push' ||
       (github.base_ref == 'develop' && github.head_ref == 'pre-release')
@@ -152,8 +157,11 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Download dist artifact
         uses: actions/download-artifact@v8
@@ -198,9 +206,14 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
-      - uses: astral-sh/setup-uv@v8.0.0
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v8.0.0
 
       - name: Download dist artifact
         uses: actions/download-artifact@v8

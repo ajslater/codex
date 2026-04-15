@@ -119,18 +119,13 @@ class LibraryWatcherThread(NamedThread):
     # Main loop #
     #############
 
-    def _find_library(self, file_path: str) -> tuple[int, bool] | None:
-        """Find which library a changed path belongs to."""
-        for lib_path, pk in self._library_paths.items():
-            if file_path.startswith(lib_path):
-                return pk, lib_path in self._covers_only_paths
-        return None
-
     def _process_changes(self, changes: set[tuple[Change, str]]) -> None:
         """Route watchfiles changes through processing to the librarian queue."""
         # Watchfiles does not expand events for added or removed directories or do move detection
         # So handle this myself.
-        for library_pk, event in process_changes(changes, self._find_library):
+        for library_pk, event in process_changes(
+            changes, self._library_paths, self._covers_only_paths
+        ):
             task = FSEventTask(library_pk, event)
             self.librarian_queue.put(task)
 
@@ -188,7 +183,9 @@ class LibraryWatcherThread(NamedThread):
         self._watch_loop()
         self.log.debug(f"Stopped {self.__class__.__name__}")
 
+    @override
     def stop(self) -> None:
         """Signal the watcher to shut down."""
+        super().stop()
         self._shutdown_event.set()
         self._restart_event.set()  # Unblock if waiting

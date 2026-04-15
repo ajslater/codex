@@ -67,6 +67,10 @@ const updateSettings = (settings) => {
   return HTTP.patch("/r/settings", { params });
 };
 
+const resetSettings = () => {
+  return HTTP.delete("/r/settings");
+};
+
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
   const base = globalThis.CODEX.API_V3_PATH;
   delete settings.show;
@@ -121,6 +125,7 @@ export default {
   getBrowserPage,
   getLazyImport,
   updateGroupBookmarks,
+  resetSettings,
   updateSettings,
   getSavedSettingsList,
   saveSettings,

@@ -83,7 +83,9 @@ class CronThread(NamedThread):
         with self._cond:
             self._cond.notify()
 
+    @override
     def stop(self) -> None:
         """Stop the cron thread."""
+        super().stop()
         self._stop_event.set()
         self.end_timeout()

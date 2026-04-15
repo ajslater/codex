@@ -275,7 +275,7 @@ def _get_middleware() -> tuple:
     middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
-        "codex.middleware.TimezoneMiddleware",
+        "codex.middleware.CodexMiddleware",
     ]
     if DEBUG:
         middleware += [

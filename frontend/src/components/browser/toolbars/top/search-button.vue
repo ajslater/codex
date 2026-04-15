@@ -27,10 +27,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, {
-      isSearchOpen: (state) => state.isSearchOpen,
-      isQuery: (state) => Boolean(state.settings.q),
-    }),
+    ...mapState(useBrowserStore, ["isSearchOpen"]),
   },
   methods: {
     ...mapActions(useBrowserStore, ["setIsSearchOpen"]),

@@ -6,6 +6,18 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.12
+
+- Features
+    - Codex identifies itself in the HTTP Server: header.
+    - Codex identifies itself in the OPDS v1 <generator> tag.
+
+## v1.10.11
+
+- Fixes
+    - Custom covers were not importing.
+    - Custom group covers were not counted in admin library view.
+
 ## v1.10.10
 
 - Fixes

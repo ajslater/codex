@@ -7,7 +7,10 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.models.settings import ClientChoices, SettingsBrowser
+from codex.models.settings import (
+    ClientChoices,
+    SettingsBrowser,
+)
 from codex.serializers.browser.settings import (
     BrowserSettingsInputSerializer,
     BrowserSettingsSerializer,
@@ -17,7 +20,10 @@ from codex.views.settings.base import (
     SettingsReadView,
     SettingsWriteView,
 )
-from codex.views.settings.const import BROWSER_CREATE_ARGS, BROWSER_FILTER_ARGS
+from codex.views.settings.const import (
+    BROWSER_CREATE_ARGS,
+    BROWSER_FILTER_ARGS,
+)
 from codex.views.settings.settings import SettingsView
 
 
@@ -44,7 +50,43 @@ class BrowserSettingsReadView(SettingsReadView):
         params["order_by"] = order_by
 
 
-class BrowserSettingsView(BrowserSettingsReadView, SettingsView):
+class BrowserSettingsWriteView(BrowserSettingsReadView, SettingsWriteView):
+    """Browser settings with full mutation support."""
+
+    def reset_browser_settings(self) -> dict:
+        """Reset browser settings to model defaults and return the params dict."""
+        instance: SettingsBrowser = self._get_or_create_settings(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+            self.MODEL,
+            self.CLIENT,
+            self.FILTER_ARGS,
+            self.CREATE_ARGS,
+        )
+        defaults = self.get_browser_default_params()
+
+        # Reset direct fields
+        for key in SettingsBrowser.DIRECT_KEYS:
+            setattr(instance, key, defaults[key])
+
+        # Reset show FK to default show row
+        self._save_browser_show(instance, defaults["show"])
+        instance.save()
+
+        # Reset filters in-place
+        self._save_browser_filters(
+            instance.filters,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            defaults["filters"],
+        )
+
+        # Reset last_route in-place
+        self._save_browser_last_route(
+            instance.last_route,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            defaults["last_route"],
+        )
+
+        return self.browser_instance_to_dict(instance)
+
+
+class BrowserSettingsView(BrowserSettingsWriteView, SettingsView):
     """Get Browser Settings."""
 
     input_serializer_class = BrowserSettingsInputSerializer
@@ -96,6 +138,10 @@ class BrowserSettingsView(BrowserSettingsReadView, SettingsView):
     def get(self, *args, **kwargs) -> Response:
         return super().get(*args, **kwargs)
 
-
-class BrowserSettingsWriteView(BrowserSettingsReadView, SettingsWriteView):
-    """Browser settings with full mutation support."""
+    @extend_schema(responses=BrowserSettingsSerializer)
+    def delete(self, *args, **kwargs) -> Response:
+        """Reset browser settings to model defaults."""
+        params = self.reset_browser_settings()
+        self.set_order_by_default(params)
+        serializer = self.get_serializer(params)
+        return Response(serializer.data)

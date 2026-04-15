@@ -2,7 +2,7 @@
   <v-combobox
     id="searchbox"
     ref="searchbox"
-    v-model="query"
+    v-model="search"
     v-model:menu="menu"
     :items="items"
     autofocus
@@ -41,24 +41,24 @@ export default {
     return {
       mdiMagnify,
       menu: false,
-      query: "",
+      search: "",
       items: [""],
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
-      stateQ: (state) => state.settings.q,
+      stateSearch: (state) => state.settings.search,
       searchError: (state) => state.page.searchError,
     }),
   },
   watch: {
-    stateQ(to) {
-      this.query = to;
+    stateSearch(to) {
+      this.search = to;
       this.addToMenu(to);
     },
   },
   beforeMount() {
-    this.query = this.stateQ;
+    this.search = this.stateSearch;
   },
   methods: {
     ...mapActions(useBrowserStore, [
@@ -66,18 +66,18 @@ export default {
       "startSearchHideTimeout",
       "clearSearchHideTimeout",
     ]),
-    addToMenu(q) {
-      if (!q || this.items.includes(q)) {
+    addToMenu(search) {
+      if (!search || this.items.includes(search)) {
         return;
       }
       const updateditems = this.items[0] === "" ? [] : this.items;
-      updateditems.unshift(q);
+      updateditems.unshift(search);
       this.items = updateditems.slice(0, MAX_ITEMS);
     },
     doSearch(clear = false) {
       this.menu = false;
-      const q = this.query ? this.query.trim() : "";
-      const settings = { q };
+      const search = this?.search.trim() || "";
+      const settings = { search };
       if (clear) {
         settings.orderBy = "sort_name";
         settings.orderReverse = false;
@@ -87,8 +87,8 @@ export default {
     },
     doBlur() {
       this.menu = false;
-      const q = this.query ? this.query.trim() : "";
-      if (!q) {
+      const search = this?.search.trim() || "";
+      if (!search) {
         this.startSearchHideTimeout();
       }
     },

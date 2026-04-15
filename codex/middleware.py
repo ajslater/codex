@@ -13,24 +13,29 @@ from codex.settings import (
     DEBUG_LOG_RESPONSE_TIME,
     DEBUG_SLOW_QUERY_LIMIT,
 )
+from codex.version import PACKAGE_NAME, VERSION
 
 
-class TimezoneMiddleware:
-    """A middleware for fixing django timezones."""
+class CodexMiddleware:
+    """Set Codex Headers."""
 
-    # https://docs.djangoproject.com/en/dev/topics/i18n/timezones/
-
-    def __init__(self, get_response) -> None:
-        """Store the creation response."""
+    def __init__(self, get_response):
+        """Initialize response method."""
         self.get_response = get_response
 
-    def __call__(self, request) -> Any:
-        """Fix timeszone from the django session."""
+    def __call__(self, request):
+        """Set headers and timezones."""
+        # Fix timeszone from the django session."""
+        # https://docs.djangoproject.com/en/dev/topics/i18n/timezones/
         if tzname := request.session.get("django_timezone"):
             timezone.activate(tzname)
         else:
             timezone.deactivate()
-        return self.get_response(request)
+
+        # Set server header
+        response = self.get_response(request)
+        response["Server"] = f"{PACKAGE_NAME}/{VERSION}"
+        return response
 
 
 class LogResponseTimeMiddleware:

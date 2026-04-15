@@ -60,7 +60,7 @@ export const useBrowserStore = defineStore("browser", {
       filters: BROWSER_DEFAULTS.filters,
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
-      q: BROWSER_DEFAULTS.q,
+      search: BROWSER_DEFAULTS.search,
       show: BROWSER_DEFAULTS.show,
       topGroup: BROWSER_DEFAULTS.topGroup,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
@@ -123,7 +123,7 @@ export const useBrowserStore = defineStore("browser", {
           (item.value === "path" && !state.page.adminFlags.folderView) ||
           (item.value === "child_count" && state.page.modelGroup === "c") ||
           (item.value === "search_score" &&
-            (!state.settings.q || !state.page.fts))
+            (!state.settings.search || !state.page.fts))
         ) {
           // denied order_by condition
           continue;
@@ -171,7 +171,7 @@ export const useBrowserStore = defineStore("browser", {
       return lowestGroup;
     },
     isSearchMode(state) {
-      return Boolean(state.settings.q);
+      return Boolean(state.settings.search);
     },
     lastRoute(state) {
       const params =
@@ -288,14 +288,14 @@ export const useBrowserStore = defineStore("browser", {
       }
     },
     _validateSearch(data) {
-      if (!this.settings.q && !data.q) {
+      if (!this.settings.search && !data.search) {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
           data.orderBy =
             this.settings.topGroup === "f" ? "filename" : "sort_name";
         }
         return;
-      } else if (this.settings.q) {
+      } else if (this.settings.search) {
         // Do not redirect to first search if already in search mode.
         return;
       }
@@ -406,7 +406,7 @@ export const useBrowserStore = defineStore("browser", {
             state.settings[key] = newValue;
           }
         }
-        if (state.settings.q && !state.isSearchOpen) {
+        if (state.settings.search && !state.isSearchOpen) {
           state.isSearchOpen = true;
         }
       });
@@ -447,16 +447,21 @@ export const useBrowserStore = defineStore("browser", {
       await this.loadBrowserPage(undefined, true);
     },
     async clearFilters(clearAll = false) {
-      this.$patch((state) => {
-        state.settings.filters = BROWSER_DEFAULTS.filters;
-        state.filterMode = "base";
-        if (clearAll) {
-          state.settings.q = BROWSER_DEFAULTS.q;
-          state.settings.orderBy = BROWSER_DEFAULTS.orderBy;
-          state.settings.orderReverse = BROWSER_DEFAULTS.orderReverse;
-        }
-        state.browserPageLoaded = true;
-      });
+      await API.resetSettings()
+        .then((response) => {
+          const data = response.data;
+          this.$patch((state) => {
+            state.settings.filters = data.filters;
+            state.filterMode = "base";
+            if (clearAll) {
+              state.settings.search = data.search;
+              state.settings.orderBy = data.orderBy;
+              state.settings.orderReverse = data.orderReverse;
+            }
+            state.browserPageLoaded = true;
+          });
+        })
+        .catch(console.error);
       await this.loadBrowserPage(undefined, true);
     },
     async setBookmarkFinished(params, finished) {
@@ -477,13 +482,13 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isSearchOpen) {
         return;
       }
-      const q = this.settings.q;
-      if (q || this.isSearchHelpOpen) {
+      const search = this.settings.search;
+      if (search || this.isSearchHelpOpen) {
         this.clearSearchHideTimeout();
       } else {
         this.searchHideTimeout = setTimeout(() => {
-          const q = this.settings.q;
-          if (!q) {
+          const search = this.settings.search;
+          if (!search) {
             this.setIsSearchOpen(false);
           }
         }, SEARCH_HIDE_TIMEOUT);

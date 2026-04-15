@@ -14,10 +14,7 @@
 <id>{{ id_tag }}</id>
 <icon>{% static 'img/logo-32.webp' %}</icon>
 <title>{{ title }}</title>
-<author>
-  <name>Codex</name>
-  <uri>https://github.com/ajslater/codex</uri>
-</author>
+<generator uri="https://codex-reader.app" version="{{ version }}">Codex</generator>
 <updated>{{ updated }}</updated>
 {% if items_per_page %}
 <opensearch:itemsPerPage>{{ items_per_page }}</opensearch:itemsPerPage>
@@ -108,8 +105,8 @@
   {% for term_key, categories in entry.category_groups.items %}
     {% for category in categories %}
       <category
-        term="{{ term_key }}-{{ category.pk }}" 
-        label="{{ category.name }}" 
+        term="{{ term_key }}-{{ category.pk }}"
+        label="{{ category.name }}"
       />
     {% endfor %}
   {% endfor %}

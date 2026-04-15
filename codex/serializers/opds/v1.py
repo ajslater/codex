@@ -70,3 +70,4 @@ class OPDS1TemplateSerializer(Serializer):
     entries = OPDS1TemplateEntrySerializer(many=True, read_only=True)
     items_per_page = IntegerField(read_only=True)
     total_results = IntegerField(read_only=True)
+    version = CharField(read_only=True)
