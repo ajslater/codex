@@ -7,7 +7,10 @@
       <v-expansion-panel-text>
         <ReaderSettingsControls
           :settings="globalSettings"
+          show-clear
+          :clear-disabled="isGlobalClearDisabled"
           @update="updateGlobalSettings"
+          @clear="clearGlobalSettings"
         />
       </v-expansion-panel-text>
     </v-expansion-panel>
@@ -53,6 +56,8 @@ import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 import { useEventListener } from "@vueuse/core";
 
+import READER_DEFAULTS from "@/choices/reader-defaults.json";
+
 import ReaderSettingsControls from "./reader-settings-controls.vue";
 
 const ATTRS = Object.freeze([
@@ -91,11 +96,12 @@ export default {
       },
       validBook: (state) => Boolean(state.books?.current),
       isClearDisabled(state) {
-        if (!state.books?.current) {
+        const settings = state.books?.current?.settings;
+        if (!settings) {
           return true;
         }
         for (const attr of ATTRS) {
-          const val = Reflect.get(state.books?.current.settings, attr);
+          const val = Reflect.get(settings, attr);
           if (!state.choices.nullValues.has(val)) {
             return false;
           }
@@ -103,6 +109,19 @@ export default {
         return true;
       },
     }),
+    isGlobalClearDisabled() {
+      const settings = this.globalSettings;
+      if (!settings) {
+        return true;
+      }
+      for (const attr of ATTRS) {
+        // eslint-disable-next-line security/detect-object-injection
+        if (settings[attr] !== READER_DEFAULTS[attr]) {
+          return false;
+        }
+      }
+      return true;
+    },
     hasIntermediate() {
       return Boolean(this.intermediateInfo);
     },
@@ -140,6 +159,7 @@ export default {
   methods: {
     ...mapActions(useReaderStore, [
       "clearComicSettings",
+      "clearGlobalSettings",
       "clearIntermediateSettings",
       "updateGlobalSettings",
       "updateComicSettings",
