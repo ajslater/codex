@@ -183,7 +183,9 @@ class LibraryWatcherThread(NamedThread):
         self._watch_loop()
         self.log.debug(f"Stopped {self.__class__.__name__}")
 
+    @override
     def stop(self) -> None:
         """Signal the watcher to shut down."""
+        super().stop()
         self._shutdown_event.set()
         self._restart_event.set()  # Unblock if waiting

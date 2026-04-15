@@ -50,6 +50,10 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
         super().join(self.SHUTDOWN_TIMEOUT)
         self.log.debug(f"{self.__class__.__name__} joined.")
 
+    def stop(self):
+        """Noop."""
+        self.log.debug(f"Stop Requested {self.__class__.__name__}")
+
 
 class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
@@ -96,8 +100,10 @@ class QueuedThread(NamedThread, ABC):
                 self.log.exception(f"{self.__class__.__name__} crashed:")
         self.log.debug(f"Stopped {self.__class__.__name__}")
 
+    @override
     def stop(self) -> None:
         """Stop the thread."""
+        super().stop()
         self.queue.put(self.SHUTDOWN_MSG)
 
 

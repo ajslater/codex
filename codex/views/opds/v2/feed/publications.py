@@ -3,7 +3,8 @@
 from collections.abc import Iterable
 from datetime import datetime
 from math import floor
-from typing import override
+from types import MappingProxyType
+from typing import Final, override
 from urllib.parse import quote_plus
 
 from caseconverter import snakecase
@@ -17,7 +18,10 @@ from codex.views.opds.const import DEFAULT_PARAMS, MimeType, Rel
 from codex.views.opds.v2.const import HrefData, Link, LinkData
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 
-_PUBLICATION_PREVIEW_LIMIT = 5
+_PUBLICATION_PREVIEW_LIMIT: Final = 5
+_PREVIEW_SHOW_PARAMS: Final[MappingProxyType[str, bool]] = MappingProxyType(
+    {"p": True, "s": True}
+)
 
 
 class OPDS2PublicationBaseView(OPDS2FeedLinksView):
@@ -243,7 +247,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 params[snakecase(key)] = value
-        params["show"].update({"p": True, "s": True})  # pyright: ignore[reportCallIssue,reportAttributeAccessIssue,reportArgumentType], # ty: ignore[unresolved-attribute]
+        params["show"].update(_PREVIEW_SHOW_PARAMS)  # pyright: ignore[reportCallIssue,reportAttributeAccessIssue,reportArgumentType], # ty: ignore[unresolved-attribute,no-matching-overload]
         params["limit"] = _PUBLICATION_PREVIEW_LIMIT  # pyright: ignore[reportArgumentType], # ty:ignore[invalid-assignment]
 
         feed_view.set_params(params)
