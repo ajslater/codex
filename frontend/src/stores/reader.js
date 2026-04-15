@@ -191,7 +191,7 @@ export const useReaderStore = defineStore("reader", {
       if (!(book.pk in this.bookSettings)) {
         // Mask the book settings over intermediate over global settings.
         const resultSettings = structuredClone(SETTINGS_NULL_VALUES);
-        let bookSettings = book ? book.settings : {};
+        let bookSettings = book?.settings || {};
         bookSettings = this.setReadRTLInReverse(bookSettings);
         const allSettings = [
           this.globalSettings,
@@ -539,7 +539,7 @@ export const useReaderStore = defineStore("reader", {
         .then(() => {
           this.$patch((state) => {
             if (state.books.current) {
-              state.books.current.settings = null;
+              state.books.current.settings = {};
             }
             state.bookSettings = {};
           });
@@ -627,6 +627,15 @@ export const useReaderStore = defineStore("reader", {
             state.intermediateSettings = {};
             state.bookSettings = {};
           });
+        })
+        .catch(console.error);
+    },
+    async clearGlobalSettings() {
+      await READER_API.resetSettings({ scope: "g" })
+        .then((response) => {
+          const data = response.data;
+          this._applyGlobalSettings(data);
+          this.clearComicSettings();
         })
         .catch(console.error);
     },
