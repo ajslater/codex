@@ -56,7 +56,7 @@ class BrowserFilterChoicesInputSerializer(JSONFieldSerializer):
 
     filters = BrowserSettingsFilterInputSerializer(required=False)
     # NOT Sanitized because so complex.
-    q = CharField(allow_blank=True, required=False)
+    search = CharField(allow_blank=True, required=False)
 
 
 class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerializer):
@@ -90,15 +90,15 @@ class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
 
     @override
     def to_internal_value(self, data) -> dict:
-        if "q" not in data:
-            if search := data.get("search"):
-                # Accept "search" as an alias for "q".
+        if "search" not in data:
+            if q := data.get("q"):
+                # Accept "q" as an alias for "search".
                 data = data.copy()
-                data["q"] = search
+                data["search"] = q
             elif query := data.get("query"):
                 # parse query param for opds v2
                 data = data.copy()
-                data["q"] = query
+                data["search"] = query
         return super().to_internal_value(data)
 
 

@@ -96,7 +96,7 @@ class OPDS1FeedView(OPDS1LinksView):
     def items_per_page(self) -> int | None:
         """Return opensearch:itemsPerPage."""
         try:
-            if self.params.get("q"):
+            if self.params.get("search"):
                 return BROWSER_MAX_OBJ_PER_PAGE
         except Exception:
             logger.exception("Getting OPDS v1 items per page")
@@ -105,7 +105,7 @@ class OPDS1FeedView(OPDS1LinksView):
     def total_results(self):
         """Return opensearch:totalResults."""
         try:
-            if self.params.get("q"):
+            if self.params.get("search"):
                 return self.obj.get("total_count", 0)
         except Exception:
             logger.exception("Getting OPDS v1 total results")
