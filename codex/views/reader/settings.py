@@ -14,7 +14,6 @@ from codex.serializers.reader import (
     ReaderScopedUpdateSerializer,
     ReaderSettingsSerializer,
 )
-from codex.views.auth import AuthGenericAPIView
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings.base import SettingsReadView, SettingsWriteView
 from codex.views.settings.const import NULL_VALUES
@@ -56,19 +55,29 @@ class ReaderSettingsReadView(SettingsReadView):
         {"comic": None, "series": None, "folder": None, "story_arc": None}
     )
 
+    @classmethod
+    def get_reader_default_params(cls) -> dict:
+        """Derive reader default params from model field metadata."""
+        return {
+            key: cls._get_field_default(SettingsReader, key)
+            for key in SettingsReader.DIRECT_KEYS
+        }
+
 
 class ReaderSettingsWriteView(ReaderSettingsReadView, SettingsWriteView):
     """Reader settings with full mutation support."""
 
+    @classmethod
+    def reset_reader_settings(cls, instance: SettingsReader) -> dict:
+        """Reset reader DIRECT_KEYS to model defaults and return the params dict."""
+        defaults = cls.get_reader_default_params()
+        for key in SettingsReader.DIRECT_KEYS:
+            setattr(instance, key, defaults[key])
+        instance.save()
+        return defaults
+
 
 """Reader settings views — consolidated for all scopes."""
-
-
-def _canonical_scope(scope: str) -> str:
-    """Normalise arc-group aliases (p/i/v) to their canonical scope letter."""
-    if scope in "piv":
-        return "s"
-    return scope
 
 
 class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
@@ -117,7 +126,7 @@ class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
         return SettingsReader.objects.create(**lookup)
 
 
-class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
+class ReaderSettingsView(_ReaderSettingsAuthMixin, ReaderSettingsWriteView):
     """
     Consolidated reader settings endpoint.
 
@@ -152,12 +161,19 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
             return getattr(comic, comic_fk, None)
         return None
 
+    @staticmethod
+    def _canonical_scope(scope: str) -> str:
+        """Normalise arc-group aliases (p/i/v) to their canonical scope letter."""
+        if scope in "piv":
+            return "s"
+        return scope
+
     def _get_scope(self, scope, scopes_out, comic, scope_info) -> None:
         config = _SCOPE_MAP.get(scope)
         if config is None:
             return
         fk_field, comic_fk, model = config
-        canon = _canonical_scope(scope)
+        canon = self._canonical_scope(scope)
 
         if scope == _GLOBAL_SCOPE:
             instance = self._get_global_settings()
@@ -246,5 +262,40 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, AuthGenericAPIView):
         instance.save()
 
         result = self._instance_to_dict(instance)
+        output_serializer = ReaderSettingsSerializer(result)
+        return Response(output_serializer.data)
+
+    @extend_schema(
+        request=ReaderScopedUpdateSerializer,
+        responses=ReaderSettingsSerializer,
+    )
+    def delete(self, *args, **kwargs) -> Response:
+        """Reset settings for a single scope to model defaults."""
+        serializer = self.get_serializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        scope = data.get("scope", _GLOBAL_SCOPE)
+        scope_pk = data.get("scope_pk")
+
+        config = _SCOPE_MAP.get(scope)
+        if config is None:
+            raise ValidationError({"scope": f"Invalid scope: {scope}"})
+
+        if scope == _GLOBAL_SCOPE:
+            # Global scope: reset to model defaults (can't delete).
+            instance = self._get_global_settings()
+            result = self.reset_reader_settings(instance)
+        else:
+            if not scope_pk:
+                raise ValidationError(
+                    {"scope_pk": "scope_pk is required for non-global scopes."}
+                )
+            fk_field = config[0]
+            # Delete the scoped row entirely — absence means "inherit".
+            lookup = self._get_settings_lookup(**{fk_field: scope_pk})  # pyright: ignore[reportCallIssue], # ty: ignore[invalid-argument-type]
+            SettingsReader.objects.filter(**lookup).delete()
+            result = None
+
         output_serializer = ReaderSettingsSerializer(result)
         return Response(output_serializer.data)

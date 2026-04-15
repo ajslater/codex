@@ -14,7 +14,7 @@ from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import AdminFlag, Comic
 from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
-from codex.views.opds.const import DEFAULT_PARAMS, MimeType, Rel
+from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.const import HrefData, Link, LinkData
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 
@@ -243,12 +243,12 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         feed_view.request = self.request
         group = link_spec.group
         feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
-        params = dict(DEFAULT_PARAMS)
+        params = self.get_browser_default_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 params[snakecase(key)] = value
-        params["show"].update(_PREVIEW_SHOW_PARAMS)  # pyright: ignore[reportCallIssue,reportAttributeAccessIssue,reportArgumentType], # ty: ignore[unresolved-attribute,no-matching-overload]
-        params["limit"] = _PUBLICATION_PREVIEW_LIMIT  # pyright: ignore[reportArgumentType], # ty:ignore[invalid-assignment]
+        params["show"].update(_PREVIEW_SHOW_PARAMS)
+        params["limit"] = _PUBLICATION_PREVIEW_LIMIT
 
         feed_view.set_params(params)
         return feed_view

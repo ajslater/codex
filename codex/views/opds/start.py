@@ -3,8 +3,6 @@
 from collections.abc import MutableMapping
 from typing import Any
 
-from codex.views.opds.const import DEFAULT_PARAMS
-
 
 class OPDSStartViewMixin:
     """Common mixin for OPDS Start Page Views."""
@@ -13,7 +11,7 @@ class OPDSStartViewMixin:
 
     def init_params(self) -> MutableMapping[str, Any]:
         """Hard reset settings to default just by landing on the page."""
-        return dict(DEFAULT_PARAMS)
+        return self.get_browser_default_params()  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
 
     def _get_group_queryset(self) -> tuple:
         """Force empty group query on start page."""

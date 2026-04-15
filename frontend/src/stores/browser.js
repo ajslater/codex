@@ -447,16 +447,21 @@ export const useBrowserStore = defineStore("browser", {
       await this.loadBrowserPage(undefined, true);
     },
     async clearFilters(clearAll = false) {
-      this.$patch((state) => {
-        state.settings.filters = BROWSER_DEFAULTS.filters;
-        state.filterMode = "base";
-        if (clearAll) {
-          state.settings.search = BROWSER_DEFAULTS.search;
-          state.settings.orderBy = BROWSER_DEFAULTS.orderBy;
-          state.settings.orderReverse = BROWSER_DEFAULTS.orderReverse;
-        }
-        state.browserPageLoaded = true;
-      });
+      await API.resetSettings()
+        .then((response) => {
+          const data = response.data;
+          this.$patch((state) => {
+            state.settings.filters = data.filters;
+            state.filterMode = "base";
+            if (clearAll) {
+              state.settings.search = data.search;
+              state.settings.orderBy = data.orderBy;
+              state.settings.orderReverse = data.orderReverse;
+            }
+            state.browserPageLoaded = true;
+          });
+        })
+        .catch(console.error);
       await this.loadBrowserPage(undefined, true);
     },
     async setBookmarkFinished(params, finished) {

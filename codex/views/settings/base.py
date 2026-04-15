@@ -70,6 +70,12 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
         return None
 
     @staticmethod
+    def _get_field_default(model, field_name):
+        """Get the default value for a model field, calling it if callable."""
+        default = model._meta.get_field(field_name).default
+        return default() if callable(default) else default
+
+    @staticmethod
     def _get_or_create_settings_user(
         model: type[SettingsReader | SettingsBrowser],
         user: AbstractBaseUser | AnonymousUser,
@@ -274,6 +280,30 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
         if last_route := self.get_from_settings("last_route", browser=True):
             return last_route
         return DEFAULT_BROWSER_ROUTE
+
+    @classmethod
+    def get_browser_default_params(cls) -> dict:
+        """Derive browser default params from model field metadata."""
+        result: dict = {}
+        for key in SettingsBrowser.DIRECT_KEYS:
+            result[key] = cls._get_field_default(SettingsBrowser, key)
+
+        result["show"] = {
+            k: cls._get_field_default(SettingsBrowserShow, k) for k in SHOW_KEYS
+        }
+
+        result["filters"] = {
+            k: cls._get_field_default(SettingsBrowserFilters, k)
+            for k in SettingsBrowserFilters.FILTER_KEYS
+        }
+
+        last_route_keys = ("group", "pks", "page")
+        result["last_route"] = {
+            k: cls._get_field_default(SettingsBrowserLastRoute, k)
+            for k in last_route_keys
+        }
+
+        return result
 
 
 class SettingsWriteView(SettingsReadView):

@@ -12,16 +12,6 @@ import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
-const NULL_READER_SETTINGS = Object.freeze({
-  fitTo: "",
-  twoPages: null,
-  readingDirection: "",
-  readRtlInReverse: null,
-  finishOnLastPage: null,
-  pageTransition: null,
-  cacheBook: null,
-});
-
 const SETTINGS_NULL_VALUES = Object.freeze(new Set(["", null, undefined]));
 
 const DIRECTION_REVERSE_MAP = Object.freeze({
@@ -543,7 +533,18 @@ export const useReaderStore = defineStore("reader", {
       };
     },
     async clearComicSettings() {
-      await this.updateComicSettings(NULL_READER_SETTINGS);
+      const pk = +this.books?.current?.pk;
+      if (!pk) return;
+      await READER_API.resetSettings({ scope: "c", scopePk: pk })
+        .then(() => {
+          this.$patch((state) => {
+            if (state.books.current) {
+              state.books.current.settings = null;
+            }
+            state.bookSettings = {};
+          });
+        })
+        .catch(console.error);
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
@@ -616,7 +617,18 @@ export const useReaderStore = defineStore("reader", {
         .catch(console.error);
     },
     async clearIntermediateSettings() {
-      await this.updateIntermediateSettings(NULL_READER_SETTINGS);
+      if (!this.intermediateInfo) return;
+      await READER_API.resetSettings({
+        scope: this.intermediateInfo.scopeType,
+        scopePk: this.intermediateInfo.scopePk,
+      })
+        .then(() => {
+          this.$patch((state) => {
+            state.intermediateSettings = {};
+            state.bookSettings = {};
+          });
+        })
+        .catch(console.error);
     },
     async updateGlobalSettings(updates) {
       const newGlobalSettings = {
