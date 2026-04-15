@@ -1,8 +1,10 @@
-"""Reader Settings View."""
+"""Reader settings views."""
 
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from drf_spectacular.utils import extend_schema
+from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -14,9 +16,10 @@ from codex.serializers.reader import (
     ReaderScopedUpdateSerializer,
     ReaderSettingsSerializer,
 )
-from codex.views.bookmark import BookmarkAuthMixin
-from codex.views.settings.base import SettingsReadView, SettingsWriteView
-from codex.views.settings.const import NULL_VALUES
+from codex.views.settings import NULL_VALUES, SettingsBaseView
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
 # "g" = global (no FK).  "c" = comic.
@@ -38,8 +41,8 @@ _SCOPE_MAP = MappingProxyType(
 )
 
 
-class ReaderSettingsReadView(SettingsReadView):
-    """Reader settings configuration (read-only)."""
+class ReaderSettingsBaseView(SettingsBaseView):
+    """Reader settings — model config, defaults, reset, and scope lookups."""
 
     MODEL = SettingsReader
     CLIENT = ClientChoices.API
@@ -55,6 +58,8 @@ class ReaderSettingsReadView(SettingsReadView):
         {"comic": None, "series": None, "folder": None, "story_arc": None}
     )
 
+    # ── Defaults & reset ────────────────────────────────────────────
+
     @classmethod
     def get_reader_default_params(cls) -> dict:
         """Derive reader default params from model field metadata."""
@@ -62,10 +67,6 @@ class ReaderSettingsReadView(SettingsReadView):
             key: cls._get_field_default(SettingsReader, key)
             for key in SettingsReader.DIRECT_KEYS
         }
-
-
-class ReaderSettingsWriteView(ReaderSettingsReadView, SettingsWriteView):
-    """Reader settings with full mutation support."""
 
     @classmethod
     def reset_reader_settings(cls, instance: SettingsReader) -> dict:
@@ -76,16 +77,23 @@ class ReaderSettingsWriteView(ReaderSettingsReadView, SettingsWriteView):
         instance.save()
         return defaults
 
+    # ── Auth + scope lookups ────────────────────────────────────────
+    # (inlined from the former _ReaderSettingsAuthMixin / BookmarkAuthMixin)
 
-"""Reader settings views — consolidated for all scopes."""
-
-
-class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
-    """Shared auth + lookup helpers for reader settings views."""
+    def _get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
+        """Filter only the current user's settings rows."""
+        if TYPE_CHECKING:
+            self.request: Request
+        if self.request.user.is_authenticated:
+            return {"user_id": self.request.user.pk}
+        if not self.request.session or not self.request.session.session_key:
+            logger.debug("no session, make one")
+            self.request.session.save()
+        return {"session_id": self.request.session.session_key}
 
     def _get_settings_lookup(self, **extra):
         """Build the base lookup for a SettingsReader query."""
-        auth_filter = self.get_bookmark_auth_filter()
+        auth_filter = self._get_bookmark_auth_filter()
         return {"client": ClientChoices.API, **auth_filter, **extra}
 
     @staticmethod
@@ -100,15 +108,13 @@ class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
         base_lookup = self._get_settings_lookup()
         filter_kwargs = {
             **base_lookup,
-            **ReaderSettingsReadView.FILTER_ARGS,
+            **self.FILTER_ARGS,
         }
 
         instance = SettingsReader.objects.filter(**filter_kwargs).first()
         if instance is not None:
             return instance
-        return SettingsReader.objects.create(
-            **base_lookup, **ReaderSettingsReadView.CREATE_ARGS
-        )
+        return SettingsReader.objects.create(**base_lookup, **self.CREATE_ARGS)
 
     def _get_scoped_settings(self, scope_fk_field: str, scope_pk: int):
         """Get a scoped SettingsReader row or None."""
@@ -126,7 +132,7 @@ class _ReaderSettingsAuthMixin(BookmarkAuthMixin):
         return SettingsReader.objects.create(**lookup)
 
 
-class ReaderSettingsView(_ReaderSettingsAuthMixin, ReaderSettingsWriteView):
+class ReaderSettingsView(ReaderSettingsBaseView):
     """
     Consolidated reader settings endpoint.
 
@@ -145,7 +151,7 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, ReaderSettingsWriteView):
 
     serializer_class: type[BaseSerializer] | None = ReaderScopedUpdateSerializer
 
-    # GET
+    # ── GET helpers ─────────────────────────────────────────────────
 
     def _resolve_scope_pk(
         self,
@@ -200,6 +206,8 @@ class ReaderSettingsView(_ReaderSettingsAuthMixin, ReaderSettingsWriteView):
                     else ""
                 )
                 scope_info[canon] = {"pk": scope_pk, "name": name}
+
+    # ── HTTP methods ────────────────────────────────────────────────
 
     @extend_schema(responses=None)
     def get(self, *args, **kwargs) -> Response:

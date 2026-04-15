@@ -1,4 +1,4 @@
-"""Base classes for settings."""
+"""Base class for settings."""
 
 from abc import ABC
 from collections.abc import Mapping, Sequence
@@ -20,26 +20,25 @@ from codex.models.settings import (
 )
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
-from codex.views.settings.const import (
-    BROWSER_CREATE_ARGS,
-    BROWSER_FILTER_ARGS,
-    SETTINGS_BROWSER_SELECT_RELATED,
-    SHOW_KEYS,
-)
+
+CREDIT_PERSON_UI_FIELD = "credits"
+STORY_ARC_UI_FIELD = "story_arcs"
+IDENTIFIER_TYPE_UI_FIELD = "identifier_source"
+SETTINGS_BROWSER_SELECT_RELATED = ("show", "filters", "last_route")
+
+BROWSER_FILTER_ARGS = MappingProxyType({"name": ""})
+BROWSER_CREATE_ARGS = MappingProxyType({"name": ""})
+SHOW_KEYS = frozenset({"p", "i", "s", "v"})
+NULL_VALUES: frozenset = frozenset({"", None})
 
 
-class SettingsReadView(AuthFilterGenericAPIView, ABC):
+class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     """
-    Core settings model access.
+    Core settings model access with full read/write support.
 
-    Scope arguments shared by browser and reader settings classes. Provides the low-level read/write interface to the settings database
-    models and the read-only public helpers that only need to *get*
-    settings values (get_from_settings, get_last_route).
-
-    Subclasses must set MODEL, CLIENT, FILTER_ARGS, and CREATE_ARGS.
-
-    Views that only need to read settings (e.g. the frontend IndexView)
-    should inherit from a concrete subclass like BrowserSettingsReadView.
+    Provides the low-level read/write interface to the settings database
+    models.  Subclasses must set MODEL, CLIENT, FILTER_ARGS, and
+    CREATE_ARGS.
     """
 
     # Must override these in concrete subclasses.
@@ -54,7 +53,7 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
     BROWSER_MODEL: type[SettingsBrowser] = SettingsBrowser
     BROWSER_CLIENT: ClientChoices = ClientChoices.API
 
-    # Settings model helpers
+    # ── Session / user helpers ──────────────────────────────────────
 
     def _ensure_session_key(self) -> str | None:
         """Ensure the Django session is saved and return its key."""
@@ -69,11 +68,15 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
             return user
         return None
 
+    # ── Model field introspection ───────────────────────────────────
+
     @staticmethod
     def _get_field_default(model, field_name):
         """Get the default value for a model field, calling it if callable."""
         default = model._meta.get_field(field_name).default
         return default() if callable(default) else default
+
+    # ── Settings row CRUD ───────────────────────────────────────────
 
     @staticmethod
     def _get_or_create_settings_user(
@@ -199,6 +202,8 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
             **create_args,
         )
 
+    # ── Instance → dict conversion ──────────────────────────────────
+
     @staticmethod
     def browser_instance_to_dict(instance: SettingsBrowser) -> dict:
         """
@@ -236,6 +241,8 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
         """Convert a SettingsReader instance to the params dict."""
         return {key: getattr(instance, key) for key in instance.DIRECT_KEYS}
 
+    # ── Load (read) ─────────────────────────────────────────────────
+
     def _load_settings_data(self, only: Sequence[str] | None = None) -> dict:
         """Load the settings dict from the view's own model."""
         instance = self._get_or_create_settings(
@@ -259,8 +266,6 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
             only=only,
         )
         return self.browser_instance_to_dict(instance)
-
-    # Public API — read-only
 
     def get_from_settings(self, key: str, default=None, *, browser: bool = False):
         """Get one key from the session or its default."""
@@ -305,16 +310,15 @@ class SettingsReadView(AuthFilterGenericAPIView, ABC):
 
         return result
 
+    def load_params_from_settings(self, only: Sequence[str] | None = None) -> dict:
+        """Get session settings with defaults."""
+        try:
+            return self._load_settings_data(only=only)
+        except Exception:
+            logger.exception("Loading settings data from model")
+            raise
 
-class SettingsWriteView(SettingsReadView):
-    """
-    Full settings view with params mutation support.
-
-    Adds the higher-level load/save params API, and browser-specific
-    constants used by browser and reader param views. Views that
-    need to read *and write* settings should inherit from this
-    class (via a concrete browser/reader subclass).
-    """
+    # ── Save (write) ────────────────────────────────────────────────
 
     def _get_browser_order_defaults(self) -> dict:
         if group := self.kwargs.get("group"):
@@ -330,14 +334,6 @@ class SettingsWriteView(SettingsReadView):
         else:
             order_defaults = {}
         return order_defaults
-
-    def load_params_from_settings(self, only: Sequence[str] | None = None) -> dict:
-        """Get session settings with defaults."""
-        try:
-            return self._load_settings_data(only=only)
-        except Exception:
-            logger.exception("Loading settings data from model")
-            raise
 
     @staticmethod
     def _save_browser_show(instance: SettingsBrowser, show_data: dict) -> None:
@@ -411,8 +407,6 @@ class SettingsWriteView(SettingsReadView):
             self._save_browser_settings_data(instance, data)
         else:
             self._save_reader_settings_data(instance, data)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
-
-    # Public API with save.
 
     def save_params_to_settings(self, params) -> None:  # reader session & browser final
         """Save the session from params with defaults for missing values."""

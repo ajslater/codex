@@ -37,11 +37,11 @@ from codex.serializers.browser.saved import (
     SavedSettingsLoadSerializer,
 )
 from codex.views.auth import AuthFilterGenericAPIView
-from codex.views.settings.base import SettingsReadView
-from codex.views.settings.const import (
+from codex.views.settings import (
     BROWSER_CREATE_ARGS,
     BROWSER_FILTER_ARGS,
     SETTINGS_BROWSER_SELECT_RELATED,
+    SettingsBaseView,
 )
 
 # Map filter field names to the model whose PKs they store.
@@ -245,7 +245,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
         )
 
 
-class SavedBrowserSettingsLoadView(SettingsReadView):
+class SavedBrowserSettingsLoadView(SettingsBaseView):
     """GET: load a saved setting by pk.  DELETE: delete a saved setting."""
 
     MODEL = SettingsBrowser
