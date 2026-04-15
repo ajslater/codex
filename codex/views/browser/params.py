@@ -59,7 +59,6 @@ class BrowserParamsView(BrowserSettingsWriteView):
                 self._update_last_route(params)
                 self.save_params_to_settings(params)
                 self.set_order_by_default(params)
-                ic(params)
                 self.set_params(params)
             except Exception as exc:
                 # for debugging if this goes awry
