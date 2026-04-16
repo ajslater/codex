@@ -10,6 +10,6 @@ if [ "$VERSION" = "" ]; then
 else
   if [ -d frontend ]; then
     cd frontend
-    npm version --allow-same-version "$VERSION"
+    bunx npm version --allow-same-version "$VERSION"
   fi
 fi

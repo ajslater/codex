@@ -79,6 +79,9 @@ RUN apt-get clean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# hadolint ignore=DL4006
+RUN bash curl -fsSL https://bun.sh | bash
+
 WORKDIR /app
 
 # Python deps (cacheable when lockfiles unchanged)
@@ -89,12 +92,12 @@ RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 \
 
 # Root Node deps (eslint, prettier, etc.)
 COPY package.json package-lock.json ./
-RUN npm install
+RUN bun install
 
 # Frontend Node deps
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm install
+RUN bun install
 
 # Full source
 WORKDIR /app
