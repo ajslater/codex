@@ -110,7 +110,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useSelectManyStore, [
+    ...mapState(useBrowserSelectManyStore, [
       "active",
       "selectedCount",
       "hasSelection",
