@@ -122,7 +122,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if instance is None:
             return None
 
-        if user and instance.user_id is None:  # pyright: ignore[reportAttributeAccessIssue]
+        if user and instance.user_id is None:
             # Promote anonymous row to a user row (first login).
             instance.user = user
             instance.save(update_fields=("user_id", "updated_at"))

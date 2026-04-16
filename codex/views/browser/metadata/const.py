@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from codex.models import Comic
+from codex.models import BrowserGroupModel, Comic
 from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, SeriesGroup, StoryArcNumber, Universe
@@ -38,15 +38,17 @@ SUM_FIELDS = frozenset({"page_count", "size"})
 #########
 _CREDIT_ONLY = ("role", "person")
 _CREDIT_PREFETCH = (*_CREDIT_ONLY, "role__identifier", "person__identifier")
-GROUP_MODELS = MappingProxyType(
-    {
-        "i": (Publisher,),
-        "s": (Publisher, Imprint),
-        "v": (Publisher, Imprint, Series),
-        "c": (Publisher, Imprint, Series, Volume),
-        "f": (Publisher, Imprint, Series, Volume),
-        "a": (Publisher, Imprint, Series, Volume),
-    }
+GROUP_MODELS: MappingProxyType[str, tuple[type[BrowserGroupModel], ...]] = (
+    MappingProxyType(
+        {
+            "i": (Publisher,),
+            "s": (Publisher, Imprint),
+            "v": (Publisher, Imprint, Series),
+            "c": (Publisher, Imprint, Series, Volume),
+            "f": (Publisher, Imprint, Series, Volume),
+            "a": (Publisher, Imprint, Series, Volume),
+        }
+    )
 )
 M2M_QUERY_OPTIMIZERS = MappingProxyType(
     {

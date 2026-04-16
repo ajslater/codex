@@ -84,7 +84,7 @@ CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
     {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
 )
 GROUP_ORDER = "rpisv"
-MODEL_REL_MAP = MappingProxyType(
+MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {
         Publisher: "publisher",
         Imprint: "imprint",
