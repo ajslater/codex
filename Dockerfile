@@ -80,7 +80,7 @@ RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # hadolint ignore=DL4006
-RUN bash curl -fsSL https://bun.sh | bash
+RUN curl -fsSL https://bun.sh | bash
 
 WORKDIR /app
 
