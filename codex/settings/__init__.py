@@ -15,6 +15,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
+from comicbox.config.frozenattrdict import FrozenAttrDict
 from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
     CSP,
 )
@@ -597,25 +598,27 @@ create_custom_cover_group_dirs()
 # Comicbox #
 ############
 
-COMICBOX_CONFIG = get_config(
-    {
-        "loglevel": LOGLEVEL,
-        "delete_keys": frozenset(
-            {
-                # Only pages and reprints are optimized away for sure with comicbox 2.0.2
-                "alternate_images",
-                "bookmark",
-                "credit_primaries",
-                "ext",
-                "identifier_primary_source",
-                "manga",
-                "pages",
-                "prices",
-                "remainders",
-                "reprints",
-                "rights",
-                "updated_at",
-            }
-        ),
-    }
+COMICBOX_CONFIG = FrozenAttrDict(
+    get_config(
+        {
+            "loglevel": LOGLEVEL,
+            "delete_keys": frozenset(
+                {
+                    # Only pages and reprints are optimized away for sure with comicbox 2.0.2
+                    "alternate_images",
+                    "bookmark",
+                    "credit_primaries",
+                    "ext",
+                    "identifier_primary_source",
+                    "manga",
+                    "pages",
+                    "prices",
+                    "remainders",
+                    "reprints",
+                    "rights",
+                    "updated_at",
+                }
+            ),
+        }
+    )
 )
