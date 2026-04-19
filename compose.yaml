@@ -3,13 +3,13 @@ services:
     build:
       context: .
       target: codex-ci
-    container_name: codex-ci
+    container_name: ${CI_CONTAINER}
     entrypoint:
       - sleep
       - infinity
     environment:
       - PYTHONUNBUFFERED=1
-    image: codex-ci:ci
+    image: ${CI_IMAGE}
     volumes:
       - ./test-results:/app/test-results
       - ./dist:/app/dist

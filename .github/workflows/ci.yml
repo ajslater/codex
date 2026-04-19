@@ -8,8 +8,10 @@ on:
     branches: [main, develop]
 
 env:
+  CI_IMAGE: ghcr.io/${{ github.repository }}-ci
+  CI_IMAGE_TAG: ghcr.io/${{ github.repository }}-ci:latest
+  CI_CONTAINER: ${{ github.event.repository.name }}-ci
   IMAGE: ghcr.io/${{ github.repository }}
-  BUILDER_IMAGE: ghcr.io/${{ github.repository }}/cache:ci
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 concurrency:
@@ -66,10 +68,10 @@ jobs:
           context: .
           target: codex-ci
           load: true
-          tags: codex-ci:ci
+          tags: ${{ env.CI_IMAGE_TAG }}
 
-          cache-from: type=registry,ref=${{ env.BUILDER_IMAGE }}
-          cache-to: type=registry,ref=${{ env.BUILDER_IMAGE }},mode=max
+          cache-from: type=registry,ref=${{ env.CI_IMAGE }}:cache
+          cache-to: type=registry,ref=${{ env.CI_IMAGE }}:cache,mode=max
 
       - name: Start Services
         id: start-services
@@ -81,17 +83,17 @@ jobs:
       - name: Lint
         id: lint
         if: steps.start-services.outcome == 'success'
-        run: docker exec codex-ci make lint
+        run: docker exec ${{ env.CI_CONTAINER }} make lint
 
       - name: Build for Tests & Dist
         id: build-for-tests
         if: steps.lint.outcome == 'success'
-        run: docker exec codex-ci make build-choices build-frontend collectstatic
+        run: docker exec ${{ env.CI_CONTAINER }} make build-choices build-frontend collectstatic
 
       - name: Tests
         id: tests
         if: steps.build-for-tests.outcome == 'success'
-        run: docker exec codex-ci make test-frontend django-check test-python -o build-choices
+        run: docker exec ${{ env.CI_CONTAINER }} make test-frontend django-check test-python -o build-choices
 
       - name: Upload Test Results
         id: upload-tests
@@ -110,13 +112,13 @@ jobs:
       - name: Build Distribution
         id: build-dist
         if: steps.tests.outcome == 'success'
-        run: docker exec codex-ci make build-only
+        run: docker exec ${{ env.CI_CONTAINER }} make build-only
 
       - name: Stop Services
         if: steps.start-services.outcome == 'success'
         run: |
           touch .env.package # hack because down is too promiscuous
-          docker compose down ci
+          docker compose down
 
       - name: Upload dist artifact
         if: "!cancelled() && steps.gate.outputs.dist_found == 'true' || steps.build-dist.outcome =='success'"
