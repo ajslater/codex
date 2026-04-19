@@ -10,6 +10,7 @@ __pycache__
 .venv
 .venv*
 *Dockerfile
+bun.lock
 cache
 codex/_vendor
 codex/static
@@ -23,7 +24,6 @@ config
 dist
 frontend
 node_modules
-package-lock.json
 test-results
 tests/**/*.json
 tests/**/*.xml
