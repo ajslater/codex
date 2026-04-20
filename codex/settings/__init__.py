@@ -124,20 +124,39 @@ THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
 # Codex Config: Importer     #
 ##############################
 
+# iterator(chunk_size=...) with prefetch_related at delete/comics.py:48
+# Limit: memory only
+# Previous: was working with 1000
 IMPORTER_DELETE_MAX_CHUNK_SIZE = get_int(
-    CODEX_CONFIG, "importer.delete_max_chunk_size", default=1000
+    CODEX_CONFIG, "importer.delete_max_chunk_size", default=2000
 )
+# OR-chain Q()s in filters.py:32-43 and link/delete.py:37-41
+# Limit: 990, 900 for safety.
 IMPORTER_FILTER_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.filter_batch_size", default=900
 )
+# This was derived with experiments long ago
 IMPORTER_SEARCH_SYNC_BATCH_MEMORY_RATIO = get_float(
     CODEX_CONFIG, "importer.search_sync_batch_memory_ratio", default=3.2
 )
+# Batch size for slicing Comic paths into `filter(path__in=...)` queries.
+# SQLite caps at 32766 variables; 30000 leaves headroom for the `library` param.
+# path__in=batch_paths at links_fk.py:86
+# Limit: 32760, 30000 is safe
 IMPORTER_LINK_FK_BATCH_SIZE = get_int(
-    CODEX_CONFIG, "importer.link_fk_batch_size", default=20000
+    CODEX_CONFIG, "importer.link_fk_batch_size", default=30000
 )
+# iterator(chunk_size=...) over prefetch-heavy qs at links_m2m.py:89
+# Limit: memory + prefetch IN subqueries
 IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
+)
+# Comic bulk_update uses CASE WHEN pk=? THEN ? per field (2 params/field/row)
+# plus 1 pk/row in WHERE IN. SQLite caps at 32766 variables; Django's
+# auto-batching undercounts. 400 * (2*36 + 1) = 29200 leaves headroom.
+# Limit: 448, 400 is safe.
+IMPORTER_UPDATE_COMIC_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.update_comic_batch_size", default=400
 )
 
 ##############################
