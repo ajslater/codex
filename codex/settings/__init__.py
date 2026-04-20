@@ -139,6 +139,12 @@ IMPORTER_LINK_FK_BATCH_SIZE = get_int(
 IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.link_m2m_batch_size", default=20000
 )
+# Comic bulk_update uses CASE WHEN pk=? THEN ? per field (2 params/field/row)
+# plus 1 pk/row in WHERE IN. SQLite caps at 32766 variables; Django's
+# auto-batching undercounts. 400 * (2*36 + 1) = 29200 leaves headroom.
+IMPORTER_UPDATE_COMIC_BATCH_SIZE = get_int(
+    CODEX_CONFIG, "importer.update_comic_batch_size", default=400
+)
 
 ##############################
 # Codex Config: Debug        #

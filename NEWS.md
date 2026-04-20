@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes:
     - Fix an occasional bug linking folders when importing.
+    - Fix updating comics crash by batching comic updates.
 
 - Features
     - Codex identifies itself in the HTTP Server: header.
