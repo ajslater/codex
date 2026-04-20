@@ -8,6 +8,9 @@ border-radius: 128px;
 
 ## v1.10.12
 
+- Fixes:
+    - Fix an occasional bug linking folders when importing.
+
 - Features
     - Codex identifies itself in the HTTP Server: header.
     - Codex identifies itself in the OPDS v1 <generator> tag.
