@@ -42,7 +42,7 @@
     "sass-loader": "^16.0.7",
     "toml": "^4.1.1",
     "typeface-roboto": "^1.1.13",
-    "vite": "^8.0.8",
+    "vite": "^8.0.9",
     "vite-plugin-checker": "^0.13.0",
     "vite-plugin-dynamic-base": "^1.3.0",
     "vite-plugin-run": "^0.9.0",
