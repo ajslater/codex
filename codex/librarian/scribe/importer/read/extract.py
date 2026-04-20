@@ -75,11 +75,11 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         if self.abort_event.is_set():
             return True
         md, exc = value
+        path_str = str(path)
         if exc:
             failed_import = {path: exc}
             self.metadata[FIS].update(failed_import)
         if md:
-            path_str = str(path)
             old_comic = all_old_comic_values.get(path_str, {})
             old_file_type = old_comic.get("file_type")
             old_page_count = old_comic.get(PAGE_COUNT_KEY)
@@ -92,11 +92,11 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
                 md["file_type"] = file_type
 
             if md:
-                md["path"] = path
+                md["path"] = path_str
 
-            self.metadata[EXTRACTED][path] = md
+            self.metadata[EXTRACTED][path_str] = md
         else:
-            self.metadata[SKIPPED].add(path)
+            self.metadata[SKIPPED].add(path_str)
         status.increment_complete()
         self.status_controller.update(status)
         return False
