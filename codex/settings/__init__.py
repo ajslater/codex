@@ -229,6 +229,7 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+INTERNAL_IPS = ("127.0.0.1",)
 
 ###########
 # Logging #
@@ -615,16 +616,7 @@ if DEBUG and not BUILD:
 # Cachalot #
 ############
 
-# ``codex_userauth`` stays cached. Every UserAuth write goes through
-# Django ORM methods (``create`` / ``update_or_create``) that fire
-# ``post_save``, which is what cachalot hooks to invalidate — no raw SQL
-# or ``.filter().update()`` bypasses exist. The only high-frequency
-# writer is the per-request activity touch at
-# ``librarian/bookmark/user_active.py``, which is already throttled to
-# 1-hour resolution per user, so cache churn is bounded.
 CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
-
-INTERNAL_IPS = ("127.0.0.1",)
 
 #################
 # Custom Covers #
