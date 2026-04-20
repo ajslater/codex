@@ -20,7 +20,12 @@ from django.utils.translation import gettext_lazy as _
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
-from codex.models.choices import max_choices_len, text_choices_from_map
+from codex.models.choices import (
+    MetronAgeRatingChoices,
+    max_choices_len,
+    text_choices_from_map,
+)
+from codex.models.fields import CleaningCharField
 
 __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
 
@@ -121,3 +126,12 @@ class GroupAuth(BaseModel):
 
     group = OneToOneField(Group, db_index=True, on_delete=CASCADE)
     exclude = BooleanField(db_index=True, default=False)
+    metron_age_rating = CleaningCharField(
+        db_index=True,
+        choices=MetronAgeRatingChoices.choices,
+        null=True,
+        blank=True,
+        default=None,
+        max_length=max_choices_len(MetronAgeRatingChoices),
+        db_collation="nocase",
+    )

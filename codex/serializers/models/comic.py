@@ -1,6 +1,7 @@
 """Serializers for codex models."""
 
-from rest_framework.serializers import IntegerField
+from comicbox.enums.maps.age_rating import to_metron_age_rating
+from rest_framework.serializers import IntegerField, SerializerMethodField
 
 from codex.models import (
     Comic,
@@ -75,6 +76,21 @@ class ComicSerializer(BaseModelSerializer):
     tags = TagSerializer(many=True, allow_null=True)
     teams = TeamSerializer(many=True, allow_null=True)
     universes = UniverseSerializer(many=True, allow_null=True)
+
+    # Indicates the frontend should render the raw ``age_rating`` FK alongside
+    # the normalized ``metron_age_rating`` (when they differ, or when only the
+    # raw rating is present).
+    show_original_age_rating = SerializerMethodField()
+
+    @staticmethod
+    def get_show_original_age_rating(obj) -> bool:
+        """Return True when the original ``age_rating`` should be shown."""
+        if not obj.age_rating:
+            return False
+        if not obj.metron_age_rating:
+            return True
+        metron = to_metron_age_rating(obj.age_rating.name)
+        return not (metron and metron.value == obj.metron_age_rating)
 
     class Meta(BaseModelSerializer.Meta):
         """Configure the model."""

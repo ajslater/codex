@@ -28,6 +28,7 @@ from codex.models.base import (
 )
 from codex.models.choices import (
     FileTypeChoices,
+    MetronAgeRatingChoices,
     ReadingDirectionChoices,
     max_choices_len,
 )
@@ -111,6 +112,15 @@ class Comic(WatchedPathBrowserGroup):
 
     # Other FKs
     age_rating = ForeignKey(AgeRating, db_index=True, null=True, on_delete=CASCADE)
+    metron_age_rating = CleaningCharField(
+        db_index=True,
+        choices=MetronAgeRatingChoices.choices,
+        null=True,
+        blank=True,
+        default=None,
+        max_length=max_choices_len(MetronAgeRatingChoices),
+        db_collation="nocase",
+    )
     original_format = ForeignKey(
         OriginalFormat, null=True, db_index=True, on_delete=CASCADE
     )

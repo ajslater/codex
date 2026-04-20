@@ -62,6 +62,7 @@ NON_FTS_FIELDS = frozenset(
         "issue_number",
         "issue_suffix",
         "metadata_mtime",
+        "metron_age_rating",
         "monochrome",
         "month",
         "notes",

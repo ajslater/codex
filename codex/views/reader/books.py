@@ -70,9 +70,9 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
 
     def _get_comics_filter(self, rel):
         """Build the filter."""
-        group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
+        acl_filter = self.get_acl_filter(Comic, self.request.user)
         nav_filter = {f"{rel}__in": self._selected_arc_ids}
-        query_filter = group_acl_filter & Q(**nav_filter)
+        query_filter = acl_filter & Q(**nav_filter)
         if browser_filters := self.get_from_settings("filters", browser=True):
             # no search at this time.
             query_filter &= ComicFieldFilterView.get_all_comic_field_filters(

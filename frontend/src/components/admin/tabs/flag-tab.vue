@@ -26,6 +26,16 @@
             @click:clear="banner = ''"
           />
         </td>
+        <td v-else-if="item.key === 'AR'" class="ageRatingField">
+          <v-select
+            :model-value="item.value || undefined"
+            :items="ageRatingChoices"
+            label="Age Rating Default"
+            hide-details="auto"
+            :error-messages="errors[item.key]"
+            @update:model-value="changeCol(item.key, 'value', $event)"
+          />
+        </td>
         <td>
           <v-btn
             v-if="item.key === 'BT'"
@@ -35,6 +45,7 @@
             title="Save Banner"
             @click="changeCol(item.key, 'value', banner)"
           />
+          <template v-else-if="item.key === 'AR'" />
           <v-checkbox
             v-else
             :model-value="item.on"
@@ -54,6 +65,7 @@ import { mdiContentSaveOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
+import METRON_AGE_RATING_CHOICES from "@/choices/metron-age-rating-choices.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -88,6 +100,9 @@ export default {
       }
       return "";
     },
+    ageRatingChoices() {
+      return METRON_AGE_RATING_CHOICES.METRON_AGE_RATING;
+    },
   },
   watch: {
     storeBanner(to) {
@@ -120,7 +135,7 @@ export default {
       return ADMIN_FLAGS[item.key];
     },
     colspan(item) {
-      return item.key === "BT" ? 1 : 2;
+      return item.key === "BT" || item.key === "AR" ? 1 : 2;
     },
   },
 };
@@ -149,6 +164,10 @@ export default {
 
 .bannerTextField {
   min-width: 16em;
+}
+
+.ageRatingField {
+  min-width: 12em;
 }
 
 .flagSaveButton {

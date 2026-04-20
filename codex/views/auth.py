@@ -16,6 +16,15 @@ from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag, Comic, Folder, StoryArc
+from codex.models.admin import GroupAuth
+from codex.models.age_rating import (
+    DEFAULT_AGE_RATING,
+    METRON_RATING_ORDER,
+    PUBLIC_TIER_ALLOWED,
+    UNKNOWN_VALUE,
+    allowed_ratings_for,
+    rating_index,
+)
 
 
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
@@ -50,11 +59,11 @@ class AuthGenericAPIView(AuthMixin, GenericAPIView):  # pyright: ignore[reportIn
     """Auth Policy GenericAPIView."""
 
 
-class GroupACLMixin:
-    """Filter group mixin for views and threads."""
+class IsAdminMixin:
+    """Expose lazy ``is_admin`` check for the current request user."""
 
-    def init_group_acl(self) -> None:
-        """Initialize properties."""
+    def init_is_admin(self) -> None:
+        """Initialize the cached admin flag."""
         self._is_admin: bool | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
 
     @property
@@ -64,6 +73,10 @@ class GroupACLMixin:
             user = self.request.user  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             self._is_admin = bool(user and getattr(user, "is_staff", False))
         return self._is_admin
+
+
+class RelPrefixMixin:
+    """Compute relation prefixes for ORM traversal from arbitrary models to Comic."""
 
     @staticmethod
     def get_rel_prefix(model) -> str:
@@ -75,6 +88,10 @@ class GroupACLMixin:
             prefix += "storyarcnumber__"
         prefix += "comic__"
         return prefix
+
+
+class GroupACLFilterMixin(RelPrefixMixin):
+    """Library-group ACL filter: visibility based on group membership."""
 
     @classmethod
     def get_group_acl_filter(cls, model, user) -> Q:
@@ -107,6 +124,81 @@ class GroupACLMixin:
         q |= include_q & ~exclude_q
 
         return q
+
+
+class AgeRatingACLMixin(RelPrefixMixin):
+    """
+    Metron age-rating ACL filter.
+
+    Age-restriction mode activates only when at least one ``GroupAuth`` row has
+    a real Metron rating (``Unknown`` does not count; it is treated as null
+    at filter time). Null- and ``Unknown``-rated comics inherit the
+    ``AGE_RATING_DEFAULT`` admin flag value. Admins are NOT exempt.
+    """
+
+    @staticmethod
+    def _age_restriction_mode_active() -> bool:
+        """Return True if any group has a real (ordered) age rating set."""
+        return GroupAuth.objects.filter(
+            metron_age_rating__in=METRON_RATING_ORDER
+        ).exists()
+
+    @staticmethod
+    def _get_default_rating() -> str:
+        """Return the current AGE_RATING_DEFAULT flag value (falling back to Adult)."""
+        try:
+            value = (
+                AdminFlag.objects.only("value")
+                .get(key=AdminFlagChoices.AGE_RATING_DEFAULT.value)
+                .value
+            )
+        except AdminFlag.DoesNotExist:
+            return DEFAULT_AGE_RATING
+        return value or DEFAULT_AGE_RATING
+
+    @staticmethod
+    def _allowed_ratings_for_user(user) -> frozenset[str]:
+        """Return the allowed rating set for a user under the tier rules."""
+        if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
+            return PUBLIC_TIER_ALLOWED
+        ratings = list(
+            GroupAuth.objects.filter(
+                group__user=user, metron_age_rating__in=METRON_RATING_ORDER
+            ).values_list("metron_age_rating", flat=True)
+        )
+        if not ratings:
+            return PUBLIC_TIER_ALLOWED
+        most_restrictive = min(ratings, key=rating_index)
+        return allowed_ratings_for(most_restrictive)
+
+    @classmethod
+    def get_age_rating_acl_filter(cls, model, user) -> Q:
+        """Generate the age-rating acl filter for comics."""
+        if not cls._age_restriction_mode_active():
+            return Q()
+
+        allowed = cls._allowed_ratings_for_user(user)
+        rel = cls.get_rel_prefix(model) + "metron_age_rating"
+        q = Q(**{f"{rel}__in": allowed})
+        if cls._get_default_rating() in allowed:
+            # Null and Unknown both inherit the default rating.
+            q |= Q(**{f"{rel}__isnull": True}) | Q(**{rel: UNKNOWN_VALUE})
+        return q
+
+
+class GroupACLMixin(IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin):
+    """Merged ACL mixin: library-group visibility + age-rating restriction."""
+
+    def init_group_acl(self) -> None:
+        """Initialize cached properties."""
+        self.init_is_admin()
+
+    @classmethod
+    def get_acl_filter(cls, model, user) -> Q:
+        """Combine library-group and age-rating ACL filters."""
+        return cls.get_group_acl_filter(model, user) & cls.get_age_rating_acl_filter(
+            model, user
+        )
 
 
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):

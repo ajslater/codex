@@ -8,7 +8,7 @@ from types import MappingProxyType
 
 from caseconverter import camelcase
 
-from codex.choices.admin import ADMIN_FLAG_CHOICES
+from codex.choices.admin import ADMIN_FLAG_CHOICES, METRON_AGE_RATING_CHOICES
 from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
 from codex.choices.jobs import ADMIN_JOBS
 from codex.choices.notifications import Notifications
@@ -25,6 +25,9 @@ _DUMPS = MappingProxyType(
         "admin-flag-choices.json": ADMIN_FLAG_CHOICES,
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
         "browser-choices.json": BROWSER_CHOICES,
+        "metron-age-rating-choices.json": {
+            "METRON_AGE_RATING": METRON_AGE_RATING_CHOICES,
+        },
         "reader-choices.json": READER_CHOICES,
     }
 )

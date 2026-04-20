@@ -5,6 +5,7 @@ from enum import Enum, _EnumDict
 from typing import cast
 
 from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
+from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.db.models import Choices, TextChoices
 from django.db.models.enums import ChoicesType
 
@@ -59,4 +60,5 @@ def max_choices_len(choices: type[Choices]) -> int:
 
 
 FileTypeChoices = text_choices_from_enum(FileTypeEnum)
+MetronAgeRatingChoices = text_choices_from_enum(MetronAgeRatingEnum)
 ReadingDirectionChoices = text_choices_from_enum(ReadingDirectionEnum)

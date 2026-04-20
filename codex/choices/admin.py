@@ -4,10 +4,13 @@ from types import MappingProxyType
 
 from django.db.models.enums import TextChoices
 
+from codex.models.age_rating import SELECTABLE_RATINGS
+
 
 class AdminFlagChoices(TextChoices):
     """Choices for Admin Flags."""
 
+    AGE_RATING_DEFAULT = "AR"
     AUTO_UPDATE = "AU"
     BANNER_TEXT = "BT"
     FOLDER_VIEW = "FV"
@@ -20,6 +23,7 @@ class AdminFlagChoices(TextChoices):
 
 ADMIN_FLAG_CHOICES = MappingProxyType(
     {
+        AdminFlagChoices.AGE_RATING_DEFAULT.value: "Age Rating Default",
         AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
         AdminFlagChoices.BANNER_TEXT.value: "Banner Text",
         AdminFlagChoices.FOLDER_VIEW.value: "Folder View",
@@ -29,4 +33,9 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.REGISTRATION.value: "Registration",
         AdminFlagChoices.SEND_TELEMETRY.value: "Send Stats",
     }
+)
+
+# Admin-facing selects only; excludes Unknown (treated as NULL at filter time).
+METRON_AGE_RATING_CHOICES = MappingProxyType(
+    {value: value for value in SELECTABLE_RATINGS}
 )

@@ -48,8 +48,8 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     def _get_page_image(self) -> tuple:
         """Get the image data and content type."""
         # Get comic - Distinct is important
-        group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
-        qs = Comic.objects.filter(group_acl_filter).only("path", "file_type").distinct()
+        acl_filter = self.get_acl_filter(Comic, self.request.user)
+        qs = Comic.objects.filter(acl_filter).only("path", "file_type").distinct()
         pk = self.kwargs.get("pk")
         comic = qs.get(pk=pk)
 
