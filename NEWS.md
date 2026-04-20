@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.10.12
 
 - Fixes
+    - Fix an occasional bug linking folders when importing.
     - Fix overzealous lazy importer importing tags from books that already had
       tags.
     - Fix reader settings clearing anomalies. Add a global reader settings clear
