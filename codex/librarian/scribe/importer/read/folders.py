@@ -1,6 +1,6 @@
 """Aggregate folders and path from path."""
 
-from collections.abc import Sequence
+from collections.abc import Sequence, ValuesView
 from pathlib import Path
 
 from codex.librarian.scribe.importer.const import (
@@ -17,7 +17,9 @@ from codex.models.groups import Folder
 class AggregatePathMetadataImporter(AggregateManyToManyMetadataImporter):
     """Aggregate path metadata."""
 
-    def get_all_library_relative_paths(self, comic_paths: Sequence[Path | str]) -> set:
+    def get_all_library_relative_paths(
+        self, comic_paths: Sequence[Path | str] | ValuesView[str]
+    ) -> set:
         """Get the proposed folder_paths."""
         # also used by moved/comic.py:_bulk_comics_moved_ensure_folders()
         library_path = Path(self.library.path)
