@@ -11,10 +11,12 @@ border-radius: 128px;
 - Fixes:
     - Fix an occasional bug linking folders when importing.
     - Fix updating comics crash by batching comic updates.
+    - Fix possible import crashes in delete & linking.
 
 - Features
     - Codex identifies itself in the HTTP Server: header.
     - Codex identifies itself in the OPDS v1 <generator> tag.
+    - Adjusted importer batching variable defaults for greater throughput
 
 ## v1.10.11
 
