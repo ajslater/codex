@@ -1,15 +1,12 @@
 """Extract metadata from comic archive."""
 
+from collections.abc import MutableMapping
 from datetime import UTC, datetime
-from tarfile import TarError
+from pathlib import Path
 from types import MappingProxyType
-from zipfile import BadZipFile, LargeZipFile
 
-from comicbox.box import Comicbox
-from comicbox.exceptions import UnsupportedArchiveTypeError
+from comicbox.process import iter_process_files
 from comicbox.schemas.comicbox import PAGE_COUNT_KEY
-from py7zr.exceptions import ArchiveError as Py7zError
-from rarfile import Error as RarError
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.const import EXTRACTED, FIS, SKIPPED
@@ -25,21 +22,7 @@ from codex.settings import COMICBOX_CONFIG
 class ExtractMetadataImporter(AggregateMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
 
-    @staticmethod
-    def _old_comic_values(
-        old_comic_values: MappingProxyType, path: str
-    ) -> tuple[str | None, int | None, datetime | None]:
-        old_comic = old_comic_values.get(path, {})
-        old_file_type = old_comic.get("file_type")
-        old_page_count = old_comic.get(PAGE_COUNT_KEY)
-        old_mtime = old_comic.get("metadata_mtime")
-        if old_mtime and (
-            old_mtime.tzinfo is None or old_mtime.tzinfo.utcoffset(old_mtime) is None
-        ):
-            old_mtime = old_mtime.replace(tzinfo=UTC)
-        return old_file_type, old_page_count, old_mtime
-
-    def _set_import_metadata_flag(self) -> bool:
+    def _get_import_metadata_flag(self) -> bool:
         """Set import_metadata flag."""
         if self.task.force_import_metadata:
             import_metadata = True
@@ -50,83 +33,73 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             self.log.warning("Admin flag set to NOT import metadata.")
         return import_metadata
 
-    def _extract_path_comicbox(
+    def _get_old_comic_mtime(
+        self, old_comic: MutableMapping[str, datetime | str | int]
+    ) -> datetime | None:
+        if not self.task.check_metadata_mtime:
+            return None
+        old_mtime: datetime = old_comic.pop("metadata_mtime")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        if old_mtime and (
+            old_mtime.tzinfo is None or old_mtime.tzinfo.utcoffset(old_mtime) is None
+        ):
+            old_mtime = old_mtime.replace(tzinfo=UTC)
+        return old_mtime
+
+    def _get_all_old_comic_values(
         self,
-        path: str,
-        old_comic_values: MappingProxyType,
-        *,
-        import_metadata: bool,
-    ) -> dict:
-        old_file_type, old_page_count, old_mtime = self._old_comic_values(
-            old_comic_values, path
-        )
-        md = {}
-        with Comicbox(path, config=COMICBOX_CONFIG, logger=self.log) as cb:
-            if import_metadata:
-                new_md_mtime = cb.get_metadata_mtime()
-                if (
-                    not self.task.check_metadata_mtime
-                    or not new_md_mtime
-                    or not old_mtime
-                    or (new_md_mtime > old_mtime)
-                ):
-                    md = cb.to_dict()
-                    md = md.get("comicbox", {})
-                    md["metadata_mtime"] = new_md_mtime
-                else:
-                    md["page_count"] = cb.get_page_count()
-            else:
-                md["page_count"] = cb.get_page_count()
-            file_type = cb.get_file_type()
-
-        if old_page_count == md.get("page_count"):
-            md.pop("page_count")
-        if old_file_type != file_type:
-            md["file_type"] = file_type
-
-        if md:
-            md["path"] = path
-        return md
-
-    def _extract_path(
-        self, path: str, old_comic_values: MappingProxyType, *, import_metadata: bool
-    ) -> dict:
-        """Extract metadata from comic and clean it for codex."""
-        md = {}
-        failed_import = {}
-        try:
-            md = self._extract_path_comicbox(
-                path, old_comic_values, import_metadata=import_metadata
-            )
-        except (
-            UnsupportedArchiveTypeError,
-            BadZipFile,
-            LargeZipFile,
-            RarError,
-            Py7zError,
-            TarError,
-            OSError,
-        ) as exc:
-            self.log.warning(f"Failed to import {path}: {exc}")
-            failed_import = {path: exc}
-        except Exception as exc:
-            self.log.exception(f"Failed to import: {path}")
-            failed_import = {path: exc}
-        if failed_import:
-            self.metadata[FIS].update(failed_import)
-        return md
-
-    @staticmethod
-    def _get_all_old_comic_values(all_paths: frozenset[str]) -> MappingProxyType:
+        all_paths: frozenset[str],
+    ) -> tuple[
+        MappingProxyType[str, datetime], MappingProxyType[str, dict[str, str | int]]
+    ]:
         """Get some old comic values."""
-        old_comics = Comic.objects.filter(path__in=all_paths).values(
-            "path", "metadata_mtime", "page_count", "file_type"
-        )
+        values = ["path", "page_count", "file_type"]
+        if self.task.check_metadata_mtime:
+            values.append("metadata_mtime")
+        old_comics = Comic.objects.filter(path__in=all_paths).values(*values)
         old_comic_values = {}
+        old_comic_mtimes = {}
         for old_comic in old_comics:
-            old_path = old_comic.pop("path")
-            old_comic_values[old_path] = old_comic
-        return MappingProxyType(old_comic_values)
+            old_path_str = old_comic.pop("path")
+            if old_mtime := self._get_old_comic_mtime(old_comic):
+                old_comic_mtimes[old_path_str] = old_mtime
+            old_comic_values[old_path_str] = old_comic
+        return MappingProxyType(old_comic_mtimes), MappingProxyType(old_comic_values)
+
+    def _extract_post_process_comic(
+        self,
+        path: Path,
+        value: tuple[MutableMapping, BaseException | None],
+        all_old_comic_values: MappingProxyType[str, dict[str, str | int]],
+        status: ImporterReadComicsStatus,
+    ):
+        if self.abort_event.is_set():
+            return True
+        md, exc = value
+        if exc:
+            failed_import = {path: exc}
+            self.metadata[FIS].update(failed_import)
+        if md:
+            path_str = str(path)
+            old_comic = all_old_comic_values.get(path_str, {})
+            old_file_type = old_comic.get("file_type")
+            old_page_count = old_comic.get(PAGE_COUNT_KEY)
+
+            # special post processing to avoid updates
+            if old_page_count == md.get("page_count"):
+                md.pop("page_count")
+            file_type = md.get("file_type", "")
+            if old_file_type != file_type:
+                md["file_type"] = file_type
+
+            if md:
+                md["path"] = path
+
+            self.metadata[EXTRACTED][path] = md
+        else:
+            self.metadata[SKIPPED].add(path)
+        status.increment_complete()
+        self.status_controller.update(status)
+        return False
 
     def extract_metadata(self, status=None) -> int:
         """Extract comic metadata into memory."""
@@ -138,7 +111,13 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self.task.files_modified = frozenset()
         self.task.files_created = frozenset()
         total_paths = len(all_paths)
-        status = ImporterReadComicsStatus(0, total_paths)
+        if not status:
+            status = ImporterReadComicsStatus(0, total_paths)
+        else:
+            status.complete = 0
+            status.total = total_paths
+            self.status_controller.update(status)
+
         try:
             if not total_paths:
                 return count
@@ -149,21 +128,22 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             self.status_controller.start(status, notify=True)
 
             # Set import_metadata flag
-            import_metadata = self._set_import_metadata_flag()
-            old_comic_values = self._get_all_old_comic_values(all_paths)
+            import_metadata = self._get_import_metadata_flag()
+            all_old_comic_mtimes, all_old_comic_values = self._get_all_old_comic_values(
+                all_paths
+            )
 
-            for path in all_paths:
-                if self.abort_event.is_set():
-                    return count
-                if md := self._extract_path(
-                    path, old_comic_values, import_metadata=import_metadata
+            for path, value in iter_process_files(
+                all_paths,
+                config=COMICBOX_CONFIG,
+                logger=self.log,
+                old_mtime_map=all_old_comic_mtimes,
+                full_metadata=import_metadata,
+            ):
+                if self._extract_post_process_comic(
+                    path, value, all_old_comic_values, status
                 ):
-                    self.metadata[EXTRACTED][path] = md
-                else:
-                    self.metadata[SKIPPED].add(path)
-
-                status.increment_complete()
-                self.status_controller.update(status)
+                    break
 
             skipped_count = len(self.metadata[SKIPPED])
             count = total_paths - skipped_count
