@@ -84,12 +84,11 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             old_file_type = old_comic.get("file_type")
             old_page_count = old_comic.get(PAGE_COUNT_KEY)
 
-            # special post processing to avoid updates
+            # Remove similar info to avoid update if nothing changed.
             if old_page_count == md.get("page_count"):
-                md.pop("page_count")
-            file_type = md.get("file_type", "")
-            if old_file_type != file_type:
-                md["file_type"] = file_type
+                md.pop("page_count", None)
+            if old_file_type == md.get("file_type"):
+                md.pop("file_type", None)
 
             if md:
                 md["path"] = path_str
