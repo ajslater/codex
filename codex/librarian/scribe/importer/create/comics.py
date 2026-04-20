@@ -22,6 +22,7 @@ from codex.librarian.scribe.importer.statii.create import (
     ImporterUpdateComicsStatus,
 )
 from codex.models import Comic
+from codex.settings import IMPORTER_UPDATE_COMIC_BATCH_SIZE
 
 
 class CreateComicsImporter(CreateForeignKeyLinksImporter):
@@ -92,7 +93,11 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             count = len(update_comics)
             if count:
                 self.log.debug(f"Bulk updating {len(update_comics)} comics.")
-                Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+                Comic.objects.bulk_update(
+                    update_comics,
+                    BULK_UPDATE_COMIC_FIELDS,
+                    batch_size=IMPORTER_UPDATE_COMIC_BATCH_SIZE,
+                )
                 if comic_pks:
                     self.log.debug(
                         f"Purging covers for {len(comic_pks)} updated comics."
