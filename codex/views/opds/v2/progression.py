@@ -145,7 +145,7 @@ class OPDS2ProgressionView(
             reason = f"No model found for group {group}"
             raise ValidationError(reason, code="422")
 
-        acl_filter = self.get_group_acl_filter(model, self.request.user)
+        acl_filter = self.get_acl_filter(model, self.request.user)
         qs = model.objects.filter(acl_filter).distinct()
 
         bm_rel = self.get_bm_rel(model)

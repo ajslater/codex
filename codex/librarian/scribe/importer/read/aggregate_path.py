@@ -1,5 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
 
+from comicbox.enums.maps.age_rating import to_metron_age_rating
 from comicbox.schemas.comicbox import (
     COVER_DATE_KEY,
     DATE_KEY,
@@ -46,6 +47,7 @@ _USED_COMICBOX_FIELDS = frozenset(
         "language",
         "locations",
         "metadata_mtime",  # extra
+        "metron_age_rating",  # derived from age_rating in _transform_metadata
         "monochrome",
         "notes",
         "original_format",
@@ -84,6 +86,11 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         for key in tuple(md.keys()):
             if key not in _USED_COMICBOX_FIELDS:
                 md.pop(key, None)
+
+        if (ar := md.get("age_rating")) and (
+            metron := to_metron_age_rating(ar)
+        ) is not None:
+            md["metron_age_rating"] = metron.value
 
         if date := md.pop(DATE_KEY, None):
             date.pop(COVER_DATE_KEY, None)
