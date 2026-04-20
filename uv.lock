@@ -476,7 +476,7 @@ test = [
 requires-dist = [
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], path = "/Users/aj/Code/comicbox/dist/comicbox-2.3.1-py3-none-any.whl" },
+    { name = "comicbox", extras = ["pdf"], path = "/Users/aj/Code/comicbox/dist/comicbox-2.3.0-py3-none-any.whl" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
     { name = "django-cachalot", specifier = "~=2.8" },
@@ -555,8 +555,8 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "2.3.1"
-source = { path = "/Users/aj/Code/comicbox/dist/comicbox-2.3.1-py3-none-any.whl" }
+version = "2.3.0"
+source = { path = "/Users/aj/Code/comicbox/dist/comicbox-2.3.0-py3-none-any.whl" }
 dependencies = [
     { name = "ansicolors" },
     { name = "bidict" },
@@ -585,7 +585,7 @@ dependencies = [
     { name = "zipremove" },
 ]
 wheels = [
-    { filename = "comicbox-2.3.1-py3-none-any.whl", hash = "sha256:736802c66b73407f5822b4a168351b02ab56f9e6899d32c377e472efcc41965e" },
+    { filename = "comicbox-2.3.0-py3-none-any.whl", hash = "sha256:ecb58c23057b7818ecc166f8cc0e12f681353e5d9725c28895957c313ddca175" },
 ]
 
 [package.optional-dependencies]
