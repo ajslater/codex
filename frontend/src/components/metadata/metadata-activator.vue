@@ -25,7 +25,6 @@ export default {
   data() {
     return {
       mdiTagOutline,
-      importedIds: new Set(),
     };
   },
   computed: {
@@ -42,11 +41,12 @@ export default {
       if (
         this.lazyImportEnabled &&
         this.book.group === "c" &&
-        !this.importedIds.has(this.book.pk)
+        !this.book.hasMetadata
       ) {
         const ids = this.book.ids || [this.book.pk];
-        this.lazyImport({ group: this.book.group, ids });
-        this.importedIds.add(this.book.pk);
+        this.lazyImport({ group: this.book.group, ids }).then(() => {
+          this.book.hasMetadata = true;
+        });
       }
     },
   },
