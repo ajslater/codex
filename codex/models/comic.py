@@ -21,6 +21,7 @@ from django.db.models import (
     TextField,
 )
 
+from codex.models.age_rating import AgeRating
 from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,
     MAX_NAME_LEN,
@@ -28,7 +29,6 @@ from codex.models.base import (
 )
 from codex.models.choices import (
     FileTypeChoices,
-    MetronAgeRatingChoices,
     ReadingDirectionChoices,
     max_choices_len,
 )
@@ -48,7 +48,6 @@ from codex.models.groups import (
 )
 from codex.models.identifier import Identifier
 from codex.models.named import (
-    AgeRating,
     Character,
     Country,
     Credit,
@@ -112,15 +111,6 @@ class Comic(WatchedPathBrowserGroup):
 
     # Other FKs
     age_rating = ForeignKey(AgeRating, db_index=True, null=True, on_delete=CASCADE)
-    metron_age_rating = CleaningCharField(
-        db_index=True,
-        choices=MetronAgeRatingChoices.choices,
-        null=True,
-        blank=True,
-        default=None,
-        max_length=max_choices_len(MetronAgeRatingChoices),
-        db_collation="nocase",
-    )
     original_format = ForeignKey(
         OriginalFormat, null=True, db_index=True, on_delete=CASCADE
     )
@@ -335,14 +325,13 @@ class ComicFTS(BaseModel):
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     # FK
-    tagged_age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    age_rating_tagged = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    age_rating_metron = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     country = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     language = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     original_format = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     scan_info = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     tagger = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
-    # Attribute (from normalized enum field)
-    metron_age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     # M2M
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

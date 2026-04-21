@@ -5,7 +5,7 @@ from codex.librarian.scribe.importer.const import (
     FTS_CREATE,
     FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
-    FTS_FIELD_RENAME_MAP,
+    FTS_FIELD_TARGETS,
     FTS_UPDATE,
     NON_FTS_FIELDS,
     STORY_ARC_FIELD_NAME,
@@ -37,18 +37,38 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
             sorted(value for value in flatten(values) if isinstance(value, str))
         )
 
+    @staticmethod
+    def _iter_fts_targets(
+        field_name: str, values: tuple
+    ) -> tuple[tuple[str, tuple], ...]:
+        """
+        Expand one source field into its ComicFTS target columns.
+
+        Most fields map to a single column of the same name (identity).
+        Entries in :data:`FTS_FIELD_TARGETS` can fan out to multiple columns
+        and optionally rewrite the value tuple per target.
+        """
+        targets = FTS_FIELD_TARGETS.get(field_name)
+        if not targets:
+            return ((field_name, values),)
+        expanded = []
+        for target_name, transform in targets:
+            target_values = transform(values) if transform else values
+            expanded.append((target_name, target_values))
+        return tuple(expanded)
+
     def add_to_fts_existing(self, pk: int, field_name: str, values: tuple) -> None:
         """Add the existing values for creating a changed search entry."""
         if field_name in NON_FTS_FIELDS or not values:
             return
         field_name, values = self.minify_complex_link_to_fts_tuple(field_name, values)
-        fts_values = self._to_fts_tuple(values)
-        if not fts_values:
-            return
-        fts_field_name = FTS_FIELD_RENAME_MAP.get(field_name, field_name)
-        if pk not in self.metadata[FTS_EXISTING_M2MS]:
-            self.metadata[FTS_EXISTING_M2MS][pk] = {}
-        self.metadata[FTS_EXISTING_M2MS][pk][fts_field_name] = fts_values
+        for fts_field_name, target_values in self._iter_fts_targets(field_name, values):
+            fts_values = self._to_fts_tuple(target_values)
+            if not fts_values:
+                continue
+            if pk not in self.metadata[FTS_EXISTING_M2MS]:
+                self.metadata[FTS_EXISTING_M2MS][pk] = {}
+            self.metadata[FTS_EXISTING_M2MS][pk][fts_field_name] = fts_values
 
     def add_links_to_fts(
         self,
@@ -78,6 +98,9 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         extra_values = (
             self.metadata[FTS_CREATED_M2MS].get(field_name, {}).pop(flat_values, ())
         )
-        fts_values = self._to_fts_tuple(flat_values + extra_values)
-        fts_field_name = FTS_FIELD_RENAME_MAP.get(field_name, field_name)
-        self.metadata[key][sub_key][fts_field_name] = fts_values
+        combined_values = flat_values + extra_values
+        for fts_field_name, target_values in self._iter_fts_targets(
+            field_name, combined_values
+        ):
+            fts_values = self._to_fts_tuple(target_values)
+            self.metadata[key][sub_key][fts_field_name] = fts_values

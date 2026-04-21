@@ -20,7 +20,8 @@ class BrowserSettingsFilterInputSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False)
     # Dynamic filters
-    age_rating = VuetifyListField()
+    age_rating_metron = VuetifyListField()
+    age_rating_tagged = VuetifyListField()
     characters = VuetifyListField()
     country = VuetifyListField()
     credits = VuetifyListField()
@@ -33,7 +34,6 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     identifier_source = VuetifyListField()
     language = VuetifyListField()
     locations = VuetifyListField()
-    metron_age_rating = VuetifyListField()
     monochrome = VuetifyListField(child=VuetifyBooleanField)
     original_format = VuetifyListField()
     reading_direction = VuetifyListField(child=VuetifyReadingDirectionChoiceField)

@@ -24,8 +24,8 @@
           title-key="path"
         />
       </template>
-      <template #[`item.metronAgeRating`]="{ item }">
-        {{ item.metronAgeRating || "Any" }}
+      <template #[`item.ageRatingMetron`]="{ item }">
+        {{ item.ageRatingMetron || "Any" }}
       </template>
       <template #[`item.actions`]="{ item }">
         <AdminCreateUpdateDialog
@@ -171,7 +171,7 @@ export default {
         { title: "Type", key: "exclude", align: "start" },
         { title: "Users", key: "userSet" },
         { title: "Libraries", key: "librarySet" },
-        { title: "Age Restriction", key: "metronAgeRating", align: "start" },
+        { title: "Age Restriction", key: "ageRatingMetron", align: "start" },
         { title: "Actions", key: "actions", sortable: false },
       ],
     };

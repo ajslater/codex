@@ -7,12 +7,12 @@
           <MetadataText :value="md.criticalRating" />
         </td>
       </tr>
-      <tr v-if="md.metronAgeRating">
+      <tr v-if="md.ageRating">
         <td class="key">Age Rating</td>
         <td>
-          <MetadataText class="ageRating" :value="md.metronAgeRating" />
+          <MetadataText class="ageRating" :value="displayAgeRating" />
           <MetadataText
-            v-if="md.ageRating && md.ageRating.name != md.metronAgeRating"
+            v-if="showOriginalAgeRating"
             class="ageRating originalAgeRating"
             :value="originalAgeRating"
           />
@@ -37,11 +37,15 @@ export default {
       md: (state) => state.md,
     }),
     show() {
-      return (
-        this.md?.criticRating !== undefined ||
-        this.md?.ageRating ||
-        this.md?.metronAgeRating
-      );
+      return this.md?.criticRating !== undefined || this.md?.ageRating;
+    },
+    displayAgeRating() {
+      const ar = this.md.ageRating;
+      return ar.metronName || ar.name;
+    },
+    showOriginalAgeRating() {
+      const ar = this.md.ageRating;
+      return !!ar.metronName && ar.name !== ar.metronName;
     },
     originalAgeRating() {
       return `(tagged as ${this.md.ageRating.name})`;

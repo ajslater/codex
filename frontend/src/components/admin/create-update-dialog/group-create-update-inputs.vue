@@ -48,13 +48,13 @@
       @update:model-value="row.librarySet = $event"
     />
     <v-select
-      :model-value="row.metronAgeRating"
+      :model-value="row.ageRatingMetron"
       :items="ageRatingChoices"
       label="Age Restriction"
       clearable
       hide-details="auto"
       placeholder="Any"
-      @update:model-value="row.metronAgeRating = $event"
+      @update:model-value="row.ageRatingMetron = $event"
     />
   </div>
 </template>
@@ -73,14 +73,14 @@ const UPDATE_KEYS = Object.freeze([
   "userSet",
   "librarySet",
   "exclude",
-  "metronAgeRating",
+  "ageRatingMetron",
 ]);
 const EMPTY_ROW = Object.freeze({
   name: "",
   userSet: [],
   librarySet: [],
   exclude: false,
-  metronAgeRating: null,
+  ageRatingMetron: null,
 });
 
 export default {

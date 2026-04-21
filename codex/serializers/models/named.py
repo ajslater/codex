@@ -186,6 +186,7 @@ class AgeRatingSerializer(NamedModelSerializer):
         """Configure model."""
 
         model = AgeRating
+        fields = ("pk", "name", "metron_name", "metron_index")
 
 
 class TagSerializer(URLNamedModelSerializer):

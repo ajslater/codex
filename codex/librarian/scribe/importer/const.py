@@ -6,6 +6,7 @@ from bidict import frozenbidict
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
+from codex.models.age_rating import AgeRating, compute_metron_for_name
 from codex.models.base import BaseModel
 from codex.models.comic import Comic
 from codex.models.groups import (
@@ -18,7 +19,6 @@ from codex.models.groups import (
 )
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.models.named import (
-    AgeRating,
     Character,
     Country,
     Credit,
@@ -77,11 +77,39 @@ NON_FTS_FIELDS = frozenset(
         IDENTIFIERS_FIELD_NAME,
     }
 )
-# Mapping from comic field name -> ComicFTS field name when they diverge.
-# Comic.age_rating is kept for backwards compatibility while the normalized
-# metron_age_rating drives the age-rating UI; the search index stores the
-# tagged FK under a disambiguated name.
-FTS_FIELD_RENAME_MAP = MappingProxyType({"age_rating": "tagged_age_rating"})
+
+
+def _metron_fts_values(values: tuple) -> tuple:
+    """
+    Derive the normalized Metron rating tuple from a raw age-rating tuple.
+
+    Called by the importer FTS plumbing to populate the ``age_rating_metron``
+    ComicFTS column from the same ``AgeRating.name`` value that feeds
+    ``age_rating_tagged``. Empty/unmappable names yield an empty tuple so the
+    FTS column is written as the empty string.
+    """
+    return tuple(
+        metron
+        for value in values
+        if value and (metron := compute_metron_for_name(value)[0])
+    )
+
+
+# Mapping from comic field name -> tuple of (ComicFTS field name, transform).
+# A source field can fan out to multiple FTS columns. ``transform`` rewrites
+# the value tuple for that target; ``None`` means identity (common case).
+#
+# The ``age_rating`` FK feeds two FTS columns:
+#   age_rating_tagged  ← AgeRating.name         (raw tagged string)
+#   age_rating_metron  ← AgeRating.metron_name  (normalized Metron rating)
+FTS_FIELD_TARGETS = MappingProxyType(
+    {
+        "age_rating": (
+            ("age_rating_tagged", None),
+            ("age_rating_metron", _metron_fts_values),
+        ),
+    }
+)
 
 ##########################
 # IMPORTER METADATA KEYS #

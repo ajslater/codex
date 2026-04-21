@@ -16,10 +16,10 @@ class GroupSerializer(BaseModelSerializer):
     """Group Serialier."""
 
     exclude = BooleanField(default=False, source="groupauth.exclude")
-    metron_age_rating = CharField(
+    age_rating_metron = CharField(
         allow_null=True,
         required=False,
-        source="groupauth.metron_age_rating",
+        source="groupauth.age_rating_metron",
     )
 
     class Meta(BaseModelSerializer.Meta):
@@ -32,7 +32,7 @@ class GroupSerializer(BaseModelSerializer):
             "library_set",
             "user_set",
             "exclude",
-            "metron_age_rating",
+            "age_rating_metron",
         )
         read_only_fields = ("pk",)
 
@@ -43,7 +43,7 @@ class GroupSerializer(BaseModelSerializer):
             return
         groupauth = GroupAuth.objects.get(group=instance)
         update_fields = []
-        for field in ("exclude", "metron_age_rating"):
+        for field in ("exclude", "age_rating_metron"):
             if field in groupauth_data:
                 setattr(groupauth, field, groupauth_data[field])
                 update_fields.append(field)
@@ -65,6 +65,6 @@ class GroupSerializer(BaseModelSerializer):
         GroupAuth.objects.create(
             group=instance,
             exclude=groupauth_data.get("exclude", False),
-            metron_age_rating=groupauth_data.get("metron_age_rating"),
+            age_rating_metron=groupauth_data.get("age_rating_metron"),
         )
         return instance

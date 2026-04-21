@@ -88,8 +88,8 @@ import { useBrowserStore } from "@/stores/browser";
 
 const NUMERIC_FILTERS = new Set(["decade", "year"]);
 const FILTER_TITLE_OVERRIDES = {
-  ageRating: "Age Rating (Tagged)",
-  metronAgeRating: "Age Rating",
+  ageRatingTagged: "Age Rating (Tagged)",
+  ageRatingMetron: "Age Rating",
 };
 
 export default {
