@@ -17,6 +17,11 @@ _FILTER_REL_MAP = MappingProxyType(
         CREDIT_PERSON_UI_FIELD: "credits__person",
         STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
         IDENTIFIER_TYPE_UI_FIELD: "identifiers__source",
+        # Both age-rating filters route through the ``Comic.age_rating`` FK.
+        # The tagged filter uses AgeRating PKs (matching the tagged name);
+        # the metron filter uses normalized ``AgeRating.metron_name`` strings.
+        "age_rating_tagged": "age_rating",
+        "age_rating_metron": "age_rating__metron_name",
     }
 )
 _FILTER_ATTRIBUTES: frozenset[str] = frozenset(BROWSER_FILTER_KEYS)

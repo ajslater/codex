@@ -20,9 +20,7 @@ from codex.models.admin import GroupAuth
 from codex.models.age_rating import (
     DEFAULT_AGE_RATING,
     METRON_RATING_ORDER,
-    PUBLIC_TIER_ALLOWED,
-    UNKNOWN_VALUE,
-    allowed_ratings_for,
+    UNRANKED_METRON_INDEX,
     rating_index,
 )
 
@@ -134,18 +132,23 @@ class AgeRatingACLMixin(RelPrefixMixin):
     a real Metron rating (``Unknown`` does not count; it is treated as null
     at filter time). Null- and ``Unknown``-rated comics inherit the
     ``AGE_RATING_DEFAULT`` admin flag value. Admins are NOT exempt.
+
+    Comparisons are performed against :attr:`AgeRating.metron_index` — a
+    precomputed integer column — so the entire filter is evaluated in SQL.
+    ``UNRANKED_METRON_INDEX`` (the sentinel for ``Unknown`` and unrecognised
+    names) is treated the same as a NULL FK.
     """
 
     @staticmethod
     def _age_restriction_mode_active() -> bool:
         """Return True if any group has a real (ordered) age rating set."""
         return GroupAuth.objects.filter(
-            metron_age_rating__in=METRON_RATING_ORDER
+            age_rating_metron__in=METRON_RATING_ORDER
         ).exists()
 
     @staticmethod
-    def _get_default_rating() -> str:
-        """Return the current AGE_RATING_DEFAULT flag value (falling back to Adult)."""
+    def _get_default_rating_index() -> int:
+        """Return the metron_index of the AGE_RATING_DEFAULT flag value."""
         try:
             value = (
                 AdminFlag.objects.only("value")
@@ -153,23 +156,28 @@ class AgeRatingACLMixin(RelPrefixMixin):
                 .value
             )
         except AdminFlag.DoesNotExist:
-            return DEFAULT_AGE_RATING
-        return value or DEFAULT_AGE_RATING
+            value = DEFAULT_AGE_RATING
+        return rating_index(value or DEFAULT_AGE_RATING)
 
-    @staticmethod
-    def _allowed_ratings_for_user(user) -> frozenset[str]:
-        """Return the allowed rating set for a user under the tier rules."""
+    @classmethod
+    def _max_allowed_rating_index(cls, user) -> int:
+        """
+        Return the max ranked ``metron_index`` visible to ``user``.
+
+        Anonymous / unrestricted users fall back to the public tier (index 0,
+        i.e. ``Everyone``). Returns :data:`rating_index` of the most
+        restrictive group rating for tier B users.
+        """
         if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
-            return PUBLIC_TIER_ALLOWED
+            return 0  # Everyone tier
         ratings = list(
             GroupAuth.objects.filter(
-                group__user=user, metron_age_rating__in=METRON_RATING_ORDER
-            ).values_list("metron_age_rating", flat=True)
+                group__user=user, age_rating_metron__in=METRON_RATING_ORDER
+            ).values_list("age_rating_metron", flat=True)
         )
         if not ratings:
-            return PUBLIC_TIER_ALLOWED
-        most_restrictive = min(ratings, key=rating_index)
-        return allowed_ratings_for(most_restrictive)
+            return 0  # Everyone tier
+        return min(rating_index(r) for r in ratings)
 
     @classmethod
     def get_age_rating_acl_filter(cls, model, user) -> Q:
@@ -177,12 +185,23 @@ class AgeRatingACLMixin(RelPrefixMixin):
         if not cls._age_restriction_mode_active():
             return Q()
 
-        allowed = cls._allowed_ratings_for_user(user)
-        rel = cls.get_rel_prefix(model) + "metron_age_rating"
-        q = Q(**{f"{rel}__in": allowed})
-        if cls._get_default_rating() in allowed:
-            # Null and Unknown both inherit the default rating.
-            q |= Q(**{f"{rel}__isnull": True}) | Q(**{rel: UNKNOWN_VALUE})
+        max_idx = cls._max_allowed_rating_index(user)
+        rel = cls.get_rel_prefix(model) + "age_rating"
+        # Ranked ratings at or below ``max_idx`` are visible. ``metron_index``
+        # starts at 0 (``Everyone``) so the lower bound is implicit.
+        q = Q(
+            **{
+                f"{rel}__metron_index__gte": 0,
+                f"{rel}__metron_index__lte": max_idx,
+            }
+        )
+        # Null FK and ``Unknown`` (``metron_index == UNRANKED_METRON_INDEX``)
+        # inherit the default rating.
+        default_idx = cls._get_default_rating_index()
+        if 0 <= default_idx <= max_idx:
+            q |= Q(**{f"{rel}__isnull": True}) | Q(
+                **{f"{rel}__metron_index": UNRANKED_METRON_INDEX}
+            )
         return q
 
 

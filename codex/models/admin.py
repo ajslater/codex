@@ -126,7 +126,7 @@ class GroupAuth(BaseModel):
 
     group = OneToOneField(Group, db_index=True, on_delete=CASCADE)
     exclude = BooleanField(db_index=True, default=False)
-    metron_age_rating = CleaningCharField(
+    age_rating_metron = CleaningCharField(
         db_index=True,
         choices=MetronAgeRatingChoices.choices,
         null=True,

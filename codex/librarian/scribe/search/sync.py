@@ -50,8 +50,11 @@ _SIMPLE_FTS_FIELDS = (
 _SIMPLE_FTS_ANNOTATIONS = MappingProxyType(
     {
         **{f"fts_{rel}": F(f"{rel}__name") for rel in _SIMPLE_FTS_FIELDS},
-        # The Comic.age_rating FK is stored under the fts field name tagged_age_rating.
-        "fts_tagged_age_rating": F("age_rating__name"),
+        # The Comic.age_rating FK powers two FTS columns:
+        #   age_rating_tagged  ← AgeRating.name         (raw tagged string)
+        #   age_rating_metron  ← AgeRating.metron_name  (normalized value)
+        "fts_age_rating_tagged": F("age_rating__name"),
+        "fts_age_rating_metron": F("age_rating__metron_name"),
     }
 )
 _M2M_FTS_RELS = (
@@ -112,6 +115,7 @@ class SearchIndexerSync(SearchIndexerRemove):
             "publisher",
             "imprint",
             "series",
+            "age_rating",
             "country",
             "language",
             "scan_info",

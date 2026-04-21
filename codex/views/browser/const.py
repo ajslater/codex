@@ -1,7 +1,8 @@
 """Browser consts."""
 
 BROWSER_FILTER_KEYS = (
-    "age_rating",
+    "age_rating_metron",
+    "age_rating_tagged",
     "characters",
     "country",
     "credits",
@@ -12,7 +13,6 @@ BROWSER_FILTER_KEYS = (
     "identifier_source",
     "language",
     "locations",
-    "metron_age_rating",
     "monochrome",
     "original_format",
     "reading_direction",

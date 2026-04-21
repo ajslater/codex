@@ -28,7 +28,8 @@ from codex.serializers.models.pycountry import CountrySerializer, LanguageSerial
 class BrowserFilterChoicesSerializer(Serializer):
     """All dynamic filters."""
 
-    age_rating = BooleanField(read_only=True)
+    age_rating_metron = BooleanField(read_only=True)
+    age_rating_tagged = BooleanField(read_only=True)
     characters = BooleanField(read_only=True)
     country = BooleanField(read_only=True)
     critical_rating = BooleanField(read_only=True)
@@ -37,7 +38,6 @@ class BrowserFilterChoicesSerializer(Serializer):
     genres = BooleanField(read_only=True)
     file_type = BooleanField(read_only=True)
     identifier_source = BooleanField(read_only=True)
-    metron_age_rating = BooleanField(read_only=True)
     monochrome = BooleanField(read_only=True)
     language = BooleanField(read_only=True)
     locations = BooleanField(read_only=True)
@@ -58,7 +58,8 @@ class BrowserSettingsFilterSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
     # Dynamic filters
-    age_rating = VuetifyReadOnlyListField()
+    age_rating_metron = VuetifyReadOnlyListField()
+    age_rating_tagged = VuetifyReadOnlyListField()
     characters = VuetifyReadOnlyListField()
     country = VuetifyReadOnlyListField()
     credits = VuetifyReadOnlyListField()
@@ -71,7 +72,6 @@ class BrowserSettingsFilterSerializer(Serializer):
     identifier_source = VuetifyReadOnlyListField()
     language = VuetifyReadOnlyListField()
     locations = VuetifyReadOnlyListField()
-    metron_age_rating = VuetifyReadOnlyListField()
     monochrome = VuetifyReadOnlyListField(child=VuetifyBooleanField)
     original_format = VuetifyReadOnlyListField()
     reading_direction = VuetifyReadOnlyListField(
@@ -114,6 +114,7 @@ class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
 
 _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     {
+        "age_rating_metron": BrowserChoicesCharPkSerializer,
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
         "critical_rating": BrowserChoicesDecimalPkSerializer,

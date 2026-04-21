@@ -2,7 +2,6 @@
 
 _COMICFTS_ATTRIBUTES = (
     "collection_title",
-    "metron_age_rating",
     "name",
     "review",
     "summary",
@@ -12,7 +11,8 @@ _COMICFTS_FKS = (
     "publisher",
     "imprint",
     "series",
-    "tagged_age_rating",
+    "age_rating_tagged",
+    "age_rating_metron",
     "country",
     "language",
     "original_format",

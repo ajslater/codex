@@ -16,6 +16,7 @@ from codex.models import (
     CreditPerson,
     StoryArc,
 )
+from codex.models.age_rating import AgeRating
 from codex.models.identifier import IdentifierSource
 from codex.models.named import Universe
 from codex.serializers.browser.choices import (
@@ -30,8 +31,15 @@ from codex.views.settings import (
     STORY_ARC_UI_FIELD,
 )
 
+_AGE_RATING_TAGGED_FIELD = "age_rating_tagged"
+_AGE_RATING_METRON_FIELD = "age_rating_metron"
+
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
+        _AGE_RATING_TAGGED_FIELD: (
+            "age_rating",
+            AgeRating,
+        ),
         CREDIT_PERSON_UI_FIELD: (
             "credits__person",
             CreditPerson,
@@ -134,7 +142,17 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         # There is only one or no choices.
         return False
 
+    @staticmethod
+    def _is_age_rating_metron_exists(comic_qs) -> bool:
+        """Return True if any comic in qs has a ranked metron rating."""
+        return AgeRating.objects.filter(
+            comic__in=comic_qs, metron_index__gte=0
+        ).exists()
+
     def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str) -> bool:
+        if field_name == _AGE_RATING_METRON_FIELD:
+            return self._is_age_rating_metron_exists(qs)
+
         rel, m2m_model = self.get_rel_and_model(field_name)
 
         if m2m_model:
@@ -190,6 +208,17 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
         return chain.from_iterable(iterables)
 
+    @staticmethod
+    def _get_age_rating_metron_choices(comic_qs):
+        """Distinct ranked Metron rating strings from AgeRating rows on the qs."""
+        names = (
+            AgeRating.objects.filter(comic__in=comic_qs, metron_index__gte=0)
+            .order_by("metron_index")
+            .values_list("metron_name", flat=True)
+            .distinct()
+        )
+        return tuple({"pk": name, "name": name} for name in names)
+
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
@@ -199,6 +228,13 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()
+
+        if field_name == _AGE_RATING_METRON_FIELD:
+            return {
+                "field_name": field_name,
+                "choices": self._get_age_rating_metron_choices(qs),
+            }
+
         rel, m2m_model = self.get_rel_and_model(field_name)
 
         if m2m_model:

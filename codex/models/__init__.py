@@ -1,6 +1,7 @@
 """Codex Django models."""
 
 from codex.models.admin import *
+from codex.models.age_rating import *
 from codex.models.bookmark import *
 from codex.models.comic import *
 from codex.models.groups import *
