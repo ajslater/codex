@@ -18,10 +18,11 @@ _FILTER_REL_MAP = MappingProxyType(
         STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
         IDENTIFIER_TYPE_UI_FIELD: "identifiers__source",
         # Both age-rating filters route through the ``Comic.age_rating`` FK.
-        # The tagged filter uses AgeRating PKs (matching the tagged name);
-        # the metron filter uses normalized ``AgeRating.metron_name`` strings.
+        # The tagged filter uses :class:`AgeRating` PKs (matching the tagged
+        # name); the metron filter uses :class:`AgeRatingMetron` PKs reached
+        # via the ``age_rating__metron`` chain.
         "age_rating_tagged": "age_rating",
-        "age_rating_metron": "age_rating__metron_name",
+        "age_rating_metron": "age_rating__metron",
     }
 )
 _FILTER_ATTRIBUTES: frozenset[str] = frozenset(BROWSER_FILTER_KEYS)

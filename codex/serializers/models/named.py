@@ -5,6 +5,7 @@ from rest_framework.serializers import URLField
 
 from codex.models import (
     AgeRating,
+    AgeRatingMetron,
     Character,
     Credit,
     CreditPerson,
@@ -179,14 +180,26 @@ class TaggerSerializer(NamedModelSerializer):
         model = Tagger
 
 
+class AgeRatingMetronSerializer(NamedModelSerializer):
+    """Age Rating Metron model."""
+
+    class Meta(NamedModelSerializer.Meta):
+        """Configure model."""
+
+        model = AgeRatingMetron
+        fields = ("pk", "name", "index")
+
+
 class AgeRatingSerializer(NamedModelSerializer):
     """Age Rating model."""
+
+    metron = AgeRatingMetronSerializer(allow_null=True, read_only=True)
 
     class Meta(NamedModelSerializer.Meta):
         """Configure model."""
 
         model = AgeRating
-        fields = ("pk", "name", "metron_name", "metron_index")
+        fields = ("pk", "name", "metron")
 
 
 class TagSerializer(URLNamedModelSerializer):

@@ -16,7 +16,7 @@ from codex.models import (
     CreditPerson,
     StoryArc,
 )
-from codex.models.age_rating import AgeRating
+from codex.models.age_rating import AgeRating, AgeRatingMetron
 from codex.models.identifier import IdentifierSource
 from codex.models.named import Universe
 from codex.serializers.browser.choices import (
@@ -40,6 +40,10 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
             "age_rating",
             AgeRating,
         ),
+        _AGE_RATING_METRON_FIELD: (
+            "age_rating__metron",
+            AgeRatingMetron,
+        ),
         CREDIT_PERSON_UI_FIELD: (
             "credits__person",
             CreditPerson,
@@ -54,8 +58,15 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
         ),
     }
 )
+# Reverse-query prefixes from the choice model back to Comic. Used to build
+# filter kwargs like ``{back_rel}comic__in=comic_qs``. Models with a direct
+# FK reverse (AgeRating.comic_set from Comic.age_rating, Character, …) omit
+# the prefix and take the empty-string default.
 _BACK_REL_MAP = MappingProxyType(
     {
+        # AgeRatingMetron traverses AgeRating to reach Comic:
+        # AgeRatingMetron -> agerating -> comic
+        AgeRatingMetron: "agerating__",
         CreditPerson: "credit__",
         StoryArc: "storyarcnumber__",
         IdentifierSource: "identifier__",
@@ -142,17 +153,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         # There is only one or no choices.
         return False
 
-    @staticmethod
-    def _is_age_rating_metron_exists(comic_qs) -> bool:
-        """Return True if any comic in qs has a ranked metron rating."""
-        return AgeRating.objects.filter(
-            comic__in=comic_qs, metron_index__gte=0
-        ).exists()
-
     def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str) -> bool:
-        if field_name == _AGE_RATING_METRON_FIELD:
-            return self._is_age_rating_metron_exists(qs)
-
         rel, m2m_model = self.get_rel_and_model(field_name)
 
         if m2m_model:
@@ -208,17 +209,6 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
         return chain.from_iterable(iterables)
 
-    @staticmethod
-    def _get_age_rating_metron_choices(comic_qs):
-        """Distinct ranked Metron rating strings from AgeRating rows on the qs."""
-        names = (
-            AgeRating.objects.filter(comic__in=comic_qs, metron_index__gte=0)
-            .order_by("metron_index")
-            .values_list("metron_name", flat=True)
-            .distinct()
-        )
-        return tuple({"pk": name, "name": name} for name in names)
-
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
@@ -228,12 +218,6 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()
-
-        if field_name == _AGE_RATING_METRON_FIELD:
-            return {
-                "field_name": field_name,
-                "choices": self._get_age_rating_metron_choices(qs),
-            }
 
         rel, m2m_model = self.get_rel_and_model(field_name)
 

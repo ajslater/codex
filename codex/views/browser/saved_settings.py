@@ -6,7 +6,7 @@ from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.models.age_rating import AgeRating
+from codex.models.age_rating import AgeRating, AgeRatingMetron
 from codex.models.base import NamedModel
 from codex.models.identifier import IdentifierSource
 from codex.models.named import (
@@ -45,11 +45,9 @@ from codex.views.settings import (
 )
 
 # Map filter field names to the model whose PKs they store.
-# ``age_rating_metron`` is intentionally absent — it stores normalized rating
-# strings (``MetronAgeRatingChoices``), not PKs, so the PK-validation pass
-# does not apply.
 _FILTER_FK_MODEL_MAP = MappingProxyType(
     {
+        "age_rating_metron": AgeRatingMetron,
         "age_rating_tagged": AgeRating,
         "characters": Character,
         "country": Country,

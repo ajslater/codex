@@ -133,10 +133,13 @@ class AgeRatingACLMixin(RelPrefixMixin):
     at filter time). Null- and ``Unknown``-rated comics inherit the
     ``AGE_RATING_DEFAULT`` admin flag value. Admins are NOT exempt.
 
-    Comparisons are performed against :attr:`AgeRating.metron_index` — a
-    precomputed integer column — so the entire filter is evaluated in SQL.
-    ``UNRANKED_METRON_INDEX`` (the sentinel for ``Unknown`` and unrecognised
-    names) is treated the same as a NULL FK.
+    Comparisons are performed against :attr:`AgeRatingMetron.index` — a
+    small indexed integer column — reached via the ``age_rating__metron``
+    chain, so the entire filter is evaluated in SQL. Django's LEFT JOIN
+    semantics on ``__`` chains mean a null ``Comic.age_rating`` FK or a
+    null ``AgeRating.metron`` FK both satisfy ``__isnull=True`` on the
+    chained relation. ``UNRANKED_METRON_INDEX`` (the sentinel for
+    ``Unknown``) is treated the same as a NULL FK.
     """
 
     @staticmethod
@@ -186,21 +189,24 @@ class AgeRatingACLMixin(RelPrefixMixin):
             return Q()
 
         max_idx = cls._max_allowed_rating_index(user)
-        rel = cls.get_rel_prefix(model) + "age_rating"
-        # Ranked ratings at or below ``max_idx`` are visible. ``metron_index``
-        # starts at 0 (``Everyone``) so the lower bound is implicit.
+        rel = cls.get_rel_prefix(model) + "age_rating__metron"
+        # Ranked ratings at or below ``max_idx`` are visible.
+        # ``AgeRatingMetron.index`` starts at 0 (``Everyone``) so the lower
+        # bound is implicit.
         q = Q(
             **{
-                f"{rel}__metron_index__gte": 0,
-                f"{rel}__metron_index__lte": max_idx,
+                f"{rel}__index__gte": 0,
+                f"{rel}__index__lte": max_idx,
             }
         )
-        # Null FK and ``Unknown`` (``metron_index == UNRANKED_METRON_INDEX``)
-        # inherit the default rating.
+        # Null Comic.age_rating, null AgeRating.metron, and
+        # ``Unknown`` (``index == UNRANKED_METRON_INDEX``) all inherit the
+        # default rating. ``__isnull`` on the chained rel matches whenever
+        # any FK in the chain is null.
         default_idx = cls._get_default_rating_index()
         if 0 <= default_idx <= max_idx:
             q |= Q(**{f"{rel}__isnull": True}) | Q(
-                **{f"{rel}__metron_index": UNRANKED_METRON_INDEX}
+                **{f"{rel}__index": UNRANKED_METRON_INDEX}
             )
         return q
 
