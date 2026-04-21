@@ -521,11 +521,11 @@ CREATED_COMICS = MappingProxyType(
         DELETE_M2MS: {},
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
                 "imprint": ("TestImprint",),
                 "language": ("en",),
+                "metron_age_rating": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -533,6 +533,7 @@ CREATED_COMICS = MappingProxyType(
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
                 "summary": ("Captain Science's many scientific adventures",),
+                "tagged_age_rating": ("Everyone",),
                 "tagger": ("comicbox dev",),
             }
         },
@@ -546,7 +547,6 @@ LINKED_COMICS = MappingProxyType(
         FIS: {},
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -555,6 +555,7 @@ LINKED_COMICS = MappingProxyType(
                 "imprint": ("TestImprint",),
                 "language": ("en",),
                 "locations": ("The Moon",),
+                "metron_age_rating": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -566,6 +567,7 @@ LINKED_COMICS = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
+                "tagged_age_rating": ("Everyone",),
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
@@ -585,7 +587,6 @@ FAILED_IMPORTS = MappingProxyType(
     {
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -594,6 +595,7 @@ FAILED_IMPORTS = MappingProxyType(
                 "imprint": ("TestImprint",),
                 "language": ("en",),
                 "locations": ("The Moon",),
+                "metron_age_rating": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -605,6 +607,7 @@ FAILED_IMPORTS = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
+                "tagged_age_rating": ("Everyone",),
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
@@ -623,7 +626,6 @@ DELETED_COMICS = MappingProxyType(
     {
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -632,6 +634,7 @@ DELETED_COMICS = MappingProxyType(
                 "imprint": ("TestImprint",),
                 "language": ("en",),
                 "locations": ("The Moon",),
+                "metron_age_rating": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -643,6 +646,7 @@ DELETED_COMICS = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
+                "tagged_age_rating": ("Everyone",),
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),

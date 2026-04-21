@@ -41,7 +41,6 @@ _SIMPLE_FTS_FIELDS = (
     "imprint",
     "series",
     # Fks
-    "age_rating",
     "country",
     "original_format",
     "language",
@@ -49,7 +48,11 @@ _SIMPLE_FTS_FIELDS = (
     "tagger",
 )
 _SIMPLE_FTS_ANNOTATIONS = MappingProxyType(
-    {f"fts_{rel}": F(f"{rel}__name") for rel in _SIMPLE_FTS_FIELDS}
+    {
+        **{f"fts_{rel}": F(f"{rel}__name") for rel in _SIMPLE_FTS_FIELDS},
+        # The Comic.age_rating FK is stored under the fts field name tagged_age_rating.
+        "fts_tagged_age_rating": F("age_rating__name"),
+    }
 )
 _M2M_FTS_RELS = (
     "characters",

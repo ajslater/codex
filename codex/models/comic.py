@@ -335,12 +335,14 @@ class ComicFTS(BaseModel):
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     # FK
-    age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    tagged_age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     country = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     language = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     original_format = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     scan_info = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     tagger = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
+    # Attribute (from normalized enum field)
+    metron_age_rating = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     # M2M
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
