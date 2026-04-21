@@ -1,22 +1,28 @@
 """
-Age rating model, ordering, and ACL helpers.
+Age rating models, ordering, and ACL helpers.
 
-``Unknown`` is intentionally absent from the ordered tuple: at filter time
-it is treated the same as ``NULL`` (both inherit the ``AGE_RATING_DEFAULT``
-admin flag). Admin-facing selects consume :data:`SELECTABLE_RATINGS` which
-also excludes ``Unknown``.
+:class:`AgeRating` is the raw tagged rating on each comic file (one row per
+distinct tagged name). :class:`AgeRatingMetron` is the canonical Metron
+enum table: a small, fully-seeded lookup whose rows are never deleted.
+Each :class:`AgeRating` optionally points at one :class:`AgeRatingMetron`
+row via :attr:`AgeRating.metron`; unmappable tagged names leave that FK
+NULL.
+
+``Unknown`` is intentionally absent from :data:`METRON_RATING_ORDER`: at
+filter time it is treated the same as ``NULL`` (both inherit the
+``AGE_RATING_DEFAULT`` admin flag). Admin-facing selects consume
+:data:`SELECTABLE_RATINGS` which also excludes ``Unknown``.
 """
 
 from typing import Final, override
 
 from comicbox.enums.maps.age_rating import to_metron_age_rating
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
-from django.db.models import IntegerField
+from django.db.models import SET_NULL, ForeignKey, IntegerField
 
-from codex.models.base import MAX_NAME_LEN, NamedModel
-from codex.models.fields import CleaningCharField
+from codex.models.base import NamedModel
 
-__all__ = ("AgeRating",)
+__all__ = ("AgeRating", "AgeRatingMetron")
 
 METRON_RATING_ORDER: Final[tuple[str, ...]] = (
     MetronAgeRatingEnum.EVERYONE.value,
@@ -38,11 +44,21 @@ UNKNOWN_VALUE: Final[str] = MetronAgeRatingEnum.UNKNOWN.value
 
 DEFAULT_AGE_RATING: Final[str] = MetronAgeRatingEnum.ADULT.value
 
-# Sentinel index for ratings outside ``METRON_RATING_ORDER`` (``Unknown``, ``None``,
-# and unrecognised names). Stored on :class:`AgeRating.metron_index` so SQL-only
-# filtering can distinguish "ordered rating" rows from "treat as null" rows without
-# a Python callout.
+# Sentinel index for ratings outside ``METRON_RATING_ORDER`` (``Unknown``).
+# Stored on :class:`AgeRatingMetron.index` so SQL-only filtering can
+# distinguish "ranked rating" rows from "treat as null" rows without a
+# Python callout.
 UNRANKED_METRON_INDEX: Final[int] = -1
+
+# The full seed set for :class:`AgeRatingMetron`: every
+# :class:`MetronAgeRatingEnum` value paired with its sort index. ``Unknown``
+# gets the sentinel :data:`UNRANKED_METRON_INDEX`; ranked ratings get their
+# position in :data:`METRON_RATING_ORDER`. Consumed by the migration and
+# the startup seeder.
+ALL_METRON_RATINGS: Final[tuple[tuple[str, int], ...]] = (
+    (UNKNOWN_VALUE, UNRANKED_METRON_INDEX),
+    *tuple((name, idx) for idx, name in enumerate(METRON_RATING_ORDER)),
+)
 
 
 def rating_index(rating: str | None) -> int:
@@ -66,46 +82,73 @@ def allowed_ratings_for(group_rating: str | None) -> frozenset[str]:
     return frozenset(METRON_RATING_ORDER[: idx + 1])
 
 
-def compute_metron_for_name(name: str | None) -> tuple[str, int]:
+def compute_metron_for_name(name: str | None) -> str:
     """
-    Compute ``(metron_name, metron_index)`` from an :class:`AgeRating.name`.
+    Map an :class:`AgeRating.name` to its canonical Metron rating name.
 
-    - If ``name`` maps to a ranked Metron rating, returns that rating's value
-      and its index in :data:`METRON_RATING_ORDER`.
-    - If ``name`` maps to an unranked Metron rating (``Unknown``), returns the
-      rating value with :data:`UNRANKED_METRON_INDEX`.
-    - If ``name`` does not map (or is empty), returns ``("", UNRANKED_METRON_INDEX)``.
+    Returns the empty string when ``name`` is empty or doesn't map to any
+    :class:`MetronAgeRatingEnum` value. Callers that need to look up an
+    :class:`AgeRatingMetron` row should treat an empty return as "no
+    matching row".
     """
     if not name:
-        return "", UNRANKED_METRON_INDEX
+        return ""
     result = to_metron_age_rating(name)
     if result is None:
-        return "", UNRANKED_METRON_INDEX
-    metron_name = result.value
-    return metron_name, rating_index(metron_name)
+        return ""
+    return result.value
+
+
+class AgeRatingMetron(NamedModel):
+    """
+    Canonical Metron age rating — a fixed lookup table.
+
+    Rows correspond 1:1 with :class:`MetronAgeRatingEnum` values. Fully
+    seeded by migration and re-asserted on every codex startup; never
+    deleted. :attr:`AgeRating.metron` points here for each tagged rating
+    that maps to a canonical value.
+
+    :attr:`index` mirrors the position in :data:`METRON_RATING_ORDER`
+    (``Everyone``=0 … ``Adult``=5). ``Unknown`` stores
+    :data:`UNRANKED_METRON_INDEX` (-1).
+    """
+
+    index = IntegerField(db_index=True, default=UNRANKED_METRON_INDEX)
+
+    class Meta(NamedModel.Meta):
+        """Order choices by enum index so UI ordering falls out for free."""
+
+        ordering = ("index",)
 
 
 class AgeRating(NamedModel):
     """
     Age rating tagged on the comic file.
 
-    ``metron_name`` and ``metron_index`` cache the normalized Metron rating
-    derived from :attr:`name`; they are recomputed on every :meth:`presave`
+    :attr:`metron` caches the normalized :class:`AgeRatingMetron` row
+    derived from :attr:`name`; it is relinked on every :meth:`presave`
     so callers can filter on the normalized value without rerunning the
-    mapping in Python.
+    mapping in Python. Unmappable names leave :attr:`metron` NULL.
     """
 
-    metron_name = CleaningCharField(
+    metron = ForeignKey(
+        AgeRatingMetron,
         db_index=True,
-        max_length=MAX_NAME_LEN,
-        default="",
+        null=True,
         blank=True,
-        db_collation="nocase",
+        default=None,
+        on_delete=SET_NULL,
     )
-    metron_index = IntegerField(db_index=True, default=UNRANKED_METRON_INDEX)
 
     @override
     def presave(self) -> None:
-        """Recompute the normalized Metron name/index from ``name``."""
+        """Relink :attr:`metron` to the :class:`AgeRatingMetron` row for :attr:`name`."""
         super().presave()
-        self.metron_name, self.metron_index = compute_metron_for_name(self.name)
+        metron_name = compute_metron_for_name(self.name)
+        if not metron_name:
+            self.metron = None
+            return
+        # AgeRatingMetron is seeded at migration + startup, so this lookup
+        # is a cache-friendly indexed hit. First-time seeding gaps would
+        # null the FK (re-imports heal once the seeder catches up).
+        self.metron = AgeRatingMetron.objects.filter(name=metron_name).first()

@@ -81,17 +81,19 @@ NON_FTS_FIELDS = frozenset(
 
 def _metron_fts_values(values: tuple) -> tuple:
     """
-    Derive the normalized Metron rating tuple from a raw age-rating tuple.
+    Derive canonical Metron rating names from a raw age-rating tuple.
 
     Called by the importer FTS plumbing to populate the ``age_rating_metron``
-    ComicFTS column from the same ``AgeRating.name`` value that feeds
+    ComicFTS column from the same ``AgeRating.name`` values that feed
     ``age_rating_tagged``. Empty/unmappable names yield an empty tuple so the
-    FTS column is written as the empty string.
+    FTS column is written as the empty string. The sync path populates the
+    same column via the ``age_rating__metron__name`` FK chain; both paths
+    must agree on the canonical string.
     """
     return tuple(
         metron
         for value in values
-        if value and (metron := compute_metron_for_name(value)[0])
+        if value and (metron := compute_metron_for_name(value))
     )
 
 
@@ -101,7 +103,7 @@ def _metron_fts_values(values: tuple) -> tuple:
 #
 # The ``age_rating`` FK feeds two FTS columns:
 #   age_rating_tagged  ← AgeRating.name         (raw tagged string)
-#   age_rating_metron  ← AgeRating.metron_name  (normalized Metron rating)
+#   age_rating_metron  ← canonical Metron name  (derived via transform)
 FTS_FIELD_TARGETS = MappingProxyType(
     {
         "age_rating": (

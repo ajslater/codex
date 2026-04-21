@@ -114,7 +114,6 @@ class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
 
 _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     {
-        "age_rating_metron": BrowserChoicesCharPkSerializer,
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
         "critical_rating": BrowserChoicesDecimalPkSerializer,

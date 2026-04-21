@@ -41,11 +41,11 @@ export default {
     },
     displayAgeRating() {
       const ar = this.md.ageRating;
-      return ar.metronName || ar.name;
+      return ar.metron?.name || ar.name;
     },
     showOriginalAgeRating() {
       const ar = this.md.ageRating;
-      return !!ar.metronName && ar.name !== ar.metronName;
+      return !!ar.metron?.name && ar.name !== ar.metron.name;
     },
     originalAgeRating() {
       return `(tagged as ${this.md.ageRating.name})`;

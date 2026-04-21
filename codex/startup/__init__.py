@@ -11,7 +11,15 @@ from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.status_controller import STATUS_DEFAULTS
-from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
+from codex.models import (
+    AdminFlag,
+    AgeRatingMetron,
+    CustomCover,
+    LibrarianStatus,
+    Library,
+    Timestamp,
+)
+from codex.models.age_rating import ALL_METRON_RATINGS
 from codex.settings import (
     AUTH_REMOTE_USER,
     CODEX_CONFIG_TOML,
@@ -56,6 +64,22 @@ def init_admin_flags() -> None:
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
+
+
+def init_age_rating_metron() -> None:
+    """
+    Ensure every MetronAgeRatingEnum value has an AgeRatingMetron row.
+
+    Idempotent — reasserts the canonical lookup table on every codex boot.
+    Never deletes orphans; AgeRating.metron uses on_delete=SET_NULL so an
+    externally-deleted row simply nulls the FK until re-import heals it.
+    """
+    for name, index in ALL_METRON_RATINGS:
+        _, created = AgeRatingMetron.objects.update_or_create(
+            name=name, defaults={"index": index}
+        )
+        if created:
+            logger.info(f"Created AgeRatingMetron: {name} ({index})")
 
 
 def init_timestamps() -> None:
@@ -194,6 +218,7 @@ def ensure_db_rows() -> None:
     """Ensure database content is good."""
     ensure_superuser()
     init_admin_flags()
+    init_age_rating_metron()
     init_timestamps()
     init_librarian_statuses()
     init_libraries()

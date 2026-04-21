@@ -1,10 +1,10 @@
-__pycache__
+*Dockerfile
 .*cache/
 .circleci
 .claude
 .git
 .venv
-*Dockerfile
+__pycache__
 components.d.ts
 coverage
 dist
