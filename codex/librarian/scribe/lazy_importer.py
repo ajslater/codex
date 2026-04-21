@@ -19,11 +19,13 @@ class LazyImporter(WorkerBase):
             return
 
         if task.group == "c":
-            comics = Comic.objects.filter(pk__in=task.pks).only("path", "library_id")
+            comics = Comic.objects.filter(
+                pk__in=task.pks, metadata_mtime__is_null=True
+            ).only("path", "library_id")
         elif task.group == "f":
-            comics = Comic.objects.filter(parent_folder__in=task.pks).only(
-                "path", "library_id"
-            )
+            comics = Comic.objects.filter(
+                parent_folder__in=task.pks, metadata_mtime_is_null=True
+            ).only("path", "library_id")
         else:
             self.log.warning(f"No lazy import enabled for group {task}")
             return
