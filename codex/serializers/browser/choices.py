@@ -37,6 +37,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     genres = BooleanField(read_only=True)
     file_type = BooleanField(read_only=True)
     identifier_source = BooleanField(read_only=True)
+    metron_age_rating = BooleanField(read_only=True)
     monochrome = BooleanField(read_only=True)
     language = BooleanField(read_only=True)
     locations = BooleanField(read_only=True)
@@ -70,6 +71,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     identifier_source = VuetifyReadOnlyListField()
     language = VuetifyReadOnlyListField()
     locations = VuetifyReadOnlyListField()
+    metron_age_rating = VuetifyReadOnlyListField()
     monochrome = VuetifyReadOnlyListField(child=VuetifyBooleanField)
     original_format = VuetifyReadOnlyListField()
     reading_direction = VuetifyReadOnlyListField(

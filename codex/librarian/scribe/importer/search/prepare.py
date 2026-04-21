@@ -5,6 +5,7 @@ from codex.librarian.scribe.importer.const import (
     FTS_CREATE,
     FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
+    FTS_FIELD_RENAME_MAP,
     FTS_UPDATE,
     NON_FTS_FIELDS,
     STORY_ARC_FIELD_NAME,
@@ -44,9 +45,10 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
         fts_values = self._to_fts_tuple(values)
         if not fts_values:
             return
+        fts_field_name = FTS_FIELD_RENAME_MAP.get(field_name, field_name)
         if pk not in self.metadata[FTS_EXISTING_M2MS]:
             self.metadata[FTS_EXISTING_M2MS][pk] = {}
-        self.metadata[FTS_EXISTING_M2MS][pk][field_name] = fts_values
+        self.metadata[FTS_EXISTING_M2MS][pk][fts_field_name] = fts_values
 
     def add_links_to_fts(
         self,
@@ -77,4 +79,5 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
             self.metadata[FTS_CREATED_M2MS].get(field_name, {}).pop(flat_values, ())
         )
         fts_values = self._to_fts_tuple(flat_values + extra_values)
-        self.metadata[key][sub_key][field_name] = fts_values
+        fts_field_name = FTS_FIELD_RENAME_MAP.get(field_name, field_name)
+        self.metadata[key][sub_key][fts_field_name] = fts_values

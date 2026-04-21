@@ -12,6 +12,7 @@ BROWSER_FILTER_KEYS = (
     "identifier_source",
     "language",
     "locations",
+    "metron_age_rating",
     "monochrome",
     "original_format",
     "reading_direction",

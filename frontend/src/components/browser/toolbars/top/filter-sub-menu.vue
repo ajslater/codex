@@ -87,6 +87,10 @@ import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
 const NUMERIC_FILTERS = new Set(["decade", "year"]);
+const FILTER_TITLE_OVERRIDES = {
+  age_rating: "Age Rating (Tagged)",
+  metron_age_rating: "Age Rating",
+};
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -148,7 +152,7 @@ export default {
       return vItems;
     },
     title() {
-      return capitalCase(this.name);
+      return FILTER_TITLE_OVERRIDES[this.name] || capitalCase(this.name);
     },
     lowerTitle() {
       return this.title.toLowerCase();

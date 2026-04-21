@@ -224,6 +224,7 @@ class SettingsBrowserFilters(BaseModel):
     identifier_source = JSONField(default=list)
     language = JSONField(default=list)
     locations = JSONField(default=list)
+    metron_age_rating = JSONField(default=list)
     monochrome = JSONField(default=list)
     original_format = JSONField(default=list)
     reading_direction = JSONField(default=list)
@@ -250,6 +251,7 @@ class SettingsBrowserFilters(BaseModel):
             "identifier_source",
             "language",
             "locations",
+            "metron_age_rating",
             "monochrome",
             "original_format",
             "reading_direction",

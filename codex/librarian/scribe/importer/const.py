@@ -62,7 +62,6 @@ NON_FTS_FIELDS = frozenset(
         "issue_number",
         "issue_suffix",
         "metadata_mtime",
-        "metron_age_rating",
         "monochrome",
         "month",
         "notes",
@@ -78,6 +77,11 @@ NON_FTS_FIELDS = frozenset(
         IDENTIFIERS_FIELD_NAME,
     }
 )
+# Mapping from comic field name -> ComicFTS field name when they diverge.
+# Comic.age_rating is kept for backwards compatibility while the normalized
+# metron_age_rating drives the age-rating UI; the search index stores the
+# tagged FK under a disambiguated name.
+FTS_FIELD_RENAME_MAP = MappingProxyType({"age_rating": "tagged_age_rating"})
 
 ##########################
 # IMPORTER METADATA KEYS #
