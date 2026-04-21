@@ -5,7 +5,7 @@
     :variant="variant"
     :icon="mdiTagOutline"
     title="Tags"
-    @mouseenter="onMouseEnter"
+    @mouseenter="lazyImportEnabled ? onMouseEnter : null"
     @click.prevent
   />
 </template>
@@ -29,8 +29,17 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      lazyImportEnabled: (state) => state.adminFlags.lazyImportMetadata,
+      stateLazyImportEnabled: (state) => state.adminFlags?.lazyImportMetadata,
     }),
+    lazyImportEnabled() {
+      return (
+        this.stateLazyImportMetadata &&
+        this.book &&
+        this.book.group === "c" &&
+        !this.book.hasMetadata &&
+        !this.lazyImportStarted
+      );
+    },
     variant() {
       return this.toolbar ? "plain" : "text";
     },
