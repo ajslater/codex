@@ -13,12 +13,8 @@
           <MetadataText :value="md.metronAgeRating" />
         </td>
       </tr>
-      <tr
-        v-if="md.ageRating && (md.showOriginalAgeRating || !md.metronAgeRating)"
-      >
-        <td class="key">
-          {{ md.metronAgeRating ? "Original Age Rating" : "Age Rating" }}
-        </td>
+      <tr v-if="md.ageRating && md.ageRating.name != md.metronAgeRating">
+        <td class="key">Original Age Rating</td>
         <td>
           <MetadataText :value="md.ageRating.name" />
         </td>
