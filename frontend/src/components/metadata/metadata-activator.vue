@@ -30,15 +30,17 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      lazyImportEnabled: (state) => {
-        return (
-          state.adminFlags.lazyImportMetadata &&
-          this.book.group === "c" &&
-          !this.book.hasMetadata &&
-          !this.lazyImportStarted
-        );
-      },
+      stateLazyImportEnabled: (state) => state.adminFlags?.lazyImportMetadata,
     }),
+    lazyImportEnabled() {
+      return (
+        this.stateLazyImportMetadata &&
+        this.book &&
+        this.book.group === "c" &&
+        !this.book.hasMetadata &&
+        !this.lazyImportStarted
+      );
+    },
     variant() {
       return this.toolbar ? "plain" : "text";
     },
