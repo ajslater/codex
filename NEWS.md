@@ -12,6 +12,8 @@ border-radius: 128px;
     - Fix an occasional bug linking folders when importing.
     - Fix updating comics crash by batching comic updates.
     - Fix possible import crashes in delete & linking.
+    - Fix overzealous lazy importer importing tags from books that already had
+      tags.
 
 - Features
     - Codex identifies itself in the HTTP Server: header.
