@@ -140,15 +140,21 @@ export default {
       } else {
         items = this.choices;
       }
+      const sortBy = this.isNumeric
+        ? "numeric"
+        : this.name == "ageRatingMetron"
+          ? ""
+          : "title";
       const vItems = toVuetifyItems({
         items,
         filter: this.search,
-        numeric: this.isNumeric,
+        sortBy,
       });
       for (const item of vItems) {
         item.active = this.filter?.includes(item.value);
         item.icon = item.active ? mdiCheck : undefined;
       }
+      console.debug("vItems", vItems);
       return vItems;
     },
     title() {

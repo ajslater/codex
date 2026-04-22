@@ -33,7 +33,7 @@ const toVuetifyItem = function (item) {
   return vuetifyItem;
 };
 
-const vuetifyItemCompare = function (itemA, itemB) {
+const vuetifyItemCompareTitle = function (itemA, itemB) {
   return itemA.title.localeCompare(itemB.title);
 };
 
@@ -41,12 +41,12 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
 };
 
-export const toVuetifyItems = function ({
-  items,
-  filter,
-  numeric = false,
-  sort = true,
-}) {
+const SORT_BY_FUNC_MAP = Object.freeze({
+  title: vuetifyItemCompareTitle,
+  numeric: vuetifyItemCompareNumeric,
+});
+
+export const toVuetifyItems = function ({ items, filter, sortBy = "title" }) {
   /*
    * Takes a value (can be a list) and a list of items and
    * Returns a list of valid items with items arg having preference.
@@ -73,8 +73,9 @@ export const toVuetifyItems = function ({
       }
     }
   }
-  if (sort) {
-    const sortFunc = numeric ? vuetifyItemCompareNumeric : vuetifyItemCompare;
+  console.log({ sortBy });
+  if (sortBy) {
+    const sortFunc = SORT_BY_FUNC_MAP[sortBy];
     computedItems = computedItems.sort(sortFunc);
   }
   if (noneItem) {

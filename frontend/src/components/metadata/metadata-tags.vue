@@ -56,7 +56,7 @@ export default {
   },
   computed: {
     mainItems() {
-      return toVuetifyItems({ items: this.mainValues, sort: false });
+      return toVuetifyItems({ items: this.mainValues, sortBy: "" });
     },
     items() {
       let items;
@@ -65,7 +65,7 @@ export default {
       } else {
         items = this.values;
       }
-      return toVuetifyItems({ items, sort: false });
+      return toVuetifyItems({ items, sortBy: "" });
     },
   },
   methods: {
