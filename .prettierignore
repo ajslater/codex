@@ -1,4 +1,4 @@
-*Dockerfile
+__pycache__
 .*cache
 .*cache/
 .circleci
@@ -9,7 +9,7 @@
 .ruff_cache
 .venv
 .venv*
-__pycache__
+*Dockerfile
 bun.lock
 cache
 codex/_vendor
