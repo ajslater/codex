@@ -373,13 +373,41 @@ if not DB_PATH.exists() and OLD_DB_PATH.exists():
 BACKUP_DB_DIR = CONFIG_PATH / "backups"
 BACKUP_DB_PATH = (BACKUP_DB_DIR / DB_PATH.stem).with_suffix(DB_PATH.suffix + ".bak")
 
+# Per-connection PRAGMAs. ``init_command`` fires on every new connection
+# (which, with ``CONN_MAX_AGE=600``, means at most once per 10-minute
+# window per worker). The pragma list below trades durability-of-a-
+# single-unfsynced-write for throughput while staying safe under WAL:
+#
+# * ``journal_mode=wal`` — already in place; enables concurrent readers
+#   alongside one writer, and lets ``synchronous=NORMAL`` be safe.
+# * ``synchronous=NORMAL`` — fsync on checkpoint only, not per commit.
+#   Under WAL the only risk is losing the last in-flight transaction on
+#   a hard power-cut; the DB itself stays intact. Writes are ~2-5x faster.
+# * ``temp_store=MEMORY`` — keep ORDER BY / GROUP BY / subquery scratch
+#   in RAM rather than on-disk temp files. Matters for the browser's
+#   heavy aggregate pages.
+# * ``mmap_size=268435456`` (256 MiB) — memory-map the DB file so read
+#   pages are served out of the page cache without ``read(2)``
+#   syscalls. Cheap on 64-bit hosts, no-op on systems that reject the
+#   mmap.
+# * ``cache_size=-64000`` (negative ⇒ KiB, so 64 MiB) — larger in-memory
+#   page cache. Most working sets in a typical codex library fit here,
+#   turning repeat queries into pure RAM hits.
+_SQLITE_PRAGMAS = (
+    "PRAGMA journal_mode=wal;"
+    "PRAGMA synchronous=NORMAL;"
+    "PRAGMA temp_store=MEMORY;"
+    "PRAGMA mmap_size=268435456;"
+    "PRAGMA cache_size=-64000;"
+)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DB_PATH,
         "CONN_MAX_AGE": 600,
         "OPTIONS": {
-            "init_command": "PRAGMA journal_mode=wal;",
+            "init_command": _SQLITE_PRAGMAS,
             "timeout": 120,
         },
     },
@@ -587,9 +615,14 @@ if DEBUG and not BUILD:
 # Cachalot #
 ############
 
-CACHALOT_UNCACHABLE_TABLES = frozenset(
-    {"django_migrations", "django_session", "codex_userauth"}
-)
+# ``codex_userauth`` stays cached. Every UserAuth write goes through
+# Django ORM methods (``create`` / ``update_or_create``) that fire
+# ``post_save``, which is what cachalot hooks to invalidate — no raw SQL
+# or ``.filter().update()`` bypasses exist. The only high-frequency
+# writer is the per-request activity touch at
+# ``librarian/bookmark/user_active.py``, which is already throttled to
+# 1-hour resolution per user, so cache churn is bounded.
+CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
 
 INTERNAL_IPS = ("127.0.0.1",)
 
