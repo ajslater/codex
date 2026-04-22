@@ -1,11 +1,38 @@
-"""Views authorization bases."""
+"""
+Views authorization bases.
+
+Designed around a **per-request cache of three scalar values** — a
+frozenset of visible library pks, an integer age-rating ceiling, and a
+boolean default-rating-fits flag. Every view inheriting from
+:class:`GroupACLMixin` resolves these once per request in
+:meth:`~GroupACLMixin.init_group_acl` and reuses them across every
+``get_acl_filter`` call, so the browser (which applies the filter to
+7+ different models) pays at most three tiny queries for ACL
+bookkeeping instead of three per model.
+
+The resulting :class:`~django.db.models.Q` predicates are pure
+index-friendly comparisons:
+
+* Group ACL → ``library_id__in=<precomputed_pks>`` — no M2M traversal
+  of ``library → groups → groupauth`` at Comic scan time; the walk
+  happens once against tiny cached tables.
+* Age-rating ACL → a comparison on
+  :attr:`Comic.age_rating_metron_index`, the denormalized integer
+  mirror of ``age_rating.metron.index``. No join through
+  ``codex_agerating`` / ``codex_ageratingmetron`` for the filter; the
+  composite index on ``(library_id, age_rating_metron_index)`` serves
+  both halves of the ACL clause index-only.
+
+The classmethod forms (:meth:`AgeRatingACLMixin.get_age_rating_acl_filter`,
+:meth:`GroupACLFilterMixin.get_group_acl_filter`) remain as thin
+wrappers for tests and one-off callers that don't have a request in
+hand; they recompute every scalar from scratch per call.
+"""
 
 from collections.abc import Sequence
 from typing import override
 
-from django.contrib.auth.models import AnonymousUser
-from django.db.models import Exists, IntegerField, Subquery, Value
-from django.db.models.functions import Coalesce
+from django.contrib.auth.models import AnonymousUser, Group
 from django.db.models.query_utils import Q
 from loguru import logger
 from rest_framework.authtoken.models import Token
@@ -17,7 +44,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag, Comic, Folder, StoryArc
+from codex.models import AdminFlag, Comic, Folder, Library, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
     UNRESTRICTED_RATING_INDEX,
@@ -87,174 +114,257 @@ class RelPrefixMixin:
         prefix += "comic__"
         return prefix
 
+    @classmethod
+    def _library_rel(cls, model) -> str:
+        """
+        Return the ORM path from ``model`` to its owning library's pk.
+
+        Folder has its own ``library`` FK (inherited from
+        :class:`~codex.models.paths.WatchedPath`), so it skips the
+        ``comic__`` hop. Everything else — Comic, StoryArc, and the
+        browser group models — reaches ``library_id`` through the Comic
+        FK chain built by :meth:`get_rel_prefix`.
+        """
+        prefix = "" if model is Folder else cls.get_rel_prefix(model)
+        return f"{prefix}library_id"
+
 
 class GroupACLFilterMixin(RelPrefixMixin):
     """Library-group ACL filter: visibility based on group membership."""
 
     @classmethod
+    def compute_visible_library_pks(cls, user) -> frozenset[int]:
+        """
+        Resolve the full library pk set visible to ``user``.
+
+        Encodes the group ACL rules as Python set algebra against three
+        tiny (cachalot-cached) library pk lookups:
+
+        * ungrouped libraries — visible to everyone, authenticated or not;
+        * libraries where the user belongs to at least one
+          ``exclude=False`` group ("include" groups); and
+        * libraries where the user belongs to at least one
+          ``exclude=True`` group — these are **subtracted** from the
+          include set, matching the original ORM expression
+          ``include_q & ~exclude_q``.
+
+        Anonymous / unauthenticated callers collapse to the ungrouped
+        set, reproducing the classic "guests see ungrouped only"
+        behaviour. The return type is a frozenset so it can be cached
+        safely across ACL calls in the same request without defensive
+        copying.
+        """
+        ungrouped = set(
+            Library.objects.filter(groups__isnull=True).values_list("pk", flat=True)
+        )
+        if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
+            return frozenset(ungrouped)
+        user_groups = Group.objects.filter(user=user)
+        include_pks = set(
+            Library.objects.filter(
+                groups__in=user_groups,
+                groups__groupauth__exclude=False,
+            ).values_list("pk", flat=True)
+        )
+        exclude_pks = set(
+            Library.objects.filter(
+                groups__in=user_groups,
+                groups__groupauth__exclude=True,
+            ).values_list("pk", flat=True)
+        )
+        return frozenset(ungrouped | (include_pks - exclude_pks))
+
+    @classmethod
+    def get_group_acl_filter_for(cls, model, visible_pks) -> Q:
+        """Return the group ACL Q predicate given a precomputed pk set."""
+        return Q(**{f"{cls._library_rel(model)}__in": tuple(visible_pks)})
+
+    @classmethod
     def get_group_acl_filter(cls, model, user) -> Q:
-        """Generate the group acl filter for comics."""
-        # The rel prefix
-        groups_rel = cls.get_rel_prefix(model) if model is not Folder else ""
-        groups_rel += "library__groups"
+        """
+        One-shot classmethod form: recomputes the visible pk set per call.
 
-        # Libraries in no groups are visible to everyone
-        ungrouped_filter = {f"{groups_rel}__isnull": True}
-        q = Q(**ungrouped_filter)
-
-        if not user or isinstance(user, AnonymousUser):
-            return q
-        # If logged in, see which libraries are now visible.
-
-        user_filter = {f"{groups_rel}__user": user}
-        exclude_rel = f"{groups_rel}__groupauth__exclude"
-
-        # Include groups are visible to users in the group
-        include_filter = {exclude_rel: False}
-        include_filter.update(user_filter)
-        include_q = Q(**include_filter)
-
-        # Exclude groups are visible to users NOT in the group
-        exclude_filter = {exclude_rel: True}
-        exclude_filter.update(user_filter)
-        exclude_q = Q(**exclude_filter)
-
-        q |= include_q & ~exclude_q
-
-        return q
+        Preferred entry point for tests and isolated callers that don't
+        have a request in hand. View code should route through the
+        per-request cached version on :class:`GroupACLMixin` instead.
+        """
+        return cls.get_group_acl_filter_for(
+            model, cls.compute_visible_library_pks(user)
+        )
 
 
 class AgeRatingACLMixin(RelPrefixMixin):
     """
     Per-user Metron age-rating ACL filter.
 
-    Always applies — there is no "restriction mode" gate. For authenticated
-    users, the ceiling comes from :attr:`UserAuth.age_rating_metron` (NULL
-    FK ⇒ unrestricted, via :data:`UNRESTRICTED_RATING_INDEX` sentinel). For
-    anonymous users, the ceiling comes from the
-    :attr:`AdminFlagChoices.ANONYMOUS_USER_AGE_RATING` admin flag's
-    :attr:`AdminFlag.age_rating_metron` FK.
+    The filter is built from two Python integers resolved once per request:
+    ``max_idx`` (the user's rating ceiling, 0..5 or
+    :data:`UNRESTRICTED_RATING_INDEX`) and ``default_fits`` (a boolean
+    answering "does the ``AGE_RATING_DEFAULT`` flag's rating fit under
+    ``max_idx``?"). The resulting Q compares
+    :attr:`Comic.age_rating_metron_index` — a local integer column kept
+    in sync by :meth:`Comic.presave` — so the age-rating clause is a
+    single index-friendly predicate with no joins.
 
-    Null-rated comics (``Comic.age_rating is NULL``), comics whose
-    :class:`AgeRating` row failed to map to a canonical metron row
-    (``AgeRating.metron is NULL``), and comics tagged ``Unknown``
-    (``AgeRatingMetron.index == UNRANKED_METRON_INDEX``) all inherit the
-    :attr:`AdminFlagChoices.AGE_RATING_DEFAULT` flag's FK rating.
+    Semantics:
 
-    **The returned Q resolves every value in SQL** as a single FK hop per
-    flag: user ceiling and both admin-flag ratings are ``Subquery`` /
-    ``Exists`` expressions over ``age_rating_metron__index`` — no
-    Python-side reads, no name-matching round-trip through
-    :attr:`AgeRatingMetron.name`. Python only picks which ``max_idx``
-    subquery shape to use based on whether the request is authenticated.
-    Admins are NOT exempt.
+    * ranked (``0 ≤ index ≤ max_idx``) → visible;
+    * NULL index or ``UNRANKED_METRON_INDEX`` (tagged ``Unknown``) →
+      visible only when ``default_fits`` is ``True``.
 
-    Comparisons hit :attr:`AgeRatingMetron.index`, a small indexed integer
-    column reached via the ``age_rating__metron`` chain. Django's LEFT
-    JOIN semantics on ``__`` chains make null ``Comic.age_rating`` or
-    null ``AgeRating.metron`` both satisfy ``__isnull=True``.
+    Admins are **not** exempt — the filter applies uniformly.
     """
 
     @staticmethod
-    def _flag_rating_index_expr(flag_key: str, *, fallback: int):
+    def _flag_rating_index(flag_key: str, *, fallback: int) -> int:
         """
-        Resolve an admin flag's FK to its :attr:`AgeRatingMetron.index`.
+        Resolve an admin flag's FK to a Python int metron index.
 
-        Emits SQL roughly:
-            COALESCE(
-              (SELECT age_rating_metron__index FROM codex_adminflag
-                 WHERE key = <flag_key> LIMIT 1),
-              <fallback>
-            )
-
-        ``fallback`` applies when the flag row is missing OR its FK is
-        NULL — both end the subquery in a NULL, which ``Coalesce`` swaps
-        for the sentinel.
+        Missing flag row or NULL FK collapses to ``fallback``. Callers
+        pick ``fallback`` so that the resulting int comparison degrades
+        to the safest behaviour (strictest visibility for anonymous;
+        permissive "unrestricted" for authenticated with no per-user
+        limit; "no null/unknown visibility" for the AR default).
         """
-        return Coalesce(
-            Subquery(
-                AdminFlag.objects.filter(key=flag_key).values(
-                    "age_rating_metron__index"
-                )[:1]
-            ),
-            Value(fallback),
-            output_field=IntegerField(),
+        idx = (
+            AdminFlag.objects.filter(key=flag_key)
+            .values_list("age_rating_metron__index", flat=True)
+            .first()
         )
+        return idx if idx is not None else fallback
 
     @classmethod
-    def _max_idx_expr(cls, user):
+    def compute_max_idx(cls, user) -> int:
         """
-        Build the SQL expression for the user's max allowed metron index.
+        Return the user's rating ceiling as a Python int.
 
-        Authenticated: :attr:`UserAuth.age_rating_metron__index`, coalesced to
-        :data:`UNRESTRICTED_RATING_INDEX` when the FK is NULL (no per-user
-        restriction).
+        Authenticated:
+          * ``UserAuth.age_rating_metron__index`` via one FK hop;
+          * NULL FK ⇒ :data:`UNRESTRICTED_RATING_INDEX` — the sentinel
+            lets ranked comics pass ``__lte`` without special-casing.
 
         Anonymous: the ``ANONYMOUS_USER_AGE_RATING`` admin flag's FK
-        index, coalesced to ``0`` (Everyone) when the flag is missing or
-        its FK is NULL.
+        index, or ``0`` (Everyone) when the flag is unconfigured —
+        the strictest ceiling, so a misconfigured flag never leaks
+        content.
         """
         if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
-            return cls._flag_rating_index_expr(
-                AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value,
-                fallback=0,
+            return cls._flag_rating_index(
+                AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value, fallback=0
             )
-        return Coalesce(
-            Subquery(
-                UserAuth.objects.filter(user=user).values("age_rating_metron__index")[
-                    :1
-                ]
-            ),
-            Value(UNRESTRICTED_RATING_INDEX),
-            output_field=IntegerField(),
+        idx = (
+            UserAuth.objects.filter(user=user)
+            .values_list("age_rating_metron__index", flat=True)
+            .first()
         )
+        return idx if idx is not None else UNRESTRICTED_RATING_INDEX
+
+    @classmethod
+    def compute_default_fits(cls, max_idx: int) -> bool:
+        """
+        Return True iff the ``AGE_RATING_DEFAULT`` flag rating fits under ``max_idx``.
+
+        ``fallback=-1`` biases the unconfigured-flag case toward
+        invisibility: only a concrete ranked index (``0..5``) can
+        satisfy ``0 <= idx <= max_idx``, so null/unknown-rated comics
+        are hidden rather than accidentally leaked when the admin
+        deletes the flag row or its FK target.
+        """
+        idx = cls._flag_rating_index(
+            AdminFlagChoices.AGE_RATING_DEFAULT.value, fallback=-1
+        )
+        return 0 <= idx <= max_idx
+
+    @classmethod
+    def get_age_rating_acl_filter_for(
+        cls, model, max_idx: int, *, default_fits: bool
+    ) -> Q:
+        """Return the age-rating ACL Q given precomputed scalars."""
+        rel = cls.get_rel_prefix(model) + "age_rating_metron_index"
+        q_ranked = Q(**{f"{rel}__gte": 0}) & Q(**{f"{rel}__lte": max_idx})
+        if not default_fits:
+            return q_ranked
+        # ``default_fits`` ⇒ null- and Unknown-rated comics inherit the AR
+        # default and pass the user's ceiling. The ``isnull`` clause
+        # covers both "comic has no age_rating FK" and "age_rating has
+        # no metron FK"; ``UNRANKED_METRON_INDEX`` (-1) covers the
+        # tagged-as-Unknown case.
+        q_null_or_unknown = Q(**{f"{rel}__isnull": True}) | Q(
+            **{rel: UNRANKED_METRON_INDEX}
+        )
+        return q_ranked | q_null_or_unknown
 
     @classmethod
     def get_age_rating_acl_filter(cls, model, user) -> Q:
         """
-        Build the age-rating ACL filter — single lazy expression.
+        One-shot classmethod form: recomputes max_idx + default_fits per call.
 
-        Returned shape (one Q, three SQL sub-expressions, zero Python reads):
-          * ranked:      comic rating in ``[0, max_idx_expr]``
-          * null/unknown: OR-gate that only fires when the
-                          ``AGE_RATING_DEFAULT`` flag's FK index also fits
-                          within ``max_idx_expr``.
+        Preferred entry point for tests and isolated callers; view code
+        should route through :meth:`GroupACLMixin.get_acl_filter` so the
+        two integer scalars are resolved once per request instead of
+        once per model filter.
         """
-        rel = cls.get_rel_prefix(model) + "age_rating__metron"
-        max_idx_expr = cls._max_idx_expr(user)
-
-        q_ranked = Q(**{f"{rel}__index__gte": 0}) & Q(
-            **{f"{rel}__index__lte": max_idx_expr}
+        max_idx = cls.compute_max_idx(user)
+        default_fits = cls.compute_default_fits(max_idx)
+        return cls.get_age_rating_acl_filter_for(
+            model, max_idx, default_fits=default_fits
         )
-        q_null_or_unknown = Q(**{f"{rel}__isnull": True}) | Q(
-            **{f"{rel}__index": UNRANKED_METRON_INDEX}
-        )
-        # Exists-gate: the AR flag row must exist AND its FK must point
-        # at a metron row whose index fits under the user's ceiling. If
-        # the FK is NULL (misconfigured flag), the ``__index__lte``
-        # comparison evaluates NULL → False, so null/unknown-rated
-        # comics stay hidden — the safest fallback.
-        default_fits = Exists(
-            AdminFlag.objects.filter(
-                key=AdminFlagChoices.AGE_RATING_DEFAULT.value,
-                age_rating_metron__index__lte=max_idx_expr,
-            )
-        )
-        return q_ranked | (q_null_or_unknown & default_fits)
 
 
 class GroupACLMixin(IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin):
-    """Merged ACL mixin: library-group visibility + age-rating restriction."""
+    """
+    Merged ACL mixin: library-group visibility + age-rating restriction.
+
+    Adds a per-request cache over the scalar inputs to both sub-filters
+    so that a browser request that applies the ACL to 7+ models incurs
+    exactly three bookkeeping queries total instead of three-per-model.
+    """
 
     def init_group_acl(self) -> None:
-        """Initialize cached properties."""
+        """Initialize per-request cached scalars."""
         self.init_is_admin()
+        # Lazily populated on first access via ``get_visible_library_pks``
+        # / ``get_max_idx`` / ``get_default_fits``. Each is populated at
+        # most once per request; subsequent ``get_acl_filter`` calls for
+        # other models reuse the cached value.
+        self._cached_visible_library_pks: frozenset[int] | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._cached_max_idx: int | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._cached_default_fits: bool | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
 
-    @classmethod
-    def get_acl_filter(cls, model, user) -> Q:
-        """Combine library-group and age-rating ACL filters."""
-        return cls.get_group_acl_filter(model, user) & cls.get_age_rating_acl_filter(
-            model, user
+    def get_visible_library_pks(self, user) -> frozenset[int]:
+        """Return the per-request cached visible library pk set."""
+        if self._cached_visible_library_pks is None:
+            self._cached_visible_library_pks = self.compute_visible_library_pks(user)
+        return self._cached_visible_library_pks
+
+    def get_max_idx(self, user) -> int:
+        """Return the per-request cached integer rating ceiling."""
+        if self._cached_max_idx is None:
+            self._cached_max_idx = self.compute_max_idx(user)
+        return self._cached_max_idx
+
+    def get_default_fits(self, user) -> bool:
+        """Return the per-request cached default-rating-fits flag."""
+        if self._cached_default_fits is None:
+            self._cached_default_fits = self.compute_default_fits(
+                self.get_max_idx(user)
+            )
+        return self._cached_default_fits
+
+    def get_acl_filter(self, model, user) -> Q:
+        """
+        Combine library-group and age-rating ACL filters.
+
+        Pulls all three scalar inputs out of the per-request cache,
+        then composes two dead-simple Qs against local columns:
+        ``library_id__in=<pks>`` and either
+        ``age_rating_metron_index__lte=<max_idx>`` or an OR'd
+        null/unknown clause gated by ``default_fits``.
+        """
+        return self.get_group_acl_filter_for(
+            model, self.get_visible_library_pks(user)
+        ) & self.get_age_rating_acl_filter_for(
+            model, self.get_max_idx(user), default_fits=self.get_default_fits(user)
         )
 
 
