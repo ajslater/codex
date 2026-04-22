@@ -19,7 +19,11 @@ from codex.models import (
     Library,
     Timestamp,
 )
-from codex.models.age_rating import ALL_METRON_RATINGS
+from codex.models.age_rating import (
+    ALL_METRON_RATINGS,
+    ANONYMOUS_USER_DEFAULT_AGE_RATING,
+    DEFAULT_AGE_RATING,
+)
 from codex.settings import (
     AUTH_REMOTE_USER,
     CODEX_CONFIG_TOML,
@@ -56,11 +60,33 @@ def _delete_orphans(model, field, names) -> None:
 
 
 def init_admin_flags() -> None:
-    """Init admin flag rows."""
+    """
+    Init admin flag rows.
+
+    Enum-valued flags (age-rating defaults) get their seed value populated
+    here too. The migration seeds them on first install; this covers the
+    edge case where an admin deletes the row entirely so startup can heal
+    it with a sensible default rather than an empty string.
+    """
     _delete_orphans(AdminFlag, "key", AdminFlagChoices.values)
 
+    default_values = {
+        AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value: (
+            ANONYMOUS_USER_DEFAULT_AGE_RATING
+        ),
+        AdminFlagChoices.AGE_RATING_DEFAULT.value: DEFAULT_AGE_RATING,
+    }
     for key, title in AdminFlagChoices.choices:
-        defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
+        # ``defaults`` spans both ``bool`` (``on``) and ``str`` (``key`` /
+        # ``value``) — pyright infers the narrower type from the first
+        # assignment, so annotate to keep the conditional ``value`` insert
+        # from tripping the type checker.
+        defaults: dict[str, str | bool] = {
+            "key": key,
+            "on": key not in AdminFlag.FALSE_DEFAULTS,
+        }
+        if key in default_values:
+            defaults["value"] = default_values[key]
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")

@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone as django_timezone
 
-from codex.models.admin import UserActive
+from codex.models.admin import UserAuth
 from codex.views.const import EPOCH_START
 
 
@@ -20,14 +20,17 @@ class UserActiveMixin:
         self._user_active_recorded = {}  # pyright: ignore[reportUninitializedInstanceVariable]
 
     def update_user_active(self, pk: int, log) -> None:
-        """Update user active."""
+        """Update user active timestamp on the user's :class:`UserAuth` row."""
         # Offline because profile gets hit rapidly in succession.
         try:
             last_recorded = self._user_active_recorded.get(pk, EPOCH_START)
             now = django_timezone.now()
             if now - last_recorded > self.USER_ACTIVE_RESOLUTION:
                 user = User.objects.get(pk=pk)
-                UserActive.objects.update_or_create(user=user)
+                # update_or_create touches ``updated_at`` via auto_now on
+                # BaseModel; the row also carries the per-user age-rating
+                # ceiling but that stays untouched here.
+                UserAuth.objects.update_or_create(user=user)
                 self._user_active_recorded[pk] = now
         except User.DoesNotExist:
             pass

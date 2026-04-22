@@ -3,6 +3,7 @@
 from django.urls import path
 from django.views.decorators.cache import never_cache
 
+from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
 from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
@@ -83,4 +84,9 @@ urlpatterns = [
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),
     path("stats", AdminStatsView.as_view(), name="stats"),
     path("api_key", AdminAPIKey.as_view(), name="api_key"),
+    path(
+        "age-rating-metron",
+        AdminAgeRatingMetronViewSet.as_view({**READ}),
+        name="age_rating_metron",
+    ),
 ]

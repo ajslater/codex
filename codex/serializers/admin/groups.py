@@ -5,7 +5,6 @@ from typing import Any, override
 from django.contrib.auth.models import Group
 from rest_framework.serializers import (
     BooleanField,
-    CharField,
 )
 
 from codex.models.admin import GroupAuth
@@ -16,11 +15,6 @@ class GroupSerializer(BaseModelSerializer):
     """Group Serialier."""
 
     exclude = BooleanField(default=False, source="groupauth.exclude")
-    age_rating_metron = CharField(
-        allow_null=True,
-        required=False,
-        source="groupauth.age_rating_metron",
-    )
 
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
@@ -32,23 +26,18 @@ class GroupSerializer(BaseModelSerializer):
             "library_set",
             "user_set",
             "exclude",
-            "age_rating_metron",
         )
         read_only_fields = ("pk",)
 
     @staticmethod
     def _apply_groupauth(instance, groupauth_data) -> None:
-        """Apply nested GroupAuth fields in one pass."""
+        """Apply nested :class:`GroupAuth` fields in one pass."""
         if not groupauth_data:
             return
         groupauth = GroupAuth.objects.get(group=instance)
-        update_fields = []
-        for field in ("exclude", "age_rating_metron"):
-            if field in groupauth_data:
-                setattr(groupauth, field, groupauth_data[field])
-                update_fields.append(field)
-        if update_fields:
-            groupauth.save(update_fields=update_fields)
+        if "exclude" in groupauth_data:
+            groupauth.exclude = groupauth_data["exclude"]
+            groupauth.save(update_fields=["exclude"])
 
     @override
     def update(self, instance, validated_data) -> Any:
@@ -65,6 +54,5 @@ class GroupSerializer(BaseModelSerializer):
         GroupAuth.objects.create(
             group=instance,
             exclude=groupauth_data.get("exclude", False),
-            age_rating_metron=groupauth_data.get("age_rating_metron"),
         )
         return instance

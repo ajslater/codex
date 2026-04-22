@@ -42,7 +42,26 @@ PUBLIC_TIER_ALLOWED: Final[frozenset[str]] = frozenset(
 
 UNKNOWN_VALUE: Final[str] = MetronAgeRatingEnum.UNKNOWN.value
 
-DEFAULT_AGE_RATING: Final[str] = MetronAgeRatingEnum.ADULT.value
+# Seed / fallback for the ``AGE_RATING_DEFAULT`` admin flag. Governs how
+# ``null``-rated and ``Unknown``-rated comics are treated at filter time:
+# they inherit this rating, which is then compared against the viewing
+# user's ceiling. ``Everyone`` is the safest choice — null/unknown
+# comics only reach users whose ceiling also includes ``Everyone`` (i.e.
+# everyone, by definition).
+DEFAULT_AGE_RATING: Final[str] = MetronAgeRatingEnum.EVERYONE.value
+
+# Seed / fallback for the ``ANONYMOUS_USER_AGE_RATING`` admin flag. Governs
+# the ceiling applied when the request has no authenticated user.
+# ``Adult`` here means out-of-the-box anonymous browsing sees the full
+# library; admins restrict it by changing the flag.
+ANONYMOUS_USER_DEFAULT_AGE_RATING: Final[str] = MetronAgeRatingEnum.ADULT.value
+
+# Sentinel ceiling used by the auth filter when a user has no rating
+# restriction (``UserAuth.age_rating_metron`` is ``NULL``). Any ranked
+# :attr:`AgeRatingMetron.index` (0..5) compares ``<=`` this value, so the
+# ACL filter becomes a trivial pass-through for unrestricted users without
+# branching in Python.
+UNRESTRICTED_RATING_INDEX: Final[int] = 999
 
 # Sentinel index for ratings outside ``METRON_RATING_ORDER`` (``Unknown``).
 # Stored on :class:`AgeRatingMetron.index` so SQL-only filtering can

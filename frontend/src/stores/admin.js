@@ -9,6 +9,9 @@ const warnError = (error) => console.warn(error);
 const IRREGULAR_PLURALS = Object.freeze({
   ActiveLibrarianStatus: "ActiveLibrarianStatuses",
   Library: "Libraries",
+  // ``AgeRatingMetron`` -> ``AgeRatingMetrons``; the default pluralizer
+  // would work but we spell it out so nobody tacks on "s" by surprise.
+  AgeRatingMetron: "AgeRatingMetrons",
 });
 export const TABS = Object.freeze([
   "Users",
@@ -33,6 +36,7 @@ export const useAdminStore = defineStore("admin", {
     unseenFailedImports: false,
     users: [],
     groups: [],
+    ageRatingMetrons: [],
     libraries: undefined,
     failedImports: [],
     flags: [],

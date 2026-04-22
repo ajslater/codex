@@ -47,40 +47,23 @@
       title-key="path"
       @update:model-value="row.librarySet = $event"
     />
-    <v-select
-      :model-value="row.ageRatingMetron"
-      :items="ageRatingChoices"
-      label="Age Restriction"
-      clearable
-      hide-details="auto"
-      placeholder="Any"
-      @update:model-value="row.ageRatingMetron = $event"
-    />
   </div>
 </template>
 
 <script>
 import { mapState } from "pinia";
 
-import METRON_AGE_RATING_CHOICES from "@/choices/metron-age-rating-choices.json";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import GroupChip from "@/components/admin/group-chip.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = Object.freeze([
-  "name",
-  "userSet",
-  "librarySet",
-  "exclude",
-  "ageRatingMetron",
-]);
+const UPDATE_KEYS = Object.freeze(["name", "userSet", "librarySet", "exclude"]);
 const EMPTY_ROW = Object.freeze({
   name: "",
   userSet: [],
   librarySet: [],
   exclude: false,
-  ageRatingMetron: null,
 });
 
 export default {
@@ -108,9 +91,6 @@ export default {
     }),
     names() {
       return this.nameSet(this.groups, "name", this.oldRow, true);
-    },
-    ageRatingChoices() {
-      return METRON_AGE_RATING_CHOICES.METRON_AGE_RATING;
     },
   },
   UPDATE_KEYS,

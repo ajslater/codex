@@ -588,7 +588,7 @@ if DEBUG and not BUILD:
 ############
 
 CACHALOT_UNCACHABLE_TABLES = frozenset(
-    {"django_migrations", "django_session", "codex_useractive"}
+    {"django_migrations", "django_session", "codex_userauth"}
 )
 
 INTERNAL_IPS = ("127.0.0.1",)

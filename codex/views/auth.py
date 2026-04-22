@@ -4,6 +4,8 @@ from collections.abc import Sequence
 from typing import override
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Exists, IntegerField, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.db.models.query_utils import Q
 from loguru import logger
 from rest_framework.authtoken.models import Token
@@ -15,13 +17,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag, Comic, Folder, StoryArc
-from codex.models.admin import GroupAuth
+from codex.models import AdminFlag, AgeRatingMetron, Comic, Folder, StoryArc
+from codex.models.admin import UserAuth
 from codex.models.age_rating import (
-    DEFAULT_AGE_RATING,
-    METRON_RATING_ORDER,
     UNRANKED_METRON_INDEX,
-    rating_index,
+    UNRESTRICTED_RATING_INDEX,
 )
 
 
@@ -126,89 +126,120 @@ class GroupACLFilterMixin(RelPrefixMixin):
 
 class AgeRatingACLMixin(RelPrefixMixin):
     """
-    Metron age-rating ACL filter.
+    Per-user Metron age-rating ACL filter.
 
-    Age-restriction mode activates only when at least one ``GroupAuth`` row has
-    a real Metron rating (``Unknown`` does not count; it is treated as null
-    at filter time). Null- and ``Unknown``-rated comics inherit the
-    ``AGE_RATING_DEFAULT`` admin flag value. Admins are NOT exempt.
+    Always applies — there is no "restriction mode" gate. For authenticated
+    users, the ceiling comes from :attr:`UserAuth.age_rating_metron` (NULL
+    FK ⇒ unrestricted, via :data:`UNRESTRICTED_RATING_INDEX` sentinel). For
+    anonymous users, the ceiling comes from the
+    :attr:`AdminFlagChoices.ANONYMOUS_USER_AGE_RATING` admin flag.
 
-    Comparisons are performed against :attr:`AgeRatingMetron.index` — a
-    small indexed integer column — reached via the ``age_rating__metron``
-    chain, so the entire filter is evaluated in SQL. Django's LEFT JOIN
-    semantics on ``__`` chains mean a null ``Comic.age_rating`` FK or a
-    null ``AgeRating.metron`` FK both satisfy ``__isnull=True`` on the
-    chained relation. ``UNRANKED_METRON_INDEX`` (the sentinel for
-    ``Unknown``) is treated the same as a NULL FK.
+    Null-rated comics (``Comic.age_rating is NULL``), comics whose
+    :class:`AgeRating` row failed to map to a canonical metron row
+    (``AgeRating.metron is NULL``), and comics tagged ``Unknown``
+    (``AgeRatingMetron.index == UNRANKED_METRON_INDEX``) all inherit the
+    :attr:`AdminFlagChoices.AGE_RATING_DEFAULT` flag rating.
+
+    **The returned Q resolves every value in SQL**: user ceiling, default
+    flag, and anonymous flag are all `Subquery` / `Exists` expressions —
+    no Python-side reads. Python only picks which ``max_idx`` subquery
+    shape to use based on whether the request is authenticated. Admins are
+    NOT exempt.
+
+    Comparisons hit :attr:`AgeRatingMetron.index`, a small indexed integer
+    column reached via the ``age_rating__metron`` chain. Django's LEFT
+    JOIN semantics on ``__`` chains make null ``Comic.age_rating`` or
+    null ``AgeRating.metron`` both satisfy ``__isnull=True``.
     """
 
     @staticmethod
-    def _age_restriction_mode_active() -> bool:
-        """Return True if any group has a real (ordered) age rating set."""
-        return GroupAuth.objects.filter(
-            age_rating_metron__in=METRON_RATING_ORDER
-        ).exists()
-
-    @staticmethod
-    def _get_default_rating_index() -> int:
-        """Return the metron_index of the AGE_RATING_DEFAULT flag value."""
-        try:
-            value = (
-                AdminFlag.objects.only("value")
-                .get(key=AdminFlagChoices.AGE_RATING_DEFAULT.value)
-                .value
-            )
-        except AdminFlag.DoesNotExist:
-            value = DEFAULT_AGE_RATING
-        return rating_index(value or DEFAULT_AGE_RATING)
+    def _admin_flag_value_subquery(flag_key: str) -> Subquery:
+        """SELECT value FROM codex_adminflag WHERE key = <flag_key> LIMIT 1."""
+        return Subquery(AdminFlag.objects.filter(key=flag_key).values("value")[:1])
 
     @classmethod
-    def _max_allowed_rating_index(cls, user) -> int:
+    def _flag_rating_index_expr(cls, flag_key: str, *, fallback: int):
         """
-        Return the max ranked ``metron_index`` visible to ``user``.
+        Resolve an admin-flag value string to its :attr:`AgeRatingMetron.index`.
 
-        Anonymous / unrestricted users fall back to the public tier (index 0,
-        i.e. ``Everyone``). Returns :data:`rating_index` of the most
-        restrictive group rating for tier B users.
+        Emits SQL roughly:
+            COALESCE(
+              (SELECT index FROM codex_ageratingmetron
+                 WHERE name = (SELECT value FROM codex_adminflag
+                                 WHERE key = <flag_key> LIMIT 1)
+                 LIMIT 1),
+              <fallback>
+            )
+        """
+        return Coalesce(
+            Subquery(
+                AgeRatingMetron.objects.filter(
+                    name=cls._admin_flag_value_subquery(flag_key)
+                ).values("index")[:1]
+            ),
+            Value(fallback),
+            output_field=IntegerField(),
+        )
+
+    @classmethod
+    def _max_idx_expr(cls, user):
+        """
+        Build the SQL expression for the user's max allowed metron index.
+
+        Authenticated: :attr:`UserAuth.age_rating_metron__index`, coalesced to
+        :data:`UNRESTRICTED_RATING_INDEX` when the FK is NULL (no per-user
+        restriction).
+
+        Anonymous: the ``ANONYMOUS_USER_AGE_RATING`` admin flag's rating
+        index, coalesced to ``0`` (Everyone) when the flag is missing or
+        holds an invalid value.
         """
         if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
-            return 0  # Everyone tier
-        ratings = list(
-            GroupAuth.objects.filter(
-                group__user=user, age_rating_metron__in=METRON_RATING_ORDER
-            ).values_list("age_rating_metron", flat=True)
+            return cls._flag_rating_index_expr(
+                AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value,
+                fallback=0,
+            )
+        return Coalesce(
+            Subquery(
+                UserAuth.objects.filter(user=user).values("age_rating_metron__index")[
+                    :1
+                ]
+            ),
+            Value(UNRESTRICTED_RATING_INDEX),
+            output_field=IntegerField(),
         )
-        if not ratings:
-            return 0  # Everyone tier
-        return min(rating_index(r) for r in ratings)
 
     @classmethod
     def get_age_rating_acl_filter(cls, model, user) -> Q:
-        """Generate the age-rating acl filter for comics."""
-        if not cls._age_restriction_mode_active():
-            return Q()
+        """
+        Build the age-rating ACL filter — single lazy expression.
 
-        max_idx = cls._max_allowed_rating_index(user)
+        Returned shape (one Q, three SQL sub-expressions, zero Python reads):
+          * ranked:      comic rating in ``[0, max_idx_expr]``
+          * null/unknown: OR-gate that only fires when the
+                          ``AGE_RATING_DEFAULT`` flag's index also fits
+                          within ``max_idx_expr``.
+        """
         rel = cls.get_rel_prefix(model) + "age_rating__metron"
-        # Ranked ratings at or below ``max_idx`` are visible.
-        # ``AgeRatingMetron.index`` starts at 0 (``Everyone``) so the lower
-        # bound is implicit.
-        q = Q(
-            **{
-                f"{rel}__index__gte": 0,
-                f"{rel}__index__lte": max_idx,
-            }
+        max_idx_expr = cls._max_idx_expr(user)
+
+        q_ranked = Q(**{f"{rel}__index__gte": 0}) & Q(
+            **{f"{rel}__index__lte": max_idx_expr}
         )
-        # Null Comic.age_rating, null AgeRating.metron, and
-        # ``Unknown`` (``index == UNRANKED_METRON_INDEX``) all inherit the
-        # default rating. ``__isnull`` on the chained rel matches whenever
-        # any FK in the chain is null.
-        default_idx = cls._get_default_rating_index()
-        if 0 <= default_idx <= max_idx:
-            q |= Q(**{f"{rel}__isnull": True}) | Q(
-                **{f"{rel}__index": UNRANKED_METRON_INDEX}
+        q_null_or_unknown = Q(**{f"{rel}__isnull": True}) | Q(
+            **{f"{rel}__index": UNRANKED_METRON_INDEX}
+        )
+        # The Exists-gate: default-flag rating must itself fit under the
+        # user's ceiling, else null/unknown-rated comics stay hidden.
+        default_fits = Exists(
+            AgeRatingMetron.objects.filter(
+                name=cls._admin_flag_value_subquery(
+                    AdminFlagChoices.AGE_RATING_DEFAULT.value
+                ),
+                index__lte=max_idx_expr,
             )
-        return q
+        )
+        return q_ranked | (q_null_or_unknown & default_fits)
 
 
 class GroupACLMixin(IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin):

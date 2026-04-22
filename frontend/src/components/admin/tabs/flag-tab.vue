@@ -36,6 +36,21 @@
             @update:model-value="changeCol(item.key, 'value', $event)"
           />
         </td>
+        <!--
+          ``AA`` mirrors ``AR``: the ceiling for anonymous (not logged
+          in) sessions. Both are value-only flags; the on/off checkbox
+          is suppressed for them.
+        -->
+        <td v-else-if="item.key === 'AA'" class="ageRatingField">
+          <v-select
+            :model-value="item.value || undefined"
+            :items="ageRatingChoices"
+            label="Anonymous User Age Rating"
+            hide-details="auto"
+            :error-messages="errors[item.key]"
+            @update:model-value="changeCol(item.key, 'value', $event)"
+          />
+        </td>
         <td>
           <v-btn
             v-if="item.key === 'BT'"
@@ -45,7 +60,7 @@
             title="Save Banner"
             @click="changeCol(item.key, 'value', banner)"
           />
-          <template v-else-if="item.key === 'AR'" />
+          <template v-else-if="item.key === 'AR' || item.key === 'AA'" />
           <v-checkbox
             v-else
             :model-value="item.on"
@@ -135,7 +150,9 @@ export default {
       return ADMIN_FLAGS[item.key];
     },
     colspan(item) {
-      return item.key === "BT" || item.key === "AR" ? 1 : 2;
+      return item.key === "BT" || item.key === "AR" || item.key === "AA"
+        ? 1
+        : 2;
     },
   },
 };
