@@ -22,6 +22,8 @@ export const TABS = Object.freeze([
   "Stats",
 ]);
 
+export const UNRESTRICTED_LABEL = "Adult";
+
 const getTablePlural = (table) => {
   if (table in IRREGULAR_PLURALS) {
     return IRREGULAR_PLURALS[table];

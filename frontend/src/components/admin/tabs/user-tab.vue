@@ -120,7 +120,7 @@ import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
-import { useAdminStore } from "@/stores/admin";
+import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
@@ -183,10 +183,10 @@ export default {
     ...mapActions(useAdminStore, ["loadTables"]),
     ageRatingName(pk) {
       if (pk == undefined) {
-        return "Unrestricted";
+        return UNRESTRICTED_LABEL;
       }
       const metron = (this.ageRatingMetrons || []).find((m) => m.pk === pk);
-      return (metron && metron.name) || "Unrestricted";
+      return (metron && metron.name) || UNRESTRICTED_LABEL;
     },
     /** Resolve an admin-flag key to its metron's display name, or fallback. */
     _flagMetronName(key, fallback) {

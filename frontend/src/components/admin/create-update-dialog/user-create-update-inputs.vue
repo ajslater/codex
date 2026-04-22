@@ -52,7 +52,7 @@
       item-value="pk"
       clearable
       hide-details="auto"
-      placeholder="Unrestricted"
+      :placeholder="UNRESTRICTED_LABEL"
     />
   </div>
 </template>
@@ -62,7 +62,7 @@ import { mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
-import { useAdminStore } from "@/stores/admin";
+import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
@@ -99,6 +99,7 @@ export default {
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
         ],
+        UNRESTRICTED_LABEL,
       },
     };
   },
