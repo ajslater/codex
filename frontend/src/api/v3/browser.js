@@ -82,7 +82,7 @@ export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
     ts,
   });
   fn = encodeURIComponent(fn);
-  return `${base}${hrefPath} / download / ${fn} ? ${queryString}`;
+  return `${base}${hrefPath}/download/${fn}?${queryString}`;
 };
 
 const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
@@ -92,14 +92,11 @@ const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
     updates.fitTo = "";
   }
   const pkList = ids.join(",");
-  return HTTP.patch(
-    `${group} / ${pkList} / bookmark ? ${queryString}`,
-    updates,
-  );
+  return HTTP.patch(`${group}/${pkList}/bookmark?${queryString}`, updates);
 };
 
 const getLazyImport = ({ group, pks }) => {
-  return HTTP.get(`/ ${group} / ${pks} /import `);
+  return HTTP.get(`/${group}/${pks}/import`);
 };
 
 const getSavedSettingsList = () => {
@@ -111,11 +108,11 @@ const saveSettings = (name) => {
 };
 
 const loadSavedSettings = (pk) => {
-  return HTTP.get(`/ r / settings / saved / ${pk}`);
+  return HTTP.get(`/r/settings/saved/${pk}`);
 };
 
 const deleteSavedSettings = (pk) => {
-  return HTTP.delete(`/ r / settings / saved / ${pk}`);
+  return HTTP.delete(`/r/settings/saved/${pk}`);
 };
 
 export default {

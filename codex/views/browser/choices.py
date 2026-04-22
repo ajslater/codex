@@ -199,6 +199,13 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         values = ["pk", "name"]
         if qs.model == Universe:
             values.append("designation")
+        elif qs.model == AgeRatingMetron:
+            # AgeRatingMetron.Meta.ordering = ("index",), but ``.distinct()``
+            # with ``.values("pk", "name")`` drops it because ``index`` isn't
+            # in the SELECT projection. Include it and sort explicitly so the
+            # UI shows ratings in rating order rather than alphabetical.
+            values.append("index")
+            qs = qs.order_by("index")
         qs = qs.values(*values)
 
         # Add null if it exists
