@@ -45,7 +45,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.10.11"
+version = "1.11.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -108,7 +108,6 @@ build-backend = "uv_build"
 module-root = ""
 source-include = [
   ".*ignore",
-  ".circlci/**",
   ".env.platforms",
   ".github/**",
   ".picopt_treestamps.yaml",
@@ -119,7 +118,6 @@ source-include = [
   "NEWS.md",
   "bin/**",
   "bun.lock",
-  "ci/**",
   "compose.yaml",
   "docs/DOCKER.md",
   "docs/NEWS",
@@ -365,7 +363,6 @@ ignore-overlong-task-comments = true
 "tests/*" = ["D101", "D102", "T203"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
-"ci/cleanup-repo.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 
 [tool.ruff.lint.pylint]

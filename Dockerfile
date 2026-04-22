@@ -16,7 +16,7 @@
 FROM nikolaik/python-nodejs:python3.14-nodejs24 AS builder-base
 # nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
 
-COPY ci/debian.sources /etc/apt/sources.list.d/
+COPY debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
@@ -127,7 +127,7 @@ LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.source="https://github.com/ajslater/codex" \
     org.opencontainers.image.licenses="GPL-3.0-only"
 
-COPY ci/debian.sources /etc/apt/sources.list.d/
+COPY debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
