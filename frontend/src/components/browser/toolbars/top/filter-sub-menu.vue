@@ -67,7 +67,7 @@
             :append-icon="item.icon"
           >
             <template v-if="item.metronName" #append>
-              <span class="metronName"> ({{ item.metronName }}) </span>
+              <span class="metronName">{{ item.metronName }}</span>
             </template>
           </v-list-item>
         </v-list>
@@ -166,6 +166,13 @@ export default {
       for (const item of vItems) {
         item.active = this.filter?.includes(item.value);
         item.icon = item.active ? mdiCheck : undefined;
+        if (
+          this.name === "ageRatingTagged" &&
+          item.title == "None" &&
+          vItems.length > 1
+        ) {
+          item.metronName = "Normalized To:";
+        }
       }
       return vItems;
     },
