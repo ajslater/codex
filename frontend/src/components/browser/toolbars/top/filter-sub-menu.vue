@@ -65,7 +65,11 @@
             :active="item.active"
             :disabled="item.active"
             :append-icon="item.icon"
-          />
+          >
+            <template v-if="item.metronName" #append>
+              <span class="metronName"> ({{ item.metronName }}) </span>
+            </template>
+          </v-list-item>
         </v-list>
       </div>
     </v-slide-x-reverse-transition>
@@ -144,11 +148,20 @@ export default {
         ? "numeric"
         : this.name == "ageRatingMetron"
           ? ""
-          : "title";
+          : this.name == "ageRatingTagged"
+            ? "metronIndex"
+            : title;
+      const copyKeys =
+        this.name === "ageRatingMetron"
+          ? ["index"]
+          : this.name === "ageRatingTagged"
+            ? ["metronName", "index"]
+            : [];
       const vItems = toVuetifyItems({
         items,
         filter: this.search,
         sortBy,
+        copyKeys,
       });
       for (const item of vItems) {
         item.active = this.filter?.includes(item.value);
@@ -245,5 +258,12 @@ export default {
 
 .clearFilter:hover {
   opacity: 1;
+}
+
+.metronName {
+  color: rbg(var(--v-theme-textDisabled));
+  opacity: 0.7;
+  text-align: right;
+  font-size: smaller;
 }
 </style>

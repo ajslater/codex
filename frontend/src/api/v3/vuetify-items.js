@@ -2,7 +2,7 @@
 import { VUETIFY_NULL_CODE } from "@/choices/browser-choices.json";
 export const NULL_PKS = new Set(["", VUETIFY_NULL_CODE, undefined, null]);
 
-const toVuetifyItem = function (item) {
+const toVuetifyItem = function (item, copyKeys = undefined) {
   /*
    * Translates an raw value or an item item into a vuetify item.
    * Removes nulls, they're detected directly from the choices source.
@@ -30,6 +30,12 @@ const toVuetifyItem = function (item) {
   if (item?.url) {
     vuetifyItem.url = item.url;
   }
+  console.debug({ copyKeys });
+  if (copyKeys) {
+    for (const key of copyKeys) {
+      vuetifyItem[key] = item[key];
+    }
+  }
   return vuetifyItem;
 };
 
@@ -40,13 +46,22 @@ const vuetifyItemCompareTitle = function (itemA, itemB) {
 const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
 };
+const vuetifyItemCompareMetronIndex = function (itemA, itemB) {
+  return Number.parseFloat(itemA.index) - Number.parseFloat(itemB.index);
+};
 
 const SORT_BY_FUNC_MAP = Object.freeze({
   title: vuetifyItemCompareTitle,
   numeric: vuetifyItemCompareNumeric,
+  index: vuetifyItemCompareMetronIndex,
 });
 
-export const toVuetifyItems = function ({ items, filter, sortBy = "title" }) {
+export const toVuetifyItems = function ({
+  items,
+  filter,
+  sortBy = "title",
+  copyKeys = undefined,
+}) {
   /*
    * Takes a value (can be a list) and a list of items and
    * Returns a list of valid items with items arg having preference.
@@ -59,7 +74,7 @@ export const toVuetifyItems = function ({ items, filter, sortBy = "title" }) {
 
   let computedItems = [];
   for (const item of sourceItems) {
-    const vuetifyItem = toVuetifyItem(item);
+    const vuetifyItem = toVuetifyItem(item, copyKeys);
     if (
       vuetifyItem != undefined &&
       (!lowerCaseFilter ||

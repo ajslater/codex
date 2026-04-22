@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Any, override
 
 from caseconverter import snakecase
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -206,6 +206,11 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             # UI shows ratings in rating order rather than alphabetical.
             values.append("index")
             qs = qs.order_by("index")
+        elif qs.model == AgeRating:
+            values.extend(["index", "metron_name"])
+            qs = qs.annotate(
+                index=F("metron__index"), metron_name=F("metron__name")
+            ).order_by("index")
         qs = qs.values(*values)
 
         # Add null if it exists

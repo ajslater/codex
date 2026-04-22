@@ -5,6 +5,7 @@ from types import MappingProxyType
 from rest_framework.fields import (
     BooleanField,
     CharField,
+    IntegerField,
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
@@ -94,6 +95,18 @@ class BrowserChoicesIntegerPkSerializer(Serializer):
     name = CharField(read_only=True)
 
 
+class BrowserChoicesAgeRatingMetronPkSerializer(BrowserChoicesIntegerPkSerializer):
+    """Age Rating Metron Choices Serializer."""
+
+    index = IntegerField(read_only=True)
+
+
+class BrowserChoicesAgeRatingPkSerializer(BrowserChoicesAgeRatingMetronPkSerializer):
+    """Age Rating Choices Serializer."""
+
+    metron_name = CharField(read_only=True)
+
+
 class BrowserChoicesUniversePkSerializer(Serializer):
     """Universes Only."""
 
@@ -114,6 +127,8 @@ class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
 
 _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     {
+        "age_rating_metron": BrowserChoicesAgeRatingMetronPkSerializer,
+        "age_rating_tagged": BrowserChoicesAgeRatingPkSerializer,
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
         "critical_rating": BrowserChoicesDecimalPkSerializer,
@@ -135,7 +150,6 @@ class BrowserChoicesFilterSerializer(Serializer):
         field_name = obj.get("field_name", "")
         choices = obj.get("choices", [])
         serializer_class = _CHOICES_NAME_SERIALIZER_MAP.get(field_name)
-        value: list
         if serializer_class:
             value = serializer_class(choices, many=True).data
         elif not serializer_class and field_name in _LIST_FIELDS:
