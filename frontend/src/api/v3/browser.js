@@ -50,7 +50,7 @@ const getBrowserPage = ({ group, pks, page }, data, ts) => {
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
   const rawSettings = toRaw(settings) || {};
-  const filters = toRaw(rawSettings.filters) || {};
+  const filters = toRaw(rawSettings?.filters) || {};
   const mtime = rawSettings?.mtime;
   const data = structuredClone({ ...rawSettings, filters });
   delete data.mtime;
