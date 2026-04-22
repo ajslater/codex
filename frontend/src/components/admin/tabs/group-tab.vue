@@ -103,26 +103,6 @@
           </tr>
         </tbody>
       </table>
-      <h3>Age Rating Restrictions</h3>
-      <p>
-        Age-rating restrictions are per-user now. Set a user's ceiling on the
-        <em>Users</em> tab; adjust the default for comics with no age-rating tag
-        (<em>Age Rating Default</em>) and the anonymous session ceiling (<em
-          >Anonymous User Age Rating</em
-        >) on the <em>Flags</em> tab.
-      </p>
-      <p>
-        Comics that carry no age-rating tag are treated as if rated
-        <strong>{{ ageRatingDefault }}</strong> &mdash; the current
-        <em>Age Rating Default</em>. Setting it to <em>Adult</em> is most secure
-        (untagged comics only visible to users with Adult-level access); setting
-        it to <em>Everyone</em> is least secure (untagged comics visible to
-        all).
-      </p>
-      <p>
-        <strong>Admins are not exempt.</strong> An admin with an Age Rating
-        ceiling set cannot see comics above that ceiling.
-      </p>
     </div>
   </div>
 </template>
@@ -172,13 +152,7 @@ export default {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,
-      flags: (state) => state.flags,
     }),
-    ageRatingDefault() {
-      // ``AR`` now defaults to Everyone after the 0039 refactor.
-      const flag = (this.flags || []).find((f) => f.key === "AR");
-      return (flag && flag.value) || "Everyone";
-    },
   },
   mounted() {
     this.loadTables(["User", "Library", "Group", "Flag"]);

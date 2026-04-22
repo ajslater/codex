@@ -89,6 +89,23 @@
         />
       </template>
     </AdminTable>
+    <div id="ageRatingHelp">
+      <h3>Age Rating Restrictions</h3>
+      <p>
+        Age-rating restrictions set a user's age rating ceiling. Comics that
+        carry no age-rating tag are treated as if rated
+        <strong>{{ ageRatingDefault }}</strong> &mdash; the current
+        <em>Age Rating Default</em>. You may adjust the default age rating for
+        comics with no age-rating tag (<em>Age Rating Default</em>) and the
+        anonymous session ceiling (<em>Anonymous User Age Rating</em>) on the
+        <em>Flags</em> tab.
+      </p>
+
+      <p>
+        <strong>Admins are not exempt.</strong> An admin with an Age Rating
+        ceiling set cannot see comics above that ceiling.
+      </p>
+    </div>
   </div>
 </template>
 
@@ -151,6 +168,11 @@ export default {
        */
       return (flag && flag.value) || "Adult";
     },
+    ageRatingDefault() {
+      // ``AR`` now defaults to Everyone after the 0039 refactor.
+      const flag = (this.flags || []).find((f) => f.key === "AR");
+      return (flag && flag.value) || "Everyone";
+    },
   },
   mounted() {
     /*
@@ -182,5 +204,11 @@ export default {
 .anonAgeRatingHint {
   margin-left: 0.4em;
   font-size: 0.85em;
+}
+
+#ageRatingHelp {
+  margin-top: 2em;
+  margin-bottom: 2em;
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

@@ -45,7 +45,7 @@
           <v-select
             :model-value="item.value || undefined"
             :items="ageRatingChoices"
-            label="Anonymous User Age Rating"
+            label="Anonymous Age Rating"
             hide-details="auto"
             :error-messages="errors[item.key]"
             @update:model-value="changeCol(item.key, 'value', $event)"
