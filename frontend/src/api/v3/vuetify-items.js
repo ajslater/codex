@@ -73,7 +73,6 @@ export const toVuetifyItems = function ({ items, filter, sortBy = "title" }) {
       }
     }
   }
-  console.log({ sortBy });
   if (sortBy) {
     const sortFunc = SORT_BY_FUNC_MAP[sortBy];
     computedItems = computedItems.sort(sortFunc);

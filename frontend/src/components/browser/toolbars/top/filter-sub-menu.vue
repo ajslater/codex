@@ -154,7 +154,6 @@ export default {
         item.active = this.filter?.includes(item.value);
         item.icon = item.active ? mdiCheck : undefined;
       }
-      console.debug("vItems", vItems);
       return vItems;
     },
     title() {
