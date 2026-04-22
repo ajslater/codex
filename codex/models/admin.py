@@ -4,16 +4,10 @@ import base64
 import uuid
 from typing import override
 
-from django.conf import settings
-from django.contrib.auth.models import Group
 from django.db.models import (
-    CASCADE,
-    SET_NULL,
     BooleanField,
     CharField,
     DateTimeField,
-    ForeignKey,
-    OneToOneField,
     PositiveSmallIntegerField,
     TextChoices,
 )
@@ -27,7 +21,7 @@ from codex.models.choices import (
     text_choices_from_map,
 )
 
-__all__ = ("AdminFlag", "GroupAuth", "LibrarianStatus", "Timestamp", "UserAuth")
+__all__ = ("AdminFlag", "LibrarianStatus", "Timestamp")
 
 
 class AdminFlag(BaseModel):
@@ -113,34 +107,3 @@ class Timestamp(BaseModel):
     def __repr__(self) -> str:
         """Print name for choice."""
         return self.Choices(self.key).name
-
-
-class UserAuth(BaseModel):
-    """
-    Per-user auth attributes + last-active timestamp.
-
-    Successor to the former ``UserActive`` model. Carries both the
-    activity timestamp (via :attr:`~codex.models.base.BaseModel.updated_at`)
-    and the per-user age-rating ceiling.
-
-    :attr:`age_rating_metron` is nullable. NULL ⇒ unrestricted: the user can
-    see every comic regardless of rating. A concrete FK pins the user's
-    ceiling at the referenced row's :attr:`AgeRatingMetron.index`.
-    """
-
-    user = OneToOneField(settings.AUTH_USER_MODEL, db_index=True, on_delete=CASCADE)
-    age_rating_metron = ForeignKey(
-        "codex.AgeRatingMetron",
-        db_index=True,
-        null=True,
-        blank=True,
-        default=None,
-        on_delete=SET_NULL,
-    )
-
-
-class GroupAuth(BaseModel):
-    """Extended Attributes for Groups."""
-
-    group = OneToOneField(Group, db_index=True, on_delete=CASCADE)
-    exclude = BooleanField(db_index=True, default=False)

@@ -18,11 +18,11 @@ from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag, AgeRatingMetron, Comic, Folder, StoryArc
-from codex.models.admin import UserAuth
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
     UNRESTRICTED_RATING_INDEX,
 )
+from codex.models.auth import UserAuth
 
 
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):

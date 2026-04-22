@@ -36,7 +36,7 @@ from codex.models import (
     Series,
     Volume,
 )
-from codex.models.admin import UserAuth
+from codex.models.auth import UserAuth
 from codex.views.auth import AgeRatingACLMixin
 
 TMP_DIR = Path("/tmp/codex.tests.acl")  # noqa: S108
@@ -307,7 +307,7 @@ class UserSerializerRoundtripTestCase(TestCase):
         # Start with a non-null ceiling. Django FKs narrow to ``None`` at
         # the type level when the field declares ``default=None``; the
         # runtime assignment is fine, so silence the false positive.
-        self.userauth.age_rating_metron = self.teen_metron  # pyright: ignore[reportAttributeAccessIssue]
+        self.userauth.age_rating_metron = self.teen_metron
         self.userauth.save(update_fields=["age_rating_metron"])
 
         serializer = UserSerializer(

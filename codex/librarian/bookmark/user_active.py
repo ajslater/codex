@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone as django_timezone
 
-from codex.models.admin import UserAuth
+from codex.models.auth import UserAuth
 from codex.views.const import EPOCH_START
 
 

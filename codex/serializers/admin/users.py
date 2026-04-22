@@ -12,7 +12,7 @@ from rest_framework.serializers import (
 )
 
 from codex.models import AgeRatingMetron
-from codex.models.admin import UserAuth
+from codex.models.auth import UserAuth
 from codex.serializers.models.base import BaseModelSerializer
 
 

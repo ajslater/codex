@@ -16,7 +16,7 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
-from codex.models.admin import UserAuth
+from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 

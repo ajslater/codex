@@ -7,7 +7,7 @@ from rest_framework.serializers import (
     BooleanField,
 )
 
-from codex.models.admin import GroupAuth
+from codex.models.auth import GroupAuth
 from codex.serializers.models.base import BaseModelSerializer
 
 
