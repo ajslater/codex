@@ -3154,11 +3154,11 @@ wheels = [
 
 [[package]]
 name = "types-psycopg2"
-version = "2.9.21.20260408"
+version = "2.9.21.20260422"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cd/24/d8ae11a0c056535557aaabeb7d7838423abdfdcf1e5f8dfb2c04d316c65d/types_psycopg2-2.9.21.20260408.tar.gz", hash = "sha256:bb65cd12f53b6633077fd782607a33065e1f3bf585219c9f786b61ad2b72211c", size = 27078, upload-time = "2026-04-08T04:26:15.848Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/a2/ecb04604074a7f2e82231ab1f2d3b5a792589aa3c21a597cb3232a38ece3/types_psycopg2-2.9.21.20260422.tar.gz", hash = "sha256:ad7574fa8e25d9aa96ab96cd280c4dee20872725cd1fe6a6d3facc354f2644d4", size = 27123, upload-time = "2026-04-22T04:36:33.263Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/fe/9aab9239640107b6e46afddcee578a916b8b98bfee36e03da5b0d2c95124/types_psycopg2-2.9.21.20260408-py3-none-any.whl", hash = "sha256:49b086bfc9e0ce901c6537403ead1c19c75275571040b037af0248a8e48c322f", size = 24921, upload-time = "2026-04-08T04:26:14.715Z" },
+    { url = "https://files.pythonhosted.org/packages/61/08/82f86c2d0a7ae4d335c6fe3c4ad193c4a57f0d6bfe1a676289cf63667275/types_psycopg2-2.9.21.20260422-py3-none-any.whl", hash = "sha256:e240684ac37946c5a2a058b04ea1f2fd0e4ee2655719b8c3ec9abf37f96da5ba", size = 24918, upload-time = "2026-04-22T04:36:32.108Z" },
 ]
 
 [[package]]
