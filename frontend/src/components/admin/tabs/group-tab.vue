@@ -24,9 +24,6 @@
           title-key="path"
         />
       </template>
-      <template #[`item.ageRatingMetron`]="{ item }">
-        {{ item.ageRatingMetron || "Any" }}
-      </template>
       <template #[`item.actions`]="{ item }">
         <AdminCreateUpdateDialog
           table="Group"
@@ -108,28 +105,23 @@
       </table>
       <h3>Age Rating Restrictions</h3>
       <p>
-        <strong>Age-restriction mode</strong> activates as soon as any group has
-        an Age Restriction set. Until then, this feature is inactive and every
-        user can see everything.
+        Age-rating restrictions are per-user now. Set a user's ceiling on the
+        <em>Users</em> tab; adjust the default for comics with no age-rating tag
+        (<em>Age Rating Default</em>) and the anonymous session ceiling (<em
+          >Anonymous User Age Rating</em
+        >) on the <em>Flags</em> tab.
       </p>
       <p>
         Comics that carry no age-rating tag are treated as if rated
         <strong>{{ ageRatingDefault }}</strong> &mdash; the current
-        <em>Age Rating Default</em> on the Flags tab. Setting it to
-        <em>Adult</em> is most secure (untagged comics only visible to users
-        with Adult-level access); setting it to <em>Everyone</em> is least
-        secure (untagged comics visible to all).
+        <em>Age Rating Default</em>. Setting it to <em>Adult</em> is most secure
+        (untagged comics only visible to users with Adult-level access); setting
+        it to <em>Everyone</em> is least secure (untagged comics visible to
+        all).
       </p>
       <p>
-        When a user is in multiple groups with different age restrictions, the
-        <em>most restrictive</em> rating wins. Anonymous sessions and users who
-        are not in any age-rating group only see comics rated
-        <em>Everyone</em> (plus any untagged comics, if the default permits).
-      </p>
-      <p>
-        <strong>Admins are not exempt.</strong> When mode is active, admin users
-        cannot see restricted comics unless they are added to a group whose Age
-        Restriction is permissive enough.
+        <strong>Admins are not exempt.</strong> An admin with an Age Rating
+        ceiling set cannot see comics above that ceiling.
       </p>
     </div>
   </div>
@@ -171,7 +163,6 @@ export default {
         { title: "Type", key: "exclude", align: "start" },
         { title: "Users", key: "userSet" },
         { title: "Libraries", key: "librarySet" },
-        { title: "Age Restriction", key: "ageRatingMetron", align: "start" },
         { title: "Actions", key: "actions", sortable: false },
       ],
     };
@@ -184,8 +175,9 @@ export default {
       flags: (state) => state.flags,
     }),
     ageRatingDefault() {
+      // ``AR`` now defaults to Everyone after the 0039 refactor.
       const flag = (this.flags || []).find((f) => f.key === "AR");
-      return (flag && flag.value) || "Adult";
+      return (flag && flag.value) || "Everyone";
     },
   },
   mounted() {

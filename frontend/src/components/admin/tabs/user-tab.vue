@@ -6,6 +6,18 @@
         :inputs="AdminUserCreateUpdateInputs"
         max-width="20em"
       />
+      <!--
+        Anonymous-session ceiling is not stored per-user; it's the ``AA``
+        admin flag. Show the current value read-only here, and point at
+        the Flags tab where it's actually editable.
+      -->
+      <div class="anonAgeRating">
+        Anonymous sessions see up to:
+        <strong>{{ anonAgeRating }}</strong>
+        <span class="anonAgeRatingHint">
+          (set on the Flags tab as <em>Anonymous User Age Rating</em>.)
+        </span>
+      </div>
     </header>
     <AdminTable item-title="username" :headers="headers" :items="users">
       <template #no-data>
@@ -39,6 +51,9 @@
           title-key="name"
           group-type
         />
+      </template>
+      <template #[`item.ageRatingMetron`]="{ item }">
+        {{ ageRatingName(item.ageRatingMetron) }}
       </template>
       <template #[`item.lastActive`]="{ item }">
         <DateTimeColumn :dttm="item.lastActive" />
@@ -109,6 +124,7 @@ export default {
         { title: "Staff", key: "isStaff" },
         { title: "Active", key: "isActive" },
         { title: "Groups", key: "groups" },
+        { title: "Age Rating", key: "ageRatingMetron", align: "start" },
         { title: "Last Active", key: "lastActive" },
         { title: "Last Login", key: "lastLogin" },
         { title: "Joined", key: "dateJoined" },
@@ -120,16 +136,51 @@ export default {
     ...mapState(useAdminStore, {
       users: (state) => state.users,
       groups: (state) => state.groups,
+      ageRatingMetrons: (state) => state.ageRatingMetrons,
+      flags: (state) => state.flags,
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,
     }),
+    /** Resolve the ``AA`` admin flag value for read-only display. */
+    anonAgeRating() {
+      const flag = (this.flags || []).find((f) => f.key === "AA");
+      /*
+       * The migration seeds ``AA`` to ``Adult``; fall back in case the
+       * list hasn't loaded yet.
+       */
+      return (flag && flag.value) || "Adult";
+    },
   },
   mounted() {
-    this.loadTables(["Group", "User"]);
+    /*
+     * AgeRatingMetron populates the per-user dropdown and the column
+     * name resolver; Flag gives us the ``AA`` value to display.
+     */
+    this.loadTables(["Group", "User", "AgeRatingMetron", "Flag"]);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),
+    ageRatingName(pk) {
+      if (pk == undefined) {
+        return "Unrestricted";
+      }
+      const metron = (this.ageRatingMetrons || []).find((m) => m.pk === pk);
+      return (metron && metron.name) || "Unrestricted";
+    },
   },
 };
 </script>
+
+<style scoped lang="scss">
+.anonAgeRating {
+  margin-top: 0.5em;
+  color: rgb(var(--v-theme-textSecondary));
+  font-size: 0.9em;
+}
+
+.anonAgeRatingHint {
+  margin-left: 0.4em;
+  font-size: 0.85em;
+}
+</style>

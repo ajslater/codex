@@ -10,6 +10,7 @@ from codex.models.age_rating import SELECTABLE_RATINGS
 class AdminFlagChoices(TextChoices):
     """Choices for Admin Flags."""
 
+    ANONYMOUS_USER_AGE_RATING = "AA"
     AGE_RATING_DEFAULT = "AR"
     AUTO_UPDATE = "AU"
     BANNER_TEXT = "BT"
@@ -23,6 +24,7 @@ class AdminFlagChoices(TextChoices):
 
 ADMIN_FLAG_CHOICES = MappingProxyType(
     {
+        AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value: "Anonymous User Age Rating",
         AdminFlagChoices.AGE_RATING_DEFAULT.value: "Age Rating Default",
         AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
         AdminFlagChoices.BANNER_TEXT.value: "Banner Text",

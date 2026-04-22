@@ -16,6 +16,9 @@ const makeAdminCRUD = (entity) => {
 const userCRUD = makeAdminCRUD("user");
 const groupCRUD = makeAdminCRUD("group");
 const libraryCRUD = makeAdminCRUD("library");
+// Read-only lookup for the AgeRatingMetron dropdown. Uses the same CRUD
+// factory but we only expose ``getAll`` below.
+const ageRatingMetronCRUD = makeAdminCRUD("age-rating-metron");
 
 // ONE-OFF ENDPOINTS
 
@@ -81,6 +84,8 @@ export default {
   getLibraries: libraryCRUD.getAll,
   updateLibrary: libraryCRUD.update,
   deleteLibrary: libraryCRUD.destroy,
+  // Irregular plural; the admin store looks up API["get" + pluralTable].
+  getAgeRatingMetrons: ageRatingMetronCRUD.getAll,
   getActiveLibrarianStatuses,
   getAllLibrarianStatuses,
   getFailedImports,
