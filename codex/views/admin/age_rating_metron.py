@@ -14,5 +14,6 @@ from codex.views.admin.auth import AdminReadOnlyModelViewSet
 class AdminAgeRatingMetronViewSet(AdminReadOnlyModelViewSet):
     """Admin Read-Only AgeRatingMetron viewset."""
 
-    queryset = AgeRatingMetron.objects.all().order_by("index")
+    # Don't return "Unknown" value
+    queryset = AgeRatingMetron.objects.filter(index__gte=0).order_by("index")
     serializer_class = AgeRatingMetronSerializer
