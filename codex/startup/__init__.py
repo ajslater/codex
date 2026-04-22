@@ -63,30 +63,42 @@ def init_admin_flags() -> None:
     """
     Init admin flag rows.
 
-    Enum-valued flags (age-rating defaults) get their seed value populated
-    here too. The migration seeds them on first install; this covers the
-    edge case where an admin deletes the row entirely so startup can heal
-    it with a sensible default rather than an empty string.
+    The two age-rating flags (``AA``/``AR``) seed with an FK to an
+    :class:`AgeRatingMetron` row — the typed equivalent of the old
+    ``value`` string. The migration does this on first install; this
+    covers the edge case where an admin deletes the row entirely so
+    startup can heal it with a sensible default rather than a bare
+    row with a NULL FK.
+
+    Requires :func:`init_age_rating_metron` to have run first so the
+    FK targets exist.
     """
     _delete_orphans(AdminFlag, "key", AdminFlagChoices.values)
 
-    default_values = {
+    age_rating_defaults = {
         AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value: (
             ANONYMOUS_USER_DEFAULT_AGE_RATING
         ),
         AdminFlagChoices.AGE_RATING_DEFAULT.value: DEFAULT_AGE_RATING,
     }
+    # Resolve seed FK targets in one query.
+    metron_by_name = {
+        name: pk
+        for pk, name in AgeRatingMetron.objects.filter(
+            name__in=age_rating_defaults.values()
+        ).values_list("pk", "name")
+    }
     for key, title in AdminFlagChoices.choices:
-        # ``defaults`` spans both ``bool`` (``on``) and ``str`` (``key`` /
-        # ``value``) — pyright infers the narrower type from the first
-        # assignment, so annotate to keep the conditional ``value`` insert
-        # from tripping the type checker.
-        defaults: dict[str, str | bool] = {
-            "key": key,
+        # ``defaults`` spans ``bool`` (``on``) and the optional FK id
+        # (``age_rating_metron_id``) — annotate so the conditional FK
+        # insert doesn't narrow pyright's inferred value type.
+        defaults: dict[str, bool | int | None] = {
             "on": key not in AdminFlag.FALSE_DEFAULTS,
         }
-        if key in default_values:
-            defaults["value"] = default_values[key]
+        if key in age_rating_defaults:
+            defaults["age_rating_metron_id"] = metron_by_name.get(
+                age_rating_defaults[key]
+            )
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
@@ -243,8 +255,9 @@ def create_missing_auth_tokens() -> None:
 def ensure_db_rows() -> None:
     """Ensure database content is good."""
     ensure_superuser()
-    init_admin_flags()
+    # AgeRatingMetron rows must exist before AdminFlag seeds FK targets.
     init_age_rating_metron()
+    init_admin_flags()
     init_timestamps()
     init_librarian_statuses()
     init_libraries()

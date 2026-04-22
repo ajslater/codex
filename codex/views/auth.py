@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag, AgeRatingMetron, Comic, Folder, StoryArc
+from codex.models import AdminFlag, Comic, Folder, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
     UNRESTRICTED_RATING_INDEX,
@@ -132,19 +132,22 @@ class AgeRatingACLMixin(RelPrefixMixin):
     users, the ceiling comes from :attr:`UserAuth.age_rating_metron` (NULL
     FK ⇒ unrestricted, via :data:`UNRESTRICTED_RATING_INDEX` sentinel). For
     anonymous users, the ceiling comes from the
-    :attr:`AdminFlagChoices.ANONYMOUS_USER_AGE_RATING` admin flag.
+    :attr:`AdminFlagChoices.ANONYMOUS_USER_AGE_RATING` admin flag's
+    :attr:`AdminFlag.age_rating_metron` FK.
 
     Null-rated comics (``Comic.age_rating is NULL``), comics whose
     :class:`AgeRating` row failed to map to a canonical metron row
     (``AgeRating.metron is NULL``), and comics tagged ``Unknown``
     (``AgeRatingMetron.index == UNRANKED_METRON_INDEX``) all inherit the
-    :attr:`AdminFlagChoices.AGE_RATING_DEFAULT` flag rating.
+    :attr:`AdminFlagChoices.AGE_RATING_DEFAULT` flag's FK rating.
 
-    **The returned Q resolves every value in SQL**: user ceiling, default
-    flag, and anonymous flag are all `Subquery` / `Exists` expressions —
-    no Python-side reads. Python only picks which ``max_idx`` subquery
-    shape to use based on whether the request is authenticated. Admins are
-    NOT exempt.
+    **The returned Q resolves every value in SQL** as a single FK hop per
+    flag: user ceiling and both admin-flag ratings are ``Subquery`` /
+    ``Exists`` expressions over ``age_rating_metron__index`` — no
+    Python-side reads, no name-matching round-trip through
+    :attr:`AgeRatingMetron.name`. Python only picks which ``max_idx``
+    subquery shape to use based on whether the request is authenticated.
+    Admins are NOT exempt.
 
     Comparisons hit :attr:`AgeRatingMetron.index`, a small indexed integer
     column reached via the ``age_rating__metron`` chain. Django's LEFT
@@ -153,29 +156,26 @@ class AgeRatingACLMixin(RelPrefixMixin):
     """
 
     @staticmethod
-    def _admin_flag_value_subquery(flag_key: str) -> Subquery:
-        """SELECT value FROM codex_adminflag WHERE key = <flag_key> LIMIT 1."""
-        return Subquery(AdminFlag.objects.filter(key=flag_key).values("value")[:1])
-
-    @classmethod
-    def _flag_rating_index_expr(cls, flag_key: str, *, fallback: int):
+    def _flag_rating_index_expr(flag_key: str, *, fallback: int):
         """
-        Resolve an admin-flag value string to its :attr:`AgeRatingMetron.index`.
+        Resolve an admin flag's FK to its :attr:`AgeRatingMetron.index`.
 
         Emits SQL roughly:
             COALESCE(
-              (SELECT index FROM codex_ageratingmetron
-                 WHERE name = (SELECT value FROM codex_adminflag
-                                 WHERE key = <flag_key> LIMIT 1)
-                 LIMIT 1),
+              (SELECT age_rating_metron__index FROM codex_adminflag
+                 WHERE key = <flag_key> LIMIT 1),
               <fallback>
             )
+
+        ``fallback`` applies when the flag row is missing OR its FK is
+        NULL — both end the subquery in a NULL, which ``Coalesce`` swaps
+        for the sentinel.
         """
         return Coalesce(
             Subquery(
-                AgeRatingMetron.objects.filter(
-                    name=cls._admin_flag_value_subquery(flag_key)
-                ).values("index")[:1]
+                AdminFlag.objects.filter(key=flag_key).values(
+                    "age_rating_metron__index"
+                )[:1]
             ),
             Value(fallback),
             output_field=IntegerField(),
@@ -190,9 +190,9 @@ class AgeRatingACLMixin(RelPrefixMixin):
         :data:`UNRESTRICTED_RATING_INDEX` when the FK is NULL (no per-user
         restriction).
 
-        Anonymous: the ``ANONYMOUS_USER_AGE_RATING`` admin flag's rating
+        Anonymous: the ``ANONYMOUS_USER_AGE_RATING`` admin flag's FK
         index, coalesced to ``0`` (Everyone) when the flag is missing or
-        holds an invalid value.
+        its FK is NULL.
         """
         if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
             return cls._flag_rating_index_expr(
@@ -217,7 +217,7 @@ class AgeRatingACLMixin(RelPrefixMixin):
         Returned shape (one Q, three SQL sub-expressions, zero Python reads):
           * ranked:      comic rating in ``[0, max_idx_expr]``
           * null/unknown: OR-gate that only fires when the
-                          ``AGE_RATING_DEFAULT`` flag's index also fits
+                          ``AGE_RATING_DEFAULT`` flag's FK index also fits
                           within ``max_idx_expr``.
         """
         rel = cls.get_rel_prefix(model) + "age_rating__metron"
@@ -229,14 +229,15 @@ class AgeRatingACLMixin(RelPrefixMixin):
         q_null_or_unknown = Q(**{f"{rel}__isnull": True}) | Q(
             **{f"{rel}__index": UNRANKED_METRON_INDEX}
         )
-        # The Exists-gate: default-flag rating must itself fit under the
-        # user's ceiling, else null/unknown-rated comics stay hidden.
+        # Exists-gate: the AR flag row must exist AND its FK must point
+        # at a metron row whose index fits under the user's ceiling. If
+        # the FK is NULL (misconfigured flag), the ``__index__lte``
+        # comparison evaluates NULL → False, so null/unknown-rated
+        # comics stay hidden — the safest fallback.
         default_fits = Exists(
-            AgeRatingMetron.objects.filter(
-                name=cls._admin_flag_value_subquery(
-                    AdminFlagChoices.AGE_RATING_DEFAULT.value
-                ),
-                index__lte=max_idx_expr,
+            AdminFlag.objects.filter(
+                key=AdminFlagChoices.AGE_RATING_DEFAULT.value,
+                age_rating_metron__index__lte=max_idx_expr,
             )
         )
         return q_ranked | (q_null_or_unknown & default_fits)
