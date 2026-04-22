@@ -77,6 +77,36 @@ ALL_METRON_RATINGS: Final[tuple[tuple[str, int], ...]] = (
     *tuple((name, idx) for idx, name in enumerate(METRON_RATING_ORDER)),
 )
 
+# Process-lifetime cache of :attr:`AgeRatingMetron.pk` → :attr:`index`.
+# The seed table has 7 rows whose indexes are sealed at module load via
+# :data:`METRON_RATING_ORDER`, so the mapping is effectively static once
+# populated. Rebuilt lazily on first lookup and cleared by
+# :func:`invalidate_metron_index_cache` whenever the seed is re-asserted
+# (startup or test teardown).
+_METRON_INDEX_BY_PK: dict[int, int] = {}
+
+
+def get_metron_index(metron_id: int | None) -> int | None:
+    """
+    Return the :attr:`AgeRatingMetron.index` for ``metron_id``.
+
+    Used by :meth:`Comic.presave` to populate the denormalized
+    :attr:`Comic.age_rating_metron_index` column without firing a per-row
+    query in the bulk import path. ``None`` means either the comic has
+    no linked metron row or the pk is missing from the cached map
+    (treated identically by the ACL filter).
+    """
+    if metron_id is None:
+        return None
+    if not _METRON_INDEX_BY_PK:
+        _METRON_INDEX_BY_PK.update(AgeRatingMetron.objects.values_list("pk", "index"))
+    return _METRON_INDEX_BY_PK.get(metron_id)
+
+
+def invalidate_metron_index_cache() -> None:
+    """Drop the cached pk → index map; next lookup re-populates from DB."""
+    _METRON_INDEX_BY_PK.clear()
+
 
 def rating_index(rating: str | None) -> int:
     """Return the ordered index of a rating; -1 if not in ``METRON_RATING_ORDER``."""

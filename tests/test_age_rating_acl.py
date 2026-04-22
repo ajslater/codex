@@ -2,14 +2,19 @@
 Tests for the per-user age-rating ACL refactor.
 
 The ACL filter in :mod:`codex.views.auth` resolves every dynamic value
-(user ceiling, AR default, anonymous flag) in SQL — no Python-side DB
-reads. These tests lock that contract in:
+(user ceiling, AR default, anonymous flag) into two Python integers —
+``max_idx`` and ``default_fits`` — that compose into a pure local-column
+predicate on :attr:`Comic.age_rating_metron_index`. These tests lock
+that contract in:
 
 * per-user ceiling narrows visibility to the ranked index window
 * ``UserAuth.age_rating_metron`` NULL ⇒ unrestricted
 * anonymous sessions fall back to the ``AA`` flag's FK
 * null/unknown-rated comics obey the ``AR`` default FK, gated by the user ceiling
-* the filter evaluates in a single SQL query regardless of the above
+* :attr:`Comic.age_rating_metron_index` is populated by :meth:`presave`
+* the filter's **DB execution** is a single query over the denormalized column
+* classmethod one-shot ``get_age_rating_acl_filter`` pays two tiny scalar
+  lookups + one filter query = 3 total (still cache-friendly)
 * the 0039 migration seeds the new ``AA`` flag and flips ``AR`` to ``Everyone``
 * 0040 promotes both age-rating flags to use a typed FK
 * the admin user serializer round-trips ``ageRatingMetron``
@@ -213,22 +218,76 @@ class AgeRatingACLTestCase(TestCase):
         assert "mature" not in visible
         assert "adult" not in visible
 
-    # --- single-query assertion -------------------------------------
+    # --- query-shape assertions --------------------------------------
 
-    def test_filter_executes_as_single_query(self) -> None:
+    def test_scalar_filter_executes_as_single_query(self) -> None:
         """
-        The ACL Q must not trigger any Python-side DB reads.
+        Given precomputed scalars, the ACL Q collapses to one SQL query.
 
-        ``_max_idx_expr`` and ``_flag_rating_index_expr`` build pure
-        ``Subquery`` / ``Exists`` expressions over the ``age_rating_metron``
-        FK. Evaluating the queryset with ``list()`` therefore has to hit
-        the DB exactly once — if somebody regresses the filter into a
-        Python-side ``.get()``, the captured query count will pop above 1.
+        :meth:`AgeRatingACLMixin.get_age_rating_acl_filter_for` takes
+        already-resolved ``max_idx`` + ``default_fits`` values and
+        returns a Q that compares
+        :attr:`Comic.age_rating_metron_index` directly — no subqueries,
+        no joins. This is the path that view code takes per-request via
+        :meth:`GroupACLMixin.get_acl_filter`: the two scalars are cached
+        on the view once, then reused across every model filter, so
+        each additional filter call stays at one query.
         """
+        max_idx = AgeRatingACLMixin.compute_max_idx(self.teen_user)
+        default_fits = AgeRatingACLMixin.compute_default_fits(max_idx)
+        with CaptureQueriesContext(connection) as ctx:
+            q = AgeRatingACLMixin.get_age_rating_acl_filter_for(
+                Comic, max_idx, default_fits=default_fits
+            )
+            list(Comic.objects.filter(q).values_list("pk", flat=True))
+        assert len(ctx.captured_queries) == 1, ctx.captured_queries
+
+    def test_one_shot_classmethod_is_three_queries(self) -> None:
+        """
+        The one-shot ``get_age_rating_acl_filter`` pays 2 scalar lookups + 1 filter.
+
+        The classmethod is preserved for tests and isolated callers that
+        don't have a request to hang the memo on. It recomputes
+        ``max_idx`` (one UserAuth lookup) and ``default_fits`` (one
+        AdminFlag lookup) per call, then runs the filter query. That's
+        three queries — all three are tiny and cachalot-cacheable, but
+        the count is the budget a regression must stay under.
+        """
+        # 2 tiny scalar lookups (UserAuth, AdminFlag) + 1 filter query.
+        # Bumping this budget means the ACL recompute got more expensive
+        # than designed; the one-shot path is for tests, not hot code.
+        max_queries = 3
         with CaptureQueriesContext(connection) as ctx:
             q = AgeRatingACLMixin.get_age_rating_acl_filter(Comic, self.teen_user)
             list(Comic.objects.filter(q).values_list("pk", flat=True))
-        assert len(ctx.captured_queries) == 1, ctx.captured_queries
+        assert len(ctx.captured_queries) <= max_queries, ctx.captured_queries
+
+    # --- denorm column contract --------------------------------------
+
+    def test_presave_populates_age_rating_metron_index(self) -> None:
+        """
+        :meth:`Comic.presave` mirrors ``age_rating.metron.index`` locally.
+
+        The ACL filter reads :attr:`Comic.age_rating_metron_index` directly,
+        so this denorm column is the ground truth once presave has run.
+        Verifies ranked, tagged-``Unknown`` (``UNRANKED_METRON_INDEX``),
+        and null-rated comics each end up in the right bucket.
+        """
+        from codex.models.age_rating import UNRANKED_METRON_INDEX
+
+        everyone = self.comics_by_rating[MetronAgeRatingEnum.EVERYONE.value]
+        everyone.refresh_from_db()
+        assert everyone.age_rating_metron_index == 0
+
+        mature = self.comics_by_rating[MetronAgeRatingEnum.MATURE.value]
+        mature.refresh_from_db()
+        assert mature.age_rating_metron_index == 3  # noqa: PLR2004
+
+        self.comic_unknown.refresh_from_db()
+        assert self.comic_unknown.age_rating_metron_index == UNRANKED_METRON_INDEX
+
+        self.comic_null.refresh_from_db()
+        assert self.comic_null.age_rating_metron_index is None
 
 
 class MigrationShapeTestCase(TestCase):

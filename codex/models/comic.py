@@ -15,13 +15,15 @@ from django.db.models import (
     DateField,
     DateTimeField,
     ForeignKey,
+    Index,
+    IntegerField,
     ManyToManyField,
     OneToOneField,
     PositiveIntegerField,
     TextField,
 )
 
-from codex.models.age_rating import AgeRating
+from codex.models.age_rating import AgeRating, get_metron_index
 from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,
     MAX_NAME_LEN,
@@ -111,6 +113,15 @@ class Comic(WatchedPathBrowserGroup):
 
     # Other FKs
     age_rating = ForeignKey(AgeRating, db_index=True, null=True, on_delete=CASCADE)
+    # Denormalized :attr:`age_rating.metron.index`. The ACL age-rating
+    # filter compares this column directly so it never has to JOIN through
+    # ``codex_agerating`` and ``codex_ageratingmetron``. Maintained by
+    # :meth:`presave` (populated from :func:`age_rating.get_metron_index`
+    # using a cached pk → index map). ``None`` encodes both "no
+    # age_rating FK" and "age_rating.metron is NULL"; :data:`UNRANKED_METRON_INDEX`
+    # (-1) encodes the tagged-as-``Unknown`` case. See
+    # :class:`codex.views.auth.AgeRatingACLMixin` for the filter semantics.
+    age_rating_metron_index = IntegerField(null=True, default=None)
     original_format = ForeignKey(
         OriginalFormat, null=True, db_index=True, on_delete=CASCADE
     )
@@ -209,6 +220,20 @@ class Comic(WatchedPathBrowserGroup):
         """Constraints."""
 
         verbose_name = "Issue"
+        # Composite index on ``(library_id, age_rating_metron_index)`` —
+        # the ACL filter's dominant predicate pair. The ``library_id``
+        # IN-clause (precomputed visible pks per user) narrows the scan;
+        # the ``age_rating_metron_index`` comparison against the user's
+        # ceiling is served index-only without a heap lookup. Leading
+        # column matches the existing single-column ``library`` index's
+        # workload, so queries that only filter on ``library_id`` still
+        # benefit.
+        indexes = (
+            Index(
+                fields=("library", "age_rating_metron_index"),
+                name="codex_comic_lib_ari_idx",
+            ),
+        )
 
     def _set_date(self) -> None:
         """Compute a date for the comic."""
@@ -230,6 +255,31 @@ class Comic(WatchedPathBrowserGroup):
         else:
             self.decade = self.year - (self.year % 10)
 
+    def _set_age_rating_metron_index(self) -> None:
+        """
+        Denormalize ``age_rating.metron.index`` into a local column.
+
+        Reads ``age_rating.metron_id`` from the FK's local column rather
+        than following the ``metron`` relation — the importer's
+        ``_get_comic_simple_fk_links`` loads ``AgeRating`` without a
+        ``select_related("metron")``, so traversing the relation would
+        fire one lazy query per comic on the bulk import hot path.
+        The ``get_metron_index`` helper serves pks out of a cached
+        ``AgeRatingMetron.pk → index`` map (7 rows, sealed at seed), so
+        this is a dict lookup in steady state.
+        """
+        # ``age_rating_id`` is the implicit FK column Django creates
+        # alongside the ``age_rating`` relation. basedpyright doesn't see
+        # the synthesized attribute, so access it via ``getattr``; it's
+        # faster than dereferencing ``self.age_rating`` when there's no
+        # cached instance.
+        metron_id = None
+        if getattr(self, "age_rating_id", None) is not None:
+            ar = self.age_rating
+            if ar is not None:
+                metron_id = getattr(ar, "metron_id", None)
+        self.age_rating_metron_index = get_metron_index(metron_id)
+
     @override
     def presave(self) -> None:
         """Set computed values."""
@@ -237,6 +287,7 @@ class Comic(WatchedPathBrowserGroup):
         self._set_date()
         self._set_decade()
         self.size = Path(self.path).stat().st_size
+        self._set_age_rating_metron_index()
 
     @property
     def max_page(self):
