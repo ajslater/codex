@@ -155,7 +155,7 @@ export default {
     }),
   },
   mounted() {
-    this.loadTables(["User", "Library", "Group", "Flag"]);
+    this.loadTables(["User", "Library", "Group"]);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),

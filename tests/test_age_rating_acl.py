@@ -7,10 +7,11 @@ reads. These tests lock that contract in:
 
 * per-user ceiling narrows visibility to the ranked index window
 * ``UserAuth.age_rating_metron`` NULL ⇒ unrestricted
-* anonymous sessions fall back to the ``AA`` flag
-* null/unknown-rated comics obey the ``AR`` default, gated by the user ceiling
+* anonymous sessions fall back to the ``AA`` flag's FK
+* null/unknown-rated comics obey the ``AR`` default FK, gated by the user ceiling
 * the filter evaluates in a single SQL query regardless of the above
 * the 0039 migration seeds the new ``AA`` flag and flips ``AR`` to ``Everyone``
+* 0040 promotes both age-rating flags to use a typed FK
 * the admin user serializer round-trips ``ageRatingMetron``
 """
 
@@ -42,14 +43,20 @@ from codex.views.auth import AgeRatingACLMixin
 TMP_DIR = Path("/tmp/codex.tests.acl")  # noqa: S108
 
 
-def _set_flag(key: str, value: str) -> None:
+def _set_age_rating_flag(key: str, metron_name: str) -> None:
     """
-    Tiny helper for admin-flag fixtures.
+    Point an age-rating admin flag at the given :class:`AgeRatingMetron`.
 
-    :meth:`AdminFlag.objects.update_or_create` keeps this idempotent even
-    when the migration has already seeded the row during test DB setup.
+    ``AR`` / ``AA`` now store the ceiling as a typed FK, not a string,
+    so tests resolve the target row and assign the pk directly.
+    :meth:`update_or_create` keeps this idempotent against migration
+    seed state.
     """
-    AdminFlag.objects.update_or_create(key=key, defaults={"value": value, "on": True})
+    metron = AgeRatingMetron.objects.get(name=metron_name)
+    AdminFlag.objects.update_or_create(
+        key=key,
+        defaults={"age_rating_metron": metron, "value": "", "on": True},
+    )
 
 
 class AgeRatingACLTestCase(TestCase):
@@ -129,11 +136,11 @@ class AgeRatingACLTestCase(TestCase):
 
         # Default flag = Everyone (matches the new seed); tests that need
         # a looser or tighter default override via ``_set_flag``.
-        _set_flag(
+        _set_age_rating_flag(
             AdminFlagChoices.AGE_RATING_DEFAULT.value,
             MetronAgeRatingEnum.EVERYONE.value,
         )
-        _set_flag(
+        _set_age_rating_flag(
             AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value,
             MetronAgeRatingEnum.ADULT.value,
         )
@@ -170,7 +177,7 @@ class AgeRatingACLTestCase(TestCase):
 
     def test_untagged_comic_follows_ar_default_when_permissive(self) -> None:
         """AR = Everyone ⇒ null/unknown-rated comics visible to everyone."""
-        _set_flag(
+        _set_age_rating_flag(
             AdminFlagChoices.AGE_RATING_DEFAULT.value,
             MetronAgeRatingEnum.EVERYONE.value,
         )
@@ -180,7 +187,7 @@ class AgeRatingACLTestCase(TestCase):
 
     def test_untagged_comic_hidden_when_ar_exceeds_user_ceiling(self) -> None:
         """AR = Adult + Teen user ⇒ null/unknown rows fall outside the window."""
-        _set_flag(
+        _set_age_rating_flag(
             AdminFlagChoices.AGE_RATING_DEFAULT.value,
             MetronAgeRatingEnum.ADULT.value,
         )
@@ -195,7 +202,7 @@ class AgeRatingACLTestCase(TestCase):
 
     def test_anonymous_ceiling_uses_aa_flag(self) -> None:
         """Anonymous session obeys the ``AA`` flag, not a user FK."""
-        _set_flag(
+        _set_age_rating_flag(
             AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value,
             MetronAgeRatingEnum.EVERYONE.value,
         )
@@ -212,11 +219,11 @@ class AgeRatingACLTestCase(TestCase):
         """
         The ACL Q must not trigger any Python-side DB reads.
 
-        ``_max_idx_expr`` and ``_admin_flag_value_subquery`` build pure
-        ``Subquery`` / ``Exists`` expressions. Evaluating the queryset
-        with ``list()`` therefore has to hit the DB exactly once — if
-        somebody regresses the filter into a Python-side ``.get()``, the
-        captured query count will pop above 1.
+        ``_max_idx_expr`` and ``_flag_rating_index_expr`` build pure
+        ``Subquery`` / ``Exists`` expressions over the ``age_rating_metron``
+        FK. Evaluating the queryset with ``list()`` therefore has to hit
+        the DB exactly once — if somebody regresses the filter into a
+        Python-side ``.get()``, the captured query count will pop above 1.
         """
         with CaptureQueriesContext(connection) as ctx:
             q = AgeRatingACLMixin.get_age_rating_acl_filter(Comic, self.teen_user)
@@ -247,16 +254,22 @@ class MigrationShapeTestCase(TestCase):
         assert expected.issubset(seeded), expected - seeded
 
     def test_anonymous_user_age_rating_flag_seeded_to_adult(self) -> None:
-        """The ``AA`` admin flag is created with the Adult default."""
+        """The ``AA`` admin flag is created with the Adult FK default."""
         flag = AdminFlag.objects.get(
             key=AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value
         )
-        assert flag.value == MetronAgeRatingEnum.ADULT.value
+        # 0040 backfills the FK from the 0039 ``value`` seed and clears
+        # the string, so the FK is now the source of truth.
+        assert flag.age_rating_metron is not None
+        assert flag.age_rating_metron.name == MetronAgeRatingEnum.ADULT.value
+        assert flag.value == ""
 
     def test_age_rating_default_flag_seeded_to_everyone(self) -> None:
-        """``AR`` default flipped from Adult to Everyone in 0039."""
+        """``AR`` default flipped from Adult to Everyone in 0039 (FK form after 0040)."""
         flag = AdminFlag.objects.get(key=AdminFlagChoices.AGE_RATING_DEFAULT.value)
-        assert flag.value == MetronAgeRatingEnum.EVERYONE.value
+        assert flag.age_rating_metron is not None
+        assert flag.age_rating_metron.name == MetronAgeRatingEnum.EVERYONE.value
+        assert flag.value == ""
 
 
 class UserSerializerRoundtripTestCase(TestCase):
@@ -320,3 +333,32 @@ class UserSerializerRoundtripTestCase(TestCase):
 
         self.userauth.refresh_from_db()
         assert self.userauth.age_rating_metron is None
+
+
+class AdminFlagSerializerRoundtripTestCase(TestCase):
+    """
+    :class:`AdminFlagSerializer` must round-trip ``age_rating_metron``.
+
+    The 0040 migration promoted ``AR``/``AA`` to a typed FK. The admin
+    Flags tab PATCHes ``age_rating_metron`` (a pk), so this test guards
+    the flag serializer's ability to persist the FK without a regression
+    back to the stringly-typed ``value`` field.
+    """
+
+    def test_update_sets_age_rating_metron_on_ar_flag(self) -> None:
+        """Supplying ``age_rating_metron`` via update persists to AdminFlag."""
+        from codex.serializers.admin.flags import AdminFlagSerializer
+
+        teen_metron = AgeRatingMetron.objects.get(name=MetronAgeRatingEnum.TEEN.value)
+        flag = AdminFlag.objects.get(key=AdminFlagChoices.AGE_RATING_DEFAULT.value)
+
+        serializer = AdminFlagSerializer(
+            instance=flag,
+            data={"age_rating_metron": teen_metron.pk},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        flag.refresh_from_db()
+        assert flag.age_rating_metron == teen_metron

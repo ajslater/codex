@@ -159,19 +159,17 @@ export default {
     ...mapState(useAuthStore, {
       me: (state) => state.user,
     }),
-    /** Resolve the ``AA`` admin flag value for read-only display. */
+    /** Resolve the ``AA`` admin flag FK to a metron name (read-only display). */
     anonAgeRating() {
-      const flag = (this.flags || []).find((f) => f.key === "AA");
       /*
-       * The migration seeds ``AA`` to ``Adult``; fall back in case the
-       * list hasn't loaded yet.
+       * ``AA`` / ``AR`` store a typed FK (``ageRatingMetron``), not a
+       * string. Fall back to the seeded default if the flag or the
+       * metron list hasn't loaded yet.
        */
-      return (flag && flag.value) || "Adult";
+      return this._flagMetronName("AA", "Adult");
     },
     ageRatingDefault() {
-      // ``AR`` now defaults to Everyone after the 0039 refactor.
-      const flag = (this.flags || []).find((f) => f.key === "AR");
-      return (flag && flag.value) || "Everyone";
+      return this._flagMetronName("AR", "Everyone");
     },
   },
   mounted() {
@@ -189,6 +187,17 @@ export default {
       }
       const metron = (this.ageRatingMetrons || []).find((m) => m.pk === pk);
       return (metron && metron.name) || "Unrestricted";
+    },
+    /** Resolve an admin-flag key to its metron's display name, or fallback. */
+    _flagMetronName(key, fallback) {
+      const flag = (this.flags || []).find((f) => f.key === key);
+      if (!flag || flag.ageRatingMetron == undefined) {
+        return fallback;
+      }
+      const metron = (this.ageRatingMetrons || []).find(
+        (m) => m.pk === flag.ageRatingMetron,
+      );
+      return (metron && metron.name) || fallback;
     },
   },
 };

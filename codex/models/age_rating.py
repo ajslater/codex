@@ -10,8 +10,9 @@ NULL.
 
 ``Unknown`` is intentionally absent from :data:`METRON_RATING_ORDER`: at
 filter time it is treated the same as ``NULL`` (both inherit the
-``AGE_RATING_DEFAULT`` admin flag). Admin-facing selects consume
-:data:`SELECTABLE_RATINGS` which also excludes ``Unknown``.
+``AGE_RATING_DEFAULT`` admin flag). Admin-facing selects pull the live
+:class:`AgeRatingMetron` list via the API, excluding ``Unknown`` server
+side.
 """
 
 from typing import Final, override
@@ -32,9 +33,6 @@ METRON_RATING_ORDER: Final[tuple[str, ...]] = (
     MetronAgeRatingEnum.EXPLICIT.value,
     MetronAgeRatingEnum.ADULT.value,
 )
-
-# Ratings offered in admin-facing selects (Group dialog, Flags tab default).
-SELECTABLE_RATINGS: Final[tuple[str, ...]] = METRON_RATING_ORDER
 
 PUBLIC_TIER_ALLOWED: Final[frozenset[str]] = frozenset(
     {MetronAgeRatingEnum.EVERYONE.value}

@@ -26,29 +26,35 @@
             @click:clear="banner = ''"
           />
         </td>
+        <!--
+          ``AA`` and ``AR`` bind to the typed FK (``ageRatingMetron``)
+          on the flag row, not the legacy ``value`` string. The
+          dropdown is fed directly from the live ``ageRatingMetrons``
+          list loaded via the admin store — same source used on the
+          Users tab — so there is no parallel static choices JSON.
+        -->
         <td v-else-if="item.key === 'AR'" class="ageRatingField">
           <v-select
-            :model-value="item.value || undefined"
+            :model-value="item.ageRatingMetron"
             :items="ageRatingChoices"
+            item-title="name"
+            item-value="pk"
             label="Age Rating Default"
             hide-details="auto"
             :error-messages="errors[item.key]"
-            @update:model-value="changeCol(item.key, 'value', $event)"
+            @update:model-value="changeCol(item.key, 'ageRatingMetron', $event)"
           />
         </td>
-        <!--
-          ``AA`` mirrors ``AR``: the ceiling for anonymous (not logged
-          in) sessions. Both are value-only flags; the on/off checkbox
-          is suppressed for them.
-        -->
         <td v-else-if="item.key === 'AA'" class="ageRatingField">
           <v-select
-            :model-value="item.value || undefined"
+            :model-value="item.ageRatingMetron"
             :items="ageRatingChoices"
+            item-title="name"
+            item-value="pk"
             label="Anonymous Age Rating"
             hide-details="auto"
             :error-messages="errors[item.key]"
-            @update:model-value="changeCol(item.key, 'value', $event)"
+            @update:model-value="changeCol(item.key, 'ageRatingMetron', $event)"
           />
         </td>
         <td>
@@ -80,7 +86,6 @@ import { mdiContentSaveOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
-import METRON_AGE_RATING_CHOICES from "@/choices/metron-age-rating-choices.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -106,6 +111,7 @@ export default {
     }),
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
+      ageRatingMetrons: (state) => state.ageRatingMetrons,
     }),
     storeBanner() {
       for (const item of this.flags) {
@@ -116,7 +122,12 @@ export default {
       return "";
     },
     ageRatingChoices() {
-      return METRON_AGE_RATING_CHOICES.METRON_AGE_RATING;
+      /*
+       * ``AgeRatingMetron`` rows ordered by index (Everyone..Adult) via
+       * the model's default ordering; ``Unknown`` is filtered out server
+       * side — safe to consume as-is.
+       */
+      return this.ageRatingMetrons || [];
     },
   },
   watch: {
@@ -125,7 +136,8 @@ export default {
     },
   },
   mounted() {
-    this.loadTables(["Flag"]);
+    // ``AgeRatingMetron`` feeds the AA/AR dropdowns.
+    this.loadTables(["Flag", "AgeRatingMetron"]);
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),

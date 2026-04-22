@@ -5,9 +5,11 @@ import uuid
 from typing import override
 
 from django.db.models import (
+    SET_NULL,
     BooleanField,
     CharField,
     DateTimeField,
+    ForeignKey,
     PositiveSmallIntegerField,
     TextChoices,
 )
@@ -15,6 +17,7 @@ from django.utils.translation import gettext_lazy as _
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.statii import ADMIN_STATUS_TITLES
+from codex.models.age_rating import AgeRatingMetron
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
 from codex.models.choices import (
     max_choices_len,
@@ -25,7 +28,18 @@ __all__ = ("AdminFlag", "LibrarianStatus", "Timestamp")
 
 
 class AdminFlag(BaseModel):
-    """Flags set by administrators."""
+    """
+    Flags set by administrators.
+
+    Some flag keys use the free-form :attr:`value` string (e.g. Banner Text),
+    some use only the :attr:`on` boolean. The two age-rating flags
+    (``AGE_RATING_DEFAULT``, ``ANONYMOUS_USER_AGE_RATING``) use
+    :attr:`age_rating_metron` — a typed FK to the :class:`AgeRatingMetron`
+    lookup table — so the ACL filter and the UI both operate on real rows
+    instead of name strings. ``SET_NULL`` on delete: if the target metron
+    row ever disappears, the flag falls back to its seeded default at the
+    next boot.
+    """
 
     FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
 
@@ -36,6 +50,14 @@ class AdminFlag(BaseModel):
     )
     on = BooleanField(default=True)
     value = CharField(max_length=MAX_NAME_LEN, default="", blank=True)
+    age_rating_metron = ForeignKey(
+        AgeRatingMetron,
+        db_index=True,
+        null=True,
+        blank=True,
+        default=None,
+        on_delete=SET_NULL,
+    )
 
     class Meta(BaseModel.Meta):
         """Constraints."""
