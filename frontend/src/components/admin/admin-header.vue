@@ -43,7 +43,11 @@ export default {
   },
   head() {
     const title = "Admin / " + this.activeTab;
-    return { title };
+    const content = `Admin tab for ${this.activeTab}`;
+    return {
+      title,
+      meta: [{ name: "description", content }],
+    };
   },
   computed: {
     ...mapWritableState(useAdminStore, ["activeTab"]),
