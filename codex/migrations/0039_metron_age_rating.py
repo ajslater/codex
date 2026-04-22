@@ -25,11 +25,73 @@ Adds ``age_rating_tagged`` (original tagged name) and ``age_rating_metron``
 ``age_rating`` column from 0029. ``ComicFTS`` is unmanaged; its Django state
 only tracks ``comic`` + timestamps, so the full column list is owned by
 SQL. The search index will be repopulated on the next librarian sync.
+
+----
+
+Typed FK from :class:`AdminFlag` to :class:`AgeRatingMetron`.
+
+Replaces the string-based ``AdminFlag.value`` coupling for the two
+age-rating flags (``AGE_RATING_DEFAULT`` / ``AR`` and
+``ANONYMOUS_USER_AGE_RATING`` / ``AA``) with a real foreign key. The
+ACL filter collapses from a two-level ``name``-matching subquery to a
+single FK hop, and the frontend can reuse the live
+:class:`AgeRatingMetron` list instead of a parallel static choices JSON.
+
+The data migration resolves each flag's old ``value`` string against
+:attr:`AgeRatingMetron.name` and writes the matching row's pk into the
+new FK column. Rows whose ``value`` doesn't match any metron name
+(shouldn't happen in practice — both flags are seeded with canonical
+values by 0039 and the startup seeder) are left with a NULL FK, which
+the ACL filter treats as unrestricted / safest default.
+
+The ``value`` column is cleared for ``AR``/``AA`` rows after a
+successful backfill so the FK is the single source of truth. Other
+flags (``BT``, etc.) keep their ``value`` strings untouched.
+
+---
+
+Denormalize :attr:`Comic.age_rating_metron_index` for the ACL filter.
+
+Adds a nullable integer column on :class:`Comic` that mirrors
+:attr:`Comic.age_rating.metron.index`. The ACL age-rating filter in
+:mod:`codex.views.auth` compares this column directly, so the whole
+filter collapses from a two-hop join
+(``comic → age_rating → metron``) to a single local-column predicate.
+Combined with the composite index on ``(library_id,
+age_rating_metron_index)`` added here, the filter becomes
+index-only.
+
+Semantics encoded by the column value:
+
+* ``NULL`` — the comic has no ``age_rating`` FK, or its
+  :class:`AgeRating` row failed to map to a canonical
+  :class:`AgeRatingMetron`. ACL-wise, handled by the
+  ``AGE_RATING_DEFAULT`` flag fallback path.
+* ``-1`` (``UNRANKED_METRON_INDEX``) — the comic is tagged ``Unknown``;
+  same fallback path as ``NULL``.
+* ``0``..``5`` — ranked rating; compared directly against the user's
+  ceiling.
+
+The backfill runs as a single correlated SQL ``UPDATE`` scoped to rows
+with ``age_rating_id IS NOT NULL``. On a 600k-row library this is
+~10-20 seconds dominated by WAL fsync - acceptable as a one-shot
+migration. Going forward, :meth:`Comic.presave` keeps the column in
+sync on every bulk insert/update the importer performs.
+
+``SET NULL`` on delete cascades for the upstream :class:`AgeRatingMetron`
+FK mean the denorm can fall out of sync only when an
+:class:`AgeRating` row has its :attr:`metron` relinked — which already
+happens inside :meth:`AgeRating.presave`, and any
+:class:`Comic` that references that AgeRating will be re-saved on
+re-import. For the rare "comicbox enum got updated" case, a fresh
+library rescan walks every affected Comic through
+:meth:`Comic.presave` and heals the drift.
 """
 
 from comicbox.enums.maps.age_rating import to_metron_age_rating
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.db import migrations, models
+from django.db.models.deletion import SET_NULL
 
 import codex.models.fields
 
@@ -37,6 +99,7 @@ _AR_FLAG_KEY = "AR"
 _AR_DEFAULT = MetronAgeRatingEnum.EVERYONE.value
 _AA_FLAG_KEY = "AA"
 _AA_DEFAULT = MetronAgeRatingEnum.ADULT.value
+_AGE_RATING_FLAG_KEYS = (_AR_FLAG_KEY, _AA_FLAG_KEY)
 _CHUNK = 500
 
 _METRON_RATING_ORDER = (
@@ -112,6 +175,63 @@ def _backfill_age_rating_metron_fk(apps, _schema_editor) -> None:
     if to_update:
         age_rating_model.objects.bulk_update(
             to_update, ["metron_id"], batch_size=_CHUNK
+        )
+
+
+def _backfill_age_rating_metron_flag_fk(apps, _schema_editor) -> None:
+    """Resolve ``value`` -> ``AgeRatingMetron`` row for AR/AA flag rows."""
+    admin_flag_model = apps.get_model("codex", "adminflag")
+    metron_model = apps.get_model("codex", "ageratingmetron")
+
+    name_to_pk = dict(metron_model.objects.values_list("name", "pk"))
+
+    flags = admin_flag_model.objects.filter(key__in=_AGE_RATING_FLAG_KEYS)
+    to_update = []
+    for flag in flags:
+        metron_pk = name_to_pk.get(flag.value) if flag.value else None
+        flag.age_rating_metron_id = metron_pk
+        # The FK is the new source of truth; ``value`` stays empty for
+        # these keys so nothing reads a stale string by accident.
+        flag.value = ""
+        to_update.append(flag)
+    if to_update:
+        admin_flag_model.objects.bulk_update(
+            to_update, ["age_rating_metron_id", "value"]
+        )
+
+
+def _backfill_age_rating_metron_index(_apps, _schema_editor) -> None:
+    """
+    Populate :attr:`Comic.age_rating_metron_index` for every existing row.
+
+    Runs a single correlated ``UPDATE`` instead of iterating in Python:
+    SQLite evaluates the subquery row-by-row using the indexes on
+    ``codex_agerating.id`` and ``codex_ageratingmetron.id``, so the
+    whole migration is one statement regardless of library size.
+    """
+    # ``schema_editor`` is the normal way to get at the connection here,
+    # but the raw cursor is fine since the statement is pure SQL and we
+    # only run it on SQLite.
+    from django.db import connection
+
+    with connection.cursor() as cursor:
+        # ``index`` is a reserved keyword in SQLite; quote the column
+        # reference so the parser treats it as an identifier. The bare
+        # column name stored in the table is also ``index`` — Django
+        # renders the field definition without quotes because it's fine
+        # in DDL, but inside a SELECT expression it needs escaping.
+        cursor.execute(
+            """
+            UPDATE codex_comic
+            SET age_rating_metron_index = (
+                SELECT arm."index"
+                FROM codex_ageratingmetron AS arm
+                INNER JOIN codex_agerating AS ar
+                    ON ar.metron_id = arm.id
+                WHERE ar.id = codex_comic.age_rating_id
+            )
+            WHERE age_rating_id IS NOT NULL
+            """
         )
 
 
@@ -238,6 +358,30 @@ class Migration(migrations.Migration):
                 max_length=2,
             ),
         ),
+        migrations.AddField(
+            model_name="adminflag",
+            name="age_rating_metron",
+            field=models.ForeignKey(
+                blank=True,
+                db_index=True,
+                default=None,
+                null=True,
+                on_delete=SET_NULL,
+                to="codex.ageratingmetron",
+            ),
+        ),
+        migrations.AddField(
+            model_name="comic",
+            name="age_rating_metron_index",
+            field=models.IntegerField(default=None, null=True),
+        ),
+        migrations.AddIndex(
+            model_name="comic",
+            index=models.Index(
+                fields=("library", "age_rating_metron_index"),
+                name="codex_comic_lib_ari_idx",
+            ),
+        ),
         migrations.RunSQL(
             sql="DROP TABLE IF EXISTS codex_comicfts;",
             reverse_sql=migrations.RunSQL.noop,
@@ -249,6 +393,8 @@ class Migration(migrations.Migration):
         # Seed AdminFlag rows after their key choices registration.
         migrations.RunPython(_seed_age_rating_default_flag, _noop),
         migrations.RunPython(_seed_anonymous_user_age_rating_flag, _noop),
+        migrations.RunPython(_backfill_age_rating_metron_index, _noop),
+        migrations.RunPython(_backfill_age_rating_metron_flag_fk, _noop),
         # ComicFTS is unmanaged; its Django state tracks only (comic,
         # created_at, updated_at). The FTS columns are a SQL-level concern —
         # no state_operations are needed, only a raw DROP + CREATE.
