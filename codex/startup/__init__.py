@@ -23,6 +23,7 @@ from codex.models.age_rating import (
     ALL_METRON_RATINGS,
     ANONYMOUS_USER_DEFAULT_AGE_RATING,
     DEFAULT_AGE_RATING,
+    invalidate_metron_index_cache,
 )
 from codex.settings import (
     AUTH_REMOTE_USER,
@@ -111,6 +112,11 @@ def init_age_rating_metron() -> None:
     Idempotent — reasserts the canonical lookup table on every codex boot.
     Never deletes orphans; AgeRating.metron uses on_delete=SET_NULL so an
     externally-deleted row simply nulls the FK until re-import heals it.
+
+    Clears the in-process ``pk → index`` cache consumed by
+    :func:`codex.models.age_rating.get_metron_index` so that boots
+    following a seed change (new enum value, migration rerun) pick up
+    the refreshed mapping on the next Comic ``presave``.
     """
     for name, index in ALL_METRON_RATINGS:
         _, created = AgeRatingMetron.objects.update_or_create(
@@ -118,6 +124,7 @@ def init_age_rating_metron() -> None:
         )
         if created:
             logger.info(f"Created AgeRatingMetron: {name} ({index})")
+    invalidate_metron_index_cache()
 
 
 def init_timestamps() -> None:
