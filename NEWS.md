@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.0 - Age Restrictions
+
+- Features
+    - Age Rating Restrictions now available in the Admin Users tab.
+    - Bulk importing performance improvements. Comicbox learned how to use
+      multiprocessing & caching.
+
 ## v1.10.12
 
 - Fixes
