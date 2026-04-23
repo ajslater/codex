@@ -55,13 +55,14 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
 
     def get_mtime(self, obj) -> int:
         """Compute mtime from json array aggregates."""
+        bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))
         updated_ats = (
             obj.updated_ats
-            if obj.bmua_is_max
+            if bmua_is_max
             else chain(obj.updated_ats, obj.bookmark_updated_ats)
         )
         mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
-        if obj.bmua_is_max:
+        if bmua_is_max:
             mtime: datetime | None = max_none(
                 mtime, obj.bookmark_updated_at, EPOCH_START
             )

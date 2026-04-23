@@ -1,6 +1,8 @@
 """Parse field boolean expressions into Django ORM Queries."""
 
+import copy
 import re
+from functools import lru_cache
 from typing import Any
 
 from django.db.models import Q
@@ -115,15 +117,15 @@ class FieldQueryTransformer(Transformer):
         return q
 
 
-def get_field_query(
+@lru_cache(maxsize=512)
+def _build_field_query(
     rel: str,
     rel_class: type,
     exp: str,
     model: type[BaseModel],
-    *,
-    many_to_many: bool,
+    many_to_many: bool,  # noqa: FBT001
 ) -> Q:
-    """Convert rel and text expression into queries."""
+    """Build the Q tree for a field:expression pair. Cached."""
     # Allow negative column search
     begin_not_match = _BEGIN_NOT_RE.search(exp)
     if begin_not_match:
@@ -139,5 +141,23 @@ def get_field_query(
     transformer = FieldQueryTransformer(
         rel, rel_class, model, many_to_many=many_to_many
     )
-    result: Q = transformer.transform(tree)
-    return result
+    return transformer.transform(tree)
+
+
+def get_field_query(
+    rel: str,
+    rel_class: type,
+    exp: str,
+    model: type[BaseModel],
+    *,
+    many_to_many: bool,
+) -> Q:
+    """
+    Convert rel and text expression into queries.
+
+    Returns a ``copy.deepcopy`` of the cached Q tree because downstream
+    callers (``_hoist_filters``) mutate ``child.negated`` on the returned
+    tree's children.
+    """
+    cached = _build_field_query(rel, rel_class, exp, model, many_to_many)
+    return copy.deepcopy(cached)

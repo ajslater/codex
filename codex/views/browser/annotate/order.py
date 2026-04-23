@@ -195,12 +195,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             bmua_agg = self.get_max_bookmark_updated_at_aggregate(
                 qs.model, agg_func=self.order_agg_func
             )
-            # This is used by annotate.bookmark to avoid a
-            # similar query.
+            # `self.bmua_is_max` is read by `annotate.bookmark` to skip a
+            # second aggregate, and by the serializer to compute mtime.
             self.bmua_is_max = self.order_agg_func is Max
             qs = qs.annotate(bookmark_updated_at=bmua_agg)
-        # This is used by the serializer to compute mtime
-        return qs.annotate(bmua_is_max=Value(self.bmua_is_max))
+        return qs
 
     def _annotate_search_scores(self, qs):
         """Annotate Search Scores."""

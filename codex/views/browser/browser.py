@@ -4,6 +4,7 @@ from math import ceil, floor, log10
 from types import MappingProxyType
 from typing import override
 
+from django.core.cache import cache as _django_cache
 from django.db.models import Max
 from django.db.utils import OperationalError
 from drf_spectacular.utils import extend_schema
@@ -25,6 +26,32 @@ from codex.views.const import (
     FOLDER_GROUP,
     STORY_ARC_GROUP,
 )
+
+_LIBRARIES_EXIST_CACHE_KEY = "codex:libraries_exist"
+_LIBRARIES_EXIST_TTL_SECONDS = 60
+
+
+def libraries_exist() -> bool:
+    """
+    Return whether any non-cover-only library is configured.
+
+    Backed by Django's default cache. Signal handlers in
+    ``codex.signals.django_signals`` clear the key on Library writes;
+    the TTL bounds staleness across worker processes that don't see the
+    signal directly.
+    """
+    value = _django_cache.get(_LIBRARIES_EXIST_CACHE_KEY)
+    if value is None:
+        value = Library.objects.filter(covers_only=False).exists()
+        _django_cache.set(
+            _LIBRARIES_EXIST_CACHE_KEY, value, _LIBRARIES_EXIST_TTL_SECONDS
+        )
+    return bool(value)
+
+
+def invalidate_libraries_exist_cache() -> None:
+    """Drop the cached libraries_exist value."""
+    _django_cache.delete(_LIBRARIES_EXIST_CACHE_KEY)
 
 
 class BrowserView(BrowserTitleView):
@@ -85,9 +112,11 @@ class BrowserView(BrowserTitleView):
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
         try:
-            count_qs = self.add_group_by(qs)
-            if limit:
-                count_qs = count_qs[:limit]
+            # Group once here; `add_group_by` is a no-op for Comic so the
+            # book path is unaffected, and the group path no longer needs
+            # a second call after ordering.
+            qs = self.add_group_by(qs)
+            count_qs = qs[:limit] if limit else qs
             # Get count after filters and before any annotations or orders
             #   because it's faster. These counts are used by
             #   is_page_in_bounds(), num_pages for the nav bar, and paginate()
@@ -114,7 +143,6 @@ class BrowserView(BrowserTitleView):
             count = 0
         else:
             qs, count = self._get_common_queryset(self.model)
-            qs = self.add_group_by(qs)
         return qs, count
 
     def _get_book_queryset(self) -> tuple:
@@ -203,7 +231,7 @@ class BrowserView(BrowserTitleView):
         title = self.get_browser_page_title()
         # needs to happen after pagination
         # runs obj list query twice :/
-        libraries_exist = Library.objects.filter(covers_only=False).exists()
+        libraries_exist_flag = libraries_exist()
         # construct final data structure
         return MappingProxyType(
             {
@@ -216,7 +244,7 @@ class BrowserView(BrowserTitleView):
                 "num_pages": num_pages,
                 "total_count": total_count,
                 "admin_flags": self.admin_flags,
-                "libraries_exist": libraries_exist,
+                "libraries_exist": libraries_exist_flag,
                 "mtime": mtime,
                 "search_error": self.search_error,
                 "fts": self.fts_mode,

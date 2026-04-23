@@ -24,6 +24,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
         """Initialize memoized values."""
         super().__init__(*args, **kwargs)
         self._is_bookmark_filtered: bool | None = None
+        self._bmua_agg_cache: dict = {}
 
     @property
     def is_bookmark_filtered(self) -> bool:
@@ -49,6 +50,11 @@ class BrowserGroupMtimeView(BrowserFilterView):
         self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
     ) -> Aggregate:
         """Get filtered maximum bookmark updated_at relation."""
+        key = (model, agg_func, default)
+        cached = self._bmua_agg_cache.get(key)
+        if cached is not None:
+            return cached
+
         bm_rel = self.get_bm_rel(model)
         bm_filter = self.get_my_bookmark_filter(bm_rel)
         bmua_rel = f"{bm_rel}__updated_at"
@@ -60,7 +66,9 @@ class BrowserGroupMtimeView(BrowserFilterView):
             kwargs["distinct"] = True
             kwargs["order_by"] = bmua_rel
 
-        return agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+        aggregate = agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+        self._bmua_agg_cache[key] = aggregate
+        return aggregate
 
     def get_group_mtime(self, model, group=None, pks=None, *, page_mtime=False):
         """Get a filtered mtime for browser pages and mtime checker."""

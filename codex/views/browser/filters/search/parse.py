@@ -1,6 +1,7 @@
 """Search Filters Methods."""
 
 import re
+from functools import lru_cache
 from types import MappingProxyType
 
 from django.db.models.query_utils import Q
@@ -73,6 +74,114 @@ _COMPOUND_COLUMN_MAP = MappingProxyType(
 )
 
 
+def _is_column_operators_used(exp) -> bool:
+    """Detect column expression operators, but not inside quotes."""
+    for match in _COLUMN_EXPRESSION_OPERATORS_RE.finditer(exp):
+        if match.group("star"):
+            return True
+    return False
+
+
+def _add_field_token(preop, col, exp, field_tokens) -> None:
+    """Add a field token entry with the given preop."""
+    if not preop:
+        preop = "and"
+    if preop not in field_tokens:
+        field_tokens[preop] = set()
+    field_tokens[preop].add((col, exp))
+
+
+def _add_fts_token(fts_tokens, token) -> None:
+    token = _FTS_OPERATOR_RE.sub(lambda op: op.group("operator").upper(), token)
+
+    if ":" in token:
+        col, value = token.split(":")
+        col = _ALIAS_FIELD_MAP.get(col.lower(), col)
+        token = f"{col}:{value}"
+    elif token.lower() not in _FTS_OPERATORS and not (
+        token.startswith('"') and token.endswith('"')
+    ):
+        token = f'"{token}"'
+
+    fts_tokens.append(token)
+
+
+def _parse_column_match(preop, col, exp, field_tokens, *, path_allowed) -> bool:
+    col = _ALIAS_FIELD_MAP.get(col.lower(), col.lower())
+
+    # Compound aliases expand into OR queries across multiple columns.
+    # Store the tuple of cols as the field_token key; filter.py ORs them.
+    if compound_cols := _COMPOUND_COLUMN_MAP.get(col):
+        _add_field_token(preop, compound_cols, exp, field_tokens)
+        return True
+
+    if col not in _VALID_COLUMNS:
+        return True
+    if col == "path" and not path_allowed:
+        return True
+    if col in _NON_FTS_COLUMNS or _is_column_operators_used(exp):
+        _add_field_token(preop, col, exp, field_tokens)
+        return True
+    return False
+
+
+def _preparse_token(match, field_tokens, fts_tokens, *, path_allowed) -> None:
+    token = match.group("token")
+    if not token:
+        return
+
+    multi_col = match.group("multi_col")
+    col = match.group("col")
+    exp = match.group("exp")
+    if exp:
+        exp = exp.strip("'").strip('"')
+    if multi_col or not col or not exp:
+        # I could add multi-col to field groups, but nobody will care.
+        _add_fts_token(fts_tokens, token)
+        return
+
+    preop = match.group("preop")
+    if not _parse_column_match(
+        preop, col, exp, field_tokens, path_allowed=path_allowed
+    ):
+        if col and exp:
+            token = f"{col}:{exp}"
+        _add_fts_token(fts_tokens, token)
+
+
+@lru_cache(maxsize=256)
+def _preparse_search_query_cached(
+    text: str,
+    path_allowed: bool,  # noqa: FBT001
+) -> tuple[MappingProxyType, str, bool]:
+    """
+    Parse query text into field tokens and an FTS remainder.
+
+    Pure function keyed on ``(text, path_allowed)``. Returns a
+    ``MappingProxyType`` wrapping a dict of ``frozenset`` pairs so the
+    cached value stays safe from caller mutation. ``had_error`` lets the
+    caller mirror the previous side effect on ``self.search_error``
+    without polluting the cache.
+    """
+    field_tokens: dict = {}
+    fts_tokens: list = []
+    had_error = False
+    for match in _TOKEN_RE.finditer(text):
+        try:
+            _preparse_token(
+                match, field_tokens, fts_tokens, path_allowed=path_allowed
+            )
+        except Exception as exc:
+            tok = match.group(0) if match else "<unmatched>"
+            logger.debug(f"Error preparsing search query token {tok}: {exc}")
+            had_error = True
+    fts_text = " ".join(fts_tokens)
+    frozen_tokens = MappingProxyType(
+        {preop: frozenset(pairs) for preop, pairs in field_tokens.items()}
+    )
+    return frozen_tokens, fts_text, had_error
+
+
 class SearchFilterView(BrowserFTSFilter):
     """Search Query Parser."""
 
@@ -107,95 +216,18 @@ class SearchFilterView(BrowserFTSFilter):
         """Is path column allowed."""
         return self.is_admin or bool(self.admin_flags["folder_view"])
 
-    @staticmethod
-    def _is_column_operators_used(exp) -> bool:
-        """Detect column expression operators, but not inside quotes."""
-        for match in _COLUMN_EXPRESSION_OPERATORS_RE.finditer(exp):
-            if match.group("star"):
-                return True
-        return False
-
-    def _add_field_token(self, preop, col, exp, field_tokens) -> None:
-        """Add a field token entry with the given preop."""
-        if not preop:
-            preop = "and"
-        if preop not in field_tokens:
-            field_tokens[preop] = set()
-        field_tokens[preop].add((col, exp))
-
-    def _parse_column_match(
-        self, preop, col, exp, field_tokens
-    ) -> bool:  # , fts_tokens):
-        col = _ALIAS_FIELD_MAP.get(col.lower(), col.lower())
-
-        # Compound aliases expand into OR queries across multiple columns.
-        # Store the tuple of cols as the field_token key; filter.py ORs them.
-        if compound_cols := _COMPOUND_COLUMN_MAP.get(col):
-            self._add_field_token(preop, compound_cols, exp, field_tokens)
-            return True
-
-        if col not in _VALID_COLUMNS:
-            return True
-        if col == "path" and not self._is_path_column_allowed():
-            return True
-        if col in _NON_FTS_COLUMNS or self._is_column_operators_used(exp):
-            self._add_field_token(preop, col, exp, field_tokens)
-            return True
-        return False
-
-    @staticmethod
-    def _add_fts_token(fts_tokens, token) -> None:
-        token = _FTS_OPERATOR_RE.sub(lambda op: op.group("operator").upper(), token)
-
-        if ":" in token:
-            col, value = token.split(":")
-            col = _ALIAS_FIELD_MAP.get(col.lower(), col)
-            token = f"{col}:{value}"
-        elif token.lower() not in _FTS_OPERATORS and not (
-            token.startswith('"') and token.endswith('"')
-        ):
-            token = f'"{token}"'
-
-        fts_tokens.append(token)
-
-    def _preparse_search_query_token(self, match, field_tokens, fts_tokens) -> None:
-        token = match.group("token")
-        if not token:
-            return
-
-        multi_col = match.group("multi_col")
-        col = match.group("col")
-        exp = match.group("exp")
-        if exp:
-            exp = exp.strip("'").strip('"')
-        if multi_col or not col or not exp:
-            # I could add multi-col to field groups, but nobody will care.
-            self._add_fts_token(fts_tokens, token)
-            return
-
-        preop = match.group("preop")
-        if not self._parse_column_match(preop, col, exp, field_tokens):
-            if col and exp:
-                token = f"{col}:{exp}"
-            self._add_fts_token(fts_tokens, token)
-
-    def _preparse_search_query(self) -> tuple[dict, str] | tuple:
+    def _preparse_search_query(self) -> tuple:
         """Preparse search fields out of query text."""
         text = self.params.get("search")
-        field_tokens = {}
         if not text:
-            return field_tokens, text
+            return {}, text
 
-        fts_tokens = []
-        for match in _TOKEN_RE.finditer(text):
-            try:
-                self._preparse_search_query_token(match, field_tokens, fts_tokens)
-            except Exception as exc:
-                tok = match.group(0) if match else "<unmatched>"
-                logger.debug(f"Error preparsing search query token {tok}: {exc}")
-                self.search_error = "Syntax error"
-        text = " ".join(fts_tokens)
-        return field_tokens, text
+        field_tokens, fts_text, had_error = _preparse_search_query_cached(
+            text, self._is_path_column_allowed()
+        )
+        if had_error:
+            self.search_error = "Syntax error"
+        return field_tokens, fts_text
 
     def _create_search_filters(self, model) -> tuple[list, list, Q]:
         field_tokens_dict, fts_text = self._preparse_search_query()

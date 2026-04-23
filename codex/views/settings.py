@@ -336,11 +336,21 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return order_defaults
 
     @staticmethod
-    def _save_browser_show(instance: SettingsBrowser, show_data: dict) -> None:
-        """Get-or-create a shared SettingsBrowserShow row and assign it."""
+    def _save_browser_show(instance: SettingsBrowser, show_data: dict) -> bool:
+        """
+        Get-or-create a shared SettingsBrowserShow row and assign it.
+
+        Returns True if the instance's ``show`` FK changed.
+        """
         show_kwargs = {k: bool(show_data.get(k, False)) for k in SHOW_KEYS}
+        current = instance.show
+        if current and all(getattr(current, k) == show_kwargs[k] for k in SHOW_KEYS):
+            return False
         show, _ = SettingsBrowserShow.objects.get_or_create(**show_kwargs)  # pyright: ignore[reportArgumentType]
+        if instance.show_id == show.pk:
+            return False
         instance.show = show
+        return True
 
     @staticmethod
     def _save_browser_filters(
@@ -348,12 +358,16 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         filters_data: dict,
     ) -> None:
         """Apply filter values from the params dict to the filters row."""
+        dirty = False
         for key, value in filters_data.items():
             if key not in SettingsBrowserFilters.FILTER_KEYS:
                 continue
             cleaned = value if key == "bookmark" else (list(value) if value else [])
-            setattr(filters_obj, key, cleaned)
-        filters_obj.save()
+            if getattr(filters_obj, key) != cleaned:
+                setattr(filters_obj, key, cleaned)
+                dirty = True
+        if dirty:
+            filters_obj.save()
 
     @staticmethod
     def _save_browser_last_route(
@@ -361,26 +375,38 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         route_data: dict,
     ) -> None:
         """Apply last-route values from the params dict to the route row."""
-        if "group" in route_data:
+        dirty = False
+        if "group" in route_data and route_obj.group != route_data["group"]:
             route_obj.group = route_data["group"]
+            dirty = True
         if "pks" in route_data:
-            pks = route_data["pks"]
-            route_obj.pks = tuple(pks) if pks else (0,)
-        if "page" in route_data:
+            pks_value = route_data["pks"]
+            new_pks = tuple(pks_value) if pks_value else (0,)
+            if tuple(route_obj.pks or ()) != new_pks:
+                route_obj.pks = new_pks
+                dirty = True
+        if "page" in route_data and route_obj.page != route_data["page"]:
             route_obj.page = route_data["page"]
-        route_obj.save()
+            dirty = True
+        if dirty:
+            route_obj.save()
 
     @classmethod
     def _save_browser_settings_data(cls, instance: SettingsBrowser, data: dict) -> None:
         """Persist a params dict to a SettingsBrowser and its related rows."""
+        instance_dirty = False
         for key in instance.DIRECT_KEYS:
-            if key in data:
+            if key in data and getattr(instance, key) != data[key]:
                 setattr(instance, key, data[key])
-        if "q" in data:
+                instance_dirty = True
+        if "q" in data and instance.search != data["q"]:
             instance.search = data["q"]
-        if show_data := data.get("show"):
-            cls._save_browser_show(instance, show_data)
-        instance.save()
+            instance_dirty = True
+        show_data = data.get("show")
+        if show_data and cls._save_browser_show(instance, show_data):
+            instance_dirty = True
+        if instance_dirty:
+            instance.save()
 
         if filters_data := data.get("filters"):
             cls._save_browser_filters(instance.filters, filters_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
