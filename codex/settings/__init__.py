@@ -229,6 +229,8 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Debug
+INTERNAL_IPS = ("127.0.0.1",)
 
 ###########
 # Logging #
@@ -590,8 +592,6 @@ if DEBUG and not BUILD:
 CACHALOT_UNCACHABLE_TABLES = frozenset(
     {"django_migrations", "django_session", "codex_useractive"}
 )
-
-INTERNAL_IPS = ("127.0.0.1",)
 
 #################
 # Custom Covers #
