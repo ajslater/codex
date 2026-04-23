@@ -55,7 +55,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
 
     def get_mtime(self, obj) -> int:
         """Compute mtime from json array aggregates."""
-        bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))
+        bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
         updated_ats = (
             obj.updated_ats
             if bmua_is_max

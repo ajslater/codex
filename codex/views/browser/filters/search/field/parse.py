@@ -123,7 +123,8 @@ def _build_field_query(
     rel_class: type,
     exp: str,
     model: type[BaseModel],
-    many_to_many: bool,  # noqa: FBT001
+    *,
+    many_to_many: bool,
 ) -> Q:
     """Build the Q tree for a field:expression pair. Cached."""
     # Allow negative column search
@@ -159,5 +160,5 @@ def get_field_query(
     callers (``_hoist_filters``) mutate ``child.negated`` on the returned
     tree's children.
     """
-    cached = _build_field_query(rel, rel_class, exp, model, many_to_many)
+    cached = _build_field_query(rel, rel_class, exp, model, many_to_many=many_to_many)
     return copy.deepcopy(cached)

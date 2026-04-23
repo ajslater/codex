@@ -347,7 +347,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if current and all(getattr(current, k) == show_kwargs[k] for k in SHOW_KEYS):
             return False
         show, _ = SettingsBrowserShow.objects.get_or_create(**show_kwargs)  # pyright: ignore[reportArgumentType]
-        if instance.show_id == show.pk:
+        if instance.show_id == show.pk:  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
             return False
         instance.show = show
         return True

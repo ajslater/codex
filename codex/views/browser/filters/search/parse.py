@@ -168,9 +168,7 @@ def _preparse_search_query_cached(
     had_error = False
     for match in _TOKEN_RE.finditer(text):
         try:
-            _preparse_token(
-                match, field_tokens, fts_tokens, path_allowed=path_allowed
-            )
+            _preparse_token(match, field_tokens, fts_tokens, path_allowed=path_allowed)
         except Exception as exc:
             tok = match.group(0) if match else "<unmatched>"
             logger.debug(f"Error preparsing search query token {tok}: {exc}")
