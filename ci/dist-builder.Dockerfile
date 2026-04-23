@@ -1,3 +1,4 @@
+FROM oven/bun:latest AS bun-source
 ARG CODEX_BUILDER_BASE_VERSION
 FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}
 ARG CODEX_DIST_BUILDER_VERSION
@@ -12,6 +13,9 @@ RUN apt-get clean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=bun-source /usr/local/bin/bunx /usr/local/bin/bunx
+
 WORKDIR /app
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
@@ -19,13 +23,13 @@ COPY pyproject.toml uv.lock ./
 RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 uv sync --no-install-project --no-dev --group lint --group test
 
 # *** install node lint & test dependency packages ***
-COPY package.json package-lock.json ./
-RUN npm install
+COPY package.json bun.lock ./
+RUN bun install
 
 # **** install npm app dependencies ****
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm install
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install
 
 WORKDIR /app
 # **** copying source for dev build ****
