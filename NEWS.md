@@ -8,6 +8,12 @@ border-radius: 128px;
 
 ## v1.10.12
 
+- Fixes
+    - Fix overzealous lazy importer importing tags from books that already had
+      tags.
+    - Fix reader settings clearing anomalies. Add a global reader settings clear
+      button.
+
 - Features
     - Codex identifies itself in the HTTP Server: header.
     - Codex identifies itself in the OPDS v1 <generator> tag.
