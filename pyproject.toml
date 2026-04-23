@@ -136,7 +136,6 @@ source-include = [
   "img/**",
   "mkdocks.yml",
   "mock_comics/**",
-  "package-lock.json",
   "package.json",
   "strange.jpg",
   "tests/**",
@@ -199,7 +198,7 @@ reportUnusedParameter = false
 builtin = "clear,code,rare"
 check-hidden = true
 ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package-lock.json,./package.json,./site,./test-results,/uv.lock"
+skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./site,./test-results,/uv.lock"
 
 [tool.complexipy]
 failed = true
