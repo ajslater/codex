@@ -23,6 +23,7 @@ if DEBUG:
 
     urlpatterns += [
         path("schema/", Schema.as_view()),
+        path("silk/", include("silk.urls", namespace="silk")),
     ]
 
 urlpatterns += [

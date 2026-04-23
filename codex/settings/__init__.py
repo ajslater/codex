@@ -252,7 +252,7 @@ def _get_installed_apps() -> tuple:
 
     if DEBUG:
         # comes before static apps
-        installed_apps += ["nplusone.ext.django", "schema_graph"]
+        installed_apps += ["nplusone.ext.django", "schema_graph", "silk"]
 
     installed_apps += [
         "servestatic.runserver_nostatic",
@@ -286,6 +286,12 @@ def _get_middleware() -> tuple:
         "corsheaders.middleware.CorsMiddleware",
         "django.middleware.security.SecurityMiddleware",
         "servestatic.middleware.ServeStaticMiddleware",
+    ]
+    if DEBUG:
+        # Sits below ServeStaticMiddleware so silk only wraps the API
+        # stack, not static file responses.
+        middleware += ["silk.middleware.SilkyMiddleware"]
+    middleware += [
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
@@ -414,6 +420,17 @@ DATABASES = {
         },
     },
 }
+
+if DEBUG:
+    # django-silk captures live in their own DB so perf traces don't
+    # bloat the app DB and can be wiped with a single rm.
+    SILK_DB_PATH = CONFIG_PATH / "silk.sqlite3"
+    DATABASES["silky"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": SILK_DB_PATH,
+        "OPTIONS": {"init_command": _SQLITE_PRAGMAS, "timeout": 120},
+    }
+    DATABASE_ROUTERS = ["codex.db_routers.SilkRouter"]
 
 # The new DEFAULT_AUTO_FIELD in Django 3.2 is BigAutoField (64 bit),
 #   but it can't be auto migrated. Automigration has been punted to
@@ -618,6 +635,24 @@ if DEBUG and not BUILD:
 ############
 
 CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
+
+########
+# Silk #
+########
+
+if DEBUG:
+    # SQL-level capture only. CPU profiling is off by default; flip on
+    # when profiling cover generation or other CPU-bound paths.
+    SILKY_PYTHON_PROFILER = False
+    # Record silk's own overhead so we can subtract it from wall-time.
+    SILKY_META = True
+    # Do not cap body sizes — perf flows are small JSON payloads.
+    SILKY_MAX_REQUEST_BODY_SIZE = 0
+    SILKY_MAX_RESPONSE_BODY_SIZE = 0
+    # Require login to view the silk UI; only superusers can see it.
+    SILKY_AUTHENTICATION = True
+    SILKY_AUTHORISATION = True
+    SILKY_PERMISSIONS = lambda user: user.is_superuser  # noqa: E731
 
 
 #################
