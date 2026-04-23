@@ -56,7 +56,7 @@ class BrowserView(BrowserTitleView):
             elif group == STORY_ARC_GROUP:
                 pks = self.kwargs.get("pks")
                 self._model_group = COMIC_GROUP if pks else group
-            elif group == self.valid_nav_groups[-1]:
+            elif group == self.valid_nav_groups[-1] or group == COMIC_GROUP:
                 # special case for lowest valid group
                 self._model_group = COMIC_GROUP
             else:

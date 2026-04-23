@@ -6,7 +6,7 @@ from django.db.models.query_utils import Q
 
 from codex.views.browser.const import BROWSER_FILTER_KEYS
 from codex.views.browser.filters.group import GroupFilterView
-from codex.views.settings.const import (
+from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
     STORY_ARC_UI_FIELD,

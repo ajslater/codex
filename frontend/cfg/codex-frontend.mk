@@ -16,12 +16,12 @@ dev-server:
 ## Run All Tests
 ## @category Test
 test:
-	npm run test:ci
+	bun run test:ci
 
 .PHONY: build
 ## Build package
 ## @category build
 build: clean
-	npm run build
+	bun run build
 
 .PHONY: all

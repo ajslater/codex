@@ -49,9 +49,10 @@ const getBrowserPage = ({ group, pks, page }, data, ts) => {
 
 const getMetadata = ({ group, pks }, settings) => {
   const pkList = pks.join(",");
-  const mtime = settings.mtime;
-  const filters = toRaw(settings.filters);
-  const data = structuredClone({ ...settings, filters });
+  const rawSettings = toRaw(settings) || {};
+  const filters = toRaw(rawSettings?.filters) || {};
+  const mtime = rawSettings?.mtime;
+  const data = structuredClone({ ...rawSettings, filters });
   delete data.mtime;
   const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
@@ -65,6 +66,10 @@ const getSettings = (data) => {
 const updateSettings = (settings) => {
   const params = serializeParams(settings, undefined, false);
   return HTTP.patch("/r/settings", { params });
+};
+
+const resetSettings = () => {
+  return HTTP.delete("/r/settings");
 };
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
@@ -121,6 +126,7 @@ export default {
   getBrowserPage,
   getLazyImport,
   updateGroupBookmarks,
+  resetSettings,
   updateSettings,
   getSavedSettingsList,
   saveSettings,

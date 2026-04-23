@@ -181,7 +181,7 @@ class SearchFilterView(BrowserFTSFilter):
 
     def _preparse_search_query(self) -> tuple[dict, str] | tuple:
         """Preparse search fields out of query text."""
-        text = self.params.get("q")
+        text = self.params.get("search")
         field_tokens = {}
         if not text:
             return field_tokens, text

@@ -45,7 +45,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.10.11"
+version = "1.10.12"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -67,7 +67,7 @@ dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "nplusone~=1.0",
-  "picopt~=6.1.1",
+  "picopt~=6.2.0",
   "semver~=3.0.4",
   "toml-cli~=0.7",
   "tomlkit~=0.14",
@@ -83,7 +83,7 @@ lint = [
   "djlint~=1.36",
   "icecream~=2.1",
   "mbake~=1.4.5",
-  "pathspec~=1.0.4",
+  "pathspec~=1.1.0",
   "radon~=6.0",
   "ruff~=0.15",
   "types-python-dateutil~=2.9",
@@ -118,6 +118,7 @@ source-include = [
   "Makefile",
   "NEWS.md",
   "bin/**",
+  "bun.lock",
   "ci/**",
   "compose.yaml",
   "docs/DOCKER.md",
@@ -137,7 +138,6 @@ source-include = [
   "img/**",
   "mkdocks.yml",
   "mock_comics/**",
-  "package-lock.json",
   "package.json",
   "strange.jpg",
   "tests/**",
@@ -200,7 +200,7 @@ reportUnusedParameter = false
 builtin = "clear,code,rare"
 check-hidden = true
 ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package-lock.json,./package.json,./site,./test-results,/uv.lock"
+skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./site,./test-results,/uv.lock"
 
 [tool.complexipy]
 failed = true

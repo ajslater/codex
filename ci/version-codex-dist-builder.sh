@@ -28,10 +28,10 @@ DEPS=(
   bin/pm
   bin/roman.py
   bin/test-python.sh
+  bun.lock
   ci/dist-builder.Dockerfile
   eslint.config.js
   package.json
-  package-lock.json
   pyproject.toml
   uv.lock
   Makefile

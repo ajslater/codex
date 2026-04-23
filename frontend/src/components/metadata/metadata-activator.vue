@@ -5,7 +5,7 @@
     :variant="variant"
     :icon="mdiTagOutline"
     title="Tags"
-    @mouseenter="onMouseEnter"
+    @mouseenter="lazyImportEnabled ? onMouseEnter : null"
     @click.prevent
   />
 </template>
@@ -25,13 +25,22 @@ export default {
   data() {
     return {
       mdiTagOutline,
-      importedIds: new Set(),
+      lazyImportStarted: false,
     };
   },
   computed: {
     ...mapState(useAuthStore, {
-      lazyImportEnabled: (state) => state.adminFlags.lazyImportMetadata,
+      stateLazyImportEnabled: (state) => state.adminFlags?.lazyImportMetadata,
     }),
+    lazyImportEnabled() {
+      return (
+        this.stateLazyImportMetadata &&
+        this.book &&
+        this.book.group === "c" &&
+        !this.book.hasMetadata &&
+        !this.lazyImportStarted
+      );
+    },
     variant() {
       return this.toolbar ? "plain" : "text";
     },
@@ -39,14 +48,11 @@ export default {
   methods: {
     ...mapActions(useMetadataStore, ["lazyImport"]),
     onMouseEnter() {
-      if (
-        this.lazyImportEnabled &&
-        this.book.group === "c" &&
-        !this.importedIds.has(this.book.pk)
-      ) {
+      if (this.lazyImportEnabled) {
         const ids = this.book.ids || [this.book.pk];
-        this.lazyImport({ group: this.book.group, ids });
-        this.importedIds.add(this.book.pk);
+        this.lazyImport({ group: this.book.group, ids }).then(() => {
+          this.lazyImportStarted = true;
+        });
       }
     },
   },

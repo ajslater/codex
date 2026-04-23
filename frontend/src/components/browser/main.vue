@@ -32,7 +32,7 @@ import BrowserEmptyState from "@/components/browser/empty.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useSelectManyStore } from "@/stores/select-many";
+import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
 export default {
@@ -63,11 +63,11 @@ export default {
         ...(state.page.books ?? []),
       ],
       numPages: (state) => state.page.numPages,
-      query: (state) => state.settings.q,
+      search: (state) => state.settings.search,
       isSearchOpen: (state) => state.isSearchOpen,
       isSearchMode: (state) => state.isSearchMode,
     }),
-    ...mapState(useSelectManyStore, {
+    ...mapState(useBrowserSelectManyStore, {
       selectManyActive: (state) => state.active,
     }),
     browsePaneClasses() {
@@ -97,7 +97,7 @@ export default {
     },
     searchLimitMessage() {
       let res = "";
-      if (!this.query) {
+      if (!this.search) {
         return res;
       }
       const page = +this.$route.params.page;

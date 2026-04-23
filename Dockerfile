@@ -69,6 +69,7 @@ WORKDIR /app
 RUN pip3 install --no-cache --upgrade pip
 
 # ---- Stage 3: codex-ci (all deps + source for CI) -------------------------
+FROM oven/bun:latest AS bun-source
 FROM builder AS codex-ci
 
 # hadolint ignore=DL3008
@@ -79,6 +80,9 @@ RUN apt-get clean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=bun-source /usr/local/bin/bunx /usr/local/bin/bunx
+
 WORKDIR /app
 
 # Python deps (cacheable when lockfiles unchanged)
@@ -88,13 +92,13 @@ RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 \
     uv sync --no-install-project --no-dev --group lint --group test
 
 # Root Node deps (eslint, prettier, etc.)
-COPY package.json package-lock.json ./
-RUN npm install
+COPY package.json bun.lock ./
+RUN bun install
 
 # Frontend Node deps
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm install
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install
 
 # Full source
 WORKDIR /app

@@ -61,8 +61,10 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             self._pending_force = task.force
             self._cond.notify()
 
+    @override
     def stop(self) -> None:
         """Signal the poller to shut down."""
+        super().stop()
         self._shutdown_event.set()
         with self._cond:
             self._cond.notify()

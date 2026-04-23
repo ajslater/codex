@@ -32,8 +32,9 @@ from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.status_controller import StatusController
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
+from codex.librarian.threads import NamedThread
 
-_THREAD_CLASSES = (
+_THREAD_CLASSES: tuple[type[NamedThread], ...] = (
     BookmarkThread,
     CoverThread,
     CronThread,
@@ -43,7 +44,7 @@ _THREAD_CLASSES = (
     ScribeThread,
     FSEventBatcherThread,
 )
-_THREAD_CLASS_MAP = MappingProxyType(
+_THREAD_CLASS_MAP: MappingProxyType[str, type[NamedThread]] = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
 )
 LibrarianThreads = NamedTuple("LibrarianThreads", tuple(_THREAD_CLASS_MAP.items()))  # ty: ignore[invalid-named-tuple]
@@ -74,7 +75,7 @@ class LibrarianDaemon(Process):
         for task in startup_tasks:
             self.queue.put(task)
         self.run_loop = True
-        self._reversed_threads = ()
+        self._reversed_threads: tuple[NamedThread, ...] = ()
 
     def _restart_fs_watcher(self) -> None:
         self._threads.library_watcher_thread.restart()
@@ -158,7 +159,7 @@ class LibrarianDaemon(Process):
 
     def _shutdown(self) -> None:
         """Shutdown threads and queues."""
-        self._reversed_threads = tuple(reversed(self._threads))
+        self._reversed_threads = tuple(reversed(self._threads))  # ty: ignore[invalid-assignment]
         self._stop_threads()
         self._join_threads()
         while not self.queue.empty():

@@ -20,6 +20,10 @@ const updateSettings = (data) => {
   return HTTP.patch("c/settings", data);
 };
 
+const resetSettings = (data) => {
+  return HTTP.delete("c/settings", { data });
+};
+
 const getReaderInfo = (pk, data, ts) => {
   const params = serializeParams(data, ts);
   const bookPath = _getBookPath(pk);
@@ -58,5 +62,6 @@ export default {
   getReaderInfo,
   getSettings,
   getPDFInBrowserURL,
+  resetSettings,
   updateSettings,
 };

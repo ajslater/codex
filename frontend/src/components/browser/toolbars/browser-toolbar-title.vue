@@ -33,7 +33,7 @@ export default {
     const content = names.filter(Boolean).join(" ");
     return {
       title,
-      meta: [{ key: "description", name: "description", content }],
+      meta: [{ name: "description", content }],
     };
   },
   computed: {

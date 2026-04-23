@@ -15,7 +15,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
 
     def _paginate_section(self, qs: QuerySet, page: int) -> QuerySet:
         """Paginate a group or Comic section."""
-        orphans = 0 if self.model_group == "f" or self.params.get("q") else 5
+        orphans = 0 if self.model_group == "f" or self.params.get("search") else 5
         paginator = Paginator(qs, BROWSER_MAX_OBJ_PER_PAGE, orphans=orphans)
         try:
             paginator_page = paginator.page(page)

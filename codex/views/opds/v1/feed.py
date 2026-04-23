@@ -1,6 +1,6 @@
 """OPDS v1 feed."""
 
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, override
 
 from drf_spectacular.utils import extend_schema
@@ -14,7 +14,9 @@ from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import OPDS1TemplateSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
-from codex.views.opds.const import BLANK_TITLE, DEFAULT_PARAMS
+from codex.version import VERSION
+from codex.views.opds.const import BLANK_TITLE
+from codex.views.opds.start import OPDSStartViewMixin
 from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import OPDS1LinksView
@@ -31,6 +33,11 @@ class OPDS1FeedView(OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
+
+    @property
+    def version(self):
+        """Codex version."""
+        return VERSION
 
     @property
     def opds_ns(self):
@@ -89,7 +96,7 @@ class OPDS1FeedView(OPDS1LinksView):
     def items_per_page(self) -> int | None:
         """Return opensearch:itemsPerPage."""
         try:
-            if self.params.get("q"):
+            if self.params.get("search"):
                 return BROWSER_MAX_OBJ_PER_PAGE
         except Exception:
             logger.exception("Getting OPDS v1 items per page")
@@ -98,7 +105,7 @@ class OPDS1FeedView(OPDS1LinksView):
     def total_results(self):
         """Return opensearch:totalResults."""
         try:
-            if self.params.get("q"):
+            if self.params.get("search"):
                 return self.obj.get("total_count", 0)
         except Exception:
             logger.exception("Getting OPDS v1 total results")
@@ -159,14 +166,8 @@ class OPDS1FeedView(OPDS1LinksView):
         return Response(serializer.data, content_type=self.content_type)
 
 
-class OPDS1StartView(OPDS1FeedView):
+class OPDS1StartView(OPDSStartViewMixin, OPDS1FeedView):
     """OPDS v1 Start Page."""
-
-    IS_START_PAGE = True
-
-    @override
-    def init_params(self) -> MutableMapping[str, Any]:
-        return dict(DEFAULT_PARAMS)
 
     @override
     @extend_schema(

@@ -10,7 +10,10 @@ from codex.librarian.scribe.importer.query.links_fk import QueryPruneLinksFKs
 from codex.models.base import BaseModel, NamedModel
 from codex.models.comic import Comic
 from codex.models.groups import BrowserGroupModel
-from codex.settings import IMPORTER_LINK_M2M_BATCH_SIZE
+from codex.settings import (
+    IMPORTER_LINK_FK_BATCH_SIZE,
+    IMPORTER_LINK_M2M_BATCH_SIZE,
+)
 
 
 class QueryPruneLinksM2M(QueryPruneLinksFKs):
@@ -82,7 +85,6 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
     def _query_prune_comic_m2m_links_batch(self, paths: tuple[str], status) -> None:
         comics = (
             Comic.objects.filter(library=self.library, path__in=paths)
-            # prefetching deep links means a batch size of 190 or less
             .prefetch_related(*COMIC_M2M_FIELD_NAMES)
             .only(*COMIC_M2M_FIELD_NAMES)
         )
@@ -94,7 +96,12 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         status.subtitle = "Many to Many"
         self.status_controller.update(status)
         paths = tuple(self.metadata[LINK_M2MS].keys())
-        self._query_prune_comic_m2m_links_batch(paths, status)
+        # Batch path__in to stay under SQLite's variable limit.
+        for start in range(0, len(paths), IMPORTER_LINK_FK_BATCH_SIZE):
+            if self.abort_event.is_set():
+                return
+            batch_paths = paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+            self._query_prune_comic_m2m_links_batch(batch_paths, status)
         field_names = tuple(self.metadata[DELETE_M2MS].keys())
         for field_name in field_names:
             rows = self.metadata[DELETE_M2MS][field_name]

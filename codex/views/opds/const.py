@@ -11,7 +11,6 @@ from codex.models import (
     Tag,
     Team,
 )
-from codex.views.browser.const import BROWSER_FILTER_KEYS
 
 BLANK_TITLE = "(Empty)"
 AUTHOR_ROLES = {"Writer", "Author", "Script", "Plot", "Plotter", "Scripter"}
@@ -25,21 +24,6 @@ class BookmarkFilters:
     IN_PROGRESS = MappingProxyType({"bookmark": "IN_PROGRESS"})
     READ = MappingProxyType({"bookmark": "READ"})
     NONE = MappingProxyType({"bookmark": ""})
-
-
-DEFAULT_PARAMS = MappingProxyType(
-    {
-        "top_group": "p",
-        "filters": {
-            **BookmarkFilters.NONE,
-            **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
-        },
-        "order_by": "sort_name",
-        "order_reverse": False,
-        "show": {"p": True, "s": True},
-        "q": "",
-    }
-)
 
 
 class Rel:

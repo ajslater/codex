@@ -353,6 +353,7 @@ class SettingsBrowser(SettingsBase):
             "top_group",
             "order_by",
             "order_reverse",
+            "search",
             "custom_covers",
             "dynamic_covers",
             "twenty_four_hour_time",

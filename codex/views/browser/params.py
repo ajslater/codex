@@ -10,10 +10,10 @@ from codex.serializers.browser.settings import (
     BrowserSettingsSerializer,
     BrowserSettingsSerializerBase,
 )
-from codex.views.browser.settings import BrowserSettingsWriteView
+from codex.views.browser.settings import BrowserSettingsBaseView
 
 
-class BrowserParamsView(BrowserSettingsWriteView):
+class BrowserParamsView(BrowserSettingsBaseView):
     """Browser Params Parsing."""
 
     input_serializer_class: type[BrowserSettingsSerializerBase] = (

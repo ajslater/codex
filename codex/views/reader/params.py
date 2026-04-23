@@ -7,10 +7,10 @@ from loguru import logger
 
 from codex.serializers.fields.reader import VALID_ARC_GROUPS
 from codex.serializers.reader import ReaderViewInputSerializer
-from codex.views.reader.settings import ReaderSettingsWriteView
+from codex.views.reader.settings import ReaderSettingsBaseView
 
 
-class ReaderParamsView(ReaderSettingsWriteView):
+class ReaderParamsView(ReaderSettingsBaseView):
     """Reader initialization."""
 
     input_serializer_class = ReaderViewInputSerializer

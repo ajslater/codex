@@ -92,7 +92,7 @@ import {
 import { mapActions, mapState } from "pinia";
 
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
-import { useSelectManyStore } from "@/stores/select-many";
+import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
 export default {
   name: "BrowserSelectManyToolbar",
@@ -110,7 +110,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useSelectManyStore, [
+    ...mapState(useBrowserSelectManyStore, [
       "active",
       "selectedCount",
       "hasSelection",
@@ -118,7 +118,7 @@ export default {
     ]),
   },
   methods: {
-    ...mapActions(useSelectManyStore, [
+    ...mapActions(useBrowserSelectManyStore, [
       "clearSelection",
       "markFinished",
       "download",

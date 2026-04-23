@@ -8,11 +8,11 @@ from rest_framework.response import Response
 from rest_framework.utils.serializer_helpers import ReturnDict
 
 from codex.serializers.route import RouteSerializer
-from codex.views.browser.settings import BrowserSettingsReadView
+from codex.views.browser.settings import BrowserSettingsBaseView
 from codex.views.mixins import UserActiveMixin
 
 
-class IndexView(BrowserSettingsReadView, UserActiveMixin):
+class IndexView(BrowserSettingsBaseView, UserActiveMixin):
     """The main app."""
 
     permission_classes: Sequence[type[BasePermission]] = (AllowAny,)
