@@ -25,6 +25,7 @@ export default {
   data() {
     return {
       mdiTagOutline,
+      lazyImportStarted: false,
     };
   },
   computed: {
@@ -47,14 +48,10 @@ export default {
   methods: {
     ...mapActions(useMetadataStore, ["lazyImport"]),
     onMouseEnter() {
-      if (
-        this.lazyImportEnabled &&
-        this.book.group === "c" &&
-        !this.book.hasMetadata
-      ) {
+      if (this.lazyImportEnabled) {
         const ids = this.book.ids || [this.book.pk];
         this.lazyImport({ group: this.book.group, ids }).then(() => {
-          this.book.hasMetadata = true;
+          this.lazyImportStarted = true;
         });
       }
     },
