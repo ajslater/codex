@@ -31,6 +31,7 @@ A final docker.io image has been released on dockerhub.
 - Optional Age Restrictions per user for Age tagged comics.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
+- Save and load named views and searches.
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Fastest bulk comic importing by far of any comic server.
 - Remote-User HTTP header SSO support.
