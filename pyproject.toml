@@ -63,6 +63,7 @@ codex = "codex.run:main"
 
 [dependency-groups]
 dev = [
+  "django-silk~=5.4",
   "granian[reload]",
   "infer-types~=1.0.0",
   "neovim~=0.3",
