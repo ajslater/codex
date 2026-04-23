@@ -53,8 +53,13 @@ class ComicFieldFilterView(GroupFilterView):
     def get_all_comic_field_filters(cls, rel_prefix, filters) -> Q:
         """Get all comicfiled filters for rel_prefix."""
         comic_field_filter = Q()
-        for field in _FILTER_ATTRIBUTES:
-            filter_list = filters.get(field, [])
+        # Only walk keys that are both valid AND set in this request's
+        # filters - saves ~20 no-op `_filter_by_comic_field` calls per
+        # request on typical browsers that set 0-2 field filters.
+        for field in _FILTER_ATTRIBUTES & filters.keys():
+            filter_list = filters.get(field)
+            if not filter_list:
+                continue
             comic_field_filter &= cls._filter_by_comic_field(
                 field, rel_prefix, filter_list
             )

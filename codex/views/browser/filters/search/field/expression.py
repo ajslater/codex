@@ -29,6 +29,7 @@ _ICONTAINS_QUERY_VALUE = re.compile(r"^(\*.*\*|[^*].*[^*]|^\**$)$")
 _IENDSWITH_QEURY_VALUE = re.compile(r"^\*")
 _ISTARTSWITH_QEURY_VALUE = re.compile(r"\*$")
 _SIZE_UNITS = {"b": 1, "kb": 1024, "mb": 1024**2, "gb": 1024**3, "tb": 1024**4}
+_DB_OPS = BaseDatabaseOperations(None)  # only uses prep_for_like_query — no connection
 
 
 def parse_size(s: str) -> int:
@@ -103,7 +104,7 @@ def _glob_to_lookup(value) -> tuple[str, str]:
     if _LIKE_QUERY_VALUE.search(value):
         # Django doesn't have a builtin interior LIKE operator.
         # Escape LIKE reserved chars
-        value = BaseDatabaseOperations(None).prep_for_like_query(value)
+        value = _DB_OPS.prep_for_like_query(value)
         value = value.replace("*", "%")
         rel_suffix = "__like"
     elif _ICONTAINS_QUERY_VALUE.search(value):

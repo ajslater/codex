@@ -23,7 +23,7 @@ class SilkRouter:
     def allow_relation(self, obj1, obj2, **_hints):
         """Silk never joins to app tables; allow all other relations."""
         silk_apps = {obj1._meta.app_label, obj2._meta.app_label}
-        if self.SILK_APP in silk_apps and len(silk_apps) == 2:
+        if self.SILK_APP in silk_apps and len(silk_apps) == 2:  # noqa: PLR2004
             return False
         return None
 
