@@ -120,7 +120,7 @@ export default {
     this.scrollToMe();
   },
   methods: {
-    ...mapActions(useSelectManyStore, ["toggleItem"]),
+    ...mapActions(useBrowserSelectManyStore, ["toggleItem"]),
     scrollToMe: function () {
       if (
         !this.$route.hash ||
