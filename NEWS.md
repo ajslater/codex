@@ -8,12 +8,14 @@ border-radius: 128px;
 
 ## v1.10.12
 
-- Fixes:
+- Fixes
     - Fix an occasional bug linking folders when importing.
     - Fix updating comics crash by batching comic updates.
     - Fix possible import crashes in delete & linking.
     - Fix overzealous lazy importer importing tags from books that already had
       tags.
+    - Fix reader settings clearing anomalies. Add a global reader settings clear
+      button.
 
 - Features
     - Codex identifies itself in the HTTP Server: header.
