@@ -193,13 +193,14 @@ def run(out_path: Path) -> int:
     for row in results:
         cold = row.get("cold", {})
         warm = row.get("warm", {})
-        sys.stdout.write(
+        result = (
             f"  {row['name']:30s}  "
             f"cold: sql={cold.get('num_sql_queries', '?'):>4}  "
             f"wall={cold.get('time_taken_ms', 0):>8.2f}ms  |  "
             f"warm: sql={warm.get('num_sql_queries', '?'):>4}  "
             f"wall={warm.get('time_taken_ms', 0):>8.2f}ms\n"
         )
+        sys.stdout.write(result)
     return 0
 
 
