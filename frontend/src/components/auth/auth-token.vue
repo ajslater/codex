@@ -1,38 +1,51 @@
 <template>
-  <v-dialog v-model="showAuthTokenDialog" origin="center-top" transition="slide-y-transition" max-width="32em""
+  <v-dialog
+    v-model="showAuthTokenDialog"
+    origin="center-top"
+    transition="slide-y-transition"
+    max-width="32em"
   >
     <template #activator="{ props }">
-    <CodexListItem :prepend-icon="mdiTicketConfirmationOutline" v-bind="props" title="Auth Token" />
-</template>
-<div id="tokenDialog">
-  <h2>
-    Auth Token<br />
-    for {{ username }}
-  </h2>
-  <ClipBoard class="tokenContainer" :tooltip="TOOLTIP" title="Token" :text="token" />
-  <div id="bearerTokenHelp">
-    <h3>Custom Headers</h3>
-    <p>
-      If your client doesn't have a dedicated Bearer token settings feature
-      but allows custom headers you can set the
-      authorization header manually:
-    </p>
-    <table id="bearerTokenHelpTable">
-      <tbody>
-        <tr>
-          <td>Key</td>
-          <td class="helpValue">Authorization</td>
-        </tr>
-        <tr>
-          <td>Value</td>
-          <td class="helpValue">Bearer {{ token }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <v-btn @click.stop="resetToken">Reset Token</v-btn>
-</div>
-</v-dialog>
+      <CodexListItem
+        :prepend-icon="mdiTicketConfirmationOutline"
+        v-bind="props"
+        title="Auth Token"
+      />
+    </template>
+    <div id="tokenDialog">
+      <h2>
+        Auth Token<br />
+        for {{ username }}
+      </h2>
+      <ClipBoard
+        class="tokenContainer"
+        :tooltip="TOOLTIP"
+        title="Token"
+        :text="token"
+      />
+      <div id="bearerTokenHelp">
+        <h3>Custom Headers</h3>
+        <p>
+          If your client doesn't have a dedicated Bearer token settings feature
+          but allows custom headers you can set the authorization header
+          manually:
+        </p>
+        <table id="bearerTokenHelpTable">
+          <tbody>
+            <tr>
+              <td>Key</td>
+              <td class="helpValue">Authorization</td>
+            </tr>
+            <tr>
+              <td>Value</td>
+              <td class="helpValue">Bearer {{ token }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <v-btn @click.stop="resetToken">Reset Token</v-btn>
+    </div>
+  </v-dialog>
 </template>
 
 <script>
