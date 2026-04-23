@@ -3,50 +3,16 @@ services:
     build:
       context: .
       target: codex-ci
-    image: codex-ci:ci
     container_name: codex-ci
+    entrypoint:
+      - sleep
+      - infinity
+    environment:
+      - PYTHONUNBUFFERED=1
+    image: codex-ci:ci
     volumes:
       - ./test-results:/app/test-results
       - ./dist:/app/dist
-    environment:
-      # - DJANGO_SETTINGS_MODULE=codex.settings
-      - PYTHONUNBUFFERED=1
-    # Keep the container alive so 'docker exec' can run multiple commands
-    entrypoint: [sleep, infinity]
-  codex-dist-builder: &codex-dist-builder
-    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
-  codex-lint:
-    <<: *codex-dist-builder
-    container_name: codex-lint
-    command: make lint
-  codex-frontend-test:
-    <<: *codex-dist-builder
-    container_name: codex-frontend-test
-    command: make test-frontend
-    volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices
-      - ./test-results/:/app/test-results/
-  codex-frontend-build:
-    <<: *codex-dist-builder
-    container_name: codex-frontend-build
-    volumes:
-      - ./frontend/src/choices:/app/frontend/src/choices:ro
-      - ./codex/static_build:/app/codex/static_build
-    command: make build-frontend -o build-choices
-  codex-backend-test:
-    <<: *codex-dist-builder
-    container_name: codex-backend-test
-    volumes:
-      - ./codex/static_build:/app/codex/static_build:ro
-      - ./codex/static:/app/codex/static
-    command: make collectstatic django-check test-python -o build-frontend
-  codex-build-dist:
-    <<: *codex-dist-builder
-    container_name: codex-build-dist
-    volumes:
-      - ./codex/static:/app/codex/static:ro
-      - ./dist/:/app/dist/
-    command: make build-only
   codex:
     build:
       context: .
@@ -54,26 +20,58 @@ services:
     image: docker.io/ajslater/codex
     container_name: codex
     ports:
-      - "9810:9810"
+      - 9810:9810
     volumes:
       - ./config:/config
       - ./comics:/comics:ro
+  codex-backend-test:
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+    container_name: codex-backend-test
+    volumes:
+      - ./codex/static_build:/app/codex/static_build:ro
+      - ./codex/static:/app/codex/static
+    command: make collectstatic django-check test-python -o build-frontend
+  codex-build-dist:
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+    container_name: codex-build-dist
+    volumes:
+      - ./codex/static:/app/codex/static:ro
+      - ./dist/:/app/dist/
+    command: make build-only
   codex-dev:
     build:
       context: .
       dockerfile: ci/dev.Dockerfile
     image: codex-dev
-    # mem_limit: 1g
     container_name: codex-dev
     environment:
       - VITE_HOST=localhost
     ports:
-      - "9810:9810"
+      - 9810:9810
     volumes:
       - .:/app
       - ./comics:/comics
-    # init: true
     command: tail -f /dev/null
+  codex-dist-builder:
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+  codex-frontend-build:
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+    container_name: codex-frontend-build
+    volumes:
+      - ./frontend/src/choices:/app/frontend/src/choices:ro
+      - ./codex/static_build:/app/codex/static_build
+    command: make build-frontend -o build-choices
+  codex-frontend-test:
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+    container_name: codex-frontend-test
+    command: make test-frontend
+    volumes:
+      - ./frontend/src/choices:/app/frontend/src/choices
+      - ./test-results/:/app/test-results/
+  codex-lint:
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+    container_name: codex-lint
+    command: make lint
   codex-package:
     build:
       context: .
@@ -83,7 +81,7 @@ services:
     env_file:
       - .env.package
     ports:
-      - "9810:9810"
+      - 9810:9810
     volumes:
       - ./dist:/dist
       - ./comics:/comics
@@ -91,9 +89,8 @@ services:
   nginx:
     image: lscr.io/linuxserver/nginx
     container_name: nginx
-    # network_mode: host
     restart: unless-stopped
     ports:
-      - "80:80"
+      - 80:80
     volumes:
       - ./nginx/default.conf:/config/nginx/site-confs/default.conf:ro

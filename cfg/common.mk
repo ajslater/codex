@@ -14,7 +14,7 @@ clean::
 ## Update development environment
 ## @category Update
 update-devenv:
-	$(DEVENV_SRC)/scripts/update-devenv.sh
+	$(DEVENV_SRC)/scripts/update_devenv.py
 
 .PHONY: fix
 ## Fix lint errors
