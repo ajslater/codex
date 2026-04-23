@@ -185,9 +185,11 @@ class BrowserValidateView(SearchFilterView):
         """Memoize valid nav groups."""
         if self._valid_nav_groups is None:
             group = self.kwargs["group"]
-            if group == FOLDER_GROUP:
+            validate_group = self.params["top_group"] if group == COMIC_GROUP else group
+
+            if validate_group == FOLDER_GROUP:
                 vng = self._validate_folder_settings()
-            elif group == STORY_ARC_GROUP:
+            elif validate_group == STORY_ARC_GROUP:
                 vng = self._validate_story_arc_settings()
             else:
                 vng = self._validate_browser_group_settings()

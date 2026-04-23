@@ -16,6 +16,7 @@ border-radius: 128px;
       tags.
     - Fix reader settings clearing anomalies. Add a global reader settings clear
       button.
+    - Fix unnecessary redirect in OPDS when viewing comic in extended metadata.
 
 - Features
     - Codex identifies itself in the HTTP Server: header.

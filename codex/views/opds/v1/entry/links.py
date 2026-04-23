@@ -70,7 +70,6 @@ class OPDS1EntryLinksMixin:
                 qps.update({"orderBy": "story_arc_number"})
             if metadata:
                 qps.update({"opdsMetadata": 1})
-                qps["topGroup"] = "c"
             url_name = getattr(self.obj, "url_name", "opds:v1:feed")
             return reverse(url_name, kwargs=kwargs, query=qps)
         except Exception:
