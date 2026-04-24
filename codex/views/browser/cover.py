@@ -76,8 +76,18 @@ class CoverView(BrowserAnnotateOrderView):
         return Q(**group_filter)
 
     def _get_comic_cover(self) -> tuple:
+        """Get a comic cover by pk after validating the caller can see it."""
         pks = self.kwargs["pks"]
-        return pks[0], False
+        if not pks:
+            return 0, False
+        comic_pk = pks[0]
+        # Cheap single-row ACL check. Previously bypassed — this URL shape
+        # is the one BrowserView's cover_pk annotation points at, so 72x per
+        # page; the filter must stay indexed and avoid the annotate pipeline.
+        acl_q = self.get_acl_filter(Comic, self.request.user)
+        if not Comic.objects.filter(acl_q, pk=comic_pk).exists():
+            return 0, False
+        return comic_pk, False
 
     def _get_custom_cover(self) -> CustomCover | None:
         """Get Custom Cover."""
@@ -94,7 +104,7 @@ class CoverView(BrowserAnnotateOrderView):
     def _get_dynamic_cover(self) -> tuple:
         """Get dynamic cover."""
         comic_qs = self.get_filtered_queryset(Comic)
-        comic_qs = self.annotate_order_aggregates(comic_qs)
+        comic_qs = self.annotate_order_aggregates(comic_qs, for_cover=True)
         comic_qs = self.add_order_by(comic_qs)
         comic_qs = comic_qs.only("pk")
         comic = comic_qs.first()

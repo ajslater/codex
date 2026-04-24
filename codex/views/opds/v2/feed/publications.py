@@ -143,16 +143,15 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         if not obj:
             return images
         ts = floor(datetime.timestamp(obj.updated_at))
-        kwargs = {"group": obj.group, "pks": obj.ids}
-        query_params = {
-            "customCovers": True,
-            "dynamicCovers": False,
-            "ts": ts,
-        }
+        # Publications are Comic rows — obj.pk is the comic pk, which is
+        # also the representative cover pk. Route to the thin per-pk
+        # endpoint so the cover pipeline isn't re-run per request.
+        kwargs = {"pk": obj.pk}
+        query_params = {"ts": ts}
         thumb_href_data = HrefData(
             kwargs,
             query_params,
-            url_name="opds:bin:cover",
+            url_name="opds:bin:cover_by_pk",
         )
         thumb_link_data = LinkData(
             Rel.THUMBNAIL,

@@ -25,6 +25,7 @@ import importlib
 import json
 import os
 import sys
+from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
@@ -95,24 +96,116 @@ def _busy_series_pk() -> int:
     return int(row["pk"])
 
 
-def _build_flows(series_pk: int) -> list[dict[str, str]]:
+_BROWSE_PLUS_COVERS_URL = "/api/v3/r/0/1"
+
+
+def _build_flows(series_pk: int) -> list[dict[str, Any]]:
     return [
         {
             "name": "flow_a_root_browse",
             "description": "Root browse, no filters, no search.",
+            "kind": "url",
             "url": "/api/v3/r/0/1",
         },
         {
             "name": "flow_b_filtered_search",
             "description": "Root browse with a search term.",
+            "kind": "url",
             "url": "/api/v3/r/0/1?q=man",
         },
         {
             "name": "flow_c_series_metadata",
             "description": "Metadata detail for the largest series.",
+            "kind": "url",
             "url": f"/api/v3/s/{series_pk}/metadata",
         },
+        {
+            "name": "flow_d_browse_plus_covers",
+            "description": "Root browse then fetch every returned cover.",
+            "kind": "browse_plus_covers",
+            "url": _BROWSE_PLUS_COVERS_URL,
+        },
+        {
+            "name": "flow_e_search_plus_covers",
+            "description": "Search browse then fetch every returned cover.",
+            "kind": "browse_plus_covers",
+            "url": f"{_BROWSE_PLUS_COVERS_URL}?q=man",
+        },
     ]
+
+
+def _build_cover_urls(page: dict[str, Any]) -> list[str]:
+    """Pick the best cover URL for each card."""
+    urls: list[str] = []
+    cards = list(page.get("groups") or []) + list(page.get("books") or [])
+    for card in cards:
+        if custom_pk := card.get("coverCustomPk"):
+            urls.append(f"/api/v3/custom_cover/{custom_pk}/cover.webp")
+            continue
+        if cover_pk := card.get("coverPk"):
+            urls.append(f"/api/v3/c/{cover_pk}/cover.webp")
+            continue
+        # Legacy fallback — group + ids pair.
+        group = card.get("group")
+        ids = card.get("ids") or []
+        if group and ids:
+            pk_list = ",".join(str(p) for p in ids)
+            urls.append(f"/api/v3/{group}/{pk_list}/cover.webp")
+    return urls
+
+
+def _aggregate_traces(traces) -> dict[str, Any]:
+    """Sum silk counters across a set of traces."""
+    total_sql = sum(int(t.num_sql_queries or 0) for t in traces)
+    total_ms = sum(float(t.time_taken or 0) for t in traces)
+    return {
+        "num_requests": len(traces),
+        "total_sql_queries": total_sql,
+        "total_time_ms": total_ms,
+    }
+
+
+def _capture_browse_plus_covers(client: Client, url: str) -> dict[str, Any]:
+    """
+    Flow D: one browse request, then fetch every returned cover.
+
+    Mirrors what the browser does when a user lands on a browse page —
+    one JSON request for the card list followed by a parallel fan-out
+    over every card's cover URL. The assistant used to pay the full
+    group-resolution pipeline 72x per page; the cover annotation +
+    per-pk endpoint should collapse that to one cheap ACL probe per
+    cover.
+    """
+    path_prefix = "/api/v3/"
+    SilkRequest.objects.filter(path__startswith=path_prefix).delete()
+    django_cache.clear()
+    cachalot_invalidate()
+
+    def _one_pass():
+        SilkRequest.objects.filter(path__startswith=path_prefix).delete()
+        browse_response = client.get(url)
+        if browse_response.status_code != HTTPStatus.OK:
+            return None, browse_response, []
+        payload = browse_response.json()
+        cover_urls = _build_cover_urls(payload)
+        for cover_url in cover_urls:
+            client.get(cover_url)
+        traces = list(
+            SilkRequest.objects.filter(path__startswith=path_prefix).order_by(
+                "start_time"
+            )
+        )
+        return payload, browse_response, traces
+
+    _, cold_response, cold_traces = _one_pass()
+    cold = {"status_code": cold_response.status_code}
+    cold.update(_aggregate_traces(cold_traces))
+
+    _, warm_response, warm_traces = _one_pass()
+    warm = {"status_code": warm_response.status_code}
+    warm.update(_aggregate_traces(warm_traces))
+
+    return {"cold": cold, "warm": warm}
 
 
 def _capture(client: Client, url: str) -> dict[str, Any]:
@@ -164,6 +257,19 @@ def _capture(client: Client, url: str) -> dict[str, Any]:
     }
 
 
+def _reset_user_settings(client: Client) -> None:
+    """
+    Clear SettingsBrowser for the perf user.
+
+    Flows share a user, and ``?q=foo`` on one flow persists to
+    SettingsBrowser. Without a reset, subsequent flows pick up the
+    previous flow's search — which makes A + B indistinguishable and
+    tanks cold numbers on the correlated cover subquery with a leftover
+    FTS match.
+    """
+    client.delete("/api/v3/r/settings")
+
+
 def run(out_path: Path) -> int:
     """Run all flows and write the baseline artifact to ``out_path``."""
     _ensure_silk_schema()
@@ -180,7 +286,11 @@ def run(out_path: Path) -> int:
 
     results: list[dict[str, Any]] = []
     for flow in flows:
-        sample = _capture(client, flow["url"])
+        _reset_user_settings(client)
+        if flow.get("kind") == "browse_plus_covers":
+            sample = _capture_browse_plus_covers(client, flow["url"])
+        else:
+            sample = _capture(client, flow["url"])
         results.append({**flow, **sample})
 
     artifact = {
@@ -190,15 +300,22 @@ def run(out_path: Path) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(artifact, indent=2, default=str))
     sys.stdout.write(f"Wrote baseline to {out_path}\n")
+
+    def _row_sql(sample: dict[str, Any]) -> Any:
+        return sample.get("num_sql_queries", sample.get("total_sql_queries", "?"))
+
+    def _row_ms(sample: dict[str, Any]) -> float:
+        return float(sample.get("time_taken_ms", sample.get("total_time_ms", 0)))
+
     for row in results:
         cold = row.get("cold", {})
         warm = row.get("warm", {})
         result = (
             f"  {row['name']:30s}  "
-            f"cold: sql={cold.get('num_sql_queries', '?'):>4}  "
-            f"wall={cold.get('time_taken_ms', 0):>8.2f}ms  |  "
-            f"warm: sql={warm.get('num_sql_queries', '?'):>4}  "
-            f"wall={warm.get('time_taken_ms', 0):>8.2f}ms\n"
+            f"cold: sql={_row_sql(cold):>4}  "
+            f"wall={_row_ms(cold):>8.2f}ms  |  "
+            f"warm: sql={_row_sql(warm):>4}  "
+            f"wall={_row_ms(warm):>8.2f}ms\n"
         )
         sys.stdout.write(result)
     return 0

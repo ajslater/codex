@@ -4,10 +4,10 @@ from typing import Any
 
 from loguru import logger
 
-from codex.views.browser.annotate.card import BrowserAnnotateCardView
+from codex.views.browser.annotate.cover import BrowserAnnotateCoverView
 
 
-class BrowserPageInBoundsView(BrowserAnnotateCardView):
+class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     """Browser Page Bounds Checking."""
 
     def _get_back_one_page_route(self, num_pages) -> dict[str, Any]:

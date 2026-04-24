@@ -1,11 +1,14 @@
 """codex:api:v3 URL Configuration."""
 
 from django.urls import include, path
+from django.views.decorators.cache import cache_control
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerSplitView,
 )
 
+from codex.urls.const import COVER_MAX_AGE
+from codex.views.browser.cover_by_pk import CustomCoverByPkView
 from codex.views.browser.mtime import MtimeView
 from codex.views.opds.urls import OPDSURLsView
 from codex.views.version import VersionView
@@ -15,6 +18,13 @@ urlpatterns = [
     path("auth/", include("codex.urls.api.auth")),
     # reader must come first to occlude browser group
     path("c/", include("codex.urls.api.reader")),
+    path(
+        "custom_cover/<int:pk>/cover.webp",
+        cache_control(max_age=COVER_MAX_AGE, public=True)(
+            CustomCoverByPkView.as_view()
+        ),
+        name="custom_cover",
+    ),
     path("<group:group>/", include("codex.urls.api.browser")),
     path("mtime", MtimeView.as_view(), name="mtimes"),
     path("version", VersionView.as_view(), name="version"),

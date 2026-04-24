@@ -257,14 +257,21 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
-    def annotate_order_aggregates(self, qs: QuerySet):
+    def annotate_order_aggregates(self, qs: QuerySet, *, for_cover: bool = False):
         """Annotate common aggregates between browser and metadata."""
-        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
+        # ``for_cover`` is a pipeline-trim. The cover path needs ORDER BY to
+        # pick the "first" comic, but it never reads ``ids`` or ``page_count``
+        # — dropping those removes a JsonGroupArray aggregate and a Sum per
+        # call. Applied inside the cover fan-out and inside the cover_pk
+        # subquery on BrowserView card annotation.
+        if not for_cover:
+            qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
         qs = self._annotate_search_scores(qs)
         qs = self._alias_sort_names(qs)
         qs = self._alias_filename(qs)
         qs = self._alias_story_arc_number(qs)
-        qs = self._annotate_page_count(qs)
+        if not for_cover:
+            qs = self._annotate_page_count(qs)
         qs = self._annotate_bookmark_updated_at(qs)
         qs = self._annotate_order_child_count(qs)
         if qs.model is not Comic:

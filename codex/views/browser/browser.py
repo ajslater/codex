@@ -205,6 +205,7 @@ class BrowserView(BrowserTitleView):
         # Annotate
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs)
+            group_qs = self.annotate_cover(group_qs)
             group_qs = self.force_inner_joins(group_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
