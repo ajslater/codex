@@ -31,7 +31,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         paginator = Paginator(qs, BROWSER_MAX_OBJ_PER_PAGE, orphans=orphans)
         # Shadow the @cached_property with the pre-computed total so
         # Paginator.num_pages doesn't issue its own COUNT query.
-        paginator.count = total_count
+        paginator.count = total_count  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[invalid-assignment]
         try:
             paginator_page = paginator.page(page)
             qs = paginator_page.object_list
@@ -79,7 +79,9 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         book_only_page = page - num_group_and_mixed_pages
 
         remaining_book_count = max(0, book_count - book_offset)
-        return self._paginate_section(page_book_qs, book_only_page, remaining_book_count)
+        return self._paginate_section(
+            page_book_qs, book_only_page, remaining_book_count
+        )
 
     def paginate(
         self,
