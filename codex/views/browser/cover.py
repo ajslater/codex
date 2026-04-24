@@ -74,9 +74,14 @@ class _CoverBaseView(AuthFilterAPIView):
             return cls._missing_cover_response()
 
         # Defer creation to the cover thread; respond with a placeholder.
+        # Cache-Control: no-store prevents the browser from caching the
+        # placeholder at this URL so a subsequent fetch to the same URL (once
+        # the cover thread has written the real thumb) actually hits the
+        # network instead of serving the stale placeholder.
         LIBRARIAN_QUEUE.put(CoverCreateTask(pks=(pk,), custom=custom))
         response = cls._missing_cover_response(status.HTTP_202_ACCEPTED)
         response["Retry-After"] = str(_RETRY_AFTER_SECONDS)
+        response["Cache-Control"] = "no-store"
         return response
 
 
