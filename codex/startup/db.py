@@ -109,6 +109,13 @@ def _rebuild_db() -> bool:
     return True
 
 
+def _migrate_silk_db() -> None:
+    """Apply silk migrations to the silky DB when it's configured."""
+    if "silky" not in connections.databases:
+        return
+    call_command("migrate", "silk", database="silky", verbosity=0)
+
+
 def ensure_db_schema() -> bool:
     """Ensure the db is good and up to date."""
     logger.info("Ensuring database is correct and up to date...")
@@ -121,5 +128,6 @@ def ensure_db_schema() -> bool:
     if db_exists and _has_unapplied_migrations():
         _backup_db_before_migration()
     call_command("migrate")
+    _migrate_silk_db()
     logger.success("Database ready.")
     return True
