@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.13
+
+- Fixes
+    - Fix browser paginator slider.
+
 ## v1.10.12
 
 - Fixes
