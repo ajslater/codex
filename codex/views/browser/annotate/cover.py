@@ -58,13 +58,21 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         include_q, exclude_q, fts_q = self.get_search_filters(Comic)
         q &= include_q & ~exclude_q
         if fts_q:
-            # FTS MATCH inside a correlated Subquery re-scans the FTS5
-            # virtual table per outer row (~900ms on a 100-group page).
-            # Replace with a non-correlated sub-SELECT over the FTS match
-            # set — SQLite materializes it once and the correlated cover
-            # subquery becomes a simple indexed pk lookup.
+            # pk__in over the pre-materialized FTS match set: SQLite
+            # materializes this sub-SELECT once, giving the correlated cover
+            # subquery a cheap indexed membership test instead of re-scanning
+            # the FTS5 virtual table per outer group row for the filter.
             fts_sq = Comic.objects.filter(fts_q).values("pk")
             q &= Q(pk__in=fts_sq)
+            # Also apply fts_q directly: this forces a JOIN to
+            # ``codex_comicfts`` with MATCH active, populating
+            # ``codex_comicfts.rank`` so ``search_score=ComicFTSRank()`` is
+            # resolvable in the cover subquery's ORDER BY. Without this, the
+            # cover picked for a group would be arbitrary among the FTS
+            # matches rather than the highest-ranked one. The MATCH is
+            # constant across outer rows, so SQLite's planner typically
+            # hoists / shares it with the pre-materialized ``fts_sq``.
+            q &= fts_q
         return q
 
     def _cover_comic_subquery(self, group_model) -> Subquery:

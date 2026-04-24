@@ -201,7 +201,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(bookmark_updated_at=bmua_agg)
         return qs
 
-    def _annotate_search_scores(self, qs):
+    def _annotate_search_scores(self, qs, *, for_cover: bool = False):
         """Annotate Search Scores."""
         if (
             self.TARGET not in self._COVER_AND_CARD_TARGETS
@@ -209,9 +209,15 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         ):
             return qs
 
-        # Rank is always the max of the relations, cannot aggregate?
-        # group by here fixes duplicates with story_arc, probably because it's a long relation
-        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
+        qs = qs.annotate(search_score=ComicFTSRank())
+        # ``group_by`` dedupes rows that join long relations (e.g.
+        # story_arc) from the outer browse query. The cover subquery is
+        # already ``.distinct() ... LIMIT 1`` and the custom force-group-by
+        # emits a literal ``"codex_comic"."id"`` that does not survive the
+        # nested-subquery aliasing — skip it in the cover path.
+        if not for_cover:
+            qs = qs.group_by("id")
+        return qs
 
     def annotate_child_count(self, qs):
         """Annotate child count."""
@@ -266,7 +272,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # subquery on BrowserView card annotation.
         if not for_cover:
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
-        qs = self._annotate_search_scores(qs)
+        qs = self._annotate_search_scores(qs, for_cover=for_cover)
         qs = self._alias_sort_names(qs)
         qs = self._alias_filename(qs)
         qs = self._alias_story_arc_number(qs)
