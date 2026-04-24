@@ -44,7 +44,7 @@ from django.core.management import call_command  # noqa: E402
 from django.db.models import Count  # noqa: E402
 from django.test import Client  # noqa: E402
 
-from codex.models import Series  # noqa: E402
+from codex.models import Comic, Series  # noqa: E402
 
 # Silk may not be importable if settings skipped DEBUG — guard early.
 try:
@@ -96,10 +96,24 @@ def _busy_series_pk() -> int:
     return int(row["pk"])
 
 
+def _busy_comic_pk() -> int:
+    """Pick the comic with the richest M2M coverage — exercises the metadata detail path."""
+    row = (
+        Comic.objects.annotate(n=Count("characters"))
+        .order_by("-n")
+        .values("pk", "n")
+        .first()
+    )
+    if not row:
+        msg = "No Comic rows in DB; point CODEX_CONFIG_DIR at a populated DB."
+        raise SystemExit(msg)
+    return int(row["pk"])
+
+
 _BROWSE_PLUS_COVERS_URL = "/api/v3/r/0/1"
 
 
-def _build_flows(series_pk: int) -> list[dict[str, Any]]:
+def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
     return [
         {
             "name": "flow_a_root_browse",
@@ -118,6 +132,12 @@ def _build_flows(series_pk: int) -> list[dict[str, Any]]:
             "description": "Metadata detail for the largest series.",
             "kind": "url",
             "url": f"/api/v3/s/{series_pk}/metadata",
+        },
+        {
+            "name": "flow_c2_comic_metadata",
+            "description": "Metadata detail for a single rich comic (exercises FK + M2M hydration).",
+            "kind": "url",
+            "url": f"/api/v3/c/{comic_pk}/metadata",
         },
         {
             "name": "flow_d_browse_plus_covers",
@@ -278,7 +298,8 @@ def run(out_path: Path) -> int:
     client.force_login(user)
 
     series_pk = _busy_series_pk()
-    flows = _build_flows(series_pk)
+    comic_pk = _busy_comic_pk()
+    flows = _build_flows(series_pk, comic_pk)
 
     # Warm-up pass.
     for flow in flows:
@@ -295,6 +316,7 @@ def run(out_path: Path) -> int:
 
     artifact = {
         "series_pk_used": series_pk,
+        "comic_pk_used": comic_pk,
         "flows": results,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
