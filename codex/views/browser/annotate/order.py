@@ -204,21 +204,20 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def _annotate_search_scores(self, qs, *, for_cover: bool = False):
         """Annotate Search Scores."""
         if (
-            # ``ComicFTSRank`` dereferences ``codex_comicfts.rank``. The cover
-            # subquery filters via a non-correlated ``pk__in fts_sq`` (FTS
-            # pre-materialization), so ``codex_comicfts`` is never joined to
-            # the Comic subquery; annotating search_score there would fail
-            # with ``no such column: codex_comicfts.rank`` when SQLite tries
-            # to resolve the ORDER BY.
-            for_cover
-            or self.TARGET not in self._COVER_AND_CARD_TARGETS
+            self.TARGET not in self._COVER_AND_CARD_TARGETS
             or self.order_key != "search_score"
         ):
             return qs
 
-        # Rank is always the max of the relations, cannot aggregate?
-        # group by here fixes duplicates with story_arc, probably because it's a long relation
-        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
+        qs = qs.annotate(search_score=ComicFTSRank())
+        # ``group_by`` dedupes rows that join long relations (e.g.
+        # story_arc) from the outer browse query. The cover subquery is
+        # already ``.distinct() ... LIMIT 1`` and the custom force-group-by
+        # emits a literal ``"codex_comic"."id"`` that does not survive the
+        # nested-subquery aliasing — skip it in the cover path.
+        if not for_cover:
+            qs = qs.group_by("id")
+        return qs
 
     def annotate_child_count(self, qs):
         """Annotate child count."""

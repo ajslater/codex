@@ -86,3 +86,21 @@ class ComicFTSRank(Func):
     def __init__(self, *args, **kwargs) -> None:
         """output_field is set in the constructor."""
         super().__init__(*args, output_field=FloatField(), **kwargs)
+
+    @override
+    def as_sql(self, compiler, connection, **extra_context):
+        """
+        Resolve ``codex_comicfts`` to its query-local alias.
+
+        In a top-level browse query Django references ``codex_comicfts`` by
+        its table name, and the literal ``template`` works. Inside a nested
+        correlated subquery (e.g. the cover_pk subquery) Django aliases the
+        join as ``V4`` / ``U1``, and ``codex_comicfts.rank`` becomes an
+        unresolvable column reference. Look up whatever alias the current
+        query has assigned to ``codex_comicfts`` and emit that instead.
+        """
+        alias_map = compiler.query.alias_map
+        for alias, join in alias_map.items():
+            if getattr(join, "table_name", None) == "codex_comicfts":
+                return f'("{alias}"."rank" * -1)', []
+        return super().as_sql(compiler, connection, **extra_context)
