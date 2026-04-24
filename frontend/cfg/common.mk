@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 DEVENV_SRC ?= ../devenv
-export DEVENV_SRC
+# export DEVENV_SRC
 DEVENV_COMMON := 1
 export DEVENV_COMMON
 
@@ -14,7 +14,7 @@ clean::
 ## Update development environment
 ## @category Update
 update-devenv:
-	$(DEVENV_SRC)/scripts/update_devenv.py
+	uv run $(DEVENV_SRC)/scripts/update_devenv.py
 
 .PHONY: fix
 ## Fix lint errors
