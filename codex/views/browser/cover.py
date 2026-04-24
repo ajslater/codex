@@ -65,11 +65,20 @@ class _CoverBaseView(AuthFilterAPIView):
     def _get_cover_response(cls, pk: int, *, custom: bool) -> HttpResponse:
         """Return a cached cover or enqueue one and return 202 Retry-After."""
         cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
-        if cover_path.exists():
-            if cover_path.stat().st_size > 0:
-                return HttpResponse(
-                    cover_path.read_bytes(), content_type=_WEBP_CONTENT_TYPE
-                )
+        # Single read — no exists()/stat() race window. The cover thread
+        # writes atomically via os.replace, so we only ever see the old state
+        # or the complete new file.
+        try:
+            cover_bytes = cover_path.read_bytes()
+        except FileNotFoundError:
+            cover_bytes = None
+        except OSError as exc:
+            logger.warning(f"Cover read error (pk={pk} custom={custom}): {exc!r}")
+            cover_bytes = None
+
+        if cover_bytes:
+            return HttpResponse(cover_bytes, content_type=_WEBP_CONTENT_TYPE)
+        if cover_bytes == b"":
             # Zero-byte marker = the cover thread already tried and failed.
             return cls._missing_cover_response()
 
@@ -78,7 +87,10 @@ class _CoverBaseView(AuthFilterAPIView):
         # placeholder at this URL so a subsequent fetch to the same URL (once
         # the cover thread has written the real thumb) actually hits the
         # network instead of serving the stale placeholder.
-        LIBRARIAN_QUEUE.put(CoverCreateTask(pks=(pk,), custom=custom))
+        try:
+            LIBRARIAN_QUEUE.put(CoverCreateTask(pks=(pk,), custom=custom))
+        except Exception as exc:
+            logger.warning(f"Cover enqueue failed (pk={pk} custom={custom}): {exc!r}")
         response = cls._missing_cover_response(status.HTTP_202_ACCEPTED)
         response["Retry-After"] = str(_RETRY_AFTER_SECONDS)
         response["Cache-Control"] = "no-store"
@@ -99,8 +111,8 @@ class CoverView(_CoverBaseView):
                 return self._missing_cover_response()
             return self._get_cover_response(pk, custom=False)
         except Exception:
-            logger.exception("Get comic cover by pk")
-            raise
+            logger.exception(f"Get comic cover by pk {pk}")
+            return self._missing_cover_response()
 
 
 class CustomCoverView(_CoverBaseView):
@@ -119,5 +131,5 @@ class CustomCoverView(_CoverBaseView):
         try:
             return self._get_cover_response(pk, custom=True)
         except Exception:
-            logger.exception("Get custom cover by pk")
-            raise
+            logger.exception(f"Get custom cover by pk {pk}")
+            return self._missing_cover_response()
