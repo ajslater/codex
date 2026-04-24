@@ -109,6 +109,7 @@ build-backend = "uv_build"
 module-root = ""
 source-include = [
   ".*ignore",
+  ".circlci/**",
   ".env.platforms",
   ".github/**",
   ".picopt_treestamps.yaml",
@@ -119,6 +120,7 @@ source-include = [
   "NEWS.md",
   "bin/**",
   "bun.lock",
+  "ci/**",
   "compose.yaml",
   "docs/DOCKER.md",
   "docs/NEWS",

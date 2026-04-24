@@ -77,6 +77,38 @@ def has_description_comment(line2: str) -> bool:
     return bool(COMMENT_PATTERN.match(line2))
 
 
+def _scrutinize_sub_path(sub_path: Path, root: Path, spec: PathSpec) -> Path | None:
+    if not sub_path.is_file():
+        return None
+    try:
+        rel = sub_path.relative_to(root)
+    except ValueError:
+        rel = sub_path
+
+    # Match against each component so directory patterns work
+    if spec.match_file(str(rel)):
+        return None
+
+    return sub_path
+
+
+def _scrutinize_file(path_str: str, spec: PathSpec) -> Path | None:
+    path = Path(path_str)
+    if not path.exists():
+        print(f"👎  Path does not exist: {path}", file=sys.stderr)  # noqa: T201
+        sys.exit(2)
+
+    root = Path(path).resolve()
+    if root.is_file():
+        rel = Path(root.name)
+        return None if spec.match_file(str(rel)) else root
+
+    for sub_path in sorted(root.rglob("*")):
+        if return_result := _scrutinize_sub_path(sub_path, root, spec):
+            return return_result
+    return None
+
+
 def iter_files(path_strs: Sequence[str], spec: PathSpec) -> Generator[Path]:
     """
     Yield every file under *roots* that is not excluded by *spec*.
@@ -85,31 +117,8 @@ def iter_files(path_strs: Sequence[str], spec: PathSpec) -> Generator[Path]:
     that gitignore-style directory patterns (e.g. ``vendor/``) work correctly.
     """
     for path_str in path_strs:
-        path = Path(path_str)
-        if not path.exists():
-            print(f"👎  Path does not exist: {path}", file=sys.stderr)  # noqa: T201
-            sys.exit(2)
-
-        root = Path(path).resolve()
-        if root.is_file():
-            rel = Path(root.name)
-            if not spec.match_file(str(rel)):
-                yield root
-            continue
-
-        for sub_path in sorted(root.rglob("*")):
-            if not sub_path.is_file():
-                continue
-            try:
-                rel = sub_path.relative_to(root)
-            except ValueError:
-                rel = sub_path
-
-            # Match against each component so directory patterns work
-            if spec.match_file(str(rel)):
-                continue
-
-            yield sub_path
+        if return_path := _scrutinize_file(path_str, spec):
+            yield return_path
 
 
 # ---------------------------------------------------------------------------
