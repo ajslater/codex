@@ -1,7 +1,10 @@
 """Group Mtime Function."""
 
+import hashlib
+import json
 from typing import TYPE_CHECKING
 
+from django.core.cache import cache as _django_cache
 from django.db.models.aggregates import Aggregate, Max
 from django.db.models.functions import Greatest
 from django.db.utils import OperationalError
@@ -15,6 +18,9 @@ if TYPE_CHECKING:
     from django.db.models import Q, Value
 
 _FTS5_PREFIX = "fts5: "
+_PAGE_MTIME_TTL_SECONDS = 5
+_PAGE_MTIME_CACHE_MISS = object()
+_PAGE_MTIME_NONE_SENTINEL = "none"
 
 
 class BrowserGroupMtimeView(BrowserFilterView):
@@ -70,8 +76,37 @@ class BrowserGroupMtimeView(BrowserFilterView):
         self._bmua_agg_cache[key] = aggregate
         return aggregate
 
+    def _page_mtime_cache_key(self, model) -> str:
+        """Stable key scoped to user + filter-affecting params."""
+        user_id = self.request.user.pk if self.request.user.is_authenticated else 0
+        group = self.kwargs.get("group", "r")
+        pks = tuple(self.kwargs.get("pks") or (0,))
+        page = self.kwargs.get("page", 1)
+        filter_keys = ("filters", "search", "q", "order_by", "order_reverse")
+        params_data = {k: self.params.get(k) for k in filter_keys}
+        params_str = json.dumps(params_data, sort_keys=True, default=str)
+        params_hash = hashlib.blake2s(params_str.encode(), digest_size=8).hexdigest()
+        return (
+            f"codex:page_mtime:{user_id}:{model.__name__}:"
+            f"{group}:{pks}:{page}:{params_hash}"
+        )
+
     def get_group_mtime(self, model, group=None, pks=None, *, page_mtime=False):
-        """Get a filtered mtime for browser pages and mtime checker."""
+        """
+        Get a filtered mtime for browser pages and mtime checker.
+
+        When ``page_mtime`` is true this is called from the browse page
+        response — the query is a filtered Max aggregate that runs even on
+        cachalot misses (writes to Comic/Bookmark invalidate it). A short
+        TTL cache absorbs concurrent recomputes within that window; real
+        staleness is bounded by TTL + cachalot's signal-driven invalidation.
+        """
+        cache_key = self._page_mtime_cache_key(model) if page_mtime else ""
+        if cache_key:
+            cached = _django_cache.get(cache_key, _PAGE_MTIME_CACHE_MISS)
+            if cached is not _PAGE_MTIME_CACHE_MISS:
+                return None if cached == _PAGE_MTIME_NONE_SENTINEL else cached
+
         qs = self.get_filtered_queryset(
             model,
             group=group,
@@ -101,4 +136,8 @@ class BrowserGroupMtimeView(BrowserFilterView):
             mtime = None
         if mtime == NotImplemented:
             mtime = None
+
+        if cache_key:
+            stored = _PAGE_MTIME_NONE_SENTINEL if mtime is None else mtime
+            _django_cache.set(cache_key, stored, _PAGE_MTIME_TTL_SECONDS)
         return mtime

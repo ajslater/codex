@@ -199,7 +199,7 @@ class BrowserView(BrowserTitleView):
         num_pages = ceil((group_count + book_count) / BROWSER_MAX_OBJ_PER_PAGE)
         self.check_page_in_bounds(num_pages)
         group_qs, book_qs, page_group_count, page_book_count = self.paginate(
-            group_qs, book_qs, group_count
+            group_qs, book_qs, group_count, book_count
         )
 
         # Annotate
