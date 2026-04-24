@@ -31,10 +31,10 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
         return tuple(fields)
 
     @staticmethod
-    def _intersection_annotate_separate_sum_fields(
+    def _partition_sum_fields(
         fields,
     ) -> tuple[tuple[str, ...], tuple[str, ...]]:
-        """Separate sum fields (direct aggregation expressions) from intersection fields (need distinct-count check)."""
+        """Separate direct-aggregation SUM fields from distinct-count intersection fields."""
         sum_fields = []
         intersection_fields = []
         for field in fields:
@@ -44,121 +44,104 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
                 intersection_fields.append(field)
         return tuple(sum_fields), tuple(intersection_fields)
 
-    def _intersection_annotate_count_sum_fields(
-        self, sum_fields: tuple[str, ...], annotation_prefix: str, qs: QuerySet
-    ) -> QuerySet:
-        # Annotate sum fields directly as aggregate expressions.
-        for field in sum_fields:
-            ann_field = annotation_prefix + field.replace("__", "_")
+    def _annotate_sum_fields(self, qs: QuerySet, sum_field_specs) -> QuerySet:
+        """Annotate SUM aggregate expressions on qs."""
+        for field, prefix in sum_field_specs:
+            ann_field = prefix + field.replace("__", "_")
             full_field = self.rel_prefix + field
             qs = qs.annotate(**{ann_field: Sum(full_field)})
         return qs
 
-    def _intersection_annotate_count_intersection_fields(
-        self, filtered_qs: QuerySet, intersection_fields: tuple[str, ...]
-    ):
-        """
-        Batch query 1: Get distinct counts for ALL intersection fields at once.
-
-        aggregate() collapses all rows into one result without
-        GROUP BY, completely avoiding the group_by/subquery conflict.
-        """
+    def _aggregate_distinct_counts(
+        self, filtered_qs: QuerySet, intersection_field_specs
+    ) -> list:
+        """Batch distinct-count aggregate across all intersection fields; return single-valued specs."""
+        if not intersection_field_specs:
+            return []
         count_base = self.force_inner_joins(filtered_qs)
         agg_kwargs = {}
-        for field in intersection_fields:
-            full_field = self.rel_prefix + field
-            agg_kwargs[field] = Count(full_field, distinct=True)
-
+        keys = []
+        for field, _ in intersection_field_specs:
+            key = f"_ann{len(keys)}"
+            agg_kwargs[key] = Count(self.rel_prefix + field, distinct=True)
+            keys.append(key)
         distinct_counts = count_base.aggregate(**agg_kwargs)
+        return [
+            intersection_field_specs[i]
+            for i, key in enumerate(keys)
+            if distinct_counts.get(key) == 1
+        ]
 
-        # Keep only fields where all comics share exactly one distinct value.
-        return tuple(f for f in intersection_fields if distinct_counts.get(f) == 1)
-
-    def _intersection_annotate_fetch_intersecting_values(
-        self,
-        filtered_qs: QuerySet,
-        related_suffix: str,
-        single_value_fields: tuple[str, ...],
-    ) -> tuple[str, ...]:
-        """
-        Batch query 2: Fetch the shared value for all qualifying fields in a single query.
-
-        Since each field has exactly 1 distinct value, any row's value is representative.
-        """
-        value_base = self.force_inner_joins(filtered_qs)
-        full_fields = tuple(
-            self.rel_prefix + f + related_suffix for f in single_value_fields
-        )
-        return tuple(value_base.values_list(*full_fields).first())
-
-    def _intersection_annotate(
-        self,
-        querysets,
-        fields,
-        related_suffix="",
-        annotation_prefix="",
+    def _fetch_intersecting_values(
+        self, filtered_qs: QuerySet, single_value_specs
     ) -> tuple:
-        """
-        Annotate the intersection of value and fk fields.
+        """Batch values_list across all single-valued intersection fields."""
+        value_base = self.force_inner_joins(filtered_qs)
+        full_fields = tuple(self.rel_prefix + field for field, _ in single_value_specs)
+        row = value_base.values_list(*full_fields).first()
+        return row or ()
 
-        For each field, check if all comics in the filtered queryset share
-        exactly one distinct value. If so, annotate that value as a constant.
+    @staticmethod
+    def _value_output_field(field: str):
+        if field.endswith("count"):
+            return IntegerField()
+        return Comic._meta.get_field(field)
 
-        Uses aggregate() to batch all distinct-count checks into a single
-        query, then fetches all single-valued fields in one more query.
-        This replaces the previous approach of 2 queries per field.
+    def _annotate_value_constants(
+        self, qs: QuerySet, single_value_specs, row
+    ) -> QuerySet:
+        """Annotate each single-valued field as a constant expression."""
+        for (field, prefix), val in zip(single_value_specs, row, strict=True):
+            ann_field = prefix + field.replace("__", "_")
+            qs = qs.annotate(**{ann_field: Value(val, self._value_output_field(field))})
+        return qs
+
+    def _intersection_annotate(self, querysets, field_groups) -> tuple:
         """
-        (filtered_qs, qs) = querysets
-        sum_fields, intersection_fields = (
-            self._intersection_annotate_separate_sum_fields(fields)
+        Annotate the intersection of value / fk fields across multiple groups.
+
+        field_groups: iterable of ``(fields, annotation_prefix)`` tuples. Each
+        group's fields are partitioned into SUM aggregations (direct) and
+        intersection fields (distinct-count check). All intersection fields
+        across all groups are collapsed into ONE ``aggregate()`` query and ONE
+        ``values_list()`` query, regardless of group count.
+        """
+        filtered_qs, qs = querysets
+
+        sum_field_specs = []
+        intersection_field_specs = []
+        for fields, annotation_prefix in field_groups:
+            sum_f, int_f = self._partition_sum_fields(fields)
+            sum_field_specs.extend((f, annotation_prefix) for f in sum_f)
+            intersection_field_specs.extend((f, annotation_prefix) for f in int_f)
+
+        qs = self._annotate_sum_fields(qs, sum_field_specs)
+
+        single_value_specs = self._aggregate_distinct_counts(
+            filtered_qs, intersection_field_specs
         )
-        qs = self._intersection_annotate_count_sum_fields(
-            sum_fields, annotation_prefix, qs
-        )
-        if not intersection_fields:
+        if not single_value_specs:
             return filtered_qs, qs
 
-        single_value_fields = self._intersection_annotate_count_intersection_fields(
-            filtered_qs, intersection_fields
-        )
-        if not single_value_fields:
-            return filtered_qs, qs
-
-        row = self._intersection_annotate_fetch_intersecting_values(
-            filtered_qs, related_suffix, single_value_fields
-        )
+        row = self._fetch_intersecting_values(filtered_qs, single_value_specs)
         if not row:
             return filtered_qs, qs
 
-        # Annotate each single-value field as a Value constant.
-        for field, val in zip(single_value_fields, row, strict=True):
-            ann_field = annotation_prefix + field.replace("__", "_")
-            if field.endswith("count"):
-                output_field = IntegerField()
-            else:
-                output_field = Comic._meta.get_field(field)
-            qs = qs.annotate(**{ann_field: Value(val, output_field)})
-
+        qs = self._annotate_value_constants(qs, single_value_specs, row)
         return filtered_qs, qs
 
     def annotate_values_and_fks(self, qs, filtered_qs):
         """Annotate comic values and comic foreign key values."""
-        # Simple Values
-        querysets = (filtered_qs, qs)
+        field_groups = []
         if qs.model is not Comic:
-            comic_value_fields = self._get_comic_value_fields()
-            querysets = self._intersection_annotate(querysets, comic_value_fields)
-
-            # Conflicting Simple Values
-            querysets = self._intersection_annotate(
-                querysets,
-                COMIC_VALUE_FIELDS_CONFLICTING,
-                annotation_prefix=COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+            field_groups.append((self._get_comic_value_fields(), ""))
+            field_groups.append(
+                (
+                    COMIC_VALUE_FIELDS_CONFLICTING,
+                    COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+                )
             )
+        field_groups.append((COMIC_RELATED_VALUE_FIELDS, ""))
 
-        # Foreign Keys with special count values
-        _, qs = self._intersection_annotate(
-            querysets,
-            COMIC_RELATED_VALUE_FIELDS,
-        )
+        _, qs = self._intersection_annotate((filtered_qs, qs), field_groups)
         return qs
