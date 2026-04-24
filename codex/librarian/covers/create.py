@@ -1,5 +1,6 @@
 """Create comic cover paths."""
 
+import os
 from abc import ABC
 from io import BytesIO
 from multiprocessing.queues import Queue
@@ -18,6 +19,7 @@ from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
 from codex.settings import COMICBOX_CONFIG
 
+_PID = os.getpid()
 _COVER_RATIO = 1.5372233400402415  # modal cover ratio
 THUMBNAIL_WIDTH = 165
 THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
@@ -97,8 +99,17 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         cover_path = Path(cover_path_str)
         cover_path.parent.mkdir(exist_ok=True, parents=True)
         if data:
-            with cover_path.open("wb") as cover_file:
-                cover_file.write(data)
+            # Atomic write: stage to a sibling tmp file, then os.replace so
+            # readers only ever observe the pre-existing state or the fully
+            # written new file — never a half-written one.
+            tmp_path = cover_path.with_name(f"{cover_path.name}.{_PID}.tmp")
+            try:
+                with tmp_path.open("wb") as cover_file:
+                    cover_file.write(data)
+                tmp_path.replace(cover_path)
+            except Exception:
+                tmp_path.unlink(missing_ok=True)
+                raise
         elif not cover_path.exists():
             # zero length file is code for missing.
             cover_path.touch()
