@@ -15,6 +15,9 @@
 <script>
 import { getCoverSrc } from "@/api/v3/browser";
 
+const MAX_RETRIES = 5;
+const DEFAULT_RETRY_AFTER_SEC = 2;
+
 export default {
   name: "BookCover",
   props: {
@@ -45,15 +48,21 @@ export default {
   },
   data() {
     return {
-      showPlaceholder: false,
+      retry: 0,
+      abort: null,
     };
   },
   computed: {
     coverSrc() {
-      return getCoverSrc(
+      const base = getCoverSrc(
         { coverPk: this.coverPk, coverCustomPk: this.coverCustomPk },
         this.mtime,
       );
+      if (this.retry <= 0) {
+        return base;
+      }
+      const sep = base.includes("?") ? "&" : "?";
+      return `${base}${sep}r=${this.retry}`;
     },
     multiPkClasses() {
       const len = this.pks.length;
@@ -66,14 +75,57 @@ export default {
       return classes;
     },
   },
-  mounted: function () {
-    this.delayPlaceholder();
+  mounted() {
+    this.pollCover();
+  },
+  unmounted() {
+    this.abort?.abort();
   },
   methods: {
-    delayPlaceholder: function () {
-      setTimeout(() => {
-        this.showPlaceholder = true;
-      }, 2000);
+    async pollCover() {
+      /*
+       * Probe the cover URL. The backend returns 202 Accepted with a
+       * Cache-Control: no-store placeholder while the cover thread is still
+       * generating the real thumb. Browsers don't honor Retry-After on <img>
+       * elements, so we poll here and bump `retry` (a cache-busting query
+       * param) to force v-img to re-fetch once the real cover is ready.
+       */
+      this.abort?.abort();
+      this.abort = new AbortController();
+      const signal = this.abort.signal;
+      let sawPending = false;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        let resp;
+        try {
+          resp = await fetch(this.coverSrc, {
+            credentials: "same-origin",
+            signal,
+          });
+        } catch {
+          return;
+        }
+        if (resp.status !== 202) {
+          if (sawPending) {
+            this.retry = attempt + 1;
+          }
+          return;
+        }
+        sawPending = true;
+        const retryAfterSec =
+          Number.parseInt(resp.headers.get("Retry-After"), 10) ||
+          DEFAULT_RETRY_AFTER_SEC;
+        try {
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(resolve, retryAfterSec * 1000);
+            signal.addEventListener("abort", () => {
+              clearTimeout(timer);
+              reject(new Error("aborted"));
+            });
+          });
+        } catch {
+          return;
+        }
+      }
     },
   },
 };
