@@ -58,6 +58,33 @@ def codex_shutdown() -> None:
         restart()
 
 
+def _raise_fd_limit() -> None:
+    """
+    Raise RLIMIT_NOFILE soft limit toward the hard cap.
+
+    macOS ships a 256 soft cap for RLIMIT_NOFILE which a cold burst of ~100
+    parallel cover requests can easily exhaust: each Django thread keeps a
+    sticky SQLite connection (CONN_MAX_AGE=600) and SQLite WAL mode opens
+    3 FDs per connection (main + -wal + -shm). Bumping the soft limit is a
+    non-invasive equivalent to running with ``ulimit -Sn 8192``.
+    No-op on platforms without the resource module (e.g. Windows).
+    """
+    try:
+        import resource
+    except ImportError:
+        return
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target = 8192 if hard == resource.RLIM_INFINITY else min(hard, 8192)
+    if soft >= target:
+        return
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
+    except (OSError, ValueError) as exc:
+        logger.warning(f"Could not raise RLIMIT_NOFILE from {soft}: {exc}")
+        return
+    logger.debug(f"Raised RLIMIT_NOFILE soft limit: {soft} → {target}")
+
+
 def _build_server() -> Server:
     """
     Build the granian embedded server.
@@ -115,6 +142,7 @@ def main() -> None:
     """Set up and run Codex."""
     logger.debug(f"Starting {PACKAGE_NAME}")
     setproctitle(PACKAGE_NAME)
+    _raise_fd_limit()
     loguru_init()
     if codex_startup():
         run()
