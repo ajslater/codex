@@ -70,6 +70,14 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         qs = self._annotate_has_metadata(qs)
+        # ``updated_ats`` is read only by ``BrowserAggregateSerializerMixin``
+        # to compute the card mtime — and only browser + metadata responses
+        # use that mixin. OPDS feeds compute their own mtime from the
+        # bookmark aggregate; cover/download paths never read it. Skipping
+        # the JsonGroupArray on those targets removes one DISTINCT scalar
+        # aggregate per group row in the cold path.
+        if self.TARGET not in self.CARD_TARGETS:
+            return qs
         # For group models, traverse to Comic.updated_at via rel_prefix.
         # The group model's own updated_at is not reliably refreshed by
         # bulk_update / bulk_create(update_conflicts) because auto_now

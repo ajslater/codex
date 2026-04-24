@@ -215,7 +215,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # already ``.distinct() ... LIMIT 1`` and the custom force-group-by
         # emits a literal ``"codex_comic"."id"`` that does not survive the
         # nested-subquery aliasing — skip it in the cover path.
-        if not for_cover:
+        if for_cover:
+            return qs
+        # Skip ``group_by("id")`` on Comic queries that don't actually fan out
+        # via an m2m join — there's nothing to dedupe and the GROUP BY just
+        # forces SQLite to materialize an unnecessary aggregate. Non-Comic
+        # queries traverse ``comic__`` (one-to-many) for ACL/group filters
+        # and always need the dedupe.
+        if qs.model is not Comic or self.comic_filter_uses_m2m:
             qs = qs.group_by("id")
         return qs
 
