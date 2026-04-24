@@ -128,7 +128,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
                 str(cover_path),
                 self.log,
                 self.librarian_queue,
-                custom=False,
+                custom=custom,
             )
             if data:
                 data.close()
