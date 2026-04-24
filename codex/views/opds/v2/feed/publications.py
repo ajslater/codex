@@ -151,7 +151,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         thumb_href_data = HrefData(
             kwargs,
             query_params,
-            url_name="opds:bin:cover_by_pk",
+            url_name="opds:bin:cover",
         )
         thumb_link_data = LinkData(
             Rel.THUMBNAIL,

@@ -3,6 +3,7 @@
 from django.db.models import NOT_PROVIDED
 from django.db.models.functions import Now
 
+from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.scribe.importer.const import (
     BULK_CREATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS,
@@ -169,6 +170,13 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                     self.metadata[FTS_CREATE][created_comic.pk] = self.metadata[
                         FTS_CREATE
                     ].pop(created_comic.path)
+
+                # Pre-warm covers offline so first browse/OPDS request is fast.
+                created_pks = tuple(c.pk for c in created_comics)
+                if created_pks:
+                    self.librarian_queue.put(
+                        CoverCreateTask(pks=created_pks, custom=False)
+                    )
         except Exception:
             self.log.exception(f"While creating {num_comics} comics")
         finally:

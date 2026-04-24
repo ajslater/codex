@@ -39,3 +39,11 @@ class CoverSaveToCache(CoverTask):
 @dataclass
 class CoverCreateAllTask(CoverTask):
     """A create all comic covers."""
+
+
+@dataclass
+class CoverCreateTask(CoverTask):
+    """Create covers for a specific set of pks."""
+
+    pks: tuple
+    custom: bool

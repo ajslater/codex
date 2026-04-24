@@ -13,10 +13,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
-
 import { getCoverSrc } from "@/api/v3/browser";
-import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BookCover",
@@ -52,16 +49,9 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, ["coverSettings"]),
     coverSrc() {
       return getCoverSrc(
-        {
-          group: this.group,
-          pks: this.pks,
-          coverPk: this.coverPk,
-          coverCustomPk: this.coverCustomPk,
-        },
-        this.coverSettings,
+        { coverPk: this.coverPk, coverCustomPk: this.coverCustomPk },
         this.mtime,
       );
     },

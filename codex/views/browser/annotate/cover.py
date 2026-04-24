@@ -24,6 +24,14 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         """Group filter Q for a cover subquery, correlated via OuterRef."""
         group_rel = GROUP_RELATION[self.model_group]
         if self.params.get("dynamic_covers") or group_model in (Volume, Folder):
+            # Folders are hierarchical: parent_folder is the direct FK, but the
+            # browse filter uses the ``folders`` M2M that includes every
+            # ancestor folder. A Folder card's cover must be pickable from any
+            # comic in a descendant subfolder, not just direct children —
+            # otherwise parent folders that contain only subfolders fall back
+            # to the card's own pk and serve the missing-cover placeholder.
+            if group_model is Folder:
+                return Q(folders__pk=OuterRef("pk"))
             return Q(**{f"{group_rel}__pk": OuterRef("pk")})
 
         # Fuzzy match: correlate on the GROUP BY columns. These are the
