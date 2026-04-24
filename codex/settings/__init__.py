@@ -82,6 +82,7 @@ GRANIAN_WORKERS = get_int(CODEX_CONFIG, "server.workers", default=1)
 GRANIAN_HTTP = get_str(CODEX_CONFIG, "server.http", default="auto")
 GRANIAN_WEBSOCKETS = get_bool(CODEX_CONFIG, "server.websockets", default=True)
 GRANIAN_URL_PATH_PREFIX = get_str(CODEX_CONFIG, "server.url_path_prefix", default="")
+WATCH_FOR_CHANGES = get_bool(CODEX_CONFIG, "server.watch_for_changes", default=False)
 
 ##############################
 # Codex Config: Logging      #

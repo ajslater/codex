@@ -14,12 +14,12 @@ from codex.asgi import application
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.settings import (
-    DEBUG,
     GRANIAN_HOST,
     GRANIAN_HTTP,
     GRANIAN_PORT,
     GRANIAN_URL_PATH_PREFIX,
     GRANIAN_WEBSOCKETS,
+    WATCH_FOR_CHANGES,
 )
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
@@ -90,8 +90,8 @@ async def _watch_for_changes() -> None:
 async def _serve(server: Server) -> None:
     """Run granian until SHUTDOWN_EVENT fires, then stop gracefully."""
     server_task = asyncio.create_task(server.serve())
-    if DEBUG:
-        asyncio.create_task(_watch_for_changes())  # noqa: RUF006
+    if DEBUG and WATCH_FOR_CHANGES:
+        asyncio.create_task(_watch_for_changes())
 
     await SHUTDOWN_EVENT.wait()
     server.stop()
