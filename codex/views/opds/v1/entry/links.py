@@ -35,18 +35,36 @@ class OPDS1EntryLinksMixin:
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
 
+    def _cover_href(self, ts: int) -> str:
+        """Pick the cheapest cover URL available for the entry."""
+        query_params = {"ts": ts}
+        if custom_pk := getattr(self.obj, "cover_custom_pk", None):
+            return reverse(
+                "opds:bin:custom_cover_by_pk",
+                kwargs={"pk": custom_pk},
+                query=query_params,
+            )
+        if self.obj.group == "c":
+            # Comic entries serve their own cover.
+            return reverse(
+                "opds:bin:cover_by_pk", kwargs={"pk": self.obj.pk}, query=query_params
+            )
+        if cover_pk := getattr(self.obj, "cover_pk", None):
+            return reverse(
+                "opds:bin:cover_by_pk", kwargs={"pk": cover_pk}, query=query_params
+            )
+        # Fallback: legacy group+pks endpoint for entries without a pre-
+        # resolved cover (facet stubs, older code paths).
+        kwargs = {"group": self.obj.group, "pks": self.obj.ids}
+        query_params.update({"customCovers": True, "dynamicCovers": False})
+        return reverse("opds:bin:cover", kwargs=kwargs, query=query_params)
+
     def _cover_link(self, rel) -> OPDS1Link | None:
         if self.fake:
             return None
         try:
-            kwargs = {"group": self.obj.group, "pks": self.obj.ids}
             ts = floor(datetime.timestamp(self.obj.updated_at))
-            query_params = {
-                "customCovers": True,
-                "dynamicCovers": False,
-                "ts": ts,
-            }
-            href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)
+            href = self._cover_href(ts)
             return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
             logger.exception("create thumb")

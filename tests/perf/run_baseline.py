@@ -125,6 +125,12 @@ def _build_flows(series_pk: int) -> list[dict[str, Any]]:
             "kind": "browse_plus_covers",
             "url": _BROWSE_PLUS_COVERS_URL,
         },
+        {
+            "name": "flow_e_search_plus_covers",
+            "description": "Search browse then fetch every returned cover.",
+            "kind": "browse_plus_covers",
+            "url": f"{_BROWSE_PLUS_COVERS_URL}?q=man",
+        },
     ]
 
 
@@ -134,7 +140,7 @@ def _build_cover_urls(page: dict[str, Any]) -> list[str]:
     cards = list(page.get("groups") or []) + list(page.get("books") or [])
     for card in cards:
         if custom_pk := card.get("coverCustomPk"):
-            urls.append(f"/api/v3/cc/{custom_pk}/cover.webp")
+            urls.append(f"/api/v3/custom_cover/{custom_pk}/cover.webp")
             continue
         if cover_pk := card.get("coverPk"):
             urls.append(f"/api/v3/c/{cover_pk}/cover.webp")

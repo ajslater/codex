@@ -48,7 +48,16 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         if self.is_bookmark_filtered:
             q &= self.get_bookmark_filter(Comic)
         include_q, exclude_q, fts_q = self.get_search_filters(Comic)
-        return q & include_q & ~exclude_q & fts_q
+        q &= include_q & ~exclude_q
+        if fts_q:
+            # FTS MATCH inside a correlated Subquery re-scans the FTS5
+            # virtual table per outer row (~900ms on a 100-group page).
+            # Replace with a non-correlated sub-SELECT over the FTS match
+            # set — SQLite materializes it once and the correlated cover
+            # subquery becomes a simple indexed pk lookup.
+            fts_sq = Comic.objects.filter(fts_q).values("pk")
+            q &= Q(pk__in=fts_sq)
+        return q
 
     def _cover_comic_subquery(self, group_model) -> Subquery:
         """Correlated subquery returning one comic pk per outer group row."""
@@ -74,12 +83,6 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         if qs.model is Comic:
             # Comic cards use their own pk as the cover pk — the serializer
             # falls back to pk when cover_pk is absent.
-            return qs
-        if self.params.get("search"):
-            # FTS MATCH inside a correlated subquery re-scans the FTS index
-            # per outer row, adding ~900ms on a ~100-group browse. Let the
-            # frontend fall back to the legacy group+pks cover URL; each
-            # cover request still benefits from the Option-A pipeline trim.
             return qs
         qs = qs.annotate(cover_pk=self._cover_comic_subquery(qs.model))
         custom_sq = self._cover_custom_subquery(qs.model)

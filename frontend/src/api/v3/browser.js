@@ -31,7 +31,7 @@ export const getCoverSrc = (
   // replay the group filter and ordering pipeline 72× per page.
   if (coverCustomPk) {
     const query = ts ? `?ts=${ts}` : "";
-    return `${base}cc/${coverCustomPk}/cover.webp${query}`;
+    return `${base}custom_cover/${coverCustomPk}/cover.webp${query}`;
   }
   if (coverPk) {
     const query = ts ? `?ts=${ts}` : "";

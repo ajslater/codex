@@ -5,6 +5,7 @@ from typing import override
 from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.views.browser.cover import CoverView
+from codex.views.browser.cover_by_pk import ComicCoverByPkView, CustomCoverByPkView
 from codex.views.download import DownloadView
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.settings import OPDSBrowserSettingsMixin
@@ -33,6 +34,14 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
 
 class OPDSCoverView(OPDSBrowserSettingsMixin, CoverView):
     """Cover View with Basic Auth."""
+
+
+class OPDSComicCoverByPkView(OPDSAuthMixin, ComicCoverByPkView):
+    """Thin per-pk comic cover view with Basic Auth."""
+
+
+class OPDSCustomCoverByPkView(OPDSAuthMixin, CustomCoverByPkView):
+    """Thin per-pk custom cover view with Basic Auth."""
 
 
 class OPDSDownloadView(OPDSAuthMixin, DownloadView):

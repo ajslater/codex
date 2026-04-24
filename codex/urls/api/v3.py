@@ -19,7 +19,7 @@ urlpatterns = [
     # reader must come first to occlude browser group
     path("c/", include("codex.urls.api.reader")),
     path(
-        "cc/<int:pk>/cover.webp",
+        "custom_cover/<int:pk>/cover.webp",
         cache_control(max_age=COVER_MAX_AGE, public=True)(
             CustomCoverByPkView.as_view()
         ),
