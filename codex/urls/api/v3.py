@@ -8,7 +8,7 @@ from drf_spectacular.views import (
 )
 
 from codex.urls.const import COVER_MAX_AGE
-from codex.views.browser.cover_by_pk import CustomCoverByPkView
+from codex.views.browser.cover import CustomCoverView
 from codex.views.browser.mtime import MtimeView
 from codex.views.opds.urls import OPDSURLsView
 from codex.views.version import VersionView
@@ -20,9 +20,7 @@ urlpatterns = [
     path("c/", include("codex.urls.api.reader")),
     path(
         "custom_cover/<int:pk>/cover.webp",
-        cache_control(max_age=COVER_MAX_AGE, public=True)(
-            CustomCoverByPkView.as_view()
-        ),
+        cache_control(max_age=COVER_MAX_AGE, public=True)(CustomCoverView.as_view()),
         name="custom_cover",
     ),
     path("<group:group>/", include("codex.urls.api.browser")),

@@ -5,6 +5,7 @@ from typing import override
 from codex.librarian.covers.purge import CoverPurgeThread
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
+    CoverCreateTask,
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
     CoverRemoveTask,
@@ -29,5 +30,7 @@ class CoverThread(CoverPurgeThread):
             self.cleanup_orphan_covers()
         elif isinstance(task, CoverCreateAllTask):
             self.create_all_covers()
+        elif isinstance(task, CoverCreateTask):
+            self._bulk_create_comic_covers(task.pks, custom=task.custom)
         else:
             self.log.error(f"Bad task sent to {self.__class__.__name__}: {task}")
