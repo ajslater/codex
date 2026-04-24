@@ -10,6 +10,8 @@
       id="bookCover"
       :group="group"
       :pks="md.ids"
+      :cover-pk="md.coverPk"
+      :cover-custom-pk="md.coverCustomPk"
       :child-count="md.childCount"
       :mtime="md.mtime"
     />

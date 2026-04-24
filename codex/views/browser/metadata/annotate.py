@@ -4,7 +4,7 @@ from django.db.models import Count, IntegerField, Sum, Value
 from django.db.models.query import QuerySet
 
 from codex.models import Comic
-from codex.views.browser.annotate.card import BrowserAnnotateCardView
+from codex.views.browser.annotate.cover import BrowserAnnotateCoverView
 from codex.views.browser.metadata.const import (
     ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS,
     COMIC_RELATED_VALUE_FIELDS,
@@ -16,7 +16,7 @@ from codex.views.browser.metadata.const import (
 )
 
 
-class MetadataAnnotateView(BrowserAnnotateCardView):
+class MetadataAnnotateView(BrowserAnnotateCoverView):
     """Metadata Annotations."""
 
     def _get_comic_value_fields(self) -> tuple:
