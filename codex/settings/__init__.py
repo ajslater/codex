@@ -500,10 +500,20 @@ for path in STATICFILES_DIRS:
 ROOT_CACHE_PATH = CONFIG_PATH / "cache"
 DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
 DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+# MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
+# too small once the cache holds (a) cachalot query results — often
+# 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
+# for the browser view AND (c) one `cache_page` entry per cover pk on
+# the cover endpoint. A 100-cover page can populate 200+ entries in a
+# single pageload; the default triggers the 2/3 random cull, which
+# silently evicts just-written cover responses before the next request
+# can read them. 10k is cheap on disk (~<100 MB of tiny files) and
+# cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
         "LOCATION": str(DEFAULT_CACHE_PATH),
+        "OPTIONS": {"MAX_ENTRIES": 10000},
     },
 }
 
