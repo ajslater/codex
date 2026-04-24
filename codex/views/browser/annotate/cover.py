@@ -72,7 +72,13 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         q = self._cover_filter_q(group_model)
         qs = Comic.objects.filter(q).distinct()
         qs = self.annotate_order_aggregates(qs, for_cover=True)
-        qs = self.add_order_by(qs)
+        # ``search_score`` relies on ``codex_comicfts.rank``, but the cover
+        # subquery filters FTS via a non-correlated ``pk__in`` over the
+        # pre-materialized match set — it never joins ``codex_comicfts``.
+        # Fall back to ``sort_name`` so SQLite has a real column to order on;
+        # the cover's tie-break isn't user-visible anyway.
+        cover_order_key = "sort_name" if self.order_key == "search_score" else ""
+        qs = self.add_order_by(qs, order_key=cover_order_key)
         return Subquery(qs.values("pk")[:1])
 
     def _cover_custom_subquery(self, group_model) -> Subquery | None:

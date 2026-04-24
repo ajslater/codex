@@ -201,10 +201,17 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.annotate(bookmark_updated_at=bmua_agg)
         return qs
 
-    def _annotate_search_scores(self, qs):
+    def _annotate_search_scores(self, qs, *, for_cover: bool = False):
         """Annotate Search Scores."""
         if (
-            self.TARGET not in self._COVER_AND_CARD_TARGETS
+            # ``ComicFTSRank`` dereferences ``codex_comicfts.rank``. The cover
+            # subquery filters via a non-correlated ``pk__in fts_sq`` (FTS
+            # pre-materialization), so ``codex_comicfts`` is never joined to
+            # the Comic subquery; annotating search_score there would fail
+            # with ``no such column: codex_comicfts.rank`` when SQLite tries
+            # to resolve the ORDER BY.
+            for_cover
+            or self.TARGET not in self._COVER_AND_CARD_TARGETS
             or self.order_key != "search_score"
         ):
             return qs
@@ -266,7 +273,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # subquery on BrowserView card annotation.
         if not for_cover:
             qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
-        qs = self._annotate_search_scores(qs)
+        qs = self._annotate_search_scores(qs, for_cover=for_cover)
         qs = self._alias_sort_names(qs)
         qs = self._alias_filename(qs)
         qs = self._alias_story_arc_number(qs)
