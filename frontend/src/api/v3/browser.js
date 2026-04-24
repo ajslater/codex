@@ -20,8 +20,23 @@ export const getBrowserHref = ({ group, pks, query }) => {
   return `${base}${hrefPath}/1?${queryString}`;
 };
 
-export const getCoverSrc = ({ group, pks }, settings, ts) => {
+export const getCoverSrc = (
+  { group, pks, coverPk, coverCustomPk },
+  settings,
+  ts,
+) => {
   const base = globalThis.CODEX.API_V3_PATH;
+  // When the browser response includes pre-resolved cover pks, serve the
+  // cover via the thin per-pk endpoint. The frontend no longer needs to
+  // replay the group filter and ordering pipeline 72× per page.
+  if (coverCustomPk) {
+    const query = ts ? `?ts=${ts}` : "";
+    return `${base}cc/${coverCustomPk}/cover.webp${query}`;
+  }
+  if (coverPk) {
+    const query = ts ? `?ts=${ts}` : "";
+    return `${base}c/${coverPk}/cover.webp${query}`;
+  }
   delete settings.show;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,

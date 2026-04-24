@@ -3,7 +3,8 @@
 from django.urls import path
 from django.views.decorators.cache import cache_control
 
-from codex.urls.const import PAGE_MAX_AGE
+from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE
+from codex.views.browser.cover_by_pk import ComicCoverByPkView
 from codex.views.download import DownloadView
 from codex.views.reader.page import ReaderPageView
 from codex.views.reader.reader import ReaderView
@@ -19,6 +20,11 @@ urlpatterns = [
         "<int:pk>/<int:page>/page.jpg",
         cache_control(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
         name="page",
+    ),
+    path(
+        "<int:pk>/cover.webp",
+        cache_control(max_age=COVER_MAX_AGE, public=True)(ComicCoverByPkView.as_view()),
+        name="cover",
     ),
     path("settings", ReaderSettingsView.as_view(), name="settings"),
     path(

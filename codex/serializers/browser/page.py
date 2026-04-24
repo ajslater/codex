@@ -5,6 +5,7 @@ from rest_framework.fields import (
     CharField,
     DecimalField,
     IntegerField,
+    SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
 
@@ -38,6 +39,21 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
     has_metadata = BooleanField(read_only=True)
+    # cover_pk and cover_custom_pk are pre-computed on group cards by
+    # BrowserAnnotateCoverView. Comic book cards lack the annotations; the
+    # method fields fall back to ``obj.pk`` so the frontend can build a
+    # uniform ``/c/<pk>/cover.webp`` URL without a per-card branch.
+    cover_pk = SerializerMethodField(read_only=True)
+    cover_custom_pk = SerializerMethodField(read_only=True)
+
+    def get_cover_pk(self, obj) -> int:
+        """Return pre-computed cover pk, falling back to the card's own pk."""
+        value = getattr(obj, "cover_pk", None)
+        return value if value is not None else obj.pk
+
+    def get_cover_custom_pk(self, obj) -> int | None:
+        """Return the custom cover pk when present, else None."""
+        return getattr(obj, "cover_custom_pk", None)
 
 
 class BrowserAdminFlagsSerializer(Serializer):

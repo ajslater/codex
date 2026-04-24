@@ -29,6 +29,14 @@ export default {
       type: Array,
       required: true,
     },
+    coverPk: {
+      type: Number,
+      default: 0,
+    },
+    coverCustomPk: {
+      type: Number,
+      default: 0,
+    },
     childCount: {
       type: Number,
       default: 1,
@@ -47,7 +55,12 @@ export default {
     ...mapState(useBrowserStore, ["coverSettings"]),
     coverSrc() {
       return getCoverSrc(
-        { group: this.group, pks: this.pks },
+        {
+          group: this.group,
+          pks: this.pks,
+          coverPk: this.coverPk,
+          coverCustomPk: this.coverCustomPk,
+        },
         this.coverSettings,
         this.mtime,
       );

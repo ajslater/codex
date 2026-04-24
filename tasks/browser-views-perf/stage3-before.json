@@ -1,0 +1,71 @@
+{
+  "series_pk_used": 325,
+  "flows": [
+    {
+      "name": "flow_a_root_browse",
+      "description": "Root browse, no filters, no search.",
+      "kind": "url",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 15,
+        "time_taken_ms": 156.942
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.735
+      }
+    },
+    {
+      "name": "flow_b_filtered_search",
+      "description": "Root browse with a search term.",
+      "kind": "url",
+      "url": "/api/v3/r/0/1?q=man",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 16,
+        "time_taken_ms": 148.302
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.9369999999999998
+      }
+    },
+    {
+      "name": "flow_c_series_metadata",
+      "description": "Metadata detail for the largest series.",
+      "kind": "url",
+      "url": "/api/v3/s/325/metadata",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 31,
+        "time_taken_ms": 161.945
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.9980000000000002
+      }
+    },
+    {
+      "name": "flow_d_browse_plus_covers",
+      "description": "Root browse then fetch every returned cover.",
+      "kind": "browse_plus_covers",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_requests": 101,
+        "total_sql_queries": 1216,
+        "total_time_ms": 2311.093
+      },
+      "warm": {
+        "status_code": 200,
+        "num_requests": 101,
+        "total_sql_queries": 1200,
+        "total_time_ms": 2276.82
+      }
+    }
+  ]
+}
