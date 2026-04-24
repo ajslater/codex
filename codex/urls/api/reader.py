@@ -1,7 +1,8 @@
 """codex:api:v3:reader URL Configuration."""
 
 from django.urls import path
-from django.views.decorators.cache import cache_control
+from django.views.decorators.cache import cache_control, cache_page
+from django.views.decorators.vary import vary_on_cookie
 
 from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE
 from codex.views.browser.cover import CoverView
@@ -23,7 +24,18 @@ urlpatterns = [
     ),
     path(
         "<int:pk>/cover.webp",
-        cache_control(max_age=COVER_MAX_AGE, public=True)(CoverView.as_view()),
+        # Server-side `cache_page` wraps the HTTP cache_control so the
+        # response (including Cache-Control + Vary: Cookie) is cached and
+        # replayed without re-running the ACL pipeline. `vary_on_cookie`
+        # is essential: it adds Vary: Cookie to the response BEFORE
+        # cache_page's process_response stores it, so the cache key is
+        # keyed per session. Without it, cache_page would serve one
+        # user's cover to every user who hits the same URL.
+        cache_page(COVER_MAX_AGE)(
+            cache_control(max_age=COVER_MAX_AGE, public=True)(
+                vary_on_cookie(CoverView.as_view())
+            )
+        ),
         name="cover",
     ),
     path("settings", ReaderSettingsView.as_view(), name="settings"),

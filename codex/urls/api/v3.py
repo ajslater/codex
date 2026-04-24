@@ -1,7 +1,8 @@
 """codex:api:v3 URL Configuration."""
 
 from django.urls import include, path
-from django.views.decorators.cache import cache_control
+from django.views.decorators.cache import cache_control, cache_page
+from django.views.decorators.vary import vary_on_cookie
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerSplitView,
@@ -20,7 +21,13 @@ urlpatterns = [
     path("c/", include("codex.urls.api.reader")),
     path(
         "custom_cover/<int:pk>/cover.webp",
-        cache_control(max_age=COVER_MAX_AGE, public=True)(CustomCoverView.as_view()),
+        # See codex.urls.api.reader "cover" route for rationale on the
+        # cache_page + vary_on_cookie composition.
+        cache_page(COVER_MAX_AGE)(
+            cache_control(max_age=COVER_MAX_AGE, public=True)(
+                vary_on_cookie(CustomCoverView.as_view())
+            )
+        ),
         name="custom_cover",
     ),
     path("<group:group>/", include("codex.urls.api.browser")),
