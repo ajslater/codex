@@ -30,7 +30,6 @@ const toVuetifyItem = function (item, copyKeys = undefined) {
   if (item?.url) {
     vuetifyItem.url = item.url;
   }
-  console.debug({ copyKeys });
   if (copyKeys) {
     for (const key of copyKeys) {
       vuetifyItem[key] = item[key];
