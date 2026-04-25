@@ -5,8 +5,6 @@ from typing import Any
 
 from django.urls import reverse
 
-from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.v1.const import (
@@ -154,16 +152,15 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return facet
 
     def _facet_group(self, facet_group, *, entries: bool) -> list:
+        # Read the folder-view flag once per facet group via the
+        # request-cached ``self.admin_flags`` MappingProxyType — the
+        # prior code fired ``AdminFlag.objects.get`` per facet inside
+        # the loop (sub-plan 02 #6).
+        folder_view_allowed = bool(self.admin_flags.get("folder_view"))
         facets = []
         for facet in facet_group.facets:
-            if facet.value == "f":
-                efv_flag = (
-                    AdminFlag.objects.only("on")
-                    .get(key=AdminFlagChoices.FOLDER_VIEW.value)
-                    .on
-                )
-                if not efv_flag:
-                    continue
+            if facet.value == "f" and not folder_view_allowed:
+                continue
             if facet_obj := self._facet_or_facet_entry(
                 facet_group, facet, entries=entries
             ):
