@@ -150,8 +150,10 @@ serializer-layer perf work.
 - **Cross-request ACL cache with database mtime key (original #16)** — subsumed
   by the simpler per-request memoization in 5.4. Reconsider if profiling shows
   visible-library computation is a bottleneck across requests.
-- **R1 FTS demote test** — moves to a follow-up test-only PR, not blocking any
-  perf work.
+- **R1 FTS demote test** — moved to a follow-up test-only PR (Stage 5.9). Landed
+  in `tests/test_search_fts.py` as `FTSForceInnerJoinsTestCase`; locks in the
+  conditional `codex_comicfts` demote in `BrowserFilterView.force_inner_joins`
+  against future regressions.
 
 ## 6. Exit criteria
 
@@ -462,5 +464,18 @@ the win Stage 5b made possible — visible now that the harness covers the path.
 
 ### Items 5.8 onward
 
-Only **5.8** (R3 serializer audit) remains open from the Stage 5 backlog, and
-it's investigation-only.
+**5.8** (R3 serializer audit) remains open from the Stage 5 backlog, and it's
+investigation-only. The investigation has been deferred to a future session that
+will pair it with other serializer-layer perf work; scouting from this session
+is captured in `tasks/browser-views-perf/stage5e-handoff-serializer-audit.md` as
+the input for that session's `investigation-serializer.md` deliverable.
+
+### Stage 5.9 — R1 FTS-demote regression test
+
+Test-only PR. Locks in `BrowserFilterView.force_inner_joins`'s conditional
+`codex_comicfts` demote behind `FTSForceInnerJoinsTestCase` in
+`tests/test_search_fts.py`. Four checks: the canonical SQLite failure mode
+(LEFT-OUTER MATCH raises), the positive demote (`fts_mode=True` flips LEFT OUTER
+→ INNER on `codex_comicfts`), the negative skip (`fts_mode=False` leaves it
+alone), and the end-to-end repair (the same LEFT-OUTER carrier funneled through
+`force_inner_joins` returns the expected MATCH row).
