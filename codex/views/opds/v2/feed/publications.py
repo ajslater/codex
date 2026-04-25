@@ -9,9 +9,8 @@ from urllib.parse import quote_plus
 
 from caseconverter import snakecase
 
-from codex.choices.admin import AdminFlagChoices
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
-from codex.models import AdminFlag, Comic
+from codex.models import Comic
 from codex.models.groups import BrowserGroupModel, Folder
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.opds.const import MimeType, Rel
@@ -32,9 +31,16 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         self._auth_link = None
         super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def is_allowed(link_spec: Link | BrowserGroupModel) -> bool:
-        """Return if the link allowed."""
+    def is_allowed(self, link_spec: Link | BrowserGroupModel) -> bool:
+        """
+        Return if the link is allowed.
+
+        Folder-style links are gated on the ``folder_view`` admin
+        flag. Reads through ``self.admin_flags`` (request-cached
+        ``MappingProxyType`` populated by ``SearchFilterView``) so the
+        check is a dict lookup, not a fresh ``AdminFlag.objects.get``
+        per call (sub-plan 04 #2).
+        """
         if (
             isinstance(link_spec, Link)
             and (
@@ -45,15 +51,21 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
                 )
             )
         ) or isinstance(link_spec, Folder):
-            # Folder perms
-            efv_flag = (
-                AdminFlag.objects.only("on")
-                .get(key=AdminFlagChoices.FOLDER_VIEW.value)
-                .on
-            )
-            if not efv_flag:
-                return False
+            return bool(self.admin_flags.get("folder_view"))
         return True
+
+    @staticmethod
+    def _obj_ts(obj) -> int:
+        """
+        Floor of unix timestamp for cache-busting query params.
+
+        Used as the ``?ts=...`` value on cover / page / sub-feed links
+        so a stale cached response is invalidated by mtime changes
+        without inflicting cache-key churn at every microsecond.
+        Centralized so the six sites that build ``ts`` aren't each
+        re-deriving the same expression (sub-plan 04 #4 / 05 #6).
+        """
+        return floor(datetime.timestamp(obj.updated_at))
 
     def _publication_metadata(self, obj, zero_pad) -> dict:
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
@@ -142,7 +154,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         images = []
         if not obj:
             return images
-        ts = floor(datetime.timestamp(obj.updated_at))
+        ts = self._obj_ts(obj)
         # Publications are Comic rows — obj.pk is the comic pk, which is
         # also the representative cover pk. Route to the thin per-pk
         # endpoint so the cover pipeline isn't re-run per request.

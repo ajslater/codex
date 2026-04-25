@@ -87,7 +87,7 @@ land.
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
 | 1   | **Re-enable OPDS route caching.** Set `OPDS_TIMEOUT > 0` (suggest 60 s). Confirm `Vary: Cookie, Authorization` is set on feed routes (binary routes already have it — `codex/urls/opds/binary.py:36-37`). Investigation phase: source the original disable rationale from git history first. | 01 #1 | **Very high** (every feed request currently re-runs the full pipeline) | M | M-H | ⏳ Open |
 | 2   | **Batch `_publication_credits` into a single query.** Replace the 11-query loop in `v2/manifest.py:194-199` with one `Credit.objects.filter(comic__in=obj.ids)` + Python-side partition by role name. | 05 #1 | **High** (saves 10 queries per manifest hit) | S-M | L | ⏳ Open |
-| 3   | **Fix N+1 in `_publication_belongs_to_story_arcs`.** Change `.only("story_arc", "number")` → `.select_related("story_arc")` (or `.values("story_arc__pk", "story_arc__name", "number")`) in `v2/manifest.py:122-144`. | 05 #2 | **Medium-High** (textbook N+1 on every manifest hit; cost scales with story-arc count) | XS | L | ⏳ Open |
+| 3   | **Fix N+1 in `_publication_belongs_to_story_arcs`.** Change `.only("story_arc", "number")` → `.select_related("story_arc")` (or `.values("story_arc__pk", "story_arc__name", "number")`) in `v2/manifest.py:122-144`. | 05 #2 | **Medium-High** (textbook N+1 on every manifest hit; cost scales with story-arc count) | XS | L | ✅ Stage 0 |
 | 4   | **Skip preview-pipeline re-runs on start page.** `v2/feed/publications.py:240-269` re-instantiates a feed view + runs the full ACL/filter/annotation pipeline per `PREVIEW_GROUPS` link spec. Either batch into a single union query or memoize ACL+annotation results at the view level. | 02 #2, 04 #3 | **Medium-High** (saves ~4 full pipeline runs per start-page hit) | M-L | M | ⏳ Open |
 
 ### Tier 2 — redundant work on every request
@@ -95,7 +95,7 @@ land.
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
 | 5   | **Batch `_publication_subject` M2M loop.** Replace `get_m2m_objects` 7-query loop with a UNION query or `prefetch_related` on the manifest book queryset. `metadata.py:50-60` + `v2/manifest.py:176-184`. | 05 #3 | High (saves 6 queries per manifest hit) | M | M | ⏳ Open |
-| 6   | **Convert `is_allowed` from static method to instance method that reads `self.admin_flags["folder_view"]`.** Eliminates the uncached `AdminFlag.objects.get(...)` query at `v2/feed/publications.py:35-56`. Same anti-pattern at `v1/facets.py:158-164` — fix together. | 02 #6, 04 #2 | Medium (per-link AdminFlag query collapses to a dict lookup) | S | L | ⏳ Open |
+| 6   | **Convert `is_allowed` from static method to instance method that reads `self.admin_flags["folder_view"]`.** Eliminates the uncached `AdminFlag.objects.get(...)` query at `v2/feed/publications.py:35-56`. Same anti-pattern at `v1/facets.py:158-164` — fix together. | 02 #6, 04 #2 | Medium (per-link AdminFlag query collapses to a dict lookup) | S | L | ✅ Stage 0 |
 | 7   | **Batch v1 entry M2M fan-out for acquisition feeds.** When `metadata=True` on a multi-book feed, `category_groups` / `authors` / `contributors` produce 9 queries per entry. Replace per-entry calls with per-page batched calls. `v1/entry/entry.py:131-152` + `metadata.py`. | 03 #1 | Medium (high if multi-book acquisition feeds are common; needs traffic data to confirm) | M | M | ⏳ Open |
 | 8   | **Drop conflict pre-check on progression PUT.** Replace the `qs.first()` + Python comparison with a conditional `UPDATE` in `update_bookmark()` itself. `v2/progression.py:200-229`. | 06 #1, 06 #3 | Medium (saves 1 query + 1 ACL filter computation per progression sync) | S-M | M | ⏳ Open |
 
@@ -112,9 +112,9 @@ land.
 
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
-| 13  | **Extract `_obj_ts(obj) -> int` helper.** `floor(datetime.timestamp(obj.updated_at))` appears at 6 sites across `v2/feed/publications.py:145` and `v2/manifest.py:101, 117, 137, 240, 265`. Pure refactor, no perf delta on its own. | 04 #4, 05 #6 | Trivial | XS | L | ⏳ Open |
+| 13  | **Extract `_obj_ts(obj) -> int` helper.** `floor(datetime.timestamp(obj.updated_at))` appears at 6 sites across `v2/feed/publications.py:145` and `v2/manifest.py:101, 117, 137, 240, 265`. Pure refactor, no perf delta on its own. | 04 #4, 05 #6 | Trivial | XS | L | ✅ Stage 0 |
 | 14  | **Cache resolved URL templates per `url_name`.** ~5 `reverse()` calls per v1 entry × 50 entries × multiple OPDS sessions. Module-level dict `{"opds:bin:cover": "/o/bin/c/{pk}/cover.webp"}` plus f-string format would cut to a single dict lookup + format. | 03 #3 | Low (visible only as a cumulative >5 ms/page, if at all) | S | L | ⏳ Open |
-| 15  | **Remove dead expression** at `v2/progression.py:226` (`max(position - 1, 0)` with no assignment). Code-health bug. | 06 #1 | Trivial | XS | L | ⏳ Open |
+| 15  | **Remove dead expression** at `v2/progression.py:226` (`max(position - 1, 0)` with no assignment). Code-health bug. | 06 #1 | Trivial | XS | L | ✅ Stage 0 |
 | 16  | **Verify and add `select_related("parent_folder")`** on the manifest book queryset. `_publication_belongs_to_folder` reads `obj.parent_folder.path` — confirm whether the FK is fetched as part of `get_book_qs()` first. `v2/manifest.py:109-120`. | 05 #8 | Unknown — needs verification | S | L | ⏳ Open |
 | 17  | **Verify and add `select_related("language")`** on the v2 publications book queryset. `_publication_metadata` reads `obj.language.name`; v1 already does this in `v1/facets.py:64`. | 02 #3 | Low (likely already covered by browser annotations) | XS | L | ⏳ Open |
 | 18  | **Refactor `_add_url_to_obj` mutation pattern.** `v1/entry/entry.py:118-129` mutates queryset model instances to attach a `url` attribute. Works fine but fragile — cachalot reuses model instances in principle. Code-health, not perf. | 03 #4 | Code health, not perf | S | L | ⏳ Open |
@@ -124,8 +124,8 @@ land.
 
 | #   | Item | Sub-plan | Status |
 | --- | ---- | -------- | ------ |
-| R1  | **`OPDS_TIMEOUT` rationale.** The disable was deliberate at some point. Surface the original reason via `git log -p codex/urls/const.py` and a scan of the OPDS issue tracker before scheduling Tier 1 #1. May reveal correctness issues (e.g., per-user data leaking across cache, or cookie-based auth not varying correctly). | 01 #1 | ⏳ Open |
-| R2  | **OPDS-specific perf harness.** No baseline data exists for OPDS endpoints. The browser-views project built `tasks/browser-views-perf/measure-perf` with 10 flows; need an analogous OPDS harness with at minimum: v1 root, v1 deep, v1 acquisition (single-comic), v2 root, v2 deep, v2 manifest single-comic, v2 progression GET, v2 progression PUT. Without this, every Tier 1-2 item is opinion-driven. | 00 (meta) | ⏳ Open |
+| R1  | **`OPDS_TIMEOUT` rationale.** The disable was deliberate at some point. Surface the original reason via `git log -p codex/urls/const.py` and a scan of the OPDS issue tracker before scheduling Tier 1 #1. May reveal correctness issues (e.g., per-user data leaking across cache, or cookie-based auth not varying correctly). | 01 #1 | ✅ Stage 0 ([stage0.md](stage0.md#r1--opds_timeout--0-rationale)) |
+| R2  | **OPDS-specific perf harness.** No baseline data exists for OPDS endpoints. The browser-views project built `tasks/browser-views-perf/measure-perf` with 10 flows; need an analogous OPDS harness with at minimum: v1 root, v1 deep, v1 acquisition (single-comic), v2 root, v2 deep, v2 manifest single-comic, v2 progression GET, v2 progression PUT. Without this, every Tier 1-2 item is opinion-driven. | 00 (meta) | ✅ Stage 0 (`tests/perf/run_opds_baseline.py` + `baseline.json`) |
 | R3  | **Per-route hit distribution.** Determines whether to prioritize start-page caching (#1 + #4) or feed-deep caching. If 80% of OPDS traffic is start-page or shallow folder-root, caching the start path alone captures most of the win without solving the general case. | 01 #1 | ⏳ Open |
 
 ---
