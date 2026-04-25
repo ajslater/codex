@@ -225,3 +225,93 @@ PR 5b (annotation gating + ACL cache bundle) is still open. Given that 5a alone
 collapsed Flow D warm to 0, the marginal value of 5.2-5.5 on the cover path has
 shrunk — they remain useful for cold paths and for the 202-retry window.
 Re-evaluate priority after 5a ships.
+
+---
+
+## 8. Stage 5b landed — annotation gating + m2m-aware distinct
+
+### What shipped
+
+| Item    | Change                                                                                                                    | File                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| **5.2** | Skip the `updated_ats` `JsonGroupArray` annotation entirely outside `CARD_TARGETS = {"browser", "metadata"}`.             | `codex/views/browser/annotate/card.py`  |
+| **5.3** | New `comic_filter_uses_m2m` cached property. Skip `.distinct()` on Comic querysets that don't cross an m2m / m2m-through. | `codex/views/browser/filters/filter.py` |
+| **5.5** | Tie `search_score`'s `group_by("id")` to the same flag — only emit when there's actually fan-out to dedupe.               | `codex/views/browser/annotate/order.py` |
+
+### Why "scalar Max" for 5.2 became "skip entirely"
+
+The replan note proposed swapping the JsonGroupArray for a scalar
+`Max(updated_at)` on non-browser targets. Once the consumers were traced, "skip
+entirely" landed cleaner: `obj.updated_ats` is read in exactly one place
+(`codex.serializers.browser.mixins.BrowserAggregateSerializerMixin.get_mtime`,
+which iterates the aggregate as a list of datetime strings) and that mixin is
+only used by `BrowserCardSerializer` and `MetadataSerializer`. OPDS feeds
+compute their own `mtime` from the `bookmark_updated_at` aggregate; cover and
+download paths never touch it. A scalar Max would just be ignored.
+
+### Why 5.4 didn't ship
+
+The replan called for memoizing `get_acl_filter(model, user)` on `self`.
+`codex/views/auth.py` already caches the three scalar inputs
+(`_cached_visible_library_pks`, `_cached_max_idx`, `_cached_default_fits`) on
+`GroupACLMixin` per request. The remaining cost on `get_acl_filter` is composing
+two trivial `Q` objects from those cached scalars — microseconds, not queries.
+Wrapping a `cached_property` keyed on `(model, user_id)` would be cosmetic.
+
+### m2m detection table
+
+`comic_filter_uses_m2m` is a pure-Python check on `self.kwargs` + `self.params`
+— no DB hit, no SQL inspection. It returns True iff:
+
+- `kwargs.group == STORY_ARC_GROUP` with non-zero `pks` (m2m-through), or
+- `kwargs.group == FOLDER_GROUP` with non-zero `pks` and
+  `TARGET in {"cover", "choices", "bookmark", "download"}` — these targets
+  resolve folder filtering through `folders` / `comic__folders` (m2m) instead of
+  `parent_folder` (FK), per `GroupFilterView._get_rel_for_pks`, or
+- any active filter key is in
+  `{characters, credits, genres, identifier_source, locations, series_groups, stories, story_arcs, tags, teams, universes}`
+  — the BROWSER_FILTER_KEYS that resolve to m2m / m2m-through rels in
+  `_FILTER_REL_MAP`.
+
+20 tabletop cases pass (default-target browses across all groups, all four
+m2m-folder TARGETs, every BROWSER_FILTER_KEY by category, mixed filters,
+`pks=(0,)` early-out).
+
+### Result
+
+`stage5b-after.json` vs. `stage5a-after.json`:
+
+| Flow                    | Cold q / ms (5a) | Cold q / ms (5b) | Warm q / ms (5a) | Warm q / ms (5b) |
+| ----------------------- | ---------------- | ---------------- | ---------------- | ---------------- |
+| A — root browse         | 15 / 181         | 15 / 185         | 0 / 1.9          | 0 / 1.8          |
+| B — filtered search     | 16 / 1068        | 16 / 1062        | 0 / 2.0          | 0 / 1.9          |
+| C — series metadata     | 28 / 165         | 28 / 161         | 0 / 1.8          | 0 / 1.9          |
+| C2 — comic metadata     | 47 / 125         | 47 / 126         | 0 / 2.2          | 0 / 1.9          |
+| D — browse + 100 covers | 815 / 1362       | 815 / 1349       | 0 / 266          | 0 / 245          |
+| E — search + 46 covers  | 384 / 1545       | 384 / 1552       | 232 / 331        | 232 / 317        |
+
+Query counts identical (expected — `.distinct()` and `group_by` change SQL
+shape, not query count). Wall-time deltas are within run-to-run noise on the
+existing flow set.
+
+### Where 5b actually wins (not measured by current flows)
+
+The harness flows happen to land on cases the changes don't touch — root browse
+on Publisher (non-Comic; ACL through `comic__` always needs distinct), search on
+Publisher (same), single-row metadata lookups (one row, distinct is a no-op).
+The real wins are on cold paths the harness doesn't currently exercise:
+
+- **Browsing a Series's comic books** (`/api/v3/s/<pk>/<page>` returning Comic
+  cards): Comic queryset, no m2m filter → skips `.distinct()` + skips
+  `group_by("id")` on search.
+- **Folder browse with default browser TARGET**: Comic queryset, group=f, rel is
+  `parent_folder` (FK, not `folders` m2m) → skips `.distinct()`.
+- **OPDS feeds**: skip the `updated_ats` JsonGroupArray entirely.
+
+A follow-up patch should add a "browse a Series" flow to
+`tests/perf/run_baseline.py` to make these gains visible in the artifact.
+
+### Items 5.6 onward
+
+5.6 (choices endpoint) and 5.7 (cleanup bundle) remain open. 5.8 (R3 serializer
+audit) is still investigation-only.

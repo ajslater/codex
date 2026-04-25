@@ -1,0 +1,106 @@
+{
+  "series_pk_used": 325,
+  "comic_pk_used": 10785,
+  "flows": [
+    {
+      "name": "flow_a_root_browse",
+      "description": "Root browse, no filters, no search.",
+      "kind": "url",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 15,
+        "time_taken_ms": 184.98899999999998
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.795
+      }
+    },
+    {
+      "name": "flow_b_filtered_search",
+      "description": "Root browse with a search term.",
+      "kind": "url",
+      "url": "/api/v3/r/0/1?q=man",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 16,
+        "time_taken_ms": 1062.0629999999999
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.909
+      }
+    },
+    {
+      "name": "flow_c_series_metadata",
+      "description": "Metadata detail for the largest series.",
+      "kind": "url",
+      "url": "/api/v3/s/325/metadata",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 28,
+        "time_taken_ms": 161.315
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.907
+      }
+    },
+    {
+      "name": "flow_c2_comic_metadata",
+      "description": "Metadata detail for a single rich comic (exercises FK + M2M hydration).",
+      "kind": "url",
+      "url": "/api/v3/c/10785/metadata",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 47,
+        "time_taken_ms": 126.287
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.85
+      }
+    },
+    {
+      "name": "flow_d_browse_plus_covers",
+      "description": "Root browse then fetch every returned cover.",
+      "kind": "browse_plus_covers",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_requests": 101,
+        "total_sql_queries": 815,
+        "total_time_ms": 1349.32
+      },
+      "warm": {
+        "status_code": 200,
+        "num_requests": 101,
+        "total_sql_queries": 0,
+        "total_time_ms": 244.643
+      }
+    },
+    {
+      "name": "flow_e_search_plus_covers",
+      "description": "Search browse then fetch every returned cover.",
+      "kind": "browse_plus_covers",
+      "url": "/api/v3/r/0/1?q=man",
+      "cold": {
+        "status_code": 200,
+        "num_requests": 47,
+        "total_sql_queries": 384,
+        "total_time_ms": 1552.058
+      },
+      "warm": {
+        "status_code": 200,
+        "num_requests": 47,
+        "total_sql_queries": 232,
+        "total_time_ms": 316.99
+      }
+    }
+  ]
+}
