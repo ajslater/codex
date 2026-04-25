@@ -3,7 +3,10 @@
 from types import MappingProxyType
 
 from django.db.models import (
+    BooleanField,
+    ExpressionWrapper,
     F,
+    Q,
     Value,
 )
 from django.db.models.fields import CharField
@@ -54,8 +57,16 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
 
     def _annotate_has_metadata(self, qs):
         """Annotate if we have metadata."""
+        # The serializer treats this as a ``BooleanField``. Selecting the
+        # IS-NOT-NULL predicate keeps the SELECT projection a single byte
+        # per row instead of a full nullable ``DateTimeField`` value, and
+        # matches the consumer's type without an implicit truthiness coerce.
         if qs.model is Comic:
-            qs = qs.annotate(has_metadata=F("metadata_mtime"))
+            qs = qs.annotate(
+                has_metadata=ExpressionWrapper(
+                    Q(metadata_mtime__isnull=False), output_field=BooleanField()
+                )
+            )
         return qs
 
     def annotate_card_aggregates(self, qs):
