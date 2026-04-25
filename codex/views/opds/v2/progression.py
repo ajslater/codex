@@ -5,18 +5,19 @@ from http import HTTPStatus
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, override
 
-from dateparser import parse
 from django.db.models import QuerySet
 from django.db.models.expressions import F, Value
 from django.db.models.fields import FloatField
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least
 from django.db.models.query_utils import FilteredRelation
+from django.utils import timezone
 from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
+from codex.models.bookmark import Bookmark
 from codex.models.comic import Comic
 from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
 from codex.util import max_none
@@ -29,6 +30,8 @@ from codex.views.opds.v2.const import HrefData
 from codex.views.opds.v2.href import OPDS2HrefMixin
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from codex.models.groups import BrowserGroupModel
 
 _EMPTY_DEVICE = MappingProxyType(
@@ -198,31 +201,60 @@ class OPDS2ProgressionView(
             raise
 
     def put(self, *_args, **_kwargs) -> Response:
-        """Update the bookmark."""
+        """
+        Update the bookmark.
+
+        Per the OPDS v2 progression spec, when the client echoes the
+        ``modified`` timestamp it received from the matching GET, the
+        server must reject the PUT with 409 if the DB has a fresher
+        bookmark (multi-device sync conflict). The previous
+        implementation tried to detect this via a separate
+        ``_get_bookmark_query() + qs.first()`` round-trip — but the
+        serializer declared ``modified = DateTimeField(read_only=True)``
+        so DRF silently dropped the field on input, making the conflict
+        branch unreachable. The serializer is now ``required=False``;
+        the conflict check is folded into a single atomic conditional
+        UPDATE, and falls back to the async ``update_bookmark`` path
+        when no existing bookmark matches (first-time write or no
+        ``modified`` echo). Sub-plan 06 #1.
+        """
         data = self.request.data
         serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)
-
         data = serializer.validated_data
-        conflict = False
-        status_code = HTTPStatus.BAD_REQUEST
-        if new_modified_str := data.get("modified"):
-            new_modified = parse(new_modified_str)
-            qs = self._get_bookmark_query()
-            comic = qs.first()
-            conflict = comic and comic.bookmark_updated_at > new_modified
 
-        # Update anyway on missing modified. Liberal acceptance, not according to spec.
-        if conflict:
-            status_code = HTTPStatus.CONFLICT
-        else:
-            position: int | None = (
-                data.get("locator", {}).get("locations", {}).get("position")
-            )
-            if position is not None:
-                # The OPDS v2 progression spec secifies position as > 0.
-                page = max(position - 1, 0)
-                self.kwargs["page"] = page
-                self.update_bookmark()
-                status_code = HTTPStatus.OK
-        return Response(status=status_code)
+        position: int | None = (
+            data.get("locator", {}).get("locations", {}).get("position")
+        )
+        if position is None:
+            return Response(status=HTTPStatus.BAD_REQUEST)
+        # OPDS v2 progression spec: position > 0; clamp to a 0-indexed page.
+        page = max(position - 1, 0)
+        self.kwargs["page"] = page
+
+        new_modified: datetime | None = data.get("modified")
+        if new_modified is None:
+            # No timestamp echoed — liberal accept (matches the prior
+            # ``Update anyway on missing modified`` behavior).
+            self.update_bookmark()
+            return Response(status=HTTPStatus.OK)
+
+        # Atomic conditional UPDATE: succeeds only when the existing
+        # bookmark's ``updated_at`` is at-or-before the client's echo.
+        auth_filter = self.get_bookmark_auth_filter()
+        comic_pk = self.kwargs.get("pk")
+        bookmark_filter = {**auth_filter, "comic_id": comic_pk}
+        updated_count = Bookmark.objects.filter(
+            **bookmark_filter, updated_at__lte=new_modified
+        ).update(page=page, updated_at=timezone.now())
+        if updated_count:
+            return Response(status=HTTPStatus.OK)
+
+        # No row matched. Either (a) no bookmark exists yet — fall
+        # through to the async create via ``update_bookmark``, or (b) a
+        # bookmark exists but its ``updated_at`` is fresher than the
+        # client's echo → real conflict.
+        if Bookmark.objects.filter(**bookmark_filter).exists():
+            return Response(status=HTTPStatus.CONFLICT)
+        self.update_bookmark()
+        return Response(status=HTTPStatus.OK)

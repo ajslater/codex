@@ -194,3 +194,11 @@ class OPDS1EntryData:
     zero_pad: int
     metadata: bool
     mime_type_map: Mapping[str, str]
+    # Per-page batch metadata. Populated only on multi-entry acquisition
+    # feeds with metadata=True so the per-entry ``authors`` /
+    # ``contributors`` / ``category_groups`` properties read from these
+    # dicts instead of firing 9 queries per entry (sub-plan 03 #1).
+    # ``None`` triggers the legacy per-entry single-comic fallback.
+    authors_by_pk: Mapping[int, list] | None = None
+    contributors_by_pk: Mapping[int, list] | None = None
+    category_groups_by_pk: Mapping[int, Mapping[str, list]] | None = None

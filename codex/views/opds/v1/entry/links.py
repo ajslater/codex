@@ -34,6 +34,9 @@ class OPDS1EntryLinksMixin:
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
+        self._authors_by_pk = data.authors_by_pk
+        self._contributors_by_pk = data.contributors_by_pk
+        self._category_groups_by_pk = data.category_groups_by_pk
 
     def _cover_href(self, ts: int) -> str:
         """Pick the thin cover URL for the entry."""
