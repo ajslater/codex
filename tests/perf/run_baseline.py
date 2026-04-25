@@ -122,6 +122,17 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
             "url": "/api/v3/r/0/1",
         },
         {
+            "name": "flow_a2_series_browse",
+            "description": (
+                "Browse a Series's comic cards. Drives the Comic-queryset "
+                "no-m2m-filter path that Stage 5b's distinct + group_by skip "
+                "wins on — invisible from the root-browse flow because root "
+                "lands on Publisher."
+            ),
+            "kind": "url",
+            "url": f"/api/v3/s/{series_pk}/1",
+        },
+        {
             "name": "flow_b_filtered_search",
             "description": "Root browse with a search term.",
             "kind": "url",

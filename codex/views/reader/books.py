@@ -1,6 +1,6 @@
 """Get Books methods."""
 
-from django.db.models import F
+from django.db.models import BooleanField, ExpressionWrapper, F
 from django.db.models.query import Q, QuerySet
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
@@ -124,13 +124,18 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             qs = qs.select_related(*select_related)
         qs = qs.only(*fields)
         qs = self.annotate_group_names(qs)
+        # ``has_metadata`` is read as a ``BooleanField`` on the reader
+        # serializer; selecting the IS-NOT-NULL predicate skips dragging a
+        # full ``DateTimeField`` value through the result row.
         qs = qs.annotate(
             volume_number_to=(F("volume__number_to")),
             issue_count=F("volume__issue_count"),
             arc_pk=F(arc_pk_rel),
             arc_index=arc_index,
             mtime=F("updated_at"),
-            has_metadata=F("metadata_mtime"),
+            has_metadata=ExpressionWrapper(
+                Q(metadata_mtime__isnull=False), output_field=BooleanField()
+            ),
         )
         sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
             qs.model, ordering

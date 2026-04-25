@@ -10,12 +10,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 15,
-        "time_taken_ms": 181.675
+        "time_taken_ms": 175.748
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 1.906
+        "time_taken_ms": 1.891
       }
     },
     {
@@ -26,12 +26,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 16,
-        "time_taken_ms": 1068.7530000000002
+        "time_taken_ms": 1050.3590000000002
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 1.661
+        "time_taken_ms": 2.175
       }
     },
     {
@@ -42,12 +42,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 28,
-        "time_taken_ms": 167.25
+        "time_taken_ms": 161.325
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 2.07
+        "time_taken_ms": 1.688
       }
     },
     {
@@ -58,12 +58,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 47,
-        "time_taken_ms": 137.055
+        "time_taken_ms": 125.25500000000001
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 1.767
+        "time_taken_ms": 2.141
       }
     },
     {
@@ -75,13 +75,13 @@
         "status_code": 200,
         "num_requests": 101,
         "total_sql_queries": 815,
-        "total_time_ms": 1411.097
+        "total_time_ms": 1368.456
       },
       "warm": {
         "status_code": 200,
         "num_requests": 101,
         "total_sql_queries": 0,
-        "total_time_ms": 264.986
+        "total_time_ms": 258.915
       }
     },
     {
@@ -93,13 +93,13 @@
         "status_code": 200,
         "num_requests": 47,
         "total_sql_queries": 384,
-        "total_time_ms": 1557.1129999999998
+        "total_time_ms": 1532.599
       },
       "warm": {
         "status_code": 200,
         "num_requests": 47,
         "total_sql_queries": 232,
-        "total_time_ms": 312.664
+        "total_time_ms": 319.432
       }
     },
     {
@@ -110,12 +110,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 11,
-        "time_taken_ms": 53.511
+        "time_taken_ms": 58.393
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 1.7309999999999999
+        "time_taken_ms": 1.877
       }
     },
     {
@@ -126,12 +126,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 12,
-        "time_taken_ms": 197.159
+        "time_taken_ms": 203.089
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 4.968
+        "time_taken_ms": 6.6049999999999995
       }
     },
     {
@@ -142,12 +142,12 @@
       "cold": {
         "status_code": 200,
         "num_sql_queries": 11,
-        "time_taken_ms": 52.649
+        "time_taken_ms": 28.337
       },
       "warm": {
         "status_code": 200,
         "num_sql_queries": 0,
-        "time_taken_ms": 1.8370000000000002
+        "time_taken_ms": 1.964
       }
     }
   ]

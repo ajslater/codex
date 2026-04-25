@@ -322,10 +322,10 @@ audit) is still investigation-only.
 
 ### What shipped
 
-| Item    | Change                                                                                                                                                                                                       | File                                  |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| **5.6** | Replace the per-field existence loop in `BrowserChoicesAvailableView.get_object` with a single batched `EXISTS` annotate. FK fields keep "any non-null exists" semantics; m2m fields decompose into (has_rel, has_null) booleans plus a lazy distinct-count probe for the rare `has_rel ∧ ¬has_null` corner. | `codex/views/browser/choices.py`      |
-| Harness | Add `flow_f_choices_available`, `flow_g_choices_field_m2m`, `flow_h_choices_field_fk` to make the changed code path visible in the artifact. | `tests/perf/run_baseline.py`          |
+| Item    | Change                                                                                                                                                                                                                                                                                                       | File                             |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| **5.6** | Replace the per-field existence loop in `BrowserChoicesAvailableView.get_object` with a single batched `EXISTS` annotate. FK fields keep "any non-null exists" semantics; m2m fields decompose into (has_rel, has_null) booleans plus a lazy distinct-count probe for the rare `has_rel ∧ ¬has_null` corner. | `codex/views/browser/choices.py` |
+| Harness | Add `flow_f_choices_available`, `flow_g_choices_field_m2m`, `flow_h_choices_field_fk` to make the changed code path visible in the artifact.                                                                                                                                                                 | `tests/perf/run_baseline.py`     |
 
 ### Why batched + lazy instead of pure single-query
 
@@ -336,58 +336,131 @@ SQL probe per m2m field" form return wrong booleans (every m2m field reported
 True regardless of distinct count). The fix splits the m2m semantic into two
 cheap booleans:
 
-* `has_rel` — `EXISTS(qs.filter(rel__isnull=False))`
-* `has_null` — `EXISTS(qs.filter(rel__isnull=True))`
+- `has_rel` — `EXISTS(qs.filter(rel__isnull=False))`
+- `has_null` — `EXISTS(qs.filter(rel__isnull=True))`
 
 These compose:
 
-* `¬has_rel` → False (no related rows at all).
-* `has_rel ∧ has_null` → True (≥ 1 rel + a null sibling = effective count ≥ 2).
-* `has_rel ∧ ¬has_null` → distinct-count probe (`values_list(rel)[:2]` capped
-  at two rows) decides between 1-and-only and ≥ 2 distinct rels.
+- `¬has_rel` → False (no related rows at all).
+- `has_rel ∧ has_null` → True (≥ 1 rel + a null sibling = effective count ≥ 2).
+- `has_rel ∧ ¬has_null` → distinct-count probe (`values_list(rel)[:2]` capped at
+  two rows) decides between 1-and-only and ≥ 2 distinct rels.
 
-In practice the third branch fires rarely — most m2m relations on a real
-library have at least one comic without a related row, so the (has_rel,
-has_null) booleans alone resolve the field. On the dev DB none of the 12 m2m
-fields hit the distinct-count probe.
+In practice the third branch fires rarely — most m2m relations on a real library
+have at least one comic without a related row, so the (has_rel, has_null)
+booleans alone resolve the field. On the dev DB none of the 12 m2m fields hit
+the distinct-count probe.
 
 ### Why no batched ACL/setup elimination
 
-The 11-query cold-path floor on `choices_available` is the per-request setup
-the view shares with `BrowserView` (session read, AdminFlag, library
-visibility 4×, age-rating max, ACL filter pipeline 5.3-style). That's already
-amortized inside `AuthFilterAPIView`/`GroupACLMixin` and was scoped out of
-Stage 5b in §8. Stage 5d (cleanup bundle) is the next time those would
-plausibly come up.
+The 11-query cold-path floor on `choices_available` is the per-request setup the
+view shares with `BrowserView` (session read, AdminFlag, library visibility 4×,
+age-rating max, ACL filter pipeline 5.3-style). That's already amortized inside
+`AuthFilterAPIView`/`GroupACLMixin` and was scoped out of Stage 5b in §8. Stage
+5d (cleanup bundle) is the next time those would plausibly come up.
 
 ### Result
 
 `stage5c-after.json` vs. `stage5c-before.json`:
 
-| Flow                          | Cold q / ms (before)  | Cold q / ms (after)    |
-| ----------------------------- | --------------------- | ---------------------- |
-| **f — choices_available**     | **34 / 121.4**        | **11 / 53.5** (−68% q) |
-| g — choices/characters (m2m)  | 12 / 218.8            | 12 / 197.2             |
-| h — choices/year (FK)         | 11 / 26.0             | 11 / 52.7              |
-| a — root browse               | 15 / 179.9            | 15 / 181.7             |
-| b — filtered search           | 16 / 1046.3           | 16 / 1068.8            |
-| c — series metadata           | 28 / 158.3            | 28 / 167.3             |
-| c2 — comic metadata           | 47 / 124.7            | 47 / 137.1             |
-| d — browse + 100 covers       | 815 / 1353.1          | 815 / 1411.1           |
-| e — search + 46 covers        | 384 / 1520.5          | 384 / 1557.1           |
+| Flow                         | Cold q / ms (before) | Cold q / ms (after)    |
+| ---------------------------- | -------------------- | ---------------------- |
+| **f — choices_available**    | **34 / 121.4**       | **11 / 53.5** (−68% q) |
+| g — choices/characters (m2m) | 12 / 218.8           | 12 / 197.2             |
+| h — choices/year (FK)        | 11 / 26.0            | 11 / 52.7              |
+| a — root browse              | 15 / 179.9           | 15 / 181.7             |
+| b — filtered search          | 16 / 1046.3          | 16 / 1068.8            |
+| c — series metadata          | 28 / 158.3           | 28 / 167.3             |
+| c2 — comic metadata          | 47 / 124.7           | 47 / 137.1             |
+| d — browse + 100 covers      | 815 / 1353.1         | 815 / 1411.1           |
+| e — search + 46 covers       | 384 / 1520.5         | 384 / 1557.1           |
 
 Headline: `choices_available` cold path drops 23 queries (one per filter
-dimension folded into the batched `EXISTS` annotate). Wall time drops by
-~half. Single-field `choices/<field>` endpoints are unchanged because they
-weren't part of the batched fix; their per-call cost is already low (1 query
-+ setup) and they're hit lazily as the user expands sidebar sections.
+dimension folded into the batched `EXISTS` annotate). Wall time drops by ~half.
+Single-field `choices/<field>` endpoints are unchanged because they weren't part
+of the batched fix; their per-call cost is already low (1 query
+
+- setup) and they're hit lazily as the user expands sidebar sections.
 
 The single-field `choices/year` wall-time went up (26 → 53 ms) — within
-run-to-run noise on a 26 ms baseline; query count is identical. Re-runs
-straddle the 30-50 ms range.
+run-to-run noise on a 26 ms baseline; query count is identical. Re-runs straddle
+the 30-50 ms range.
 
 ### Items 5.7 onward
 
 5.7 (cleanup bundle) and 5.8 (R3 serializer audit) remain open. The
-"browse-a-Series" flow noted in §8 still hasn't shipped — should bundle with
-5.7 if it lands as a perf-harness-only patch.
+"browse-a-Series" flow noted in §8 still hasn't shipped — should bundle with 5.7
+if it lands as a perf-harness-only patch.
+
+---
+
+## 10. Stage 5d landed — cleanup bundle + browse-a-Series visibility
+
+### What shipped
+
+| Item    | Change                                                                                                                                                                                                | File                                   |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **#26** | Annotate `has_metadata` as the `IS NOT NULL` boolean predicate instead of selecting the full `metadata_mtime` `DateTimeField`. Matches the consumer's `BooleanField` and trims the SELECT projection. | `codex/views/browser/annotate/card.py` |
+| **#26** | Same boolean-cast for the reader-books annotation.                                                                                                                                                    | `codex/views/reader/books.py`          |
+| Harness | Add `flow_a2_series_browse` — browses a Series's comic cards. Surfaces the Stage 5b distinct/group_by skip path that the root-browse flow misses (root lands on Publisher, not Comic).                | `tests/perf/run_baseline.py`           |
+
+### What got investigated and skipped
+
+The 5.7 bundle as scoped (`#18 #25 #26 #30 #31`) shrank once each item was
+re-read against the post-5c code:
+
+- **#18** — already absorbed into 5c. The choices_available batched-EXISTS
+  rewrite collapsed the existence-check loop in the same pass.
+- **#25** (skip `sort_name` alias fan-out beyond current parent_group) —
+  `_get_order_groups` in `codex/views/mixins.py` already does the parent-aware
+  reduction for the common drill-down case (single-pk descent slices
+  `_SHOW_GROUPS[parent_index + 1:]`). The remaining fan-out is at root / folder
+  / story-arc browses, where each parent-group sort_name participates in the
+  ORDER BY tie-break. Trimming further would change ordering semantics, which is
+  outside cleanup scope.
+- **#30** (request-scope bookmark notification dedup) —
+  `BookmarkUpdateMixin.update_bookmarks` already emits exactly one
+  `_notify_library_changed` per call after both the bulk_update and bulk_create
+  halves complete. The view's `patch` handler calls `update_bookmarks` once.
+  Coalescing across HTTP requests would need a debounce window with its own
+  latency cost — outside cleanup scope.
+- **#31** (incremental download streaming) — `download.py` already streams via
+  `zipstream-ng`'s sized `ZipStream`, whose `__iter__` "is generated from source
+  files/data as it's iterated over" (per the package docstring) and composes
+  with Django's `FileResponse`. The pre-`len(zs)` call sizes the archive without
+  reading file contents. Already incremental.
+- **#19**, **#20**, **#27**, **#28** (other Tier-4 candidates not in the
+  original 5.7 scope but checked while drafting this) — all already done in
+  earlier stages or by hand. `_DB_OPS = BaseDatabaseOperations(None)` is already
+  module-level in `expression.py`; `annotate_group_names` is gated via
+  `_GROUP_NAME_TARGETS`; the dead `search/field/optimize.py` doesn't exist in
+  this tree (the only `optimize.py` is in `librarian/scribe/search/` and is
+  live).
+
+### Result
+
+`stage5d-after.json` vs. `stage5d-before.json`:
+
+| Flow                       | Cold q / ms (before) | Cold q / ms (after) | Warm q / ms (before) | Warm q / ms (after) |
+| -------------------------- | -------------------- | ------------------- | -------------------- | ------------------- |
+| a — root browse            | 15 / 175.8           | 15 / 179.3          | 0 / 1.9              | 0 / 2.1             |
+| **a2 — series browse**     | _new_                | **6 / 13.0**        | _new_                | **4 / 9.4**         |
+| b — filtered search        | 16 / 1050.4          | 16 / 1064.9         | 0 / 2.2              | 0 / 2.0             |
+| c — series metadata        | 28 / 161.3           | 28 / 161.3          | 0 / 1.7              | 0 / 3.1             |
+| c2 — comic metadata        | 47 / 125.3           | 47 / 137.0          | 0 / 2.1              | 0 / 2.0             |
+| d — browse + 100 covers    | 815 / 1368.5         | 815 / 1363.7        | 0 / 258.9            | 0 / 253.1           |
+| e — search + 46 covers     | 384 / 1532.6         | 384 / 1536.6        | 232 / 319.4          | 232 / 307.8         |
+| f — choices_available      | 11 / 58.4            | 11 / 52.5           | 0 / 1.9              | 0 / 2.0             |
+| g — choices/characters m2m | 12 / 203.1           | 12 / 196.8          | 0 / 6.6              | 0 / 5.2             |
+| h — choices/year FK        | 11 / 28.3            | 11 / 24.4           | 0 / 2.0              | 0 / 1.8             |
+
+Cold/warm query counts are unchanged — the boolean cast doesn't trigger any
+extra trips, just trims the row payload. Wall-time deltas on the existing flows
+are within run-to-run noise. `flow_a2_series_browse` is the headline: **6 cold /
+4 warm queries** for a Comic-card listing inside a Series, ~13 ms cold. That's
+the win Stage 5b made possible — visible now that the harness covers the path.
+
+### Items 5.8 onward
+
+Only **5.8** (R3 serializer audit) remains open from the Stage 5 backlog, and
+it's investigation-only.
