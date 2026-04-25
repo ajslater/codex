@@ -24,6 +24,7 @@ config
 dist
 frontend
 node_modules
+tasks
 test-results
 tests/**/*.json
 tests/**/*.xml
