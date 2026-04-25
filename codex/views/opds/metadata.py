@@ -2,11 +2,7 @@
 
 from collections.abc import Iterable, Sequence
 
-from django.db.models import F
-from django.db.models.query import QuerySet
-
 from codex.models import (
-    Credit,
     CreditPerson,
 )
 from codex.views.auth import GroupACLMixin
@@ -33,18 +29,6 @@ def get_credit_people(comic_pks: Sequence[int], roles: Iterable[str], *, exclude
     else:
         people = people.filter(credit__role__name__in=roles)
     return people.distinct().only("name")
-
-
-def get_credits(
-    comic_pks: Sequence[int], roles: Iterable[str], *, exclude: bool
-) -> QuerySet:
-    """Get credits that are not part of other roles."""
-    credit_qs = Credit.objects.filter(comic__in=comic_pks)
-    if exclude:
-        credit_qs = credit_qs.exclude(role__name__in=roles)
-    else:
-        credit_qs = credit_qs.filter(role__name__in=roles)
-    return credit_qs.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
 def get_m2m_objects(pks: Sequence[int]) -> dict:
