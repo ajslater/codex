@@ -2,8 +2,6 @@
 
 import json
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from math import floor
 from types import MappingProxyType
 from typing import override
 
@@ -98,7 +96,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             "page": 1,
         }
         number = obj.issue_number
-        ts = floor(datetime.timestamp(obj.updated_at))
+        ts = self._obj_ts(obj)
         query_params = {
             "ts": ts,
             "topGroup": "p",
@@ -114,7 +112,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         pks = [folder.pk]
         kwargs = {"group": "f", "pks": pks, "page": 1}
         number = None
-        ts = floor(datetime.timestamp(obj.updated_at))
+        ts = self._obj_ts(obj)
         query_params = {"ts": ts, "topGroup": "f"}
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
@@ -123,18 +121,23 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         story_arcs = []
         rel = GroupACLMixin.get_rel_prefix(StoryArcNumber)
         comic_filter = {rel + "in": [obj.pk]}
+        # ``select_related("story_arc")`` materializes the FK in the
+        # same query — the prior ``.only("story_arc", "number")`` form
+        # deferred the FK and triggered a per-row ``StoryArc.objects.get``
+        # (textbook N+1, sub-plan 05 #2).
         story_arc_numbers = (
             StoryArcNumber.objects.filter(**comic_filter)
-            .only("story_arc", "number")
+            .select_related("story_arc")
+            .only("number", "story_arc__name")
             .order_by("story_arc__name")
         )
+        ts = self._obj_ts(obj)
         for story_arc_number in story_arc_numbers:
             story_arc = story_arc_number.story_arc
             name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
             kwargs = {"group": "a", "pks": pks, "page": 1}
-            ts = floor(datetime.timestamp(obj.updated_at))
             query_params = {"ts": ts, "topGroup": "a"}
 
             story_arc = self._publication_belongs_to_link(
@@ -237,7 +240,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         reading_order = []
         if not obj:
             return reading_order
-        ts = floor(datetime.timestamp(obj.updated_at))
+        ts = self._obj_ts(obj)
         query_params = {"ts": ts}
         for page_num in range(obj.page_count):
             kwargs = {"pk": obj.pk, "page": page_num}
@@ -262,7 +265,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         images = []
         if not obj:
             return images
-        ts = floor(datetime.timestamp(obj.updated_at))
+        ts = self._obj_ts(obj)
         pk = obj.ids[0]
         kwargs = {"pk": pk, "page": 0}
         query_params = {"ts": ts, "bookmark": False, "pixmap": True}

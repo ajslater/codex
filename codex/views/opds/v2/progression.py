@@ -223,7 +223,6 @@ class OPDS2ProgressionView(
                 # The OPDS v2 progression spec secifies position as > 0.
                 page = max(position - 1, 0)
                 self.kwargs["page"] = page
-                max(position - 1, 0)
                 self.update_bookmark()
                 status_code = HTTPStatus.OK
         return Response(status=status_code)
