@@ -315,3 +315,79 @@ A follow-up patch should add a "browse a Series" flow to
 
 5.6 (choices endpoint) and 5.7 (cleanup bundle) remain open. 5.8 (R3 serializer
 audit) is still investigation-only.
+
+---
+
+## 9. Stage 5c landed — choices_available batching
+
+### What shipped
+
+| Item    | Change                                                                                                                                                                                                       | File                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| **5.6** | Replace the per-field existence loop in `BrowserChoicesAvailableView.get_object` with a single batched `EXISTS` annotate. FK fields keep "any non-null exists" semantics; m2m fields decompose into (has_rel, has_null) booleans plus a lazy distinct-count probe for the rare `has_rel ∧ ¬has_null` corner. | `codex/views/browser/choices.py`      |
+| Harness | Add `flow_f_choices_available`, `flow_g_choices_field_m2m`, `flow_h_choices_field_fk` to make the changed code path visible in the artifact. | `tests/perf/run_baseline.py`          |
+
+### Why batched + lazy instead of pure single-query
+
+The natural `EXISTS(SELECT DISTINCT rel ... LIMIT 1 OFFSET 1)` formulation
+collapses on SQLite: `EXISTS` short-circuits on the first row produced by the
+join, before `DISTINCT` collapses or `OFFSET` skips. That made a "true single
+SQL probe per m2m field" form return wrong booleans (every m2m field reported
+True regardless of distinct count). The fix splits the m2m semantic into two
+cheap booleans:
+
+* `has_rel` — `EXISTS(qs.filter(rel__isnull=False))`
+* `has_null` — `EXISTS(qs.filter(rel__isnull=True))`
+
+These compose:
+
+* `¬has_rel` → False (no related rows at all).
+* `has_rel ∧ has_null` → True (≥ 1 rel + a null sibling = effective count ≥ 2).
+* `has_rel ∧ ¬has_null` → distinct-count probe (`values_list(rel)[:2]` capped
+  at two rows) decides between 1-and-only and ≥ 2 distinct rels.
+
+In practice the third branch fires rarely — most m2m relations on a real
+library have at least one comic without a related row, so the (has_rel,
+has_null) booleans alone resolve the field. On the dev DB none of the 12 m2m
+fields hit the distinct-count probe.
+
+### Why no batched ACL/setup elimination
+
+The 11-query cold-path floor on `choices_available` is the per-request setup
+the view shares with `BrowserView` (session read, AdminFlag, library
+visibility 4×, age-rating max, ACL filter pipeline 5.3-style). That's already
+amortized inside `AuthFilterAPIView`/`GroupACLMixin` and was scoped out of
+Stage 5b in §8. Stage 5d (cleanup bundle) is the next time those would
+plausibly come up.
+
+### Result
+
+`stage5c-after.json` vs. `stage5c-before.json`:
+
+| Flow                          | Cold q / ms (before)  | Cold q / ms (after)    |
+| ----------------------------- | --------------------- | ---------------------- |
+| **f — choices_available**     | **34 / 121.4**        | **11 / 53.5** (−68% q) |
+| g — choices/characters (m2m)  | 12 / 218.8            | 12 / 197.2             |
+| h — choices/year (FK)         | 11 / 26.0             | 11 / 52.7              |
+| a — root browse               | 15 / 179.9            | 15 / 181.7             |
+| b — filtered search           | 16 / 1046.3           | 16 / 1068.8            |
+| c — series metadata           | 28 / 158.3            | 28 / 167.3             |
+| c2 — comic metadata           | 47 / 124.7            | 47 / 137.1             |
+| d — browse + 100 covers       | 815 / 1353.1          | 815 / 1411.1           |
+| e — search + 46 covers        | 384 / 1520.5          | 384 / 1557.1           |
+
+Headline: `choices_available` cold path drops 23 queries (one per filter
+dimension folded into the batched `EXISTS` annotate). Wall time drops by
+~half. Single-field `choices/<field>` endpoints are unchanged because they
+weren't part of the batched fix; their per-call cost is already low (1 query
++ setup) and they're hit lazily as the user expands sidebar sections.
+
+The single-field `choices/year` wall-time went up (26 → 53 ms) — within
+run-to-run noise on a 26 ms baseline; query count is identical. Re-runs
+straddle the 30-50 ms range.
+
+### Items 5.7 onward
+
+5.7 (cleanup bundle) and 5.8 (R3 serializer audit) remain open. The
+"browse-a-Series" flow noted in §8 still hasn't shipped — should bundle with
+5.7 if it lands as a perf-harness-only patch.

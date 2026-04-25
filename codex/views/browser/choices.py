@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Any, override
 
 from caseconverter import snakecase
-from django.db.models import F, QuerySet
+from django.db.models import Exists, F, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -74,6 +74,9 @@ _BACK_REL_MAP = MappingProxyType(
 )
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
 _NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
+# We only need to know whether an m2m relation has two or more distinct
+# non-null values; ``[:2]`` is enough to distinguish 0/1/>=2 cases.
+_M2M_DISTINCT_PROBE_LIMIT = 2
 
 
 class BrowserChoicesViewBase(BrowserFilterView):
@@ -133,55 +136,117 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
     serializer_class: type[BaseSerializer] | None = BrowserFilterChoicesSerializer
 
-    @classmethod
-    def _is_field_choices_exists(cls, comic_qs, field_name) -> bool:
-        """Create a pk:name object for fields without tables."""
-        qs = cls.get_field_choices_query(comic_qs, field_name)
-        return qs.exists()
+    @staticmethod
+    def _has_two_distinct_m2m_values(comic_qs: QuerySet, rel: str) -> bool:
+        """
+        Return True iff ``rel`` resolves to >= 2 distinct non-null values.
 
-    def _is_m2m_field_choices_exists(self, model, comic_qs, rel) -> bool:
-        """Get choices with nulls where there are nulls."""
-        qs = self.get_m2m_field_query(model, comic_qs)
-        qs = qs[:2]
-        count = qs.count()
-        if count > 1:
-            # There are choices
-            return True
-        if count == 1:
-            # There are only choices if a null exists
-            return self.does_m2m_null_exist(comic_qs, rel)
-        # There is only one or no choices.
-        return False
+        The natural ``EXISTS(SELECT DISTINCT rel ... LIMIT 1 OFFSET 1)`` form
+        is broken on SQLite: ``EXISTS`` short-circuits on the first row from
+        the underlying join, before ``DISTINCT`` collapses or ``OFFSET``
+        skips. Materializing the first two distinct values via Python and
+        checking length sidesteps the bug while still capping work at two
+        rows scanned.
+        """
+        first_two = list(
+            comic_qs.filter(**{f"{rel}__isnull": False})
+            .values_list(rel, flat=True)
+            .distinct()[:_M2M_DISTINCT_PROBE_LIMIT]
+        )
+        return len(first_two) >= _M2M_DISTINCT_PROBE_LIMIT
 
-    def _is_filter_field_choices_exists(self, qs: QuerySet, field_name: str) -> bool:
-        rel, m2m_model = self.get_rel_and_model(field_name)
+    def _build_field_probes(
+        self, qs: QuerySet
+    ) -> tuple[dict[str, bool], dict[str, Exists], dict[str, str]]:
+        """
+        Walk the dynamic filter fields and partition them into probe groups.
 
-        if m2m_model:
-            exists = self._is_m2m_field_choices_exists(m2m_model, qs, rel)
-        else:
-            exists = self._is_field_choices_exists(qs, field_name)
-        try:
-            flag = exists
-        except TypeError:
-            flag = False
-        return flag
+        Returns ``(early_data, aggregates, m2m_specs)``:
 
-    @override
-    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
-        """Get choice counts."""
-        qs = super().get_object()
-        filters = self.params.get("filters", {})
-        data = {}
+        * ``early_data`` — fields whose availability is decided without SQL
+          (story-arc browse skip, active filter shortcuts).
+        * ``aggregates`` — kwargs for the batched ``EXISTS`` annotate call.
+          FK fields use their public ``field_name``; m2m fields contribute
+          ``_has_<name>`` and ``_null_<name>`` underscored keys.
+        * ``m2m_specs`` — ``field_name -> rel`` for fields that need the
+          post-aggregate resolve step.
+        """
+        filters = self.params.get("filters") or {}
+        early_data: dict[str, bool] = {}
+        aggregates: dict[str, Exists] = {}
+        m2m_specs: dict[str, str] = {}
         serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # pyright: ignore[reportOptionalCall, reportAssignmentType], # ty: ignore[call-non-callable, invalid-assignment]
         for field_name in serializer.get_fields():
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
             if bool(filters.get(field_name)):
-                flag = True
+                # Active filter on this dimension — the user is already
+                # filtering by it, so it must be available.
+                early_data[field_name] = True
+                continue
+            rel, m2m_model = self.get_rel_and_model(field_name)
+            if m2m_model is None:
+                # FK on Comic: legacy semantic is "any non-null value exists".
+                aggregates[field_name] = Exists(
+                    qs.filter(**{f"{field_name}__isnull": False}).values("pk")[:1]
+                )
             else:
-                flag = self._is_filter_field_choices_exists(qs, field_name)
-            data[field_name] = flag
+                # m2m / m2m-through: legacy semantic is "(distinct rels >= 2)
+                # OR (>= 1 rel AND a null sibling)". Decompose into two
+                # cheap EXISTS booleans; the rarer "1 rel, 0 null" case
+                # falls back to a per-field distinct-count probe below.
+                m2m_specs[field_name] = rel
+                aggregates[f"_has_{field_name}"] = Exists(
+                    qs.filter(**{f"{rel}__isnull": False}).values("pk")[:1]
+                )
+                aggregates[f"_null_{field_name}"] = Exists(
+                    qs.filter(**{f"{rel}__isnull": True}).values("pk")[:1]
+                )
+        return early_data, aggregates, m2m_specs
+
+    def _resolve_m2m_field(
+        self, qs: QuerySet, field_name: str, rel: str, row: dict[str, Any]
+    ) -> bool:
+        """Resolve one m2m field from the (has_rel, has_null) booleans."""
+        has_rel = bool(row.get(f"_has_{field_name}"))
+        if not has_rel:
+            return False
+        if bool(row.get(f"_null_{field_name}")):
+            return True
+        return self._has_two_distinct_m2m_values(qs, rel)
+
+    @override
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+        """Get choice availability for all dynamic filter fields in one query."""
+        qs = super().get_object()
+        data, aggregates, m2m_specs = self._build_field_probes(qs)
+        if aggregates:
+            # One SQL round-trip: pin a 1-row anchor on Comic and let SQLite
+            # evaluate every EXISTS subquery in one shot. The anchor row's
+            # pk is irrelevant — only the subqueries' booleans matter, and
+            # the EXISTS clauses are uncorrelated to the outer row.
+            row = (
+                qs.model.objects.values("pk")
+                .annotate(**aggregates)
+                .values(*aggregates.keys())
+                .first()
+            ) or {}
+        else:
+            row = {}
+
+        # FK fields drop straight in by their public name.
+        data.update(
+            {
+                name: bool(row.get(name))
+                for name in aggregates
+                if not name.startswith("_")
+            }
+        )
+        # m2m fields fan out from the (has_rel, has_null) booleans, with a
+        # distinct-count probe only for the (has_rel, ¬has_null) corner.
+        for field_name, rel in m2m_specs.items():
+            data[field_name] = self._resolve_m2m_field(qs, field_name, rel, row)
         return data
 
 

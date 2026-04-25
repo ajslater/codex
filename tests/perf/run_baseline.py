@@ -151,6 +151,24 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
             "kind": "browse_plus_covers",
             "url": f"{_BROWSE_PLUS_COVERS_URL}?q=man",
         },
+        {
+            "name": "flow_f_choices_available",
+            "description": "Filter sidebar open: which dynamic filter fields have >1 choice.",
+            "kind": "url",
+            "url": "/api/v3/r/0/choices_available",
+        },
+        {
+            "name": "flow_g_choices_field_m2m",
+            "description": "Filter sidebar expand: m2m field with many choices (characters).",
+            "kind": "url",
+            "url": "/api/v3/r/0/choices/characters",
+        },
+        {
+            "name": "flow_h_choices_field_fk",
+            "description": "Filter sidebar expand: FK field on Comic (year).",
+            "kind": "url",
+            "url": "/api/v3/r/0/choices/year",
+        },
     ]
 
 
