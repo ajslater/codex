@@ -252,6 +252,13 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     def _get_publications_preview_feed_view(self, link_spec: Link):
         feed_view = OPDS2FeedLinksView()
         feed_view.request = self.request
+        # Share request-scoped caches with the parent so each preview
+        # link_spec doesn't repeat the AdminFlag fetch + visible-library
+        # ACL lookup. ``_admin_flags`` and ``_cached_visible_library_pks``
+        # depend on (user, request) only, not on params/kwargs — safe to
+        # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
+        feed_view._admin_flags = self.admin_flags  # noqa: SLF001
+        feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
         group = link_spec.group
         feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
         params = self.get_browser_default_params()
