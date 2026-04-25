@@ -92,7 +92,7 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     artist = OPDS2ContributorSerializer(many=True, required=False)
     illustrator = OPDS2ContributorSerializer(many=True, required=False)
     letterer = OPDS2ContributorSerializer(many=True, required=False)
-    peniciller = OPDS2ContributorSerializer(many=True, required=False)
+    penciller = OPDS2ContributorSerializer(many=True, required=False)
     colorist = OPDS2ContributorSerializer(many=True, required=False)
     inker = OPDS2ContributorSerializer(many=True, required=False)
     narrator = OPDS2ContributorSerializer(many=True, required=False)
