@@ -12,6 +12,8 @@ border-radius: 128px;
     - Age Rating Restrictions now available in the Admin Users tab.
     - Bulk importing performance improvements. Comicbox learned how to use
       multiprocessing & caching.
+- Fix
+    - Fix OPDS v2 progression syncing response.
 
 ## v1.10.12
 
