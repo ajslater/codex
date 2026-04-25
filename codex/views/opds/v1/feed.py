@@ -15,7 +15,11 @@ from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import OPDS1TemplateSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
 from codex.version import VERSION
-from codex.views.opds.const import BLANK_TITLE
+from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE
+from codex.views.opds.metadata import (
+    get_credit_people_by_comic,
+    get_m2m_objects_by_comic,
+)
 from codex.views.opds.start import OPDSStartViewMixin
 from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -115,8 +119,32 @@ class OPDS1FeedView(OPDS1LinksView):
         entries = []
         if objs := self.obj.get(key):
             zero_pad: int = self.obj["zero_pad"]
+            # Pre-compute the per-page M2M batches when this section is
+            # the books section AND ?opdsMetadata=1 is requested. Each
+            # OPDS1Entry's ``authors`` / ``contributors`` /
+            # ``category_groups`` properties otherwise fire 9 queries
+            # per entry (sub-plan 03 #1) — at 100+ entries the worst
+            # case is 900+ queries on a single feed page. The batched
+            # helpers UNION the M2M tables and partition in Python so
+            # the cost collapses to 3 queries total per feed page.
+            authors_by_pk = contributors_by_pk = category_groups_by_pk = None
+            if metadata and key == "books":
+                all_pks = [obj.pk for obj in objs]
+                authors_by_pk = get_credit_people_by_comic(
+                    all_pks, AUTHOR_ROLES, exclude=False
+                )
+                contributors_by_pk = get_credit_people_by_comic(
+                    all_pks, AUTHOR_ROLES, exclude=True
+                )
+                category_groups_by_pk = get_m2m_objects_by_comic(all_pks)
             data = OPDS1EntryData(
-                self.opds_acquisition_groups, zero_pad, metadata, self.mime_type_map
+                self.opds_acquisition_groups,
+                zero_pad,
+                metadata,
+                self.mime_type_map,
+                authors_by_pk=authors_by_pk,
+                contributors_by_pk=contributors_by_pk,
+                category_groups_by_pk=category_groups_by_pk,
             )
             fallback = bool(self.admin_flags.get("folder_view"))
             import_pks = set()
