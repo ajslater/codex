@@ -2,10 +2,10 @@
 
 import json
 from collections.abc import Mapping, Sequence
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import override
 
-from django.db.models import F, QuerySet
+from django.db.models import CharField, F, Value
 
 from codex.models.base import BaseModel, NamedModel
 from codex.models.identifier import Identifier
@@ -14,8 +14,13 @@ from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
 from codex.views.auth import GroupACLMixin
-from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE, MimeType, Rel
-from codex.views.opds.metadata import get_credits, get_m2m_objects
+from codex.views.opds.const import (
+    AUTHOR_ROLES,
+    BLANK_TITLE,
+    OPDS_M2M_MODELS,
+    MimeType,
+    Rel,
+)
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
 
@@ -177,28 +182,67 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         obj.links = (link,)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
     def _publication_subject(self, obj) -> tuple[NamedModel, ...]:
-        m2m_objs = get_m2m_objects(obj.ids)
-        flat_subjs = []
-        for key, subjs in m2m_objs.items():
-            filter_key = key + "s"
-            for subj in subjs:
-                self._add_tag_link(subj, filter_key)
-                flat_subjs.append(subj)
+        """
+        Fetch all M2M subject rows in one UNION query, partition by kind.
+
+        Replaces the prior 7-query loop in ``get_m2m_objects`` (one query
+        per ``OPDS_M2M_MODELS`` entry) with a single ``UNION ALL`` over
+        ``(pk, name, _kind)`` tuples (sub-plan 05 #3). The reconstructed
+        ``SimpleNamespace`` rows expose only ``pk`` / ``name`` / ``links``
+        — the surface ``_add_tag_link`` and ``OPDS2SubjectSerializer``
+        actually read.
+        """
+        if not OPDS_M2M_MODELS:
+            return ()
+        queries = []
+        for model in OPDS_M2M_MODELS:
+            rel = GroupACLMixin.get_rel_prefix(model)
+            kind = model.__name__.lower()
+            q = (
+                model.objects.filter(**{rel + "in": obj.ids})
+                .annotate(_kind=Value(kind, output_field=CharField()))
+                .values("pk", "name", "_kind")
+            )
+            queries.append(q)
+        rows = queries[0].union(*queries[1:], all=True).order_by("_kind", "name")
+
+        flat_subjs: list[NamedModel] = []
+        for row in rows:
+            kind = row["_kind"]
+            subj = SimpleNamespace(pk=row["pk"], name=row["name"], links=())
+            self._add_tag_link(subj, kind + "s")  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            flat_subjs.append(subj)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         return tuple(flat_subjs)
 
-    def _add_credits(self, pks, roles) -> QuerySet[Credit] | None:
-        """Add credits to metadata."""
-        if credit_objs := get_credits(pks, roles, exclude=False):
-            for credit_obj in credit_objs:
-                self._add_tag_link(credit_obj, "credits", "person")
-            return credit_objs
-        return None
-
     def _publication_credits(self, obj) -> Mapping[str, tuple[Credit, ...]]:
-        credit_md = {}
+        """
+        Fetch all credits for the comic in one query, partition by role.
+
+        Replaces the prior 11-query loop (one ``get_credits`` filter per
+        ``_MD_CREDIT_MAP`` key) plus the lazy ``credit.person`` FK fan-out
+        triggered by ``_add_tag_link``. ``select_related("person", "role")``
+        materializes both joins in the same query (sub-plan 05 #1).
+        """
+        all_credits = list(
+            Credit.objects.filter(comic__in=obj.ids)
+            .select_related("person", "role")
+            .annotate(name=F("person__name"), role_name=F("role__name"))
+        )
+        if not all_credits:
+            return {}
+
+        by_role: dict[str, list[Credit]] = {}
+        for credit in all_credits:
+            by_role.setdefault(credit.role_name, []).append(credit)  # pyright: ignore[reportAttributeAccessIssue]
+
+        credit_md: dict[str, tuple[Credit, ...]] = {}
         for key, roles in _MD_CREDIT_MAP.items():
-            if credit_objs := self._add_credits(obj.ids, roles):
-                credit_md[key] = credit_objs
+            bucket = [c for role in roles for c in by_role.get(role, [])]
+            if not bucket:
+                continue
+            for credit in bucket:
+                self._add_tag_link(credit, "credits", "person")
+            credit_md[key] = tuple(bucket)
         return credit_md
 
     @override
