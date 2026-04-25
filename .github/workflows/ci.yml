@@ -129,7 +129,7 @@ jobs:
           retention-days: 2
 
       - name: Discord notification (Test Results)
-        if: "!cancelled()"
+        if: "!cancelled() && false"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
@@ -258,7 +258,7 @@ jobs:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
       - name: Discord notification (Deploy Results)
-        if: "!cancelled()"
+        if: "!cancelled() && false"
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
