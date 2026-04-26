@@ -47,9 +47,11 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
 
     def _get_page_image(self) -> tuple:
         """Get the image data and content type."""
-        # Get comic - Distinct is important
+        # ``.get(pk=...)`` collapses any duplicates an ACL JOIN might
+        # introduce; the explicit ``.distinct()`` on a single-row
+        # fetch is redundant (sub-plan 03 #6).
         acl_filter = self.get_acl_filter(Comic, self.request.user)
-        qs = Comic.objects.filter(acl_filter).only("path", "file_type").distinct()
+        qs = Comic.objects.filter(acl_filter).only("path", "file_type")
         pk = self.kwargs.get("pk")
         comic = qs.get(pk=pk)
 

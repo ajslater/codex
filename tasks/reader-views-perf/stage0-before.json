@@ -1,0 +1,121 @@
+{
+  "series_pk_used": 325,
+  "comic_pk_used": 10785,
+  "busy_series_comic_pk_used": 1876,
+  "high_page_pk_used": 157,
+  "high_page_count": 233,
+  "flows": [
+    {
+      "name": "reader_open",
+      "description": "Reader endpoint for the busiest comic (richest M2M coverage). Hits the params / arcs / books / reader inheritance chain \u2014 the prev/curr/next window builder is the hot path here (sub-plan 01 #1).",
+      "kind": "url",
+      "url": "/api/v3/c/10785",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 27,
+        "time_taken_ms": 53.736
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 26,
+        "time_taken_ms": 44.266
+      }
+    },
+    {
+      "name": "reader_open_large_arc",
+      "description": "Reader endpoint for a comic inside the busiest series \u2014 specifically the middle issue, which is the worst case for ``get_book_collection``'s prev/curr/next iteration (sub-plan 01 #1).",
+      "kind": "url",
+      "url": "/api/v3/c/1876",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 29,
+        "time_taken_ms": 109.70299999999999
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 28,
+        "time_taken_ms": 60.394999999999996
+      }
+    },
+    {
+      "name": "settings_global",
+      "description": "Reader settings GET \u2014 global scope only.",
+      "kind": "url",
+      "url": "/api/v3/c/settings?scopes=g",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 4,
+        "time_taken_ms": 9.264
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 3,
+        "time_taken_ms": 5.784
+      }
+    },
+    {
+      "name": "settings_multiscope",
+      "description": "Reader settings GET \u2014 global + series + comic scopes. Each non-trivial scope fires its own query plus a name lookup (sub-plan 02 #1).",
+      "kind": "url",
+      "url": "/api/v3/c/10785/settings?scopes=g,s,c",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 8,
+        "time_taken_ms": 16.891
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 7,
+        "time_taken_ms": 11.203
+      }
+    },
+    {
+      "name": "page_first",
+      "description": "Page binary GET for page 0 of the high-page-count comic. Exercises the Comicbox archive open + first-page extraction + bookmark-update task enqueue (sub-plan 03 #1).",
+      "kind": "url",
+      "url": "/api/v3/c/157/0/page.jpg",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 9,
+        "time_taken_ms": 17.029
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 8,
+        "time_taken_ms": 10.618
+      }
+    },
+    {
+      "name": "page_middle",
+      "description": "Page binary GET for a middle page of the high-page-count comic \u2014 exercises the same archive open as page_first; wall-time difference reflects per-page extraction variance.",
+      "kind": "url",
+      "url": "/api/v3/c/157/116/page.jpg",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 9,
+        "time_taken_ms": 16.376
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 8,
+        "time_taken_ms": 11.07
+      }
+    },
+    {
+      "name": "page_no_bookmark",
+      "description": "Page binary GET with ``?bookmark=0`` \u2014 same archive open as page_first but skips the librarian-queue enqueue. The wall-time delta vs. page_first reflects task-queue overhead (sub-plan 03 #3).",
+      "kind": "url",
+      "url": "/api/v3/c/157/0/page.jpg?bookmark=0",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 9,
+        "time_taken_ms": 19.081999999999997
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 8,
+        "time_taken_ms": 9.964
+      }
+    }
+  ]
+}
