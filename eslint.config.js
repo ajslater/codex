@@ -19,6 +19,7 @@ export default defineConfig([
       "codex/templates/*.html", // Handled by djlint
       "codex/templates/**/*.html", // Handled by djlint
       "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
+      "tasks",
       // "frontend",
     ],
   },
