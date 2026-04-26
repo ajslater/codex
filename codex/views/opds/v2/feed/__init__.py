@@ -1,6 +1,5 @@
 """OPDS v2.0 Feed."""
 
-import json
 import urllib.parse
 from collections.abc import Iterable, Mapping
 from datetime import datetime
@@ -32,17 +31,20 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
     IS_START_PAGE: bool = False
 
-    def _subtitle_filters(self, qps: Mapping) -> list[str]:
-        parts = []
-        if not (
-            (filters := qps.get("filters"))
-            and (filters := urllib.parse.unquote(filters))
-            and (filters := json.loads(filters))
-        ):
+    def _subtitle_filters(self) -> list[str]:
+        parts: list[str] = []
+        # ``self.params["filters"]`` is the BrowserSettingsFilterInputSerializer's
+        # already-parsed dict (the BrowserView pipeline builds it once at
+        # request validation time). Reading it here avoids a third JSON
+        # parse + URL-unquote of the same payload — the same parse the
+        # serializer and ``get_comic_field_filter`` already performed
+        # (sub-plan 02 #5).
+        filters = self.params.get("filters") or {}
+        if not filters:
             return parts
 
-        filter_keys = []
-        for key, value in filters.items():  # ty: ignore[unresolved-attribute]
+        filter_keys: list[str] = []
+        for key, value in filters.items():
             if not value:
                 continue
             if key == "bookmark":
@@ -59,7 +61,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         # Add filters and order
         parts = []
         qps = self.request.GET
-        parts += self._subtitle_filters(qps)
+        parts += self._subtitle_filters()
         if q := qps.get("query"):
             if search_query := urllib.parse.unquote(q):
                 parts.append(search_query)

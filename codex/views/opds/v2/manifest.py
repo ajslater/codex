@@ -53,6 +53,12 @@ _PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
     "belongs_to",
     "subject",
 )
+# Out-of-range page sentinel used to resolve the ``opds:bin:page`` URL
+# template once and format-substitute per iteration in
+# ``_publication_reading_order``. Any positive int wider than realistic
+# page counts works; 999999999 is well clear of any plausible
+# ``page_count`` (sub-plan 05 #4).
+_READING_ORDER_PAGE_SENTINEL: int = 999999999
 
 
 class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
@@ -279,31 +285,40 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         """
         Reader manifest for OPDS 2.0.
 
-        This part of the spec is redundant, but required.
+        This part of the spec is redundant, but required. Resolves the
+        ``opds:bin:page`` URL once with a sentinel page index, then
+        format-substitutes the actual page number per iteration —
+        eliminates ``N - 1`` ``reverse()`` calls per manifest hit (sub-plan
+        05 #4). For a 500-page PDF that's 499 reverse() calls saved.
         """
-        reading_order = []
-        if not obj:
-            return reading_order
+        if not obj or not obj.page_count:
+            return []
         ts = self._obj_ts(obj)
         query_params = {"ts": ts}
-        for page_num in range(obj.page_count):
-            kwargs = {"pk": obj.pk, "page": page_num}
-            href_data = HrefData(
-                kwargs,
-                query_params,
-                url_name="opds:bin:page",
-                min_page=0,
-                max_page=obj.page_count,
-            )
-            href = self.href(href_data)
-            page = {
-                "href": href,
-                # type is required, but not calculated for efficiency.
-                "type": MimeType.JPEG,
-                # height and width not pre-calculated and fortunately not required by Stump
-            }
-            reading_order.append(page)
-        return reading_order
+        # Use a sentinel index outside the natural range; widen the
+        # ``max_page`` validation bound so ``self.href`` accepts it.
+        sentinel = _READING_ORDER_PAGE_SENTINEL
+        sentinel_href_data = HrefData(
+            {"pk": obj.pk, "page": sentinel},
+            query_params,
+            url_name="opds:bin:page",
+            min_page=0,
+            max_page=sentinel,
+        )
+        template_href = self.href(sentinel_href_data)
+        if template_href is None:
+            return []
+        # ``opds:bin:page`` resolves to ``.../<pk>/<page>/page.jpg`` so
+        # the sentinel appears as ``/<sentinel>/`` in the path. Replacing
+        # that single segment yields a Python format template.
+        template = template_href.replace(f"/{sentinel}/", "/{page}/")
+        # ``type`` is required by the spec but not calculated for
+        # efficiency; height/width aren't required by Stump or other
+        # known clients so they're omitted.
+        return [
+            {"href": template.format(page=page_num), "type": MimeType.JPEG}
+            for page_num in range(obj.page_count)
+        ]
 
     def _cover(self, obj) -> list:
         images = []
@@ -347,5 +362,11 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
     def get_object(self) -> MappingProxyType:
         """Get one publication object."""
         book_qs, _, zero_pad = self.get_book_qs()
+        # ``_publication_belongs_to_folder`` reads ``obj.parent_folder.path``
+        # when folder_view is enabled. Without this join, every manifest
+        # hit on a folder-gated install fires one lazy ``Folder.get`` per
+        # request (sub-plan 05 #8). Adding the join here keeps the cost
+        # scoped to the manifest path — feeds don't need it.
+        book_qs = book_qs.select_related("parent_folder")
         obj = book_qs.first()
         return MappingProxyType(self._publication(obj, zero_pad))
