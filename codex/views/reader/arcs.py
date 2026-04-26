@@ -1,6 +1,7 @@
 """Reader get Arcs methods."""
 
 from datetime import UTC, datetime
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from codex.choices.admin import AdminFlagChoices
@@ -27,25 +28,39 @@ class ReaderArcsView(ReaderParamsView):
     """Reader get Arcs methods."""
 
     def _get_field_names(self) -> tuple:
+        # Hoist the per-iteration settings + admin-flag reads outside
+        # the loop. Pre-fix: 2 SettingsBrowser queries (one per non-folder
+        # iteration) + 1 AdminFlag query. Post-fix: 1 SettingsBrowser
+        # query + 1 AdminFlag query (sub-plan 01 #5 / #2).
+        show: Mapping = self.get_from_settings("show", browser=True) or {}
+        folder_view_allowed: bool = self._reader_folder_view_enabled
         field_names = []
         for field_name in _COMIC_ARC_FIELD_NAMES:
             if field_name == "parent_folder":
-                efv_flag = (
-                    AdminFlag.objects.only("on")
-                    .get(key=AdminFlagChoices.FOLDER_VIEW.value)
-                    .on
-                )
-                if not efv_flag:
+                if not folder_view_allowed:
                     continue
             else:
-                show: Mapping = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
-                    "show", browser=True
-                )
                 group = field_name[0]
                 if not show.get(group):
                     continue
             field_names.append(field_name)
         return tuple(field_names)
+
+    @cached_property
+    def _reader_folder_view_enabled(self) -> bool:
+        """
+        Per-request cache of the ``folder_view`` admin flag.
+
+        The reader chain doesn't inherit ``SearchFilterView`` (the
+        browser/OPDS chain's ``self.admin_flags`` source) — see the
+        reader plan's sub-plan 01 #2. A local ``@cached_property`` is
+        the smallest equivalent: subsequent accesses within the same
+        request are dict lookups, and cachalot still caches the
+        underlying SQL across requests.
+        """
+        return (
+            AdminFlag.objects.only("on").get(key=AdminFlagChoices.FOLDER_VIEW.value).on
+        )
 
     @staticmethod
     def _get_group_arc(
@@ -107,8 +122,12 @@ class ReaderArcsView(ReaderParamsView):
             if requested_arc_ids in all_arc_ids:
                 arc_ids = requested_arc_ids
             else:
-                for arc_ids in all_arc_ids:
-                    if requested_arc_ids.intersection(frozenset(arc_ids)):
+                # Pre-build the frozenset cast for each candidate once,
+                # outside the per-iteration intersection compute (sub-plan 01 #6).
+                requested_set = frozenset(requested_arc_ids)
+                for candidate in all_arc_ids:
+                    if requested_set.intersection(candidate):
+                        arc_ids = candidate
                         break
         if not arc_ids:
             arc_ids = next(iter(all_arc_ids))

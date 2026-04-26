@@ -1,5 +1,6 @@
 """Reader settings views."""
 
+from functools import cache
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -61,8 +62,15 @@ class ReaderSettingsBaseView(SettingsBaseView):
     # ── Defaults & reset ────────────────────────────────────────────
 
     @classmethod
+    @cache
     def get_reader_default_params(cls) -> dict:
-        """Derive reader default params from model field metadata."""
+        """
+        Derive reader default params from model field metadata.
+
+        Cached at class load — pure model metadata, doesn't change at
+        runtime (sub-plan 02 #4). Callers MUST NOT mutate the returned
+        dict; copy first if a writable copy is needed.
+        """
         return {
             key: cls._get_field_default(SettingsReader, key)
             for key in SettingsReader.DIRECT_KEYS
@@ -105,16 +113,18 @@ class ReaderSettingsBaseView(SettingsBaseView):
 
     def _get_global_settings(self) -> SettingsReader:
         """Get or create the global reader settings row."""
+        # ``get_or_create`` is the atomic primitive — single query on
+        # the hit path, two on the create path with race-condition
+        # awareness. Replaces the manual ``filter().first() + create()``
+        # pattern (sub-plan 02 #2). FILTER_ARGS scope the lookup to the
+        # null-FK row; CREATE_ARGS get supplied as ``defaults``.
         base_lookup = self._get_settings_lookup()
-        filter_kwargs = {
-            **base_lookup,
-            **self.FILTER_ARGS,
-        }
-
-        instance = SettingsReader.objects.filter(**filter_kwargs).first()
-        if instance is not None:
-            return instance
-        return SettingsReader.objects.create(**base_lookup, **self.CREATE_ARGS)
+        filter_kwargs = {**base_lookup, **self.FILTER_ARGS}
+        instance, _ = SettingsReader.objects.get_or_create(
+            defaults={**base_lookup, **self.CREATE_ARGS},
+            **filter_kwargs,
+        )
+        return instance
 
     def _get_scoped_settings(self, scope_fk_field: str, scope_pk: int):
         """Get a scoped SettingsReader row or None."""
@@ -126,10 +136,8 @@ class ReaderSettingsBaseView(SettingsBaseView):
     ) -> SettingsReader:
         """Get or create a scoped SettingsReader row."""
         lookup = self._get_settings_lookup(**{scope_fk_field: scope_pk})
-        instance = SettingsReader.objects.filter(**lookup).first()
-        if instance is not None:
-            return instance
-        return SettingsReader.objects.create(**lookup)
+        instance, _ = SettingsReader.objects.get_or_create(defaults={}, **lookup)
+        return instance
 
 
 class ReaderSettingsView(ReaderSettingsBaseView):

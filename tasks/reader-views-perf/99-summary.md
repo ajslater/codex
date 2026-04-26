@@ -76,7 +76,7 @@ land.
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
 | 4   | **Batch `_append_with_settings` queries.** After #2 lands, the prev/curr/next pks are known up front. One `SettingsReader.objects.filter(comic_id__in=pks)` + one `Bookmark.objects.filter(comic_id__in=pks)`, partition in Python. Drops 2–6 queries to 2. | 01 #3 | Medium (saves 0–4 queries per reader open) | S | L | ⏳ Open |
-| 5   | **Replace `AdminFlag.objects.get(folder_view)` with `self.admin_flags["folder_view"]` in `_get_field_names`.** Same anti-pattern as OPDS sub-plan 02 #6. Eliminates 1 query per reader open. Verify `admin_flags` is exposed on the reader inheritance chain. | 01 #2 | Low (1 query per reader open; cumulative cross-cutting) | S | L | ⏳ Open |
+| 5   | **Replace `AdminFlag.objects.get(folder_view)` with `self.admin_flags["folder_view"]` in `_get_field_names`.** Same anti-pattern as OPDS sub-plan 02 #6. Eliminates 1 query per reader open. Verify `admin_flags` is exposed on the reader inheritance chain. | 01 #2 | Low (1 query per reader open; cumulative cross-cutting) | S | L | ✅ Stage 0 (reader doesn't inherit `admin_flags`; used local `cached_property` + hoisted the loop's `show` settings read — see [stage0.md #5](stage0.md#5--_get_field_names-hoists-settings--admin-flag-reads)) |
 | 6   | **Add server-side caching to the page endpoint** (`cache_page(PAGE_MAX_AGE)` + `vary_on_cookie`). Mirrors the cover endpoint. Trade-off: page bytes are large (~100–500 KB per page); cache disk pressure is real. Measure first. Less critical once #1 lands. | 03 #5 | High if #1 doesn't land; Low if #1 does | S | M | ⏳ Open |
 | 7   | **Fold the per-scope name lookup into the comic prefetch.** `_get_scope` for `s` / `f` scopes fires a separate `Model.objects.filter(pk).values_list("name")` query. `select_related("series__name", "parent_folder__path")` on the comic prefetch covers `s` and `f`; story_arcs need a separate one-shot query. | 02 #1 | Low (1–3 queries saved per multi-scope GET) | S | L | ⏳ Open |
 
@@ -85,8 +85,8 @@ land.
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
 | 8   | **Replace `JsonGroupArray("updated_at")` + Python strptime loop with `Max("updated_at")`.** Story-arc mtime computation parses datetime strings per row in Python. SQL aggregation returns a single datetime per arc that Django converts via the field's `from_db_value`. | 01 #4 | Low (cleanup; small wins on heavily-tagged story-arc comics) | S | L | ⏳ Open |
-| 9   | **Convert two-query get-or-create to `Model.objects.get_or_create`.** `_get_global_settings` and `_get_or_create_scoped_settings` both filter-then-create. Django ORM has the atomic primitive. | 02 #2 | Low (saves 1 query on cold-create paths) | S | L | ⏳ Open |
-| 10  | **Cache `get_reader_default_params` at class load.** Pure model metadata; doesn't change at runtime. | 02 #4 | Trivial | XS | L | ⏳ Open |
+| 9   | **Convert two-query get-or-create to `Model.objects.get_or_create`.** `_get_global_settings` and `_get_or_create_scoped_settings` both filter-then-create. Django ORM has the atomic primitive. | 02 #2 | Low (saves 1 query on cold-create paths) | S | L | ✅ Stage 0 |
+| 10  | **Cache `get_reader_default_params` at class load.** Pure model metadata; doesn't change at runtime. | 02 #4 | Trivial | XS | L | ✅ Stage 0 |
 | 11  | **Audit `_get_comics_list` annotation pyramid for prev/next dead fields.** Annotations applied to every row in the iteration — but prev/next entries don't need the same level of detail as current. Slimming the SELECT shrinks per-row I/O. | 01 #7 | Low | S | M | ⏳ Open |
 
 ### Tier 4 — clean-ups / small wins
@@ -94,15 +94,15 @@ land.
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
 | 12  | **De-duplicate `_get_bookmark_auth_filter` between `ReaderSettingsBaseView` and `BookmarkAuthMixin`.** Currently inlined in two places. | 02 #5 | Code health | S | L | ⏳ Open |
-| 13  | **Pre-build `frozenset(arc_ids)` in `_set_selected_arc` once outside the loop.** Sub-plan 01 #6. Trivial. | 01 #6 | Trivial | XS | L | ⏳ Open |
-| 14  | **Drop redundant `.distinct()` on the page-endpoint comic queryset.** `.get(pk=pk)` LIMIT 1 collapses duplicates anyway. | 03 #6 | Trivial | XS | L | ⏳ Open |
+| 13  | **Pre-build `frozenset(arc_ids)` in `_set_selected_arc` once outside the loop.** Sub-plan 01 #6. Trivial. | 01 #6 | Trivial | XS | L | ✅ Stage 0 (also fixed a no-match correctness bug — see [stage0.md #13](stage0.md#13--pre-build-frozenset-in-_set_selected_arc)) |
+| 14  | **Drop redundant `.distinct()` on the page-endpoint comic queryset.** `.get(pk=pk)` LIMIT 1 collapses duplicates anyway. | 03 #6 | Trivial | XS | L | ✅ Stage 0 |
 | 15  | **Cache the (user, comic_pk) ACL decision** for the page endpoint. Per-process LRU keyed on the pair, 60-second TTL. Skips the per-page ACL check during a single read-through. | 03 #2 | Low-Medium (depends on ACL filter cost in profile) | S-M | M | ⏳ Open |
 
 ### Tier 5 — high-risk / needs investigation before scheduling
 
 | #   | Item | Sub-plan | Status |
 | --- | ---- | -------- | ------ |
-| R1  | **Reader perf harness.** No baseline data exists for reader endpoints. Build one analogous to `tests/perf/run_opds_baseline.py` covering at minimum: reader endpoint cold, page endpoint cold (+ per file_type), settings GET multi-scope, page-turn warm. Without this, every Tier 1–2 item is opinion-driven. | 00 (meta) | ⏳ Open |
+| R1  | **Reader perf harness.** No baseline data exists for reader endpoints. Build one analogous to `tests/perf/run_opds_baseline.py` covering at minimum: reader endpoint cold, page endpoint cold (+ per file_type), settings GET multi-scope, page-turn warm. Without this, every Tier 1–2 item is opinion-driven. | 00 (meta) | ✅ Stage 0 (`tests/perf/run_reader_baseline.py` + `stage0-before.json`) |
 | R2  | **Per-route hit distribution.** Reader `c/<pk>` is hit once per comic-open; page `c/<pk>/<page>/page.jpg` is hit per page turn. Need production traffic data to scope #1's cache window and #6's disk pressure. | 03 (open) | ⏳ Open |
 | R3  | **Archive-open cost distribution.** CBZ vs. CBR vs. PDF. Determines whether #1 (archive cache) or #6 (response cache) is the higher-impact item, and whether each is worth landing. | 03 (open) | ⏳ Open |
 | R4  | **Reader frontend prefetch behavior.** Whether the reader pre-fetches +1, +2, +3 ahead — or +N for chapter-view — shapes #1's cache strategy and TTL. | 03 (open) | ⏳ Open |
