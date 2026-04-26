@@ -40,6 +40,19 @@ _SCOPE_MAP = MappingProxyType(
         "a": ("story_arc_id", None, StoryArc),
     }
 )
+# Map comic_fk → (related_attr_on_comic, field_to_read_for_name).
+# The reader settings GET prefetches the comic with these joined so
+# the per-scope display name comes off the prefetched comic instead
+# of firing a fresh ``Model.objects.filter(pk).values_list("name")``
+# query (sub-plan 02 #1 / Tier 2 #7). Story-arc scope's pk comes
+# from a query param, not from the comic, so it falls back to a
+# separate lookup when requested.
+_COMIC_FK_TO_RELATED: MappingProxyType[str, tuple[str, str]] = MappingProxyType(
+    {
+        "series_id": ("series", "name"),
+        "parent_folder_id": ("parent_folder", "name"),
+    }
+)
 
 
 class ReaderSettingsBaseView(SettingsBaseView):
@@ -182,6 +195,36 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             return "s"
         return scope
 
+    def _resolve_scope_name(
+        self,
+        scope_pk: int,
+        comic_fk: str | None,
+        comic: Comic | None,
+        model,
+    ) -> str:
+        """
+        Resolve the display name for a non-global, non-comic scope.
+
+        For series / folder scopes the name comes off the prefetched
+        comic's joined related row (sub-plan 02 #1 / Tier 2 #7) — no
+        extra query. For story_arc the scope_pk comes from a query
+        param so the comic prefetch can't help; fall back to a
+        targeted lookup.
+        """
+        if comic_fk and comic is not None:
+            related = _COMIC_FK_TO_RELATED.get(comic_fk)
+            if related:
+                related_attr, name_field = related
+                related_obj = getattr(comic, related_attr, None)
+                if related_obj is not None:
+                    return getattr(related_obj, name_field, "") or ""
+        if not model:
+            return ""
+        return (
+            model.objects.filter(pk=scope_pk).values_list("name", flat=True).first()
+            or ""
+        )
+
     def _get_scope(self, scope, scopes_out, comic, scope_info) -> None:
         config = _SCOPE_MAP.get(scope)
         if config is None:
@@ -203,16 +246,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             if scope_pk and fk_field:
                 instance = self._get_scoped_settings(fk_field, scope_pk)
                 scopes_out[canon] = self._instance_to_dict(instance)
-                name = (
-                    (
-                        model.objects.filter(pk=scope_pk)
-                        .values_list("name", flat=True)
-                        .first()
-                        or ""
-                    )
-                    if model
-                    else ""
-                )
+                name = self._resolve_scope_name(scope_pk, comic_fk, comic, model)
                 scope_info[canon] = {"pk": scope_pk, "name": name}
 
     # ── HTTP methods ────────────────────────────────────────────────
@@ -225,6 +259,10 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         comic_pk: int | None = self.kwargs.get("pk")
 
         # Pre-fetch comic once if any non-g/c scope needs it.
+        # ``select_related`` joins the related rows so the per-scope
+        # display name comes off the prefetched comic instead of
+        # firing a separate ``Model.objects.filter(pk)`` query per
+        # scope (sub-plan 02 #1 / Tier 2 #7).
         comic: Comic | None = None
         needed_comic_fks = set()
         for scope in requested:
@@ -232,7 +270,15 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             if config and config[1]:
                 needed_comic_fks.add(config[1])
         if needed_comic_fks and comic_pk:
-            comic = Comic.objects.only(*needed_comic_fks).get(pk=comic_pk)
+            select_related = [
+                _COMIC_FK_TO_RELATED[fk][0]
+                for fk in needed_comic_fks
+                if fk in _COMIC_FK_TO_RELATED
+            ]
+            qs = Comic.objects.only(*needed_comic_fks)
+            if select_related:
+                qs = qs.select_related(*select_related)
+            comic = qs.get(pk=comic_pk)
 
         scopes_out: dict = {}
         scope_info: dict = {}

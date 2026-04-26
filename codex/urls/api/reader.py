@@ -4,7 +4,7 @@ from django.urls import path
 from django.views.decorators.cache import cache_control, cache_page
 from django.views.decorators.vary import vary_on_cookie
 
-from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE
+from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE, READER_TIMEOUT
 from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.reader.page import ReaderPageView
@@ -16,7 +16,16 @@ urlpatterns = [
     #
     #
     # Reader
-    path("<int:pk>", ReaderView.as_view(), name="reader"),
+    path(
+        "<int:pk>",
+        # The reader endpoint serves per-user state (bookmark, settings,
+        # arc context). ``vary_on_cookie`` scopes the cache key per
+        # session so per-user responses don't leak; ``cache_page``
+        # amortizes the full pipeline across tab refreshes / mobile-app
+        # re-foreground (reader perf plan Tier 1 #3).
+        cache_page(READER_TIMEOUT)(vary_on_cookie(ReaderView.as_view())),
+        name="reader",
+    ),
     path(
         "<int:pk>/<int:page>/page.jpg",
         cache_control(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
