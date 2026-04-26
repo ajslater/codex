@@ -22,6 +22,7 @@ from codex.librarian.scribe.importer.statii.create import (
     ImporterCreateComicsStatus,
     ImporterUpdateComicsStatus,
 )
+from codex.librarian.status import Status
 from codex.models import Comic
 from codex.settings import IMPORTER_UPDATE_COMIC_BATCH_SIZE
 
@@ -121,6 +122,57 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         comic.presave()
         create_comics.append(comic)
 
+    def _create_comic_bulk_prepare(
+        self, num_comics: int, paths: tuple[str, ...], status: Status
+    ) -> list[Comic]:
+
+        self.log.debug(
+            f"Preparing {num_comics} comics for creation in library {self.library.path}."
+        )
+        self.status_controller.start(status)
+
+        self.metadata[FTS_CREATE] = {}
+        create_comics = []
+        for path in paths:
+            if self.abort_event.is_set():
+                return []
+            try:
+                self._bulk_create_comic(path, create_comics)
+            except KeyError:
+                self.log.warning(f"No comic metadata for {path}")
+                self.log.exception(f"Error preparing {path} for create.")
+            except Exception:
+                self.log.exception(f"Error preparing {path} for create.")
+        self.metadata.pop(CREATE_COMICS)
+        self.metadata.pop(LINK_FKS)
+        return create_comics
+
+    def _create_comics_bulk_create(
+        self, num_comics: int, create_comics: list[Comic]
+    ) -> int:
+        self.log.debug(f"Bulk creating {num_comics} comics...")
+        created_comics = Comic.objects.bulk_create(
+            create_comics,
+            update_conflicts=True,
+            update_fields=BULK_CREATE_COMIC_FIELDS,
+            unique_fields=Comic._meta.unique_together[0],
+        )
+        count = len(created_comics)
+
+        # Replace FTS_CREATE path keyed entries with pk keys
+        created_pks = []
+        for created_comic in created_comics:
+            self.metadata[FTS_CREATE][created_comic.pk] = self.metadata[FTS_CREATE].pop(
+                created_comic.path
+            )
+            created_pks.append(created_comic.pk)
+        created_pks = tuple(created_pks)
+
+        # Pre-warm covers offline so first browse/OPDS request is fast.
+        if created_pks:
+            self.librarian_queue.put(CoverCreateTask(pks=created_pks, custom=False))
+        return count
+
     def create_comics(self) -> int:
         """Bulk create comics."""
         count = 0
@@ -134,49 +186,10 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                 self.status_controller.finish(status)
                 return count
 
-            self.log.debug(
-                f"Preparing {num_comics} comics for creation in library {self.library.path}."
-            )
-            self.status_controller.start(status)
-
-            self.metadata[FTS_CREATE] = {}
-            create_comics = []
-            for path in paths:
-                if self.abort_event.is_set():
-                    return count
-                try:
-                    self._bulk_create_comic(path, create_comics)
-                except KeyError:
-                    self.log.warning(f"No comic metadata for {path}")
-                    self.log.exception(f"Error preparing {path} for create.")
-                except Exception:
-                    self.log.exception(f"Error preparing {path} for create.")
-            self.metadata.pop(CREATE_COMICS)
-            self.metadata.pop(LINK_FKS)
-
+            create_comics = self._create_comic_bulk_prepare(num_comics, paths, status)
             num_comics = len(create_comics)
             if num_comics:
-                self.log.debug(f"Bulk creating {num_comics} comics...")
-                created_comics = Comic.objects.bulk_create(
-                    create_comics,
-                    update_conflicts=True,
-                    update_fields=BULK_CREATE_COMIC_FIELDS,
-                    unique_fields=Comic._meta.unique_together[0],
-                )
-                count = len(created_comics)
-
-                # Replace FTS_CREATE path keyed entries with pk keys
-                for created_comic in created_comics:
-                    self.metadata[FTS_CREATE][created_comic.pk] = self.metadata[
-                        FTS_CREATE
-                    ].pop(created_comic.path)
-
-                # Pre-warm covers offline so first browse/OPDS request is fast.
-                created_pks = tuple(c.pk for c in created_comics)
-                if created_pks:
-                    self.librarian_queue.put(
-                        CoverCreateTask(pks=created_pks, custom=False)
-                    )
+                count = self._create_comics_bulk_create(num_comics, create_comics)
         except Exception:
             self.log.exception(f"While creating {num_comics} comics")
         finally:
