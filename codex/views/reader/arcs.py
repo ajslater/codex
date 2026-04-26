@@ -1,8 +1,9 @@
 """Reader get Arcs methods."""
 
-from datetime import UTC, datetime
 from functools import cached_property
 from typing import TYPE_CHECKING
+
+from django.db.models import Max
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
@@ -11,7 +12,6 @@ from codex.models.functions import JsonGroupArray
 from codex.models.named import StoryArc
 from codex.util import max_none
 from codex.views.const import (
-    EPOCH_START,
     STORY_ARC_GROUP,
 )
 from codex.views.reader.params import ReaderParamsView
@@ -20,8 +20,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 _COMIC_ARC_FIELD_NAMES = ("series", "volume", "parent_folder")
-_STORY_ARC_ONLY = ("name", "ids", "updated_ats")
-_UPDATED_ATS_DATE_FORMAT_STR = "%Y-%m-%d %H:%M:%S.%f"
 
 
 class ReaderArcsView(ReaderParamsView):
@@ -85,28 +83,26 @@ class ReaderArcsView(ReaderParamsView):
         if not qs.exists():
             return max_mtime
 
+        # ``Max("updated_at")`` returns a single typed datetime per arc
+        # via the field's ``from_db_value`` hook — replaces the prior
+        # ``JsonGroupArray("updated_at")`` + per-row Python ``strptime``
+        # loop (sub-plan 01 #4 / Tier 3 #8). SQLite stores datetimes as
+        # ISO strings, so any aggregate that yields a typed datetime
+        # bypasses the manual parse.
         qs = qs.group_by("sort_name")  # pyright: ignore[reportAttributeAccessIssue]
         qs = qs.annotate(
             ids=JsonGroupArray("id", distinct=True, order_by="id"),
-            updated_ats=JsonGroupArray(
-                "updated_at", distinct=True, order_by="updated_at"
-            ),
+            mtime=Max("updated_at"),
         )
         qs = qs.order_by("sort_name").only("name")
 
         arcs[STORY_ARC_GROUP] = {}
 
         for sa in qs:
-            arc = {"name": sa.name}
             ids = tuple(sorted(set(sa.ids)))
-            updated_ats = (
-                datetime.strptime(ua, _UPDATED_ATS_DATE_FORMAT_STR).replace(tzinfo=UTC)
-                for ua in sa.updated_ats
-            )
-            mtime = max_none(EPOCH_START, *updated_ats)
-            arc["mtime"] = mtime
+            mtime = sa.mtime
+            arcs[STORY_ARC_GROUP][ids] = {"name": sa.name, "mtime": mtime}
             max_mtime = max_none(max_mtime, mtime)
-            arcs[STORY_ARC_GROUP][ids] = arc
         return max_mtime
 
     def _set_selected_arc(self, arcs) -> None:

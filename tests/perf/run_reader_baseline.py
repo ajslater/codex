@@ -58,6 +58,10 @@ from django.db.models import Count  # noqa: E402
 from django.test import Client  # noqa: E402
 
 from codex.models import Comic, Series  # noqa: E402
+from codex.views.reader._archive_cache import (  # noqa: E402
+    archive_cache,
+    page_acl_cache,
+)
 
 # Silk may not be importable if settings skipped DEBUG — guard early.
 try:
@@ -272,15 +276,22 @@ def _capture(client: Client, url: str) -> dict[str, Any]:
     """
     Run one request twice, pull the most-recent silk trace each time.
 
-    Cold-then-warm. Cold pass clears django_cache + cachalot before the
-    request so the view runs against an empty cache. Warm pass runs
-    immediately after to capture the cached-path number. For the
-    reader page endpoint, ``cache_page`` is currently absent (only
-    ``cache_control`` HTTP headers — see sub-plan 03 #5), so the warm
-    pass still re-runs the view and re-extracts the page from the
-    archive. Phase E may change this; the harness is invariant under
-    that change.
+    Cold-then-warm. Cold pass clears django_cache + cachalot AND the
+    reader's process-local archive / ACL caches before the request so
+    the view runs against truly empty cache state. Warm pass runs
+    immediately after to capture the cached-path number — the ACL
+    cache and archive cache have been populated by the cold call so
+    the warm pass exercises the cache-hit path.
+
+    The reader page endpoint has only ``cache_control`` HTTP headers
+    (no server-side ``cache_page``); the in-process ACL + archive
+    caches are what amortize the cold cost (sub-plan 03 #1, #2).
     """
+    # Clear the in-process reader caches so the harness's "cold" pass
+    # is a true cold-cache measurement, not a warm-up-loop carryover.
+    archive_cache.shutdown()
+    page_acl_cache.clear()
+
     path_prefix = url.split("?", 1)[0]
     SilkRequest.objects.filter(path__startswith=path_prefix).delete()
 

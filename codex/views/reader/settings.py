@@ -2,10 +2,8 @@
 
 from functools import cache
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from drf_spectacular.utils import extend_schema
-from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -17,10 +15,8 @@ from codex.serializers.reader import (
     ReaderScopedUpdateSerializer,
     ReaderSettingsSerializer,
 )
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings import NULL_VALUES, SettingsBaseView
-
-if TYPE_CHECKING:
-    from rest_framework.request import Request
 
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
 # "g" = global (no FK).  "c" = comic.
@@ -55,7 +51,7 @@ _COMIC_FK_TO_RELATED: MappingProxyType[str, tuple[str, str]] = MappingProxyType(
 )
 
 
-class ReaderSettingsBaseView(SettingsBaseView):
+class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
     """Reader settings — model config, defaults, reset, and scope lookups."""
 
     MODEL = SettingsReader
@@ -98,23 +94,15 @@ class ReaderSettingsBaseView(SettingsBaseView):
         instance.save()
         return defaults
 
-    # ── Auth + scope lookups ────────────────────────────────────────
-    # (inlined from the former _ReaderSettingsAuthMixin / BookmarkAuthMixin)
-
-    def _get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
-        """Filter only the current user's settings rows."""
-        if TYPE_CHECKING:
-            self.request: Request
-        if self.request.user.is_authenticated:
-            return {"user_id": self.request.user.pk}
-        if not self.request.session or not self.request.session.session_key:
-            logger.debug("no session, make one")
-            self.request.session.save()
-        return {"session_id": self.request.session.session_key}
+    # ── Scope lookups ───────────────────────────────────────────────
 
     def _get_settings_lookup(self, **extra):
         """Build the base lookup for a SettingsReader query."""
-        auth_filter = self._get_bookmark_auth_filter()
+        # ``get_bookmark_auth_filter`` from BookmarkAuthMixin returns the
+        # same {"user_id"|"session_id": ...} shape; consolidating here
+        # closes the duplicated copy that used to live on this class
+        # (sub-plan 02 #5 / Tier 4 #12).
+        auth_filter = self.get_bookmark_auth_filter()
         return {"client": ClientChoices.API, **auth_filter, **extra}
 
     @staticmethod
