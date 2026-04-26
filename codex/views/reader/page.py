@@ -1,6 +1,5 @@
 """Views for reading comic books."""
 
-from comicbox.box import Comicbox
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -12,9 +11,10 @@ from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models.choices import FileTypeChoices
 from codex.models.comic import Comic
-from codex.settings import COMICBOX_CONFIG, FALSY
+from codex.settings import FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
+from codex.views.reader._archive_cache import archive_cache
 
 _PDF_MIME_TYPE = "application/pdf"
 _PDF_FORMAT_NON_PDF_TYPES = frozenset(
@@ -62,7 +62,14 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             if self.request.GET.get("pixmap", "").lower() not in FALSY
             else ""
         )
-        with Comicbox(comic.path, config=COMICBOX_CONFIG, logger=logger) as cb:
+        # Process-wide LRU of open Comicbox archives — the web reader's
+        # prev/curr/next prefetch fires 3-5 page hits on the same archive
+        # within a second, and ``cacheBook`` mode bursts a whole-book
+        # prefetch (N parallel page hits). Without the cache, every hit
+        # re-opens the archive (sub-plan 03 #1). The per-archive lock
+        # held inside ``archive_cache.open(...)`` serializes extraction
+        # because ZipFile / RarFile / PDF backends aren't thread-safe.
+        with archive_cache.open(comic.path) as cb:
             page_image = cb.get_page_by_index(page, pdf_format=pdf_format)
         if not page_image:
             page_image = b""
