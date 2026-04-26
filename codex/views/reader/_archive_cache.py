@@ -1,35 +1,39 @@
 """
-Process-wide cache of open Comicbox archives for the reader page endpoint.
+Process-wide caches for the reader page endpoint.
 
-Codex runs Granian in single-worker embed mode (see ``codex/run.py``) so a
-single in-process LRU is shared by every request thread. Without this
-cache every page hit re-opens the archive — for a sequential read of an
-N-page comic that's N opens, and the web reader's prefetch (current +
-next + prev) plus the optional ``cacheBook`` setting (whole-book
-prefetch) compound the redundancy further (3-N concurrent opens of the
-same archive within seconds).
+Two related caches live in this module — both keyed on a comic pk and
+both wired into ``ReaderPageView`` — sized independently because they
+guard different costs:
 
-The cache trades one process-wide concern (cap on memory + file
-descriptors held by open archives) for the much larger win of
-collapsing repeat opens. Each cached entry holds:
+1. ``ArchiveCache`` (``archive_cache``) — open ``Comicbox`` instances
+   keyed on file path. Without it, every page hit re-opens the
+   archive; a 200-page sequential read = 200 opens, and the web
+   reader's prev / curr / next prefetch + the opt-in ``cacheBook``
+   whole-book prefetch compound the redundancy. Per-archive
+   ``threading.Lock`` serializes extraction because ZipFile / RarFile
+   / PDF backends are not documented as thread-safe under concurrent
+   ``read`` calls; the cache structure itself is guarded by a separate
+   short-held lock so unrelated archives proceed in parallel.
 
-* one open ``Comicbox`` instance — typically 1-3 MB resident for CBZ,
-  larger for PDF (libpoppler state).
-* one file descriptor.
-* a per-archive ``threading.Lock`` because ZipFile / RarFile / PDF
-  backends are NOT documented as thread-safe under concurrent
-  ``read`` calls. Extraction serializes per archive; the cache
-  structure itself is guarded by a separate short-held lock so
-  unrelated archives proceed in parallel.
+2. ``PageAclCache`` (``page_acl_cache``) — ``(auth_key, comic_pk) →
+   (path, file_type)``. Skips the per-page ACL-filter SQL within a
+   short TTL window during a single read-through (sub-plan 03 #2 /
+   Tier 4 #15).
 
-Configuration knobs (env vars; module-level defaults are conservative
-to suit the constrained-NAS deployment shape — see
-``tasks/reader-views-perf/stage3.md`` for telemetry-driven sizing
-rationale):
+Codex runs Granian in single-worker embed mode (see ``codex/run.py``)
+so a single in-process LRU is shared by every request thread. Both
+caches' defaults suit the constrained-NAS deployment shape (1-2 GB
+RAM, ARM SBC etc.) — see ``tasks/reader-views-perf/stage3.md`` for
+the telemetry-driven sizing rationale.
+
+Configuration knobs (env vars):
 
 * ``CODEX_READER_ARCHIVE_CACHE_SIZE`` — max open archives (default 4).
 * ``CODEX_READER_ARCHIVE_CACHE_TTL`` — idle expiry in seconds (default 30).
 * ``CODEX_READER_ARCHIVE_CACHE_DISABLE`` — bypass entirely (default off).
+* ``CODEX_READER_PAGE_ACL_CACHE_SIZE`` — max ACL entries (default 64).
+* ``CODEX_READER_PAGE_ACL_CACHE_TTL`` — TTL in seconds (default 60).
+* ``CODEX_READER_PAGE_ACL_CACHE_DISABLE`` — bypass entirely (default off).
 """
 
 from __future__ import annotations
@@ -191,3 +195,75 @@ archive_cache = ArchiveCache(
 )
 
 atexit.register(archive_cache.shutdown)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Page-endpoint ACL decision cache (sub-plan 03 #2 / Tier 4 #15)
+# ──────────────────────────────────────────────────────────────────────
+#
+# A second, smaller cache keyed on ``(auth_key, comic_pk)`` →
+# ``(path, file_type)``. Sequential reads of an N-page comic hit the
+# page endpoint N times for the same ``(user, comic)``; without this
+# cache each one re-runs the ACL filter SQL just to fetch path +
+# file_type. Same trade-off as the archive cache (60 s TTL bounds
+# staleness on ACL revocation / comic deletion) but a separate
+# concern with separate sizing.
+
+_PAGE_ACL_DEFAULT_SIZE = 64
+_PAGE_ACL_DEFAULT_TTL = 60.0
+
+
+class PageAclCache:
+    """Process-wide LRU of (auth_key, comic_pk) → (path, file_type)."""
+
+    def __init__(
+        self,
+        max_entries: int = _PAGE_ACL_DEFAULT_SIZE,
+        ttl: float = _PAGE_ACL_DEFAULT_TTL,
+        *,
+        enabled: bool = True,
+    ) -> None:
+        self.max_entries = max_entries
+        self.ttl = ttl
+        self.enabled = enabled
+        self._lock = threading.Lock()
+        # Values stored as ``(path, file_type, expires_at)`` tuples.
+        self._cache: OrderedDict[tuple, tuple[str, str | None, float]] = OrderedDict()
+
+    def get(self, key: tuple, now: float) -> tuple[str, str | None] | None:
+        """Return cached ``(path, file_type)`` or ``None`` if missing/expired."""
+        if not self.enabled:
+            return None
+        with self._lock:
+            entry = self._cache.get(key)
+            if entry is None:
+                return None
+            path, file_type, expires_at = entry
+            if now >= expires_at:
+                self._cache.pop(key, None)
+                return None
+            self._cache.move_to_end(key)
+            return path, file_type
+
+    def put(self, key: tuple, path: str, file_type: str | None, now: float) -> None:
+        """Insert / refresh ``(path, file_type)`` for ``key``."""
+        if not self.enabled:
+            return
+        expires_at = now + self.ttl
+        with self._lock:
+            self._cache[key] = (path, file_type, expires_at)
+            self._cache.move_to_end(key)
+            while len(self._cache) > self.max_entries:
+                self._cache.popitem(last=False)
+
+    def clear(self) -> None:
+        """Drop every entry. Useful for tests."""
+        with self._lock:
+            self._cache.clear()
+
+
+page_acl_cache = PageAclCache(
+    max_entries=_env_int("CODEX_READER_PAGE_ACL_CACHE_SIZE", _PAGE_ACL_DEFAULT_SIZE),
+    ttl=float(_env_int("CODEX_READER_PAGE_ACL_CACHE_TTL", int(_PAGE_ACL_DEFAULT_TTL))),
+    enabled=not _env_bool("CODEX_READER_PAGE_ACL_CACHE_DISABLE", default=False),
+)

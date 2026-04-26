@@ -84,19 +84,19 @@ land.
 
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
-| 8   | **Replace `JsonGroupArray("updated_at")` + Python strptime loop with `Max("updated_at")`.** Story-arc mtime computation parses datetime strings per row in Python. SQL aggregation returns a single datetime per arc that Django converts via the field's `from_db_value`. | 01 #4 | Low (cleanup; small wins on heavily-tagged story-arc comics) | S | L | ⏳ Open |
+| 8   | **Replace `JsonGroupArray("updated_at")` + Python strptime loop with `Max("updated_at")`.** Story-arc mtime computation parses datetime strings per row in Python. SQL aggregation returns a single datetime per arc that Django converts via the field's `from_db_value`. | 01 #4 | Low (cleanup; small wins on heavily-tagged story-arc comics) | S | L | ✅ Stage 4 |
 | 9   | **Convert two-query get-or-create to `Model.objects.get_or_create`.** `_get_global_settings` and `_get_or_create_scoped_settings` both filter-then-create. Django ORM has the atomic primitive. | 02 #2 | Low (saves 1 query on cold-create paths) | S | L | ✅ Stage 0 |
 | 10  | **Cache `get_reader_default_params` at class load.** Pure model metadata; doesn't change at runtime. | 02 #4 | Trivial | XS | L | ✅ Stage 0 |
-| 11  | **Audit `_get_comics_list` annotation pyramid for prev/next dead fields.** Annotations applied to every row in the iteration — but prev/next entries don't need the same level of detail as current. Slimming the SELECT shrinks per-row I/O. | 01 #7 | Low | S | M | ⏳ Open |
+| 11  | **Audit `_get_comics_list` annotation pyramid for prev/next dead fields.** Annotations applied to every row in the iteration — but prev/next entries don't need the same level of detail as current. Slimming the SELECT shrinks per-row I/O. | 01 #7 | Low | S | M | ❌ Won't fix (superseded by Stage 1's `values_list("pk")` + `pk__in` window — annotation pyramid only fires for 1-3 rows now; slimming further would shave microseconds) |
 
 ### Tier 4 — clean-ups / small wins
 
 | #   | Change | Sub-plan | Impact | Effort | Risk | Status |
 | --- | ------ | -------- | ------ | ------ | ---- | ------ |
-| 12  | **De-duplicate `_get_bookmark_auth_filter` between `ReaderSettingsBaseView` and `BookmarkAuthMixin`.** Currently inlined in two places. | 02 #5 | Code health | S | L | ⏳ Open |
+| 12  | **De-duplicate `_get_bookmark_auth_filter` between `ReaderSettingsBaseView` and `BookmarkAuthMixin`.** Currently inlined in two places. | 02 #5 | Code health | S | L | ✅ Stage 4 |
 | 13  | **Pre-build `frozenset(arc_ids)` in `_set_selected_arc` once outside the loop.** Sub-plan 01 #6. Trivial. | 01 #6 | Trivial | XS | L | ✅ Stage 0 (also fixed a no-match correctness bug — see [stage0.md #13](stage0.md#13--pre-build-frozenset-in-_set_selected_arc)) |
 | 14  | **Drop redundant `.distinct()` on the page-endpoint comic queryset.** `.get(pk=pk)` LIMIT 1 collapses duplicates anyway. | 03 #6 | Trivial | XS | L | ✅ Stage 0 |
-| 15  | **Cache the (user, comic_pk) ACL decision** for the page endpoint. Per-process LRU keyed on the pair, 60-second TTL. Skips the per-page ACL check during a single read-through. | 03 #2 | Low-Medium (depends on ACL filter cost in profile) | S-M | M | ⏳ Open |
+| 15  | **Cache the (user, comic_pk) ACL decision** for the page endpoint. Per-process LRU keyed on the pair, 60-second TTL. Skips the per-page ACL check during a single read-through. | 03 #2 | Low-Medium (depends on ACL filter cost in profile) | S-M | M | ✅ Stage 4 (warm: 8 → 2 queries / 10 → 3.6 ms; -64%) |
 
 ### Tier 5 — high-risk / needs investigation before scheduling
 
