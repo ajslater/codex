@@ -1,0 +1,182 @@
+{
+  "series_pk_used": 325,
+  "comic_pk_used": 10785,
+  "flows": [
+    {
+      "name": "v1_start",
+      "description": "v1 OPDS root (Atom navigation feed at /opds/v1.2/).",
+      "kind": "url",
+      "url": "/opds/v1.2/",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 14,
+        "time_taken_ms": 53.37
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.895
+      }
+    },
+    {
+      "name": "v1_root_browse",
+      "description": "v1 root browse (Atom feed at the canonical group URL).",
+      "kind": "url",
+      "url": "/opds/v1.2/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 15,
+        "time_taken_ms": 125.01499999999999
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.914
+      }
+    },
+    {
+      "name": "v1_series_acquisition",
+      "description": "v1 acquisition feed for the busiest series \u2014 exercises the per-entry stream / download / cover link generation in v1/entry/links.py. ``topGroup=s`` is required because the between-flow settings reset defaults topGroup to ``p`` (Publisher) and ``s/325/1`` would 302 to root otherwise.",
+      "kind": "url",
+      "url": "/opds/v1.2/s/325/1?topGroup=s",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 18,
+        "time_taken_ms": 49.967999999999996
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.77
+      }
+    },
+    {
+      "name": "v1_acquisition_with_metadata",
+      "description": "v1 acquisition feed with ?opdsMetadata=1 \u2014 fires the 9-query M2M fan-out (authors / contributors / category_groups) per entry. Headline number for sub-plan 03 #1.",
+      "kind": "url",
+      "url": "/opds/v1.2/s/325/1?topGroup=s&opdsMetadata=1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 16,
+        "time_taken_ms": 45.792
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.835
+      }
+    },
+    {
+      "name": "v1_opensearch",
+      "description": "Static opensearch description doc (sub-plan 06 #5).",
+      "kind": "url",
+      "url": "/opds/v1.2/opensearch/v1.1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 3,
+        "time_taken_ms": 6.787999999999999
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.888
+      }
+    },
+    {
+      "name": "v2_start",
+      "description": "v2 OPDS start page at /opds/v2.0 \u2014 fires the preview-pipeline rerun for every PREVIEW_GROUPS link spec (sub-plan 02 #2).",
+      "kind": "url",
+      "url": "/opds/v2.0",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 29,
+        "time_taken_ms": 575.8839999999999
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.9629999999999999
+      }
+    },
+    {
+      "name": "v2_root_browse",
+      "description": "v2 JSON feed at the root group URL.",
+      "kind": "url",
+      "url": "/opds/v2.0/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 15,
+        "time_taken_ms": 111.393
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.814
+      }
+    },
+    {
+      "name": "v2_series_publications",
+      "description": "v2 publications feed for the busiest series \u2014 per-publication _thumb / link assembly hot path. ``topGroup=s`` for the same reason as v1_series_acquisition.",
+      "kind": "url",
+      "url": "/opds/v2.0/s/325/1?topGroup=s",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 18,
+        "time_taken_ms": 51.652
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.871
+      }
+    },
+    {
+      "name": "v2_manifest",
+      "description": "v2 single-comic manifest. Headline number for sub-plan 05: 11-query credit fan-out + 7-query M2M subject loop + story_arcs N+1 + per-page reading_order reverse() calls.",
+      "kind": "url",
+      "url": "/opds/v2.0/c/10785/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 22,
+        "time_taken_ms": 80.616
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 2.323
+      }
+    },
+    {
+      "name": "v2_progression_get",
+      "description": "Progression GET for the busiest comic. Returns 204 when the test user has no bookmark \u2014 still exercises the ACL filter + FilteredRelation annotation pipeline (sub-plan 06 #2).",
+      "kind": "url",
+      "url": "/opds/v2.0/c/10785/position",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 9,
+        "time_taken_ms": 14.292
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 8,
+        "time_taken_ms": 9.192
+      }
+    },
+    {
+      "name": "auth_doc_v1",
+      "description": "Static OPDS authentication document (sub-plan 06 #5).",
+      "kind": "url",
+      "url": "/opds/auth/v1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 2,
+        "time_taken_ms": 4.641
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.871
+      }
+    }
+  ]
+}
