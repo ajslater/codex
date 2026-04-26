@@ -11,8 +11,7 @@ from codex.models import (
     CreditPerson,
 )
 from codex.views.auth import GroupACLMixin
-from codex.views.opds.const import OPDS_M2M_MODELS
-from codex.views.opds.v1.const import TopRoutes
+from codex.views.opds.const import OPDS_M2M_MODELS, TopRoutes
 
 #################
 # M2M QuerySets #

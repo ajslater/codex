@@ -227,17 +227,6 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
     ]
 
 
-def _aggregate_traces(traces) -> dict[str, Any]:
-    """Sum silk counters across a set of traces."""
-    total_sql = sum(int(t.num_sql_queries or 0) for t in traces)
-    total_ms = sum(float(t.time_taken or 0) for t in traces)
-    return {
-        "num_requests": len(traces),
-        "total_sql_queries": total_sql,
-        "total_time_ms": total_ms,
-    }
-
-
 def _capture(client: Client, url: str) -> dict[str, Any]:
     """
     Run one request twice, pull the most-recent silk trace each time.
