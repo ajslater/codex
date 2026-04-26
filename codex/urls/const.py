@@ -12,3 +12,9 @@ PAGE_MAX_AGE = COVER_MAX_AGE
 # unattributed reason — the disable rationale is reconstructed in
 # tasks/opds-views-perf/stage0.md.
 OPDS_TIMEOUT = 60
+# 60 s — same trade-off as ``OPDS_TIMEOUT``. The reader endpoint
+# (``c/<pk>``) is hit once per comic-open and includes per-user
+# bookmark / settings state. Caching with ``vary_on_cookie`` scopes
+# the cache key per session; bookmark-position changes show up
+# within the cache window. See tasks/reader-views-perf/stage2.md.
+READER_TIMEOUT = 60
