@@ -1,8 +1,8 @@
 <template>
   <div class="bookCover">
     <v-img
-      :src="coverSrc"
-      :lazy-src="placeholderSrc"
+      :src="imgSrc"
+      :lazy-src="imgLazySrc"
       class="coverImg"
       :class="multiPkClasses"
       position="top"
@@ -51,6 +51,7 @@ export default {
     return {
       retry: 0,
       abort: null,
+      missing: false,
     };
   },
   computed: {
@@ -67,6 +68,21 @@ export default {
     },
     placeholderSrc() {
       return getPlaceholderSrc(this.group);
+    },
+    imgSrc() {
+      /*
+       * 404 → render the placeholder directly so it shows unblurred.
+       * Otherwise use the cover URL; v-img shows the blurred lazy-src
+       * until the real cover bytes arrive.
+       */
+      return this.missing ? this.placeholderSrc : this.coverSrc;
+    },
+    imgLazySrc() {
+      /*
+       * Skip lazy-src when missing so v-img doesn't apply its loading
+       * blur to the static fallback.
+       */
+      return this.missing ? undefined : this.placeholderSrc;
     },
     multiPkClasses() {
       const len = this.pks.length;
@@ -109,7 +125,13 @@ export default {
           return;
         }
         if (resp.status !== 202) {
-          if (sawPending) {
+          /*
+           * 404 = no cover ever; switch to the unblurred placeholder.
+           * Anything else (200, 5xx) leaves missing=false so v-img keeps
+           * its lazy-blur loading state for src.
+           */
+          this.missing = resp.status === 404;
+          if (sawPending && !this.missing) {
             this.retry = attempt + 1;
           }
           return;
