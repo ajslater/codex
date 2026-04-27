@@ -1,7 +1,7 @@
 """Librarian Status View."""
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, override
 
 from django.db.models.query_utils import Q
 from drf_spectacular.utils import extend_schema
@@ -117,20 +117,25 @@ _TASK_MAP = MappingProxyType(
 )
 
 
-class AdminLibrarianStatusActiveViewSet(AdminReadOnlyModelViewSet):
-    """Librarian Task Statuses (active/preactive only)."""
+_ACTIVE_STATUS_FILTER = Q(preactive__isnull=False) | Q(active__isnull=False)
 
-    queryset = LibrarianStatus.objects.filter(
-        Q(preactive__isnull=False) | Q(active__isnull=False)
-    ).order_by("preactive", "active", "pk")
+
+class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
+    """Librarian Task Statuses, optionally filtered to active/preactive."""
+
     serializer_class = LibrarianStatusSerializer
+    # Set per-route at ``as_view()`` time. ``True`` for the live status
+    # poller; ``False`` for the Jobs tab's full history view.
+    active_only: ClassVar[bool] = False
 
-
-class AdminLibrarianStatusAllViewSet(AdminReadOnlyModelViewSet):
-    """All Librarian Task Statuses including inactive (for Jobs tab)."""
-
-    queryset = LibrarianStatus.objects.all().order_by("pk")
-    serializer_class = LibrarianStatusSerializer
+    @override
+    def get_queryset(self):
+        """Active rows ordered by their timestamps; otherwise insertion order."""
+        if self.active_only:
+            return LibrarianStatus.objects.filter(_ACTIVE_STATUS_FILTER).order_by(
+                "preactive", "active", "pk"
+            )
+        return LibrarianStatus.objects.order_by("pk")
 
 
 class AdminLibrarianTaskView(AdminAPIView):
