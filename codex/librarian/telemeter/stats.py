@@ -142,8 +142,13 @@ class CodexStats:
             return
         config = self._get_model_counts("config")
         sessions, config["user_anonymous_count"] = self._get_session_stats()
-        config["user_registered_count"] = config.pop("users_count", 0)
-        config["auth_group_count"] = config.pop("groups_count", 0)
+        # ``_get_model_counts`` keys off ``snakecase(model.__name__) + "_count"``
+        # — for ``django.contrib.auth.models.User`` / ``Group`` that is
+        # ``user_count`` / ``group_count`` (singular). The previous pop()s
+        # used ``users_count`` / ``groups_count`` which never existed,
+        # so both fields silently fell back to the default ``0``.
+        config["user_registered_count"] = config.pop("user_count", 0)
+        config["auth_group_count"] = config.pop("group_count", 0)
         obj["config"] = config
         obj["sessions"] = sessions
 
