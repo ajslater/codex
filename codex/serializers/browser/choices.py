@@ -138,6 +138,18 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     }
 )
 _LIST_FIELDS = frozenset({"decade", "monochrome", "reading_direction", "year"})
+# ``BrowserSettingsFilterSerializer().get_fields()`` walks DRF's
+# metaclass and instantiates a serializer just to look up four field
+# representations. The fields are class-level definitions, so resolve
+# them once at module load and serve from a frozen dict on every
+# choices request.
+_LIST_FIELD_REPRESENTATIONS = MappingProxyType(
+    {
+        name: field
+        for name, field in BrowserSettingsFilterSerializer().get_fields().items()
+        if name in _LIST_FIELDS
+    }
+)
 
 
 class BrowserChoicesFilterSerializer(Serializer):
@@ -149,12 +161,8 @@ class BrowserChoicesFilterSerializer(Serializer):
         """Dynamic Serializer response by field type."""
         field_name = obj.get("field_name", "")
         choices = obj.get("choices", [])
-        serializer_class = _CHOICES_NAME_SERIALIZER_MAP.get(field_name)
-        if serializer_class:
-            value = serializer_class(choices, many=True).data
-        elif not serializer_class and field_name in _LIST_FIELDS:
-            field = BrowserSettingsFilterSerializer().get_fields().get(field_name)
-            value = field.to_representation(choices)  #  pyright: ignore[reportOptionalMemberAccess],# ty: ignore[unresolved-attribute]
-        else:
-            value = BrowserChoicesIntegerPkSerializer(choices, many=True).data
-        return value
+        if serializer_class := _CHOICES_NAME_SERIALIZER_MAP.get(field_name):
+            return serializer_class(choices, many=True).data
+        if field := _LIST_FIELD_REPRESENTATIONS.get(field_name):
+            return field.to_representation(choices)
+        return BrowserChoicesIntegerPkSerializer(choices, many=True).data
