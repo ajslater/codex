@@ -61,18 +61,20 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
     @staticmethod
     def _apply_userauth(instance, userauth_data) -> None:
         """
-        Apply nested :class:`UserAuth` fields in one pass.
+        Apply nested :class:`UserAuth` fields with a single ``UPDATE``.
 
         :class:`UserAuth` rows are created by
-        :meth:`AdminUserViewSet.perform_create` on user creation; here we
-        just update the per-user age-rating ceiling if it was sent.
+        :meth:`AdminUserViewSet.perform_create` on user creation, so the
+        row is guaranteed to exist on update. ``filter().update()`` is
+        one round trip vs ``get_or_create`` + ``save`` — and a missing
+        auth row stays a no-op rather than re-creating a default one
+        (which would mask a data-integrity issue from the create path).
         """
-        if not userauth_data:
+        if not userauth_data or "age_rating_metron" not in userauth_data:
             return
-        userauth, _ = UserAuth.objects.get_or_create(user=instance)
-        if "age_rating_metron" in userauth_data:
-            userauth.age_rating_metron = userauth_data["age_rating_metron"]
-            userauth.save(update_fields=["age_rating_metron"])
+        UserAuth.objects.filter(user=instance).update(
+            age_rating_metron=userauth_data["age_rating_metron"],
+        )
 
     @override
     def update(self, instance, validated_data) -> Any:
