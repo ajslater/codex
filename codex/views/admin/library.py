@@ -1,5 +1,6 @@
 """Admin Library Views."""
 
+import os
 from pathlib import Path
 from typing import override
 
@@ -157,18 +158,31 @@ class AdminFolderListView(AdminGenericAPIView):
     input_serializer_class = AdminFolderSerializer
 
     @staticmethod
-    def _get_dirs(root_path, show_hidden) -> tuple:
-        """Get dirs list."""
-        dirs = []
+    def _get_dirs(root_path, show_hidden) -> tuple[str, ...]:
+        """
+        Get dirs list.
+
+        Uses :func:`os.scandir` so each entry's directory check is a
+        single ``stat`` instead of the prior ``Path.iterdir()`` plus
+        ``Path.resolve().is_dir()`` (which chains a full readlink walk
+        before stat-ing). Broken symlinks are skipped silently.
+        """
+        dirs: list[str] = []
         if root_path.parent != root_path:
-            dirs += [".."]
-        subdirs = []
-        for subpath in root_path.iterdir():
-            if subpath.name.startswith(".") and not show_hidden:
-                continue
-            if subpath.resolve().is_dir():
-                subdirs.append(subpath.name)
-        dirs += sorted(subdirs)
+            dirs.append("..")
+        subdirs: list[str] = []
+        with os.scandir(root_path) as it:
+            for entry in it:
+                if entry.name.startswith(".") and not show_hidden:
+                    continue
+                try:
+                    is_dir = entry.is_dir(follow_symlinks=True)
+                except OSError:
+                    # Broken symlink or permission denied — skip silently.
+                    continue
+                if is_dir:
+                    subdirs.append(entry.name)
+        dirs.extend(sorted(subdirs))
         return tuple(dirs)
 
     @extend_schema(request=input_serializer_class)
