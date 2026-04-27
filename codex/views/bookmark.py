@@ -4,12 +4,11 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 from django.db.models.query_utils import Q
-from loguru import logger
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.views.auth import AuthAPIView, GroupACLMixin
+from codex.views.auth import AuthAPIView, AuthMixin, GroupACLMixin
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
@@ -46,23 +45,14 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
         return Q(**my_bookmarks_kwargs)
 
 
-class BookmarkAuthMixin:
+class BookmarkAuthMixin(AuthMixin):
     """Base class for Bookmark Views."""
 
     def get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
         """Filter only the user's bookmarks."""
-        if TYPE_CHECKING:
-            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
         if self.request.user.is_authenticated:
-            key = "user_id"
-            value = self.request.user.pk
-        else:
-            if not self.request.session or not self.request.session.session_key:
-                logger.debug("no session, make one")
-                self.request.session.save()
-            key = "session_id"
-            value = self.request.session.session_key
-        return {key: value}
+            return {"user_id": self.request.user.pk}
+        return {"session_id": self._ensure_session_key()}
 
 
 class BookmarkPageMixin(BookmarkAuthMixin):
