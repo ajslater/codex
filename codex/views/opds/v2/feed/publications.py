@@ -1,25 +1,62 @@
 """Publication Methods for OPDS v2.0 feed."""
 
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from datetime import datetime
 from math import floor
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Final, override
 from urllib.parse import quote_plus
 
 from caseconverter import snakecase
+from django.db.models import CharField, F, Value
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
 from codex.models.groups import BrowserGroupModel, Folder
+from codex.models.named import Credit
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
-from codex.views.opds.const import MimeType, Rel
+from codex.views.auth import GroupACLMixin
+from codex.views.opds.const import (
+    AUTHOR_ROLES,
+    OPDS_M2M_MODELS,
+    MimeType,
+    Rel,
+)
 from codex.views.opds.v2.const import HrefData, Link, LinkData
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 
 _PUBLICATION_PREVIEW_LIMIT: Final = 5
 _PREVIEW_SHOW_PARAMS: Final[MappingProxyType[str, bool]] = MappingProxyType(
     {"p": True, "s": True}
+)
+# Direct ``Comic`` attribute → metadata key mapping. Mirrors the
+# manifest-side map in ``codex/views/opds/v2/manifest.py``; kept
+# in-module here because the publications feed shouldn't import view
+# code from the manifest path (sibling branches).
+_PUBLICATION_DIRECT_FIELDS: Final[MappingProxyType[str, str]] = MappingProxyType(
+    {
+        "description": "summary",
+        "publisher": "publisher_name",
+        "imprint": "imprint_name",
+    }
+)
+# Role-name → metadata-key partition for OPDS2 contributor fields.
+# The metadata serializer declares 11 contributor categories; rows
+# with a role-name not in any bucket are dropped.
+_MD_CREDIT_MAP: Final[MappingProxyType[str, frozenset[str]]] = MappingProxyType(
+    {
+        "author": frozenset(AUTHOR_ROLES),
+        "translator": frozenset({"Translator"}),
+        "editor": frozenset({"Editor"}),
+        "artist": frozenset({"CoverArtist", "Cover", "Artist"}),
+        "illustrator": frozenset({"Illustrator"}),
+        "letterer": frozenset({"Letterer"}),
+        "penciller": frozenset({"Penciller"}),
+        "colorist": frozenset({"Colorist", "Colors"}),
+        "inker": frozenset({"Inker", "Inks"}),
+        "contributor": frozenset({"Contributor"}),
+        "narrator": frozenset({"Narrator"}),
+    }
 )
 
 
@@ -182,6 +219,128 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 class OPDS2PublicationsView(OPDS2PublicationBaseView):
     """Publication Methods for OPDS 2.0 feed."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize per-feed batch caches."""
+        super().__init__(*args, **kwargs)
+        # Populated by ``get_publications`` before the per-publication
+        # loop. ``_publication_metadata`` reads them per ``obj.pk``.
+        self._credits_by_pk: dict[int, dict[str, list]] = {}
+        self._subjects_by_pk: dict[int, list] = {}
+
+    @staticmethod
+    def _build_credits_by_pk(comic_pks: Collection[int]) -> dict[int, dict[str, list]]:
+        """
+        Per-comic credit map keyed by metadata role bucket.
+
+        Single batched query against ``Credit`` joined with ``person``
+        and ``role``, partitioned in Python by ``_MD_CREDIT_MAP``. Rows
+        with a role-name not in any bucket are dropped. Replaces a
+        per-publication credit fan-out (the manifest path is still
+        per-comic via ``_publication_credits`` — fine for that endpoint
+        because it serves a single book per call).
+        """
+        if not comic_pks:
+            return {}
+        rows = (
+            Credit.objects.filter(comic__in=comic_pks)
+            .annotate(
+                _comic_id=F("comic"),
+                name=F("person__name"),
+                role_name=F("role__name"),
+            )
+            .values("pk", "name", "role_name", "_comic_id")
+            .order_by("_comic_id", "role_name", "name")
+        )
+        # Reverse-index role_name → bucket so the partition is O(1) per row.
+        role_to_bucket: dict[str, str] = {
+            role: bucket for bucket, roles in _MD_CREDIT_MAP.items() for role in roles
+        }
+        by_pk: dict[int, dict[str, list]] = {pk: {} for pk in comic_pks}
+        for row in rows:
+            bucket = role_to_bucket.get(row["role_name"])
+            if bucket is None:
+                continue
+            cid = row["_comic_id"]
+            if cid not in by_pk:
+                continue
+            credit = SimpleNamespace(
+                pk=row["pk"],
+                name=row["name"],
+                role_name=row["role_name"],
+                identifier="",
+                links=(),
+            )
+            by_pk[cid].setdefault(bucket, []).append(credit)
+        return by_pk
+
+    @staticmethod
+    def _build_subjects_by_pk(comic_pks: Collection[int]) -> dict[int, list]:
+        """
+        Per-comic subject (M2M) list as a flat union across model kinds.
+
+        Single ``UNION ALL`` over the seven ``OPDS_M2M_MODELS`` filtered
+        by comic pk. Mirrors the per-comic union in
+        ``OPDS2ManifestMetadataView._publication_subject`` but indexed
+        by comic pk for the feed path.
+        """
+        if not comic_pks or not OPDS_M2M_MODELS:
+            return {}
+        queries = []
+        for model in OPDS_M2M_MODELS:
+            rel = GroupACLMixin.get_rel_prefix(model)
+            kind = model.__name__.lower()
+            q = (
+                model.objects.filter(**{rel + "in": comic_pks})
+                .annotate(
+                    _kind=Value(kind, output_field=CharField()),
+                    _comic_id=F(rel + "id"),
+                )
+                .values("pk", "name", "_kind", "_comic_id")
+            )
+            queries.append(q)
+        rows = (
+            queries[0]
+            .union(*queries[1:], all=True)
+            .order_by("_comic_id", "_kind", "name")
+        )
+        by_pk: dict[int, list] = {pk: [] for pk in comic_pks}
+        seen: dict[tuple[int, str], set[int]] = {}
+        for row in rows:
+            cid = row["_comic_id"]
+            kind = row["_kind"]
+            ipk = row["pk"]
+            bucket_seen = seen.setdefault((cid, kind), set())
+            if ipk in bucket_seen or cid not in by_pk:
+                continue
+            bucket_seen.add(ipk)
+            by_pk[cid].append(SimpleNamespace(pk=ipk, name=row["name"], links=()))
+        return by_pk
+
+    @override
+    def _publication_metadata(self, obj, zero_pad) -> dict:
+        """Build feed-side metadata enriched with batched credits + subjects."""
+        md = super()._publication_metadata(obj, zero_pad)
+
+        # Direct attribute → metadata key passthrough.
+        for md_key, attr in _PUBLICATION_DIRECT_FIELDS.items():
+            if value := getattr(obj, attr, None):
+                md[md_key] = value
+
+        # Special-case transforms (mirror manifest semantics).
+        if lang := getattr(obj, "language", None):
+            md["language"] = lang.name
+        if layout := getattr(obj, "reading_direction", None):
+            md["layout"] = "scrolled" if layout == "ttb" else layout
+
+        # Pre-batched per-pk credit + subject hydration (set up by
+        # ``get_publications`` before the loop).
+        if credits_for_obj := self._credits_by_pk.get(obj.pk):
+            md.update(credits_for_obj)
+        if subjects_for_obj := self._subjects_by_pk.get(obj.pk):
+            md["subject"] = subjects_for_obj
+
+        return md
+
     @override
     def _publication(self, obj, zero_pad) -> dict:
         pub = super()._publication(obj, zero_pad)
@@ -228,8 +387,18 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         number_of_items: int | None = None,
     ) -> list:
         """Get publications section."""
+        # Materialize once so we can pre-fetch credits + subjects for
+        # the full pk slice before the per-publication loop. Without
+        # this the loop's ``_publication_metadata`` would fan out into
+        # 1 credit query + 7 m2m queries per book = 8N queries on a
+        # full feed page. The two batched UNION queries collapse that
+        # to 2 queries flat regardless of N.
+        book_list = list(book_qs)
+        pks = tuple(obj.pk for obj in book_list)
+        self._credits_by_pk = self._build_credits_by_pk(pks)
+        self._subjects_by_pk = self._build_subjects_by_pk(pks)
         publications = []
-        for obj in book_qs:
+        for obj in book_list:
             pub = self._publication(obj, zero_pad)
             publications.append(pub)
 
