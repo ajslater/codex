@@ -18,7 +18,7 @@ handoff and extends to the rest of `codex/serializers/models/`.
 - `admin.py` — `LibrarianStatusSerializer` (lightweight)
 - `pycountry.py` — `CountrySerializer` / `LanguageSerializer`
   (lightweight; pycountry cost is in `fields/browser.py` —
-  see [05-fields.md](./05-fields.md))
+  see [01-fields.md](./01-fields.md))
 
 `codex/serializers/browser/metadata.py`:
 
@@ -211,7 +211,7 @@ These are tiny and do not appear in the hot path:
   **Verified clean.**
 - `pycountry.py` — uses `CountryField`/`LanguageField` from
   `fields/browser.py`. Cost lives in the field, not the
-  serializer. Covered by [05-fields.md](./05-fields.md).
+  serializer. Covered by [01-fields.md](./01-fields.md).
 
 ## Suggested commit shape
 

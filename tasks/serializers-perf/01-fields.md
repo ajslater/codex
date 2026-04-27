@@ -22,6 +22,93 @@ every browser card, every OPDS entry.
 
 ## Findings
 
+### F0 — Verify country/language codes are stripped at import
+
+**Prerequisite for F1.** The cache lookup in F1 uses
+`alpha_2_map.get(value, value)` — direct dict-`get`, no fuzzy
+matching. If imports leave whitespace on country/language codes
+(`"US "`, `" EN"`, etc.) the fast-path miss, and the existing
+pycountry fallback that hides those misses goes away with F1.
+
+**Audit chain**
+
+1. **Source of values.** The codex importer pulls country /
+   language codes from comicbox-parsed metadata. Trace:
+
+   ```
+   codex/librarian/scribe/importer/read/aggregate_path.py:34,46
+       — comicbox keys aggregated into the import payload
+   codex/librarian/scribe/importer/<aggregate / link>
+       — payload merged into Comic field assignments
+   ```
+
+   Read the importer's normalize-and-link path end to end; confirm
+   whether `payload["country"]` / `payload["language"]` flow
+   through any `.strip()` step.
+
+2. **Field-level cleanup.** `Comic.country` / `Comic.language`
+   are `ForeignKey` to `Country` / `Language` (subclasses of
+   `NamedModel` in `codex/models/named.py:89,102`).
+   `NamedModel.name` is a `CleaningCharField`, which uses
+   `CleaningStringFieldMixin.get_prep_value` in
+   `codex/models/fields.py:17-26`:
+
+   ```python
+   def get_prep_value(self, value):
+       if value := super().get_prep_value(value):
+           value = value[: self.max_length]
+           value = clean(value)             # nh3 HTML sanitize
+           value = unescape(value)          # HTML entity decode
+       return value
+   ```
+
+   **No `.strip()` step here today.** nh3 `clean()` does not
+   strip outer whitespace.
+
+3. **Pick a fix location.**
+
+   - **(a) Importer-side** — add `.strip()` in the comicbox
+     payload normalization, before the `Country` / `Language`
+     row is created or looked up. Most localized; only affects
+     these two fields. **Recommended.**
+   - **(b) `CleaningStringFieldMixin.get_prep_value`** — add a
+     `value = value.strip()` after `unescape`. Broadest fix;
+     touches every CharField in the codebase, including
+     description / banner / comment text where leading whitespace
+     might be significant for display. Risky.
+   - **(c) `PyCountryField._alpha_2_map().get(value.strip(),
+     value)` defense-in-depth** — purely serializer-side fallback.
+     Cheap (one strip per per-row Comic country/language access).
+     Doesn't fix the underlying data; existing rows still have
+     whitespace stored. Use as a belt-and-braces in addition to
+     (a), not instead.
+
+4. **Verify with a query**:
+
+   ```sql
+   SELECT name, length(name) FROM codex_country
+   WHERE name != trim(name);
+   SELECT name, length(name) FROM codex_language
+   WHERE name != trim(name);
+   ```
+
+   If either returns rows, write a one-shot data migration:
+
+   ```python
+   migrations.RunPython(
+       lambda apps, schema_editor: ...
+       # UPDATE codex_country SET name = trim(name) WHERE ...
+   )
+   ```
+
+**Done state for F0**: either confirmed clean (no rows with
+whitespace, no fix needed beyond defensive `.strip()` in the
+cache lookup), or fix (a) lands in the importer plus a one-shot
+data migration to clean the existing rows.
+
+This finding takes the trailing-whitespace risk off the
+[Risks](#risks) list.
+
 ### F1 — `PyCountryField` per-call lookup **(high impact)**
 
 `codex/serializers/fields/browser.py:26-51`.
@@ -317,12 +404,18 @@ Tuple unpacked at class definition time, not per-instance. No fix.
 
 ## Suggested commit shape
 
-One PR, two commits:
+One PR, three commits:
 
-1. **F1 + F2: `PyCountryField` cache + drop sanitization.** Single
+1. **F0: import-side strip audit + data migration if needed.**
+   Verify the importer normalizes country/language codes before
+   creating `Country` / `Language` rows. If existing rows have
+   whitespace, ship a one-shot data migration. If clean, document
+   the assumption and add a regression test that round-trips a
+   `"US "` import to a normalized `"US"` row.
+2. **F1 + F2: `PyCountryField` cache + drop sanitization.** Single
    file (`fields/browser.py`). Add a microbench under
    `tests/perf/` measuring 1000 country lookups before/after.
-2. **F3: `SerializerChoicesField` cache.** Cosmetic; bundle if
+3. **F3: `SerializerChoicesField` cache.** Cosmetic; bundle if
    convenient or skip.
 
 F4–F8 are no-fix verifications; document in this plan.
@@ -347,10 +440,6 @@ F4–F8 are no-fix verifications; document in this plan.
   pycountry package data is stable across the process lifetime.
   Server restart picks up package updates. Document the assumption
   in `_alpha_2_map` docstring.
-- **Trailing-whitespace ISO codes.** Some import sources may emit
-  `"US "` or `" US"` rather than `"US"`. The cache `.get()` would
-  miss; the prior code's `DB.get(alpha_2=value)` would also miss
-  but fall through to `DB.lookup()` which is fuzzier. Audit
-  whether the queryset-side already strips before storing; if so,
-  no risk. If not, normalize in `_alpha_2_map().get(value.strip(),
-  value)`.
+- ~~Trailing-whitespace ISO codes.~~ Closed by F0 — the import-
+  side audit either confirms whitespace doesn't reach the DB or
+  ships a data migration to clean up existing rows.

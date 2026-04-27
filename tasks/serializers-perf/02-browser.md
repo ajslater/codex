@@ -2,8 +2,8 @@
 
 This sub-plan covers everything under
 `codex/serializers/browser/` except `metadata.py` (in
-[01-models.md](./01-models.md)) and the field-level concerns (in
-[05-fields.md](./05-fields.md)).
+[04-models.md](./04-models.md)) and the field-level concerns (in
+[01-fields.md](./01-fields.md)).
 
 ## Surface
 

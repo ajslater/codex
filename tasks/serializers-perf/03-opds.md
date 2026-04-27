@@ -61,49 +61,156 @@ Likely outcome: verified-clean. The XML template emits per-entry
 data only when the relevant tags are populated, and the populating
 code paths are gated by the metadata flag.
 
-### F2 — OPDS v2 has no batching helpers
+### F2 — OPDS v2: wire batching helpers + populate contributor fields
 
 `codex/views/opds/v2/feed/publications.py:114-151`. The v2
 publication metadata is currently thin — only `title`, `subtitle`,
 `published`, `modified`, `number_of_pages`. No contributor or
-subject data is populated.
+subject data is populated, even though
+`OPDS2PublicationMetadataSerializer:89-99` declares 10 contributor
+fields (author, translator, editor, artist, illustrator, letterer,
+penciller, colorist, inker, narrator) plus subject groups.
 
-**Status:** **No N+1 risk in the current code path** because the
-contributor fields are declared in the serializer
-(`OPDS2PublicationMetadataSerializer:89-99`) but never set by the
-view. They're aspirational.
+**Per user direction:** preemptively wire the v2 batching helpers
+parallel to v1 and populate the declared contributor fields. The
+batching collapses what would be N×K credit/subject queries
+(for K roles × N publications) into a fixed handful of UNION
+queries per feed.
 
-**Footgun:** any future contributor for v2 metadata that adds
-`author`, `translator`, etc. fields will trigger an N+1 unless
-they pre-batch via the v1-style helpers
-(`get_credit_people_by_comic`, `get_m2m_objects_by_comic`).
-
-**Two ways to address:**
-
-**Option A — Delete unused contributor fields from the serializer.**
-Smallest diff. Re-add when the view actually populates them.
+**Reference — the v1 pattern**
+(`codex/views/opds/v1/feed.py:117-147`):
 
 ```python
-# OPDS2PublicationMetadataSerializer — drop these:
-author = OPDS2ContributorSerializer(many=True, required=False)
-translator = OPDS2ContributorSerializer(many=True, required=False)
-editor = OPDS2ContributorSerializer(many=True, required=False)
-artist = OPDS2ContributorSerializer(many=True, required=False)
-illustrator = OPDS2ContributorSerializer(many=True, required=False)
-letterer = OPDS2ContributorSerializer(many=True, required=False)
-penciller = OPDS2ContributorSerializer(many=True, required=False)
-colorist = OPDS2ContributorSerializer(many=True, required=False)
-inker = OPDS2ContributorSerializer(many=True, required=False)
-narrator = OPDS2ContributorSerializer(many=True, required=False)
+def _get_entries_section(self, key, metadata) -> list:
+    entries = []
+    if objs := self.obj.get(key):
+        ...
+        authors_by_pk = contributors_by_pk = category_groups_by_pk = None
+        if metadata and key == "books":
+            all_pks = [obj.pk for obj in objs]
+            authors_by_pk = get_credit_people_by_comic(
+                all_pks, AUTHOR_ROLES, exclude=False
+            )
+            contributors_by_pk = get_credit_people_by_comic(
+                all_pks, AUTHOR_ROLES, exclude=True
+            )
+            category_groups_by_pk = get_m2m_objects_by_comic(all_pks)
+        data = OPDS1EntryData(
+            ...,
+            authors_by_pk=authors_by_pk,
+            contributors_by_pk=contributors_by_pk,
+            category_groups_by_pk=category_groups_by_pk,
+        )
+        for obj in objs:
+            entry = OPDS1Entry(obj, ..., data)
+            entries.append(entry)
+    return entries
 ```
 
-**Option B — Pre-emptively wire the v2 batching helpers.**
-Larger diff. Replicates the v1 batching pattern in the v2
-publications view so populating contributor fields is cheap when
-that day comes.
+**Implementation steps for v2**
 
-**Recommendation:** Option A. The drf-spectacular OpenAPI schema
-will lose those fields, but no client reads them today.
+The v2 view is in
+`codex/views/opds/v2/feed/publications.py`. The hot loop is
+`OPDS2PublicationsView.get_publications` calling `_publication`
+per `obj` in `book_qs`.
+
+1. **Reuse the v1 helpers verbatim** — `get_credit_people_by_comic`
+   and `get_m2m_objects_by_comic` are not v1-specific; they're
+   M2M union utilities that take comic pks and return
+   `dict[pk, list[obj]]`. Same import location:
+   `codex.views.opds.v1.batch` (or wherever the helpers live —
+   confirm during implementation by reading the v1 import path).
+
+2. **Map the 10 contributor roles to v1's `AUTHOR_ROLES` set.**
+   The v1 batching splits credits into "authors" (matching
+   `AUTHOR_ROLES`) and "contributors" (everything else). v2's
+   declared fields are more granular (author / translator /
+   editor / artist / …). The cleanest split:
+
+   - Run `get_credit_people_by_comic(all_pks, role_set, exclude=False)`
+     once per role-bucket (e.g. one call for AUTHOR_ROLES, one
+     for translator-roles, etc.), **or**
+   - Run a single broad call that returns all credits, then
+     partition in Python by role name. Single query is preferable
+     even though the post-processing is Python-side.
+
+   Recommended: a new helper `get_credits_by_comic(all_pks)` that
+   returns `dict[pk, list[Credit]]` with role + person preloaded;
+   v2 partitions by role name into the 10 declared fields.
+
+3. **Thread the batched dicts through `_publication_metadata`**:
+
+   ```python
+   def get_publications(self, book_qs, ...):
+       all_pks = [obj.pk for obj in book_qs]
+       credits_by_pk = get_credits_by_comic(all_pks)
+       subjects_by_pk = get_m2m_objects_by_comic(all_pks)
+       publications = []
+       for obj in book_qs:
+           pub = self._publication(
+               obj,
+               zero_pad,
+               credits=credits_by_pk.get(obj.pk, ()),
+               subjects=subjects_by_pk.get(obj.pk, ()),
+           )
+           publications.append(pub)
+       return publications
+
+   def _publication(self, obj, zero_pad, *, credits=(), subjects=()):
+       pub = super()._publication(obj, zero_pad)
+       pub["metadata"] = self._publication_metadata(
+           obj, zero_pad, credits=credits, subjects=subjects,
+       )
+       return pub
+   ```
+
+4. **Populate the 10 contributor fields** by partitioning
+   `credits` per role inside `_publication_metadata`. Use the
+   `OPDS2ContributorSerializer` shape already declared:
+
+   ```python
+   def _publication_metadata(self, obj, zero_pad, *, credits=(), subjects=()):
+       md = {...existing fields...}
+       md.update(self._partition_credits(credits))
+       if subjects:
+           md["subject"] = [s.name for s in subjects]
+       return md
+
+   @staticmethod
+   def _partition_credits(credits) -> dict:
+       buckets = defaultdict(list)
+       for credit in credits:
+           role_key = credit.role.name.lower()  # or a role-name → field-key map
+           buckets[role_key].append({"name": credit.person.name})
+       return dict(buckets)
+   ```
+
+   The role-name → field-key map should be a module-level
+   `MappingProxyType` so the partitioning is O(N) lookup-only.
+
+5. **Add a unit test** that captures query count for a v2 feed
+   request:
+
+   ```python
+   def test_opds_v2_feed_query_count(client, ten_books_with_credits):
+       with CaptureQueriesContext(connection) as ctx:
+           client.get("/opds/v2.0/p/0/0/0")
+       # Per-request setup + 1 publications page query + 1 credits
+       # union + 1 subjects union + N cover pks (fixed). Pin a
+       # ceiling that catches N+1 regressions.
+       assert len(ctx.captured_queries) <= 12
+   ```
+
+**OpenAPI schema impact:** the contributor fields were already
+declared, so drf-spectacular's schema doesn't change shape — only
+the response body becomes non-empty. Existing v2 clients see the
+new keys; clients that ignored unknown keys are unaffected.
+
+**Risk:** OPDS v2 client interop. Some clients may emit warnings
+on previously-empty fields suddenly populating with arrays.
+Mitigation: roll out behind the existing OPDS-client testing
+gate from PR #606 (cover cleanup) once the v2 implementation
+ships.
 
 ### F3 — `OPDS2LinkSerializer.get_rel` SMF in tight loop
 
@@ -167,14 +274,69 @@ but otherwise unrelated.
 or for something else? If only for `metadata`, factor a small
 `MetadataMixin` and have both extend that. Cosmetic; not perf.
 
-### F5 — `opds/v2/unused.py` is dead code
+### F5 — `opds/v2/unused.py` is dead code → docstring scaffolds
 
 `codex/serializers/opds/v2/unused.py` — 101 lines of serializers
 that are explicitly named "unused". Imports / references zero.
 
-**Fix:** delete or move into a docstring example block. If the
-intent is to leave them as a starting point for future work, file
-under `tasks/serializers-perf/opds-v2-unused-stash.py.bak`.
+**Per user direction:** preserve the scaffolds as documentation
+rather than deleting them, but in a form that doesn't ship code
+to the import system. Convert the file into a single module-level
+docstring whose body is a `::` code block holding the (now
+non-executable) class definitions.
+
+**Concrete shape**
+
+```python
+# codex/serializers/opds/v2/unused.py
+"""Reference scaffolds for future OPDS v2 endpoints.
+
+These serializer shapes are NOT registered or imported anywhere;
+they exist as starting points for endpoints like the navigation
+feed, group feed, and library feed, which the OPDS v2 spec
+allows but Codex does not yet expose. When wiring one of these
+endpoints, copy the relevant class out of the example block,
+move it into the appropriate module
+(``feed.py`` / ``publication.py`` / etc.), and import it from
+the view.
+
+Example::
+
+    from rest_framework.serializers import (
+        BooleanField,
+        CharField,
+        ListField,
+        Serializer,
+    )
+
+    from codex.serializers.opds.v2.links import OPDS2LinkSerializer
+    from codex.serializers.opds.v2.metadata import OPDS2MetadataSerializer
+
+
+    class OPDS2NavigationSerializer(Serializer):
+        '''Navigation feed entry — example scaffold.'''
+
+        title = CharField(...)
+        # ... rest of the class body goes here ...
+
+
+    class OPDS2GroupSerializer(Serializer):
+        '''Group feed wrapper — example scaffold.'''
+
+        # ... etc ...
+"""
+```
+
+The actual existing class bodies move *inside* the
+`Example::` block as indented prose-mode Python. Ruff / pyright
+skip module docstrings, so no lint error. Imports referenced in
+the docstring are listed near the top of the example so a future
+contributor can copy a self-contained block.
+
+**Caveat:** any third-party tool that imports `unused.py` and
+introspects its module dict (Sphinx autodoc, etc.) will get an
+empty namespace. None do today; verify with
+`grep -rn 'opds.v2.unused' .` before merging.
 
 ### F6 — OPDS1 / v2 duplicated link logic
 
@@ -188,13 +350,19 @@ defer.
 
 One PR, three commits:
 
-1. **F2 unused-field cleanup.** Drop the 10 contributor fields from
-   `OPDS2PublicationMetadataSerializer`. Update OpenAPI schema
-   tests if any pin them.
+1. **F2 v2 batching + contributor field population.** Adds
+   `get_credits_by_comic` (or reuses v1's
+   `get_credit_people_by_comic` per role bucket) plus
+   `get_m2m_objects_by_comic` to the v2 publications view, threads
+   the batched dicts through `_publication_metadata`, populates
+   the 10 declared contributor fields and the subject array.
+   Lock in the query-count ceiling with a regression test.
 2. **F3 `get_rel` SMF removal.** Replace with `JSONField`. Move the
    isinstance guard into `LinkData.to_dict()`. Add a test that a
    list-typed rel passes through unchanged.
-3. **F5 unused.py deletion.** Single-file removal, no import sites.
+3. **F5 unused.py → docstring scaffolds.** Convert the file to a
+   module-level docstring containing the example class bodies in
+   a `::` code block. No imports break (file path remains).
 
 F1 verified-clean lands as a documentation update in this plan
 file (not a code commit).
@@ -204,16 +372,25 @@ file (not a code commit).
 - `tests/perf/run_opds_baseline.py::flow_v1_default` and
   `::flow_v1_metadata` — query counts before/after F1 audit
   (F1 likely no-op).
-- `::flow_v2_default` — query counts before/after F2/F3.
+- `::flow_v2_default` — query count regression test from F2:
+  pin a ceiling that catches N+1 (e.g. ≤ 12 queries for a 10-book
+  page with full credits/subjects). Cold + warm wall time before
+  and after.
 - New unit test: `LinkData.to_dict()` produces a dict with `rel`
-  as either str or list, never something else.
-- OPDS2 feed sample request returns identical bytes before/after
-  (bit-for-bit match), confirming F3 didn't change wire shape.
+  as either str or list, never something else (F3).
+- OPDS2 feed sample request: F2 changes the response body shape
+  (previously-empty contributor fields now contain arrays). F3
+  changes wire bytes only if a list-rel was previously coerced
+  to a string by the SMF — confirm with a snapshot test.
+- Confirm `unused.py` still imports as a no-op after F5 (parses
+  but exports nothing).
 
 ## Notes for OPDS-client testing
 
 OPDS feeds are read by external clients with various tolerance for
-schema drift. F2's deletion of contributor fields removes
-declared-but-empty fields from the JSON output (they would have
-been `null` or absent). Likely no client cares; verify with a real
-client (e.g. KyBook, Chunky) before merging.
+schema drift. F2 populates fields that were previously
+declared-but-empty — clients that ignored them are unaffected;
+clients that coded against an empty array may see real data for
+the first time. Verify with a real client (e.g. KyBook, Chunky)
+before merging, alongside the cover-cleanup OPDS testing gate
+from PR #606.

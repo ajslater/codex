@@ -1,7 +1,7 @@
 # Stage 5e — Handoff: ComicSerializer N+1 audit
 
 > **Status (April 2026):** absorbed into
-> [`tasks/serializers-perf/01-models.md`](../serializers-perf/01-models.md)
+> [`tasks/serializers-perf/04-models.md`](../serializers-perf/04-models.md)
 > as Finding F1 (audit serializer-time query count for flow_c2). The
 > per-finding scoping below (Gap 1–5) is preserved verbatim but the
 > implementation steps live in the linked sub-plan.

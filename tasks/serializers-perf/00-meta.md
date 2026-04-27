@@ -18,7 +18,7 @@ A single previous handoff doc
 (`tasks/browser-views-perf/stage5e-handoff-serializer-audit.md`)
 already scoped one serializer (`ComicSerializer` /
 `MetadataSerializer`). This project absorbs it as
-[01-models.md](#01-models) and extends across the rest of the
+[04-models.md](./04-models.md) and extends across the rest of the
 serializer surface.
 
 ## Scope
@@ -92,15 +92,15 @@ multiply tiny costs by huge N:
 | # | Endpoint | Serializer entry point | Cardinality | Sub-plan |
 | -- | -------- | ---------------------- | ----------- | -------- |
 | 1 | `/api/v3/<group>/<pks>/<page>` (browse) | `BrowserPageSerializer` → `BrowserCardSerializer` × N cards | 20–100 cards | [02](./02-browser.md) |
-| 2 | `/api/v3/c/<pk>/metadata` | `MetadataSerializer` → 17 nested serializers | 1 row × deep nesting | [01](./01-models.md) |
+| 2 | `/api/v3/c/<pk>/metadata` | `MetadataSerializer` → 17 nested serializers | 1 row × deep nesting | [04](./04-models.md) |
 | 3 | `/opds/v1.2/<group>/<pks>` | OPDS1 templated feed × N entries | 50–100 entries | [03](./03-opds.md) |
 | 4 | `/opds/v2.0/<group>/<pks>` | `OPDS2FeedSerializer` × N publications | 50–100 publications | [03](./03-opds.md) |
-| 5 | `/api/v3/c/<pk>/reader` | `ReaderComicsSerializer` | 1 reader open | [04](./04-auth-admin.md) |
+| 5 | `/api/v3/c/<pk>/reader` | `ReaderComicsSerializer` | 1 reader open | [05](./05-auth-admin.md) |
 | 6 | `/api/v3/<group>/<pks>/choices/<field>` | `BrowserChoicesFilterSerializer` | 1 menu × ~50 choices | [02](./02-browser.md) |
-| 7 | `/api/v3/auth/flags` | `AuthAdminFlagsSerializer` | 1 dict × 4 fields | [04](./04-auth-admin.md) |
-| 8 | `/api/v3/admin/stats` | `StatsSerializer` (cached 60s in PR #610) | 1 dict × deep nesting | [04](./04-auth-admin.md) |
-| 9 | `/api/v3/admin/library` (list) | `LibrarySerializer` × N libraries | 5–50 libraries | [04](./04-auth-admin.md) |
-| 10 | `/api/v3/admin/user` (list) | `UserSerializer` × N users | 1–10 users | [04](./04-auth-admin.md) |
+| 7 | `/api/v3/auth/flags` | `AuthAdminFlagsSerializer` | 1 dict × 4 fields | [05](./05-auth-admin.md) |
+| 8 | `/api/v3/admin/stats` | `StatsSerializer` (cached 60s in PR #610) | 1 dict × deep nesting | [05](./05-auth-admin.md) |
+| 9 | `/api/v3/admin/library` (list) | `LibrarySerializer` × N libraries | 5–50 libraries | [05](./05-auth-admin.md) |
+| 10 | `/api/v3/admin/user` (list) | `UserSerializer` × N users | 1–10 users | [05](./05-auth-admin.md) |
 
 ## Cross-cutting themes
 
@@ -121,7 +121,7 @@ could be cached at *module load time*:
 - `SerializerChoicesField.__init__` instantiates a serializer just
   to read `.get_fields().keys()`. Per-class cache.
 
-Detailed in [05-fields.md](./05-fields.md).
+Detailed in [01-fields.md](./01-fields.md).
 
 ### Theme B — `source="foo.bar.baz"` chain depth
 
@@ -189,10 +189,11 @@ Two clusters of unused serializers were found while auditing:
   `UserCreateSerializer`, `UserLoginSerializer` — never imported
   anywhere. Includes a `get_admin_flags` SMF that fires
   `AdminFlag.objects.filter(...)` per call, but nothing calls it.
-  Delete. Detailed in [04-auth-admin.md](./04-auth-admin.md).
+  Delete. Detailed in [05-auth-admin.md](./05-auth-admin.md).
 - `codex/serializers/opds/v2/unused.py` — explicit (the filename
-  itself says so). Delete or move into a docstring example.
-  Detailed in [03-opds.md](./03-opds.md).
+  itself says so). Convert to a module-level docstring with the
+  class scaffolds in a `::` example block. Detailed in
+  [03-opds.md](./03-opds.md).
 
 ## Methodology
 
@@ -229,20 +230,27 @@ For each finding the same loop:
 
 ## Suggested ordering
 
-Implement in this order — biggest payoff per LOC first:
+The sub-plans are numbered in implementation order — biggest
+payoff per LOC first:
 
-1. **Fields cleanups (05).** `PyCountryField` cache, drop sanitization
-   from country/language codes. Touches every Comic serialization
-   path. Cheap, high-leverage.
-2. **Browser serializers (02).** Browser cards are the highest-N
-   surface (browse list = 50–100 cards × 30+ fields each). Mtime
-   parsing + choices instantiation are the visible offenders.
-3. **OPDS (03).** Either batch v2 to match v1, or delete v2's unused
-   contributor fields. Either way the trap is closed.
-4. **Models / metadata (01).** Stage 5e handoff carries this forward.
-   Confirm zero serializer-time queries on the metadata pane.
-5. **Auth + admin (04).** Dead-code cleanup in `auth.py`. Add
-   prefetch enforcement tests for admin list endpoints.
+1. **[01-fields.md](./01-fields.md) — Fields cleanups.**
+   Country/language import-strip audit, `PyCountryField` cache,
+   drop sanitization from ISO codes. Touches every Comic
+   serialization path. Cheap, high-leverage.
+2. **[02-browser.md](./02-browser.md) — Browser serializers.**
+   Browser cards are the highest-N surface (browse list =
+   50–100 cards × 30+ fields each). Mtime parsing + choices
+   instantiation are the visible offenders.
+3. **[03-opds.md](./03-opds.md) — OPDS v1 + v2.** Wire v2
+   batching helpers parallel to v1 and populate the declared
+   contributor fields, drop the per-link `get_rel` SMF, convert
+   `unused.py` into docstring scaffolds.
+4. **[04-models.md](./04-models.md) — Models / metadata.**
+   Stage 5e handoff carries this forward. Confirm zero
+   serializer-time queries on the metadata pane.
+5. **[05-auth-admin.md](./05-auth-admin.md) — Auth + admin.**
+   Dead-code cleanup in `auth.py`, add prefetch enforcement
+   tests for admin list endpoints.
 
 Each sub-plan yields one PR (or a single bundled PR if the diffs
 stay small, like `cover-cleanup`).
@@ -258,11 +266,12 @@ stay small, like `cover-cleanup`).
   refactor splits the queryset and the prefetch, the test will
   catch it — that's the point — but be ready to update tests that
   intentionally remove a prefetch.
-- **OPDS v2 contributor-field deletion** changes the
-  drf-spectacular OpenAPI schema. If any client reads the schema
-  to know what fields are available, they'll stop seeing them.
-  Mitigation: feature-flag rollout or schedule with the OPDS v2
-  consumers list (handful of clients).
+- **OPDS v2 contributor-field population** changes the response
+  body shape (previously-empty fields suddenly contain arrays).
+  drf-spectacular's OpenAPI schema is unchanged — the fields were
+  already declared. Clients that ignored unknown / empty fields
+  are unaffected. Mitigation: roll out behind the existing
+  OPDS-client testing gate from PR #606 (cover cleanup).
 
 ## Out of scope
 
@@ -278,16 +287,17 @@ stay small, like `cover-cleanup`).
 
 ## Sub-plans
 
-- [01-models.md](./01-models.md) — Model serializers + the
-  ComicSerializer/MetadataSerializer audit absorbed from
-  `tasks/browser-views-perf/stage5e-handoff-serializer-audit.md`.
+- [01-fields.md](./01-fields.md) — Country/language strip audit,
+  `PyCountryField` cache, drop `SanitizedCharField` from ISO codes,
+  `SerializerChoicesField` per-instance cost, vuetify field audit.
 - [02-browser.md](./02-browser.md) — Browser endpoint serializers
-  (BrowserCardSerializer, BrowserChoicesFilterSerializer,
-  BrowserAggregateSerializerMixin.get_mtime).
-- [03-opds.md](./03-opds.md) — OPDS v1 + v2 batching parity,
-  per-link SMF removal, unused-field cleanup.
-- [04-auth-admin.md](./04-auth-admin.md) — `auth.py` dead code,
+  (`BrowserCardSerializer`, `BrowserChoicesFilterSerializer`,
+  `BrowserAggregateSerializerMixin.get_mtime`).
+- [03-opds.md](./03-opds.md) — OPDS v1 audit + v2 batching wired
+  with contributor-field population, per-link `get_rel` SMF
+  removal, `unused.py` → docstring scaffolds.
+- [04-models.md](./04-models.md) — Model serializers + the
+  `ComicSerializer` / `MetadataSerializer` audit absorbed from
+  `tasks/browser-views-perf/stage5e-handoff-serializer-audit.md`.
+- [05-auth-admin.md](./05-auth-admin.md) — `auth.py` dead code,
   admin list FK source chains, `LibrarySerializer.validate_path`.
-- [05-fields.md](./05-fields.md) — `PyCountryField` cache,
-  `SanitizedCharField` for ISO codes, `SerializerChoicesField`
-  per-instance cost, vuetify field audit.
