@@ -1,9 +1,10 @@
 """Views authorization bases."""
 
 from collections.abc import Sequence
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.models import Session
 from django.db.models.query_utils import Q
 from loguru import logger
 from rest_framework.authtoken.models import Token
@@ -16,6 +17,9 @@ from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag, Comic, Folder, StoryArc
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
@@ -40,6 +44,24 @@ class AuthMixin:
     permission_classes: Sequence[type[BasePermission]] = (
         IsAuthenticatedOrEnabledNonUsers,
     )
+
+    def _ensure_session_key(self) -> str | None:
+        """Ensure a Django session row exists in the DB and return its key."""
+        # The cookie may carry a session_key for a row that has been removed
+        # from the DB (e.g. by sessions cleanup or expiry). The cached_db
+        # backend serves such sessions from cache without rechecking, so
+        # session.session_key alone is not safe to use as an FK target.
+        if TYPE_CHECKING:
+            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
+        session = self.request.session
+        if (
+            session.session_key
+            and not Session.objects.filter(session_key=session.session_key).exists()
+        ):
+            session.flush()
+        if not session.session_key:
+            session.save()
+        return session.session_key
 
 
 class AuthAPIView(AuthMixin, APIView):  # pyright: ignore[reportIncompatibleVariableOverride]

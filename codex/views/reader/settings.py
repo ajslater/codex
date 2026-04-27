@@ -1,10 +1,8 @@
 """Reader settings views."""
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from drf_spectacular.utils import extend_schema
-from loguru import logger
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -17,9 +15,6 @@ from codex.serializers.reader import (
     ReaderSettingsSerializer,
 )
 from codex.views.settings import NULL_VALUES, SettingsBaseView
-
-if TYPE_CHECKING:
-    from rest_framework.request import Request
 
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
 # "g" = global (no FK).  "c" = comic.
@@ -82,14 +77,9 @@ class ReaderSettingsBaseView(SettingsBaseView):
 
     def _get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
         """Filter only the current user's settings rows."""
-        if TYPE_CHECKING:
-            self.request: Request
         if self.request.user.is_authenticated:
             return {"user_id": self.request.user.pk}
-        if not self.request.session or not self.request.session.session_key:
-            logger.debug("no session, make one")
-            self.request.session.save()
-        return {"session_id": self.request.session.session_key}
+        return {"session_id": self._ensure_session_key()}
 
     def _get_settings_lookup(self, **extra):
         """Build the base lookup for a SettingsReader query."""
