@@ -6,7 +6,6 @@ from copy import deepcopy
 from types import MappingProxyType
 
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
-from django.contrib.sessions.models import Session
 from loguru import logger
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
@@ -55,22 +54,6 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     BROWSER_CLIENT: ClientChoices = ClientChoices.API
 
     # ── Session / user helpers ──────────────────────────────────────
-
-    def _ensure_session_key(self) -> str | None:
-        """Ensure a Django session row exists in the DB and return its key."""
-        # The cookie may carry a session_key for a row that has been removed
-        # from the DB (e.g. by sessions cleanup or expiry). The cached_db
-        # backend serves such sessions from cache without rechecking, so
-        # session.session_key alone is not safe to use as an FK target.
-        session = self.request.session
-        if (
-            session.session_key
-            and not Session.objects.filter(session_key=session.session_key).exists()
-        ):
-            session.flush()
-        if not session.session_key:
-            session.save()
-        return session.session_key
 
     def _get_request_user(self):
         """Return the authenticated user or None."""
