@@ -197,6 +197,7 @@ FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS: bool  # DEV EXPERIMENT
 SECURE_CSP = {
     "default-src": [CSP.SELF],
     "script-src": [
@@ -214,6 +215,7 @@ SECURE_CSP = {
     "img-src": [
         "data:",
         CSP.SELF,
+        "https://unpkg.com/pdfjs-dist/web/images/",
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
     ],
     "connect-src": [
@@ -222,6 +224,10 @@ SECURE_CSP = {
         "wss:",
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
     ],
+    # These are required by the vue-pdf-embed dependency pdfs-dist.
+    # blob: being open is a little insecure and could possibly be narrowed with additional work.
+    "worker-src": [CSP.SELF, CSP.NONCE, "blob:"],
+    "script-src-elem": [CSP.SELF, CSP.NONCE, "data:"],
 }
 
 # Session

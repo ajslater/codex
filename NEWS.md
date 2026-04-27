@@ -6,14 +6,22 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.11.0 - Age Restrictions
+## v1.11.0 - Age Restrictions & Performance
 
 - Features
     - Age Rating Restrictions now available in the Admin Users tab.
+    - Many performance improvements across all views.
     - Bulk importing performance improvements. Comicbox learned how to use
       multiprocessing & caching.
 - Fix
     - Fix OPDS v2 progression syncing response.
+
+## v1.10.13
+
+- Fixes
+    - Fix PDFs not displaying with default reader settings.
+    - Fix browser paginator slider.
+    - Possible fix for expired and corrupt sessions causing FK errors.
 
 ## v1.10.12
 

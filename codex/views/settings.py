@@ -55,12 +55,6 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
 
     # ── Session / user helpers ──────────────────────────────────────
 
-    def _ensure_session_key(self) -> str | None:
-        """Ensure the Django session is saved and return its key."""
-        if not self.request.session.session_key:
-            self.request.session.save()
-        return self.request.session.session_key
-
     def _get_request_user(self):
         """Return the authenticated user or None."""
         user = self.request.user

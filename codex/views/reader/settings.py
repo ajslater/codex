@@ -94,7 +94,14 @@ class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
         instance.save()
         return defaults
 
-    # ── Scope lookups ───────────────────────────────────────────────
+    # ── Auth + scope lookups ────────────────────────────────────────
+    # (inlined from the former _ReaderSettingsAuthMixin / BookmarkAuthMixin)
+
+    def _get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
+        """Filter only the current user's settings rows."""
+        if self.request.user.is_authenticated:
+            return {"user_id": self.request.user.pk}
+        return {"session_id": self._ensure_session_key()}
 
     def _get_settings_lookup(self, **extra):
         """Build the base lookup for a SettingsReader query."""

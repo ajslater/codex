@@ -23,5 +23,5 @@ class OPDSAuthMixin(AuthMixin):
     def user_agent_name(self) -> str:
         """Memoize user agent name."""
         if self._user_agent_name is None:  # pyright: ignore[reportUnnecessaryComparison]
-            self._user_agent_name = get_user_agent_name(self.request)  # pyright: ignore[reportAttributeAccessIssue,reportUninitializedInstanceVariable], # ty: ignore[unresolved-attribute]
+            self._user_agent_name = get_user_agent_name(self.request)  # pyright: ignore[reportUninitializedInstanceVariable]
         return self._user_agent_name

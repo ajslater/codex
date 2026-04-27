@@ -4,6 +4,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from django.contrib.sessions.models import Session
+from django.core import signing
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
@@ -172,7 +173,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.status_controller.finish(status)
 
     def cleanup_sessions(self) -> None:
-        """Delete corrupt sessions."""
+        """Delete expired and corrupt sessions."""
         status = JanitorCleanupSessionsStatus()
         try:
             self.status_controller.start(status)
@@ -181,9 +182,22 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             if count:
                 self.log.info(f"Deleted {count} expired sessions.")
             bad_session_keys = set()
+            store = Session.get_session_store_class()()
+            salt = store.key_salt  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            serializer = store.serializer
             for encoded_session in Session.objects.all():
-                session = encoded_session.get_decoded()
-                if not session:
+                # Session.get_decoded() swallows decode errors and returns
+                # an empty dict, which is also the legitimate state for an
+                # anonymous session with no stored data — so we can't use
+                # it to detect corruption. Call signing.loads directly so a
+                # genuine signature/decode failure raises.
+                try:
+                    signing.loads(
+                        encoded_session.session_data,
+                        salt=salt,
+                        serializer=serializer,
+                    )
+                except Exception:
                     bad_session_keys.add(encoded_session.session_key)
 
             if bad_session_keys:
