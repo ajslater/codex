@@ -9,8 +9,11 @@ the group-resolution pipeline 72x per page.
 
 Cover generation is never run inline. If the cached thumb is missing we
 enqueue a :class:`CoverCreateTask` on the librarian queue and respond 202
-Accepted with ``Retry-After`` plus a placeholder image so the client has
-something to render while the cover thread produces the real bytes.
+Accepted with ``Retry-After`` so the client has something to render while
+the cover thread produces the real bytes. When a cover can't be produced
+(or doesn't exist) we respond 404 with an empty body — the web client
+falls back to its ``lazy-src`` SVG and OPDS clients use their own default
+rendering.
 """
 
 from collections.abc import Sequence
@@ -28,7 +31,6 @@ from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import Comic
 from codex.views.auth import AuthFilterAPIView
-from codex.views.const import MISSING_COVER_PATH
 
 _RETRY_AFTER_SECONDS: Final = 2
 _WEBP_CONTENT_TYPE: Final = "image/webp"
@@ -56,14 +58,28 @@ class _CoverBaseView(AuthFilterAPIView):
 
     @staticmethod
     def _missing_cover_response(
-        status_code: int = status.HTTP_200_OK,
+        status_code: int = status.HTTP_404_NOT_FOUND,
     ) -> HttpResponse:
-        body = MISSING_COVER_PATH.read_bytes()
-        return HttpResponse(body, content_type=_WEBP_CONTENT_TYPE, status=status_code)
+        """
+        Return an empty response for a missing or pending cover.
+
+        Default 404 lets the web client fall back to its ``lazy-src`` SVG
+        and OPDS clients use their own default rendering. ``no-store``
+        prevents reverse proxies from caching the 404 briefly, which would
+        otherwise delay a cover from appearing once the cover thread writes
+        the real bytes. Callers using 202 add ``Retry-After`` for the
+        polling loop; ``no-store`` already keeps the polling fetch reaching
+        the backend.
+        """
+        response = HttpResponse(
+            b"", content_type=_WEBP_CONTENT_TYPE, status=status_code
+        )
+        response["Cache-Control"] = "no-store"
+        return response
 
     @classmethod
     def _get_cover_response(cls, pk: int, *, custom: bool) -> HttpResponse:
-        """Return a cached cover or enqueue one and return 202 Retry-After."""
+        """Return a cached cover, enqueue one (202), or 404."""
         cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
         # Single read — no exists()/stat() race window. The cover thread
         # writes atomically via os.replace, so we only ever see the old state
@@ -82,18 +98,14 @@ class _CoverBaseView(AuthFilterAPIView):
             # Zero-byte marker = the cover thread already tried and failed.
             return cls._missing_cover_response()
 
-        # Defer creation to the cover thread; respond with a placeholder.
-        # Cache-Control: no-store prevents the browser from caching the
-        # placeholder at this URL so a subsequent fetch to the same URL (once
-        # the cover thread has written the real thumb) actually hits the
-        # network instead of serving the stale placeholder.
+        # Defer creation to the cover thread; respond 202 so the web client
+        # polls until the real thumb is ready.
         try:
             LIBRARIAN_QUEUE.put(CoverCreateTask(pks=(pk,), custom=custom))
         except Exception as exc:
             logger.warning(f"Cover enqueue failed (pk={pk} custom={custom}): {exc!r}")
         response = cls._missing_cover_response(status.HTTP_202_ACCEPTED)
         response["Retry-After"] = str(_RETRY_AFTER_SECONDS)
-        response["Cache-Control"] = "no-store"
         return response
 
 
