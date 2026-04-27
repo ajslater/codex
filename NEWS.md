@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.13
+
+- Fixes
+    - Fix PDFs not displaying with default reader settings.
+    - Fix browser paginator slider.
+    - Possible fix for expired and corrupt sessions causing FK errors.
+
 ## v1.10.12
 
 - Fixes

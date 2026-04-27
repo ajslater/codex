@@ -1,6 +1,6 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
-
+import { toRaw } from "vue";
 import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
@@ -30,6 +30,15 @@ const DYNAMIC_COVER_KEYS = Object.freeze([
 ]);
 const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
+
+function cloneRoute(route) {
+  return {
+    ...route,
+    matched: route.matched.map(({ instances, ...rest }) => ({
+      ...rest,
+    })),
+  };
+}
 
 const redirectRoute = (route) => {
   if (route && route.params) {
@@ -502,7 +511,8 @@ export const useBrowserStore = defineStore("browser", {
      * ROUTE
      */
     routeToPage(page) {
-      const route = structuredClone(router.currentRoute.value);
+      const origRoute = router.currentRoute.value;
+      const route = cloneRoute(origRoute);
       route.params.page = page;
       router.push(route).catch(console.warn);
     },

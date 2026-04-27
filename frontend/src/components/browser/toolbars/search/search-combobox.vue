@@ -76,7 +76,7 @@ export default {
     },
     doSearch(clear = false) {
       this.menu = false;
-      const search = this?.search.trim() || "";
+      const search = this?.search?.trim() || "";
       const settings = { search };
       if (clear) {
         settings.orderBy = "sort_name";
@@ -87,7 +87,7 @@ export default {
     },
     doBlur() {
       this.menu = false;
-      const search = this?.search.trim() || "";
+      const search = this?.search?.trim() || "";
       if (!search) {
         this.startSearchHideTimeout();
       }

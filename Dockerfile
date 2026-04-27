@@ -69,6 +69,7 @@ WORKDIR /app
 RUN pip3 install --no-cache --upgrade pip
 
 # ---- Stage 3: codex-ci (all deps + source for CI) -------------------------
+# hadolint ignore=DL3007
 FROM oven/bun:latest AS bun-source
 FROM builder AS codex-ci
 
