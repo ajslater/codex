@@ -2,6 +2,7 @@
   <div class="bookCover">
     <v-img
       :src="coverSrc"
+      :lazy-src="placeholderSrc"
       class="coverImg"
       :class="multiPkClasses"
       position="top"
@@ -13,7 +14,7 @@
 </template>
 
 <script>
-import { getCoverSrc } from "@/api/v3/browser";
+import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
 
 const MAX_RETRIES = 5;
 const DEFAULT_RETRY_AFTER_SEC = 2;
@@ -63,6 +64,9 @@ export default {
       }
       const sep = base.includes("?") ? "&" : "?";
       return `${base}${sep}r=${this.retry}`;
+    },
+    placeholderSrc() {
+      return getPlaceholderSrc(this.group);
     },
     multiPkClasses() {
       const len = this.pks.length;

@@ -29,6 +29,24 @@ export const getCoverSrc = ({ coverPk, coverCustomPk }, ts) => {
   return `${base}c/${coverPk}/cover.webp${query}`;
 };
 
+// Mirror of MISSING_COVER_NAME_MAP in codex/views/const.py.
+// Root group "r" never appears as a card group, so it's intentionally
+// absent — unknown letters fall back to the comic placeholder.
+const PLACEHOLDER_BY_GROUP = Object.freeze({
+  p: "publisher",
+  i: "imprint",
+  s: "series",
+  v: "volume",
+  f: "folder",
+  a: "story-arc",
+  c: "comic",
+});
+
+export const getPlaceholderSrc = (group) => {
+  const name = PLACEHOLDER_BY_GROUP[group] ?? "comic";
+  return `${globalThis.CODEX.STATIC}img/${name}.svg`;
+};
+
 const getAvailableFilterChoices = ({ group, pks }, data, ts) => {
   const params = serializeParams(data, ts);
   return HTTP.get(`/${group}/${pks}/choices_available`, { params });
@@ -116,6 +134,7 @@ export default {
   getAvailableFilterChoices,
   getBrowserHref,
   getCoverSrc,
+  getPlaceholderSrc,
   getFilterChoices,
   getGroupDownloadURL,
   getMetadata,
