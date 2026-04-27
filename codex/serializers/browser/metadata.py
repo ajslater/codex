@@ -7,7 +7,7 @@ from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
 from codex.serializers.models.named import (
     CreditSerializer,
-    IdentifierSeralizer,
+    IdentifierSerializer,
     StoryArcNumberSerializer,
 )
 
@@ -61,7 +61,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     credits = CreditSerializer(
         source=f"{PREFETCH_PREFIX}credits", many=True, allow_null=True
     )
-    identifiers = IdentifierSeralizer(
+    identifiers = IdentifierSerializer(
         source=f"{PREFETCH_PREFIX}identifiers", many=True, allow_null=True
     )
     story_arc_numbers = StoryArcNumberSerializer(
