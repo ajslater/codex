@@ -108,8 +108,24 @@ class IdentifierSourceSerializer(NamedModelSerializer):
         model = IdentifierSource
 
 
-class IdentifierSeralizer(BaseModelSerializer):
-    """Identifier model."""
+class IdentifierSerializer(BaseModelSerializer):
+    """
+    Identifier model.
+
+    ``Identifier.name`` is a model-side ``@property`` that reads
+    ``self.source`` (FK to ``IdentifierSource``) — accessing ``name``
+    triggers a DB hit unless ``source`` is preloaded. Today the only
+    consumer is the metadata pane via ``MetadataSerializer``'s
+    ``identifiers`` field, which is populated from
+    ``M2M_QUERY_OPTIMIZERS[Identifier]`` with ``select=("source",)``.
+    Other paths reach Identifier transitively (Credit.role.identifier,
+    StoryArcNumber.story_arc.identifier) but only read ``.url`` —
+    ``url`` is a column, not a property, so no FK fan-out.
+
+    Adding any field to this serializer that triggers further FK
+    access on ``Identifier`` (or the optimizer dropping ``source``)
+    breaks the invariant.
+    """
 
     name = CharField(read_only=True)
 
