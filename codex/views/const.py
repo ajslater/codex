@@ -55,7 +55,7 @@ MISSING_COVER_NAME_MAP = MappingProxyType(
         STORY_ARC_GROUP: "story-arc",
     }
 )
-MISSING_COVER_FN = "missing-cover-165.webp"
+MISSING_COVER_FN = "comic-165.webp"
 MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 
 GROUP_RELATION = MappingProxyType(
