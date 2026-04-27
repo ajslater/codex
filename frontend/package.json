@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.10.12",
+  "version": "1.10.13",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -15,7 +15,7 @@
     "test:ci": "vitest run --reporter verbose --update"
   },
   "dependencies": {
-    "@unhead/vue": "^3.0.5",
+    "@unhead/vue": "^3.1.0",
     "@vueuse/core": "^14.2.1",
     "dequal": "^2.0.3",
     "eslint-import-resolver-oxc": "^0.15.0",
@@ -33,9 +33,9 @@
     "@mdi/js": "^7.4.47",
     "@pinia/testing": "^1.0.3",
     "@types/node": "^25.6.0",
-    "@unhead/bundler": "^3.0.5",
+    "@unhead/bundler": "^3.1.0",
     "@vitejs/plugin-vue": "^6.0.6",
-    "@vue/test-utils": "^2.4.6",
+    "@vue/test-utils": "^2.4.9",
     "@vue/typescript-plugin": "^3.2.7",
     "happy-dom": "^20.9.0",
     "sass": "^1.99.0",
