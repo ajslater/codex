@@ -144,11 +144,16 @@ class AdminLibrarianTaskView(AdminAPIView):
         if name == "notify_bookmark_changed":
             uid = self.request.user.pk
             group = f"user_{uid}"
-            task = NotifierTask(Notifications.BOOKMARK.value, group)
-        else:
-            task = _TASK_MAP.get(name)
-        if pk and isinstance(task, FSPollLibrariesTask):
-            task.library_ids = frozenset({pk})
+            return NotifierTask(Notifications.BOOKMARK.value, group)
+        task = _TASK_MAP.get(name)
+        if isinstance(task, FSPollLibrariesTask):
+            # ``_TASK_MAP`` holds a single shared ``FSPollLibrariesTask``
+            # instance per name. Mutating ``library_ids`` in place would
+            # race two concurrent admin POSTs that target different
+            # libraries — the second writer overwrites the first before
+            # either reaches ``LIBRARIAN_QUEUE.put``. Build a fresh task.
+            library_ids = frozenset({pk}) if pk else task.library_ids
+            return FSPollLibrariesTask(library_ids=library_ids, force=task.force)
         return task
 
     @extend_schema(request=input_serializer_class)
