@@ -42,9 +42,12 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
             if not dt_str:
                 continue
             try:
-                dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").replace(
-                    tzinfo=UTC
-                )
+                # ``fromisoformat`` accepts the SQLite GROUP_CONCAT
+                # output shape (``2024-01-15 10:30:45.123456``) since
+                # Python 3.11 and is ~20x faster than ``strptime`` —
+                # measurable savings on browser-list responses where
+                # this loop runs ~50 cards x ~50 timestamps.
+                dt = datetime.fromisoformat(dt_str).replace(tzinfo=UTC)
             except ValueError:
                 logger.warning(
                     f"computing group mtime: {dt_str} is not a valid datetime string."
