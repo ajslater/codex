@@ -10,7 +10,9 @@ from django.db.models import (
     CharField,
     DateTimeField,
     ForeignKey,
+    Index,
     PositiveSmallIntegerField,
+    Q,
     TextChoices,
 )
 from django.utils.translation import gettext_lazy as _
@@ -88,6 +90,18 @@ class LibrarianStatus(BaseModel):
 
         unique_together = ("status_type", "subtitle")
         verbose_name_plural = "LibrarianStatuses"
+        # The /admin/librarian/status endpoint filters
+        # ``preactive IS NOT NULL OR active IS NOT NULL`` and orders by
+        # ``preactive, active, pk``. A partial index on the matching rows
+        # serves both the filter and the ORDER BY without scanning the
+        # historical (both-NULL) rows.
+        indexes = (
+            Index(
+                fields=("preactive", "active"),
+                condition=Q(preactive__isnull=False) | Q(active__isnull=False),
+                name="codex_libstat_active_idx",
+            ),
+        )
 
 
 class Timestamp(BaseModel):
