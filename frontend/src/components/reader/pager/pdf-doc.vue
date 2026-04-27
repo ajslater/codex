@@ -12,6 +12,7 @@
     @loading-failed="onError"
     @rendering-failed="onError"
     @password-requested="onUnauthorized"
+    @error="onError"
   />
 </template>
 
@@ -59,17 +60,19 @@ export default {
       if (!this.isVertical && this.bookSettings.twoPages) {
         width = width / 2;
       }
-      return width * this.scale;
+      width = width * this.scale;
+      return width;
     },
     height() {
-      let height = ["H", "S"].includes(this.bookSettings.fitTo)
+      let height = [undefined, "H", "S"].includes(this.bookSettings.fitTo)
         ? this.innerHeight
         : 0;
       if (this.isVertical) {
         // Hack for janky PDF display with vertical scroller.
         height = height * 0.8;
       }
-      return height * this.scale;
+      height = height * this.scale;
+      return height;
     },
     classes() {
       return this.bookSettings.fitToClass;

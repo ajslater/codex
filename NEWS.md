@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.10.13
 
 - Fixes
+    - Fix PDFs not displaying with default reader settings.
     - Fix browser paginator slider.
 
 ## v1.10.12
