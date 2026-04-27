@@ -1,8 +1,12 @@
 """Admin Stats View."""
 
+import hashlib
+import json
+from copy import deepcopy
 from types import MappingProxyType
-from typing import Any, ClassVar, override
+from typing import Any, ClassVar, Final, override
 
+from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
@@ -16,6 +20,15 @@ from codex.serializers.admin.stats import (
 )
 from codex.views.admin.auth import AdminGenericAPIView
 from codex.views.admin.permissions import HasAPIKeyOrIsAdminUser
+
+# Cache TTL for the assembled stats object. The data underneath only
+# changes as the librarian imports / users sign up — a brief staleness
+# window beats the ~30 ``COUNT(*)`` round trips + session decode +
+# settings GROUP BY this endpoint runs cold. Library / Group writes
+# call ``cache.clear()`` in their viewsets, which evicts these keys
+# alongside cachalot's ORM cache.
+_CACHE_TTL_SECONDS: Final = 60
+_CACHE_KEY_PREFIX: Final = "admin-stats:"
 
 
 class AdminStatsView(AdminGenericAPIView):
@@ -58,11 +71,27 @@ class AdminStatsView(AdminGenericAPIView):
             obj["config"] = {}
         obj["config"]["api_key"] = api_key
 
+    def _cache_key(self) -> str:
+        """Deterministic cache key derived from the requested params."""
+        # ``MappingProxyType`` isn't directly JSON-serializable, but the
+        # values are. Re-render through a regular dict so ``sort_keys``
+        # gives a stable digest across requests with the same shape.
+        param_str = json.dumps(dict(self.params), sort_keys=True, default=str)
+        digest = hashlib.sha256(param_str.encode("utf-8")).hexdigest()[:16]
+        return f"{_CACHE_KEY_PREFIX}{digest}"
+
     @override
     def get_object(self) -> dict:
-        """Get the stats object with an api key."""
-        getter = CodexStats(self.params)
-        obj = getter.get()
+        """Get (or build) the cached stats object plus a fresh api key."""
+        cache_key = self._cache_key()
+        # Cache the heavy stats payload only; the api key is sourced
+        # outside the cache so a key rotation is reflected immediately.
+        cached = cache.get(cache_key)
+        if cached is None:
+            getter = CodexStats(self.params)
+            cached = getter.get()
+            cache.set(cache_key, cached, _CACHE_TTL_SECONDS)
+        obj = deepcopy(cached)
         self._add_api_key(obj)
         return obj
 

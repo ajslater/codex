@@ -31,13 +31,19 @@ class GroupSerializer(BaseModelSerializer):
 
     @staticmethod
     def _apply_groupauth(instance, groupauth_data) -> None:
-        """Apply nested :class:`GroupAuth` fields in one pass."""
-        if not groupauth_data:
+        """
+        Apply nested :class:`GroupAuth` fields with a single ``UPDATE``.
+
+        :class:`GroupAuth` rows are created alongside their ``Group`` in
+        :meth:`GroupSerializer.create`, so the row is guaranteed to
+        exist on update. ``filter().update()`` is one round trip vs the
+        prior ``get`` + instance ``save``.
+        """
+        if not groupauth_data or "exclude" not in groupauth_data:
             return
-        groupauth = GroupAuth.objects.get(group=instance)
-        if "exclude" in groupauth_data:
-            groupauth.exclude = groupauth_data["exclude"]
-            groupauth.save(update_fields=["exclude"])
+        GroupAuth.objects.filter(group=instance).update(
+            exclude=groupauth_data["exclude"],
+        )
 
     @override
     def update(self, instance, validated_data) -> Any:

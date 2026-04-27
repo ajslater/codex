@@ -4,6 +4,7 @@ from multiprocessing import cpu_count
 from pathlib import Path
 from platform import machine, python_version, release, system
 from types import MappingProxyType
+from typing import Final
 
 from caseconverter import snakecase
 from django.contrib.sessions.models import Session
@@ -17,6 +18,12 @@ from codex.models.settings import SettingsBrowser, SettingsReader
 from codex.version import VERSION
 from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
 
+# Cap on per-call session decodes for the anonymous-session estimate.
+# ``Session.get_decoded()`` runs HMAC + JSON parse per row; on installs
+# with a long session history this dominates ``/admin/stats`` cold time.
+# Telemetry is approximate by nature — a sample is enough.
+_SESSION_SAMPLE_LIMIT: Final = 100
+
 _KEY_MODELS_MAP = MappingProxyType(
     {
         "config": CONFIG_MODELS,
@@ -26,21 +33,9 @@ _KEY_MODELS_MAP = MappingProxyType(
 )
 _DOCKERENV_PATH = Path("/.dockerenv")
 _CGROUP_PATH = Path("/proc/self/cgroup")
-_USER_STATS = MappingProxyType(
-    {
-        "browser": {
-            "model": SettingsBrowser,
-            "keys": ("top_group", "order_by", "dynamic_covers"),
-        },
-        "reader": {
-            "model": SettingsReader,
-            "keys": (
-                "finish_on_last_page",
-                "fit_to",
-                "reading_direction",
-            ),
-        },
-    }
+_USER_STATS: Final = (
+    (SettingsBrowser, ("top_group", "order_by", "dynamic_covers")),
+    (SettingsReader, ("finish_on_last_page", "fit_to", "reading_direction")),
 )
 
 
@@ -89,35 +84,51 @@ class CodexStats:
         return obj
 
     @staticmethod
-    def _aggregate_settings_instance(instance, subkeys, user_stats) -> None:
-        for key in subkeys:
-            value = getattr(instance, key, None)
-            if value is None:
-                continue
-            if key not in user_stats:
-                user_stats[key] = {}
-            if value not in user_stats[key]:
-                user_stats[key][value] = 0
-            user_stats[key][value] += 1
+    def _estimate_anon_session_count() -> int:
+        """
+        Estimate anonymous-session count without decoding every row.
+
+        ``Session.get_decoded()`` is HMAC + JSON parse per row, which
+        dominates cold ``/admin/stats`` time on installs with history.
+        Sample up to :data:`_SESSION_SAMPLE_LIMIT` rows, count how many
+        lack ``_auth_user_id``, and scale by the total. Telemetry is
+        approximate by nature.
+        """
+        total = Session.objects.count()
+        if total == 0:
+            return 0
+        sample_qs = Session.objects.all()[:_SESSION_SAMPLE_LIMIT]
+        sample_total = 0
+        sample_anon = 0
+        for encoded_session in sample_qs:
+            sample_total += 1
+            session = encoded_session.get_decoded()
+            if not session.get("_auth_user_id"):
+                sample_anon += 1
+        if sample_total == 0:
+            return 0
+        return round(total * sample_anon / sample_total)
+
+    @staticmethod
+    def _aggregate_settings_field(model, field) -> dict:
+        """Aggregate a single settings field via SQL GROUP BY."""
+        rows = (
+            model.objects.exclude(**{f"{field}__isnull": True})
+            .values(field)
+            .annotate(count=Count("pk"))
+        )
+        return {row[field]: row["count"] for row in rows}
 
     @classmethod
     def _get_session_stats(cls) -> tuple[dict, int]:
-        """Return the number of anonymous sessions."""
-        sessions = Session.objects.all()
-        anon_session_count = 0
-        for encoded_session in sessions:
-            session = encoded_session.get_decoded()
-            if not session.get("_auth_user_id"):
-                anon_session_count += 1
-
-        user_stats = {}
-        for info in _USER_STATS.values():
-            model = info["model"]
-            subkeys = info["keys"]
-            for instance in model.objects.all():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-                cls._aggregate_settings_instance(instance, subkeys, user_stats)
-
-        return user_stats, anon_session_count
+        """Return per-field user-settings buckets and anon session count."""
+        user_stats: dict[str, dict] = {}
+        for model, fields in _USER_STATS:
+            for field in fields:
+                bucket = cls._aggregate_settings_field(model, field)
+                if bucket:
+                    user_stats[field] = bucket
+        return user_stats, cls._estimate_anon_session_count()
 
     def _add_platform(self, obj) -> None:
         """Add dict of platform information to object."""

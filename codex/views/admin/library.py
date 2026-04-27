@@ -1,10 +1,11 @@
 """Admin Library Views."""
 
+import os
 from pathlib import Path
 from typing import override
 
 from django.core.cache import cache
-from django.db.models import Case, Subquery, When
+from django.db.models import Case, OuterRef, Subquery, When
 from django.db.models.aggregates import Count
 from django.db.models.expressions import Value
 from django.db.models.functions import Coalesce
@@ -18,7 +19,7 @@ from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.models import CustomCover, FailedImport, Folder, Library
+from codex.models import Comic, CustomCover, FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,
     AdminFolderSerializer,
@@ -27,10 +28,33 @@ from codex.serializers.admin.libraries import (
 )
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
+# Per-Library count subqueries. Each is a correlated index-only count
+# against the related table's ``library_id`` index — no JOIN, no
+# DISTINCT. Replaces the prior ``Count("comic", distinct=True)`` /
+# ``Count("failedimport", distinct=True)`` annotations whose JOIN
+# materialized the Cartesian product before DISTINCT collapsed it.
 _CUSTOM_COVER_COUNT = Coalesce(
     Subquery(
         CustomCover.objects.exclude(group="f")
         .values("group")  # A dummy group-by to allow the annotation
+        .annotate(cnt=Count("pk"))
+        .values("cnt")[:1]
+    ),
+    Value(0),
+)
+_COMIC_COUNT = Coalesce(
+    Subquery(
+        Comic.objects.filter(library=OuterRef("pk"))
+        .values("library")
+        .annotate(cnt=Count("pk"))
+        .values("cnt")[:1]
+    ),
+    Value(0),
+)
+_FAILED_COUNT = Coalesce(
+    Subquery(
+        FailedImport.objects.filter(library=OuterRef("pk"))
+        .values("library")
         .annotate(cnt=Count("pk"))
         .values("cnt")[:1]
     ),
@@ -48,13 +72,12 @@ class AdminLibraryViewSet(AdminModelViewSet):
         Library.objects.prefetch_related("groups")
         .annotate(
             comic_count=Case(
-                # When covers_only is True, use the subquery result.
-                # Coalesce ensures we get 0 instead of NULL if CustomCover is empty.
+                # covers_only libraries borrow the CustomCover count;
+                # everything else uses a per-library correlated count.
                 When(covers_only=True, then=_CUSTOM_COVER_COUNT),
-                # Otherwise, use the standard count.
-                default=Count("comic", distinct=True),
+                default=_COMIC_COUNT,
             ),
-            failed_count=Count("failedimport", distinct=True),
+            failed_count=_FAILED_COUNT,
         )
         .defer("update_in_progress", "created_at", "updated_at")
     )
@@ -135,18 +158,31 @@ class AdminFolderListView(AdminGenericAPIView):
     input_serializer_class = AdminFolderSerializer
 
     @staticmethod
-    def _get_dirs(root_path, show_hidden) -> tuple:
-        """Get dirs list."""
-        dirs = []
+    def _get_dirs(root_path, show_hidden) -> tuple[str, ...]:
+        """
+        Get dirs list.
+
+        Uses :func:`os.scandir` so each entry's directory check is a
+        single ``stat`` instead of the prior ``Path.iterdir()`` plus
+        ``Path.resolve().is_dir()`` (which chains a full readlink walk
+        before stat-ing). Broken symlinks are skipped silently.
+        """
+        dirs: list[str] = []
         if root_path.parent != root_path:
-            dirs += [".."]
-        subdirs = []
-        for subpath in root_path.iterdir():
-            if subpath.name.startswith(".") and not show_hidden:
-                continue
-            if subpath.resolve().is_dir():
-                subdirs.append(subpath.name)
-        dirs += sorted(subdirs)
+            dirs.append("..")
+        subdirs: list[str] = []
+        with os.scandir(root_path) as it:
+            for entry in it:
+                if entry.name.startswith(".") and not show_hidden:
+                    continue
+                try:
+                    is_dir = entry.is_dir(follow_symlinks=True)
+                except OSError:
+                    # Broken symlink or permission denied — skip silently.
+                    continue
+                if is_dir:
+                    subdirs.append(entry.name)
+        dirs.extend(sorted(subdirs))
         return tuple(dirs)
 
     @extend_schema(request=input_serializer_class)
