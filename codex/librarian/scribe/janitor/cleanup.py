@@ -5,6 +5,7 @@ from types import MappingProxyType
 
 from django.contrib.sessions.models import Session
 from django.core import signing
+from django.db import transaction
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
@@ -113,6 +114,15 @@ _BOOKMARK_FILTER = dict.fromkeys(
 _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user")), True
 )
+# Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
+# depth is bounded by the hierarchy
+# Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic
+# plus the per-tag join branches; a fully-orphaned chain converges in
+# at most ~5 passes regardless of deletion order. 10 doubles that for
+# safety. If a real DB ever fails to converge in 10 passes that's a
+# data-integrity bug worth investigating, not a fix-by-bumping-the-cap
+# problem.
+_FK_CLEANUP_MAX_PASSES = 10
 
 
 class JanitorCleanup(JanitorUpdateFailedImports):
@@ -136,7 +146,19 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         return count
 
     def cleanup_fks(self) -> None:
-        """Clean up unused foreign keys."""
+        """
+        Clean up unused foreign keys.
+
+        Walks every FK model and deletes rows with no inbound references.
+        Cascading deletes can produce more orphans (a Credit's deletion
+        leaves CreditPerson / CreditRole orphan), so the loop runs until
+        the per-pass count converges to zero or the cap is hit.
+
+        Wrapped in ``transaction.atomic`` so the multi-pass convergence
+        is all-or-nothing: an exception mid-pass rolls back to pre-
+        cleanup state rather than leaving a partially-cleaned graph.
+        The 25 per-model deletes also coalesce into one fsync.
+        """
         self.abort_event.clear()
         status = JanitorCleanupTagsStatus(0)
         try:
@@ -147,11 +169,20 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             # check that found it orphaned and the DELETE that removes
             # it. The integrity-check writers in ``integrity/`` use the
             # same pattern; cleanup was previously missing it.
-            with self.db_write_lock:
-                count = 1
-                while count:
-                    # Keep churning until we stop finding orphan tags.
+            converged = False
+            with self.db_write_lock, transaction.atomic():
+                for _ in range(_FK_CLEANUP_MAX_PASSES):
+                    if self.abort_event.is_set():
+                        return
                     count = self._cleanup_fks_one_level(status)
+                    if not count:
+                        converged = True
+                        break
+            if not converged and not self.abort_event.is_set():
+                cap = _FK_CLEANUP_MAX_PASSES
+                self.log.warning(
+                    f"FK cleanup hit {cap}-pass cap without converging — investigate the reverse-relation map or the data graph."
+                )
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
