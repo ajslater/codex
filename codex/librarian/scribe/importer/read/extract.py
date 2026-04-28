@@ -16,7 +16,8 @@ from codex.librarian.scribe.importer.read.aggregate_path import (
 from codex.librarian.scribe.importer.statii.read import ImporterReadComicsStatus
 from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
-from codex.settings import COMICBOX_CONFIG
+from codex.settings import COMICBOX_CONFIG, LOGLEVEL
+from codex.startup.loguru import CODEX_LOG_FORMAT
 
 
 class ExtractMetadataImporter(AggregateMetadataImporter):
@@ -205,6 +206,11 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
                 paths_to_extract,
                 config=COMICBOX_CONFIG,
                 logger=self.log,
+                worker_log_config={
+                    "level": LOGLEVEL,
+                    "format": CODEX_LOG_FORMAT,
+                    "sink": "stdout",  # comicbox only accepts one sink
+                },
                 old_mtime_map=all_old_comic_mtimes,
                 full_metadata=import_metadata,
             ):
