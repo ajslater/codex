@@ -1,7 +1,8 @@
 """Sends notifications to connections, reading from a queue."""
 
-from collections.abc import Mapping
-from dataclasses import dataclass
+import threading
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from typing import override
 
 from loguru import logger
@@ -22,24 +23,62 @@ from codex.librarian.threads import AggregateMessageQueuedThread
 
 @dataclass
 class BookmarkKey:
-    """Bookmark queue item key."""
+    """
+    Bookmark queue item key.
+
+    Identity is field-equality on ``(auth_filter, comic_pks, user_pk)``.
+    The hash is computed once at construction and cached: ``__hash__``
+    is called per cache-key lookup, and rebuilding
+    ``tuple(auth_filter.items())`` per call wastes work on a hot path.
+    """
 
     auth_filter: Mapping[str, int | str | None] | None = None
     comic_pks: tuple = ()
     user_pk: int = 0
+    # Excluded from compare/init/repr — pure derived data populated in
+    # ``__post_init__``. Keeping it on the dataclass means the cache
+    # lives for the instance's lifetime without an extra dict.
+    _hash: int = field(default=0, init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        """Cache a stable hash of the identity tuple."""
+        # ``sorted()`` makes the hash stable regardless of dict insertion
+        # order — defensive against ``{"user_id": 1}`` / ``{"session_id":
+        # ...}`` shape drift.
+        auth_filter_key = (
+            None
+            if self.auth_filter is None
+            else tuple(sorted(self.auth_filter.items()))
+        )
+        object.__setattr__(
+            self,
+            "_hash",
+            hash((auth_filter_key, self.comic_pks, self.user_pk)),
+        )
 
     @override
     def __hash__(self) -> int:
-        """Hash the dict as a tuple."""
-        auth_filters = (
-            None if self.auth_filter is None else tuple(self.auth_filter.items())
-        )
-        return hash((auth_filters, self.comic_pks, self.user_pk))
+        """Return the cached identity hash."""
+        return self._hash
 
     @override
     def __eq__(self, other) -> bool:
-        """Equal uses hashes."""
-        return self.__hash__() == other.__hash__()
+        """
+        Compare by identity fields, not by hash.
+
+        The previous implementation returned
+        ``self.__hash__() == other.__hash__()`` — collision-vulnerable.
+        Two distinct keys that hash-collide would compare equal and the
+        aggregator would merge one user's bookmark into another user's
+        cache entry, then write to that other user's DB row.
+        """
+        if not isinstance(other, BookmarkKey):
+            return NotImplemented
+        return (
+            self.auth_filter == other.auth_filter
+            and self.comic_pks == other.comic_pks
+            and self.user_pk == other.user_pk
+        )
 
 
 class BookmarkThread(
@@ -58,19 +97,47 @@ class BookmarkThread(
         self.init_group_acl()
         self.init_user_active()
 
+    def _spawn_offline(self, name: str, target: Callable[[], None]) -> None:
+        """
+        Run a long-running task on its own daemon thread.
+
+        ``CodexLatestVersionTask`` and ``TelemeterTask`` both make
+        outbound network calls with a 5-second timeout. Running them
+        inline inside the aggregator's process loop blocks every
+        queued ``BookmarkUpdateTask`` for the duration of the network
+        roundtrip — page-turn writes stall behind PyPI on a slow
+        connection. Daemon-thread offload returns control to the
+        aggregator immediately; both tasks are infrequent (telemetry
+        once per week, version check once per day) so unbounded thread
+        creation isn't a real risk.
+        """
+
+        def _run():
+            try:
+                target()
+            except Exception:
+                self.log.exception(f"Bookmark side-thread task {name} crashed")
+
+        threading.Thread(target=_run, name=f"bookmark-{name}", daemon=True).start()
+
     def _process_task_immediately(self, task) -> None:
         if self.db_write_lock.locked():
             self.log.warning(f"Database locked, not processing {task}")
         match task:
             case TelemeterTask():
-                send_telemetry(self.log)
+                self._spawn_offline("telemeter", lambda: send_telemetry(self.log))
             case ClearLibrarianStatusTask():
+                # Pure DB call (status_controller writes one row per
+                # known status). Cheap; no offload.
                 self.status_controller.finish_many([])
             case CodexLatestVersionTask():
                 worker = CodexLatestVersionUpdater(
                     self.log, self.librarian_queue, self.db_write_lock
                 )
-                worker.update_latest_version(force=task.force)
+                self._spawn_offline(
+                    "latest-version",
+                    lambda: worker.update_latest_version(force=task.force),
+                )
             case _:
                 self.log.warning(f"Unknown Bookmark task {task}")
 
