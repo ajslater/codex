@@ -111,6 +111,13 @@ def _render_cover_thumb(args: tuple) -> tuple[int, str, str | None]:
 class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
     """Create methods for covers."""
 
+    # Cover bursts fire from import + cleanup tasks; between imports
+    # the queue idles. The ProcessPoolExecutor workers own the heavy
+    # CPU work, so the main thread's DB conn is mostly used to fetch
+    # ``pk -> path`` maps before dispatch — quick to reopen on the
+    # next burst, and not worth pinning across the idle gap.
+    CLOSE_DB_BETWEEN_TASKS = True
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the lazy-built worker pool slot."""
         super().__init__(*args, **kwargs)

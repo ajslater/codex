@@ -8,7 +8,7 @@ from threading import Thread
 from time import monotonic
 from typing import TYPE_CHECKING, override
 
-from django.db import close_old_connections
+from django.db import close_old_connections, connections
 from setproctitle import setproctitle
 
 from codex.librarian.worker import WorkerStatusMixin
@@ -66,6 +66,14 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
 class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
 
+    # When True, close the thread-local DB connection after each task
+    # so the next ``queue.get()`` doesn't hold it through the wait.
+    # Subclasses with long idle gaps between tasks (ScribeThread,
+    # CoverCreateThread) opt in. Heavy-throughput threads where the
+    # ~5-20ms reopen cost outweighs the resource savings keep the
+    # default and rely on Django's CONN_MAX_AGE-based ``close_old_connections``.
+    CLOSE_DB_BETWEEN_TASKS: bool = False
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize with overridden name and as a daemon thread."""
         self.queue = kwargs.pop("queue", SimpleQueue())
@@ -94,13 +102,32 @@ class QueuedThread(NamedThread, ABC):
         except Empty:
             self.timed_out()
 
+    def _release_db_connection(self) -> None:
+        """
+        Release the thread-local DB connection between tasks.
+
+        ``close_old_connections`` only closes connections older than
+        ``CONN_MAX_AGE`` (10 min in codex), and only fires at the top
+        of a loop iteration — by which point a thread that blocked on
+        ``queue.get(timeout=None)`` for hours has already held its
+        connection for that whole period. ``CLOSE_DB_BETWEEN_TASKS``
+        subclasses elect to close eagerly so an open file handle and
+        ~50 KiB of in-process state aren't pinned through the next
+        long idle. The reopen cost on the next task (~5-20 ms incl.
+        ``init_command`` PRAGMAs) is amortized away by the wait time.
+        """
+        if self.CLOSE_DB_BETWEEN_TASKS:
+            connections.close_all()
+        else:
+            close_old_connections()
+
     @override
     def run(self) -> None:
         """Run thread loop."""
         self.run_start()
         while True:
             try:
-                close_old_connections()
+                self._release_db_connection()
                 self._check_item()
             except BreakLoopError:
                 break

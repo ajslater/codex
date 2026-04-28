@@ -4,6 +4,7 @@ from pathlib import Path
 from threading import Condition, Event
 from typing import override
 
+from django.db import connections
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
@@ -271,6 +272,12 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
                 # Sleep until next poll or until woken
                 if timeout is not None:
                     self.log.debug(f"Next poll in {naturaldelta(timeout)}.")
+                # Poll intervals on a typical install are hours; the
+                # ``poll=False`` "manual poll only" case is unbounded.
+                # Release the conn so the wait doesn't pin a file
+                # handle through the entire interval. Reopen on the
+                # next poll is ~5-20 ms, invisible against the work.
+                connections.close_all()
                 with self._cond:
                     self._cond.wait(timeout)
 
