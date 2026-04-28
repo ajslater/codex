@@ -74,7 +74,9 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                 f"Preparing {num_comics} comics for update in library {self.library.path}."
             )
             self.status_controller.start(status)
-            self.metadata[FTS_UPDATE] = {}
+            # FTS_UPDATE accumulates across chunks; setdefault preserves
+            # entries already populated by an earlier chunk's pass.
+            self.metadata.setdefault(FTS_UPDATE, {})
             # Get existing comics to update
             comics = Comic.objects.filter(library=self.library, pk__in=pks).only(
                 PATH_FIELD_NAME, *BULK_UPDATE_COMIC_FIELDS
@@ -131,7 +133,8 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         )
         self.status_controller.start(status)
 
-        self.metadata[FTS_CREATE] = {}
+        # FTS_CREATE accumulates across chunks (see FTS_UPDATE above).
+        self.metadata.setdefault(FTS_CREATE, {})
         create_comics = []
         for path in paths:
             if self.abort_event.is_set():

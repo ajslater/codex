@@ -148,9 +148,14 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
     def extract_metadata(self, status=None) -> int:
         """Extract comic metadata into memory."""
         count = 0
+        # SKIPPED is per-extract; EXTRACTED is per-extract (drained by
+        # aggregate). FIS accumulates across chunks and is consumed
+        # later by the fail_imports phase, so use ``setdefault`` so
+        # a second pass over a different chunk doesn't drop the first
+        # chunk's failed imports.
         self.metadata[SKIPPED] = set()
         self.metadata[EXTRACTED] = {}
-        self.metadata[FIS] = {}
+        self.metadata.setdefault(FIS, {})
         all_paths = self.task.files_modified | self.task.files_created
         self.task.files_modified = frozenset()
         self.task.files_created = frozenset()
