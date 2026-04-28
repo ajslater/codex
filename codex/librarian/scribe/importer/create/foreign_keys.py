@@ -267,7 +267,9 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         fkc = self.metadata.get(CREATE_FKS, {})
         create_status = ImporterCreateTagsStatus(0, fkc.pop(TOTAL, 0))
         try:
-            self.metadata[FTS_CREATED_M2MS] = {}
+            # FTS_CREATED_M2MS accumulates across chunks (consumed later
+            # by full_text_search); setdefault preserves prior chunks.
+            self.metadata.setdefault(FTS_CREATED_M2MS, {})
             if not fkc:
                 return count
             self.status_controller.start(create_status)
@@ -286,7 +288,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         fku = self.metadata.get(UPDATE_FKS, {})
         update_status = ImporterUpdateTagsStatus(0, fku.pop(TOTAL, 0))
         try:
-            self.metadata[FTS_UPDATED_M2MS] = {}
+            self.metadata.setdefault(FTS_UPDATED_M2MS, {})
             if not fku:
                 return count
             self.status_controller.start(update_status)
