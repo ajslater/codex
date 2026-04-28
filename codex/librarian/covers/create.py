@@ -2,6 +2,7 @@
 
 import os
 from abc import ABC
+from collections.abc import Collection
 from io import BytesIO
 from multiprocessing.queues import Queue
 from pathlib import Path
@@ -66,13 +67,27 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
 
     @classmethod
     def create_cover_from_path(
-        cls, pk: int, cover_path: str, log, librarian_queue: Queue, *, custom: bool
+        cls,
+        pk: int,
+        cover_path: str,
+        log,
+        librarian_queue: Queue,
+        *,
+        custom: bool,
+        db_path: str | None = None,
     ) -> BytesIO | None:
-        """Create cover for path; enqueue a CoverSaveToCache task."""
-        db_path = None
+        """
+        Create cover for path; enqueue a CoverSaveToCache task.
+
+        ``db_path`` may be supplied by callers that already batch-
+        resolved the comic / custom-cover filesystem path. When
+        absent, falls back to a single-row SELECT — kept so existing
+        in-process callers don't have to change.
+        """
         try:
-            model = CustomCover if custom else Comic
-            db_path = model.objects.only("path").get(pk=pk).path
+            if db_path is None:
+                model = CustomCover if custom else Comic
+                db_path = model.objects.only("path").get(pk=pk).path
             if custom:
                 cover_image = cls._get_custom_cover_image(db_path)
             else:
@@ -110,21 +125,57 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             # zero length file is code for missing.
             cover_path.touch()
 
+    def _filter_pending_pks(self, pks: Collection[int], *, custom: bool) -> list[int]:
+        """
+        Return only pks whose cover file isn't already on disk.
+
+        Lifts the per-iteration ``cover_path.exists()`` stat into a
+        single up-front pass so the work loop only runs against pks
+        that genuinely need work — saves dispatch overhead on
+        repeated CoverCreateAllTask runs and gives the multiprocessing
+        path a tight set of work items.
+        """
+        return [
+            pk for pk in pks if not self.get_cover_path(pk, custom=custom).is_file()
+        ]
+
+    @staticmethod
+    def _resolve_db_paths(pks: Collection[int], *, custom: bool) -> dict[int, str]:
+        """
+        Batch-fetch ``pk -> filesystem path`` for the work items.
+
+        Replaces N serial ``model.objects.only("path").get(pk=pk)``
+        SELECTs (one per cover) with a single ``filter(pk__in=pks)``.
+        The resulting dict gets threaded into the per-cover work
+        function, removing Django's ORM from the cover-creation hot
+        loop entirely.
+        """
+        if not pks:
+            return {}
+        model = CustomCover if custom else Comic
+        return dict(model.objects.filter(pk__in=pks).values_list("pk", "path"))
+
     def _bulk_create_comic_cover(
-        self, pk: int, status: Status, *, custom: bool
+        self,
+        pk: int,
+        cover_path: Path,
+        db_path: str | None,
+        status: Status,
+        *,
+        custom: bool,
     ) -> None:
-        # Create one cover
-        cover_path = self.get_cover_path(pk, custom=custom)
-        if cover_path.exists():
+        if db_path is None:
+            # Pk vanished between _resolve_db_paths and dispatch
+            # (importer race). Skip without a hard error.
             status.decrement_total()
         else:
-            # bulk credit creates covers inline
             data = self.create_cover_from_path(
                 pk,
                 str(cover_path),
                 self.log,
                 self.librarian_queue,
                 custom=custom,
+                db_path=db_path,
             )
             if data:
                 data.close()
@@ -133,17 +184,26 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
 
     def _bulk_create_comic_covers(self, pks, *, custom: bool) -> int:
         """Create bulk comic covers."""
-        num_comics = len(pks)
+        # Up-front filter: drop pks that already have a cover on
+        # disk. The remaining set is what we actually need to work
+        # on.
+        pending_pks = self._filter_pending_pks(tuple(pks), custom=custom)
+        num_comics = len(pending_pks)
         if not num_comics:
             return 0
+        # Single batched ``pk -> path`` map covers the full set of
+        # work items; no per-cover SELECT inside the loop.
+        db_paths = self._resolve_db_paths(pending_pks, custom=custom)
         status = CreateCoversStatus(0, num_comics)
         try:
             start_time = time()
             self.log.debug(f"Creating {num_comics} comic covers...")
             self.status_controller.start(status)
-            for pk in pks:
-                # Create all covers.
-                self._bulk_create_comic_cover(pk, status, custom=custom)
+            for pk in pending_pks:
+                cover_path = self.get_cover_path(pk, custom=custom)
+                self._bulk_create_comic_cover(
+                    pk, cover_path, db_paths.get(pk), status, custom=custom
+                )
             desc = "custom" if custom else "comic"
             count = status.complete
             level = "INFO" if count else "DEBUG"
