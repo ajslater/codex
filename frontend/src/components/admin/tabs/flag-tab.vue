@@ -1,5 +1,5 @@
 <template>
-  <v-table id="flags-table" :items="flags" striped="odd">
+  <v-table id="flags-table" striped="odd">
     <thead>
       <tr>
         <th>Description</th>
@@ -7,8 +7,15 @@
         <th>Enabled</th>
       </tr>
     </thead>
-    <tbody>
-      <tr v-for="item in flags" :key="`f${item.key}`">
+    <tbody
+      v-for="group in groupedFlags"
+      :key="`g${group.title}`"
+      class="flagGroup"
+    >
+      <tr class="flagGroupHeader">
+        <th colspan="3">{{ group.title }}</th>
+      </tr>
+      <tr v-for="item in group.items" :key="`f${item.key}`">
         <td class="nameCol" :colspan="colspan(item)">
           <div class="text-title-small title">{{ title(item) }}</div>
           <p class="desc">
@@ -109,6 +116,7 @@ import { mapActions, mapState } from "pinia";
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
+import ADMIN_FLAG_GROUPS from "@/components/admin/tabs/flag-groups.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -161,6 +169,48 @@ export default {
        */
       return BROWSER_CHOICES.TOP_GROUP || [];
     },
+    groupedFlags() {
+      /*
+       * Render flags by semantic group rather than DB-insertion order.
+       *
+       * ``ADMIN_FLAG_GROUPS`` is the authoritative ordering — both
+       * across groups and within each group's keys list. We look each
+       * key up in the live ``flags`` Pinia state (skipping any not
+       * yet returned by the API) and append a final "Other" group
+       * for keys present on the server but missing from the JSON
+       * — defensive against a server release that adds a flag
+       * without a corresponding frontend update.
+       */
+      const flagsByKey = new Map();
+      for (const item of this.flags || []) {
+        flagsByKey.set(item.key, item);
+      }
+      const placed = new Set();
+      const groups = [];
+      for (const group of ADMIN_FLAG_GROUPS) {
+        const items = [];
+        for (const key of group.keys) {
+          const item = flagsByKey.get(key);
+          if (item) {
+            items.push(item);
+            placed.add(key);
+          }
+        }
+        if (items.length > 0) {
+          groups.push({ title: group.title, items });
+        }
+      }
+      const orphans = [];
+      for (const item of this.flags || []) {
+        if (!placed.has(item.key)) {
+          orphans.push(item);
+        }
+      }
+      if (orphans.length > 0) {
+        groups.push({ title: "Other", items: orphans });
+      }
+      return groups;
+    },
   },
   watch: {
     storeBanner(to) {
@@ -205,6 +255,20 @@ export default {
   max-width: 100vw !important;
   margin-bottom: 24px;
   background-color: inherit;
+}
+
+.flagGroup + .flagGroup {
+  /* Margin between groups so the section breaks read clearly. */
+  margin-top: 1.5em;
+}
+
+.flagGroupHeader > th {
+  /* Section heading row spans the full table width. */
+  padding-top: 1.5em !important;
+  font-size: 1.05em;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-textPrimary));
+  border-bottom: 1px solid rgb(var(--v-theme-textSecondary));
 }
 
 .nameCol {
