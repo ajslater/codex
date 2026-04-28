@@ -1,6 +1,7 @@
 """Aggregate ManyToMany Metadata."""
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import TYPE_CHECKING, cast
 
 from comicbox.schemas.comicbox import IDENTIFIERS_KEY, NUMBER_KEY, ROLES_KEY
@@ -234,10 +235,10 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         # Normalize the input to a ``Mapping`` so the iteration below is
         # uniform; the non-mapping branch was leaking ``Any``-typed
         # iteration variables out into the per-call signature.
-        values_map: Mapping[str, Mapping | None] = (
-            values
+        values_map = (
+            MappingProxyType(values)
             if isinstance(values, Mapping)
-            else cast("Mapping[str, Mapping | None]", dict.fromkeys(values))
+            else MappingProxyType(dict.fromkeys(values))
         )
         for sub_key_name, sub_value in values_map.items():
             clean_sub_map = self._get_m2m_metadata_dict_model_aggregate_sub_values(
