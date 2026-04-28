@@ -1,10 +1,9 @@
 """Admin Stats View."""
 
 from types import MappingProxyType
-from typing import Any, ClassVar, override
+from typing import Any, override
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.serializers import empty
 
@@ -21,7 +20,7 @@ from codex.views.admin.permissions import HasAPIKeyOrIsAdminUser
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list[type[BasePermission]]] = [HasAPIKeyOrIsAdminUser]
+    permission_classes = (HasAPIKeyOrIsAdminUser,)
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 

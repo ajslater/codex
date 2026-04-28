@@ -109,10 +109,16 @@ export const getDownloadIOSPWAFix = (href, filename) => {
       const blob = new Blob([response.data], {
         type: "application/octet-stream",
       });
-      link.href = globalThis.URL.createObjectURL(blob);
+      // ``createObjectURL`` returns a string ``blob:...`` URL;
+      // ``revokeObjectURL`` must be called on that same string,
+      // not on the underlying Blob. The original code passed the
+      // Blob, which silently no-op'd and leaked the object URL on
+      // every iOS PWA download.
+      const objectUrl = globalThis.URL.createObjectURL(blob);
+      link.href = objectUrl;
       link.download = filename;
       link.click();
-      globalThis.URL.revokeObjectURL(response.data);
+      globalThis.URL.revokeObjectURL(objectUrl);
       return link.remove();
     })
     .catch(console.warn);

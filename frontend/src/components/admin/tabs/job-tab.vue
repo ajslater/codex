@@ -118,11 +118,16 @@
               </span>
             </button>
             <v-expand-transition>
-              <div
-                v-if="isExpanded(job)"
-                class="statusRows"
-                @click="loadAllStatuses"
-              >
+              <!--
+                No click handler on the expanded panel. The previous
+                version fired ``loadAllStatuses`` on every click
+                anywhere inside this div — even unrelated clicks on
+                child elements bubbled and re-fetched the entire
+                status map. Status updates are pushed through the
+                websocket already; no manual refresh needed when the
+                user interacts with the panel.
+              -->
+              <div v-if="isExpanded(job)" class="statusRows">
                 <div
                   v-for="status in jobStatuses(job)"
                   :key="status.statusType"

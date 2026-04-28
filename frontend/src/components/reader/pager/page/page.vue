@@ -101,11 +101,31 @@ export default {
     },
   },
   mounted() {
-    setTimeout(function () {
+    /*
+     * Show the spinner only if the image is still loading after
+     * ``PROGRESS_DELAY_MS``. Two corrections from the original:
+     *
+     * 1. Arrow function preserves ``this``. The original
+     *    ``setTimeout(function () { ... })`` ran with the timer's
+     *    context, not the component's, so ``this.loaded`` and the
+     *    write below were no-ops.
+     * 2. ``this.showProgress`` is what the template binds; the
+     *    original wrote to ``this.loading`` which has never been a
+     *    data field on this component, so the spinner literally
+     *    never appeared.
+     *
+     * Stash the timer ID so ``beforeUnmount`` can clear it — a
+     * fast page swap mid-delay would otherwise fire the write on a
+     * torn-down component.
+     */
+    this._loadingTimer = setTimeout(() => {
       if (!this.loaded) {
-        this.loading = true;
+        this.showProgress = true;
       }
     }, PROGRESS_DELAY_MS);
+  },
+  beforeUnmount() {
+    clearTimeout(this._loadingTimer);
   },
   methods: {
     ...mapActions(useReaderStore, ["getBookSettings"]),

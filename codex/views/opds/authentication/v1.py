@@ -1,6 +1,5 @@
 """OPDS Authentication 1.0."""
 
-from re import DEBUG
 from types import MappingProxyType
 
 from django.contrib.staticfiles.storage import staticfiles_storage
@@ -10,10 +9,13 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
+from codex.settings import DEBUG
 from codex.views.opds.const import MimeType, UserAgentNames
 from codex.views.opds.user_agent import get_user_agent_name
 
 _LOGO_SIZE = 180
+_BASIC_AUTH_REALM = "Codex OPDS"
+_WWW_AUTHENTICATE_BASIC = f'Basic realm="{_BASIC_AUTH_REALM}"'
 _DOC = MappingProxyType(
     {
         "id": reverse_lazy("opds:auth:v1"),
@@ -72,7 +74,15 @@ class OPDSAuthentication1View(GenericAPIView):
         else:
             doc = _DOC
         serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall]
-        return JsonResponse(serializer.data, status=status_code)
+        response = JsonResponse(
+            serializer.data,
+            status=status_code,
+            content_type=MimeType.AUTHENTICATION,
+        )
+        if status_code == status.HTTP_401_UNAUTHORIZED:
+            # RFC 7235: 401 must include WWW-Authenticate; some OPDS clients require it to trigger an auth prompt.
+            response["WWW-Authenticate"] = _WWW_AUTHENTICATE_BASIC
+        return response
 
     def get(self, *args, **kwargs) -> JsonResponse:
         """Get authentication response."""
