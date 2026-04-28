@@ -1,6 +1,6 @@
 """Extract metadata from comic archive."""
 
-from collections.abc import MutableMapping
+from collections.abc import Iterable, MutableMapping
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
@@ -21,6 +21,51 @@ from codex.settings import COMICBOX_CONFIG
 
 class ExtractMetadataImporter(AggregateMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
+
+    @staticmethod
+    def _filesystem_mtime_prefilter(
+        all_paths: Iterable[str],
+        old_mtime_map: MappingProxyType[str, datetime],
+    ) -> tuple[frozenset[str], frozenset[str]]:
+        """
+        Drop paths whose filesystem mtime has not advanced since last import.
+
+        Comicbox's worker performs an embedded-metadata-mtime check too,
+        but only after opening the archive — for CBR that's an unrar
+        spawn + header parse. Filtering here saves the archive open on
+        the common case (re-import where the archive is unchanged on
+        disk).
+
+        Filesystem mtime can lag the embedded mtime (e.g. a user resaved
+        ``ComicInfo.xml`` without touching the archive's mtime), but
+        cannot lead it: any modification that updates the embedded
+        mtime also updates the archive's mtime. So this filter produces
+        only false positives (let through, then no-op'd by the worker
+        check), never false negatives.
+
+        Returns ``(survivors, skipped_paths)`` so the caller can
+        account for skips in the SKIPPED set.
+        """
+        survivors: set[str] = set()
+        skipped: set[str] = set()
+        for path in all_paths:
+            old_mtime = old_mtime_map.get(path)
+            if old_mtime is None:
+                # No prior record (new comic) — must extract.
+                survivors.add(path)
+                continue
+            try:
+                fs_mtime = datetime.fromtimestamp(Path(path).stat().st_mtime, tz=UTC)
+            except OSError:
+                # Filesystem hiccup or vanished file — let the worker
+                # produce a FailedImport with the real error.
+                survivors.add(path)
+                continue
+            if fs_mtime > old_mtime:
+                survivors.add(path)
+            else:
+                skipped.add(path)
+        return frozenset(survivors), frozenset(skipped)
 
     def _get_import_metadata_flag(self) -> bool:
         """Set import_metadata flag."""
@@ -132,8 +177,27 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
                 all_paths
             )
 
+            # Pre-filter against the archive file's stat mtime so we can
+            # skip the archive-open cost for files unchanged on disk.
+            # Worker still rechecks the embedded mtime for paths that
+            # pass through, so a touch-without-content-change still
+            # short-circuits inside the worker.
+            paths_to_extract = all_paths
+            if all_old_comic_mtimes:
+                paths_to_extract, prefilter_skipped = self._filesystem_mtime_prefilter(
+                    all_paths, all_old_comic_mtimes
+                )
+                if prefilter_skipped:
+                    self.metadata[SKIPPED].update(prefilter_skipped)
+                    skipped_n = len(prefilter_skipped)
+                    self.log.debug(
+                        f"Skipped archive open for {skipped_n} comics via filesystem mtime pre-filter."
+                    )
+                    status.increment_complete(skipped_n)
+                    self.status_controller.update(status)
+
             for path, value in iter_process_files(
-                all_paths,
+                paths_to_extract,
                 config=COMICBOX_CONFIG,
                 logger=self.log,
                 old_mtime_map=all_old_comic_mtimes,
