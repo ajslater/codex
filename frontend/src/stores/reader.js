@@ -20,6 +20,15 @@ const DIRECTION_REVERSE_MAP = Object.freeze({
   next: "prev",
 });
 const PREFETCH_LINK = Object.freeze({ rel: "prefetch", as: "image" });
+/*
+ * Number of pages each side of the current page to emit
+ * ``<link rel="prefetch">`` hints for when the user has opted
+ * into "Cache Entire Book". Generous enough that typical
+ * sequential reading never outpaces the prefetch buffer; small
+ * enough that head-node count and parser overhead stay bounded
+ * even on omnibus-sized books.
+ */
+const PREFETCH_WINDOW = 50;
 export const VERTICAL_READING_DIRECTIONS = Object.freeze(
   new Set(["ttb", "btt"]),
 );
@@ -826,7 +835,30 @@ export const useReaderStore = defineStore("reader", {
       }
       const pk = book.pk;
       const link = [];
-      for (let page = 0; page <= book.maxPage; page++) {
+      /*
+       * Window the prefetch around the current page instead of
+       * emitting a ``<link rel="prefetch">`` for every page in
+       * the book. On a 1000-page omnibus the unbounded loop
+       * pushed 1000 head entries — every one tracked by Unhead
+       * and Vue, every one a DOM node the browser had to parse
+       * before the rest of the document's lifecycle. The window
+       * slides as the user advances (head() re-runs because the
+       * computed reads ``state.page``), so sequential reading
+       * still keeps a generous prefetch buffer ready while the
+       * head node count stays bounded.
+       *
+       * The user's "Cache Entire Book" intent is preserved in
+       * practice: the window covers far more than typical
+       * read-ahead distance, and the browser fetches each page
+       * as the window reaches it. Random-access readers may see
+       * a brief delay on the first hit outside the window —
+       * acceptable, since the actual fetch starts immediately
+       * regardless of whether a prefetch hint was in flight.
+       */
+      const currentPage = this.page ?? 0;
+      const start = Math.max(0, currentPage - PREFETCH_WINDOW);
+      const end = Math.min(book.maxPage, currentPage + PREFETCH_WINDOW);
+      for (let page = start; page <= end; page++) {
         const params = { pk, page, mtime: book.mtime };
         const href = getComicPageSource(params);
         if (href) {
