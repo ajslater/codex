@@ -14,11 +14,12 @@ from codex.views.opds.authentication.v1 import OPDSAuthentication1View
 OPDS_PATH_PREFIX = "opds/v"
 _OPDS_V2_PATH_PREFIX = OPDS_PATH_PREFIX + "2"
 _RESET_TOP_GROUP_QUERY = "?topGroup=p"
-_OPDS_REDIRECT_TO_AUTH_CODES = frozenset({status.HTTP_401_UNAUTHORIZED})
+_OPDS_REDIRECT_TO_AUTH_CODES = frozenset(
+    {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN}
+)
 _OPDS_REDIRECT_TO_TOP_CODES = frozenset(
     {
         status.HTTP_400_BAD_REQUEST,
-        status.HTTP_403_FORBIDDEN,
         status.HTTP_404_NOT_FOUND,
         status.HTTP_405_METHOD_NOT_ALLOWED,
         status.HTTP_410_GONE,
@@ -53,11 +54,11 @@ def codex_opds_exception_handler(
         name = _get_url_name(request, "feed")
         response = exc.get_response(name)
     elif status_code := getattr(exc, "status_code", None):
-        if status_code == status.HTTP_403_FORBIDDEN:
-            # Codex presents 403 sometimes when it should be presenting 401
-            status_code = status.HTTP_401_UNAUTHORIZED
         if status_code in _OPDS_REDIRECT_TO_AUTH_CODES:
-            response = OPDSAuthentication1View.static_get(request, status_code)
+            # OPDS clients (e.g. Panels) require 401 + auth doc to trigger an auth prompt; 403 stays a forbidden state otherwise.
+            response = OPDSAuthentication1View.static_get(
+                request, status.HTTP_401_UNAUTHORIZED
+            )
         elif (
             not request.path.endswith("progression")
             and status_code in _OPDS_REDIRECT_TO_TOP_CODES
