@@ -81,12 +81,6 @@ _M2M_FTS_REL_MAP = MappingProxyType(
         "teams": "teams__name",
     }
 )
-_M2M_FTS_ANNOTATIONS = MappingProxyType(
-    {
-        f"fts_{alias}": GroupConcat(target, distinct=True, order_by=target)
-        for alias, target in _M2M_FTS_REL_MAP.items()
-    }
-)
 
 
 class SearchIndexerSync(SearchIndexerRemove):
@@ -118,36 +112,85 @@ class SearchIndexerSync(SearchIndexerRemove):
             self.remove_stale_records(log_success=False)
 
     @staticmethod
-    def _select_related_fts_query(qs):
-        return qs.select_related(
-            "publisher",
-            "imprint",
-            "series",
-            "age_rating",
-            "age_rating__metron",
-            "country",
-            "language",
-            "scan_info",
-            "tagger",
+    def _build_fk_fts_rows(pks: list[int]) -> list[dict]:
+        """
+        One query: comic attrs + simple FK-resolved name columns.
+
+        Returns a list of dicts keyed by ``id`` plus the FTS columns
+        the consumer reads directly off Comic / FK ``__name``
+        traversals (no M2M, no GROUP BY). Order-by-pk so the caller
+        sees the same iteration order the megaquery used to produce.
+        """
+        return list(
+            Comic.objects.filter(pk__in=pks)
+            .order_by("pk")
+            .annotate(**_SIMPLE_FTS_ANNOTATIONS)
+            .values(
+                "id",
+                "name",
+                "collection_title",
+                "review",
+                "summary",
+                *_SIMPLE_FTS_ANNOTATIONS.keys(),
+            )
         )
 
     @staticmethod
-    def _annotate_fts_query(qs):
-        return qs.annotate(
-            **_SIMPLE_FTS_ANNOTATIONS,
-            **_M2M_FTS_ANNOTATIONS,
-            fts_universes=Concat(
-                GroupConcat(
-                    "universes__designation",
-                    distinct=True,
-                    order_by="universes__designation",
-                ),
-                Value(","),
-                GroupConcat(
-                    "universes__name", distinct=True, order_by="universes__name"
-                ),
-            ),
+    def _build_m2m_fts_dict(pks: list[int], target_path: str) -> dict[int, str]:
+        """
+        One query per M2M: GROUP_CONCAT(<rel>__name) keyed by comic pk.
+
+        Replaces the megaquery's per-M2M ``GROUP_CONCAT`` aggregations
+        — each was a LEFT JOIN to the related table contributing to a
+        cartesian product before GROUP BY collapse. Per-relation queries
+        each walk one M2M's index independently and produce per-pk
+        strings; no cartesian product, much smaller intermediate temp
+        tables on richly-tagged libraries.
+        """
+        rows = (
+            Comic.objects.filter(pk__in=pks)
+            .annotate(
+                fts_value=GroupConcat(target_path, distinct=True, order_by=target_path)
+            )
+            .values_list("pk", "fts_value")
         )
+        # GROUP_CONCAT over a LEFT JOIN with no related rows returns
+        # NULL → store empty string so the consumer's truthy filter
+        # treats absence and emptiness identically.
+        return {pk: (value or "") for pk, value in rows}
+
+    @staticmethod
+    def _build_universes_fts_dict(pks: list[int]) -> dict[int, str]:
+        """
+        Universes special case: Concat of designation + name aggregates.
+
+        Universes carry both a ``designation`` and a ``name`` worth
+        making searchable; the previous shape combined them via
+        ``Concat(GroupConcat(designation), Value(","), GroupConcat(name))``.
+        Single LEFT JOIN to the universes table, single GROUP BY on
+        comic_id; same SQL as the megaquery would have produced for
+        this column, just isolated from the other M2Ms.
+        """
+        rows = (
+            Comic.objects.filter(pk__in=pks)
+            .annotate(
+                fts_universes=Concat(
+                    GroupConcat(
+                        "universes__designation",
+                        distinct=True,
+                        order_by="universes__designation",
+                    ),
+                    Value(","),
+                    GroupConcat(
+                        "universes__name",
+                        distinct=True,
+                        order_by="universes__name",
+                    ),
+                )
+            )
+            .values_list("pk", "fts_universes")
+        )
+        return {pk: (value or "") for pk, value in rows}
 
     def _update_search_index_operate_get_status(
         self, total_comics: int, chunk_human_size: str, *, create: bool
@@ -224,9 +267,35 @@ class SearchIndexerSync(SearchIndexerRemove):
                 self.log.debug(
                     f"Preparing up to {chunk_human_size} comics for search indexing..."
                 )
-                comics = base_qs.order_by("pk")[:search_index_batch_size]
-                comics = self._annotate_fts_query(comics)
-                for comic in comics.values():
+                # Snapshot the batch's pk list once; every per-relation
+                # query below filters against the same set so they
+                # stitch back together cleanly in Python.
+                batch_pks = list(
+                    base_qs.order_by("pk").values_list("pk", flat=True)[
+                        :search_index_batch_size
+                    ]
+                )
+                if not batch_pks:
+                    break
+
+                # Per-M2M batched queries. Replaces the previous
+                # megaquery (10 GROUP_CONCAT aggregations + 20+
+                # LEFT JOINs + GROUP BY in a single SELECT) with one
+                # SELECT per relation — each walks one M2M's index
+                # independently, no cartesian product across the
+                # 10 M2Ms.
+                fk_rows = self._build_fk_fts_rows(batch_pks)
+                m2m_dicts = {
+                    f"fts_{alias}": self._build_m2m_fts_dict(batch_pks, target)
+                    for alias, target in _M2M_FTS_REL_MAP.items()
+                }
+                universes_dict = self._build_universes_fts_dict(batch_pks)
+
+                for comic in fk_rows:
+                    pk = comic["id"]
+                    for fts_alias, m2m_dict in m2m_dicts.items():
+                        comic[fts_alias] = m2m_dict.get(pk, "")
+                    comic["fts_universes"] = universes_dict.get(pk, "")
                     SearchEntryPrepare.prepare_sync_fts_entry(
                         comic, obj_list, create=create
                     )
