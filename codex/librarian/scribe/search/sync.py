@@ -224,6 +224,50 @@ class SearchIndexerSync(SearchIndexerRemove):
         status.increment_complete(num_comic_fts)
         self.status_controller.update(status, notify=True)
 
+    def _build_search_index_batch_obj_list(
+        self,
+        base_qs: QuerySet,
+        batch_size: int,
+        *,
+        create: bool,
+    ) -> list[ComicFTS]:
+        """
+        Build one batch of ``ComicFTS`` rows for create-or-update.
+
+        Returns an empty list to signal the caller to stop iterating
+        — either the queryset is exhausted or every batch row was
+        filtered out by ``prepare_sync_fts_entry``.
+        """
+        # Snapshot the batch's pk list once; every per-relation
+        # query below filters against the same set so they stitch
+        # back together cleanly in Python.
+        batch_pks = list(
+            base_qs.order_by("pk").values_list("pk", flat=True)[:batch_size]
+        )
+        if not batch_pks:
+            return []
+
+        # Per-M2M batched queries. Replaces the previous megaquery
+        # (10 GROUP_CONCAT aggregations + 20+ LEFT JOINs + GROUP BY
+        # in a single SELECT) with one SELECT per relation — each
+        # walks one M2M's index independently, no cartesian product
+        # across the 10 M2Ms.
+        fk_rows = self._build_fk_fts_rows(batch_pks)
+        m2m_dicts = {
+            f"fts_{alias}": self._build_m2m_fts_dict(batch_pks, target)
+            for alias, target in _M2M_FTS_REL_MAP.items()
+        }
+        universes_dict = self._build_universes_fts_dict(batch_pks)
+
+        obj_list: list[ComicFTS] = []
+        for comic in fk_rows:
+            pk = comic["id"]
+            for fts_alias, m2m_dict in m2m_dicts.items():
+                comic[fts_alias] = m2m_dict.get(pk, "")
+            comic["fts_universes"] = universes_dict.get(pk, "")
+            SearchEntryPrepare.prepare_sync_fts_entry(comic, obj_list, create=create)
+        return obj_list
+
     def _update_search_index_operate(
         self, comics_filtered_qs: QuerySet, *, create: bool
     ):
@@ -259,7 +303,6 @@ class SearchIndexerSync(SearchIndexerRemove):
             self.status_controller.start(status, notify=True)
             start = 0
             while start < total_comics:
-                obj_list = []
                 if self.abort_event.is_set():
                     break
                 # Not using standard iterator chunking to control memory and really
@@ -267,48 +310,15 @@ class SearchIndexerSync(SearchIndexerRemove):
                 self.log.debug(
                     f"Preparing up to {chunk_human_size} comics for search indexing..."
                 )
-                # Snapshot the batch's pk list once; every per-relation
-                # query below filters against the same set so they
-                # stitch back together cleanly in Python.
-                batch_pks = list(
-                    base_qs.order_by("pk").values_list("pk", flat=True)[
-                        :search_index_batch_size
-                    ]
+                obj_list = self._build_search_index_batch_obj_list(
+                    base_qs, search_index_batch_size, create=create
                 )
-                if not batch_pks:
-                    break
-
-                # Per-M2M batched queries. Replaces the previous
-                # megaquery (10 GROUP_CONCAT aggregations + 20+
-                # LEFT JOINs + GROUP BY in a single SELECT) with one
-                # SELECT per relation — each walks one M2M's index
-                # independently, no cartesian product across the
-                # 10 M2Ms.
-                fk_rows = self._build_fk_fts_rows(batch_pks)
-                m2m_dicts = {
-                    f"fts_{alias}": self._build_m2m_fts_dict(batch_pks, target)
-                    for alias, target in _M2M_FTS_REL_MAP.items()
-                }
-                universes_dict = self._build_universes_fts_dict(batch_pks)
-
-                for comic in fk_rows:
-                    pk = comic["id"]
-                    for fts_alias, m2m_dict in m2m_dicts.items():
-                        comic[fts_alias] = m2m_dict.get(pk, "")
-                    comic["fts_universes"] = universes_dict.get(pk, "")
-                    SearchEntryPrepare.prepare_sync_fts_entry(
-                        comic, obj_list, create=create
-                    )
-
                 if not obj_list:
                     break
                 self._update_search_index_create_or_update(
-                    obj_list,
-                    status,
-                    create=create,
+                    obj_list, status, create=create
                 )
                 start += search_index_batch_size
-
         finally:
             self.status_controller.finish(status)
         return total_comics
