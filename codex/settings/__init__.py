@@ -161,6 +161,16 @@ IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
 IMPORTER_UPDATE_COMIC_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.update_comic_batch_size", default=400
 )
+# SQLite page cache size (KiB) for the importer connection during a
+# bulk import. The steady-state ``cache_size=-64000`` (64 MiB) is
+# tuned for concurrent readers + slow-drip writes; a bulk import
+# benefits from a much larger page cache so the working set fits.
+# 512 MiB default; bump higher on big-RAM hosts, drop on Pi-class
+# hosts with < 2 GiB RAM. Negative values are interpreted as KiB by
+# SQLite per its PRAGMA documentation.
+IMPORTER_SQLITE_CACHE_KB = get_int(
+    CODEX_CONFIG, "importer.sqlite_cache_kb", default=524288
+)
 
 ##############################
 # Codex Config: Librarian    #
