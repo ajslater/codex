@@ -16,6 +16,7 @@ border-radius: 128px;
         - Cover thumbnail generation now uses multiprocessing and seeds covers
           on import.
 - Fix
+    - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
 
 ## v1.10.13
