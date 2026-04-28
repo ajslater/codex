@@ -154,9 +154,25 @@ export default {
       } else {
         console.debug("Can't find verticalScroll component.");
       }
-      setTimeout(() => {
+      /*
+       * Drop the ``programmaticScroll`` flag the moment the
+       * browser settles the scroll, not on a fixed 250ms timer.
+       * The previous timeout dropped any user scroll that
+       * arrived during the window, since ``onScroll`` returns
+       * early when the flag is set. ``scrollend`` fires once
+       * after the smooth-scroll completes (Safari iOS supports
+       * since 16.4), so we land more responsive on fast machines
+       * and still fall back to the timer for older browsers.
+       */
+      const reset = () => {
         this.programmaticScroll = false;
-      }, TIMEOUT);
+      };
+      const el = vs?.$el;
+      if (el && "onscrollend" in el) {
+        el.addEventListener("scrollend", reset, { once: true });
+      } else {
+        setTimeout(reset, TIMEOUT);
+      }
     },
   },
 };
