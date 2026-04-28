@@ -441,11 +441,11 @@ if DEBUG:
     }
     DATABASE_ROUTERS = ["codex.db_routers.SilkRouter"]
 
-# The new DEFAULT_AUTO_FIELD in Django 3.2 is BigAutoField (64 bit),
-#   but it can't be auto migrated. Automigration has been punted to
-#   Django 4.0 at the earliest:
-#   https://code.djangoproject.com/ticket/32674
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+# Django 6 defaults DEFAULT_AUTO_FIELD to ``BigAutoField`` (64-bit).
+# Pin it here to match — explicit ``> AutoField`` migration support
+# landed in Django 4.0 (ticket #32674) so the legacy 32-bit override
+# this codebase carried since Django 3.2 is no longer needed.
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ##################
 # Authentication #
