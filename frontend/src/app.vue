@@ -55,22 +55,32 @@ export default {
       },
     },
   },
-  async created() {
-    this.loadAdminFlags();
+  created() {
     /*
-     * Boot phase: kick off the independent network requests in
-     * parallel. Pre-warming ``loadOPDSURLs`` here means the OPDS
-     * dialog opens against cached state instead of waiting on a
-     * round-trip when the user clicks the button. ``allSettled``
-     * (rather than ``all``) so a failure in one — e.g. the
-     * /opds-urls endpoint returning 401 before auth lands —
-     * doesn't suppress the others. ``setTimezone`` was previously
-     * chained off ``loadProfile`` here, but the ``user`` /
-     * ``nonUsers`` watchers cover both paths and avoid the
-     * double-fire that the chain caused on every authenticated
-     * boot.
+     * Boot phase: kick off all the independent cold-start
+     * network requests at once. Pre-split, ``loadAdminFlags``
+     * was a fire-and-forget call ahead of the ``loadProfile``
+     * chain; collecting it into the same ``Promise.allSettled``
+     * makes the boot graph's parallelism explicit and lets a
+     * future caller (boot-time logging, devtools probe) await
+     * the whole batch without rewiring this hook.
+     *
+     * ``allSettled`` (rather than ``all``) so a failure in one
+     * — the /opds-urls endpoint returning 401 before auth
+     * lands, say — doesn't suppress the others. Each store
+     * action already swallows its own errors via ``.catch`` so
+     * a failed promise here is purely informational.
+     *
+     * ``setTimezone`` was previously chained off
+     * ``loadProfile``, but the ``user`` / ``nonUsers``
+     * watchers cover both auth paths and avoid the double-fire
+     * that the chain caused on every authenticated boot.
      */
-    Promise.allSettled([this.loadProfile(), this.loadOPDSURLs()]);
+    Promise.allSettled([
+      this.loadAdminFlags(),
+      this.loadProfile(),
+      this.loadOPDSURLs(),
+    ]);
   },
   methods: {
     ...mapActions(useAuthStore, [
