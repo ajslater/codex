@@ -1,7 +1,7 @@
 """Librarian Status View."""
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING, ClassVar, override
+from typing import TYPE_CHECKING, ClassVar, Final, override
 
 from django.db.models.query_utils import Q
 from drf_spectacular.utils import extend_schema
@@ -117,7 +117,7 @@ _TASK_MAP = MappingProxyType(
 )
 
 
-_ACTIVE_STATUS_FILTER = Q(preactive__isnull=False) | Q(active__isnull=False)
+_ACTIVE_STATUS_FILTER: Final = Q(preactive__isnull=False) | Q(active__isnull=False)
 
 
 class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):

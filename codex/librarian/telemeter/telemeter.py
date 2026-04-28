@@ -3,6 +3,8 @@
 import json
 from base64 import a85decode
 from lzma import compress
+from types import MappingProxyType
+from typing import Final
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
@@ -11,21 +13,21 @@ from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import AdminFlag, Timestamp
 
 # Version
-_APP_NAME = "codex"
-_VERSION = "1"
+_APP_NAME: Final = "codex"
+_VERSION: Final = "1"
 
 # Sending
 # this isn't meant to fool you. it's meant to discourage lazy scraper bots.
-_BASE = "".join(
+_BASE: Final = "".join(
     (
         a85decode(b"BQS?8F#ks-@:XCm@;\\+").decode(),
         a85decode(b"Ea`frF)to6Bk]hRFCB94/c").decode(),
         a85decode(b"@rGmhGV*rI@:Wqi/n&^<").decode(),
     )
 )
-_HEADERS = {"Content-Type": "application/xz"}
-_POST = _BASE + f"/stats/{_APP_NAME}/{_VERSION}"
-_TIMEOUT = 5
+_HEADERS: Final = MappingProxyType({"Content-Type": "application/xz"})
+_POST: Final = _BASE + f"/stats/{_APP_NAME}/{_VERSION}"
+_TIMEOUT: Final = 5
 
 
 def get_telemeter_timestamp():

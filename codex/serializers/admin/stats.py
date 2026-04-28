@@ -1,5 +1,7 @@
 """Admin stats serializers."""
 
+from typing import Final
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -13,7 +15,7 @@ from codex.serializers.fields import (
     StringListMultipleChoiceField,
 )
 
-FILE_TYPES_CHOICES = ("CBZ", "CBR", "CBT", "PDF", "UNKNOWN")
+FILE_TYPES_CHOICES: Final[tuple[str, ...]] = ("CBZ", "CBR", "CBT", "PDF", "UNKNOWN")
 
 
 class StatsSystemSerializer(Serializer):
