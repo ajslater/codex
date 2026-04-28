@@ -32,8 +32,6 @@ from codex.views.opds.v2.href import OPDS2HrefMixin
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from codex.models.groups import BrowserGroupModel
-
 _EMPTY_DEVICE = MappingProxyType(
     {
         "id": "",
@@ -79,17 +77,25 @@ class OPDS2ProgressionView(
     serializer_class = OPDS2ProgressionSerializer
     content_type = ReadiumProgressionParser.media_type
 
+    # Annotated queryset rows carry ``bookmark_updated_at`` /
+    # ``page`` / ``progress`` synthetic columns the type system
+    # can't see on ``Comic``. The real model attribute
+    # ``page_count`` is also accessed. Type as ``Any`` to keep
+    # the queryset-aliased reads honest; the queryset itself is
+    # built by ``_get_bookmark_query`` and reassigned in
+    # ``get_object``.
+    _obj: Any
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize Bookmark Filter."""
         self.init_bookmark_filter()
         super().__init__(*args, **kwargs)
-        self._obj: BrowserGroupModel = Comic()
-        self._user_agent_name: str | None = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        self._obj = Comic()
 
     @property
     def modified(self):
         """Get modified from bookmark."""
-        return self._obj.bookmark_updated_at  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
+        return self._obj.bookmark_updated_at
 
     @property
     def device(self):
@@ -99,16 +105,16 @@ class OPDS2ProgressionView(
     @property
     def title(self) -> str:
         """The locator title is the page number."""
-        return f"Page {self._obj.page}"  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
+        return f"Page {self._obj.page}"
 
     @property
     def _progression_href(self):
         """Build a Progression HRef."""
         acq_kwargs = {
             "pk": self._obj.pk,
-            "page": self._obj.page,  # pyright: ignore[reportAttributeAccessIssue],  #ty: ignore[unresolved-attribute]
+            "page": self._obj.page,
         }
-        max_page = max_none(self._obj.page_count - 1, 0)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
+        max_page = max_none(self._obj.page_count - 1, 0)
         data = HrefData(
             acq_kwargs, url_name="opds:bin:page", min_page=0, max_page=max_page
         )
@@ -118,11 +124,11 @@ class OPDS2ProgressionView(
     def _locations(self) -> dict[str, Any]:
         """Build the Locations object."""
         # The OPDS v2 progression spec secifies position as > 0.
-        position = max(self._obj.page + 1, 0)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        position = max(self._obj.page + 1, 0)
         return {
             "position": position,
-            "progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            "total_progression": self._obj.progress,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            "progression": self._obj.progress,
+            "total_progression": self._obj.progress,
         }
 
     @property
@@ -176,7 +182,7 @@ class OPDS2ProgressionView(
         )
         self._obj = qs.get(pk=pk)
 
-        if not self._obj.bookmark_updated_at:  # pyright: ignore[reportAttributeAccessIssue]
+        if not self._obj.bookmark_updated_at:
             raise NoContent
 
         return {

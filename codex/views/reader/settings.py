@@ -2,6 +2,7 @@
 
 from functools import cache
 from types import MappingProxyType
+from typing import cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
@@ -310,8 +311,11 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                 raise ValidationError(
                     {"scope_pk": "scope_pk is required for non-global scopes."}
                 )
-            fk_field = config[0]
-            instance = self._get_or_create_scoped_settings(fk_field, scope_pk)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            # Non-global ``_SCOPE_MAP`` entries always have a string
+            # FK name and the guard above proved ``scope_pk`` is set;
+            # narrow both for the type checker.
+            fk_field = cast("str", config[0])
+            instance = self._get_or_create_scoped_settings(fk_field, scope_pk)
 
         for key, value in data.items():
             if key in instance.DIRECT_KEYS:
@@ -348,9 +352,10 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                 raise ValidationError(
                     {"scope_pk": "scope_pk is required for non-global scopes."}
                 )
-            fk_field = config[0]
+            # Same narrowing as the update path above.
+            fk_field = cast("str", config[0])
             # Delete the scoped row entirely — absence means "inherit".
-            lookup = self._get_settings_lookup(**{fk_field: scope_pk})  # pyright: ignore[reportCallIssue], # ty: ignore[invalid-argument-type]
+            lookup = self._get_settings_lookup(**{fk_field: scope_pk})
             SettingsReader.objects.filter(**lookup).delete()
             result = None
 
