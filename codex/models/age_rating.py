@@ -15,6 +15,7 @@ filter time it is treated the same as ``NULL`` (both inherit the
 side.
 """
 
+from types import MappingProxyType
 from typing import Final, override
 
 from comicbox.enums.maps.age_rating import to_metron_age_rating
@@ -32,6 +33,12 @@ METRON_RATING_ORDER: Final[tuple[str, ...]] = (
     MetronAgeRatingEnum.MATURE.value,
     MetronAgeRatingEnum.EXPLICIT.value,
     MetronAgeRatingEnum.ADULT.value,
+)
+# rating name → ordered index, materialized once. Replaces a
+# ``in METRON_RATING_ORDER`` membership check followed by an
+# ``.index()`` scan with a single dict lookup.
+_RATING_INDEX: Final[MappingProxyType[str, int]] = MappingProxyType(
+    {name: idx for idx, name in enumerate(METRON_RATING_ORDER)}
 )
 
 PUBLIC_TIER_ALLOWED: Final[frozenset[str]] = frozenset(
@@ -110,9 +117,11 @@ def invalidate_metron_index_cache() -> None:
 
 def rating_index(rating: str | None) -> int:
     """Return the ordered index of a rating; -1 if not in ``METRON_RATING_ORDER``."""
-    if rating in METRON_RATING_ORDER:
-        return METRON_RATING_ORDER.index(rating)
-    return UNRANKED_METRON_INDEX
+    return (
+        _RATING_INDEX.get(rating, UNRANKED_METRON_INDEX)
+        if rating
+        else UNRANKED_METRON_INDEX
+    )
 
 
 def allowed_ratings_for(group_rating: str | None) -> frozenset[str]:

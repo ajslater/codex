@@ -58,11 +58,12 @@ class LifespanApplication:
         while True:
             try:
                 message = await receive()
-                if message["type"] == "lifespan.startup":
-                    await self._event("startup", send)
-                elif message["type"] == "lifespan.shutdown":
-                    await self._event("shutdown", send)
-                    break
+                match message["type"]:
+                    case "lifespan.startup":
+                        await self._event("startup", send)
+                    case "lifespan.shutdown":
+                        await self._event("shutdown", send)
+                        break
             except Exception:
                 logger.exception("Lifespan application")
         logger.debug("Lifespan application stopped.")
