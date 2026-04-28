@@ -3,11 +3,11 @@
 import json
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType, SimpleNamespace
-from typing import override
+from typing import Any, override
 
 from django.db.models import CharField, F, Value
 
-from codex.models.base import BaseModel, NamedModel
+from codex.models.base import NamedModel
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
@@ -167,9 +167,14 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return belongs_to
 
-    def _add_tag_link(self, obj: BaseModel, filter_key: str, subfield: str = ""):
+    def _add_tag_link(self, obj: Any, filter_key: str, subfield: str = "") -> None:
+        # ``obj`` can be either a real ``NamedModel`` (when called with
+        # ``subfield=""``) or a ``SimpleNamespace`` carrying ``pk`` /
+        # ``name`` / ``links`` (the partitioned ``_publication_subject``
+        # rows). Typing as ``Any`` lets both shapes through; the
+        # function only reads ``pk`` / ``name`` and writes ``links``.
         kwargs = {"group": "s", "pks": (), "page": 1}
-        value: NamedModel = getattr(obj, subfield) if subfield else obj  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        value = getattr(obj, subfield) if subfield else obj
         filters = {filter_key: [value.pk]}
         filters = json.dumps(filters)
         query_params = {
@@ -184,7 +189,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             mime_type=MimeType.OPDS_JSON,
         )
         link = self.link(link_data)
-        obj.links = (link,)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        obj.links = (link,)
 
     def _publication_subject(self, obj) -> tuple[NamedModel, ...]:
         """
@@ -211,12 +216,15 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             queries.append(q)
         rows = queries[0].union(*queries[1:], all=True).order_by("_kind", "name")
 
-        flat_subjs: list[NamedModel] = []
+        # ``flat_subjs`` carries ``SimpleNamespace`` rows that quack
+        # like ``NamedModel`` (``pk`` / ``name`` / ``links``); the
+        # serializer downstream reads only those three attributes.
+        flat_subjs: list[Any] = []
         for row in rows:
             kind = row["_kind"]
             subj = SimpleNamespace(pk=row["pk"], name=row["name"], links=())
-            self._add_tag_link(subj, kind + "s")  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
-            flat_subjs.append(subj)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            self._add_tag_link(subj, kind + "s")
+            flat_subjs.append(subj)
         return tuple(flat_subjs)
 
     def _publication_credits(self, obj) -> Mapping[str, tuple[Credit, ...]]:

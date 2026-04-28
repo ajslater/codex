@@ -4,6 +4,7 @@ from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from types import MappingProxyType
+from typing import cast
 
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from loguru import logger
@@ -296,16 +297,22 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         )
         if isinstance(instance, SettingsBrowser):
             return self.browser_instance_to_dict(instance)
-        return self._reader_instance_to_dict(instance)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+        # Branch invariant: ``instance`` is a ``SettingsReader`` (the
+        # only other concrete type in the union). ``_get_or_create_settings``'s
+        # broad return type forces the cast.
+        return self._reader_instance_to_dict(cast("SettingsReader", instance))
 
     def _load_browser_settings_data(self, only: Sequence[str] | None = None) -> dict:
         """Load settings from the browser model (for cross-reading)."""
-        instance: SettingsBrowser = self._get_or_create_settings(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-            self.BROWSER_MODEL,
-            self.BROWSER_CLIENT,
-            BROWSER_FILTER_ARGS,
-            BROWSER_CREATE_ARGS,
-            only=only,
+        instance = cast(
+            "SettingsBrowser",
+            self._get_or_create_settings(
+                self.BROWSER_MODEL,
+                self.BROWSER_CLIENT,
+                BROWSER_FILTER_ARGS,
+                BROWSER_CREATE_ARGS,
+                only=only,
+            ),
         )
         return self.browser_instance_to_dict(instance)
 
@@ -485,7 +492,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if isinstance(instance, SettingsBrowser):
             self._save_browser_settings_data(instance, data)
         else:
-            self._save_reader_settings_data(instance, data)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            # Same branch invariant as ``_load_settings_data``.
+            self._save_reader_settings_data(cast("SettingsReader", instance), data)
 
     def save_params_to_settings(self, params) -> None:  # reader session & browser final
         """Save the session from params with defaults for missing values."""

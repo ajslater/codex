@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from copy import deepcopy
 from types import MappingProxyType
-from typing import Any
+from typing import Any, NoReturn, cast
 
 from loguru import logger
 from rest_framework.exceptions import NotFound
@@ -70,12 +70,12 @@ class BrowserValidateView(SearchFilterView):
 
     def raise_redirect(
         self, reason, route_mask=None, settings_mask: Mapping | None = None
-    ) -> None:
+    ) -> NoReturn:
         """Redirect the client to a valid group url."""
-        route: dict[str, Any] = mapping_to_dict(self.DEFAULT_ROUTE)  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        route = cast("dict[str, Any]", mapping_to_dict(self.DEFAULT_ROUTE))
         if route_mask:
             route["params"].update(route_mask)
-        settings: dict[str, Any] = deepcopy(mapping_to_dict(self.params))  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        settings = cast("dict[str, Any]", deepcopy(mapping_to_dict(self.params)))
         if settings_mask:
             settings.update(settings_mask)
         detail = {"route": route, "settings": settings, "reason": reason}

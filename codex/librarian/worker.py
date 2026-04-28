@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     # Type-hint-only — runtime imports stay lean across the nine
     # librarian modules that import this chain.
     from multiprocessing.queues import Queue
+    from threading import Lock
 
     from loguru._logger import Logger
 
@@ -18,7 +19,7 @@ class WorkerMixin:
     """Mixin for common thread attributes."""
 
     def init_worker(
-        self, /, logger_: Logger, librarian_queue: Queue, db_write_lock
+        self, /, logger_: Logger, librarian_queue: Queue, db_write_lock: Lock
     ) -> None:
         """Initialize queues."""
         if not all((logger_, librarian_queue, db_write_lock)):
@@ -33,7 +34,9 @@ class WorkerStatusMixin(WorkerMixin):
     """Worker mixin also sets up status controller."""
 
     @override
-    def init_worker(self, /, logger_, librarian_queue: Queue, db_write_lock) -> None:
+    def init_worker(
+        self, /, logger_: Logger, librarian_queue: Queue, db_write_lock: Lock
+    ) -> None:
         super().init_worker(logger_, librarian_queue, db_write_lock)
         self.status_controller = StatusController(  # pyright: ignore[reportUninitializedInstanceVariable]
             logger_, librarian_queue

@@ -1,7 +1,7 @@
 """Aggregate ManyToMany Metadata."""
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from comicbox.schemas.comicbox import IDENTIFIERS_KEY, NUMBER_KEY, ROLES_KEY
 from django.db.models import CharField, Field
@@ -39,7 +39,10 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         self, field_name, sub_sub_value
     ):
         field = Comic._meta.get_field(field_name)
-        model: type[BaseModel] = field.related_model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        # ``related_model`` is typed ``type[Model] | Literal['self'] | None``;
+        # this code path only fires for fields whose related model is a real
+        # concrete BaseModel.
+        model = cast("type[BaseModel]", field.related_model)
         return self.get_identifier_tuple(model, sub_sub_value)
 
     def _get_m2m_metadata_dict_model_aggregate_sub_sub_value_roles(
@@ -228,14 +231,20 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         # {story_arc_name_a: { number: 1, identifiers: {} }, ...}
         # {character_name_a: { identifiers: {} }, ...}
         clean_values_map: dict[tuple, frozenset[tuple]] = {}
-        if not isinstance(values, Mapping):
-            values = dict.fromkeys(values)
-        for sub_key_name, sub_value in values.items():
+        # Normalize the input to a ``Mapping`` so the iteration below is
+        # uniform; the non-mapping branch was leaking ``Any``-typed
+        # iteration variables out into the per-call signature.
+        values_map: Mapping[str, Mapping | None] = (
+            values
+            if isinstance(values, Mapping)
+            else cast("Mapping[str, Mapping | None]", dict.fromkeys(values))
+        )
+        for sub_key_name, sub_value in values_map.items():
             clean_sub_map = self._get_m2m_metadata_dict_model_aggregate_sub_values(
                 md_key,
                 field,
-                sub_key_name,  # ty: ignore[invalid-argument-type]
-                sub_value,  # ty: ignore[invalid-argument-type]
+                sub_key_name,
+                sub_value,
             )
             clean_values_map.update(clean_sub_map)
 
