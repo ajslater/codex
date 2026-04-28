@@ -142,10 +142,16 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up orphan tags...")
-            count = 1
-            while count:
-                # Keep churning until we stop finding orphan tags.
-                count = self._cleanup_fks_one_level(status)
+            # Hold ``db_write_lock`` across all passes so a concurrent
+            # importer can't re-introduce a parent FK between the
+            # check that found it orphaned and the DELETE that removes
+            # it. The integrity-check writers in ``integrity/`` use the
+            # same pattern; cleanup was previously missing it.
+            with self.db_write_lock:
+                count = 1
+                while count:
+                    # Keep churning until we stop finding orphan tags.
+                    count = self._cleanup_fks_one_level(status)
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
@@ -162,13 +168,22 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up db custom covers with no source images...")
+            # Read-only phase: per-cover filesystem stat to identify
+            # orphans. Lock not held — the importer may continue to
+            # write, and the slow-storage stat loop (NFS / SMB) would
+            # otherwise block the importer for seconds-to-minutes.
             for cover in covers.iterator():
                 if not Path(cover.path).exists():
                     delete_pks.append(cover.pk)
                 status.increment_complete()
-            delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
-            count, _ = delete_qs.delete()
-            status.complete = count
+            # Write phase: the DELETE goes through under the lock so a
+            # concurrent importer can't be mid-bulk_create on the same
+            # rows. TOCTOU window is acceptable: a cover re-created
+            # between stat and delete just gets re-discovered next poll.
+            with self.db_write_lock:
+                delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
+                count, _ = delete_qs.delete()
+                status.complete = count
         finally:
             self.status_controller.finish(status)
 
@@ -177,10 +192,15 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         status = JanitorCleanupSessionsStatus()
         try:
             self.status_controller.start(status)
-            qs = Session.objects.filter(expire_date__lt=Now())
-            count, _ = qs.delete()
+            # Expired-session DELETE under the lock.
+            with self.db_write_lock:
+                qs = Session.objects.filter(expire_date__lt=Now())
+                count, _ = qs.delete()
             if count:
                 self.log.info(f"Deleted {count} expired sessions.")
+            # Read-only signature validation phase. Holding the lock
+            # across this loop would block the importer for as long as
+            # the validation takes; release between the two phases.
             bad_session_keys = set()
             store = Session.get_session_store_class()()
             salt = store.key_salt  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -201,8 +221,11 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                     bad_session_keys.add(encoded_session.session_key)
 
             if bad_session_keys:
-                bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
-                count, _ = bad_sessions.delete()
+                with self.db_write_lock:
+                    bad_sessions = Session.objects.filter(
+                        session_key__in=bad_session_keys
+                    )
+                    count, _ = bad_sessions.delete()
                 self.log.info(f"Deleted {count} corrupt sessions.")
         finally:
             self.status_controller.finish(status)
@@ -212,8 +235,9 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         status = JanitorCleanupBookmarksStatus()
         try:
             self.status_controller.start(status)
-            orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
-            count, _ = orphan_bms.delete()
+            with self.db_write_lock:
+                orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
+                count, _ = orphan_bms.delete()
             level = "INFO" if count else "DEBUG"
             self.log.log(level, f"Deleted {count} orphan bookmarks.")
         finally:
@@ -225,10 +249,11 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         try:
             self.status_controller.start(status)
             total = 0
-            for model in (SettingsBrowser, SettingsReader):
-                orphans = model.objects.filter(**_SETTINGS_ORPHAN_FILTER)
-                count, _ = orphans.delete()
-                total += count
+            with self.db_write_lock:
+                for model in (SettingsBrowser, SettingsReader):
+                    orphans = model.objects.filter(**_SETTINGS_ORPHAN_FILTER)
+                    count, _ = orphans.delete()
+                    total += count
             level = "INFO" if total else "DEBUG"
             self.log.log(level, f"Deleted {total} orphan settings rows.")
         finally:
