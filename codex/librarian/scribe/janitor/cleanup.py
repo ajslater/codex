@@ -125,6 +125,13 @@ _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
 # data-integrity bug worth investigating, not a fix-by-bumping-the-cap
 # problem.
 _FK_CLEANUP_MAX_PASSES = 10
+# Streaming chunk size for the session-validation pass. ``iterator``
+# fetches in this many rows at a time to keep memory bounded on
+# long-running installs with years of accumulated anonymous sessions.
+_SESSION_VALIDATE_CHUNK_SIZE = 1000
+# Batch size for the corrupt-session DELETE. Stays under SQLite's
+# 32766 parameter cap per ``WHERE session_key__in (...)`` query.
+_SESSION_DELETE_BATCH_SIZE = 30000
 
 
 class JanitorCleanup(JanitorUpdateFailedImports):
@@ -297,11 +304,18 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             # Read-only signature validation phase. Holding the lock
             # across this loop would block the importer for as long as
             # the validation takes; release between the two phases.
-            bad_session_keys = set()
+            # ``iterator(chunk_size=...)`` streams rows so a long-
+            # running install with years of accumulated anonymous
+            # sessions doesn't materialize tens of thousands of rows
+            # into RAM at once.
+            bad_session_keys: list[str] = []
             store = Session.get_session_store_class()()
             salt = store.key_salt  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             serializer = store.serializer
-            for encoded_session in Session.objects.all():
+            session_qs = Session.objects.only("session_key", "session_data").iterator(
+                chunk_size=_SESSION_VALIDATE_CHUNK_SIZE
+            )
+            for encoded_session in session_qs:
                 # Session.get_decoded() swallows decode errors and returns
                 # an empty dict, which is also the legitimate state for an
                 # anonymous session with no stored data — so we can't use
@@ -314,15 +328,26 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                         serializer=serializer,
                     )
                 except Exception:
-                    bad_session_keys.add(encoded_session.session_key)
+                    bad_session_keys.append(encoded_session.session_key)
 
             if bad_session_keys:
+                # Batch the DELETE under the lock. Per-batch cap keeps
+                # the ``session_key__in (...)`` parameter list under
+                # SQLite's 32766 limit on pathologically large bad-
+                # session counts.
+                deleted = 0
                 with self.db_write_lock:
-                    bad_sessions = Session.objects.filter(
-                        session_key__in=bad_session_keys
-                    )
-                    count, _ = bad_sessions.delete()
-                self.log.info(f"Deleted {count} corrupt sessions.")
+                    for start in range(
+                        0, len(bad_session_keys), _SESSION_DELETE_BATCH_SIZE
+                    ):
+                        batch = bad_session_keys[
+                            start : start + _SESSION_DELETE_BATCH_SIZE
+                        ]
+                        count, _ = Session.objects.filter(
+                            session_key__in=batch
+                        ).delete()
+                        deleted += count
+                self.log.info(f"Deleted {deleted} corrupt sessions.")
         finally:
             self.status_controller.finish(status)
 
