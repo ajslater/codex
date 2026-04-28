@@ -10,7 +10,6 @@ import { mapActions, mapState } from "pinia";
 
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -57,30 +56,19 @@ export default {
   },
   created() {
     /*
-     * Boot phase: kick off all the independent cold-start
-     * network requests at once. Pre-split, ``loadAdminFlags``
-     * was a fire-and-forget call ahead of the ``loadProfile``
-     * chain; collecting it into the same ``Promise.allSettled``
-     * makes the boot graph's parallelism explicit and lets a
-     * future caller (boot-time logging, devtools probe) await
-     * the whole batch without rewiring this hook.
-     *
-     * ``allSettled`` (rather than ``all``) so a failure in one
-     * — the /opds-urls endpoint returning 401 before auth
-     * lands, say — doesn't suppress the others. Each store
-     * action already swallows its own errors via ``.catch`` so
-     * a failed promise here is purely informational.
+     * Boot phase: kick off the independent cold-start network
+     * requests at once. ``allSettled`` (rather than ``all``) so
+     * a failure in one — e.g. /admin-flags returning 401 before
+     * auth lands — doesn't suppress the other. Each store action
+     * already swallows its own errors via ``.catch`` so a failed
+     * promise here is purely informational.
      *
      * ``setTimezone`` was previously chained off
-     * ``loadProfile``, but the ``user`` / ``nonUsers``
-     * watchers cover both auth paths and avoid the double-fire
-     * that the chain caused on every authenticated boot.
+     * ``loadProfile``, but the ``user`` / ``nonUsers`` watchers
+     * cover both auth paths and avoid the double-fire that the
+     * chain caused on every authenticated boot.
      */
-    Promise.allSettled([
-      this.loadAdminFlags(),
-      this.loadProfile(),
-      this.loadOPDSURLs(),
-    ]);
+    Promise.allSettled([this.loadAdminFlags(), this.loadProfile()]);
   },
   methods: {
     ...mapActions(useAuthStore, [
@@ -88,7 +76,6 @@ export default {
       "loadProfile",
       "setTimezone",
     ]),
-    ...mapActions(useCommonStore, ["loadOPDSURLs"]),
   },
 };
 </script>
