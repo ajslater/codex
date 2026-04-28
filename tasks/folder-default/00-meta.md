@@ -105,20 +105,30 @@ intact; we add an admin-controlled fallback that sits behind it.
   The admin flag's default value preserves the current `r` for
   upgrade-day no-op.
 
-## Open questions for review
+## Decisions (resolved)
 
-1. **Choice naming**: should the admin-facing label be
-   "Default Browse View" or "New User Default"? The flag affects
-   anonymous and freshly-cookied users, not just genuinely-new
-   ones.
-2. **Should the admin default ALSO override returning users'
-   `top_group` setting?** I'd say no — admin sets the floor for
-   "no expressed preference"; users who pin `top_group` keep
-   their pin.
-3. **Story arc vs. groups**: codex's `BROWSER_TOP_GROUP_CHOICES`
-   includes `p/i/s/v/f/a`. Should the admin flag accept all of
-   these, or just the user-mentioned three (folders / groups /
-   story arc)? The `r` "Root" pseudo-group for the groups view
-   is in `BROWSER_ROUTE_CHOICES` but not `BROWSER_TOP_GROUP_CHOICES`
-   — the admin flag would need to accept `r` even though it's
-   not a top-group. Easiest: accept any value in `BROWSER_ROUTE_CHOICES`.
+1. **Label**: "Default View".
+2. **Override returning users' `top_group`?** No — admin sets the
+   floor for "no expressed preference"; users who pin `top_group`
+   keep their pin.
+3. **Choice surface**: the seven entries already in
+   `BROWSER_TOP_GROUP_CHOICES`, with two-tier mapping:
+
+   | Label | Flag value | URL `group` | New-user `top_group` |
+   | --- | --- | --- | --- |
+   | Folders | `f` | `f` | `f` |
+   | Story Arcs | `a` | `a` | `a` |
+   | Publishers | `p` | `r` | `p` |
+   | Imprints | `i` | `r` | `i` |
+   | Series | `s` | `r` | `s` |
+   | Volumes | `v` | `r` | `v` |
+   | Issues | `c` | `r` | `c` |
+
+   For `f` and `a` the URL `group` matches the flag — they have
+   their own dedicated routes. For the other five the URL stays
+   at `/r/0/1` and the per-user `top_group` setting controls
+   what gets shown. So the flag has to drive **both** the
+   `last_route.group` returned by `IndexView` **and** the
+   `top_group` default for newly-created `SettingsBrowser` rows.
+   The `top_group` default propagation is the part my original
+   sketch missed; sub-plan 01 now covers it.
