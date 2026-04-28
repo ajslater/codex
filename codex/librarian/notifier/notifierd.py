@@ -46,6 +46,7 @@ class NotifierThread(AggregateMessageQueuedThread):
             except Exception:
                 self.log.exception("Notifier send task")
 
+            # Clean up keys that excepted too.
             sent_keys.add(task.text)
         self.cleanup_cache(sent_keys)
 

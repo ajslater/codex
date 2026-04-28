@@ -147,7 +147,7 @@ class InitImporter(WorkerStatusBase):
             for path_str in all_modified_paths:
                 path = Path(path_str)
                 if path.exists():
-                    total_size += Path(path).stat().st_size
+                    total_size += path.stat().st_size
         return False
 
     #######
