@@ -6,18 +6,19 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.11.0 - Age Restrictions & Performance
+## v1.11.0 - Age Restrictions & Snappiness
 
-- Features
-    - Age Rating Restrictions now available in the Admin Users tab.
-    - Many performance improvements across all views.
-        - Bulk importing performance improvements. Comicbox learned how to use
-          multiprocessing & caching.
-        - Cover thumbnail generation now uses multiprocessing and seeds covers
-          on import.
-- Fix
+- Fixes
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
+- Features
+    - Age Rating Restrictions now available in the Admin Users tab.
+- Performance
+    - Performance improvements across all views.
+    - Bulk importing performance improvements. Comicbox learned how to use
+      multiprocessing & caching.
+    - Cover thumbnail generation now uses multiprocessing and seeds covers on
+      import.
 
 ## v1.10.13
 
