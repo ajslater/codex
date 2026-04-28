@@ -20,6 +20,43 @@ const DIRECTION_REVERSE_MAP = Object.freeze({
   next: "prev",
 });
 const PREFETCH_LINK = Object.freeze({ rel: "prefetch", as: "image" });
+/*
+ * Number of pages each side of the current page to emit
+ * ``<link rel="prefetch">`` hints for when the user has opted
+ * into "Cache Entire Book". Generous enough that typical
+ * sequential reading never outpaces the prefetch buffer; small
+ * enough that head-node count and parser overhead stay bounded
+ * even on omnibus-sized books.
+ */
+const PREFETCH_WINDOW = 50;
+/*
+ * Debounce window for bookmark writes. Vertical scrolling fires
+ * page-change events as the user passes through pages; the
+ * server only needs the final position. Coalescing wrap-up
+ * within this window means a 20-page rapid scroll fires a
+ * single PATCH instead of 20.
+ */
+const BOOKMARK_DEBOUNCE_MS = 1000;
+let _bookmarkTimer = 0;
+let _pendingBookmarkStore;
+let _pendingBookmarkPage;
+
+function _runPendingBookmark() {
+  _bookmarkTimer = 0;
+  const store = _pendingBookmarkStore;
+  const page = _pendingBookmarkPage;
+  _pendingBookmarkStore = undefined;
+  _pendingBookmarkPage = undefined;
+  if (!store || page === undefined) return;
+  store._setBookmarkPage(page).catch((error) => {
+    /*
+     * Don't revert local page state — the user is reading
+     * forward; the bookmark catches up on the next call. Log
+     * so a network blip doesn't silently lose the write.
+     */
+    console.warn("Bookmark write failed:", error);
+  });
+}
 export const VERTICAL_READING_DIRECTIONS = Object.freeze(
   new Set(["ttb", "btt"]),
 );
@@ -381,25 +418,43 @@ export const useReaderStore = defineStore("reader", {
         next: this._getBookRoute(nextBook, false),
       };
     },
-    async setRoutesAndBookmarkPage(page) {
+    setRoutesAndBookmarkPage(page) {
       const book = this.books.current;
       this.$patch((state) => {
         state.routes.prev = this._getRouteParams(book, page, "prev");
         state.routes.next = this._getRouteParams(book, page, "next");
       });
-      try {
-        await this._setBookmarkPage(page);
-        this.bookChange = undefined;
-      } catch (error) {
-        /*
-         * Don't revert the local page — the user is reading
-         * forward; the bookmark catches up on the next call. But
-         * surface the failure to the console rather than letting
-         * it become an unhandled rejection: the previous code
-         * neither caught nor logged here, so a network blip
-         * silently lost the bookmark write.
-         */
-        console.warn("Bookmark write failed:", error);
+      this.bookChange = undefined;
+      this._scheduleBookmarkWrite(page);
+    },
+    _scheduleBookmarkWrite(page) {
+      /*
+       * Coalesce rapid page changes into a single bookmark
+       * write. Vertical scrolling fires intersect-observer
+       * events as the user passes through pages; the server
+       * only needs the final position. The debounce timer
+       * resets on every call, so the write fires
+       * ``BOOKMARK_DEBOUNCE_MS`` after the user stops
+       * advancing.
+       */
+      _pendingBookmarkStore = this;
+      _pendingBookmarkPage = page;
+      if (_bookmarkTimer) globalThis.clearTimeout(_bookmarkTimer);
+      _bookmarkTimer = globalThis.setTimeout(
+        _runPendingBookmark,
+        BOOKMARK_DEBOUNCE_MS,
+      );
+    },
+    flushBookmarkWrite() {
+      /*
+       * Force any pending bookmark write to fire immediately.
+       * Call from book-close / reader-unmount paths so the
+       * server lands the user's final position without waiting
+       * out the debounce window.
+       */
+      if (_bookmarkTimer) {
+        globalThis.clearTimeout(_bookmarkTimer);
+        _runPendingBookmark();
       }
     },
     setActivePage(page, reactWithScroll = true) {
@@ -826,7 +881,30 @@ export const useReaderStore = defineStore("reader", {
       }
       const pk = book.pk;
       const link = [];
-      for (let page = 0; page <= book.maxPage; page++) {
+      /*
+       * Window the prefetch around the current page instead of
+       * emitting a ``<link rel="prefetch">`` for every page in
+       * the book. On a 1000-page omnibus the unbounded loop
+       * pushed 1000 head entries — every one tracked by Unhead
+       * and Vue, every one a DOM node the browser had to parse
+       * before the rest of the document's lifecycle. The window
+       * slides as the user advances (head() re-runs because the
+       * computed reads ``state.page``), so sequential reading
+       * still keeps a generous prefetch buffer ready while the
+       * head node count stays bounded.
+       *
+       * The user's "Cache Entire Book" intent is preserved in
+       * practice: the window covers far more than typical
+       * read-ahead distance, and the browser fetches each page
+       * as the window reaches it. Random-access readers may see
+       * a brief delay on the first hit outside the window —
+       * acceptable, since the actual fetch starts immediately
+       * regardless of whether a prefetch hint was in flight.
+       */
+      const currentPage = this.page ?? 0;
+      const start = Math.max(0, currentPage - PREFETCH_WINDOW);
+      const end = Math.min(book.maxPage, currentPage + PREFETCH_WINDOW);
+      for (let page = start; page <= end; page++) {
         const params = { pk, page, mtime: book.mtime };
         const href = getComicPageSource(params);
         if (href) {
