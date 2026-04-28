@@ -1,5 +1,5 @@
 FROM ajslater/python-debian:3.14.3-slim-trixie_2
-ARG CODEX_BASE_VERSION
+ARG CODEX_BASE_VERSION=dev
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BASE_VERSION
 

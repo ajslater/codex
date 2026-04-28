@@ -1,5 +1,5 @@
 FROM ajslater/codex-base:latest-aarch64
-ARG CODEX_VERSION
+ARG CODEX_VERSION=dev
 ENV CODEX_VERSION=${CODEX_VERSION}
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_VERSION

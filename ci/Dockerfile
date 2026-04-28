@@ -1,7 +1,7 @@
-ARG CODEX_BUILDER_BASE_VERSION
-ARG CODEX_BASE_VERSION
+ARG CODEX_BUILDER_BASE_VERSION=dev
+ARG CODEX_BASE_VERSION=dev
 FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION} AS codex-built
-ARG CODEX_WHEEL
+ARG CODEX_WHEEL=unbuilt
 WORKDIR /app
 
 # Install codex
@@ -32,7 +32,7 @@ RUN set -eux \
     && rm -f /tmp/${CODEX_WHEEL}
 
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
-ARG CODEX_VERSION
+ARG CODEX_VERSION=dev
 LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.version="${CODEX_VERSION}" \
     org.opencontainers.image.authors="AJ Slater <aj@slater.net>" \
