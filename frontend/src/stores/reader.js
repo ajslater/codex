@@ -482,8 +482,11 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       if (!arcs.length) {
-        // No arcs is a 500 from the mtime api
-        arcs.push({ r: "0" });
+        // No arcs is a 500 from the mtime api. Use the same
+        // ``{ group, pks }`` shape the loop above produces — the
+        // earlier ``{ r: "0" }`` was a typo that itself returned
+        // 500 from the API, so the fallback never actually worked.
+        arcs.push({ group: "r", pks: "0" });
       }
       return await COMMON_API.getMtime(arcs, {})
         .then((response) => {
