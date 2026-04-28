@@ -1,20 +1,26 @@
 """Librarian Status."""
 
-from collections.abc import Iterable
+from __future__ import annotations
+
 from inspect import isclass
-from multiprocessing import Queue
-from time import time
+from time import monotonic
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.db.models.functions.datetime import Now
 from django.db.models.query import Q
 from django.utils.timezone import datetime, now, timedelta
-from loguru._logger import Logger
 
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
-from codex.librarian.status import Status
 from codex.models.admin import LibrarianStatus
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from multiprocessing import Queue
+
+    from loguru._logger import Logger
+
+    from codex.librarian.status import Status
 
 
 def get_default(field):
@@ -79,7 +85,12 @@ class StatusController:
             LibrarianStatus.objects.filter(status_type=status.CODE).update(**updates)
             self._enqueue_notifier_task(notify=notify)
             self._loggit("DEBUG", status)
-            status.since_updated = time()
+            # ``monotonic()`` over ``time()``: the rate-limit math
+            # below subtracts ``status.since_updated`` from a fresh
+            # clock read; wall-clock jumps (NTP, daylight saving,
+            # manual adjustments) would skew the comparison and
+            # either drop legitimate updates or fire premature ones.
+            status.since_updated = monotonic()
         except Exception:
             self.log.exception(f"Update status: {status.title()}")
 
@@ -106,45 +117,10 @@ class StatusController:
 
     def update(self, status: Status, *, notify: bool = True) -> None:
         """Update a librarian status."""
-        if time() - status.since_updated < self._UPDATE_DELTA:
+        if monotonic() - status.since_updated < self._UPDATE_DELTA:
             # noop unless time has expired.
             return
         self._update(status, notify=notify)
-
-    def _log_finish(self, status: Status) -> None:
-        """Log finish of status with stats."""
-        level = "INFO"
-        suffix = ""
-        if elapsed := status.elapsed():
-            suffix += f" in {elapsed}"
-        if status.SINGLE:
-            count = ""
-        elif count := status.complete:
-            count = str(count)
-            if persecond := status.per_second():
-                suffix += f" at a rate of {persecond}"
-        else:
-            count = "no"
-            level = "DEBUG"
-
-        if status.log_success:
-            level = "SUCCESS"
-
-        prefix_parts = filter(
-            None, (status.verbed(), count, status.ITEM_NAME, status.subtitle)
-        )
-        prefix = " ".join(prefix_parts)
-
-        self.log.log(level, f"{prefix}{suffix}.")
-
-    def _finish_many_log(self, updated_statii, *, is_positive_statii: bool):
-        """Log when done."""
-        if is_positive_statii:
-            for status in updated_statii:
-                if isinstance(status, Status):
-                    self._log_finish(status)
-        else:
-            self.log.info("Cleared all librarian statuses")
 
     def finish_many(
         self,
@@ -173,15 +149,17 @@ class StatusController:
                 # Clear-all: only touch rows that are currently active.
                 ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
 
-            # Perform updates
-            update_statii = LibrarianStatus.objects.filter(ls_filter)
-            # Save statii for individual reporting.
-            updated_statii = update_statii.values()
-            update_statii.update(**updates)
-
-            self._finish_many_log(
-                updated_statii, is_positive_statii=bool(positive_statii)
-            )
+            # Single round-trip — the previous shape captured a
+            # ``.values()`` queryset for "individual reporting" but the
+            # downstream iteration over it (in the now-removed
+            # ``_finish_many_log``) checked ``isinstance(row, Status)``
+            # against ``values()`` outputs that are always ``dict``,
+            # so the per-status branch never fired. Dropping the
+            # capture saves a SELECT per ``finish_many`` call (= one
+            # per task completion across the librarian).
+            LibrarianStatus.objects.filter(ls_filter).update(**updates)
+            if not positive_statii:
+                self.log.info("Cleared all librarian statuses")
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
         finally:
