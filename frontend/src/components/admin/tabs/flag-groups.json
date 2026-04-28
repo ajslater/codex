@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Access & Privacy",
+    "keys": ["RG", "NU", "AA", "AR"]
+  },
+  {
+    "title": "Browser Display",
+    "keys": ["BG", "FV", "BT"]
+  },
+  {
+    "title": "Metadata Import",
+    "keys": ["IM", "LI"]
+  },
+  {
+    "title": "System",
+    "keys": ["AU", "ST"]
+  }
+]
