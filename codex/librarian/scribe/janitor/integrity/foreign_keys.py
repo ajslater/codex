@@ -1,6 +1,7 @@
 """Database integrity checks and remedies."""
 
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from django.apps import apps
@@ -11,6 +12,11 @@ if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
 
     from codex.models.comic import Comic
+
+# SQLite's parameter cap is 32766; leave headroom for the rare case
+# where Django / the driver sneaks in extra bound values. Each rowid
+# in a batched ``WHERE rowid IN (?, ?, ...)`` consumes one parameter.
+_SQLITE_MAX_VARS = 32000
 
 
 def _get_fk_column_name(cursor, table_name: str, fkid: int) -> str | None:
@@ -117,6 +123,49 @@ def _group_fk_violations(
     return violations
 
 
+def _group_rowids_by_fix_shape(
+    rows: dict[int, list[tuple[str, bool]]],
+) -> dict[tuple[tuple[str, ...], bool], list[int]]:
+    """
+    Bunch rowids that share an UPDATE/DELETE shape into one batch.
+
+    Two rows in the same table can have different violating columns
+    (rowid 100 broken on ``publisher_id``, rowid 101 broken on
+    ``imprint_id``). Grouping by ``(sorted_col_tuple, all_nullable)``
+    yields the unique SQL templates we need; one ``WHERE rowid IN (...)``
+    per group covers every row sharing that template.
+    """
+    groups: dict[tuple[tuple[str, ...], bool], list[int]] = defaultdict(list)
+    for rowid, fk_cols in rows.items():
+        cols = tuple(sorted(col for col, _ in fk_cols))
+        all_nullable = all(nullable for _, nullable in fk_cols)
+        groups[(cols, all_nullable)].append(rowid)
+    return groups
+
+
+def _execute_fix_batch(
+    cursor,
+    table_name: str,
+    cols: tuple[str, ...],
+    rowids: list[int],
+    *,
+    all_nullable: bool,
+) -> int:
+    """Run one batched UPDATE or DELETE; return rows affected."""
+    affected = 0
+    for start in range(0, len(rowids), _SQLITE_MAX_VARS):
+        batch = rowids[start : start + _SQLITE_MAX_VARS]
+        placeholders = ",".join(["%s"] * len(batch))
+        if all_nullable:
+            set_clauses = ", ".join(f'"{col}" = NULL' for col in cols)
+            sql = f'UPDATE "{table_name}" SET {set_clauses} WHERE rowid IN ({placeholders})'  # noqa: S608
+        else:
+            sql = f'DELETE FROM "{table_name}" WHERE rowid IN ({placeholders})'  # noqa: S608
+        cursor.execute(sql, batch)
+        affected += cursor.rowcount
+    return affected
+
+
 def _fix_fk_violations(
     cursor, violations: dict[str, dict[int, list[tuple[str, bool]]]]
 ) -> tuple[int, int, set[int]]:
@@ -126,6 +175,13 @@ def _fix_fk_violations(
     For each violation:
     - If all bad FK columns on the row are nullable: NULL them.
     - Otherwise: DELETE the row.
+
+    Bunches rowids by ``(table, fk_col_set, all_nullable)`` so each
+    unique fix shape becomes one ``WHERE rowid IN (...)`` query
+    (chunked to stay under SQLite's 32766-variable cap) instead of
+    one round-trip per violating row. ``PRAGMA foreign_key_check``
+    on a corrupted DB can return thousands of rows; round-trip
+    overhead dominated.
 
     Returns (nulled_count, deleted_count, fix_comic_pks).
     """
@@ -139,22 +195,14 @@ def _fix_fk_violations(
             cursor, table_name, set(rows.keys())
         )
 
-        for rowid, fk_cols in rows.items():
-            all_nullable = all(nullable for _, nullable in fk_cols)
-
+        for (cols, all_nullable), rowids in _group_rowids_by_fix_shape(rows).items():
+            affected = _execute_fix_batch(
+                cursor, table_name, cols, rowids, all_nullable=all_nullable
+            )
             if all_nullable:
-                set_clauses = ", ".join(f'"{col}" = NULL' for col, _ in fk_cols)
-                cursor.execute(
-                    f'UPDATE "{table_name}" SET {set_clauses} WHERE rowid = %s',  # noqa: S608
-                    [rowid],
-                )
-                nulled += cursor.rowcount
+                nulled += affected
             else:
-                cursor.execute(
-                    f'DELETE FROM "{table_name}" WHERE rowid = %s',  # noqa: S608
-                    [rowid],
-                )
-                deleted += cursor.rowcount
+                deleted += affected
 
     return nulled, deleted, fix_comic_pks
 
