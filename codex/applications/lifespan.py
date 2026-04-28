@@ -64,6 +64,10 @@ class LifespanApplication:
                     case "lifespan.shutdown":
                         await self._event("shutdown", send)
                         break
+                    case _:
+                        # Other lifespan event types (eg. ASGI extensions
+                        # like ``lifespan.shutdown.complete``) — ignore.
+                        pass
             except Exception:
                 logger.exception("Lifespan application")
         logger.debug("Lifespan application stopped.")

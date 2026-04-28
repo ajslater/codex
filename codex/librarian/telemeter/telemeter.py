@@ -3,7 +3,6 @@
 import json
 from base64 import a85decode
 from lzma import compress
-from types import MappingProxyType
 from typing import Final
 from urllib.request import Request, urlopen
 from uuid import uuid4
@@ -25,9 +24,15 @@ _BASE: Final = "".join(
         a85decode(b"@rGmhGV*rI@:Wqi/n&^<").decode(),
     )
 )
-_HEADERS: Final = MappingProxyType({"Content-Type": "application/xz"})
+# urllib's ``Request`` mutates ``headers`` (it lowercases keys), so this
+# can't be a ``MappingProxyType`` — it has to be a real ``MutableMapping``.
+# Construct fresh per-call to keep the per-call state isolated.
 _POST: Final = _BASE + f"/stats/{_APP_NAME}/{_VERSION}"
 _TIMEOUT: Final = 5
+
+
+def _new_headers() -> dict[str, str]:
+    return {"Content-Type": "application/xz"}
 
 
 def get_telemeter_timestamp():
@@ -46,7 +51,9 @@ def _post_stats(data) -> None:
     data_json = json.dumps(data)
     json_bytes = data_json.encode()
     compressed_data = compress(json_bytes)
-    request = Request(_POST, data=compressed_data, headers=_HEADERS, method="POST")  # noqa: S310
+    request = Request(  # noqa: S310
+        _POST, data=compressed_data, headers=_new_headers(), method="POST"
+    )
     response = urlopen(request, timeout=_TIMEOUT)  # noqa: S310
     response.raise_for_status()
 
