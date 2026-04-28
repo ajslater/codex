@@ -141,10 +141,13 @@ class StatusController:
         if status.log_success:
             level = "SUCCESS"
 
-        prefix_parts = filter(
-            None, (status.verbed(), count, status.ITEM_NAME, status.subtitle)
-        )
-        prefix = " ".join(prefix_parts)
+        # ``str(p)`` defends against callers that assign a Django
+        # ``gettext_lazy`` __proxy__ (or any other str-impostor)
+        # to ``subtitle``. ``" ".join`` is strict: a non-``str``
+        # member crashes the join and takes down the
+        # status-finish path that produced it.
+        prefix_parts = (status.verbed(), count, status.ITEM_NAME, status.subtitle)
+        prefix = " ".join(str(p) for p in prefix_parts if p)
 
         self.log.log(level, f"{prefix}{suffix}.")
 
