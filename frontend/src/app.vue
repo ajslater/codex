@@ -1,18 +1,23 @@
 <template>
   <v-app>
     <router-view />
+    <SessionErrorSnackbar />
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
+import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
   name: "App",
+  components: {
+    SessionErrorSnackbar,
+  },
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,

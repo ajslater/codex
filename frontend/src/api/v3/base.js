@@ -62,12 +62,30 @@ HTTP.interceptors.response.use(
       typeof error.response.data === "string" &&
       error.response.data.includes("CSRF")
     ) {
-      // CSRF failure — drop the cached token so the next request
-      // forces a fresh cookie read, then delete the sessionid
-      // cookie so the user is logged out cleanly.
+      /*
+       * CSRF failure — drop the cached token so the next request
+       * forces a fresh cookie read, then delete the sessionid
+       * cookie so the user is logged out cleanly. Surface a
+       * snackbar so the user knows why the page just stopped
+       * working; without this every subsequent API call returns
+       * 401 silently and the UI appears broken.
+       *
+       * Lazy-import the common store to avoid a load-time cycle:
+       * ``stores/common.js`` imports ``api/v3/common.js`` which
+       * imports this module. The handler runs at request time,
+       * by which point the store has been fully evaluated.
+       */
       invalidateCSRFCache();
       await cookieStore.delete("sessionid");
       console.error("CSRF response error. Deleted login cookie.");
+      try {
+        const { useCommonStore } = await import("@/stores/common");
+        useCommonStore().setSessionError(
+          "Your session expired. Please reload the page.",
+        );
+      } catch (notifyError) {
+        console.error("Failed to surface CSRF error toast:", notifyError);
+      }
     }
     return Promise.reject(error);
   },
