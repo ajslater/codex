@@ -172,6 +172,17 @@ IMPORTER_UPDATE_COMIC_BATCH_SIZE = get_int(
 IMPORTER_SQLITE_CACHE_KB = get_int(
     CODEX_CONFIG, "importer.sqlite_cache_kb", default=524288
 )
+# Fraction of the process memory budget the chunked per-comic
+# pipeline may use for in-flight comic state (Comic instances +
+# LINK_FKS / LINK_M2MS / FTS payloads). The default keeps roughly
+# three quarters of the budget free for SQLite cache + reference
+# data + process overhead. Drop on memory-constrained hosts (small
+# Pi, tight container limits) for finer-grained chunking; raise on
+# big-RAM hosts to amortize per-chunk overhead. Clamped to
+# [chunk floor, chunk ceiling] in the importer.
+IMPORTER_CHUNK_MEM_FRACTION = get_float(
+    CODEX_CONFIG, "importer.chunk_mem_fraction", default=0.25
+)
 
 ##############################
 # Codex Config: Librarian    #
