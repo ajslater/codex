@@ -127,12 +127,10 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     @staticmethod
     def _did_special_group_change(group, facet_group) -> bool:
         """Test if one of the special groups changed."""
-        for test_group in ("f", "a"):
-            if (group == test_group and facet_group != test_group) or (
-                group != test_group and facet_group == test_group
-            ):
-                return True
-        return False
+        # Special groups are folders ("f") and story arcs ("a").
+        # The change is meaningful only if exactly one side is special:
+        # XOR-style across membership in the special-group set.
+        return (group in "fa") != (facet_group in "fa")
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.

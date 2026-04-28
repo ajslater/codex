@@ -43,7 +43,7 @@ FALSY = frozenset({None, "", "false", "0", False, "False"})
 
 def not_falsy_env(name):
     """Return a boolean environment envs mindful of falsy values."""
-    return bool(environ.get(name, "").lower() not in FALSY)
+    return environ.get(name, "").lower() not in FALSY
 
 
 ##############
@@ -52,7 +52,11 @@ def not_falsy_env(name):
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
+CONFIG_PATH = (
+    Path(environ["CODEX_CONFIG_DIR"])
+    if "CODEX_CONFIG_DIR" in environ
+    else Path.cwd() / "config"
+)
 
 #####################
 # Basic Environment #
@@ -579,12 +583,10 @@ _THROTTLE_MAP = MappingProxyType(
 )
 _THROTTLE_CLASSES = set()
 _THROTTLE_RATES = {}
-for scope, value in _THROTTLE_MAP.items():
-    classname, rate_value = value
+for scope, (classname, rate_value) in _THROTTLE_MAP.items():
     if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
         _THROTTLE_CLASSES.add(classname)
-        rate = f"{rate_value}/min" if value[1] else None
-        _THROTTLE_RATES[scope] = rate
+        _THROTTLE_RATES[scope] = f"{rate_value}/min" if rate_value else None
 
 _RENDERER_CLASSES = [
     "djangorestframework_camel_case.render.CamelCaseJSONRenderer",

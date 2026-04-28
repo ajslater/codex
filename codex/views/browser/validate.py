@@ -87,16 +87,13 @@ class BrowserValidateView(SearchFilterView):
 
         Valid top groups are determined by the Browser Settings.
         """
-        valid_top_groups = []
-
         show = self.params["show"]
-        for nav_group, allowed in show.items():
-            if allowed:
-                valid_top_groups.append(nav_group)
-        # Issues is always a valid top group
-        valid_top_groups += [COMIC_GROUP]
-
-        return valid_top_groups
+        # Issues is always a valid top group; appended after the
+        # show-driven groups so the existing ordering is preserved.
+        return [
+            *(nav_group for nav_group, allowed in show.items() if allowed),
+            COMIC_GROUP,
+        ]
 
     def _validate_top_group(self, valid_top_groups) -> None:
         nav_group = self.kwargs.get("group")

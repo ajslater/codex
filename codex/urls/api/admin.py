@@ -1,5 +1,8 @@
 """codex:api:v3:admin URL Configuration."""
 
+from types import MappingProxyType
+from typing import Final
+
 from django.urls import path
 from django.views.decorators.cache import never_cache
 
@@ -19,11 +22,11 @@ from codex.views.admin.tasks import (
 )
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
-READ = {"get": "list"}
-RETRIEVE = {"get": "retrieve"}
-CREATE = {"post": "create"}
-UPDATE = {"put": "partial_update"}
-DELETE = {"delete": "destroy"}
+READ: Final = MappingProxyType({"get": "list"})
+RETRIEVE: Final = MappingProxyType({"get": "retrieve"})
+CREATE: Final = MappingProxyType({"post": "create"})
+UPDATE: Final = MappingProxyType({"put": "partial_update"})
+DELETE: Final = MappingProxyType({"delete": "destroy"})
 
 app_name = "admin"
 urlpatterns = [

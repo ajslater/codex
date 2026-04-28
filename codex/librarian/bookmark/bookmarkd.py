@@ -153,9 +153,7 @@ class BookmarkThread(
                 self.cache[key] = None
             case BookmarkUpdateTask():
                 key = BookmarkKey(item.auth_filter, item.comic_pks)
-                if key not in self.cache:
-                    self.cache[key] = {}
-                self.cache[key].update(item.updates)
+                self.cache.setdefault(key, {}).update(item.updates)
             case _:
                 self._process_task_immediately(task)
 

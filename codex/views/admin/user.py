@@ -74,9 +74,9 @@ class AdminUserViewSet(AdminModelViewSet):
         data = serializer.validated_data
         if not data.get("password"):
             data.pop("password", None)
-        if self._is_change_to_current_user() and False in {
-            data.get(key) for key in _BAD_CURRENT_USER_FALSE_KEYS
-        }:
+        if self._is_change_to_current_user() and any(
+            data.get(key) is False for key in _BAD_CURRENT_USER_FALSE_KEYS
+        ):
             reason = "Cannot deactivate logged in user."
             raise ValidationError(reason)
         uid = self.kwargs.get("pk", 0)

@@ -40,13 +40,16 @@ class ComicFieldFilterView(GroupFilterView):
 
         rel = rel_prefix + _FILTER_REL_MAP.get(field, field)
 
-        for index, val in enumerate(filter_list):
-            # None values in a list don't work right so test for them separately
-            if val is None:
-                del filter_list[index]
-                filter_query |= Q(**{f"{rel}__isnull": True})
-        if filter_list:
-            filter_query |= Q(**{f"{rel}__in": filter_list})
+        # ``None`` is a sentinel meaning "match the null relation"; the
+        # ORM ``__in`` lookup can't express it, so partition first and
+        # combine. The previous shape mutated ``filter_list`` mid-loop
+        # via ``del filter_list[index]`` which only worked because at
+        # most one ``None`` was ever present in practice.
+        non_null_filter_list = [val for val in filter_list if val is not None]
+        if len(non_null_filter_list) != len(filter_list):
+            filter_query |= Q(**{f"{rel}__isnull": True})
+        if non_null_filter_list:
+            filter_query |= Q(**{f"{rel}__in": non_null_filter_list})
         return filter_query
 
     @classmethod

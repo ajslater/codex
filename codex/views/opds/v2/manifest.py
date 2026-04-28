@@ -73,11 +73,10 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             .only("id_type", "key")
             .order_by("source_name", "key")
         )
-        urns = []
-        for identifier in identifiers:
-            urn = f"{identifier.source_name}:{identifier.id_type}:{identifier.key}"  # pyright: ignore[reportAttributeAccessIssue]
-            urns.append(urn)
-        return ",".join(urns)
+        return ",".join(
+            f"{identifier.source_name}:{identifier.id_type}:{identifier.key}"  # pyright: ignore[reportAttributeAccessIssue]
+            for identifier in identifiers
+        )
 
     def _publication_belongs_to_link(
         self,

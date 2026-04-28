@@ -96,7 +96,8 @@ class AdminLibraryViewSet(AdminModelViewSet):
         task = LIBRARY_CHANGED_TASK
         LIBRARIAN_QUEUE.put(task)
 
-    def _create_library_folder(self, library) -> None:
+    @staticmethod
+    def _create_library_folder(library) -> None:
         folder = Folder(
             library=library, path=library.path, name=Path(library.path).name
         )

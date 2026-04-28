@@ -346,13 +346,15 @@ def get_key_index(model: type[BaseModel]) -> int:
 #################
 # CREATE COMICS #
 #################
-_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
-    "bookmark",
-    "created_at",
-    "id",
-    "library",
-    "comicfts",
-}
+_EXCLUDEBULK_UPDATE_COMIC_FIELDS = frozenset(
+    {
+        "bookmark",
+        "created_at",
+        "id",
+        "library",
+        "comicfts",
+    }
+)
 BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(
         field.name

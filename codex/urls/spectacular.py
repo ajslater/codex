@@ -1,15 +1,12 @@
 """Spectacular hooks."""
 
-ALLOW_PREFIXES = ("/api", "/opds")
+from typing import Final
+
+ALLOW_PREFIXES: Final = ("/api", "/opds")
 
 
 def allow_list(endpoints) -> list:
     """Allow only API endpoints."""
-    drf_endpoints = []
-    for endpoint in endpoints:
-        path = endpoint[0]
-        for prefix in ALLOW_PREFIXES:
-            if path.startswith(prefix):
-                drf_endpoints += [endpoint]
-                break
-    return drf_endpoints
+    return [
+        endpoint for endpoint in endpoints if endpoint[0].startswith(ALLOW_PREFIXES)
+    ]

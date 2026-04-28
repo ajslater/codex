@@ -42,9 +42,7 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
     ) -> None:
         """Initialize queues."""
         self.init_worker(logger_, librarian_queue, db_write_lock)
-        if not name:
-            name = self.__class__.__name__
-        super().__init__(name=name, **kwargs)
+        super().__init__(name=name or self.__class__.__name__, **kwargs)
 
     def run_start(self) -> None:
         """First thing to do when running a new thread."""

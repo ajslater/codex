@@ -2,7 +2,7 @@
 
 from base64 import b64decode
 from time import time
-from typing import Any
+from typing import Any, Final
 
 from django.db import connection
 from django.utils import timezone
@@ -14,6 +14,8 @@ from codex.settings import (
     DEBUG_SLOW_QUERY_LIMIT,
 )
 from codex.version import PACKAGE_NAME, VERSION
+
+_SENSITIVE_HEADERS: Final = frozenset({"user-agent", "authorization", "cookie"})
 
 
 class CodexMiddleware:
@@ -90,7 +92,7 @@ class LogRequestMiddleware:
             return
         filtered_headers = {}
         for key, value in request.headers.items():
-            if key.lower() in {"user-agent", "authorization", "cookie"}:
+            if key.lower() in _SENSITIVE_HEADERS:
                 if key.lower().startswith("auth"):
                     parts = value.split(" ")
                     if parts[0] == "Basic":
