@@ -8,6 +8,7 @@
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -28,9 +29,19 @@ export default {
   },
   async created() {
     this.loadAdminFlags();
-    this.loadProfile().then(() => {
-      this.setTimezone();
-    });
+    /*
+     * Boot phase: kick off the independent network requests in
+     * parallel. Pre-warming ``loadOPDSURLs`` here means the OPDS
+     * dialog opens against cached state instead of waiting on a
+     * round-trip when the user clicks the button. ``allSettled``
+     * (rather than ``all``) so a failure in one — e.g. the
+     * /opds-urls endpoint returning 401 before auth lands —
+     * doesn't suppress the others.
+     */
+    Promise.allSettled([
+      this.loadProfile().then(() => this.setTimezone()),
+      this.loadOPDSURLs(),
+    ]);
   },
   methods: {
     ...mapActions(useAuthStore, [
@@ -38,6 +49,7 @@ export default {
       "loadProfile",
       "setTimezone",
     ]),
+    ...mapActions(useCommonStore, ["loadOPDSURLs"]),
   },
 };
 </script>
