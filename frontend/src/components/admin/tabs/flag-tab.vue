@@ -57,6 +57,23 @@
             @update:model-value="changeCol(item.key, 'ageRatingMetron', $event)"
           />
         </td>
+        <!--
+          ``BG`` (Default View) reuses the existing ``TOP_GROUP``
+          choices JSON so the seven labels stay in sync with the
+          rest of the browser UI. Persisted on the flag's ``value``
+          string column; the route-URL derivation happens server-
+          side in ``admin_default_route_for``.
+        -->
+        <td v-else-if="item.key === 'BG'" class="topGroupField">
+          <v-select
+            :model-value="item.value"
+            :items="topGroupChoices"
+            label="Default View"
+            hide-details="auto"
+            :error-messages="errors[item.key]"
+            @update:model-value="changeCol(item.key, 'value', $event)"
+          />
+        </td>
         <td>
           <v-btn
             v-if="item.key === 'BT'"
@@ -66,7 +83,11 @@
             title="Save Banner"
             @click="changeCol(item.key, 'value', banner)"
           />
-          <template v-else-if="item.key === 'AR' || item.key === 'AA'" />
+          <template
+            v-else-if="
+              item.key === 'AR' || item.key === 'AA' || item.key === 'BG'
+            "
+          />
           <v-checkbox
             v-else
             :model-value="item.on"
@@ -86,6 +107,7 @@ import { mdiContentSaveOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
+import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -129,6 +151,16 @@ export default {
        */
       return this.ageRatingMetrons || [];
     },
+    topGroupChoices() {
+      /*
+       * Reuse the existing ``TOP_GROUP`` choices JSON so the labels
+       * stay in sync with the rest of the browser UI. The 7 entries
+       * (Folders / Story Arcs / Publishers / Imprints / Series /
+       * Volumes / Issues) are the legitimate values for the BG flag;
+       * the route-URL derivation runs server-side.
+       */
+      return BROWSER_CHOICES.TOP_GROUP || [];
+    },
   },
   watch: {
     storeBanner(to) {
@@ -162,9 +194,7 @@ export default {
       return ADMIN_FLAGS[item.key];
     },
     colspan(item) {
-      return item.key === "BT" || item.key === "AR" || item.key === "AA"
-        ? 1
-        : 2;
+      return ["BT", "AR", "AA", "BG"].includes(item.key) ? 1 : 2;
     },
   },
 };
@@ -196,6 +226,10 @@ export default {
 }
 
 .ageRatingField {
+  min-width: 12em;
+}
+
+.topGroupField {
   min-width: 12em;
 }
 

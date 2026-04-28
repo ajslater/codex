@@ -12,6 +12,7 @@ class AdminFlagChoices(TextChoices):
     AGE_RATING_DEFAULT = "AR"
     AUTO_UPDATE = "AU"
     BANNER_TEXT = "BT"
+    BROWSER_DEFAULT_GROUP = "BG"
     FOLDER_VIEW = "FV"
     IMPORT_METADATA = "IM"
     LAZY_IMPORT_METADATA = "LI"
@@ -26,6 +27,7 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.AGE_RATING_DEFAULT.value: "Age Rating Default",
         AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
         AdminFlagChoices.BANNER_TEXT.value: "Banner Text",
+        AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "Default View",
         AdminFlagChoices.FOLDER_VIEW.value: "Folder View",
         AdminFlagChoices.IMPORT_METADATA.value: "Import Metadata on Library Scan",
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "Import Metadata on Demand",

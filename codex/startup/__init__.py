@@ -82,6 +82,15 @@ def init_admin_flags() -> None:
         ),
         AdminFlagChoices.AGE_RATING_DEFAULT.value: DEFAULT_AGE_RATING,
     }
+    # Initial ``value`` strings for flags that ship with a non-empty
+    # default. Heals the row to a sensible state if an admin deletes
+    # it; the migration that introduced the flag does the same insert.
+    value_defaults = {
+        # Mirrors the ``SettingsBrowser.top_group`` model default so
+        # ``admin_default_route_for("p")`` resolves to the historical
+        # ``DEFAULT_BROWSER_ROUTE`` (``/r/0/1``) — upgrade-day no-op.
+        AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "p",
+    }
     # Resolve seed FK targets in one query.
     metron_by_name = {
         name: pk
@@ -90,16 +99,18 @@ def init_admin_flags() -> None:
         ).values_list("pk", "name")
     }
     for key, title in AdminFlagChoices.choices:
-        # ``defaults`` spans ``bool`` (``on``) and the optional FK id
-        # (``age_rating_metron_id``) — annotate so the conditional FK
-        # insert doesn't narrow pyright's inferred value type.
-        defaults: dict[str, bool | int | None] = {
+        # ``defaults`` spans ``bool`` (``on``), ``str`` (``value``) and
+        # the optional FK id (``age_rating_metron_id``) — annotate so
+        # the conditional inserts don't narrow pyright's inferred type.
+        defaults: dict[str, bool | int | str | None] = {
             "on": key not in AdminFlag.FALSE_DEFAULTS,
         }
         if key in age_rating_defaults:
             defaults["age_rating_metron_id"] = metron_by_name.get(
                 age_rating_defaults[key]
             )
+        if key in value_defaults:
+            defaults["value"] = value_defaults[key]
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
