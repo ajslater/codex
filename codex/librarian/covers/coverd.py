@@ -9,7 +9,6 @@ from codex.librarian.covers.tasks import (
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
     CoverRemoveTask,
-    CoverSaveToCache,
 )
 
 
@@ -20,9 +19,7 @@ class CoverThread(CoverPurgeThread):
     def process_item(self, item) -> None:
         """Run the task method."""
         task = item
-        if isinstance(task, CoverSaveToCache):
-            self.save_cover_to_cache(task.cover_path, task.data)
-        elif isinstance(task, CoverRemoveAllTask):
+        if isinstance(task, CoverRemoveAllTask):
             self.purge_all_comic_covers(self.librarian_queue)
         elif isinstance(task, CoverRemoveTask):
             self.purge_comic_covers(task.pks, custom=task.custom)
