@@ -1,5 +1,6 @@
 """Create comic cover paths."""
 
+import contextlib
 import os
 from abc import ABC
 from collections.abc import Collection
@@ -19,25 +20,61 @@ from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
 from codex.settings import COMICBOX_CONFIG, COVER_WORKERS
 
-_PID = os.getpid()
 _COVER_RATIO = 1.5372233400402415  # modal cover ratio
 THUMBNAIL_WIDTH = 165
 THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 
 
-def _render_cover_thumb(args: tuple) -> tuple[int, str, bytes, str | None]:
+def _save_cover_to_cache(cover_path_str: str, data: bytes) -> None:
     """
-    Render one cover thumbnail. Picklable; runs inside a worker subprocess.
+    Save cover thumb image to the disk cache.
 
-    Accepts a pre-resolved ``(pk, db_path, cover_path_str, custom)``
-    tuple — workers don't touch the Django ORM. Returns
-    ``(pk, cover_path_str, thumb_bytes, error_msg_or_None)``. The
-    parent thread does the disk write and status update.
+    Top-level so it runs inside worker subprocesses without
+    pickling ``self``. The atomic-replace dance (stage to a sibling
+    ``*.{pid}.tmp`` then ``os.replace``) means readers only ever see
+    the pre-existing state or the fully written new file. Per-pid
+    tmp filename prevents cross-worker collisions even in
+    fork-mode start methods where workers might share module-level
+    state.
 
-    On failure, returns ``thumb_bytes=b""`` so the parent's
-    ``save_cover_to_cache`` writes the existing zero-byte
-    ``tried-and-failed`` sentinel.
+    Empty ``data`` is the zero-byte ``tried-and-failed`` sentinel —
+    creates an empty file so the cover endpoint can distinguish
+    "not yet tried" (no file) from "tried and failed" (empty file).
+    """
+    cover_path = Path(cover_path_str)
+    cover_path.parent.mkdir(exist_ok=True, parents=True)
+    if data:
+        tmp_path = cover_path.with_name(f"{cover_path.name}.{os.getpid()}.tmp")
+        try:
+            with tmp_path.open("wb") as cover_file:
+                cover_file.write(data)
+            tmp_path.replace(cover_path)
+        except Exception:
+            tmp_path.unlink(missing_ok=True)
+            raise
+    elif not cover_path.exists():
+        # zero length file is code for missing.
+        cover_path.touch()
+
+
+def _render_cover_thumb(args: tuple) -> tuple[int, str, str | None]:
+    """
+    Render one cover thumbnail and write it to disk.
+
+    Picklable; runs inside a worker subprocess. Accepts a
+    pre-resolved ``(pk, db_path, cover_path_str, custom)`` tuple —
+    workers don't touch the Django ORM. Calls
+    ``_save_cover_to_cache`` directly (workers own the disk write
+    so the WEBP bytes never round-trip through the executor's
+    pickle channel), and returns only ``(pk, cover_path_str,
+    error_msg_or_None)`` — metadata for the parent's logging +
+    status loop.
+
+    On failure, writes the zero-byte ``tried-and-failed`` sentinel
+    via ``_save_cover_to_cache(path, b"")`` so the cover endpoint's
+    polling loop can distinguish a missing file (not yet tried)
+    from an empty one (tried and failed).
     """
     pk, db_path, cover_path_str, custom = args
     try:
@@ -48,7 +85,8 @@ def _render_cover_thumb(args: tuple) -> tuple[int, str, bytes, str | None]:
             with Comicbox(db_path, config=COMICBOX_CONFIG) as car:
                 image_data = car.get_cover_page(pdf_format="pixmap")
         if not image_data:
-            return pk, cover_path_str, b"", "empty cover"
+            _save_cover_to_cache(cover_path_str, b"")
+            return pk, cover_path_str, "empty cover"
         with BytesIO(image_data) as image_io, Image.open(image_io) as img:
             img.thumbnail(
                 _THUMBNAIL_SIZE,
@@ -57,9 +95,17 @@ def _render_cover_thumb(args: tuple) -> tuple[int, str, bytes, str | None]:
             )
             buf = BytesIO()
             img.save(buf, "WEBP", method=6)
-        return pk, cover_path_str, buf.getvalue(), None
+        _save_cover_to_cache(cover_path_str, buf.getvalue())
     except Exception as exc:
-        return pk, cover_path_str, b"", repr(exc)
+        # Disk-write attempt for the failure marker — best-effort.
+        # Swallowing here is intentional: the caller is already
+        # logging ``repr(exc)`` for the original failure, and a
+        # marker write that fails just means the next cover request
+        # will retry rather than serving the sentinel.
+        with contextlib.suppress(Exception):
+            _save_cover_to_cache(cover_path_str, b"")
+        return pk, cover_path_str, repr(exc)
+    return pk, cover_path_str, None
 
 
 class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
@@ -95,26 +141,6 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             self._cover_pool.shutdown(wait=False, cancel_futures=True)
             self._cover_pool = None
         super().stop()
-
-    def save_cover_to_cache(self, cover_path_str: str, data) -> None:
-        """Save cover thumb image to the disk cache."""
-        cover_path = Path(cover_path_str)
-        cover_path.parent.mkdir(exist_ok=True, parents=True)
-        if data:
-            # Atomic write: stage to a sibling tmp file, then os.replace so
-            # readers only ever observe the pre-existing state or the fully
-            # written new file — never a half-written one.
-            tmp_path = cover_path.with_name(f"{cover_path.name}.{_PID}.tmp")
-            try:
-                with tmp_path.open("wb") as cover_file:
-                    cover_file.write(data)
-                tmp_path.replace(cover_path)
-            except Exception:
-                tmp_path.unlink(missing_ok=True)
-                raise
-        elif not cover_path.exists():
-            # zero length file is code for missing.
-            cover_path.touch()
 
     def _filter_pending_pks(self, pks: Collection[int], *, custom: bool) -> list[int]:
         """
@@ -173,15 +199,22 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
 
         Image-decode + LANCZOS resize + WEBP encode is CPU-bound and
         embarrassingly parallel across cover targets. Submit each
-        target to a ``ProcessPoolExecutor`` and write results from
-        the parent thread as workers complete via ``as_completed``.
+        target to a ``ProcessPoolExecutor`` and consume the
+        completion stream via ``as_completed``.
 
-        The parent owns disk writes (``save_cover_to_cache``) so the
-        existing atomic-replace + zero-byte sentinel semantics stay
-        intact. Workers return ``(pk, cover_path_str, thumb_bytes,
-        error_msg_or_None)`` — never raise across the pickle
-        boundary; failures surface as ``thumb_bytes=b""`` plus an
-        error message logged in the parent.
+        Workers own the full pipeline including the disk write —
+        no inline cover-bytes path exists anymore (the cover
+        endpoint serves from the on-disk cache via the 202-poll
+        retry loop landed in cover-cleanup PR #606). Skipping the
+        bytes round-trip through the executor's pickle channel
+        avoids ~50 KB of IPC per cover and parallelizes the disk
+        writes alongside the image pipeline.
+
+        Workers return only ``(pk, cover_path_str,
+        error_msg_or_None)`` — metadata for the parent's logging
+        + status loop. Failures still write the zero-byte
+        ``tried-and-failed`` sentinel from inside the worker so
+        the on-disk shape is identical regardless of outcome.
         """
         # Up-front filter: drop pks that already have a cover on
         # disk. The remaining set is what we actually need to work
@@ -205,8 +238,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             pool = self._get_cover_pool()
             futures = [pool.submit(_render_cover_thumb, w) for w in work_items]
             for future in as_completed(futures):
-                pk, cover_path_str, thumb_bytes, err = future.result()
-                self.save_cover_to_cache(cover_path_str, thumb_bytes)
+                pk, _cover_path_str, err = future.result()
                 if err:
                     self.log.warning(
                         f"Could not create cover thumbnail for pk={pk}: {err}"
