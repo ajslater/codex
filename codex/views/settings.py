@@ -385,14 +385,19 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if dirty:
             route_obj.save()
 
+    @staticmethod
+    def _save_browser_settings_direct_key(key: str, data, instance):
+        if key in data and getattr(instance, key) != data[key]:
+            setattr(instance, key, data[key])
+            return True
+        return False
+
     @classmethod
     def _save_browser_settings_data(cls, instance: SettingsBrowser, data: dict) -> None:
         """Persist a params dict to a SettingsBrowser and its related rows."""
         instance_dirty = False
         for key in instance.DIRECT_KEYS:
-            if key in data and getattr(instance, key) != data[key]:
-                setattr(instance, key, data[key])
-                instance_dirty = True
+            instance_dirty |= cls._save_browser_settings_direct_key(key, data, instance)
         if "q" in data and instance.search != data["q"]:
             instance.search = data["q"]
             instance_dirty = True

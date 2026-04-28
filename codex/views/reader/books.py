@@ -1,5 +1,7 @@
 """Get Books methods."""
 
+from collections.abc import Callable
+
 from django.db.models import BooleanField, ExpressionWrapper, F
 from django.db.models.query import Q, QuerySet
 from django.urls import reverse
@@ -162,6 +164,24 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             qs = qs.alias(**sort_names_alias)
         return qs.order_by(*ordering)
 
+    @staticmethod
+    def _get_book_collection_books(
+        pk: int,
+        prev_pk: int | None,
+        next_pk: int | None,
+        rows_by_pk: dict,
+        _attach: Callable,
+    ) -> dict:
+        books: dict = {}
+        if prev_pk is not None and prev_pk in rows_by_pk:
+            books["prev"] = _attach(rows_by_pk[prev_pk])
+        current = rows_by_pk[pk]
+        current.filename = current.get_filename()
+        books["current"] = _attach(current)
+        if next_pk is not None and next_pk in rows_by_pk:
+            books["next"] = _attach(rows_by_pk[next_pk])
+        return books
+
     def get_book_collection(self) -> dict:
         """
         Get the -1, +1 window around the current issue.
@@ -206,14 +226,9 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             book.bookmark = bookmarks_by_pk.get(book.pk)
             return book
 
-        books: dict = {}
-        if prev_pk is not None and prev_pk in rows_by_pk:
-            books["prev"] = _attach(rows_by_pk[prev_pk])
-        current = rows_by_pk[pk]
-        current.filename = current.get_filename()
-        books["current"] = _attach(current)
-        if next_pk is not None and next_pk in rows_by_pk:
-            books["next"] = _attach(rows_by_pk[next_pk])
+        books = self._get_book_collection_books(
+            pk, prev_pk, next_pk, rows_by_pk, _attach
+        )
 
         self._selected_arc_index = current_idx + 1
         self._selected_arc_count = arc_count
