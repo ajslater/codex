@@ -1,6 +1,7 @@
 """Sends notifications to connections, reading from a queue."""
 
-from collections.abc import Mapping
+import threading
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import override
 
@@ -96,19 +97,47 @@ class BookmarkThread(
         self.init_group_acl()
         self.init_user_active()
 
+    def _spawn_offline(self, name: str, target: Callable[[], None]) -> None:
+        """
+        Run a long-running task on its own daemon thread.
+
+        ``CodexLatestVersionTask`` and ``TelemeterTask`` both make
+        outbound network calls with a 5-second timeout. Running them
+        inline inside the aggregator's process loop blocks every
+        queued ``BookmarkUpdateTask`` for the duration of the network
+        roundtrip — page-turn writes stall behind PyPI on a slow
+        connection. Daemon-thread offload returns control to the
+        aggregator immediately; both tasks are infrequent (telemetry
+        once per week, version check once per day) so unbounded thread
+        creation isn't a real risk.
+        """
+
+        def _run():
+            try:
+                target()
+            except Exception:
+                self.log.exception(f"Bookmark side-thread task {name} crashed")
+
+        threading.Thread(target=_run, name=f"bookmark-{name}", daemon=True).start()
+
     def _process_task_immediately(self, task) -> None:
         if self.db_write_lock.locked():
             self.log.warning(f"Database locked, not processing {task}")
         match task:
             case TelemeterTask():
-                send_telemetry(self.log)
+                self._spawn_offline("telemeter", lambda: send_telemetry(self.log))
             case ClearLibrarianStatusTask():
+                # Pure DB call (status_controller writes one row per
+                # known status). Cheap; no offload.
                 self.status_controller.finish_many([])
             case CodexLatestVersionTask():
                 worker = CodexLatestVersionUpdater(
                     self.log, self.librarian_queue, self.db_write_lock
                 )
-                worker.update_latest_version(force=task.force)
+                self._spawn_offline(
+                    "latest-version",
+                    lambda: worker.update_latest_version(force=task.force),
+                )
             case _:
                 self.log.warning(f"Unknown Bookmark task {task}")
 
