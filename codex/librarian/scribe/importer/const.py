@@ -1,6 +1,7 @@
 """BULK_CREATE_COMIC_FIELDSConsts and maps for import."""
 
 from types import MappingProxyType, SimpleNamespace
+from typing import cast
 
 from bidict import frozenbidict
 from django.db.models.fields import Field
@@ -151,10 +152,13 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
         }
     )
 )
-COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-    field
-    for field in Comic._meta.get_fields()
-    if (field.many_to_many and not field.auto_created)
+COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
+    "tuple[ManyToManyField, ...]",
+    tuple(
+        field
+        for field in Comic._meta.get_fields()
+        if (field.many_to_many and not field.auto_created)
+    ),
 )
 COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(field.name for field in COMIC_M2M_FIELDS)
 COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
@@ -303,7 +307,9 @@ MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
 )
 FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
     {
-        field.name: MODEL_REL_MAP[field.related_model][0]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+        # ``related_model`` is typed ``type[Model] | Literal['self']
+        # | None`` but every field we iterate has a concrete model.
+        field.name: MODEL_REL_MAP[cast("type[BaseModel]", field.related_model)][0]
         for field in (*ALL_COMIC_FK_FIELDS, *COMIC_M2M_FIELDS)
     }
 )
@@ -360,7 +366,9 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
         field.name
         for field in Comic._meta.get_fields()
         # Concrete check protects against SettingsReader reverse relations being updated
-        if field.concrete  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        # ``ForeignObjectRel`` lacks ``.concrete`` on the public stub; use
+        # ``getattr`` so the check is uniform across the union.
+        if getattr(field, "concrete", False)
         and (not field.many_to_many)
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )

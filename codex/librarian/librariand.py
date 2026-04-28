@@ -4,7 +4,7 @@ from copy import copy
 from multiprocessing import Process, Queue
 from threading import Lock, active_count
 from types import MappingProxyType
-from typing import Any, Final, NamedTuple, override
+from typing import Any, Final, NamedTuple, cast, override
 
 from caseconverter import snakecase
 from django.db import close_old_connections
@@ -161,7 +161,9 @@ class LibrarianDaemon(Process):
 
     def _shutdown(self) -> None:
         """Shutdown threads and queues."""
-        self._reversed_threads = tuple(reversed(self._threads))  # ty: ignore[invalid-assignment]
+        self._reversed_threads = cast(
+            "tuple[NamedThread, ...]", tuple(reversed(self._threads))
+        )
         self._stop_threads()
         self._join_threads()
         while not self.queue.empty():
