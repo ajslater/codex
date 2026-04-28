@@ -1,3 +1,4 @@
+import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/admin";
@@ -231,15 +232,41 @@ export const useAdminStore = defineStore("admin", {
       await API.getAllLibrarianStatuses()
         .then((response) => {
           if (Array.isArray(response.data)) {
-            const map = {};
+            const next = {};
             for (const status of response.data) {
-              map[status.statusType] = status;
+              next[status.statusType] = status;
             }
-            this.allLibrarianStatuses = map;
+            this._patchAllLibrarianStatuses(next);
           }
           return true;
         })
         .catch(console.warn);
+    },
+    _patchAllLibrarianStatuses(next) {
+      // Diff-based update. The previous code reassigned
+      // ``allLibrarianStatuses`` to a brand-new object on every
+      // poll, forcing every computed/watcher subscribing to the
+      // map (job-tab progress bars, status-list rows) to
+      // re-evaluate even when nothing actually moved. The
+      // websocket-driven LIBRARIAN_STATUS fan-out can fire many
+      // times a second during an active import, so this
+      // dominated job-tab render time.
+      //
+      // Mutate keys in place: Pinia's reactivity then notifies
+      // only watchers that touch the specific keys we changed.
+      const current = this.allLibrarianStatuses;
+      // Remove keys that vanished from the latest payload.
+      for (const key of Object.keys(current)) {
+        if (!(key in next)) {
+          delete current[key];
+        }
+      }
+      // Add or replace keys whose values actually changed.
+      for (const [key, value] of Object.entries(next)) {
+        if (!dequal(current[key], value)) {
+          current[key] = value;
+        }
+      }
     },
     async updateAPIKey() {
       if (this._requireAdmin()) return false;
