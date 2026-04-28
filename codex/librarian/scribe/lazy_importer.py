@@ -1,5 +1,7 @@
 """Kick off an import task for one batch of books."""
 
+from collections import defaultdict
+
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.worker import WorkerBase
@@ -31,11 +33,9 @@ class LazyImporter(WorkerBase):
             return
 
         # Map comics to libraries.
-        library_path_map = {}
+        library_path_map: defaultdict[int, set[str]] = defaultdict(set)
         for comic in comics:
             library_id = comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
-            if library_id not in library_path_map:
-                library_path_map[library_id] = set()
             library_path_map[library_id].add(comic.path)
 
         for library_id, paths in library_path_map.items():

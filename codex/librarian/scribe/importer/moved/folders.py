@@ -1,5 +1,6 @@
 """Bulk import and move comics and folders."""
 
+from collections import defaultdict
 from pathlib import Path
 
 from bidict import bidict, frozenbidict
@@ -155,11 +156,9 @@ class MovedFoldersImporter(MovedCoversImporter):
         self._remove_move_collisions(dirs_moved)
 
         dest_paths = sorted(set(dirs_moved.values()))
-        dest_parent_folder_paths_map = {}
+        dest_parent_folder_paths_map: defaultdict[str, set[str]] = defaultdict(set)
         for dest_path in dest_paths:
             parent = str(Path(dest_path).parent)
-            if parent not in dest_parent_folder_paths_map:
-                dest_parent_folder_paths_map[parent] = set()
             dest_parent_folder_paths_map[parent].add(dest_path)
 
         create_status = ImporterCreateTagsStatus()
