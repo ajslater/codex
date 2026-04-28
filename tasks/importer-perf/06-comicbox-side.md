@@ -24,13 +24,16 @@ dict is leveraged across 600k comics.
 
 Two waste streams:
 
-1. **Worker compute waste**: `cb.to_dict()` parses + normalizes
-   *every* metadata key the source format exposes (CIX, CBI, CIL,
-   filename heuristics, etc.). Codex's
-   `_USED_COMICBOX_FIELDS` (`read/aggregate_path.py:26-76`) lists
-   ~44 keys. The remaining keys (`alternate_images`, `bookmark`,
-   `pages`, `prices`, `remainders`, `reprints`, `rights`,
-   `updated_at`, `ext`, `credit_primaries`,
+1. **Worker compute waste**: comicbox correctly selects the right
+   format(s) based on filenames in the archive (`box/sources.py:155`
+   walks `namelist()` against `FILENAME_FORMAT_MAP`), so format
+   selection is already optimal. The waste is *within* each
+   selected format: `cb.to_dict()` parses and normalizes every key
+   that format defines. Codex's `_USED_COMICBOX_FIELDS`
+   (`read/aggregate_path.py:26-76`) lists ~44 keys it actually
+   reads. Format-defined keys outside that set (`alternate_images`,
+   `bookmark`, `pages`, `prices`, `remainders`, `reprints`,
+   `rights`, `updated_at`, `ext`, `credit_primaries`,
    `identifier_primary_source`, …) are computed and immediately
    discarded.
 
@@ -154,63 +157,46 @@ ComicInfo.xml hasn't changed, etc.).
 Skip this one if the structural shift isn't worth the API churn.
 Marked optional.
 
-## Improvement C: `MetadataFormats` union flag for fast-path tagged-only reads
+## Improvement C: ~~format probe ordering~~ — already optimal
 
-Most modern libraries are pure-CIX (ComicRack ComicInfo.xml).
-Comicbox tries every format
-(`MetadataFormats.COMICBOX_YAML` is the union of all formats).
-For a CIX-only library, the CBI, CIL, COMET, ComicTagger, and
-filename heuristic parsers run, find nothing, and return empty.
-
-Allow the caller to pin the parse to a single format:
+**Withdrawn.** Investigation of comicbox shows it already does the
+right thing here. `box/sources.py:155-174`'s
+`_get_source_archive_files_metadata` walks `namelist()` (cheap —
+just the archive's central directory) and matches each filename
+against `FILENAME_FORMAT_MAP`:
 
 ```python
-# Already exists at the API level — codex passes
-# MetadataFormats.COMICBOX_YAML to iter_process_files. Just need a
-# narrower default:
-fmt = MetadataFormats.COMIC_INFO  # CIX only
-
-for path, value in iter_process_files(paths, fmt=fmt, ...):
-    ...
-```
-
-But the format is a per-archive property, not a per-library one.
-A library could be a mix of CBZ (CIX) and CBR (CBI). Idea:
-**probe-and-cache** per-library — first 50 archives use the full
-union, then fix the format to whichever was hit. Risky if the
-user adds a CBR mid-import.
-
-Better: a comicbox-side **early-out** when the cheap parse hits.
-Try CIX first (it's the cheap one); if it returns a non-empty
-dict, skip CBI / CIL / heuristic parsers entirely. Only fall back
-to the union when CIX comes up empty.
-
-```python
-# comicbox/box/__init__.py (sketch)
-_PRIMARY_FORMATS = (
-    MetadataFormats.COMIC_INFO,
-    MetadataFormats.METRON_INFO,
+FILENAME_FORMAT_MAP = MappingProxyType(
+    {
+        fmt.value.filename.lower(): fmt
+        for fmt in MetadataSources.ARCHIVE_FILE.value.formats
+    }
 )
-
-def to_dict(self, ...) -> dict:
-    for fmt in _PRIMARY_FORMATS:
-        if md := self._parse_one_format(fmt):
-            return self._normalize(md)
-    # All cheap formats came up empty — try the full union.
-    return self._parse_full_union()
 ```
 
-### Estimated impact
+Each `MetadataFormat` declares its on-disk filename
+(`ComicInfo.xml`, `MetronInfo.xml`, `CoMet.xml`, etc.) and only
+formats whose filename is actually present in the archive get
+loaded. The resulting `SourceData` carries the pre-selected `fmt`,
+so `_load_metadata` (`box/load.py:125`) goes straight to
+`_call_load` with the right schema — it never enters the
+"try every format until one parses" loop in
+`_load_unknown_metadata`.
 
-For a fully-CIX library (~95% of real-world cases), maybe **30%
-shorter per-comic parse**. The gain compounds with field
-projection from improvement A.
+The other `from_archive` sources are similarly narrow:
+`ARCHIVE_COMMENT` is hardcoded to ComicBookInfo (only one comment
+format exists, sources.py:101), `ARCHIVE_PDF` is hardcoded to
+PDF, `ARCHIVE_FILENAME` only applies the filename-pattern
+parsers.
 
-### Risks
+So a CBZ with only ComicInfo.xml triggers exactly one schema
+parse (CIX). A CBR with both ComicInfo.xml and MetronInfo.xml
+triggers two. **No wasted parser invocations**, and dropping
+formats codex officially supports (MetronInfo, CoMet,
+ComicBookInfo, etc.) would lose data — which is unacceptable.
 
-- A library where some files have CBI and others have CIX would
-  see CIX-tagged files miss CBI-only data. Acceptable: if CIX
-  exists, CBI is supplementary. Behavior matches user intuition.
+Skip this improvement. The previous draft was based on a wrong
+assumption.
 
 ## Improvement D: skip archive open when filesystem mtime is stale
 
@@ -351,13 +337,11 @@ comicbox profile before chasing this.
 
 ## Suggested commit shape (comicbox repo)
 
-Three small PRs against comicbox, each independent:
+Two small PRs against comicbox, each independent:
 
 1. **`feat: to_dict(keys=...)` field projection** — additive API,
    default behavior unchanged. ~150 LOC + parser dependency map.
-2. **`feat: probe primary formats first` (improvement C)** — pure
-   internal optimization, no API change. ~50 LOC.
-3. **`docs: filesystem mtime pre-filter recommendation`** — codex-
+2. **`docs: filesystem mtime pre-filter recommendation`** — codex-
    side change, no comicbox change required. Just document the
    pattern in the comicbox README so other consumers benefit.
 
@@ -378,9 +362,6 @@ dependency floor.
   be a superset of every key codex actually reads. Audit the
   importer for `md.get(...)` and `md["..."]` accesses; assert
   every key referenced is in the set.
-- **Probe order**: CIX-first probe must not lose CBI-only data.
-  For a CBI-tagged-only file, the CIX probe returns empty and the
-  fallback union runs. Test fixture: a CBR with only CBI metadata.
 - **Filesystem mtime monotonicity**: the parent's `Path.stat()`
   result must be a `datetime` in UTC matching the worker's
   `cb.get_metadata_mtime()` timezone. The current code converts
@@ -414,8 +395,6 @@ dependency floor.
 - **Pickle size regression**: snapshot the pickled-byte size of a
   representative tagged CBR before/after field projection. Assert
   ≥ 30% reduction.
-- **Probe-first correctness**: fixture CBR with CBI-only metadata
-  parses correctly under improvement C.
 - **Filesystem pre-filter**: integration test with 1000 unchanged
   comics + 10 modified. Assert only 10 are submitted to
   `iter_process_files`.

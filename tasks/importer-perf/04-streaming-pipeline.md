@@ -106,10 +106,25 @@ B. Extract everything in phase 1 but stream the metadata to a
    read from disk.
 
 Option A doubles archive opens (twice per comic). Option B writes
-~3 GB to /tmp once, reads it back streaming. **Option B is
+~3 GB to disk once, reads it back streaming. **Option B is
 better** for any library where archives live on slower storage
-than /tmp; archives are typically on a media disk while /tmp is
-on the OS SSD.
+than the codex cache directory; archives are typically on a media
+disk while the cache (`ROOT_CACHE_PATH`,
+`settings/__init__.py:523` = `CONFIG_PATH / "cache"`) lives
+alongside the codex DB on faster storage.
+
+Spill location: **`ROOT_CACHE_PATH / "import_cache.jsonl"`**.
+Reasons:
+
+- Persistent across reboots (unlike `/tmp` on tmpfs systems where
+  a 5 GB spill would OOM the tmpfs ramdisk).
+- Same volume as the codex DB, so atomicity / cleanup is
+  consistent with other codex state.
+- Already a directory codex creates and manages
+  (`DEFAULT_CACHE_PATH.mkdir(...)`), so no new mount-point
+  decisions for the user.
+- Survives a daemon restart, which the resume-from-watermark
+  scheme below depends on.
 
 A third option:
 
@@ -130,12 +145,63 @@ memory is bounded.
 
 ## Phase-2 chunking
 
-A chunk processes ~5k–10k comics:
+### Chunk size: dynamic, sized to available memory
+
+Hardcoding `CHUNK_SIZE = 5000` is wrong. A 32 GB server can
+afford 50k-comic chunks; a 1 GB Pi can't even hold 5k. Codex
+already has the right tool — `codex/librarian/memory.py`'s
+`get_mem_limit()` reads cgroups2/cgroups1 limits (Docker, Pi
+under systemd) before falling back to `psutil.virtual_memory()`.
+Use it:
 
 ```python
-CHUNK_SIZE = 5000
+# codex/librarian/scribe/importer/init.py (sketch)
+from codex.librarian.memory import get_mem_limit
 
-for chunk_paths in batched(all_paths, CHUNK_SIZE):
+# Empirically, each comic in flight through phase 2 carries
+# ~6-12 KB of working set (Comic instance + LINK_FKS dict +
+# LINK_M2MS sets + FTS payload). Round up to 16 KB for safety.
+_PER_COMIC_BYTES = 16 * 1024
+# Hold phase 2 to at most a quarter of the process memory budget,
+# leaving room for phase-1 pk_maps (~800 MB worst case) +
+# SQLite cache (~512 MB) + overhead.
+_PHASE_2_MEM_FRACTION = 0.25
+_CHUNK_FLOOR = 1000
+_CHUNK_CEILING = 50000
+
+def _compute_chunk_size(self) -> int:
+    """Size phase-2 chunks to fit available memory."""
+    mem_budget = get_mem_limit("b") * _PHASE_2_MEM_FRACTION
+    raw = int(mem_budget // _PER_COMIC_BYTES)
+    return max(_CHUNK_FLOOR, min(_CHUNK_CEILING, raw))
+```
+
+Indicative numbers:
+
+| Host | mem_limit | chunk_size |
+| --- | --- | --- |
+| Pi 4 (4 GB) | 4 GB → 1 GB phase-2 budget | ~50k → capped to 50k |
+| Pi 4 cgroup-limited (2 GB) | 2 GB → 512 MB | ~32k |
+| Pi 3 (1 GB) | 1 GB → 256 MB | ~16k |
+| Pi 0 W 2 (512 MB cgroup) | 512 MB → 128 MB | ~8k |
+| Tiny container (256 MB) | 256 MB → 64 MB | ~4k |
+| Smallest viable (64 MB cgroup) | 64 MB → 16 MB | floor ~1000 |
+
+The floor of 1000 protects against pathological tiny chunks where
+the per-batch SQL overhead would dominate. The ceiling of 50k
+protects against integer overflow / unbounded peak memory on
+absurdly large hosts.
+
+Expose the multiplier as a config knob for advanced users:
+
+```python
+IMPORTER_PHASE_2_MEM_FRACTION = get_float(
+    CODEX_CONFIG, "importer.phase_2_mem_fraction", default=0.25
+)
+```
+
+```python
+for chunk_paths in batched(all_paths, self._compute_chunk_size()):
     chunk_md = read_chunk_from_spill(chunk_paths)
 
     chunk_link_fks, chunk_link_m2ms = aggregate_chunk_links(chunk_md)
@@ -164,18 +230,22 @@ for chunk_paths in batched(all_paths, CHUNK_SIZE):
         self.metadata.pop(key, None)
 ```
 
-**Per-chunk memory**:
+**Per-chunk memory** (illustrative; the dynamic sizer above
+chooses the actual chunk):
 
-| State | 5k chunk | 10k chunk |
-| --- | --- | --- |
-| Comic instances | ~12 MB | ~25 MB |
-| LINK_FKS | ~4 MB | ~8 MB |
-| LINK_M2MS | ~8 MB | ~16 MB |
-| FTS payloads | ~4 MB | ~8 MB |
-| **Total** | **~30 MB** | **~60 MB** |
+| State | 5k chunk | 10k chunk | 32k chunk |
+| --- | --- | --- | --- |
+| Comic instances | ~12 MB | ~25 MB | ~80 MB |
+| LINK_FKS | ~4 MB | ~8 MB | ~25 MB |
+| LINK_M2MS | ~8 MB | ~16 MB | ~50 MB |
+| FTS payloads | ~4 MB | ~8 MB | ~25 MB |
+| Working overhead (Python objects, Django ORM cache) | ~2 MB | ~3 MB | ~10 MB |
+| **Total** | **~30 MB** | **~60 MB** | **~190 MB** |
 
-Plus ~800 MB for phase-1 pk_maps held throughout phase 2. Total
-peak: under 1 GB regardless of library size.
+Plus phase-1 pk_maps held throughout phase 2 — sized by library
+content, typically ~200 MB to ~800 MB. The dynamic chunk sizer
+above is calibrated against this overhead so total peak stays
+within `mem_limit × _PHASE_2_MEM_FRACTION + ~1 GB` headroom.
 
 ## Failure recovery: the underrated win
 
@@ -241,14 +311,23 @@ Don't trade off completeness for phase-1 speed.
 
 ### Risk: spill-file disk usage
 
-For 600k comics, the JSONL spill file is ~3-5 GB. On a system
-where /tmp is small (Pi: tmpfs default 50% of RAM, so ~500 MB on
-1 GB host), this overflows.
+For 600k comics, the JSONL spill file is ~3-5 GB. The
+`ROOT_CACHE_PATH` location (decided above, on the config volume
+alongside the codex DB) is the right place — but on small-disk
+hosts it can still bite. Worst case is a Pi with a 32 GB SD card
+that's already 80% full with comic covers, FTS index, and DB
+backups; a 5 GB spill on top fills the disk.
 
-**Mitigation**: spill to `CONFIG_PATH / "import_cache.jsonl"`
-(persistent storage), and explicitly compress (zstd or gzip).
-Compressed JSONL is 4-10× smaller than raw — a 5 GB spill drops
-to 500 MB-1 GB. Decompression is cheap and chunk-streamable.
+**Mitigation**: compress the spill file with zstd (or gzip if
+zstd isn't already a dependency — verify; comicbox uses zstandard
+indirectly through some PDF backends). Compressed JSONL is
+4-10× smaller than raw — a 5 GB spill drops to 500 MB-1 GB.
+Decompression is cheap and chunk-streamable, and zstd's
+seekable-format extension allows random-access into the spill
+file (handy for the resume-from-watermark scheme below).
+
+Also: clean up the spill file in the `finish()` phase, even on
+abort. Don't leave 5 GB lying around between imports.
 
 ### Risk: `_get_create_update_args` with split phases
 
