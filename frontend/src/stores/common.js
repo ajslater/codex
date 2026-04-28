@@ -47,6 +47,14 @@ export const useCommonStore = defineStore("common", {
     timestamp: Date.now(),
     isSettingsDrawerOpen: false,
     opdsURLs: undefined,
+    /*
+     * Global app-level error string surfaced via a v-snackbar in
+     * the root component. Reserved for problems that aren't tied
+     * to a specific form (where ``form.errors`` would suffice) —
+     * e.g. an expired CSRF cookie that leaves the session in a
+     * silently-broken state and needs a user-visible nudge.
+     */
+    sessionError: "",
   }),
   actions: {
     async loadVersions() {
@@ -76,6 +84,12 @@ export const useCommonStore = defineStore("common", {
         state.form.errors = [];
         state.form.success = "";
       });
+    },
+    setSessionError(message) {
+      this.sessionError = message;
+    },
+    clearSessionError() {
+      this.sessionError = "";
     },
     setTimestamp() {
       this.timestamp = Date.now();

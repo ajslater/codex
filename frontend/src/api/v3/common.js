@@ -124,9 +124,9 @@ export const getDownloadIOSPWAFix = (href, filename) => {
     .catch(console.warn);
 };
 
-const getMtime = (groups, settings) => {
+const getMtime = (groups, settings, options = {}) => {
   const params = serializeParams({ groups, ...settings }, Date.now());
-  return HTTP.get("/mtime", { params });
+  return HTTP.get("/mtime", { params, ...options });
 };
 const getOPDSURLs = () => {
   return HTTP.get("/opds-urls");

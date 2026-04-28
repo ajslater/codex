@@ -47,19 +47,30 @@ export const getPlaceholderSrc = (group) => {
   return `${globalThis.CODEX.STATIC}img/${name}.svg`;
 };
 
-const getAvailableFilterChoices = ({ group, pks }, data, ts) => {
+const getAvailableFilterChoices = ({ group, pks }, data, ts, options = {}) => {
   const params = serializeParams(data, ts);
-  return HTTP.get(`/${group}/${pks}/choices_available`, { params });
+  return HTTP.get(`/${group}/${pks}/choices_available`, { params, ...options });
 };
 
-const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
+/* eslint-disable max-params */
+const getFilterChoices = (
+  { group, pks },
+  fieldName,
+  data,
+  ts,
+  options = {},
+) => {
   const params = serializeParams(data, ts);
-  return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, { params });
+  return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, {
+    params,
+    ...options,
+  });
 };
+/* eslint-enable max-params */
 
-const getBrowserPage = ({ group, pks, page }, data, ts) => {
+const getBrowserPage = ({ group, pks, page }, data, ts, options = {}) => {
   const params = serializeParams(data, ts, false);
-  return HTTP.get(`/${group}/${pks}/${page}`, { params });
+  return HTTP.get(`/${group}/${pks}/${page}`, { params, ...options });
 };
 
 const getMetadata = ({ group, pks }, settings) => {

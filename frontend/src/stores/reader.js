@@ -2,6 +2,7 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
+import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
 import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import READER_API, { getComicPageSource } from "@/api/v3/reader";
@@ -436,52 +437,58 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await READER_API.getReaderInfo(pk, settings, mtime)
-        .then((response) => {
-          const data = response.data;
-          const books = data.books;
-
-          // Undefined settings breaks code.
-          const allBooks = [books?.prev, books?.current, books?.next];
-          for (const book of allBooks) {
-            if (book && !book.settings) {
-              book.settings = {};
-            }
-          }
-          // Generate routes.
-          const routesBooks = this._getBookRoutes(books.prev, books.next);
-
-          this.$patch((state) => {
-            state.books = books;
-            state.arcs = data.arcs;
-            state.arc = data.arc;
-            state.routes.prev = this._getRouteParams(
-              state.books.current,
-              params.page,
-              "prev",
-            );
-            state.routes.next = this._getRouteParams(
-              state.books.current,
-              params.page,
-              "next",
-            );
-            state.routes.books = routesBooks;
-            state.routes.close = data.closeRoute;
-            state.empty = false;
-            state.mtime = data.mtime;
-            state.bookSettings = {};
-          });
-
-          // Load all three settings layers for the current comic.
-          if (books.current?.pk) {
-            this.loadAllSettings(+books.current.pk);
-          }
-          return true;
-        })
-        .catch((error) => {
-          console.debug(error);
-          this.empty = true;
+      // Single-flight: rapid Next-Book clicks abort the previous
+      // fetch so its late response can't merge stale book settings
+      // over the new book's state.
+      const signal = useAbortable("reader:loadBooks");
+      try {
+        const response = await READER_API.getReaderInfo(pk, settings, mtime, {
+          signal,
         });
+        const data = response.data;
+        const books = data.books;
+
+        // Undefined settings breaks code.
+        const allBooks = [books?.prev, books?.current, books?.next];
+        for (const book of allBooks) {
+          if (book && !book.settings) {
+            book.settings = {};
+          }
+        }
+        // Generate routes.
+        const routesBooks = this._getBookRoutes(books.prev, books.next);
+
+        this.$patch((state) => {
+          state.books = books;
+          state.arcs = data.arcs;
+          state.arc = data.arc;
+          state.routes.prev = this._getRouteParams(
+            state.books.current,
+            params.page,
+            "prev",
+          );
+          state.routes.next = this._getRouteParams(
+            state.books.current,
+            params.page,
+            "next",
+          );
+          state.routes.books = routesBooks;
+          state.routes.close = data.closeRoute;
+          state.empty = false;
+          state.mtime = data.mtime;
+          state.bookSettings = {};
+        });
+
+        // Load all three settings layers for the current comic.
+        if (books.current?.pk) {
+          this.loadAllSettings(+books.current.pk);
+        }
+        return true;
+      } catch (error) {
+        if (isAbortError(error)) return;
+        console.debug(error);
+        this.empty = true;
+      }
     },
     async loadMtimes() {
       const arcs = [];
@@ -498,15 +505,26 @@ export const useReaderStore = defineStore("reader", {
         // 500 from the API, so the fallback never actually worked.
         arcs.push({ group: "r", pks: "0" });
       }
-      return await COMMON_API.getMtime(arcs, {})
-        .then((response) => {
-          const newMtime = response.data.maxMtime;
-          if (newMtime !== this.mtime) {
-            return this.loadBooks({ mtime: newMtime });
-          }
-          return true;
-        })
-        .catch(console.error);
+      // Dedup so concurrent callers (websocket fan-out across the
+      // browser + reader stores, rapid notifications) share one
+      // request. Key on the sorted arc list so distinct arc sets
+      // don't collide; same-shape concurrent calls coalesce.
+      const dedupKey = `reader:loadMtimes:${arcs
+        .map((a) => `${a.group}/${a.pks}`)
+        .sort()
+        .join(",")}`;
+      try {
+        const response = await dedupedFetch(dedupKey, () =>
+          COMMON_API.getMtime(arcs, {}),
+        );
+        const newMtime = response.data.maxMtime;
+        if (newMtime !== this.mtime) {
+          return this.loadBooks({ mtime: newMtime });
+        }
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
     },
     async _setBookmarkPage(page) {
       const groupParams = { group: "c", ids: [+this.books.current.pk] };

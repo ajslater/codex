@@ -1,6 +1,7 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 import { toRaw } from "vue";
+import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
 import API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
@@ -576,55 +577,73 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         return this.loadSettings();
       }
-      await API.getBrowserPage(route.params, this.settings, mtime)
-        .then((response) => {
-          const { breadcrumbs, ...page } = response.data;
-          this.$patch((state) => {
-            state.settings.breadcrumbs = Object.freeze(breadcrumbs);
-            state.page = Object.freeze(page);
-            if (
-              (state.settings.orderBy === "search_score" && !page.fts) ||
-              (state.settings.orderBy === "child_count" &&
-                page.modelGroup === "c")
-            ) {
-              state.settings.orderBy = "sort_name";
-            }
-            state.choices.dynamic = undefined;
-            state.browserPageLoaded = true;
-          });
-          return true;
-        })
-        .catch(this.handlePageError);
+      // Single-flight: a rapid group switch aborts the previous
+      // fetch so its late-arriving response can't ``$patch`` stale
+      // state over the current route's data.
+      const signal = useAbortable("browser:loadBrowserPage");
+      try {
+        const response = await API.getBrowserPage(
+          route.params,
+          this.settings,
+          mtime,
+          { signal },
+        );
+        const { breadcrumbs, ...page } = response.data;
+        this.$patch((state) => {
+          state.settings.breadcrumbs = Object.freeze(breadcrumbs);
+          state.page = Object.freeze(page);
+          if (
+            (state.settings.orderBy === "search_score" && !page.fts) ||
+            (state.settings.orderBy === "child_count" &&
+              page.modelGroup === "c")
+          ) {
+            state.settings.orderBy = "sort_name";
+          }
+          state.choices.dynamic = undefined;
+          state.browserPageLoaded = true;
+        });
+      } catch (error) {
+        if (isAbortError(error)) return;
+        this.handlePageError(error);
+      }
       if (updateSettings) {
         API.updateSettings(this.settings);
       }
     },
     async loadAvailableFilterChoices() {
-      return await API.getAvailableFilterChoices(
-        router.currentRoute.value.params,
-        this.filterOnlySettings,
-        this.page.mtime,
-      )
-        .then((response) => {
-          this.choices.dynamic = response.data;
-          return true;
-        })
-        .catch(console.error);
+      const signal = useAbortable("browser:loadAvailableFilterChoices");
+      try {
+        const response = await API.getAvailableFilterChoices(
+          router.currentRoute.value.params,
+          this.filterOnlySettings,
+          this.page.mtime,
+          { signal },
+        );
+        this.choices.dynamic = response.data;
+        return true;
+      } catch (error) {
+        if (isAbortError(error)) return;
+        console.error(error);
+      }
     },
     async loadFilterChoices(fieldName) {
-      return await API.getFilterChoices(
-        router.currentRoute.value.params,
-        fieldName,
-        this.filterOnlySettings,
-        this.page.mtime,
-      )
-        .then((response) => {
-          this.choices.dynamic[fieldName] = Object.freeze(
-            response.data.choices,
-          );
-          return true;
-        })
-        .catch(console.error);
+      // Per-field key so different filter menus opening in parallel
+      // don't abort each other.
+      const signal = useAbortable(`browser:loadFilterChoices:${fieldName}`);
+      try {
+        const response = await API.getFilterChoices(
+          router.currentRoute.value.params,
+          fieldName,
+          this.filterOnlySettings,
+          this.page.mtime,
+          { signal },
+        );
+        this.choices.dynamic[fieldName] = Object.freeze(response.data.choices);
+        return true;
+      } catch (error) {
+        if (isAbortError(error)) return;
+        console.error(error);
+      }
     },
     async loadMtimes() {
       const params = router?.currentRoute?.value?.params;
@@ -633,16 +652,23 @@ export const useBrowserStore = defineStore("browser", {
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
       const pks = params?.pks || "0";
       const arcs = [{ group, pks }];
-      return await COMMON_API.getMtime(arcs, this.filterOnlySettings)
-        .then((response) => {
-          const newMtime = response?.data?.maxMtime;
-          if (newMtime !== this.page.mtime) {
-            this.choices.dynamic = undefined;
-            this.loadBrowserPage(newMtime);
-          }
-          return true;
-        })
-        .catch(console.error);
+      // Dedup so concurrent callers (websocket fan-out across the
+      // browser + reader stores, rapid notifications) share one
+      // request instead of stampeding.
+      const dedupKey = `browser:loadMtimes:${group}:${pks}`;
+      try {
+        const response = await dedupedFetch(dedupKey, () =>
+          COMMON_API.getMtime(arcs, this.filterOnlySettings),
+        );
+        const newMtime = response?.data?.maxMtime;
+        if (newMtime !== this.page.mtime) {
+          this.choices.dynamic = undefined;
+          this.loadBrowserPage(newMtime);
+        }
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
     },
     routeWithSettings(settings, route) {
       if (!route) {

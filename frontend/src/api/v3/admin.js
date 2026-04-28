@@ -16,9 +16,14 @@ const makeAdminCRUD = (entity) => {
 const userCRUD = makeAdminCRUD("user");
 const groupCRUD = makeAdminCRUD("group");
 const libraryCRUD = makeAdminCRUD("library");
-// Read-only lookup for the AgeRatingMetron dropdown. Uses the same CRUD
-// factory but we only expose ``getAll`` below.
-const ageRatingMetronCRUD = makeAdminCRUD("age-rating-metron");
+// Read-only lookup for the AgeRatingMetron dropdown.
+// AgeRatingMetron is an effectively-static enum table — rows
+// don't change at runtime — so we skip the ``serializeParams()``
+// cache-buster the CRUD factory adds by default. Letting the
+// browser cache this response saves the round-trip on every
+// admin tab visit. The store layer also keeps a sticky cache
+// to short-circuit the refetch entirely once we've seen it.
+const getAgeRatingMetrons = () => HTTP.get("/admin/age-rating-metron");
 
 // ONE-OFF ENDPOINTS
 
@@ -85,7 +90,7 @@ export default {
   updateLibrary: libraryCRUD.update,
   deleteLibrary: libraryCRUD.destroy,
   // Irregular plural; the admin store looks up API["get" + pluralTable].
-  getAgeRatingMetrons: ageRatingMetronCRUD.getAll,
+  getAgeRatingMetrons,
   getActiveLibrarianStatuses,
   getAllLibrarianStatuses,
   getFailedImports,
