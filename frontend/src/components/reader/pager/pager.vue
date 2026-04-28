@@ -1,5 +1,13 @@
 <template>
-  <component :is="component" :book="book" />
+  <!--
+    ``:key="component.name"`` forces a full unmount + remount
+    when the user toggles reading direction. Without it Vue
+    reuses the existing pager instance — the orientation swap
+    keeps the previous mode's scroll listeners attached and the
+    new mode's setup runs against stale state. Keying on the
+    component identity scopes lifecycle correctly.
+  -->
+  <component :is="component" :key="component.name" :book="book" />
 </template>
 
 <script>
