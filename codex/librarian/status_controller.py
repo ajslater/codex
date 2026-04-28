@@ -1,20 +1,26 @@
 """Librarian Status."""
 
-from collections.abc import Iterable
+from __future__ import annotations
+
 from inspect import isclass
-from multiprocessing import Queue
-from time import time
+from time import monotonic
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.db.models.functions.datetime import Now
 from django.db.models.query import Q
 from django.utils.timezone import datetime, now, timedelta
-from loguru._logger import Logger
 
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
-from codex.librarian.status import Status
 from codex.models.admin import LibrarianStatus
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from multiprocessing import Queue
+
+    from loguru._logger import Logger
+
+    from codex.librarian.status import Status
 
 
 def get_default(field):
@@ -79,7 +85,12 @@ class StatusController:
             LibrarianStatus.objects.filter(status_type=status.CODE).update(**updates)
             self._enqueue_notifier_task(notify=notify)
             self._loggit("DEBUG", status)
-            status.since_updated = time()
+            # ``monotonic()`` over ``time()``: the rate-limit math
+            # below subtracts ``status.since_updated`` from a fresh
+            # clock read; wall-clock jumps (NTP, daylight saving,
+            # manual adjustments) would skew the comparison and
+            # either drop legitimate updates or fire premature ones.
+            status.since_updated = monotonic()
         except Exception:
             self.log.exception(f"Update status: {status.title()}")
 
@@ -106,7 +117,7 @@ class StatusController:
 
     def update(self, status: Status, *, notify: bool = True) -> None:
         """Update a librarian status."""
-        if time() - status.since_updated < self._UPDATE_DELTA:
+        if monotonic() - status.since_updated < self._UPDATE_DELTA:
             # noop unless time has expired.
             return
         self._update(status, notify=notify)
@@ -137,15 +148,6 @@ class StatusController:
 
         self.log.log(level, f"{prefix}{suffix}.")
 
-    def _finish_many_log(self, updated_statii, *, is_positive_statii: bool):
-        """Log when done."""
-        if is_positive_statii:
-            for status in updated_statii:
-                if isinstance(status, Status):
-                    self._log_finish(status)
-        else:
-            self.log.info("Cleared all librarian statuses")
-
     def finish_many(
         self,
         statii: Iterable[Status | type[Status] | None],
@@ -173,15 +175,27 @@ class StatusController:
                 # Clear-all: only touch rows that are currently active.
                 ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
 
-            # Perform updates
-            update_statii = LibrarianStatus.objects.filter(ls_filter)
-            # Save statii for individual reporting.
-            updated_statii = update_statii.values()
-            update_statii.update(**updates)
+            # Single round-trip update. The previous shape captured a
+            # ``.values()`` queryset for per-status logging, but
+            # ``values()`` yields ``dict`` rows which the
+            # ``isinstance(row, Status)`` guard below would always
+            # reject — the log branch never fired despite the cost
+            # of the SELECT. Iterate ``positive_statii.values()``
+            # directly instead: those are the ``Status`` instances
+            # the caller passed in, no second SELECT required.
+            LibrarianStatus.objects.filter(ls_filter).update(**updates)
 
-            self._finish_many_log(
-                updated_statii, is_positive_statii=bool(positive_statii)
-            )
+            if positive_statii:
+                for status in positive_statii.values():
+                    if isinstance(status, type):
+                        # ``finish_many`` accepts both Status classes
+                        # and instances. Class entries are placeholders
+                        # used by ``start_many`` for ordering — no
+                        # per-instance state to log.
+                        continue
+                    self._log_finish(status)
+            else:
+                self.log.info("Cleared all librarian statuses")
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
         finally:
