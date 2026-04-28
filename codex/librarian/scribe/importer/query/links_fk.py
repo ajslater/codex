@@ -10,11 +10,6 @@ from codex.librarian.scribe.importer.query.update_comics import QueryUpdateComic
 from codex.models.comic import Comic
 from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 
-_QUERY_LINK_FK_PRUNE_ONLY = (
-    PATH_FIELD_NAME,
-    *COMIC_FK_FIELD_NAMES,
-)
-
 
 class QueryPruneLinksFKs(QueryUpdateComics):
     """Prune M2O links that don't need updating."""
@@ -75,25 +70,49 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         for field_name in field_names:
             self._query_prune_comic_fk_links_field(comic, path, field_name)
             status.increment_complete()
-            self.status_controller.update(status)
+        # Refresh the controller once per comic — the controller already
+        # rate-limits at _UPDATE_DELTA, so calling it inside the
+        # per-FK-field loop only burns CPU on the early-return path.
+        self.status_controller.update(status)
         if not self.metadata[LINK_FKS][path]:
             del self.metadata[LINK_FKS][path]
 
     def _query_prune_comic_fk_links_batch(
-        self, batch_paths: tuple[str, ...], status
+        self,
+        batch_paths: tuple[str, ...],
+        select_related_fields: tuple[str, ...],
+        only_fields: tuple[str, ...],
+        status,
     ) -> None:
         comics = (
             Comic.objects.filter(library=self.library, path__in=batch_paths)
-            .select_related(*COMIC_FK_FIELD_NAMES)
-            .only(*_QUERY_LINK_FK_PRUNE_ONLY)
+            .select_related(*select_related_fields)
+            .only(*only_fields)
         )
         for comic in comics:
             self._query_prune_comic_fk_links_comic(comic, status)
+
+    def _collect_referenced_fk_fields(self) -> tuple[str, ...]:
+        """
+        Return the COMIC_FK_FIELD_NAMES subset actually referenced.
+
+        Most imports only touch a few FKs per comic; narrowing the
+        ``select_related`` JOIN drops table breadth on the underlying
+        SELECT and the column-decode cost in the Django cursor.
+        """
+        referenced: set[str] = set()
+        for path_link in self.metadata[LINK_FKS].values():
+            referenced.update(path_link.keys())
+        return tuple(name for name in COMIC_FK_FIELD_NAMES if name in referenced)
 
     def query_prune_comic_fk_links(self, status) -> None:
         """Prune comic fk links that already exist."""
         status.subtitle = "Many to One"
         self.status_controller.update(status)
+        select_related_fields = self._collect_referenced_fk_fields()
+        if not select_related_fields:
+            return
+        only_fields = (PATH_FIELD_NAME, *select_related_fields)
         paths = tuple(self.metadata[LINK_FKS].keys())
         num_paths = len(paths)
 
@@ -103,5 +122,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
                 return
             end = start + IMPORTER_LINK_FK_BATCH_SIZE
             batch_paths = paths[start:end]
-            self._query_prune_comic_fk_links_batch(batch_paths, status)
+            self._query_prune_comic_fk_links_batch(
+                batch_paths, select_related_fields, only_fields, status
+            )
             start += IMPORTER_LINK_FK_BATCH_SIZE
