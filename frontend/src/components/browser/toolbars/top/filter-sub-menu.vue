@@ -52,9 +52,16 @@
           class="filterGroup overflow-y-auto"
           density="compact"
           multiple
-          :items="vuetifyItems"
           @update:selected="selected"
         >
+          <!--
+            Manual ``v-for`` to render list items so the per-item
+            slot (``#append`` for ``metronName``) can fire. The
+            previous version also passed ``:items="vuetifyItems"``
+            to ``v-list``; Vuetify renders the items prop directly,
+            so each row was being emitted twice — once by the prop,
+            once by this ``v-for``. Drop the prop to render once.
+          -->
           <v-list-item
             v-for="item of vuetifyItems"
             :key="item.value"
