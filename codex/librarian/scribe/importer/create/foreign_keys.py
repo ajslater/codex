@@ -43,13 +43,47 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
     """Methods for creating foreign keys."""
 
     @staticmethod
+    def _build_parent_fk_pk_maps(
+        model: type[BaseModel],
+    ) -> dict[type[BaseModel], dict[tuple, int]]:
+        """
+        Pre-fetch parent FK pk maps for one create/update batch.
+
+        Walks ``MODEL_CREATE_ARGS_MAP[model]`` to find every parent FK
+        model referenced, then issues one ``values_list("pk", *rels)``
+        query per parent to build ``{key_tuple: pk}``. The returned
+        map is consumed by ``_get_create_update_args`` so it can
+        resolve parent references via dict lookup instead of firing
+        ``field_model.objects.get(...)`` per row.
+        """
+        key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
+        pk_maps: dict[type[BaseModel], dict[tuple, int]] = {}
+        for field_model in chain(key_args_map.values(), update_args_map.values()):
+            if not field_model or field_model in pk_maps:
+                continue
+            rels = MODEL_REL_MAP[field_model][0]
+            rows = field_model.objects.values_list("pk", *rels)
+            pk_maps[field_model] = {tuple(row[1:]): row[0] for row in rows}
+        return pk_maps
+
+    @staticmethod
     def _get_create_update_args(
         model: type[BaseModel],
         key_args_map: Mapping,
         update_args_map: Mapping,
         values_tuple: tuple,
+        parent_pk_maps: Mapping[type[BaseModel], Mapping[tuple, int]],
     ) -> tuple[dict, dict]:
-        """Create key args and update args."""
+        """
+        Create key args and update args.
+
+        Parent FK references resolve via ``parent_pk_maps`` (one
+        SELECT per parent model, built once for the whole batch by
+        ``_build_parent_fk_pk_maps``). The resolved pk goes through
+        as ``<field_name>_id`` so Django skips the FK-descriptor
+        round-trip on construction; ``bulk_create`` /
+        ``bulk_update`` write the same column either way.
+        """
         key_args = {}
         update_args = {}
         num_keys = len(key_args_map)
@@ -57,20 +91,23 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             chain(key_args_map.items(), update_args_map.items())
         ):
             value = values_tuple[index]
+            arg_map = key_args if index < num_keys else update_args
             if field_model and value is not None:
-                key_rels = MODEL_REL_MAP[field_model][0]
                 if field_model in GROUP_MODEL_COUNT_FIELDS and index < num_keys:
-                    value = values_tuple[: index + 1]
-                elif not isinstance(value, tuple):
-                    value = (value,)
-                sub_model_key_args = dict(zip(key_rels, value, strict=True))
-                value = field_model.objects.get(**sub_model_key_args)
+                    key = tuple(values_tuple[: index + 1])
+                elif isinstance(value, tuple):
+                    key = value
+                else:
+                    key = (value,)
+                arg_map[field_name + "_id"] = parent_pk_maps.get(field_model, {}).get(
+                    key
+                )
+                continue
             non_null_charfield_names = NON_NULL_CHARFIELD_NAMES.get(
                 model, DEFAULT_NON_NULL_CHARFIELD_NAMES
             )
             if value is None and field_name in non_null_charfield_names:
                 value = ""
-            arg_map = key_args if index < num_keys else update_args
             arg_map[field_name] = value
         return key_args, update_args
 
@@ -99,6 +136,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         status.subtitle = model._meta.verbose_name_plural
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
+        parent_pk_maps = self._build_parent_fk_pk_maps(model)
         create_objs = []
         create_tuples = sorted(create_tuples, key=str)
         created_fts_values = {}
@@ -108,6 +146,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 key_args_map,
                 update_args_map,
                 values_tuple,  # ty: ignore[invalid-argument-type]
+                parent_pk_maps,
             )
             obj = model(**key_args, **update_args)
             obj.presave()
@@ -176,6 +215,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         status.subtitle = model._meta.verbose_name_plural
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
+        parent_pk_maps = self._build_parent_fk_pk_maps(model)
         update_objs = []
         update_tuples = sorted(update_tuples, key=str)
         fts_update_pks = set()
@@ -185,6 +225,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 key_args_map,
                 update_args_map,
                 values_tuple,  # ty: ignore[invalid-argument-type]
+                parent_pk_maps,
             )
             obj = model.objects.get(**key_args)
             for key, value in update_args.items():
