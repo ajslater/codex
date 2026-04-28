@@ -22,58 +22,7 @@ from codex.librarian.scribe.importer.statii.failed import (
     ImporterFailedImportsQueryStatus,
 )
 from codex.librarian.scribe.importer.statii.read import ImporterAggregateStatus
-
-_USED_COMICBOX_FIELDS = frozenset(
-    {
-        # "alternate_images",
-        "age_rating",
-        "arcs",
-        # "bookmark",
-        "characters",
-        "collection_title",
-        "country",
-        "credits",
-        # "credit_primaries",
-        "critical_rating",
-        "date",
-        # "ext",
-        "file_type",  # extra
-        "genres",
-        "identifiers",
-        # "identifier_primary_source",
-        "imprint",
-        "issue",
-        "language",
-        "locations",
-        "metadata_mtime",  # extra
-        "monochrome",
-        "notes",
-        "original_format",
-        "path",  # extra
-        # "pages",
-        "page_count",
-        "protagonist",
-        # "prices",
-        "publisher",
-        "reading_direction",
-        # "remainders",
-        # "reprints",
-        "review",
-        # "rights",
-        "scan_info",
-        "series",
-        "series_groups",
-        "stories",
-        "summary",
-        "tagger",
-        "tags",
-        "teams",
-        "title",
-        "universes",
-        # "updated_at",
-        "volume",
-    }
-)
+from codex.settings import USED_COMICBOX_FIELDS
 
 
 class AggregateMetadataImporter(AggregatePathMetadataImporter):
@@ -82,7 +31,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
     @staticmethod
     def _transform_metadata(md) -> None:
         for key in tuple(md.keys()):
-            if key not in _USED_COMICBOX_FIELDS:
+            if key not in USED_COMICBOX_FIELDS:
                 md.pop(key, None)
 
         if date := md.pop(DATE_KEY, None):
