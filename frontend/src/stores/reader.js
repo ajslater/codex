@@ -374,10 +374,20 @@ export const useReaderStore = defineStore("reader", {
         state.routes.prev = this._getRouteParams(book, page, "prev");
         state.routes.next = this._getRouteParams(book, page, "next");
       });
-      await this._setBookmarkPage(page).then(() => {
+      try {
+        await this._setBookmarkPage(page);
         this.bookChange = undefined;
-        return true;
-      });
+      } catch (error) {
+        /*
+         * Don't revert the local page — the user is reading
+         * forward; the bookmark catches up on the next call. But
+         * surface the failure to the console rather than letting
+         * it become an unhandled rejection: the previous code
+         * neither caught nor logged here, so a network blip
+         * silently lost the bookmark write.
+         */
+        console.warn("Bookmark write failed:", error);
+      }
     },
     setActivePage(page, reactWithScroll = true) {
       if (page < 0) {
