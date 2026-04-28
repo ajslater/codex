@@ -120,7 +120,10 @@ export const useSocketStore = defineStore("socket", () => {
 
   async function adminLoadTables(tables) {
     const adminStore = await getAdminStore();
-    adminStore?.loadTables(tables);
+    // Force-skip the admin store's sticky cache: a websocket
+    // fan-out fires precisely because the data changed on the
+    // server, so cached state is by definition stale.
+    adminStore?.loadTables(tables, { force: true });
   }
 
   async function adminLoadAllStatuses() {

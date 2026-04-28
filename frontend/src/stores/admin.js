@@ -13,6 +13,19 @@ const IRREGULAR_PLURALS = Object.freeze({
   // would work but we spell it out so nobody tacks on "s" by surprise.
   AgeRatingMetron: "AgeRatingMetrons",
 });
+
+// Sticky-cache TTL for admin table reads. Tab-swap navigation
+// inside the admin panel re-fires ``loadTables`` on mount; the
+// previous code refetched every time. With a short window we
+// serve the existing state for redundant reads while still
+// picking up changes from explicit invalidators (CRUD mutations
+// and websocket fan-out both pass ``{ force: true }``).
+const DYNAMIC_TTL_MS = 5_000;
+// AgeRatingMetron is a static enum lookup; once loaded it never
+// needs refreshing for the session.
+const TABLE_TTL_MS = Object.freeze({
+  AgeRatingMetron: Number.POSITIVE_INFINITY,
+});
 export const TABS = Object.freeze([
   "Users",
   "Groups",
@@ -86,8 +99,20 @@ export const useAdminStore = defineStore("admin", {
     _requireAdmin() {
       return !this.isUserAdmin;
     },
-    async loadTable(table) {
+    async loadTable(table, { force = false } = {}) {
       if (this._requireAdmin()) return false;
+      // Sticky-cache gate. Skip if we've loaded this table within
+      // the TTL window and the caller didn't explicitly demand a
+      // fresh read. CRUD mutations and websocket-driven refetches
+      // pass ``{ force: true }`` because they know the data
+      // changed underneath us.
+      if (!force) {
+        const ttl = TABLE_TTL_MS[table] ?? DYNAMIC_TTL_MS;
+        const last = this.timestamps[table] || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
       const pluralTable = getTablePlural(table);
       const apiFn = "get" + pluralTable;
       await API[apiFn]()
@@ -96,6 +121,7 @@ export const useAdminStore = defineStore("admin", {
             pluralTable.charAt(0).toLowerCase() + pluralTable.slice(1);
           if (Array.isArray(response.data)) {
             this[stateField] = response.data;
+            this.timestamps[table] = Date.now();
             return true;
           } else {
             console.warn(stateField, "response not an array");
@@ -104,10 +130,10 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(warnError);
     },
-    loadTables(tables) {
+    loadTables(tables, options) {
       if (this._requireAdmin()) return false;
       for (const table of tables) {
-        this.loadTable(table);
+        this.loadTable(table, options);
       }
     },
     async loadFolders(path, showHidden) {
@@ -130,7 +156,7 @@ export const useAdminStore = defineStore("admin", {
       await API[apiFn](data)
         .then(() => {
           commonStore.clearErrors();
-          return this.loadTable(table);
+          return this.loadTable(table, { force: true });
         })
         .catch(commonStore.setErrors);
     },
@@ -141,7 +167,7 @@ export const useAdminStore = defineStore("admin", {
       await API[apiFn](pk, data)
         .then(() => {
           commonStore.clearErrors();
-          return this.loadTable(table);
+          return this.loadTable(table, { force: true });
         })
         .catch(commonStore.setErrors);
     },
@@ -162,7 +188,7 @@ export const useAdminStore = defineStore("admin", {
       await API[apiFn](pk)
         .then(() => {
           commonStore.clearErrors();
-          return this.loadTable(table);
+          return this.loadTable(table, { force: true });
         })
         .catch(commonStore.setErrors);
     },
