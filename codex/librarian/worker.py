@@ -1,11 +1,17 @@
 """Mixin for common librarian thread attributes."""
 
-from multiprocessing.queues import Queue
-from typing import override
+from __future__ import annotations
 
-from loguru._logger import Logger
+from typing import TYPE_CHECKING, override
 
 from codex.librarian.status_controller import StatusController
+
+if TYPE_CHECKING:
+    # Type-hint-only — runtime imports stay lean across the nine
+    # librarian modules that import this chain.
+    from multiprocessing.queues import Queue
+
+    from loguru._logger import Logger
 
 
 class WorkerMixin:

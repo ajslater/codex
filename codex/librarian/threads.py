@@ -1,17 +1,25 @@
 """Abstract Thread worker for doing queued tasks."""
 
-import time
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from multiprocessing.queues import Queue
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import override
+from time import monotonic
+from typing import TYPE_CHECKING, override
 
 from django.db import close_old_connections
-from loguru._logger import Logger
 from setproctitle import setproctitle
 
 from codex.librarian.worker import WorkerStatusMixin
+
+if TYPE_CHECKING:
+    # Both type-hint-only — defer until type checkers run. Keeps
+    # the runtime import graph for ``threads.py`` lean across the
+    # nine librarian modules that import it.
+    from multiprocessing.queues import Queue
+
+    from loguru._logger import Logger
 
 
 class BreakLoopError(Exception):
@@ -116,12 +124,19 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the cache."""
         self.cache = {}
-        self._last_send = time.time()
+        # ``time.monotonic`` over ``time.time``: elapsed-time math
+        # (``monotonic() - self._last_send``) must not be affected by
+        # wall-clock jumps from NTP / daylight saving / manual
+        # adjustments. Slightly cheaper than ``time.time`` on most
+        # platforms (clock_gettime(CLOCK_MONOTONIC) vs gettimeofday)
+        # — the bigger win is correctness on the flush-timing path
+        # in subclasses like BookmarkThread / NotifierThread.
+        self._last_send = monotonic()
         super().__init__(*args, **kwargs)
 
     def set_last_send(self) -> None:
         """Set the last send time to now."""
-        self._last_send = time.time()
+        self._last_send = monotonic()
 
     @override
     def get_timeout(self):
@@ -148,7 +163,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def process_item(self, item) -> None:
         """Aggregate items and sleep in case there are more."""
         self.aggregate_items(item)
-        since_last_timed_out = time.time() - self._last_send
+        since_last_timed_out = monotonic() - self._last_send
         waited_too_long = since_last_timed_out > self.MAX_DELAY
         if waited_too_long:
             self.timed_out()
