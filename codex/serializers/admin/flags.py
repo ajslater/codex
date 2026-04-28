@@ -1,5 +1,7 @@
 """Admin flag serializers."""
 
+from typing import override
+
 from rest_framework.serializers import PrimaryKeyRelatedField, ValidationError
 
 from codex.choices.admin import AdminFlagChoices
@@ -19,6 +21,7 @@ class AdminFlagSerializer(BaseModelSerializer):
         required=False,
     )
 
+    @override
     def validate(self, attrs):
         """
         Per-flag value validation.
