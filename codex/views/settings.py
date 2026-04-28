@@ -8,7 +8,12 @@ from types import MappingProxyType
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from loguru import logger
 
-from codex.choices.browser import DEFAULT_BROWSER_ROUTE
+from codex.choices.admin import AdminFlagChoices
+from codex.choices.browser import (
+    BROWSER_TOP_GROUP_CHOICES,
+    admin_default_route_for,
+)
+from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
     SettingsBase,
@@ -20,6 +25,12 @@ from codex.models.settings import (
 )
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
+
+# Fallback top-group when the BG flag row is missing, off, or holds
+# an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
+# default; ``admin_default_route_for("p")`` yields the historical
+# ``/r/0/1`` redirect target.
+_FALLBACK_DEFAULT_TOP_GROUP = "p"
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -123,20 +134,57 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return instance
 
     @staticmethod
-    def _create_browser_settings(user, session_key, client, create_args):
-        """Create a SettingsBrowser with its related show/filters/last_route."""
+    def _get_admin_default_top_group() -> str:
+        """
+        Read the admin-configured default top group.
+
+        Returns the validated ``BROWSER_DEFAULT_GROUP`` flag value,
+        falling back to ``"p"`` if the row is missing, the flag is
+        off, or the value is out of range (defense against a
+        hand-edited DB / pre-migration state). ``"p"`` mirrors the
+        ``SettingsBrowser.top_group`` model default and resolves to
+        the historical ``/r/0/1`` redirect target.
+        """
+        try:
+            flag = AdminFlag.objects.only("on", "value").get(
+                key=AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
+            )
+        except AdminFlag.DoesNotExist:
+            return _FALLBACK_DEFAULT_TOP_GROUP
+        if flag.on and flag.value in BROWSER_TOP_GROUP_CHOICES:
+            return flag.value
+        return _FALLBACK_DEFAULT_TOP_GROUP
+
+    @classmethod
+    def _get_admin_default_route(cls) -> Mapping:
+        """Translate the admin default top group into a redirect target."""
+        return admin_default_route_for(cls._get_admin_default_top_group())
+
+    @classmethod
+    def _create_browser_settings(cls, user, session_key, client, create_args):
+        """
+        Create a SettingsBrowser with its related show/filters/last_route.
+
+        Sets ``top_group`` from the admin-configured default unless
+        the caller already supplied one. The override applies only on
+        row creation; ``_get_or_create_settings`` returns existing
+        rows before reaching this branch, so a returning user's
+        pinned ``top_group`` is never overwritten.
+        """
         show, _ = SettingsBrowserShow.objects.get_or_create(
             p=True,
             i=False,
             s=True,
             v=False,
         )
+        create_kwargs = dict(create_args)
+        create_kwargs.setdefault("top_group", cls._get_admin_default_top_group())
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,
             client=client,
             show=show,
-            **create_args,
+            **create_kwargs,
         )
         SettingsBrowserFilters.objects.create(browser=instance)
         SettingsBrowserLastRoute.objects.create(browser=instance)
@@ -275,10 +323,16 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return field.default
 
     def get_last_route(self) -> Mapping:
-        """Get the last route from the browser session."""
+        """
+        Get the last route from the browser session.
+
+        Returns the user's persisted last_route when available; falls
+        through to the admin-configured default for new users /
+        cleared-cookie users / anonymous-pre-navigation requests.
+        """
         if last_route := self.get_from_settings("last_route", browser=True):
             return last_route
-        return DEFAULT_BROWSER_ROUTE
+        return self._get_admin_default_route()
 
     @classmethod
     def get_browser_default_params(cls) -> dict:
