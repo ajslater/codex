@@ -16,18 +16,16 @@ class NotifierTask(LibrarianTask):
 
 
 ADMIN_FLAGS_CHANGED_TASK = NotifierTask(
-    Notifications.ADMIN_FLAGS.value, ChannelGroups.ALL.name
+    Notifications.ADMIN_FLAGS.value, ChannelGroups.ALL
 )
-COVERS_CHANGED_TASK = NotifierTask(Notifications.COVERS.value, ChannelGroups.ALL.name)
+COVERS_CHANGED_TASK = NotifierTask(Notifications.COVERS.value, ChannelGroups.ALL)
 FAILED_IMPORTS_CHANGED_TASK = NotifierTask(
-    Notifications.FAILED_IMPORTS.value, ChannelGroups.ADMIN.name
+    Notifications.FAILED_IMPORTS.value, ChannelGroups.ADMIN
 )
-GROUPS_CHANGED_TASK = NotifierTask(Notifications.GROUPS.value, ChannelGroups.ALL.name)
+GROUPS_CHANGED_TASK = NotifierTask(Notifications.GROUPS.value, ChannelGroups.ALL)
 LIBRARIAN_STATUS_TASK = NotifierTask(
-    Notifications.LIBRARIAN_STATUS.value, ChannelGroups.ADMIN.name
+    Notifications.LIBRARIAN_STATUS.value, ChannelGroups.ADMIN
 )
-LIBRARY_CHANGED_TASK = NotifierTask(Notifications.LIBRARY.value, ChannelGroups.ALL.name)
-USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ALL.name)
-ADMIN_USERS_CHANGED_TASK = NotifierTask(
-    Notifications.USERS.value, ChannelGroups.ADMIN.name
-)
+LIBRARY_CHANGED_TASK = NotifierTask(Notifications.LIBRARY.value, ChannelGroups.ALL)
+USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ALL)
+ADMIN_USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ADMIN)

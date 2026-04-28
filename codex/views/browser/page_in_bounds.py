@@ -50,9 +50,9 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     def check_page_in_bounds(self, num_pages: int) -> None:
         """Redirect page out of bounds."""
         page = self.kwargs.get("page", 1)
-        if page == 1 or (page >= 1 and page <= num_pages):
-            # Don't redirect if on the root page for the group.
-            # Or page within valid range.
+        if 1 <= page <= num_pages:
+            # Page within valid range (page == 1 is the root page,
+            # always valid even on a group with zero results).
             return
 
         self._handle_page_out_of_bounds(num_pages)

@@ -63,10 +63,7 @@ class BookmarkPageMixin(BookmarkAuthMixin):
         if TYPE_CHECKING:
             self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
         auth_filter = self.get_bookmark_auth_filter()
-        comic_pks = []
-        if comic_pk := self.kwargs.get("pk"):
-            comic_pks.append(comic_pk)
-        comic_pks = tuple(comic_pks)
+        comic_pks = (comic_pk,) if (comic_pk := self.kwargs.get("pk")) else ()
         page = self.kwargs.get("page")
         updates = {"page": page}
 

@@ -17,7 +17,7 @@ class BroadcastListener:
 
     _WS_DISCONNECT_EVENT = MappingProxyType(
         {
-            "group": ChannelGroups.ALL.name,
+            "group": ChannelGroups.ALL,
             "message": {
                 "type": "websocket_disconnect",
                 "code": WS_NORMAL_CLOSURE,

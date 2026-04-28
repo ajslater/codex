@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 def max_none(*args):
     """None aware math.max."""
-    return max(filter(lambda x: x is not None, args), default=None)
+    return max((x for x in args if x is not None), default=None)
 
 
 def mapping_to_dict(data) -> dict | set | frozenset | tuple | list:
@@ -18,12 +18,12 @@ def mapping_to_dict(data) -> dict | set | frozenset | tuple | list:
 
 
 def flatten(seq: tuple | list | frozenset | set):
-    """Flatten sequence."""
+    """Flatten sequence one level."""
     flattened = []
     for item in seq:
         if isinstance(item, tuple | list | set | frozenset):
             # To make recursive, instead of list could call flatten again
-            flattened.extend(list(item))
+            flattened.extend(item)
         else:
             flattened.append(item)
-    return seq.__class__(tuple(flattened))
+    return seq.__class__(flattened)

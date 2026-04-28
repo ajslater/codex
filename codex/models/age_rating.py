@@ -74,7 +74,7 @@ UNRANKED_METRON_INDEX: Final[int] = -1
 # the startup seeder.
 ALL_METRON_RATINGS: Final[tuple[tuple[str, int], ...]] = (
     (UNKNOWN_VALUE, UNRANKED_METRON_INDEX),
-    *tuple((name, idx) for idx, name in enumerate(METRON_RATING_ORDER)),
+    *((name, idx) for idx, name in enumerate(METRON_RATING_ORDER)),
 )
 
 # Process-lifetime cache of :attr:`AgeRatingMetron.pk` → :attr:`index`.

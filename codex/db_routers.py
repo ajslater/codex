@@ -8,17 +8,19 @@ class SilkRouter:
     SILK_DB = "silky"
     DEFAULT_DB = "default"
 
-    def db_for_read(self, model, **_hints):
-        """Read silk from the silky DB."""
+    def _db_for_silk(self, model):
+        """Return ``SILK_DB`` for silk's own models, else ``None``."""
         if model._meta.app_label == self.SILK_APP:
             return self.SILK_DB
         return None
 
+    def db_for_read(self, model, **_hints):
+        """Read silk from the silky DB."""
+        return self._db_for_silk(model)
+
     def db_for_write(self, model, **_hints):
         """Write silk to the silky DB."""
-        if model._meta.app_label == self.SILK_APP:
-            return self.SILK_DB
-        return None
+        return self._db_for_silk(model)
 
     def allow_relation(self, obj1, obj2, **_hints):
         """Silk never joins to app tables; allow all other relations."""

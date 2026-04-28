@@ -66,10 +66,9 @@ class BrowserOrderByView(BrowserGroupMtimeView):
 
         order_fields = (*order_fields_head, "pk")
 
+        # Empty prefix yields the same field name; the comprehension
+        # works for both reversed and forward order without branching.
         prefix = "-" if self.params.get("order_reverse") else ""
-        if prefix:
-            order_by = [prefix + field for field in order_fields]
-        else:
-            order_by = order_fields
+        order_by = [prefix + field for field in order_fields]
 
         return qs.order_by(*order_by)
