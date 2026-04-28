@@ -374,10 +374,20 @@ export const useReaderStore = defineStore("reader", {
         state.routes.prev = this._getRouteParams(book, page, "prev");
         state.routes.next = this._getRouteParams(book, page, "next");
       });
-      await this._setBookmarkPage(page).then(() => {
+      try {
+        await this._setBookmarkPage(page);
         this.bookChange = undefined;
-        return true;
-      });
+      } catch (error) {
+        /*
+         * Don't revert the local page — the user is reading
+         * forward; the bookmark catches up on the next call. But
+         * surface the failure to the console rather than letting
+         * it become an unhandled rejection: the previous code
+         * neither caught nor logged here, so a network blip
+         * silently lost the bookmark write.
+         */
+        console.warn("Bookmark write failed:", error);
+      }
     },
     setActivePage(page, reactWithScroll = true) {
       if (page < 0) {
@@ -482,8 +492,11 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       if (!arcs.length) {
-        // No arcs is a 500 from the mtime api
-        arcs.push({ r: "0" });
+        // No arcs is a 500 from the mtime api. Use the same
+        // ``{ group, pks }`` shape the loop above produces — the
+        // earlier ``{ r: "0" }`` was a typo that itself returned
+        // 500 from the API, so the fallback never actually worked.
+        arcs.push({ group: "r", pks: "0" });
       }
       return await COMMON_API.getMtime(arcs, {})
         .then((response) => {

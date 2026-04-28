@@ -78,13 +78,26 @@ export const useAuthStore = defineStore("auth", {
         })
         .catch(commonStore.setErrors);
     },
-    logout() {
-      API.logout()
-        .then(() => {
-          this.user = undefined;
-          return true;
-        })
-        .catch(console.error);
+    async logout() {
+      /*
+       * The user clicked "log out" — clear client-side state
+       * unconditionally so the menu and routes reflect the logged-
+       * out state immediately. Surface API errors to the console
+       * but don't let them block the local clear; the next
+       * server-side request will either succeed against a fresh
+       * session or 401 and prompt re-login.
+       *
+       * ``async`` so callers can ``await`` (they currently fire-
+       * and-forget, but the menu's UI feedback would benefit from
+       * knowing when the call resolves).
+       */
+      try {
+        await API.logout();
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.user = undefined;
+      }
     },
     async changePassword(credentials) {
       const changedCredentials = {

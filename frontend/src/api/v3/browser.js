@@ -89,11 +89,15 @@ const resetSettings = () => {
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
   const base = globalThis.CODEX.API_V3_PATH;
-  delete settings.show;
+  // Strip ``show`` without mutating the caller's settings object;
+  // the previous ``delete settings.show`` was a silent side-effect
+  // that broke any caller relying on its settings object surviving
+  // a download-URL build.
+  const { show: _show, ...query } = settings;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,
     pks,
-    query: settings,
+    query,
     ts,
   });
   fn = encodeURIComponent(fn);

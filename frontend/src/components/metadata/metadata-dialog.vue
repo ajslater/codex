@@ -106,6 +106,9 @@ export default {
       this.dialog = true;
     }
   },
+  beforeUnmount() {
+    clearTimeout(this._progressTimer);
+  },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     close() {
@@ -132,7 +135,13 @@ export default {
       if (this.progress >= 100 || this.md) {
         return;
       }
-      setTimeout(() => {
+      /*
+       * Stash the timer ID so ``beforeUnmount`` can clear it.
+       * Without that, closing the dialog mid-progress lets the
+       * chained setTimeout fire on a torn-down component, writing
+       * ``this.progress`` and re-scheduling against null refs.
+       */
+      this._progressTimer = setTimeout(() => {
         this.updateProgress();
       }, UPDATE_INTERVAL);
     },
