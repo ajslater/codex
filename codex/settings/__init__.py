@@ -16,6 +16,7 @@ from types import MappingProxyType
 
 from comicbox.config import get_config
 from comicbox.config.frozenattrdict import FrozenAttrDict
+from comicbox.schemas.comicbox.yaml import ComicboxYamlSubSchema
 from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
     CSP,
 )
@@ -725,27 +726,79 @@ create_custom_cover_group_dirs()
 # Comicbox #
 ############
 
+# Top-level comicbox fields the importer actually consumes. Source of
+# truth for the codex<->comicbox contract — the importer's
+# ``aggregate_path`` code drops anything outside this set, and the
+# ``delete_keys`` config below tells comicbox to skip parse work for
+# everything else.
+#
+# Three entries (``file_type``, ``metadata_mtime``, ``path``) are
+# codex-side extras populated by ``comicbox/process.py``'s ``_read_one``
+# rather than from the parsed metadata; they are intentionally not in
+# the ``ComicboxYamlSubSchema`` field set.
+USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
+    {
+        "age_rating",
+        "arcs",
+        "characters",
+        "collection_title",
+        "country",
+        "credits",
+        "critical_rating",
+        "date",
+        "file_type",  # codex-side extra
+        "genres",
+        "identifiers",
+        "imprint",
+        "issue",
+        "language",
+        "locations",
+        "metadata_mtime",  # codex-side extra
+        "monochrome",
+        "notes",
+        "original_format",
+        "path",  # codex-side extra
+        "page_count",
+        "protagonist",
+        "publisher",
+        "reading_direction",
+        "review",
+        "scan_info",
+        "series",
+        "series_groups",
+        "stories",
+        "summary",
+        "tagger",
+        "tags",
+        "teams",
+        "title",
+        "universes",
+        "volume",
+    }
+)
+
+# Tell comicbox to skip parse work for every top-level field codex
+# does not consume. Pages and reprints are short-circuited inside
+# their respective computed actions; the rest are excluded at schema
+# parse time and dropped post-merge as a backstop. Derived from the
+# live comicbox schema rather than hand-curated so a comicbox release
+# that adds a new top-level field is auto-deleted (codex maintainer
+# adds it to ``USED_COMICBOX_FIELDS`` if it's needed). Closes the
+# pre-existing ``cover_image`` gap.
+#
+# ``_declared_fields`` is the standard marshmallow class-level field
+# registry; it has been the public-by-convention enumeration surface
+# for marshmallow schemas since 3.x.
+_COMICBOX_DELETE_KEYS: frozenset[str] = frozenset(
+    ComicboxYamlSubSchema._declared_fields.keys()  # noqa: SLF001
+    - USED_COMICBOX_FIELDS
+)
+
 COMICBOX_CONFIG = FrozenAttrDict(
     get_config(
         {
             "loglevel": LOGLEVEL,
-            "delete_keys": frozenset(
-                {
-                    # Only pages and reprints are optimized away for sure with comicbox 2.0.2
-                    "alternate_images",
-                    "bookmark",
-                    "credit_primaries",
-                    "ext",
-                    "identifier_primary_source",
-                    "manga",
-                    "pages",
-                    "prices",
-                    "remainders",
-                    "reprints",
-                    "rights",
-                    "updated_at",
-                }
-            ),
+            "delete_keys": _COMICBOX_DELETE_KEYS,
         }
     )
 )
