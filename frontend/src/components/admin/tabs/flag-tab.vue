@@ -1,38 +1,55 @@
 <template>
-  <v-table id="flags-table" striped="odd">
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th>Value</th>
-        <th>Enabled</th>
-      </tr>
-    </thead>
-    <tbody
-      v-for="group in groupedFlags"
-      :key="`g${group.title}`"
-      class="flagGroup"
-    >
-      <tr class="flagGroupHeader">
-        <th colspan="3">{{ group.title }}</th>
-      </tr>
-      <tr v-for="item in group.items" :key="`f${item.key}`">
-        <td class="nameCol" :colspan="colspan(item)">
-          <div class="text-title-small title">{{ title(item) }}</div>
-          <p class="desc">
-            {{ DESC[item.key] }}
-          </p>
-        </td>
-        <td v-if="item.key === 'BT'" class="bannerTextField">
+  <div id="flags" class="adminContainer">
+    <div v-for="group in groupedFlags" :key="group.title" class="adminGroup">
+      <div class="adminGroupHeader">
+        <h3>{{ group.title }}</h3>
+      </div>
+      <div v-for="item in group.items" :key="`f${item.key}`" class="adminCard">
+        <div class="adminCardHeader">
+          <div class="adminCardInfo">
+            <div class="adminCardTitle">
+              {{ title(item) }}
+            </div>
+            <div class="adminCardDesc">
+              {{ DESC[item.key] }}
+            </div>
+          </div>
+          <div class="adminCardActions">
+            <v-checkbox
+              v-if="!hasValueControl(item)"
+              :model-value="item.on"
+              :true-value="true"
+              :error-messages="errors[item.key]"
+              hide-details="auto"
+              @update:model-value="changeCol(item.key, 'on', $event)"
+            />
+          </div>
+        </div>
+        <!--
+          Value-bearing flags (banner text, age-rating defaults,
+          default browser view) render their control in the card
+          body so the input/select gets the full card width without
+          jamming up against the title in the header.
+        -->
+        <div v-if="item.key === 'BT'" class="flagValueRow">
           <v-text-field
             :model-value="banner"
             label="Banner"
             clearable
             hide-details="auto"
+            density="compact"
             :error-messages="errors[item.key]"
             @update:model-value="banner = $event"
             @click:clear="banner = ''"
           />
-        </td>
+          <v-btn
+            variant="plain"
+            class="flagSaveButton"
+            :icon="mdiContentSaveOutline"
+            title="Save Banner"
+            @click="changeCol(item.key, 'value', banner)"
+          />
+        </div>
         <!--
           ``AA`` and ``AR`` bind to the typed FK (``ageRatingMetron``)
           on the flag row, not the legacy ``value`` string. The
@@ -40,7 +57,7 @@
           list loaded via the admin store — same source used on the
           Users tab — so there is no parallel static choices JSON.
         -->
-        <td v-else-if="item.key === 'AR'" class="ageRatingField">
+        <div v-else-if="item.key === 'AR'" class="flagValueRow">
           <v-select
             :model-value="item.ageRatingMetron"
             :items="ageRatingChoices"
@@ -48,11 +65,12 @@
             item-value="pk"
             label="Age Rating Default"
             hide-details="auto"
+            density="compact"
             :error-messages="errors[item.key]"
             @update:model-value="changeCol(item.key, 'ageRatingMetron', $event)"
           />
-        </td>
-        <td v-else-if="item.key === 'AA'" class="ageRatingField">
+        </div>
+        <div v-else-if="item.key === 'AA'" class="flagValueRow">
           <v-select
             :model-value="item.ageRatingMetron"
             :items="ageRatingChoices"
@@ -60,10 +78,11 @@
             item-value="pk"
             label="Anonymous Age Rating"
             hide-details="auto"
+            density="compact"
             :error-messages="errors[item.key]"
             @update:model-value="changeCol(item.key, 'ageRatingMetron', $event)"
           />
-        </td>
+        </div>
         <!--
           ``BG`` (Default View) reuses the existing ``TOP_GROUP``
           choices JSON so the seven labels stay in sync with the
@@ -71,42 +90,20 @@
           string column; the route-URL derivation happens server-
           side in ``admin_default_route_for``.
         -->
-        <td v-else-if="item.key === 'BG'" class="topGroupField">
+        <div v-else-if="item.key === 'BG'" class="flagValueRow">
           <v-select
             :model-value="item.value"
             :items="topGroupChoices"
             label="Default View"
             hide-details="auto"
+            density="compact"
             :error-messages="errors[item.key]"
             @update:model-value="changeCol(item.key, 'value', $event)"
           />
-        </td>
-        <td>
-          <v-btn
-            v-if="item.key === 'BT'"
-            variant="plain"
-            class="flagSaveButton"
-            :icon="mdiContentSaveOutline"
-            title="Save Banner"
-            @click="changeCol(item.key, 'value', banner)"
-          />
-          <template
-            v-else-if="
-              item.key === 'AR' || item.key === 'AA' || item.key === 'BG'
-            "
-          />
-          <v-checkbox
-            v-else
-            :model-value="item.on"
-            :true-value="true"
-            :error-messages="errors[item.key]"
-            hide-details="auto"
-            @update:model-value="changeCol(item.key, 'on', $event)"
-          />
-        </td>
-      </tr>
-    </tbody>
-  </v-table>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -119,6 +116,8 @@ import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import ADMIN_FLAG_GROUPS from "@/components/admin/tabs/flag-groups.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
+
+const VALUE_CONTROL_KEYS = new Set(["BT", "AR", "AA", "BG"]);
 
 export default {
   name: "AdminFlagsTab",
@@ -243,63 +242,31 @@ export default {
     title(item) {
       return ADMIN_FLAGS[item.key];
     },
-    colspan(item) {
-      return ["BT", "AR", "AA", "BG"].includes(item.key) ? 1 : 2;
+    hasValueControl(item) {
+      /*
+       * Banner-text, age-rating, and default-view flags render
+       * their input or select inside the card body. Their card
+       * suppresses the trailing checkbox in the header.
+       */
+      return VALUE_CONTROL_KEYS.has(item.key);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-#flags-table {
-  max-width: 100vw !important;
-  margin-bottom: 24px;
-  background-color: inherit;
-}
+@use "@/components/admin/tabs/admin-section.scss";
 
-.flagGroup + .flagGroup {
-  /* Margin between groups so the section breaks read clearly. */
-  margin-top: 1.5em;
-}
-
-.flagGroupHeader > th {
-  /* Section heading row spans the full table width. */
-  padding-top: 1.5em !important;
-  font-size: 1.05em;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-textPrimary));
-  border-bottom: 1px solid rgb(var(--v-theme-textSecondary));
-}
-
-.nameCol {
-  padding-top: 1em !important;
-}
-
-.title {
-  font-weight: bolder;
-}
-
-.desc {
-  margin-top: 1em;
-  margin-bottom: 0.5em;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.bannerTextField {
-  min-width: 16em;
-}
-
-.ageRatingField {
-  min-width: 12em;
-}
-
-.topGroupField {
-  min-width: 12em;
+.flagValueRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
 }
 
 .flagSaveButton {
   color: rgb(var(--v-theme-textSecondary));
-  padding-right: 12px;
+  flex-shrink: 0;
 }
 
 .flagSaveButton:hover {

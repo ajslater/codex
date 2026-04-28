@@ -1,0 +1,70 @@
+// Shared chrome for the admin Flags and Jobs tabs. Both render
+// the same shape — titled sections of item cards — and use
+// these primitives so the visual language stays unified.
+//
+// Tab-specific decoration (active-state left border, action
+// buttons, expand panels) layers on top from each tab's own
+// scoped styles.
+
+.adminContainer {
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.adminGroup + .adminGroup {
+  margin-top: 1.5em;
+}
+
+.adminGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25em;
+}
+
+.adminGroupHeader > h3 {
+  margin: 0;
+}
+
+.adminCard {
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 5px;
+  background-color: rgb(var(--v-theme-surface-light));
+  border-left: 3px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.adminCardActive {
+  border-left-color: rgb(var(--v-theme-primary));
+}
+
+.adminCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adminCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.adminCardTitle {
+  font-weight: 500;
+}
+
+.adminCardDesc {
+  color: rgb(var(--v-theme-textSecondary));
+  font-size: 0.85em;
+  padding-top: 2px;
+}
+
+.adminCardActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
