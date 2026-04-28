@@ -13,10 +13,13 @@ _PER_COMIC_BYTES = 16 * 1024
 # Floor stops chunk count from exploding on tiny hosts where the
 # per-chunk SQL overhead would dominate the per-comic work.
 _CHUNK_FLOOR = 1000
-# Ceiling caps a single chunk's working set on big-RAM hosts so an
-# integer-overflow-style chunk size doesn't blow past sensible
-# bounds.
-_CHUNK_CEILING = 50000
+# Ceiling is a safety net against ``get_mem_limit`` returning a
+# pathological value (misconfigured cgroup, broken sysconf, etc.) —
+# not a cap on normal operation. 500k is well above any realistic
+# library size, so a 32 / 64 GiB host stays in a single chunk for
+# typical runs while a misreported 1 PiB host can't compute a
+# stupendous chunk size that pessimizes recovery from abort.
+_CHUNK_CEILING = 500000
 
 _PRE_PHASES = ("init_apply", "move_and_modify_dirs")
 _PER_COMIC_PHASES = ("read", "query", "create_and_update", "link")
