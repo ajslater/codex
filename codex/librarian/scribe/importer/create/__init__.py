@@ -21,9 +21,13 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         Wrapped in ``transaction.atomic`` to coalesce the ~2000+
         bulk_create / bulk_update commits this phase generates into
         one fsync. The codex daemon already serializes writers via
-        ``db_write_lock``, so the long write transaction does not
+        ``db_write_lock``, so the long-write transaction does not
         starve other writers; readers under WAL never block on a
         writer regardless of transaction length.
+
+        Counts use ``+=`` so a chunked apply() loop can call
+        ``create_and_update`` once per chunk and still report a
+        correct total at finish.
         """
         if self.abort_event.is_set():
             return
@@ -32,7 +36,7 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
             if self.abort_event.is_set():
                 return
             fk_count += self.update_all_fks()
-            self.counts.tags = fk_count
+            self.counts.tags += fk_count
             if self.abort_event.is_set():
                 return
 
@@ -40,10 +44,10 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
             if self.abort_event.is_set():
                 return
             cover_count += self.update_custom_covers()
-            self.counts.covers = cover_count
+            self.counts.covers += cover_count
 
             if self.abort_event.is_set():
                 return
             comic_count = self.update_comics()
             comic_count += self.create_comics()
-            self.counts.comic = comic_count
+            self.counts.comic += comic_count
