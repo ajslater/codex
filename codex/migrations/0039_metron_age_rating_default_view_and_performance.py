@@ -92,6 +92,7 @@ from comicbox.enums.maps.age_rating import to_metron_age_rating
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.db import migrations, models
 from django.db.models.deletion import SET_NULL
+from django.db.models.functions import Trim
 
 import codex.models.fields
 
@@ -116,10 +117,14 @@ _ALL_METRON_RATINGS = (
     (MetronAgeRatingEnum.UNKNOWN.value, _UNRANKED),
     *tuple((name, idx) for idx, name in enumerate(_METRON_RATING_ORDER)),
 )
+# Sorted alphabetically by code so future additions can keep the
+# pattern. Mirrors ``codex.choices.admin.AdminFlagChoices`` plus the
+# new ``BG`` entry.
 _ADMIN_FLAG_KEY_CHOICES = [
     ("AA", "Anonymous User Age Rating"),
     ("AR", "Age Rating Default"),
     ("AU", "Auto Update"),
+    ("BG", "Default View"),
     ("BT", "Banner Text"),
     ("FV", "Folder View"),
     ("IM", "Import Metadata"),
@@ -138,6 +143,11 @@ _NEW_FTS_SQL = (
     "story_arcs, tags, teams, universes, sources"
     ")"
 )
+# Mirrors ``SettingsBrowser.top_group``'s model default. The
+# ``admin_default_route_for("p")`` helper resolves this to the
+# canonical ``/r/0/1`` redirect target — upgrade-day no-op for
+# every existing install.
+_DEFAULT_BROWSER_DEFAULT_GROUP_VALUE = "p"
 
 
 def _compute_metron_name_for(name):
@@ -264,6 +274,40 @@ def _noop(_apps, _schema_editor) -> None:
     """Reverse no-op (data migrations stay applied on rollback)."""
 
 
+def _strip_pycountry_names(apps, _schema_editor) -> None:
+    """Trim outer whitespace from Country.name and Language.name rows."""
+    # Country / Language are tiny lookup tables (< 250 rows each at
+    # the upper bound of pycountry's data), so the no-op cost of
+    # ``Trim`` over every row is negligible — cheaper than a regex
+    # pre-filter on SQLite.
+    for model_name in ("Country", "Language"):
+        model = apps.get_model("codex", model_name)
+        model.objects.update(name=Trim("name"))
+
+
+def _seed_browser_default_group_flag(apps, _schema_editor) -> None:
+    """
+    Insert the BG row with the default top-group value.
+
+    ``get_or_create`` so a re-run of the migration (or running it
+    against a DB that already had the row) is idempotent.
+    """
+    admin_flag = apps.get_model("codex", "AdminFlag")
+    admin_flag.objects.get_or_create(
+        key="BG",
+        defaults={
+            "on": True,
+            "value": _DEFAULT_BROWSER_DEFAULT_GROUP_VALUE,
+        },
+    )
+
+
+def _delete_browser_default_group_flag(apps, _schema_editor) -> None:
+    """Reverse the seed insert."""
+    admin_flag = apps.get_model("codex", "AdminFlag")
+    admin_flag.objects.filter(key="BG").delete()
+
+
 class Migration(migrations.Migration):
     """Metron-normalised age-rating data model with per-user ACL."""
 
@@ -272,6 +316,286 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name="adminflag",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="agerating",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="bookmark",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="character",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="country",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="credit",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="creditperson",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="creditrole",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="customcover",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="failedimport",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="folder",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="genre",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="groupauth",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="identifier",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="identifiersource",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="imprint",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="language",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="librarianstatus",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="library",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="location",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="originalformat",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="publisher",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="scaninfo",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="series",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="seriesgroup",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsbrowser",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsbrowserfilters",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsbrowserlastroute",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsbrowsershow",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsreader",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="story",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="storyarc",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="storyarcnumber",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="tag",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="tagger",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="team",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="timestamp",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="universe",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="volume",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
         # Create the canonical Metron lookup table.
         migrations.CreateModel(
             name="AgeRatingMetron",
@@ -324,6 +648,13 @@ class Migration(migrations.Migration):
         migrations.RunPython(_backfill_age_rating_metron_fk, _noop),
         # UserActive → UserAuth rename; then add the per-user ceiling FK.
         migrations.RenameModel(old_name="UserActive", new_name="UserAuth"),
+        migrations.AlterField(
+            model_name="userauth",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
+        ),
         migrations.AddField(
             model_name="userauth",
             name="age_rating_metron",
@@ -376,6 +707,18 @@ class Migration(migrations.Migration):
             field=models.IntegerField(default=None, null=True),
         ),
         migrations.AddIndex(
+            model_name="librarianstatus",
+            index=models.Index(
+                condition=models.Q(
+                    ("preactive__isnull", False),
+                    ("active__isnull", False),
+                    _connector="OR",
+                ),
+                fields=["preactive", "active"],
+                name="codex_libstat_active_idx",
+            ),
+        ),
+        migrations.AddIndex(
             model_name="comic",
             index=models.Index(
                 fields=("library", "age_rating_metron_index"),
@@ -395,6 +738,11 @@ class Migration(migrations.Migration):
         migrations.RunPython(_seed_anonymous_user_age_rating_flag, _noop),
         migrations.RunPython(_backfill_age_rating_metron_index, _noop),
         migrations.RunPython(_backfill_age_rating_metron_flag_fk, _noop),
+        migrations.RunPython(_strip_pycountry_names, _noop),
+        migrations.RunPython(
+            _seed_browser_default_group_flag,
+            _delete_browser_default_group_flag,
+        ),
         # ComicFTS is unmanaged; its Django state tracks only (comic,
         # created_at, updated_at). The FTS columns are a SQL-level concern —
         # no state_operations are needed, only a raw DROP + CREATE.
