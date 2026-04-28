@@ -10,7 +10,6 @@ import { mapActions, mapState } from "pinia";
 
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -55,22 +54,21 @@ export default {
       },
     },
   },
-  async created() {
-    this.loadAdminFlags();
+  created() {
     /*
-     * Boot phase: kick off the independent network requests in
-     * parallel. Pre-warming ``loadOPDSURLs`` here means the OPDS
-     * dialog opens against cached state instead of waiting on a
-     * round-trip when the user clicks the button. ``allSettled``
-     * (rather than ``all``) so a failure in one — e.g. the
-     * /opds-urls endpoint returning 401 before auth lands —
-     * doesn't suppress the others. ``setTimezone`` was previously
-     * chained off ``loadProfile`` here, but the ``user`` /
-     * ``nonUsers`` watchers cover both paths and avoid the
-     * double-fire that the chain caused on every authenticated
-     * boot.
+     * Boot phase: kick off the independent cold-start network
+     * requests at once. ``allSettled`` (rather than ``all``) so
+     * a failure in one — e.g. /admin-flags returning 401 before
+     * auth lands — doesn't suppress the other. Each store action
+     * already swallows its own errors via ``.catch`` so a failed
+     * promise here is purely informational.
+     *
+     * ``setTimezone`` was previously chained off
+     * ``loadProfile``, but the ``user`` / ``nonUsers`` watchers
+     * cover both auth paths and avoid the double-fire that the
+     * chain caused on every authenticated boot.
      */
-    Promise.allSettled([this.loadProfile(), this.loadOPDSURLs()]);
+    Promise.allSettled([this.loadAdminFlags(), this.loadProfile()]);
   },
   methods: {
     ...mapActions(useAuthStore, [
@@ -78,7 +76,6 @@ export default {
       "loadProfile",
       "setTimezone",
     ]),
-    ...mapActions(useCommonStore, ["loadOPDSURLs"]),
   },
 };
 </script>

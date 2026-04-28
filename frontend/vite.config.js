@@ -66,6 +66,40 @@ const config = defineConfig(({ mode }) => {
       rollupOptions: {
         // No need for index.html
         input: path.resolve("./src/main.js"),
+        output: {
+          manualChunks(id) {
+            /*
+             * Pin Vue + Pinia + Vue Router into a stable
+             * ``vendor-vue`` chunk. Loaded eagerly regardless
+             * (it's in the main bundle pre-split), but rarely
+             * changes between codex releases — most updates
+             * touch app code. Cached visitors save the Vue
+             * runtime download on every release thereafter.
+             *
+             * Vuetify itself is intentionally left to Vite's
+             * automatic chunking. A blanket
+             * ``node_modules/vuetify`` rule would pull every
+             * Vuetify component used anywhere into the eager
+             * bundle — including admin-only ones a typical
+             * visitor never loads. The auto-split keeps
+             * multi-route Vuetify in a shared chunk while
+             * route-specific components stay in the route's
+             * lazy chunk.
+             *
+             * @mdi/js is left to Vite's auto-split for the
+             * same reason: pre-split it lands in its own ~17 KB
+             * chunk that's already stable across releases.
+             */
+            if (
+              id.includes("/node_modules/vue/") ||
+              id.includes("/node_modules/@vue/") ||
+              id.includes("/node_modules/pinia/") ||
+              id.includes("/node_modules/vue-router/")
+            ) {
+              return "vendor-vue";
+            }
+          },
+        },
       },
       sourcemap: DEV,
     },
