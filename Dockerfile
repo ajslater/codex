@@ -90,7 +90,7 @@ VOLUME /app/frontend/src/choices
 
 # ---- Stage 3: wheel-installer (compile native extensions) ------------------
 FROM builder-base AS wheel-installer
-ARG CODEX_WHEEL
+ARG CODEX_WHEEL=unbuilt
 COPY dist/${CODEX_WHEEL} /tmp/${CODEX_WHEEL}
 # hadolint ignore=DL3059,DL3013
 RUN PYMUPDF_SETUP_PY_LIMITED_API=0 pip3 install --no-cache-dir /tmp/${CODEX_WHEEL}
@@ -118,7 +118,7 @@ RUN set -eux \
 
 # ---- Stage 4: final (production image) ------------------------------------
 FROM ghcr.io/ajslater/python-debian:3.14.4-slim-trixie_0 AS final
-ARG CODEX_VERSION
+ARG CODEX_VERSION=dev
 LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.description="Codex Comic Server" \
     org.opencontainers.image.version="${CODEX_VERSION}" \
