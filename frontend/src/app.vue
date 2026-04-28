@@ -16,15 +16,38 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
+      /*
+       * Kiosk mode: no per-user account but the server still
+       * wants the visitor's timezone for display. Watching this
+       * flag alongside ``user`` lets us cover both auth paths
+       * without double-firing setTimezone on first authenticated
+       * load.
+       */
+      nonUsers: (state) => state.adminFlags?.nonUsers,
     }),
   },
   watch: {
-    user(to) {
-      if (to) {
-        this.setTimezone();
-        // If the user changes resubscribe to channels.
-        useSocketStore().reopen();
-      }
+    user: {
+      immediate: true,
+      handler(to) {
+        if (to) {
+          this.setTimezone();
+          /* If the user changes resubscribe to channels. */
+          useSocketStore().reopen();
+        }
+      },
+    },
+    nonUsers: {
+      immediate: true,
+      handler(to) {
+        /*
+         * Kiosk path only — when there's a real user the
+         * ``user`` watcher above already covers setTimezone.
+         */
+        if (to && !this.user) {
+          this.setTimezone();
+        }
+      },
     },
   },
   async created() {
@@ -36,12 +59,13 @@ export default {
      * round-trip when the user clicks the button. ``allSettled``
      * (rather than ``all``) so a failure in one — e.g. the
      * /opds-urls endpoint returning 401 before auth lands —
-     * doesn't suppress the others.
+     * doesn't suppress the others. ``setTimezone`` was previously
+     * chained off ``loadProfile`` here, but the ``user`` /
+     * ``nonUsers`` watchers cover both paths and avoid the
+     * double-fire that the chain caused on every authenticated
+     * boot.
      */
-    Promise.allSettled([
-      this.loadProfile().then(() => this.setTimezone()),
-      this.loadOPDSURLs(),
-    ]);
+    Promise.allSettled([this.loadProfile(), this.loadOPDSURLs()]);
   },
   methods: {
     ...mapActions(useAuthStore, [
