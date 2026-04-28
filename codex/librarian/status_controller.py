@@ -151,6 +151,39 @@ class StatusController:
 
         self.log.log(level, f"{prefix}{suffix}.")
 
+    @staticmethod
+    def _build_finish_filter(
+        positive_statii: MappingProxyType[str, Status | type[Status]],
+    ) -> Q:
+        """
+        Build the ``WHERE`` filter for the finish-many UPDATE.
+
+        Specific statuses get finished unconditionally by
+        ``status_type`` (don't require active/preactive — subtasks
+        may have already been individually finished). The empty
+        case is a clear-all that only touches rows currently active.
+        """
+        if positive_statii:
+            return Q(status_type__in=positive_statii.keys())
+        return Q(active__isnull=False) | Q(preactive__isnull=False)
+
+    def _log_finished(
+        self,
+        positive_statii: MappingProxyType[str, Status | type[Status]],
+    ) -> None:
+        """Log per-status finish lines (or a clear-all summary)."""
+        if not positive_statii:
+            self.log.info("Cleared all librarian statuses")
+            return
+        for status in positive_statii.values():
+            if isinstance(status, type):
+                # ``finish_many`` accepts both Status classes and
+                # instances. Class entries are placeholders used by
+                # ``start_many`` for ordering — no per-instance state
+                # to log.
+                continue
+            self._log_finish(status)
+
     def finish_many(
         self,
         statii: Iterable[Status | type[Status] | None],
@@ -162,43 +195,23 @@ class StatusController:
             MappingProxyType({status.CODE: status for status in statii if status})
         )
         try:
-            # Construct update query
+            # If statii has elements but they were all None, this is a
+            # noop. If statii was empty this is a finish-all command.
+            # This fires an extra LIBRARIAN_STATUS notification if none.
+            # idk if that's appropriate.
             if statii and not positive_statii:
-                # if statii has elements but they were all None, this is a noop.
-                # But if statii was empty this is a finish all command.
-                # This fires an extra LIBRARIAN_STATUS notification if none. idk if that's appropriate.
                 return
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
-            if positive_statii:
-                # Finish specific statuses unconditionally by status_type.
-                # Don't require active/preactive to be set — subtasks may
-                # have already been individually finished.
-                ls_filter = Q(status_type__in=positive_statii.keys())
-            else:
-                # Clear-all: only touch rows that are currently active.
-                ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
-
+            ls_filter = self._build_finish_filter(positive_statii)
             # Single round-trip update. The previous shape captured a
             # ``.values()`` queryset for per-status logging, but
             # ``values()`` yields ``dict`` rows which the
-            # ``isinstance(row, Status)`` guard below would always
-            # reject — the log branch never fired despite the cost
-            # of the SELECT. Iterate ``positive_statii.values()``
-            # directly instead: those are the ``Status`` instances
-            # the caller passed in, no second SELECT required.
+            # ``isinstance(row, Status)`` guard would always reject —
+            # the log branch never fired despite the cost of the
+            # SELECT. ``_log_finished`` iterates the caller-supplied
+            # instances directly instead.
             LibrarianStatus.objects.filter(ls_filter).update(**updates)
-
-            if positive_statii:
-                for status in positive_statii.values():
-                    if isinstance(status, type):
-                        # ``finish_many`` accepts both Status classes
-                        # and instances. Class entries are placeholders
-                        # used by ``start_many`` for ordering — no
-                        # per-instance state to log.
-                        continue
-                    self._log_finish(status)
-            else:
-                self.log.info("Cleared all librarian statuses")
+            self._log_finished(positive_statii)
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
         finally:

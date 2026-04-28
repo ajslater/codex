@@ -53,6 +53,43 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
         count = importer.bulk_folders_moved(mark_in_progress=True)
         return True, count
 
+    def _converge_orphan_folders_for_library(self, library) -> int:
+        """
+        Run capped convergence passes on one library; return total count moved.
+
+        Pre-fix this was a bare ``while folders_left:`` that could
+        run forever if the importer kept failing to actually move
+        folders (permission errors, FS races, etc.) — only the
+        external abort_event broke the loop.
+        """
+        library_total = 0
+        for _ in range(_ADOPT_FOLDERS_MAX_PASSES):
+            if self.abort_event.is_set():
+                return library_total
+            folders_left, count = self._adopt_orphan_folders_for_library(library)
+            library_total += count
+            if not folders_left:
+                return library_total
+        # Cap reached without convergence and no abort — warn so the
+        # operator notices that folders may be unreachable or
+        # unwriteable.
+        if not self.abort_event.is_set():
+            cap = _ADOPT_FOLDERS_MAX_PASSES
+            self.log.warning(
+                f"Adopt orphan folders for {library.path} hit {cap}-pass cap"
+                " without converging — folders may be unreachable or unwriteable."
+            )
+        return library_total
+
+    def _finalize_adopt_orphan_folders(self, total_count: int) -> None:
+        """Queue downstream notifications and log abort state."""
+        if total_count:
+            self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+            self.librarian_queue.put(SearchIndexSyncTask())
+        if self.abort_event.is_set():
+            self.log.debug("Adopt Orphan Folders aborted early.")
+        self.abort_event.clear()
+
     def adopt_orphan_folders(self) -> None:
         """Find orphan folders and move them into their correct place."""
         self.abort_event.clear()
@@ -63,34 +100,9 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
             self.status_controller.start_many((status, moved_status))
             libraries = Library.objects.filter(covers_only=False).only("path")
             for library in libraries.iterator():
-                converged = False
-                # Capped convergence loop. Pre-fix this was a bare
-                # ``while folders_left:`` that could run forever if the
-                # importer kept failing to actually move folders
-                # (permission errors, FS races, etc.) — only the
-                # external abort_event broke the loop.
-                for _ in range(_ADOPT_FOLDERS_MAX_PASSES):
-                    if self.abort_event.is_set():
-                        return
-                    folders_left, count = self._adopt_orphan_folders_for_library(
-                        library
-                    )
-                    total_count += count
-                    if not folders_left:
-                        converged = True
-                        break
-                if not converged and not self.abort_event.is_set():
-                    cap = _ADOPT_FOLDERS_MAX_PASSES
-                    self.log.warning(
-                        f"Adopt orphan folders for {library.path} hit {cap}-pass cap without converging — folders may be unreachable or unwriteable."
-                    )
+                if self.abort_event.is_set():
+                    return
+                total_count += self._converge_orphan_folders_for_library(library)
         finally:
             self.status_controller.finish_many((moved_status, status))
-            if total_count:
-                self.librarian_queue.put(LIBRARY_CHANGED_TASK)
-                task = SearchIndexSyncTask()
-                self.librarian_queue.put(task)
-            if self.abort_event.is_set():
-                self.log.debug("Adopt Orphan Folders aborted early.")
-
-            self.abort_event.clear()
+            self._finalize_adopt_orphan_folders(total_count)

@@ -154,6 +154,28 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             count += self._cleanup_fks_model(model, filter_dict, status)
         return count
 
+    def _converge_cleanup_fks(self, status) -> bool:
+        """
+        Run capped convergence passes inside the write lock + transaction.
+
+        Returns True if the loop converged (a pass with zero count) or
+        the abort event triggered. Returns False only if the cap was
+        hit without convergence — caller logs a warning.
+
+        Hold ``db_write_lock`` across all passes so a concurrent
+        importer can't re-introduce a parent FK between the check
+        that found it orphaned and the DELETE that removes it. The
+        integrity-check writers in ``integrity/`` use the same
+        pattern; cleanup was previously missing it.
+        """
+        with self.db_write_lock, transaction.atomic():
+            for _ in range(_FK_CLEANUP_MAX_PASSES):
+                if self.abort_event.is_set():
+                    return True
+                if not self._cleanup_fks_one_level(status):
+                    return True
+        return False
+
     def cleanup_fks(self) -> None:
         """
         Clean up unused foreign keys.
@@ -173,24 +195,12 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up orphan tags...")
-            # Hold ``db_write_lock`` across all passes so a concurrent
-            # importer can't re-introduce a parent FK between the
-            # check that found it orphaned and the DELETE that removes
-            # it. The integrity-check writers in ``integrity/`` use the
-            # same pattern; cleanup was previously missing it.
-            converged = False
-            with self.db_write_lock, transaction.atomic():
-                for _ in range(_FK_CLEANUP_MAX_PASSES):
-                    if self.abort_event.is_set():
-                        return
-                    count = self._cleanup_fks_one_level(status)
-                    if not count:
-                        converged = True
-                        break
+            converged = self._converge_cleanup_fks(status)
             if not converged and not self.abort_event.is_set():
                 cap = _FK_CLEANUP_MAX_PASSES
                 self.log.warning(
-                    f"FK cleanup hit {cap}-pass cap without converging — investigate the reverse-relation map or the data graph."
+                    f"FK cleanup hit {cap}-pass cap without converging"
+                    " — investigate the reverse-relation map or the data graph."
                 )
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
