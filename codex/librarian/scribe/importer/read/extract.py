@@ -146,6 +146,74 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self.status_controller.update(status)
         return False
 
+    def _init_extract_status(
+        self,
+        status: ImporterReadComicsStatus | None,
+        total_paths: int,
+    ) -> ImporterReadComicsStatus:
+        """Reset/create the read-comics status object for an extract pass."""
+        if status is None:
+            return ImporterReadComicsStatus(0, total_paths)
+        status.complete = 0
+        status.total = total_paths
+        self.status_controller.update(status)
+        return status
+
+    def _apply_filesystem_prefilter(
+        self,
+        all_paths: frozenset[str],
+        all_old_comic_mtimes: MappingProxyType[str, datetime],
+        status: ImporterReadComicsStatus,
+    ) -> frozenset[str]:
+        """
+        Skip archive-open cost via filesystem stat mtime pre-filter.
+
+        Worker still rechecks the embedded mtime for paths that pass
+        through, so a touch-without-content-change still short-circuits
+        inside the worker.
+        """
+        if not all_old_comic_mtimes:
+            return all_paths
+        paths_to_extract, prefilter_skipped = self._filesystem_mtime_prefilter(
+            all_paths, all_old_comic_mtimes
+        )
+        if prefilter_skipped:
+            self.metadata[SKIPPED].update(prefilter_skipped)
+            skipped_n = len(prefilter_skipped)
+            self.log.debug(
+                f"Skipped archive open for {skipped_n} comics via filesystem mtime pre-filter."
+            )
+            status.increment_complete(skipped_n)
+            self.status_controller.update(status)
+        return paths_to_extract
+
+    def _run_extract_loop(
+        self,
+        paths_to_extract: frozenset[str],
+        all_old_comic_mtimes: MappingProxyType[str, datetime],
+        all_old_comic_values: MappingProxyType[str, dict[str, str | int]],
+        status: ImporterReadComicsStatus,
+        *,
+        import_metadata: bool,
+    ) -> None:
+        """Stream the comicbox extraction results into the metadata dict."""
+        for path, value in iter_process_files(
+            paths_to_extract,
+            config=COMICBOX_CONFIG,
+            logger=self.log,
+            worker_log_config={
+                "level": LOGLEVEL,
+                "format": CODEX_LOG_FORMAT,
+                "sink": "stdout",  # comicbox only accepts one sink
+            },
+            old_mtime_map=all_old_comic_mtimes,
+            full_metadata=import_metadata,
+        ):
+            if self._extract_post_process_comic(
+                path, value, all_old_comic_values, status
+            ):
+                break
+
     def extract_metadata(self, status=None) -> int:
         """Extract comic metadata into memory."""
         count = 0
@@ -161,12 +229,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self.task.files_modified = frozenset()
         self.task.files_created = frozenset()
         total_paths = len(all_paths)
-        if not status:
-            status = ImporterReadComicsStatus(0, total_paths)
-        else:
-            status.complete = 0
-            status.total = total_paths
-            self.status_controller.update(status)
+        status = self._init_extract_status(status, total_paths)
 
         try:
             if not total_paths:
@@ -177,47 +240,20 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             )
             self.status_controller.start(status, notify=True)
 
-            # Set import_metadata flag
             import_metadata = self._get_import_metadata_flag()
             all_old_comic_mtimes, all_old_comic_values = self._get_all_old_comic_values(
                 all_paths
             )
-
-            # Pre-filter against the archive file's stat mtime so we can
-            # skip the archive-open cost for files unchanged on disk.
-            # Worker still rechecks the embedded mtime for paths that
-            # pass through, so a touch-without-content-change still
-            # short-circuits inside the worker.
-            paths_to_extract = all_paths
-            if all_old_comic_mtimes:
-                paths_to_extract, prefilter_skipped = self._filesystem_mtime_prefilter(
-                    all_paths, all_old_comic_mtimes
-                )
-                if prefilter_skipped:
-                    self.metadata[SKIPPED].update(prefilter_skipped)
-                    skipped_n = len(prefilter_skipped)
-                    self.log.debug(
-                        f"Skipped archive open for {skipped_n} comics via filesystem mtime pre-filter."
-                    )
-                    status.increment_complete(skipped_n)
-                    self.status_controller.update(status)
-
-            for path, value in iter_process_files(
+            paths_to_extract = self._apply_filesystem_prefilter(
+                all_paths, all_old_comic_mtimes, status
+            )
+            self._run_extract_loop(
                 paths_to_extract,
-                config=COMICBOX_CONFIG,
-                logger=self.log,
-                worker_log_config={
-                    "level": LOGLEVEL,
-                    "format": CODEX_LOG_FORMAT,
-                    "sink": "stdout",  # comicbox only accepts one sink
-                },
-                old_mtime_map=all_old_comic_mtimes,
-                full_metadata=import_metadata,
-            ):
-                if self._extract_post_process_comic(
-                    path, value, all_old_comic_values, status
-                ):
-                    break
+                all_old_comic_mtimes,
+                all_old_comic_values,
+                status,
+                import_metadata=import_metadata,
+            )
 
             skipped_count = len(self.metadata[SKIPPED])
             count = total_paths - skipped_count
