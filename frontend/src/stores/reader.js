@@ -29,6 +29,34 @@ const PREFETCH_LINK = Object.freeze({ rel: "prefetch", as: "image" });
  * even on omnibus-sized books.
  */
 const PREFETCH_WINDOW = 50;
+/*
+ * Debounce window for bookmark writes. Vertical scrolling fires
+ * page-change events as the user passes through pages; the
+ * server only needs the final position. Coalescing wrap-up
+ * within this window means a 20-page rapid scroll fires a
+ * single PATCH instead of 20.
+ */
+const BOOKMARK_DEBOUNCE_MS = 1000;
+let _bookmarkTimer = 0;
+let _pendingBookmarkStore;
+let _pendingBookmarkPage;
+
+function _runPendingBookmark() {
+  _bookmarkTimer = 0;
+  const store = _pendingBookmarkStore;
+  const page = _pendingBookmarkPage;
+  _pendingBookmarkStore = undefined;
+  _pendingBookmarkPage = undefined;
+  if (!store || page === undefined) return;
+  store._setBookmarkPage(page).catch((error) => {
+    /*
+     * Don't revert local page state — the user is reading
+     * forward; the bookmark catches up on the next call. Log
+     * so a network blip doesn't silently lose the write.
+     */
+    console.warn("Bookmark write failed:", error);
+  });
+}
 export const VERTICAL_READING_DIRECTIONS = Object.freeze(
   new Set(["ttb", "btt"]),
 );
@@ -390,25 +418,43 @@ export const useReaderStore = defineStore("reader", {
         next: this._getBookRoute(nextBook, false),
       };
     },
-    async setRoutesAndBookmarkPage(page) {
+    setRoutesAndBookmarkPage(page) {
       const book = this.books.current;
       this.$patch((state) => {
         state.routes.prev = this._getRouteParams(book, page, "prev");
         state.routes.next = this._getRouteParams(book, page, "next");
       });
-      try {
-        await this._setBookmarkPage(page);
-        this.bookChange = undefined;
-      } catch (error) {
-        /*
-         * Don't revert the local page — the user is reading
-         * forward; the bookmark catches up on the next call. But
-         * surface the failure to the console rather than letting
-         * it become an unhandled rejection: the previous code
-         * neither caught nor logged here, so a network blip
-         * silently lost the bookmark write.
-         */
-        console.warn("Bookmark write failed:", error);
+      this.bookChange = undefined;
+      this._scheduleBookmarkWrite(page);
+    },
+    _scheduleBookmarkWrite(page) {
+      /*
+       * Coalesce rapid page changes into a single bookmark
+       * write. Vertical scrolling fires intersect-observer
+       * events as the user passes through pages; the server
+       * only needs the final position. The debounce timer
+       * resets on every call, so the write fires
+       * ``BOOKMARK_DEBOUNCE_MS`` after the user stops
+       * advancing.
+       */
+      _pendingBookmarkStore = this;
+      _pendingBookmarkPage = page;
+      if (_bookmarkTimer) globalThis.clearTimeout(_bookmarkTimer);
+      _bookmarkTimer = globalThis.setTimeout(
+        _runPendingBookmark,
+        BOOKMARK_DEBOUNCE_MS,
+      );
+    },
+    flushBookmarkWrite() {
+      /*
+       * Force any pending bookmark write to fire immediately.
+       * Call from book-close / reader-unmount paths so the
+       * server lands the user's final position without waiting
+       * out the debounce window.
+       */
+      if (_bookmarkTimer) {
+        globalThis.clearTimeout(_bookmarkTimer);
+        _runPendingBookmark();
       }
     },
     setActivePage(page, reactWithScroll = true) {
