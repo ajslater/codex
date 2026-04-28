@@ -122,6 +122,32 @@ class StatusController:
             return
         self._update(status, notify=notify)
 
+    def _log_finish(self, status: Status) -> None:
+        """Log finish of status with stats."""
+        level = "INFO"
+        suffix = ""
+        if elapsed := status.elapsed():
+            suffix += f" in {elapsed}"
+        if status.SINGLE:
+            count = ""
+        elif count := status.complete:
+            count = str(count)
+            if persecond := status.per_second():
+                suffix += f" at a rate of {persecond}"
+        else:
+            count = "no"
+            level = "DEBUG"
+
+        if status.log_success:
+            level = "SUCCESS"
+
+        prefix_parts = filter(
+            None, (status.verbed(), count, status.ITEM_NAME, status.subtitle)
+        )
+        prefix = " ".join(prefix_parts)
+
+        self.log.log(level, f"{prefix}{suffix}.")
+
     def finish_many(
         self,
         statii: Iterable[Status | type[Status] | None],
@@ -149,16 +175,26 @@ class StatusController:
                 # Clear-all: only touch rows that are currently active.
                 ls_filter = Q(active__isnull=False) | Q(preactive__isnull=False)
 
-            # Single round-trip — the previous shape captured a
-            # ``.values()`` queryset for "individual reporting" but the
-            # downstream iteration over it (in the now-removed
-            # ``_finish_many_log``) checked ``isinstance(row, Status)``
-            # against ``values()`` outputs that are always ``dict``,
-            # so the per-status branch never fired. Dropping the
-            # capture saves a SELECT per ``finish_many`` call (= one
-            # per task completion across the librarian).
+            # Single round-trip update. The previous shape captured a
+            # ``.values()`` queryset for per-status logging, but
+            # ``values()`` yields ``dict`` rows which the
+            # ``isinstance(row, Status)`` guard below would always
+            # reject — the log branch never fired despite the cost
+            # of the SELECT. Iterate ``positive_statii.values()``
+            # directly instead: those are the ``Status`` instances
+            # the caller passed in, no second SELECT required.
             LibrarianStatus.objects.filter(ls_filter).update(**updates)
-            if not positive_statii:
+
+            if positive_statii:
+                for status in positive_statii.values():
+                    if isinstance(status, type):
+                        # ``finish_many`` accepts both Status classes
+                        # and instances. Class entries are placeholders
+                        # used by ``start_many`` for ordering — no
+                        # per-instance state to log.
+                        continue
+                    self._log_finish(status)
+            else:
                 self.log.info("Cleared all librarian statuses")
         except Exception:
             self.log.exception(f"Finish status {positive_statii}")
