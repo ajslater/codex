@@ -41,6 +41,12 @@ class ScribeThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
     SHUTDOWN_MSG = (0, QueuedThread.SHUTDOWN_MSG)
+    # Importer / janitor / search bursts are minutes-to-hours apart on
+    # a typical install. Releasing the conn between bursts saves an
+    # open file handle + ~50 KiB pinned for the entire idle gap; the
+    # ~5-20 ms reopen cost on the next task is invisible against the
+    # work that follows.
+    CLOSE_DB_BETWEEN_TASKS = True
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize abort event."""
