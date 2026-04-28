@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-from os import environ
+from os import cpu_count, environ
 from pathlib import Path
 from types import MappingProxyType
 
@@ -160,6 +160,23 @@ IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
 # Limit: 448, 400 is safe.
 IMPORTER_UPDATE_COMIC_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.update_comic_batch_size", default=400
+)
+
+##############################
+# Codex Config: Librarian    #
+##############################
+
+# Worker count for the cover-creation ProcessPoolExecutor. The image
+# pipeline (comicbox file read + PIL LANCZOS resize + WEBP encode) is
+# CPU-bound and trivially parallel across cover targets. Default to
+# the smaller of the box's CPU count and 8 - the cap bounds peak RAM
+# (each worker holds PIL + comicbox + the open image, ~50-100 MB
+# under load). Memory-tight installs (e.g. NAS with 1-2 GB total)
+# should set this to 2.
+COVER_WORKERS = get_int(
+    CODEX_CONFIG,
+    "librarian.cover_workers",
+    default=min(cpu_count() or 1, 8),
 )
 
 ##############################

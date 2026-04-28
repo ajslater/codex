@@ -3,10 +3,11 @@
 import os
 from abc import ABC
 from collections.abc import Collection
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import BytesIO
-from multiprocessing.queues import Queue
 from pathlib import Path
 from time import time
+from typing import override
 
 from comicbox.box import Comicbox
 from humanize import naturaldelta
@@ -14,11 +15,9 @@ from PIL import Image
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CreateCoversStatus
-from codex.librarian.covers.tasks import CoverSaveToCache
-from codex.librarian.status import Status
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
-from codex.settings import COMICBOX_CONFIG
+from codex.settings import COMICBOX_CONFIG, COVER_WORKERS
 
 _PID = os.getpid()
 _COVER_RATIO = 1.5372233400402415  # modal cover ratio
@@ -27,83 +26,75 @@ THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 
 
+def _render_cover_thumb(args: tuple) -> tuple[int, str, bytes, str | None]:
+    """
+    Render one cover thumbnail. Picklable; runs inside a worker subprocess.
+
+    Accepts a pre-resolved ``(pk, db_path, cover_path_str, custom)``
+    tuple — workers don't touch the Django ORM. Returns
+    ``(pk, cover_path_str, thumb_bytes, error_msg_or_None)``. The
+    parent thread does the disk write and status update.
+
+    On failure, returns ``thumb_bytes=b""`` so the parent's
+    ``save_cover_to_cache`` writes the existing zero-byte
+    ``tried-and-failed`` sentinel.
+    """
+    pk, db_path, cover_path_str, custom = args
+    try:
+        if custom:
+            with Path(db_path).open("rb") as f:
+                image_data = f.read()
+        else:
+            with Comicbox(db_path, config=COMICBOX_CONFIG) as car:
+                image_data = car.get_cover_page(pdf_format="pixmap")
+        if not image_data:
+            return pk, cover_path_str, b"", "empty cover"
+        with BytesIO(image_data) as image_io, Image.open(image_io) as img:
+            img.thumbnail(
+                _THUMBNAIL_SIZE,
+                Image.Resampling.LANCZOS,
+                reducing_gap=3.0,
+            )
+            buf = BytesIO()
+            img.save(buf, "WEBP", method=6)
+        return pk, cover_path_str, buf.getvalue(), None
+    except Exception as exc:
+        return pk, cover_path_str, b"", repr(exc)
+
+
 class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
     """Create methods for covers."""
 
-    @classmethod
-    def _create_cover_thumbnail(cls, cover_image_data) -> BytesIO:
-        """Isolate the save thumbnail function for leak detection."""
-        cover_thumb_buffer = BytesIO()
-        with BytesIO(cover_image_data) as image_io:
-            with Image.open(image_io) as cover_image:
-                cover_image.thumbnail(
-                    _THUMBNAIL_SIZE,
-                    Image.Resampling.LANCZOS,
-                    reducing_gap=3.0,
-                )
-                cover_image.save(cover_thumb_buffer, "WEBP", method=6)
-            cover_image.close()  # extra close for animated sequences
-        return cover_thumb_buffer
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize the lazy-built worker pool slot."""
+        super().__init__(*args, **kwargs)
+        self._cover_pool: ProcessPoolExecutor | None = None
 
-    @classmethod
-    def _get_comic_cover_image(cls, comic_path, log):
+    def _get_cover_pool(self) -> ProcessPoolExecutor:
         """
-        Create comic cover if none exists.
+        Lazy-build the cover-rendering ProcessPoolExecutor.
 
-        Return image thumb data or path to missing file thumb.
+        Cold-start cost is ~1-2 s per subprocess (fork + import
+        Django + PIL + comicbox), so amortize across the thread's
+        lifetime: spawn on first use, keep alive until the thread
+        stops. ``CODEX_COVER_WORKERS`` (env / TOML
+        ``librarian.cover_workers``) caps the worker count.
         """
-        with Comicbox(comic_path, config=COMICBOX_CONFIG, logger=log) as car:
-            image_data = car.get_cover_page(pdf_format="pixmap")
-        if not image_data:
-            reason = "Read empty cover"
-            raise ValueError(reason)
-        return image_data
+        if self._cover_pool is None:
+            self._cover_pool = ProcessPoolExecutor(max_workers=COVER_WORKERS)
+        return self._cover_pool
 
-    @classmethod
-    def _get_custom_cover_image(cls, cover_path):
-        """Get cover image from image file."""
-        with Path(cover_path).open("rb") as f:
-            return f.read()
-
-    @classmethod
-    def create_cover_from_path(
-        cls,
-        pk: int,
-        cover_path: str,
-        log,
-        librarian_queue: Queue,
-        *,
-        custom: bool,
-        db_path: str | None = None,
-    ) -> BytesIO | None:
-        """
-        Create cover for path; enqueue a CoverSaveToCache task.
-
-        ``db_path`` may be supplied by callers that already batch-
-        resolved the comic / custom-cover filesystem path. When
-        absent, falls back to a single-row SELECT — kept so existing
-        in-process callers don't have to change.
-        """
-        try:
-            if db_path is None:
-                model = CustomCover if custom else Comic
-                db_path = model.objects.only("path").get(pk=pk).path
-            if custom:
-                cover_image = cls._get_custom_cover_image(db_path)
-            else:
-                cover_image = cls._get_comic_cover_image(db_path, log)
-            thumb_buffer = cls._create_cover_thumbnail(cover_image)
-            thumb_bytes = thumb_buffer.getvalue()
-            thumb_buffer.seek(0)
-        except Exception as exc:
-            thumb_bytes = b""
-            thumb_buffer = None
-            cover_str = db_path or f"{pk=}"
-            log.warning(f"Could not create cover thumbnail for {cover_str}: {exc}")
-
-        task = CoverSaveToCache(cover_path, thumb_bytes)
-        librarian_queue.put(task)
-        return thumb_buffer
+    @override
+    def stop(self) -> None:
+        """Stop the thread and shut down the worker pool."""
+        if self._cover_pool is not None:
+            # Don't wait for outstanding tasks; the thread is
+            # shutting down and any in-flight cover work would just
+            # be discarded by the consumer (re-rendered on next
+            # request via the 202-poll path).
+            self._cover_pool.shutdown(wait=False, cancel_futures=True)
+            self._cover_pool = None
+        super().stop()
 
     def save_cover_to_cache(self, cover_path_str: str, data) -> None:
         """Save cover thumb image to the disk cache."""
@@ -155,35 +146,43 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         model = CustomCover if custom else Comic
         return dict(model.objects.filter(pk__in=pks).values_list("pk", "path"))
 
-    def _bulk_create_comic_cover(
+    def _build_cover_work_items(
         self,
-        pk: int,
-        cover_path: Path,
-        db_path: str | None,
-        status: Status,
+        pks: Collection[int],
+        db_paths: dict[int, str],
         *,
         custom: bool,
-    ) -> None:
-        if db_path is None:
-            # Pk vanished between _resolve_db_paths and dispatch
-            # (importer race). Skip without a hard error.
-            status.decrement_total()
-        else:
-            data = self.create_cover_from_path(
-                pk,
-                str(cover_path),
-                self.log,
-                self.librarian_queue,
-                custom=custom,
-                db_path=db_path,
-            )
-            if data:
-                data.close()
-            status.increment_complete()
-        self.status_controller.update(status)
+    ) -> list[tuple[int, str, str, bool]]:
+        """
+        Pair each pk with its db_path and target cover_path.
+
+        Skips pks whose db_path went missing (importer race).
+        """
+        work: list[tuple[int, str, str, bool]] = []
+        for pk in pks:
+            db_path = db_paths.get(pk)
+            if db_path is None:
+                continue
+            cover_path_str = str(self.get_cover_path(pk, custom=custom))
+            work.append((pk, db_path, cover_path_str, custom))
+        return work
 
     def _bulk_create_comic_covers(self, pks, *, custom: bool) -> int:
-        """Create bulk comic covers."""
+        """
+        Create bulk comic covers.
+
+        Image-decode + LANCZOS resize + WEBP encode is CPU-bound and
+        embarrassingly parallel across cover targets. Submit each
+        target to a ``ProcessPoolExecutor`` and write results from
+        the parent thread as workers complete via ``as_completed``.
+
+        The parent owns disk writes (``save_cover_to_cache``) so the
+        existing atomic-replace + zero-byte sentinel semantics stay
+        intact. Workers return ``(pk, cover_path_str, thumb_bytes,
+        error_msg_or_None)`` — never raise across the pickle
+        boundary; failures surface as ``thumb_bytes=b""`` plus an
+        error message logged in the parent.
+        """
         # Up-front filter: drop pks that already have a cover on
         # disk. The remaining set is what we actually need to work
         # on.
@@ -194,21 +193,32 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         # Single batched ``pk -> path`` map covers the full set of
         # work items; no per-cover SELECT inside the loop.
         db_paths = self._resolve_db_paths(pending_pks, custom=custom)
-        status = CreateCoversStatus(0, num_comics)
+        work_items = self._build_cover_work_items(pending_pks, db_paths, custom=custom)
+        # Race-window adjustment: if some pks vanished between
+        # _resolve_db_paths and now, skip them silently in the status.
+        skipped = num_comics - len(work_items)
+        status = CreateCoversStatus(0, len(work_items))
         try:
             start_time = time()
-            self.log.debug(f"Creating {num_comics} comic covers...")
+            self.log.debug(f"Creating {len(work_items)} comic covers...")
             self.status_controller.start(status)
-            for pk in pending_pks:
-                cover_path = self.get_cover_path(pk, custom=custom)
-                self._bulk_create_comic_cover(
-                    pk, cover_path, db_paths.get(pk), status, custom=custom
-                )
+            pool = self._get_cover_pool()
+            futures = [pool.submit(_render_cover_thumb, w) for w in work_items]
+            for future in as_completed(futures):
+                pk, cover_path_str, thumb_bytes, err = future.result()
+                self.save_cover_to_cache(cover_path_str, thumb_bytes)
+                if err:
+                    self.log.warning(
+                        f"Could not create cover thumbnail for pk={pk}: {err}"
+                    )
+                status.increment_complete()
+                self.status_controller.update(status)
             desc = "custom" if custom else "comic"
             count = status.complete
             level = "INFO" if count else "DEBUG"
             elapsed = naturaldelta(time() - start_time)
-            self.log.log(level, f"Created {count} {desc} covers in {elapsed}.")
+            extra = f" ({skipped} skipped)" if skipped else ""
+            self.log.log(level, f"Created {count} {desc} covers in {elapsed}{extra}.")
         finally:
             self.status_controller.finish(status)
         return status.complete or 0
