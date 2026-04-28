@@ -28,7 +28,7 @@
     <StatsTable title="User Settings" :items="userSettingsTable" />
     <StatsTable title="Browser Groups" :items="browserGroupsTable" />
     <StatsTable title="File Types" :items="fileTypesTable" />
-    <StatsTable title="Metadata" :items="metadataTable" />
+    <StatsTable title="Tags" :items="metadataTable" />
   </div>
 </template>
 
