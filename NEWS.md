@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.10.14
+
+- Fixes
+    - Various small frontend fixes
+
 ## v1.10.13
 
 - Fixes
