@@ -2,7 +2,7 @@
 
 from itertools import chain
 from types import MappingProxyType
-from typing import Any, override
+from typing import Any, cast, override
 
 from caseconverter import snakecase
 from django.db.models import Exists, F, QuerySet
@@ -175,7 +175,12 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         early_data: dict[str, bool] = {}
         aggregates: dict[str, Exists] = {}
         m2m_specs: dict[str, str] = {}
-        serializer: BrowserFilterChoicesSerializer = self.serializer_class()  # pyright: ignore[reportOptionalCall, reportAssignmentType], # ty: ignore[call-non-callable, invalid-assignment]
+        # ``serializer_class`` is typed ``type[BaseSerializer] | None`` on
+        # the parent ViewSet but this subclass always sets it.
+        serializer_cls = cast(
+            "type[BrowserFilterChoicesSerializer]", self.serializer_class
+        )
+        serializer = serializer_cls()
         for field_name in serializer.get_fields():
             if field_name == "story_arcs" and qs.model is StoryArc:
                 # don't allow filtering on story arc in story arc view.

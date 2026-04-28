@@ -109,15 +109,25 @@ class AuthGenericAPIView(AuthMixin, GenericAPIView):  # pyright: ignore[reportIn
 class IsAdminMixin:
     """Expose lazy ``is_admin`` check for the current request user."""
 
+    # Class-level default doubles as the unmemoized sentinel; the
+    # mixin no longer needs ``init_is_admin`` to set it before use.
+    _is_admin: bool | None = None
+
+    if TYPE_CHECKING:
+        # ``self.request`` is supplied by the DRF view base class
+        # at dispatch; declare the attribute for the mixin so the
+        # property body type-checks without requiring a parent.
+        request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
+
     def init_is_admin(self) -> None:
         """Initialize the cached admin flag."""
-        self._is_admin: bool | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._is_admin = None
 
     @property
     def is_admin(self) -> bool:
         """Is the current user an admin."""
         if self._is_admin is None:
-            user = self.request.user  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            user = self.request.user
             self._is_admin = bool(user and getattr(user, "is_staff", False))
         return self._is_admin
 
@@ -342,16 +352,22 @@ class GroupACLMixin(IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin):
     exactly three bookkeeping queries total instead of three-per-model.
     """
 
+    # Class-level defaults double as the unmemoized sentinels.
+    # Lazily populated on first access via ``get_visible_library_pks``
+    # / ``get_max_idx`` / ``get_default_fits``. Each is populated at
+    # most once per request; subsequent ``get_acl_filter`` calls for
+    # other models reuse the cached value. ``init_group_acl`` resets
+    # them between requests.
+    _cached_visible_library_pks: frozenset[int] | None = None
+    _cached_max_idx: int | None = None
+    _cached_default_fits: bool | None = None
+
     def init_group_acl(self) -> None:
         """Initialize per-request cached scalars."""
         self.init_is_admin()
-        # Lazily populated on first access via ``get_visible_library_pks``
-        # / ``get_max_idx`` / ``get_default_fits``. Each is populated at
-        # most once per request; subsequent ``get_acl_filter`` calls for
-        # other models reuse the cached value.
-        self._cached_visible_library_pks: frozenset[int] | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
-        self._cached_max_idx: int | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
-        self._cached_default_fits: bool | None = None  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._cached_visible_library_pks = None
+        self._cached_max_idx = None
+        self._cached_default_fits = None
 
     def get_visible_library_pks(self, user) -> frozenset[int]:
         """Return the per-request cached visible library pk set."""
