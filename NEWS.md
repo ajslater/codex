@@ -9,10 +9,10 @@ border-radius: 128px;
 ## v1.10.14
 
 - Fixes
-    - Various small frontend fixes
     - OPDS auth challenges now include the WWW-Authenticate header and the
       application/opds-authentication+json Content-Type so clients like Panels
       reliably prompt for credentials.
+    - Various small frontend fixes
 
 ## v1.10.13
 
