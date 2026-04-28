@@ -133,7 +133,13 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         create_tuples = self.metadata[CREATE_FKS].pop(model, None)
         if not create_tuples:
             return count
-        status.subtitle = model._meta.verbose_name_plural
+        # ``verbose_name_plural`` is a ``gettext_lazy`` __proxy__,
+        # not a real ``str``. The Status dataclass annotates
+        # ``subtitle: str``; force the conversion at assignment so
+        # downstream consumers (notably ``" ".join`` in
+        # ``StatusController._log_finish``) don't crash on the
+        # proxy.
+        status.subtitle = str(model._meta.verbose_name_plural)
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         parent_pk_maps = self._build_parent_fk_pk_maps(model)
@@ -212,7 +218,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         update_tuples = self.metadata[UPDATE_FKS].pop(model, None)
         if not update_tuples:
             return count
-        status.subtitle = model._meta.verbose_name_plural
+        # See ``_bulk_create_models`` — same lazy-proxy coercion.
+        status.subtitle = str(model._meta.verbose_name_plural)
         self.status_controller.update(status)
         key_args_map, update_args_map = MODEL_CREATE_ARGS_MAP[model]
         parent_pk_maps = self._build_parent_fk_pk_maps(model)
