@@ -130,11 +130,17 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(warnError);
     },
-    loadTables(tables, options) {
+    async loadTables(tables, options) {
       if (this._requireAdmin()) return false;
-      for (const table of tables) {
-        this.loadTable(table, options);
-      }
+      // ``Promise.all`` so every fetch runs concurrently and the
+      // returned promise resolves only once they've all settled.
+      // Previously this was a fire-and-forget for-loop: callers
+      // that awaited it received a synchronous ``undefined`` and
+      // could observe an admin tab's state mid-load (some tables
+      // populated, some still empty), which presented as flicker.
+      return await Promise.all(
+        tables.map((table) => this.loadTable(table, options)),
+      );
     },
     async loadFolders(path, showHidden) {
       if (this._requireAdmin()) return false;
