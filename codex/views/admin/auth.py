@@ -1,18 +1,22 @@
 """Admin Auth."""
 
 from collections.abc import Sequence
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAdminUser, _PermissionClass
+from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+
+if TYPE_CHECKING:
+    # _PermissionClass exists only in djangorestframework-stubs, not at runtime.
+    from rest_framework.permissions import _PermissionClass
 
 
 class AdminAuthMixin:
     """Admin Authorization Classes."""
 
-    permission_classes: ClassVar[Sequence[_PermissionClass]] = (IsAdminUser,)
+    permission_classes: ClassVar[Sequence["_PermissionClass"]] = (IsAdminUser,)
 
 
 class AdminAPIView(AdminAuthMixin, APIView):
