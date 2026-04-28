@@ -72,7 +72,7 @@ export default {
     return {
       mdiOpenInNew,
       expanded: false,
-      mounted: false,
+      isOverflow: false,
     };
   },
   computed: {
@@ -113,16 +113,6 @@ export default {
     textValueRefName() {
       const name = "mdTextValue" + this.label.replaceAll(" ", "");
       return name;
-    },
-    isOverflow() {
-      if (!this.mounted) {
-        return false;
-      }
-      const el = this.$refs[this.textValueRefName];
-      if (!el) {
-        return false;
-      }
-      return el.clientHeight < el.scrollHeight;
     },
     showExpandButton() {
       return !this.expanded && this.maxHeight > 0 && this.isOverflow;
@@ -186,7 +176,30 @@ export default {
     },
   },
   mounted() {
-    this.mounted = true;
+    /*
+     * Defer the overflow measurement to the next frame. The
+     * previous code computed ``isOverflow`` from a getter that
+     * read ``clientHeight`` and ``scrollHeight`` — measurement
+     * properties that force a synchronous layout flush. Reading
+     * them during render mixes the measurement into Vue's
+     * commit phase; deferring to ``requestAnimationFrame`` runs
+     * after the browser's natural layout pass and lets every
+     * sibling field in the metadata dialog batch into one
+     * reflow rather than each forcing its own.
+     */
+    this._overflowFrame = globalThis.requestAnimationFrame(() => {
+      this._overflowFrame = 0;
+      const el = this.$refs[this.textValueRefName];
+      if (el) {
+        this.isOverflow = el.clientHeight < el.scrollHeight;
+      }
+    });
+  },
+  beforeUnmount() {
+    if (this._overflowFrame) {
+      globalThis.cancelAnimationFrame(this._overflowFrame);
+      this._overflowFrame = 0;
+    }
   },
   methods: {
     ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
