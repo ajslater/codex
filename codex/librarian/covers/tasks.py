@@ -25,14 +25,6 @@ class CoverRemoveTask(CoverTask):
     custom: bool
 
 
-@dataclass
-class CoverSaveToCache(CoverTask):
-    """Write cover to disk."""
-
-    cover_path: str
-    data: bytes
-
-
 class CoverCreateAllTask(CoverTask):
     """A create all comic covers."""
 
