@@ -9,7 +9,6 @@ from typing import Any, Final, override
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-from rest_framework.serializers import empty
 
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import Timestamp
@@ -50,14 +49,11 @@ class AdminStatsView(AdminGenericAPIView):
 
             input_serializer = self.input_serializer_class(data=data)
             input_serializer.is_valid(raise_exception=True)
-            self._params = MappingProxyType(
-                {
-                    key: value
-                    for key, value in input_serializer.validated_data.items()
-                    if input_serializer.validated_data
-                    and not isinstance(input_serializer.validated_data, empty)
-                }
-            )
+            # ``validated_data`` is always a populated dict at this
+            # point (``is_valid(raise_exception=True)`` guarantees it),
+            # so a per-item guard checking the parent for emptiness was
+            # dead code. Wrap directly.
+            self._params = MappingProxyType(dict(input_serializer.validated_data))
         return self._params
 
     def _add_api_key(self, obj) -> None:

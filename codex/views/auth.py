@@ -422,7 +422,7 @@ class AuthToken(AuthGenericAPIView):
 
         token, created = Token.objects.get_or_create(user=user)
         if created:
-            logger.info("Auth Token created for user {self.user}")
+            logger.info(f"Auth Token created for user {user}")
         data = {"token": token.key}
 
         return Response(data)
@@ -436,6 +436,6 @@ class AuthToken(AuthGenericAPIView):
 
         Token.objects.filter(user=user).delete()
         token, _ = Token.objects.get_or_create(user=user)
-        logger.info("Auth Token updated for user {self.user}")
+        logger.info(f"Auth Token updated for user {user}")
         data = {"token": token.key}
         return Response(data)
