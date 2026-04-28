@@ -71,6 +71,7 @@ eggs/
 env.bak/
 env/
 ENV/
+frontend/bundle-stats.html
 frontend/components.d.ts
 frontend/coverage
 frontend/src/choices/

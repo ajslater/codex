@@ -5,6 +5,7 @@
   "description": "ui for codex api",
   "type": "module",
   "scripts": {
+    "analyze": "vite build --mode analyze",
     "build": "vite build",
     "coverage": "vitest run --coverage",
     "dev": "vite dev",
@@ -38,6 +39,7 @@
     "@vue/test-utils": "^2.4.9",
     "@vue/typescript-plugin": "^3.2.7",
     "happy-dom": "^20.9.0",
+    "rollup-plugin-visualizer": "^7.0.1",
     "sass": "^1.99.0",
     "sass-loader": "^16.0.7",
     "toml": "^4.1.1",

@@ -1,5 +1,6 @@
 import { Unhead } from "@unhead/vue/vite";
 import vue from "@vitejs/plugin-vue";
+import { visualizer } from "rollup-plugin-visualizer";
 import checker from "vite-plugin-checker";
 import fs from "fs";
 import { hostname } from "os";
@@ -37,6 +38,12 @@ console.info(defineObj);
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
+  // ``--mode analyze`` opts into a one-shot bundle-size report.
+  // Run via ``bun run analyze``; opens ``frontend/bundle-stats.html``
+  // with the treemap of every chunk and which modules contribute to
+  // it. Used by tasks/frontend-perf/05-bundle-and-startup.md when
+  // tuning the manualChunks split.
+  const ANALYZE = mode === "analyze";
   // https://github.com/vitejs/vite/issues/19242
   const ALLOWED_HOSTS = DEV ? [hostname().toLowerCase()] : [];
   let publicPathPrefix = "window.CODEX.APP_PATH";
@@ -50,7 +57,11 @@ const config = defineConfig(({ mode }) => {
     build: {
       emptyOutDir: true,
       manifest: "manifest.json",
-      minify: PROD,
+      // ``analyze`` is a production-shape build but with the
+      // visualizer plugin attached. Keep minify on so the chunk
+      // sizes the visualizer reports match what users actually
+      // download.
+      minify: PROD || ANALYZE,
       outDir: path.resolve("../codex/static_build"),
       rollupOptions: {
         // No need for index.html
@@ -91,6 +102,17 @@ const config = defineConfig(({ mode }) => {
         },
       ]),
       Unhead(),
+      // Bundle-size visualizer. Treemap output goes next to the
+      // vite config rather than into the published static_build
+      // dir so it stays a dev-only artifact.
+      ANALYZE &&
+        visualizer({
+          filename: path.resolve("./bundle-stats.html"),
+          template: "treemap",
+          gzipSize: true,
+          brotliSize: true,
+          open: true,
+        }),
       //     ValidatePlugin(),
     ],
     publicDir: false,
