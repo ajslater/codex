@@ -68,11 +68,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
     def create_cover_from_path(
         cls, pk: int, cover_path: str, log, librarian_queue: Queue, *, custom: bool
     ) -> BytesIO | None:
-        """
-        Create cover for path.
-
-        Called from views/cover.
-        """
+        """Create cover for path; enqueue a CoverSaveToCache task."""
         db_path = None
         try:
             model = CustomCover if custom else Comic

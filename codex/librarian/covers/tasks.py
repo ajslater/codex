@@ -5,17 +5,14 @@ from dataclasses import dataclass
 from codex.librarian.tasks import LibrarianTask
 
 
-@dataclass
 class CoverTask(LibrarianTask):
     """Handle with the CoverThread."""
 
 
-@dataclass
 class CoverRemoveAllTask(CoverTask):
     """Remove all comic covers."""
 
 
-@dataclass
 class CoverRemoveOrphansTask(CoverTask):
     """Clean up covers from missing comics."""
 
@@ -36,7 +33,6 @@ class CoverSaveToCache(CoverTask):
     data: bytes
 
 
-@dataclass
 class CoverCreateAllTask(CoverTask):
     """A create all comic covers."""
 
