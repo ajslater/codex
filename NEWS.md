@@ -20,6 +20,14 @@ border-radius: 128px;
     - Cover thumbnail generation now uses multiprocessing and seeds covers on
       import.
 
+## v1.10.14
+
+- Fixes
+    - OPDS auth challenges now include the WWW-Authenticate header and the
+      application/opds-authentication+json Content-Type so clients like Panels
+      reliably prompt for credentials.
+    - Various small frontend fixes
+
 ## v1.10.13
 
 - Fixes

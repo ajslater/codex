@@ -4,11 +4,10 @@ import hashlib
 import json
 from copy import deepcopy
 from types import MappingProxyType
-from typing import Any, ClassVar, Final, override
+from typing import Any, Final, override
 
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.serializers import empty
 
@@ -34,7 +33,7 @@ _CACHE_KEY_PREFIX: Final = "admin-stats:"
 class AdminStatsView(AdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list[type[BasePermission]]] = [HasAPIKeyOrIsAdminUser]
+    permission_classes = (HasAPIKeyOrIsAdminUser,)
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
