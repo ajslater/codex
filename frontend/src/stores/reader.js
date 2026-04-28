@@ -190,8 +190,20 @@ export const useReaderStore = defineStore("reader", {
         return {};
       }
       if (!(book.pk in this.bookSettings)) {
-        // Mask the book settings over intermediate over global settings.
-        const resultSettings = structuredClone(SETTINGS_NULL_VALUES);
+        /*
+         * Mask the book settings over intermediate over global
+         * settings into a fresh accumulator. The previous code
+         * cloned ``SETTINGS_NULL_VALUES`` here, but that
+         * constant is a ``Set`` of null-ish sentinels used by
+         * the loop below to filter — not a defaults object.
+         * Cloning it produced a ``Set`` with extra string keys
+         * tacked on, which worked by accident because JS lets
+         * you add fields to any object and ``Object.entries``
+         * iterates the bag-like properties. Replace with an
+         * empty object: same behavior, no per-call clone, no
+         * shape confusion.
+         */
+        const resultSettings = {};
         let bookSettings = book?.settings || {};
         bookSettings = this.setReadRTLInReverse(bookSettings);
         const allSettings = [
