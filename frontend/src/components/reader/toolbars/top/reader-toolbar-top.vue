@@ -10,7 +10,7 @@
         <v-toolbar-items>
           <v-btn
             ref="closeBook"
-            class="closeBook"
+            class="closeBook text-uppercase"
             :to="closeRoute"
             size="large"
             density="compact"
@@ -186,7 +186,6 @@ export default {
 .closeBook {
   padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
   color: rgb(var(--v-theme-textPrimary));
-  text-transform: uppercase;
 }
 
 .readerTitle {
