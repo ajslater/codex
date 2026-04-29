@@ -15,9 +15,12 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.adminTable :deep(thead > tr > th, .adminTable tbody > tr:nth-child(even)) {
-  background-color: rgb(var(--v-theme-background)) !important;
-}
+// The rule that previously sat here was malformed: a comma inside
+// ``:deep(...)`` rooted under ``.adminTable`` (a class never applied
+// to this component or any caller). The selector matched nothing and
+// the row striping/header background it claimed to set came entirely
+// from the Vuetify ``v-data-table-virtual`` defaults below it.
+// Deleted as dead code; the visible result is unchanged.
 :deep(.adminNoData) {
   padding: 1em;
   text-align: center;

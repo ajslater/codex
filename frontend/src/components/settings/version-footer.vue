@@ -95,6 +95,6 @@ export default {
 }
 
 #warning {
-  color: rgb(230, 189, 13);
+  color: rgb(var(--v-theme-warning));
 }
 </style>

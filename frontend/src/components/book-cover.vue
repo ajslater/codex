@@ -182,20 +182,20 @@ export default {
 }
 
 .stack2 {
-  box-shadow: 3px 3px #606060;
+  box-shadow: 3px 3px bookcover.$stack-shadow-1;
 }
 
 .stack3 {
   box-shadow:
-    3px 3px #606060,
-    6px 6px #404040;
+    3px 3px bookcover.$stack-shadow-1,
+    6px 6px bookcover.$stack-shadow-2;
 }
 
 .stack4 {
   box-shadow:
-    3px 3px #606060,
-    6px 6px #404040,
-    9px 9px #202020;
+    3px 3px bookcover.$stack-shadow-1,
+    6px 6px bookcover.$stack-shadow-2,
+    9px 9px bookcover.$stack-shadow-3;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

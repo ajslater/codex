@@ -88,6 +88,7 @@ export default {
       required: true,
     },
   },
+  emits: ["cancel", "confirm"],
   data() {
     return {
       showDialog: false,

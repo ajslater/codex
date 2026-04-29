@@ -236,6 +236,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@forward "./expansion-panel-overrides";
+
 :deep(.v-expansion-panel) {
   background-color: rgb(var(--v-theme-background));
 }
@@ -257,10 +259,6 @@ export default {
   font-size: 0.75rem;
   font-weight: normal;
   opacity: 0.7;
-}
-
-:deep(.v-expansion-panel-title--active) {
-  min-height: 48px !important;
 }
 
 :deep(.v-expansion-panel--active:not(:first-child)) {

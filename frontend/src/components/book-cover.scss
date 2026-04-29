@@ -4,3 +4,10 @@ $cover-width: 165px;
 $cover-height: math.round(calc($cover-ratio * $cover-width));
 $small-cover-width: 100px;
 $small-cover-height: math.round(calc($cover-ratio * $small-cover-width));
+
+// Stacked-cover shadow tones, progressively darker so the eye reads
+// a deck of pages. Tuned for the codex dark theme (always-dark by
+// design, see plugins/vuetify.js).
+$stack-shadow-1: #606060;
+$stack-shadow-2: #404040;
+$stack-shadow-3: #202020;
