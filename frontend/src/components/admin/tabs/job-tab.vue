@@ -139,6 +139,22 @@
                 >
                   <div class="statusHeader">
                     <span class="statusTitle">
+                      <!--
+                        Active-only spinner. Used to be implicit in
+                        the progress bar's indeterminate animation,
+                        which was confusing because the bar also
+                        served as a progress display for active
+                        tasks with numbers. Splitting "is running"
+                        (spinner) from "how far along" (progress
+                        bar) makes both axes unambiguous.
+                      -->
+                      <v-progress-circular
+                        v-if="status.active"
+                        class="statusActiveSpinner"
+                        size="10"
+                        width="2"
+                        indeterminate
+                      />
                       {{ statusTitle(status.statusType) }}
                     </span>
                     <span
@@ -167,11 +183,21 @@
                       {{ nf(status.total) }}
                     </span>
                   </div>
+                  <!--
+                    Progress bar is now active-only. Preactive tasks
+                    have nothing to show on a fill scale — the
+                    "pending" badge in ``.statusTime`` already
+                    signals the queued state, and the row's
+                    ``.statusRowPreactive`` background tint
+                    distinguishes preactive from active visually.
+                    Indeterminate fires only when active and no
+                    numeric progress can be computed.
+                  -->
                   <v-progress-linear
-                    v-if="status.active || status.preactive"
+                    v-if="status.active"
                     :indeterminate="isIndeterminate(status)"
                     :model-value="statusProgress(status)"
-                    :color="status.active ? 'primary' : 'grey'"
+                    color="primary"
                     height="3"
                   />
                 </div>
@@ -547,6 +573,12 @@ export default {
 
 .statusTitle {
   font-weight: 500;
+}
+
+.statusActiveSpinner {
+  margin-right: 6px;
+  color: rgb(var(--v-theme-primary));
+  vertical-align: middle;
 }
 
 .statusTime {
