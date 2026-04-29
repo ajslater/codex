@@ -50,9 +50,15 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     def check_page_in_bounds(self, num_pages: int) -> None:
         """Redirect page out of bounds."""
         page = self.kwargs.get("page", 1)
-        if 1 <= page <= num_pages:
-            # Page within valid range (page == 1 is the root page,
-            # always valid even on a group with zero results).
+        # ``page == 1`` is the root page and is always in bounds,
+        # even when the group is empty (``num_pages == 0`` — the
+        # state on a fresh install where the importer hasn't run
+        # yet). Without that special case, an empty database
+        # redirects ``r/0/1`` → ``_get_up_page_redirect`` →
+        # ``r/0/1`` and loops. The earlier "simplification" to
+        # ``1 <= page <= num_pages`` collapsed both clauses into
+        # one but dropped this exact corner case.
+        if page == 1 or 1 <= page <= num_pages:
             return
 
         self._handle_page_out_of_bounds(num_pages)
