@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fixes
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
+    - Database repairs itself before migrations.
 - Features
     - Age Rating Restrictions now available in the Admin Users tab.
 - Performance

@@ -48,7 +48,9 @@ def _has_unapplied_migrations() -> bool:
         logger.warning(f"has_unapplied_migrations(): {exc}")
         return False
     else:
-        return bool(plan)
+        if result := bool(plan):
+            logger.info("Database has migrations to apply after checks")
+        return result
 
 
 def _get_backup_db_path(prefix):
@@ -61,14 +63,14 @@ def _backup_db_before_migration() -> None:
     backup_path = _get_backup_db_path(f"before-v{VERSION}")
     janitor = Janitor(logger, LIBRARIAN_QUEUE, Lock(), event=Event())
     janitor.backup_db(show_status=False, backup_path=backup_path)
-    logger.info("Backed up database before migrations")
+    logger.info("Backed up database before repairs and migrations")
 
 
-def _repair_db(log) -> None:
+def _repair_db(log, *, will_migrate: bool) -> None:
     """Run integrity checks on startup."""
-    if FIX_FOREIGN_KEYS:
+    if FIX_FOREIGN_KEYS or will_migrate:
         fix_foreign_keys(log)
-    if INTEGRITY_CHECK:
+    if INTEGRITY_CHECK or will_migrate:
         integrity_check(log, long=True)
     success = fts_integrity_check(log) if FTS_INTEGRITY_CHECK else True
     if FTS_REBUILD or not success:
@@ -120,13 +122,12 @@ def ensure_db_schema() -> bool:
     """Ensure the db is good and up to date."""
     logger.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()
-    if db_exists := "django_migrations" in table_names:
+    if "django_migrations" in table_names:
+        if will_migrate := _has_unapplied_migrations():
+            _backup_db_before_migration()
         if _rebuild_db():
             return False
-        _repair_db(logger)
-
-    if db_exists and _has_unapplied_migrations():
-        _backup_db_before_migration()
+        _repair_db(logger, will_migrate=will_migrate)
     call_command("migrate")
     _migrate_silk_db()
     logger.success("Database ready.")
