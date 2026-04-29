@@ -124,8 +124,8 @@ _ADMIN_FLAG_KEY_CHOICES = [
     ("AA", "Anonymous User Age Rating"),
     ("AR", "Age Rating Default"),
     ("AU", "Auto Update"),
-    ("BG", "Default View"),
     ("BT", "Banner Text"),
+    ("BG", "Browser Default Group"),
     ("FV", "Folder View"),
     ("IM", "Import Metadata"),
     ("LI", "Lazy Import Metadata"),
@@ -602,7 +602,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
+                    models.BigAutoField(
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
@@ -680,13 +680,12 @@ class Migration(migrations.Migration):
         ),
         # AdminFlag: register the AGE_RATING_DEFAULT (``AR``) and
         # ANONYMOUS_USER_AGE_RATING (``AA``) keys.
+        #
         migrations.AlterField(
             model_name="adminflag",
             name="key",
             field=models.CharField(
-                choices=_ADMIN_FLAG_KEY_CHOICES,
-                db_index=True,
-                max_length=2,
+                choices=_ADMIN_FLAG_KEY_CHOICES, db_index=True, max_length=2
             ),
         ),
         migrations.AddField(
