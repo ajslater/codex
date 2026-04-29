@@ -75,10 +75,11 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
         # unwriteable.
         if not self.abort_event.is_set():
             cap = _ADOPT_FOLDERS_MAX_PASSES
-            self.log.warning(
+            reason = (
                 f"Adopt orphan folders for {library.path} hit {cap}-pass cap"
                 " without converging — folders may be unreachable or unwriteable."
             )
+            self.log.warning(reason)
         return library_total
 
     def _finalize_adopt_orphan_folders(self, total_count: int) -> None:

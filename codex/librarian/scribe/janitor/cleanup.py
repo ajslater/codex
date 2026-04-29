@@ -198,10 +198,11 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             converged = self._converge_cleanup_fks(status)
             if not converged and not self.abort_event.is_set():
                 cap = _FK_CLEANUP_MAX_PASSES
-                self.log.warning(
+                reason = (
                     f"FK cleanup hit {cap}-pass cap without converging"
                     " — investigate the reverse-relation map or the data graph."
                 )
+                self.log.warning(reason)
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
