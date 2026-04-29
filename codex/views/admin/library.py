@@ -186,13 +186,54 @@ class AdminFolderListView(AdminGenericAPIView):
         dirs.extend(sorted(subdirs))
         return tuple(dirs)
 
+    @staticmethod
+    def _default_root_path() -> Path:
+        """
+        Pick the picker's starting folder when no path is requested.
+
+        Returns the parent directory of the most-recently-added
+        non-covers ``Library``. Lets an admin who's adding a second
+        library land in the same neighborhood as the first one
+        instead of the codex install root. Falls back to the CWD
+        when no library exists yet (the original behavior) or when
+        the recorded parent is no longer a directory (library
+        moved/deleted on disk after the row was created).
+        """
+        last_path = (
+            Library.objects.filter(covers_only=False)
+            .order_by("-created_at")
+            .values_list("path", flat=True)
+            .first()
+        )
+        if last_path:
+            parent = Path(last_path).resolve().parent
+            if parent.is_dir():
+                return parent
+        return Path.cwd()
+
+    @classmethod
+    def _resolve_root_path(cls, path_param: str) -> Path:
+        """
+        Resolve the ``path`` query param to a Path.
+
+        The serializer defaults ``path`` to ``"."`` when the client
+        omits it (the folder picker's initial mount). Treat that
+        sentinel as "use the smart default"; an explicit absolute
+        or relative path from later picker navigation passes
+        through ``Path.resolve()`` unchanged.
+        """
+        if path_param == ".":
+            return cls._default_root_path()
+        return Path(path_param).resolve()
+
     @extend_schema(request=input_serializer_class)
     def get(self, *_args, **_kwargs) -> Response:
         """Get subdirectories for a path."""
         try:
             serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            root_path = Path(serializer.validated_data.get("path", ".")).resolve()
+            path_param = serializer.validated_data.get("path", ".")
+            root_path = self._resolve_root_path(path_param)
             show_hidden = serializer.validated_data.get("show_hidden", False)
 
             dirs = self._get_dirs(root_path, show_hidden)
