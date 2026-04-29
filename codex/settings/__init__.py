@@ -96,7 +96,7 @@ WATCH_FOR_CHANGES = DEBUG and get_bool(
 ##############################
 
 LOGLEVEL = get_str(
-    CODEX_CONFIG, "logging.loglevel", default="TRACE" if DEBUG else "INFO"
+    CODEX_CONFIG, "logging.loglevel", default="DEBUG" if DEBUG else "INFO"
 )
 LOG_RETENTION = get_str(CODEX_CONFIG, "logging.log_retention", default="6 months")
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
