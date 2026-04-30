@@ -26,9 +26,9 @@ jobs:
     name: Lint, Test & Build Dist
     runs-on: ubuntu-24.04
     if: |
-      github.ref_name == 'main' && github.event_name == 'push' || 
-      github.base_ref == 'main' || 
-      (github.base_ref == 'develop' && github.head_ref == 'pre-release')
+      github.ref_name == 'main' && github.event_name == 'push' ||
+      github.base_ref == 'main' ||
+      (github.base_ref == 'develop' && (github.head_ref == 'pre-release' || startsWith(github.head_ref, 'v')))
     permissions:
       contents: read
       packages: write
