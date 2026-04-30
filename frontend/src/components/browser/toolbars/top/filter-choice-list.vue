@@ -169,7 +169,15 @@ export default {
 }
 
 .metronName {
-  color: rbg(var(--v-theme-textDisabled));
+  /*
+   * Pre-existing typo (``rbg`` vs ``rgb``) made the color rule
+   * invalid so both the right-side per-row metron annotations and
+   * the standalone column header fell back to whatever color the
+   * surrounding parent inherited — different parents, so they
+   * didn't visually match. Explicit ``rgb`` here pins them to the
+   * codex theme's ``textDisabled`` token.
+   */
+  color: rgb(var(--v-theme-textDisabled));
   opacity: 0.7;
   text-align: right;
   font-size: smaller;
