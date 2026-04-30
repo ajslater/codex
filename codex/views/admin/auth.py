@@ -3,6 +3,8 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar
 
+from adrf.generics import GenericAPIView as AsyncGenericAPIView
+from adrf.viewsets import ReadOnlyModelViewSet as AsyncReadOnlyModelViewSet
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
@@ -33,3 +35,13 @@ class AdminModelViewSet(AdminAuthMixin, ModelViewSet):
 
 class AdminReadOnlyModelViewSet(AdminAuthMixin, ReadOnlyModelViewSet):
     """Admin Read Only Model View Set."""
+
+
+class AsyncAdminGenericAPIView(AdminAuthMixin, AsyncGenericAPIView):
+    """Admin Generic API View dispatched on the asyncio event loop."""
+
+    view_is_async = True
+
+
+class AsyncAdminReadOnlyModelViewSet(AdminAuthMixin, AsyncReadOnlyModelViewSet):
+    """Admin Read Only Model View Set dispatched on the asyncio event loop."""
