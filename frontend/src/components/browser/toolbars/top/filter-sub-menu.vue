@@ -37,7 +37,6 @@
             filled
             rounded
             hide-details="auto"
-            @focus="filterMode = name"
           />
           <v-progress-linear
             v-else
@@ -66,15 +65,12 @@
             v-for="panel of ageRatingPanels"
             :key="panel.key"
             :value="panel.key"
+            eager
           >
-            <v-expansion-panel-title class="ageRatingPanelTitle">
-              <v-icon
-                v-if="panel.hasSelections"
-                :icon="mdiCheckboxMarked"
-                size="small"
-                color="primary"
-                class="ageRatingPanelCheck"
-              />
+            <v-expansion-panel-title
+              class="ageRatingPanelTitle"
+              :class="{ ageRatingPanelTitleActive: panel.hasSelections }"
+            >
               {{ panel.label }}
             </v-expansion-panel-title>
             <v-expansion-panel-text>
@@ -103,7 +99,6 @@
 
 <script>
 import {
-  mdiCheckboxMarked,
   mdiChevronLeft,
   mdiChevronRight,
   mdiChevronRightCircle,
@@ -138,7 +133,6 @@ export default {
   data() {
     return {
       mdiChevronLeft,
-      mdiCheckboxMarked,
       mdiCloseCircleOutline,
       search: "",
       expandedPanels: [...AGE_RATING_DEFAULT_EXPANDED],
@@ -370,8 +364,15 @@ export default {
   font-size: 0.875rem;
 }
 
-.ageRatingPanelCheck {
-  margin-right: 8px;
+/*
+ * Indicate that a panel has selections by ringing its expansion
+ * caret in the primary (orange) theme color. ``box-shadow`` over a
+ * border so the ring sits *outside* the icon's hit area without
+ * resizing the icon container or shifting the title's baseline.
+ */
+.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon) {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary));
 }
 
 .ageRatingPanels :deep(.v-expansion-panel-text__wrapper) {
