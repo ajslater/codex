@@ -62,7 +62,7 @@ export default {
       maxPage: (state) => state.books?.current?.maxPage || 0,
     }),
     twoPages() {
-      return this.activeSettings?.twoPages;
+      return this.activeSettings?.twoPages ?? false;
     },
     // without this the slider can fail to place right on book change
     step() {

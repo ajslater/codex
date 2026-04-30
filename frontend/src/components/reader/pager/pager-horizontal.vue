@@ -64,7 +64,7 @@ export default {
       return this.getBookSettings(this.book);
     },
     twoPages() {
-      return this.bookSettings?.twoPages;
+      return this.bookSettings?.twoPages ?? false;
     },
     isReadInReverse() {
       return this.bookSettings?.isReadInReverse;
