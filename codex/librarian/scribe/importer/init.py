@@ -29,6 +29,7 @@ from codex.librarian.scribe.importer.statii.moved import (
     ImporterMoveComicsStatus,
     ImporterMoveCoversStatus,
     ImporterMoveFoldersStatus,
+    ImporterUpdateFoldersStatus,
 )
 from codex.librarian.scribe.importer.statii.query import (
     ImporterQueryComicUpdatesStatus,
@@ -208,6 +209,10 @@ class InitImporter(WorkerStatusBase):
             search_index_updates += len(self.task.files_moved)
         if self.task.covers_moved:
             status_list += [ImporterMoveCoversStatus(None, len(self.task.covers_moved))]
+        if self.task.dirs_modified:
+            status_list += [
+                ImporterUpdateFoldersStatus(None, len(self.task.dirs_modified))
+            ]
         return search_index_updates
 
     def _init_if_modified_or_created(self, path, status_list) -> tuple:
