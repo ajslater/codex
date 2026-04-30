@@ -83,12 +83,22 @@ export default {
       return NUMERIC_FILTERS.has(this.name);
     },
     vuetifyItems() {
-      let items;
-      if (this.name === "universes") {
-        items = this.fixUniverseTitles(this.choices);
-      } else {
-        items = this.choices;
+      /*
+       * ``choices`` may be ``true`` (a loading-state placeholder set
+       * by the store before ``loadFilterChoices`` resolves) or
+       * ``undefined`` if the dynamic filter isn't applicable to the
+       * current group. ``toVuetifyItems`` calls ``for...of`` on its
+       * ``items``, so anything non-iterable would TypeError; bail out
+       * with an empty list and let the parent show its progress
+       * indicator until real choices arrive.
+       */
+      if (!Array.isArray(this.choices)) {
+        return [];
       }
+      const items =
+        this.name === "universes"
+          ? this.fixUniverseTitles(this.choices)
+          : this.choices;
       const sortBy = this.isNumeric
         ? "numeric"
         : this.name == "ageRatingMetron"

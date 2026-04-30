@@ -37,6 +37,7 @@
             filled
             rounded
             hide-details="auto"
+            @keydown="onSearchKeydown"
           />
           <v-progress-linear
             v-else
@@ -65,7 +66,6 @@
             v-for="panel of ageRatingPanels"
             :key="panel.key"
             :value="panel.key"
-            eager
           >
             <v-expansion-panel-title
               class="ageRatingPanelTitle"
@@ -268,6 +268,19 @@ export default {
         this.loadFilterChoices("ageRatingTagged");
       }
     },
+    onSearchKeydown(event) {
+      /*
+       * Prevent typed characters from bubbling up to the parent
+       * v-select / v-list. Without this, Vuetify's built-in
+       * type-to-select keyboard handler intercepts the second or
+       * third printable keystroke and closes the whole filter menu.
+       * Escape is allowed through so the user can still dismiss
+       * the menu with the keyboard.
+       */
+      if (event.key !== "Escape") {
+        event.stopPropagation();
+      }
+    },
     onSelected(value) {
       this.$emit("selected", { filters: { [this.name]: value } });
     },
@@ -365,14 +378,19 @@ export default {
 }
 
 /*
- * Indicate that a panel has selections by ringing its expansion
- * caret in the primary (orange) theme color. ``box-shadow`` over a
- * border so the ring sits *outside* the icon's hit area without
- * resizing the icon container or shifting the title's baseline.
+ * Indicate that a panel has selections by filling its expansion
+ * caret with a solid orange disc, with the chevron rendered in
+ * white on top. The chevron's own background is forced transparent
+ * so the icon container's fill shows through.
  */
 .ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon) {
+  background-color: rgb(var(--v-theme-primary));
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary));
+}
+
+.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon .v-icon) {
+  color: white;
+  background-color: transparent;
 }
 
 .ageRatingPanels :deep(.v-expansion-panel-text__wrapper) {
