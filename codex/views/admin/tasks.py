@@ -65,7 +65,7 @@ from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
-from codex.views.admin.auth import AdminAPIView, AdminReadOnlyModelViewSet
+from codex.views.admin.auth import AdminAPIView, AsyncAdminReadOnlyModelViewSet
 from codex.views.const import EPOCH_START
 
 if TYPE_CHECKING:
@@ -120,8 +120,15 @@ _TASK_MAP = MappingProxyType(
 _ACTIVE_STATUS_FILTER: Final = Q(preactive__isnull=False) | Q(active__isnull=False)
 
 
-class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
-    """Librarian Task Statuses, optionally filtered to active/preactive."""
+class AdminLibrarianStatusViewSet(AsyncAdminReadOnlyModelViewSet):
+    """
+    Librarian Task Statuses, optionally filtered to active/preactive.
+
+    Dispatched async (via ``adrf``) so the WebSocket-driven status poll
+    doesn't pay the sync<->async middleware boundary that previously
+    surfaced as ``CancelledError exception in shielded future`` log
+    noise on every aborted in-flight request.
+    """
 
     serializer_class = LibrarianStatusSerializer
     # Set per-route at ``as_view()`` time. ``True`` for the live status
@@ -130,7 +137,12 @@ class AdminLibrarianStatusViewSet(AdminReadOnlyModelViewSet):
 
     @override
     def get_queryset(self):
-        """Active rows ordered by their timestamps; otherwise insertion order."""
+        """
+        Active rows ordered by their timestamps; otherwise insertion order.
+
+        Returns a lazy ``QuerySet``; adrf's ``alist`` evaluates it on the
+        event loop via ``afilter_queryset`` / ``apaginate_queryset``.
+        """
         if self.active_only:
             return LibrarianStatus.objects.filter(_ACTIVE_STATUS_FILTER).order_by(
                 "preactive", "active", "pk"

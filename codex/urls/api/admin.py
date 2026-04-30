@@ -23,6 +23,10 @@ from codex.views.admin.tasks import (
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
 READ: Final = MappingProxyType({"get": "list"})
+# Async list action exposed by ``adrf`` viewsets; same dispatch shape
+# as ``READ`` but routes the GET to ``alist`` instead of ``list`` so the
+# request stays on the event loop.
+AREAD: Final = MappingProxyType({"get": "alist"})
 RETRIEVE: Final = MappingProxyType({"get": "retrieve"})
 CREATE: Final = MappingProxyType({"post": "create"})
 UPDATE: Final = MappingProxyType({"put": "partial_update"})
@@ -75,12 +79,12 @@ urlpatterns = [
     ),
     path(
         "librarian/status",
-        never_cache(AdminLibrarianStatusViewSet.as_view({**READ}, active_only=True)),
+        never_cache(AdminLibrarianStatusViewSet.as_view({**AREAD}, active_only=True)),
         name="librarian_status",
     ),
     path(
         "librarian/status/all",
-        never_cache(AdminLibrarianStatusViewSet.as_view({**READ})),
+        never_cache(AdminLibrarianStatusViewSet.as_view({**AREAD})),
         name="librarian_status_all",
     ),
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),
