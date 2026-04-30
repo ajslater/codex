@@ -179,20 +179,32 @@ export default {
       try {
         await this.clearFilters();
         /*
-         * Belt-and-suspenders for the Age Rating pair: the server-
-         * side reset has been observed to leave one of the two keys
-         * (typically ``ageRatingTagged``) populated, so the
-         * Age Rating row reappears as "active" right after a clear.
-         * Force both empty here regardless of what the reset
-         * response said.
+         * Belt-and-suspenders. ``clearFilters`` patches state with
+         * whatever ``API.resetSettings`` returns, but the server's
+         * reset has been observed to leave some keys populated —
+         * sometimes the Age Rating pair, sometimes the bookmark.
+         * As long as ``isFiltersClearable`` returns true, the
+         * "Clear All Filters" row stays rendered (its ``v-if``),
+         * making it look like the click did nothing. Force a fully
+         * cleared state here: zero every non-bookmark filter, set
+         * bookmark to undefined (which is in
+         * ``DEFAULT_BOOKMARK_VALUES``), and explicitly seed the
+         * Age Rating pair from the dual-panel UI in case the
+         * current group's filter state doesn't expose them.
          */
-        if (
-          this.filters?.ageRatingMetron?.length ||
-          this.filters?.ageRatingTagged?.length
-        ) {
-          await this.setSettings({
-            filters: { ageRatingMetron: [], ageRatingTagged: [] },
-          });
+        if (this.isFiltersClearable) {
+          const emptyDynamic = Object.fromEntries(
+            Object.keys(this.filters || {})
+              .filter((key) => key !== "bookmark")
+              .map((key) => [key, []]),
+          );
+          const clearedFilters = {
+            bookmark: undefined,
+            ...emptyDynamic,
+            ageRatingMetron: [],
+            ageRatingTagged: [],
+          };
+          await this.setSettings({ filters: clearedFilters });
         }
         await this.loadAvailableFilterChoices();
       } catch {
