@@ -199,7 +199,7 @@ export default {
           break;
         case "2":
           updates = {
-            twoPages: !this.comicSettings.twoPages,
+            twoPages: !this.comicSettings?.twoPages,
           };
           break;
         case "l":

@@ -64,10 +64,10 @@ export default {
       return this.getBookSettings(this.book);
     },
     twoPages() {
-      return this.bookSettings.twoPages;
+      return this.bookSettings?.twoPages;
     },
     isReadInReverse() {
-      return this.bookSettings.isReadInReverse;
+      return this.bookSettings?.isReadInReverse;
     },
     eagerForeBound() {
       /*
@@ -85,7 +85,7 @@ export default {
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];
-      return Math.min(Math.max(0, val), this.book.maxPage);
+      return Math.min(Math.max(0, val), this.book?.maxPage || 0);
     },
   },
   watch: {
@@ -109,7 +109,7 @@ export default {
       this.activePage = +this.$route.params.page;
     } else if (this.book.pk === this.prevBook.pk) {
       // Prev Book
-      this.activePage = this.book.maxPage;
+      this.activePage = this.book?.maxPage || 0;
     } else {
       // Must be next book
       this.activePage = 0;

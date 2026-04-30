@@ -65,7 +65,7 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
-      scale: (state) => state.clientSettings.scale,
+      scale: (state) => state.clientSettings?.scale,
     }),
     style() {
       // Magic for transform: scale() not sizing elements right.
@@ -97,7 +97,7 @@ export default {
       return this.getBookSettings(this.book);
     },
     twoPages() {
-      return this.bookSettings.twoPages;
+      return this.bookSettings?.twoPages;
     },
   },
   mounted() {
