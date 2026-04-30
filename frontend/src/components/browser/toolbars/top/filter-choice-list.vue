@@ -170,14 +170,17 @@ export default {
 
 .metronName {
   /*
-   * Pre-existing typo (``rbg`` vs ``rgb``) made the color rule
-   * invalid so both the right-side per-row metron annotations and
-   * the standalone column header fell back to whatever color the
-   * surrounding parent inherited — different parents, so they
-   * didn't visually match. Explicit ``rgb`` here pins them to the
-   * codex theme's ``textDisabled`` token.
+   * Originally a ``rbg`` typo silently invalidated this color rule
+   * so both contexts inherited the menu's ``on-surface`` color
+   * (light/white in the dark codex theme) and read as a soft white
+   * with 70% opacity. The typo fix to ``textDisabled`` (#808080)
+   * was technically correct but visually too dim against the dark
+   * menu background; pin to ``on-surface`` here so the look matches
+   * the pre-typo-fix appearance while still being explicit (i.e.
+   * the column header and the per-row labels can't drift apart
+   * because of differing parent inheritance).
    */
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-on-surface));
   opacity: 0.7;
   text-align: right;
   font-size: smaller;
