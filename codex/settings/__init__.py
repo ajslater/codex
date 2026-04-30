@@ -15,7 +15,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from comicbox.config import get_config
-from comicbox.config.frozenattrdict import FrozenAttrDict
+from comicbox.config.settings import ComicboxSettings
 from comicbox.schemas.comicbox.yaml import ComicboxYamlSubSchema
 from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
     CSP,
@@ -807,11 +807,13 @@ _COMICBOX_DELETE_KEYS: frozenset[str] = frozenset(
     - USED_COMICBOX_FIELDS
 )
 
-COMICBOX_CONFIG = FrozenAttrDict(
-    get_config(
-        {
+# ``delete_keys`` is typed as ``Sequence(str)`` in the comicbox confuse
+# template, so feed it a sorted tuple rather than the source frozenset.
+COMICBOX_CONFIG: ComicboxSettings = get_config(
+    {
+        "comicbox": {
             "loglevel": LOGLEVEL,
-            "delete_keys": _COMICBOX_DELETE_KEYS,
+            "delete_keys": tuple(sorted(_COMICBOX_DELETE_KEYS)),
         }
-    )
+    }
 )
