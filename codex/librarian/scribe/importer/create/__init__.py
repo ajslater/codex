@@ -4,6 +4,8 @@ Create all missing comic many to many objects for an import.
 So we may safely create the comics next.
 """
 
+from codex.librarian.covers.status import CreateCoversStatus
+from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.scribe.importer.create.foreign_keys import (
     CreateForeignKeysCreateUpdateImporter,
 )
@@ -11,6 +13,31 @@ from codex.librarian.scribe.importer.create.foreign_keys import (
 
 class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
     """Methods for creating foreign keys."""
+
+    def _submit_coalesced_cover_task(self) -> None:
+        """
+        Submit one ``CoverCreateTask`` for both newly-created and updated comics.
+
+        Both ``create_comics`` and ``update_comics`` populate
+        ``self.cover_create_pks`` instead of submitting their own task.
+        Combining them into a single submission means the cover thread
+        runs one ``CreateCoversStatus`` start/finish per chunk; two
+        back-to-back submissions would each start and finish their own
+        status, blinking the row in and out of the active list as the
+        cover thread switches tasks.
+
+        If no pks accumulated (no created or updated comics in this
+        chunk), explicitly clear the pre-registered ``CreateCoversStatus``
+        so the row doesn't sit "queued" in the UI for the rest of the
+        import.
+        """
+        if self.cover_create_pks:
+            self.librarian_queue.put(
+                CoverCreateTask(pks=tuple(self.cover_create_pks), custom=False)
+            )
+            self.cover_create_pks.clear()
+        else:
+            self.status_controller.finish_many((CreateCoversStatus,))
 
     def create_and_update(self) -> None:
         """
@@ -61,3 +88,5 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         comic_count = self.update_comics()
         comic_count += self.create_comics()
         self.counts.comic += comic_count
+
+        self._submit_coalesced_cover_task()

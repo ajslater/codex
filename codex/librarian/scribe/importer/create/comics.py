@@ -3,7 +3,6 @@
 from django.db.models import NOT_PROVIDED
 from django.db.models.functions import Now
 
-from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.scribe.importer.const import (
     BULK_CREATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS,
@@ -107,6 +106,11 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                         f"Purging covers for {len(comic_pks)} updated comics."
                     )
                     self.remove_covers(comic_pks, custom=False)
+                    # Queue cover regeneration for the just-purged
+                    # comics. Stash here; ``create_and_update`` submits
+                    # a single coalesced ``CoverCreateTask`` after
+                    # ``create_comics`` has added its own pks.
+                    self.cover_create_pks.update(comic_pks)
         except Exception:
             self.log.exception(f"While updating comics: {pks}")
         finally:
@@ -171,9 +175,13 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             created_pks.append(created_comic.pk)
         created_pks = tuple(created_pks)
 
-        # Pre-warm covers offline so first browse/OPDS request is fast.
+        # Stash newly-created comic pks for pre-warming. The actual
+        # ``CoverCreateTask`` is submitted by ``create_and_update``
+        # after ``update_comics`` has stashed its pks too — coalescing
+        # the two phases into a single cover-thread task so the
+        # ``CreateCoversStatus`` row doesn't blink between them.
         if created_pks:
-            self.librarian_queue.put(CoverCreateTask(pks=created_pks, custom=False))
+            self.cover_create_pks.update(created_pks)
         return count
 
     def create_comics(self) -> int:
