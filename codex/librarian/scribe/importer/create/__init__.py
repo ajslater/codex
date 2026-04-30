@@ -14,6 +14,20 @@ from codex.librarian.scribe.importer.create.foreign_keys import (
 class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
     """Methods for creating foreign keys."""
 
+    def _update_pending_cover_create_total(self) -> None:
+        """
+        Refresh the pre-registered ``CreateCoversStatus`` total.
+
+        ``update_comics`` and ``create_comics`` each stash their pks
+        on ``self.cover_create_pks`` as they decide how many covers
+        will be regenerated. Writing the running set size to the
+        pre-registered (preactive) row gives the UI an accurate
+        "queued, N covers" hint before the cover thread picks up the
+        coalesced task and replaces the total via its own ``start()``.
+        """
+        status = CreateCoversStatus(total=len(self.cover_create_pks))
+        self.status_controller.update(status)
+
     def _submit_coalesced_cover_task(self) -> None:
         """
         Submit one ``CoverCreateTask`` for both newly-created and updated comics.
@@ -86,7 +100,9 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         if self.abort_event.is_set():
             return
         comic_count = self.update_comics()
+        self._update_pending_cover_create_total()
         comic_count += self.create_comics()
+        self._update_pending_cover_create_total()
         self.counts.comic += comic_count
 
         self._submit_coalesced_cover_task()
