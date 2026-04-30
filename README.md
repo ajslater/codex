@@ -328,6 +328,13 @@ Environment variables override values set in the TOML config file.
 - `CODEX_LOG_TO_FILE=0` will not log to files.
 - `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
 
+#### Cache
+
+- `CODEX_CACHE_DIR` sets a custom directory for the file-based cache (Django
+  cache entries and comic book cover thumbnails). Defaults to
+  `$CODEX_CONFIG_DIR/cache`. Useful for placing the cache on a separate
+  (e.g. faster or ephemeral) volume from the rest of the config directory.
+
 ##### Browser
 
 - `CODEX_BROWSER_MAX_OBJ_PER_PAGE` the maximum number of objects per page.
