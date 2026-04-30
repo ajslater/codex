@@ -380,18 +380,26 @@ export default {
 /*
  * Indicate that a panel has selections by filling its expansion
  * caret with a solid orange disc. The chevron renders in the
- * regular menu text color (matches the first-level chevrons in
- * the base filter list) at full opacity so it reads cleanly
- * against the orange fill.
+ * menu's surface (dark) color so it reads cleanly against the
+ * orange fill — ``--v-theme-on-surface`` would point at the
+ * menu's text color (light/white in this dark codex theme), the
+ * exact opposite of what we want. ``!important`` plus the broad
+ * selector list overrides Vuetify's per-component icon-color
+ * rules and covers both font-icons (``<i>``) and the SVG-set
+ * chevron (``mdi-svg``) — the latter inherits color via
+ * ``fill: currentColor``, so setting ``color`` propagates.
  */
 .ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon) {
   background-color: rgb(var(--v-theme-primary));
   border-radius: 50%;
 }
 
-.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon .v-icon) {
-  color: rgb(var(--v-theme-on-surface));
-  opacity: 1;
+.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon),
+.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon .v-icon),
+.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon i),
+.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon svg) {
+  color: rgb(var(--v-theme-surface)) !important;
+  opacity: 1 !important;
 }
 
 .ageRatingPanels :deep(.v-expansion-panel-text__wrapper) {

@@ -193,10 +193,19 @@ export default {
    * padding so the column line is consistent. No bottom padding —
    * the v-list below is set to ``padding-top: 0`` so the header
    * and the first row sit flush.
+   *
+   * ``opacity: 0.62`` mirrors the dim level Vuetify's
+   * ``v-list-item--variant-plain`` applies to its children. Without
+   * it the column header reads brighter than the per-row
+   * ``metronName`` spans below — those sit inside a plain-variant
+   * v-list-item which composites its own 0.62 over the inner 0.7.
+   * Pinning the header at 0.62 gets the same effective alpha so the
+   * two lines visually match.
    */
   display: flex;
   justify-content: flex-end;
   padding: 4px 16px 0 0;
+  opacity: 0.62;
 }
 
 /*
