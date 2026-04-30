@@ -36,11 +36,9 @@ class CreateCoversImporter(CreateComicsImporter):
         except (IndexError, ObjectDoesNotExist):
             pass
 
-    def _update_custom_covers(
-        self, update_covers_qs: QuerySet, update_covers_count: int, status
-    ) -> int:
+    def _update_custom_covers(self, update_covers_qs: QuerySet, status) -> int:
         count = 0
-        status.total = update_covers_count
+        status.total = update_covers_qs.count()
         self.status_controller.start(status)
 
         update_covers = []
@@ -72,12 +70,8 @@ class CreateCoversImporter(CreateComicsImporter):
         count = 0
         status = ImporterUpdateCoversStatus(0)
         try:
-            update_covers_qs = self.metadata.pop(UPDATE_COVERS, None)
-            update_covers_count = update_covers_qs.count()
-            if update_covers_count:
-                count = self._update_custom_covers(
-                    update_covers_qs, update_covers_count, status
-                )
+            if update_covers_qs := self.metadata.pop(UPDATE_COVERS, None):
+                count = self._update_custom_covers(update_covers_qs, status)
         finally:
             self.status_controller.finish(status)
         return count
