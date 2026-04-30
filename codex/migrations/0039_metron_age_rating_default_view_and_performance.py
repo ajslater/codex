@@ -95,6 +95,7 @@ from django.db.models.deletion import SET_NULL
 from django.db.models.functions import Trim
 
 import codex.models.fields
+from codex.choices.reader import READER_DEFAULTS
 
 _AR_FLAG_KEY = "AR"
 _AR_DEFAULT = MetronAgeRatingEnum.EVERYONE.value
@@ -102,7 +103,6 @@ _AA_FLAG_KEY = "AA"
 _AA_DEFAULT = MetronAgeRatingEnum.ADULT.value
 _AGE_RATING_FLAG_KEYS = (_AR_FLAG_KEY, _AA_FLAG_KEY)
 _CHUNK = 500
-
 _METRON_RATING_ORDER = (
     MetronAgeRatingEnum.EVERYONE.value,
     MetronAgeRatingEnum.TEEN.value,
@@ -204,6 +204,14 @@ _NEW_FTS_SQL = (
 # canonical ``/r/0/1`` redirect target — upgrade-day no-op for
 # every existing install.
 _DEFAULT_BROWSER_DEFAULT_GROUP_VALUE = "p"
+# Default reader settings
+_GLOBAL_FILTER = {
+    "comic__isnull": True,
+    "series__isnull": True,
+    "folder__isnull": True,
+    "story_arc__isnull": True,
+}
+_NULL_VALUES = frozenset({None, ""})
 
 
 def _compute_metron_name_for(name):
@@ -362,6 +370,31 @@ def _delete_browser_default_group_flag(apps, _schema_editor) -> None:
     """Reverse the seed insert."""
     admin_flag = apps.get_model("codex", "AdminFlag")
     admin_flag.objects.filter(key="BG").delete()
+
+
+def backfill_global_reader_defaults(apps, _schema_editor) -> None:
+    """
+    Populate null/blank fields on global SettingsReader rows with READER_DEFAULTS.
+
+    Earlier versions created the global reader settings row with model field
+    defaults ("" / None), which the UI rendered as empty controls. New rows
+    are now seeded with READER_DEFAULTS at creation; this migration brings
+    pre-existing rows up to the same shape without disturbing values the
+    user has explicitly set.
+    """
+    settings_reader = apps.get_model("codex", "SettingsReader")
+    rows = settings_reader.objects.filter(**_GLOBAL_FILTER)
+    updated = []
+    for row in rows:
+        dirty = False
+        for key, default in READER_DEFAULTS.items():
+            if getattr(row, key) in _NULL_VALUES:
+                setattr(row, key, default)
+                dirty = True
+        if dirty:
+            updated.append(row)
+    if updated:
+        settings_reader.objects.bulk_update(updated, list(READER_DEFAULTS.keys()))
 
 
 class Migration(migrations.Migration):
@@ -804,6 +837,10 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             _seed_browser_default_group_flag,
             _delete_browser_default_group_flag,
+        ),
+        migrations.RunPython(
+            backfill_global_reader_defaults,
+            reverse_code=migrations.RunPython.noop,
         ),
         # ComicFTS is unmanaged; its Django state tracks only (comic,
         # created_at, updated_at). The FTS columns are a SQL-level concern —
