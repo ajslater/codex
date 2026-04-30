@@ -14,7 +14,7 @@ classifiers = [
 dependencies = [
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf] @ file:///Users/aj/Code/comicbox/dist/comicbox-3.0.0-py3-none-any.whl",
+  "comicbox[pdf]~=3.0.0a0",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",
