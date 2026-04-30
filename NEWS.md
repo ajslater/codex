@@ -14,6 +14,8 @@ border-radius: 128px;
     - Database repairs itself before migrations.
 - Features
     - Age Rating Restrictions now available in the Admin Users tab.
+    - The codex cache directory for covers and views may now have it's location
+      configured.
 - Performance
     - Performance improvements across all views.
     - Bulk importing performance improvements. Comicbox learned how to use
