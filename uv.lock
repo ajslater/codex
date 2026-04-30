@@ -502,7 +502,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], path = "/Users/aj/Code/comicbox/dist/comicbox-3.0.0-py3-none-any.whl" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=3.0.0a0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
     { name = "django-cachalot", specifier = "~=2.8" },
@@ -582,8 +582,8 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "3.0.0"
-source = { path = "/Users/aj/Code/comicbox/dist/comicbox-3.0.0-py3-none-any.whl" }
+version = "3.0.0a0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
     { name = "bidict" },
@@ -611,45 +611,15 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/1a/6985b7301ef38e60211f422a268f0b3f5562f7c1b2383748d83386575bc0/comicbox-3.0.0a0.tar.gz", hash = "sha256:c52d40d42f2e7b41417a89f6cdbe0e3eda2ca288289ea62294f4618baef1d1c5", size = 71184007, upload-time = "2026-04-30T20:33:50.407Z" }
 wheels = [
-    { filename = "comicbox-3.0.0-py3-none-any.whl", hash = "sha256:204633a4fd66f1cdbcecbbb28d6cde34edb580a6631efd0e0af21c2a0f643942" },
+    { url = "https://files.pythonhosted.org/packages/09/da/a2a9c7ebe88871c56474197d656b478f93eb712510b7b7f58dcd67c2820e/comicbox-3.0.0a0-py3-none-any.whl", hash = "sha256:1e25b85ee1aa3baf34cc9679e2a79744f2ce0f2267d54f48678bbf74a1c7ee9b", size = 189474, upload-time = "2026-04-30T20:33:46.966Z" },
 ]
 
 [package.optional-dependencies]
 pdf = [
     { name = "comicbox-pdffile" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "ansicolors", specifier = "~=1.1.8" },
-    { name = "bidict", specifier = "~=0.23" },
-    { name = "case-converter", specifier = "~=1.2" },
-    { name = "comicbox-pdffile", marker = "extra == 'pdf'", specifier = ">=0.5,<0.6" },
-    { name = "comicfn2dict", specifier = ">=0.2.4,<1.0.0" },
-    { name = "confuse", specifier = "~=2.2.0" },
-    { name = "deepdiff", specifier = "~=9.0" },
-    { name = "glom", specifier = "~=25.12" },
-    { name = "jsonschema", extras = ["format"], specifier = "~=4.20" },
-    { name = "loguru", specifier = "~=0.7" },
-    { name = "marshmallow", specifier = "~=4.3" },
-    { name = "marshmallow-jsonschema", specifier = ">=0.15.0" },
-    { name = "marshmallow-union", specifier = ">=0.1.15.post1" },
-    { name = "py7zr", specifier = "~=1.1.0" },
-    { name = "pycountry", specifier = "~=26.2" },
-    { name = "python-dateutil", specifier = "~=2.8" },
-    { name = "rarfile", specifier = "~=4.0" },
-    { name = "rich", specifier = "~=15.0" },
-    { name = "rich-argparse", specifier = "~=1.7" },
-    { name = "ruamel-yaml", specifier = "~=0.18" },
-    { name = "simplejson", specifier = "~=4.0" },
-    { name = "typing-extensions", specifier = "~=4.13" },
-    { name = "urnparse", specifier = "~=0.2" },
-    { name = "xmlschema", specifier = "~=4.0" },
-    { name = "xmltodict", specifier = "~=1.0" },
-    { name = "zipremove", specifier = "~=0.1" },
-]
-provides-extras = ["pdf"]
 
 [[package]]
 name = "comicbox-pdffile"
