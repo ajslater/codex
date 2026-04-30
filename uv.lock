@@ -587,7 +587,7 @@ dependencies = [
     { name = "zipremove" },
 ]
 wheels = [
-    { filename = "comicbox-3.0.0-py3-none-any.whl", hash = "sha256:774a489339edbf00bc99882984e3110ed9f671efa0d621cde8b4d2732612b61f" },
+    { filename = "comicbox-3.0.0-py3-none-any.whl", hash = "sha256:204633a4fd66f1cdbcecbbb28d6cde34edb580a6631efd0e0af21c2a0f643942" },
 ]
 
 [package.optional-dependencies]
