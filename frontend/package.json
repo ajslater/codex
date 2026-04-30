@@ -36,7 +36,7 @@
     "@types/node": "^25.6.0",
     "@unhead/bundler": "^3.1.0",
     "@vitejs/plugin-vue": "^6.0.6",
-    "@vue/test-utils": "^2.4.9",
+    "@vue/test-utils": "^2.4.10",
     "@vue/typescript-plugin": "^3.2.7",
     "happy-dom": "^20.9.0",
     "rollup-plugin-visualizer": "^7.0.1",
