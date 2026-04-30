@@ -99,7 +99,8 @@ LOGLEVEL = get_str(
     CODEX_CONFIG, "logging.loglevel", default="DEBUG" if DEBUG else "INFO"
 )
 LOG_RETENTION = get_str(CODEX_CONFIG, "logging.log_retention", default="6 months")
-LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
+_LOG_DIR_CONFIG = get_str(CODEX_CONFIG, "logging.log_dir", default="")
+LOG_DIR = Path(_LOG_DIR_CONFIG) if _LOG_DIR_CONFIG else CONFIG_PATH / "logs"
 LOG_TO_CONSOLE = get_bool(CODEX_CONFIG, "logging.log_to_console", default=True)
 LOG_TO_FILE = get_bool(CODEX_CONFIG, "logging.log_to_file", default=True)
 LOG_PATH = LOG_DIR / "codex.log"
@@ -546,7 +547,10 @@ for path in STATICFILES_DIRS:
 # Cache #
 #########
 
-ROOT_CACHE_PATH = CONFIG_PATH / "cache"
+_CACHE_DIR_CONFIG = get_str(CODEX_CONFIG, "cache.dir", default="")
+ROOT_CACHE_PATH = (
+    Path(_CACHE_DIR_CONFIG) if _CACHE_DIR_CONFIG else CONFIG_PATH / "cache"
+)
 DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
 DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far

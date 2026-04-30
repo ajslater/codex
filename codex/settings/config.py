@@ -26,6 +26,9 @@ _ENV_OVERRIDES: dict[str, str] = {
     "LOG_RETENTION": "logging.log_retention",  # Old
     "CODEX_LOG_TO_CONSOLE": "logging.log_to_console",
     "CODEX_LOG_TO_FILE": "logging.log_to_file",
+    "CODEX_LOG_DIR": "logging.log_dir",
+    # Cache
+    "CODEX_CACHE_DIR": "cache.dir",
     # Import
     "CODEX_IMPORTER_LINK_FK_BATCH_SIZE": "importer.link_fk_batch_size",
     "CODEX_IMPORTER_LINK_M2M_BATCH_SIZE": "importer.link_m2m_batch_size",
