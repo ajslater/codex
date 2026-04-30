@@ -1,6 +1,5 @@
 """Reader settings views."""
 
-from functools import cache
 from types import MappingProxyType
 from typing import cast
 
@@ -9,6 +8,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from codex.choices.reader import READER_DEFAULTS
 from codex.models import Comic, Folder, Series
 from codex.models.named import StoryArc
 from codex.models.settings import ClientChoices, SettingsReader
@@ -71,29 +71,13 @@ class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
 
     # ── Defaults & reset ────────────────────────────────────────────
 
-    @classmethod
-    @cache
-    def get_reader_default_params(cls) -> dict:
-        """
-        Derive reader default params from model field metadata.
-
-        Cached at class load — pure model metadata, doesn't change at
-        runtime (sub-plan 02 #4). Callers MUST NOT mutate the returned
-        dict; copy first if a writable copy is needed.
-        """
-        return {
-            key: cls._get_field_default(SettingsReader, key)
-            for key in SettingsReader.DIRECT_KEYS
-        }
-
-    @classmethod
-    def reset_reader_settings(cls, instance: SettingsReader) -> dict:
-        """Reset reader DIRECT_KEYS to model defaults and return the params dict."""
-        defaults = cls.get_reader_default_params()
-        for key in SettingsReader.DIRECT_KEYS:
-            setattr(instance, key, defaults[key])
+    @staticmethod
+    def reset_reader_settings(instance: SettingsReader) -> dict:
+        """Reset global reader settings to user-facing defaults."""
+        for key, value in READER_DEFAULTS.items():
+            setattr(instance, key, value)
         instance.save()
-        return defaults
+        return dict(READER_DEFAULTS)
 
     # ── Auth + scope lookups ────────────────────────────────────────
     # (inlined from the former _ReaderSettingsAuthMixin / BookmarkAuthMixin)
@@ -126,11 +110,13 @@ class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
         # the hit path, two on the create path with race-condition
         # awareness. Replaces the manual ``filter().first() + create()``
         # pattern (sub-plan 02 #2). FILTER_ARGS scope the lookup to the
-        # null-FK row; CREATE_ARGS get supplied as ``defaults``.
+        # null-FK row; CREATE_ARGS get supplied as ``defaults`` along
+        # with READER_DEFAULTS so a freshly created global row is
+        # canonical — its stored values match what the user sees.
         base_lookup = self._get_settings_lookup()
         filter_kwargs = {**base_lookup, **self.FILTER_ARGS}
         instance, _ = SettingsReader.objects.get_or_create(
-            defaults={**base_lookup, **self.CREATE_ARGS},
+            defaults={**base_lookup, **self.CREATE_ARGS, **READER_DEFAULTS},
             **filter_kwargs,
         )
         return instance
