@@ -1,0 +1,139 @@
+<template>
+  <v-list
+    :model-value="filter"
+    class="filterGroup overflow-y-auto"
+    density="compact"
+    multiple
+    @update:selected="$emit('selected', $event)"
+  >
+    <!--
+      Manual ``v-for`` so the per-item ``#append`` slot (used for the
+      ``metronName`` annotation in the As-tagged Age Rating panel) can
+      render. Passing ``:items=...`` to ``v-list`` would cause Vuetify
+      to render each row a second time on top of this loop.
+    -->
+    <v-list-item
+      v-for="item of vuetifyItems"
+      :key="item.value"
+      density="compact"
+      variant="plain"
+      :value="item.value"
+      :title="itemTitle(item)"
+      :active="item.active"
+      :disabled="item.active"
+      :append-icon="item.icon"
+    >
+      <template v-if="item.metronName" #append>
+        <span class="metronName">{{ item.metronName }}</span>
+      </template>
+    </v-list-item>
+  </v-list>
+</template>
+
+<script>
+import { mdiCheck } from "@mdi/js";
+import { mapActions, mapState } from "pinia";
+
+import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import { useBrowserStore } from "@/stores/browser";
+
+const NUMERIC_FILTERS = new Set(["decade", "year"]);
+
+export default {
+  name: "BrowserFilterChoiceList",
+  props: {
+    name: {
+      type: String,
+      required: true,
+    },
+    choices: {
+      type: [Array, Object, Boolean],
+      default: () => [],
+    },
+    filter: {
+      type: Array,
+      default: () => [],
+    },
+    search: {
+      type: String,
+      default: "",
+    },
+  },
+  emits: ["selected"],
+  computed: {
+    ...mapState(useBrowserStore, {
+      readingDirectionTitles: (state) => state.choices.static.readingDirection,
+    }),
+    isNumeric() {
+      return NUMERIC_FILTERS.has(this.name);
+    },
+    vuetifyItems() {
+      let items;
+      if (this.name === "universes") {
+        items = this.fixUniverseTitles(this.choices);
+      } else {
+        items = this.choices;
+      }
+      const sortBy = this.isNumeric
+        ? "numeric"
+        : this.name == "ageRatingMetron"
+          ? ""
+          : this.name == "ageRatingTagged"
+            ? "metronIndex"
+            : "title";
+      const copyKeys =
+        this.name === "ageRatingMetron"
+          ? ["index"]
+          : this.name === "ageRatingTagged"
+            ? ["metronName", "index"]
+            : [];
+      const vItems = toVuetifyItems({
+        items,
+        filter: this.search,
+        sortBy,
+        copyKeys,
+      });
+      for (const item of vItems) {
+        item.active = this.filter?.includes(item.value);
+        item.icon = item.active ? mdiCheck : undefined;
+        if (
+          this.name === "ageRatingTagged" &&
+          item.title == "None" &&
+          vItems.length > 1
+        ) {
+          item.metronName = "Normalized To:";
+        }
+      }
+      return vItems;
+    },
+  },
+  methods: {
+    ...mapActions(useBrowserStore, [
+      "fixUniverseTitles",
+      "identifierSourceTitle",
+    ]),
+    itemTitle(item) {
+      if (this.name === "readingDirection") {
+        return this.readingDirectionTitles[item.value];
+      } else if (this.name === "identifierSource") {
+        return this.identifierSourceTitle(item.title);
+      }
+      return item.title;
+    },
+  },
+};
+</script>
+
+<style scoped lang="scss">
+.filterGroup {
+  max-height: 80vh;
+  /* has to be less than the menu height */
+}
+
+.metronName {
+  color: rbg(var(--v-theme-textDisabled));
+  opacity: 0.7;
+  text-align: right;
+  font-size: smaller;
+}
+</style>

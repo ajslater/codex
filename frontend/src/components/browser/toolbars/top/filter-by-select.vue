@@ -117,7 +117,12 @@ export default {
         }
         const names = [];
         for (const [key, value] of Object.entries(state.choices.dynamic)) {
-          if (value) {
+          /*
+           * ``ageRatingTagged`` is folded into the ``ageRatingMetron``
+           * sub-menu's "As tagged" expansion panel; don't render a
+           * top-level row for it.
+           */
+          if (value && key !== "ageRatingTagged") {
             names.push(key);
           }
         }
@@ -125,7 +130,8 @@ export default {
         if (this.filters && Object.keys(this.filters).length) {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
             if (
-              filterKey != "bookmark" &&
+              filterKey !== "bookmark" &&
+              filterKey !== "ageRatingTagged" &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {

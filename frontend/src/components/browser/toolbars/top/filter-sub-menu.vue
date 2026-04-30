@@ -29,7 +29,7 @@
             @click="onClear"
           />
           <v-text-field
-            v-if="typeof choices === 'object'"
+            v-if="hasAnyChoices"
             v-model="search"
             placeholder="Filter"
             full-width
@@ -46,38 +46,56 @@
             indeterminate
           />
         </header>
-        <v-list
-          v-if="typeof choices === 'object'"
-          :model-value="filter"
-          class="filterGroup overflow-y-auto"
-          density="compact"
+        <!--
+          Age Rating: dual-panel UI. The "Standardized" panel (metron
+          values) is open by default; "As tagged" is collapsed. Either
+          panel header shows a primary-colored checkbox icon when its
+          filter has any selections. The shared search box at the top
+          filters items in both panels at once; if matches land only
+          in the collapsed panel, that panel auto-expands.
+        -->
+        <v-expansion-panels
+          v-if="isAgeRating"
+          v-model="expandedPanels"
           multiple
-          @update:selected="selected"
+          variant="accordion"
+          flat
+          class="ageRatingPanels"
         >
-          <!--
-            Manual ``v-for`` to render list items so the per-item
-            slot (``#append`` for ``metronName``) can fire. The
-            previous version also passed ``:items="vuetifyItems"``
-            to ``v-list``; Vuetify renders the items prop directly,
-            so each row was being emitted twice — once by the prop,
-            once by this ``v-for``. Drop the prop to render once.
-          -->
-          <v-list-item
-            v-for="item of vuetifyItems"
-            :key="item.value"
-            density="compact"
-            variant="plain"
-            :value="item.value"
-            :title="itemTitle(item)"
-            :active="item.active"
-            :disabled="item.active"
-            :append-icon="item.icon"
+          <v-expansion-panel
+            v-for="panel of ageRatingPanels"
+            :key="panel.key"
+            :value="panel.key"
           >
-            <template v-if="item.metronName" #append>
-              <span class="metronName">{{ item.metronName }}</span>
-            </template>
-          </v-list-item>
-        </v-list>
+            <v-expansion-panel-title class="ageRatingPanelTitle">
+              <v-icon
+                v-if="panel.hasSelections"
+                :icon="mdiCheckboxMarked"
+                size="small"
+                color="primary"
+                class="ageRatingPanelCheck"
+              />
+              {{ panel.label }}
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <BrowserFilterChoiceList
+                :name="panel.key"
+                :choices="panel.choices"
+                :filter="panel.filter"
+                :search="search"
+                @selected="(v) => onAgeRatingSelected(panel.key, v)"
+              />
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+        <BrowserFilterChoiceList
+          v-else-if="hasAnyChoices"
+          :name="name"
+          :choices="choices"
+          :filter="filter"
+          :search="search"
+          @selected="onSelected"
+        />
       </div>
     </v-slide-x-reverse-transition>
   </div>
@@ -85,7 +103,7 @@
 
 <script>
 import {
-  mdiCheck,
+  mdiCheckboxMarked,
   mdiChevronLeft,
   mdiChevronRight,
   mdiChevronRightCircle,
@@ -94,17 +112,22 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
-import { NULL_PKS, toVuetifyItems } from "@/api/v3/vuetify-items";
+import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import BrowserFilterChoiceList from "@/components/browser/toolbars/top/filter-choice-list.vue";
 import { useBrowserStore } from "@/stores/browser";
 
-const NUMERIC_FILTERS = new Set(["decade", "year"]);
 const FILTER_TITLE_OVERRIDES = {
-  ageRatingTagged: "Age Rating (Tagged)",
   ageRatingMetron: "Age Rating",
 };
+/*
+ * Default: only the "Standardized" panel is expanded. Identified
+ * by its panel value (the filter key).
+ */
+const AGE_RATING_DEFAULT_EXPANDED = Object.freeze(["ageRatingMetron"]);
 
 export default {
   name: "BrowserFilterSubMenu",
+  components: { BrowserFilterChoiceList },
   props: {
     name: {
       type: String,
@@ -115,8 +138,10 @@ export default {
   data() {
     return {
       mdiChevronLeft,
+      mdiCheckboxMarked,
       mdiCloseCircleOutline,
       search: "",
+      expandedPanels: [...AGE_RATING_DEFAULT_EXPANDED],
     };
   },
   computed: {
@@ -124,64 +149,41 @@ export default {
       choices(state) {
         return state.choices.dynamic[this.name];
       },
-      readingDirectionTitles: (state) => state.choices.static.readingDirection,
       filter(state) {
         return state.settings.filters[this.name];
       },
+      metronChoices: (state) => state.choices.dynamic.ageRatingMetron,
+      taggedChoices: (state) => state.choices.dynamic.ageRatingTagged,
+      metronFilter: (state) => state.settings.filters.ageRatingMetron,
+      taggedFilter: (state) => state.settings.filters.ageRatingTagged,
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
-    hasNone() {
-      for (const item of this.choices) {
-        if (
-          NULL_PKS.has(item) ||
-          (item instanceof Object && NULL_PKS.has(item.pk))
-        ) {
-          return true;
-        }
-      }
-      return false;
+    isAgeRating() {
+      return this.name === "ageRatingMetron";
     },
-    isNumeric() {
-      return NUMERIC_FILTERS.has(this.name);
+    metronHasSelections() {
+      return this.metronFilter?.length > 0;
     },
-    vuetifyItems() {
-      let items;
-      if (this.name === "universes") {
-        items = this.fixUniverseTitles(this.choices);
-      } else {
-        items = this.choices;
-      }
-      const sortBy = this.isNumeric
-        ? "numeric"
-        : this.name == "ageRatingMetron"
-          ? ""
-          : this.name == "ageRatingTagged"
-            ? "metronIndex"
-            : "title";
-      const copyKeys =
-        this.name === "ageRatingMetron"
-          ? ["index"]
-          : this.name === "ageRatingTagged"
-            ? ["metronName", "index"]
-            : [];
-      const vItems = toVuetifyItems({
-        items,
-        filter: this.search,
-        sortBy,
-        copyKeys,
-      });
-      for (const item of vItems) {
-        item.active = this.filter?.includes(item.value);
-        item.icon = item.active ? mdiCheck : undefined;
-        if (
-          this.name === "ageRatingTagged" &&
-          item.title == "None" &&
-          vItems.length > 1
-        ) {
-          item.metronName = "Normalized To:";
-        }
-      }
-      return vItems;
+    taggedHasSelections() {
+      return this.taggedFilter?.length > 0;
+    },
+    ageRatingPanels() {
+      return [
+        {
+          key: "ageRatingMetron",
+          label: "Standardized",
+          choices: this.metronChoices,
+          filter: this.metronFilter,
+          hasSelections: this.metronHasSelections,
+        },
+        {
+          key: "ageRatingTagged",
+          label: "As tagged",
+          choices: this.taggedChoices,
+          filter: this.taggedFilter,
+          hasSelections: this.taggedHasSelections,
+        },
+      ];
     },
     title() {
       return FILTER_TITLE_OVERRIDES[this.name] || capitalCase(this.name);
@@ -190,53 +192,137 @@ export default {
       return this.title.toLowerCase();
     },
     isActive() {
+      if (this.isAgeRating) {
+        return this.metronHasSelections || this.taggedHasSelections;
+      }
       return this.filter && this.filter.length > 0;
     },
     filterMenuIcon() {
       return this.isActive ? mdiChevronRightCircle : mdiChevronRight;
     },
     isClearable() {
+      if (this.isAgeRating) {
+        return this.metronHasSelections || this.taggedHasSelections;
+      }
       return this.filter?.length;
+    },
+    hasAnyChoices() {
+      if (this.isAgeRating) {
+        return (
+          typeof this.metronChoices === "object" ||
+          typeof this.taggedChoices === "object"
+        );
+      }
+      return typeof this.choices === "object";
+    },
+  },
+  watch: {
+    search(val) {
+      if (!this.isAgeRating) {
+        return;
+      }
+      /*
+       * Auto-expand panels based on where the search has matches. With
+       * an empty search we revert to the default (Standardized open,
+       * As tagged closed). With a non-empty search, expand whichever
+       * panel(s) contain matches; if matches are exclusive to one
+       * panel, only that one stays open.
+       */
+      if (!val) {
+        this.expandedPanels = [...AGE_RATING_DEFAULT_EXPANDED];
+        return;
+      }
+      const metronMatches = this._countMatches(this.metronChoices, val);
+      const taggedMatches = this._countMatches(this.taggedChoices, val);
+      if (metronMatches > 0 && taggedMatches > 0) {
+        this.expandedPanels = ["ageRatingMetron", "ageRatingTagged"];
+      } else if (taggedMatches > 0) {
+        this.expandedPanels = ["ageRatingTagged"];
+      } else {
+        /*
+         * Either standardized-only matches or no matches anywhere —
+         * honor the default so the user isn't presented with an
+         * empty open panel below an empty closed one.
+         */
+        this.expandedPanels = [...AGE_RATING_DEFAULT_EXPANDED];
+      }
     },
   },
   methods: {
     ...mapActions(useBrowserStore, [
       "clearOneFilter",
-      "fixUniverseTitles",
-      "identifierSourceTitle",
       "loadAvailableFilterChoices",
       "loadFilterChoices",
+      "setSettings",
     ]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
       this.search = "";
-      if (mode !== "base" && typeof this.choices !== "object") {
+      this.expandedPanels = [...AGE_RATING_DEFAULT_EXPANDED];
+      if (mode === "base") {
+        return;
+      }
+      if (typeof this.choices !== "object") {
         this.loadFilterChoices(mode);
       }
-    },
-    selected(value) {
-      const data = {
-        filters: { [this.name]: value },
-      };
-      this.$emit("selected", data);
-    },
-    itemTitle(item) {
-      if (this.name === "readingDirection") {
-        return this.readingDirectionTitles[item.value];
-      } else if (this.name === "identifierSource") {
-        return this.identifierSourceTitle(item.title);
+      /*
+       * Entering Age Rating: also kick off the tagged-choices fetch
+       * so the As-tagged panel can render without its own loading
+       * state when the user expands it.
+       */
+      if (this.isAgeRating && typeof this.taggedChoices !== "object") {
+        this.loadFilterChoices("ageRatingTagged");
       }
-      return item.title;
+    },
+    onSelected(value) {
+      this.$emit("selected", { filters: { [this.name]: value } });
+    },
+    onAgeRatingSelected(key, value) {
+      this.$emit("selected", { filters: { [key]: value } });
     },
     async _loadSubAvailableFilterChoices() {
-      return this.loadAvailableFilterChoices().then(() => {
-        return this.loadFilterChoices(this.name);
-      });
+      await this.loadAvailableFilterChoices();
+      if (this.isAgeRating) {
+        await Promise.all([
+          this.loadFilterChoices("ageRatingMetron"),
+          this.loadFilterChoices("ageRatingTagged"),
+        ]);
+      } else {
+        await this.loadFilterChoices(this.name);
+      }
     },
-    onClear() {
-      return this.clearOneFilter(this.name).then(() => {
-        return this._loadSubAvailableFilterChoices();
-      });
+    async onClear() {
+      if (this.isAgeRating) {
+        /*
+         * Single setSettings call clears both keys atomically;
+         * _addSettings shallow-merges so other filter keys are
+         * preserved.
+         */
+        await this.setSettings({
+          filters: {
+            ageRatingMetron: [],
+            ageRatingTagged: [],
+          },
+        });
+      } else {
+        await this.clearOneFilter(this.name);
+      }
+      await this._loadSubAvailableFilterChoices();
+    },
+    _countMatches(choices, search) {
+      if (typeof choices !== "object" || !Array.isArray(choices)) {
+        return 0;
+      }
+      /*
+       * Reuse the same filter pipeline that BrowserFilterChoiceList
+       * uses, so search-match counts always match what the user would
+       * see if the panel were expanded.
+       */
+      return toVuetifyItems({
+        items: choices,
+        filter: search,
+        sortBy: "",
+      }).length;
     },
   },
 };
@@ -254,11 +340,6 @@ export default {
   font-size: 1.6rem !important;
 }
 
-.filterGroup {
-  max-height: 80vh;
-  /* has to be less than the menu height */
-}
-
 .filterValuesProgress {
   margin: 10px;
   width: 88%;
@@ -274,10 +355,30 @@ export default {
   opacity: 1;
 }
 
-.metronName {
-  color: rbg(var(--v-theme-textDisabled));
-  opacity: 0.7;
-  text-align: right;
-  font-size: smaller;
+.ageRatingPanels {
+  /*
+   * v-expansion-panels defaults to a max-width and a fair bit of
+   * horizontal padding inside the menu — strip both so the panels
+   * fill the sub-menu width like the regular filter list does.
+   */
+  background: transparent;
+}
+
+.ageRatingPanelTitle {
+  min-height: 36px;
+  padding: 4px 16px;
+  font-size: 0.875rem;
+}
+
+.ageRatingPanelCheck {
+  margin-right: 8px;
+}
+
+.ageRatingPanels :deep(.v-expansion-panel-text__wrapper) {
+  /*
+   * Eliminate the default content padding so the inner choice
+   * list aligns flush with the rest of the sub-menu's items.
+   */
+  padding: 0;
 }
 </style>
