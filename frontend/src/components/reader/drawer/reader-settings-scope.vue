@@ -2,7 +2,8 @@
   <v-expansion-panels v-model="openPanels" multiple>
     <v-expansion-panel value="global">
       <v-expansion-panel-title class="scopePanelTitle">
-        Default Settings
+        <span>Default Settings</span>
+        <SettingsIndicatorDot :active="hasGlobalOverrides" />
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <ReaderSettingsControls
@@ -17,7 +18,10 @@
     <v-expansion-panel value="intermediate" :disabled="!hasIntermediate">
       <v-expansion-panel-title class="scopePanelTitle">
         <div class="intermediateTitleWrap">
-          <span>{{ intermediateTitle }}</span>
+          <span class="intermediateTitleMain">
+            <span>{{ intermediateTitle }}</span>
+            <SettingsIndicatorDot :active="hasIntermediateOverrides" />
+          </span>
           <span class="intermediateSubtitle">{{ intermediateName }}</span>
         </div>
       </v-expansion-panel-title>
@@ -33,7 +37,8 @@
     </v-expansion-panel>
     <v-expansion-panel value="comic" :disabled="!validBook">
       <v-expansion-panel-title class="scopePanelTitle">
-        Comic Settings
+        <span>Comic Settings</span>
+        <SettingsIndicatorDot :active="hasComicOverrides" />
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <ReaderSettingsControls
@@ -56,9 +61,10 @@ import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 import { useEventListener } from "@vueuse/core";
 
-import READER_DEFAULTS from "@/choices/reader-defaults.json";
+import GLOBAL_DEFAULTS from "@/choices/reader-defaults.json";
 
 import ReaderSettingsControls from "./reader-settings-controls.vue";
+import SettingsIndicatorDot from "./settings-indicator-dot.vue";
 
 const ATTRS = Object.freeze([
   "fitTo",
@@ -76,9 +82,28 @@ const SCOPE_TYPE_TITLES = Object.freeze({
   a: "Story Arc Settings",
 });
 
+/*
+ * Global settings have a special "is overridden" criterion: rather than
+ * checking for null/undefined (as intermediate and comic settings do), they
+ * are compared against the recorded global default values, since after
+ * initialization every key is populated.
+ */
+const differsFromGlobalDefaults = (settings) => {
+  if (!settings) {
+    return false;
+  }
+  for (const attr of ATTRS) {
+    // eslint-disable-next-line security/detect-object-injection
+    if (settings[attr] !== GLOBAL_DEFAULTS[attr]) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export default {
   name: "ReaderSettingsScope",
-  components: { ReaderSettingsControls },
+  components: { ReaderSettingsControls, SettingsIndicatorDot },
   data() {
     return {
       openPanels: [],
@@ -110,17 +135,7 @@ export default {
       },
     }),
     isGlobalClearDisabled() {
-      const settings = this.globalSettings;
-      if (!settings) {
-        return true;
-      }
-      for (const attr of ATTRS) {
-        // eslint-disable-next-line security/detect-object-injection
-        if (settings[attr] !== READER_DEFAULTS[attr]) {
-          return false;
-        }
-      }
-      return true;
+      return !differsFromGlobalDefaults(this.globalSettings);
     },
     hasIntermediate() {
       return Boolean(this.intermediateInfo);
@@ -151,6 +166,15 @@ export default {
         }
       }
       return true;
+    },
+    hasGlobalOverrides() {
+      return differsFromGlobalDefaults(this.globalSettings);
+    },
+    hasIntermediateOverrides() {
+      return this.hasIntermediate && !this.isIntermediateClearDisabled;
+    },
+    hasComicOverrides() {
+      return this.validBook && !this.isClearDisabled;
     },
   },
   created() {
@@ -253,6 +277,11 @@ export default {
   display: flex;
   flex-direction: column;
   line-height: 1.3;
+}
+
+.intermediateTitleMain {
+  display: inline-flex;
+  align-items: center;
 }
 
 .intermediateSubtitle {
