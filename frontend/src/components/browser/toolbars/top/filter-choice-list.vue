@@ -4,10 +4,11 @@
       Static, non-selectable column header above the As-tagged Age
       Rating list. Sits at the right edge of each row so it acts as
       a column heading for the per-item metron mapping shown in the
-      append slot below.
+      append slot below. Suppressed when the list contains a "None"
+      row — that row's append slot doubles as the column header.
     -->
     <div
-      v-if="name === 'ageRatingTagged'"
+      v-if="showStandaloneTaggedHeader"
       class="taggedColumnHeader"
       aria-hidden="true"
     >
@@ -16,6 +17,7 @@
     <v-list
       :model-value="filter"
       class="filterGroup overflow-y-auto"
+      :class="{ filterGroupTightTop: name === 'ageRatingTagged' }"
       density="compact"
       multiple
       @update:selected="$emit('selected', $event)"
@@ -121,8 +123,26 @@ export default {
       for (const item of vItems) {
         item.active = this.filter?.includes(item.value);
         item.icon = item.active ? mdiCheck : undefined;
+        /*
+         * The "None" row (rendered when comics have no tagged
+         * age rating) has no metron mapping of its own — co-opt
+         * its append slot as the column heading. The standalone
+         * ``taggedColumnHeader`` is suppressed when this fires.
+         */
+        if (this.name === "ageRatingTagged" && item.title === "None") {
+          item.metronName = "Standardized";
+        }
       }
       return vItems;
+    },
+    hasNoneRow() {
+      return (
+        this.name === "ageRatingTagged" &&
+        this.vuetifyItems.some((item) => item.title === "None")
+      );
+    },
+    showStandaloneTaggedHeader() {
+      return this.name === "ageRatingTagged" && !this.hasNoneRow;
     },
   },
   methods: {
@@ -159,10 +179,21 @@ export default {
   /*
    * Right-align the header text so it sits above the per-row
    * ``metronName`` cells. Padding mirrors the v-list-item's right
-   * padding so the column line is consistent.
+   * padding so the column line is consistent. No bottom padding —
+   * the v-list below is set to ``padding-top: 0`` so the header
+   * and the first row sit flush.
    */
   display: flex;
   justify-content: flex-end;
-  padding: 4px 16px 2px 0;
+  padding: 4px 16px 0 0;
+}
+
+/*
+ * Strip the v-list's default top padding so the As-tagged list
+ * sits flush against either the standalone column header or the
+ * "None" row that doubles as a column header.
+ */
+.filterGroupTightTop {
+  padding-top: 0;
 }
 </style>

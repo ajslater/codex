@@ -379,9 +379,10 @@ export default {
 
 /*
  * Indicate that a panel has selections by filling its expansion
- * caret with a solid orange disc, with the chevron rendered in
- * white on top. The chevron's own background is forced transparent
- * so the icon container's fill shows through.
+ * caret with a solid orange disc. The chevron renders in the
+ * regular menu text color (matches the first-level chevrons in
+ * the base filter list) at full opacity so it reads cleanly
+ * against the orange fill.
  */
 .ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon) {
   background-color: rgb(var(--v-theme-primary));
@@ -389,8 +390,8 @@ export default {
 }
 
 .ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon .v-icon) {
-  color: white;
-  background-color: transparent;
+  color: rgb(var(--v-theme-on-surface));
+  opacity: 1;
 }
 
 .ageRatingPanels :deep(.v-expansion-panel-text__wrapper) {
