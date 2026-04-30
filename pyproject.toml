@@ -12,6 +12,7 @@ classifiers = [
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 dependencies = [
+  "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
   "comicbox[pdf] @ file:///Users/aj/Code/comicbox/dist/comicbox-3.0.0-py3-none-any.whl",
