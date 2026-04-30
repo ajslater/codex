@@ -8,6 +8,7 @@
     :menu-props="{
       contentClass: filterMenuClass,
       maxHeight: undefined,
+      closeOnContentClick: false,
     }"
     :model-value="bookmarkFilter"
     :max-select-len="filterByChoicesMaxLen - 1"
@@ -125,15 +126,31 @@ export default {
         if (this.filters && Object.keys(this.filters).length) {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
             if (
-              filterKey != "bookmark" &&
+              filterKey !== "bookmark" &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {
               names.push(filterKey);
             }
           }
-          names.sort();
         }
+        /*
+         * ``ageRatingTagged`` is folded into the ``ageRatingMetron``
+         * sub-menu's "As tagged" expansion panel: the top-level row
+         * is always ``ageRatingMetron``. Ensure ``ageRatingMetron``
+         * is present whenever *either* key has choices/selections so
+         * the user can still reach the As-tagged panel even if no
+         * normalized metron values are available for the current
+         * group. Then drop the standalone ``ageRatingTagged`` entry.
+         */
+        const taggedIdx = names.indexOf("ageRatingTagged");
+        if (taggedIdx >= 0) {
+          names.splice(taggedIdx, 1);
+          if (!names.includes("ageRatingMetron")) {
+            names.push("ageRatingMetron");
+          }
+        }
+        names.sort();
         return names;
       },
     }),
@@ -158,14 +175,29 @@ export default {
       this.setSettings(settings);
       this.filterMode = "base";
     },
-    onClear() {
-      return this.clearFilters()
-        .then(() => {
-          return this.loadAvailableFilterChoices();
-        })
-        .catch(() => {
-          console.error("clear filters");
-        });
+    async onClear() {
+      try {
+        await this.clearFilters();
+        /*
+         * Belt-and-suspenders for the Age Rating pair: the server-
+         * side reset has been observed to leave one of the two keys
+         * (typically ``ageRatingTagged``) populated, so the
+         * Age Rating row reappears as "active" right after a clear.
+         * Force both empty here regardless of what the reset
+         * response said.
+         */
+        if (
+          this.filters?.ageRatingMetron?.length ||
+          this.filters?.ageRatingTagged?.length
+        ) {
+          await this.setSettings({
+            filters: { ageRatingMetron: [], ageRatingTagged: [] },
+          });
+        }
+        await this.loadAvailableFilterChoices();
+      } catch {
+        console.error("clear filters");
+      }
     },
     onMenu(to) {
       if (to && this.dynamicChoiceNames === undefined) {
