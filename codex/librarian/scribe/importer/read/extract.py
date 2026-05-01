@@ -4,12 +4,18 @@ from collections.abc import Iterable, MutableMapping
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any
 
-from comicbox.process import iter_process_files
+from comicbox.process import ReadResult, iter_process_files
 from comicbox.schemas.comicbox import PAGE_COUNT_KEY
 
 from codex.choices.admin import AdminFlagChoices
-from codex.librarian.scribe.importer.const import EXTRACTED, FIS, SKIPPED
+from codex.librarian.scribe.importer.const import (
+    EXTRACTED,
+    EXTRACTED_STAT_ONLY,
+    FIS,
+    SKIPPED,
+)
 from codex.librarian.scribe.importer.read.aggregate_path import (
     AggregateMetadataImporter,
 )
@@ -111,37 +117,61 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             old_comic_values[old_path_str] = old_comic
         return MappingProxyType(old_comic_mtimes), MappingProxyType(old_comic_values)
 
+    @staticmethod
+    def _envelope_deltas(
+        result: ReadResult, old_comic: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Build the subset of envelope fields that actually changed vs DB."""
+        delta: dict[str, Any] = {}
+        if (mtime := result.get("metadata_mtime")) is not None:
+            delta["metadata_mtime"] = mtime
+        new_page_count = result.get("page_count")
+        if (
+            new_page_count is not None
+            and old_comic.get(PAGE_COUNT_KEY) != new_page_count
+        ):
+            delta["page_count"] = new_page_count
+        new_file_type = result.get("file_type")
+        if new_file_type is not None and old_comic.get("file_type") != new_file_type:
+            delta["file_type"] = new_file_type
+        return delta
+
     def _extract_post_process_comic(
         self,
         path: Path,
-        value: tuple[MutableMapping, BaseException | None],
+        value: tuple[ReadResult, BaseException | None],
         all_old_comic_values: MappingProxyType[str, dict[str, str | int]],
         status: ImporterReadComicsStatus,
     ):
         if self.abort_event.is_set():
             return True
-        md, exc = value
+        result, exc = value
         path_str = str(path)
         if exc:
-            failed_import = {path: exc}
-            self.metadata[FIS].update(failed_import)
-        if md:
-            old_comic = all_old_comic_values.get(path_str, {})
-            old_file_type = old_comic.get("file_type")
-            old_page_count = old_comic.get(PAGE_COUNT_KEY)
-
-            # Remove similar info to avoid update if nothing changed.
-            if old_page_count == md.get("page_count"):
-                md.pop("page_count", None)
-            if old_file_type == md.get("file_type"):
-                md.pop("file_type", None)
-
-            if md:
-                md["path"] = path_str
-
-            self.metadata[EXTRACTED][path_str] = md
-        else:
+            self.metadata[FIS].update({path: exc})
             self.metadata[SKIPPED].add(path_str)
+            status.increment_complete()
+            self.status_controller.update(status)
+            return False
+
+        old_comic = all_old_comic_values.get(path_str, {})
+        envelope_md = self._envelope_deltas(result, old_comic)
+        tags = result.get("tags")
+
+        if tags is None:
+            # Comicbox fast-skipped the tag re-extraction (mtime
+            # unchanged or full_metadata=False). Route any envelope
+            # changes through the stat-only path so aggregate doesn't
+            # see an empty-tag md and clobber the comic's existing
+            # browser-group FKs with the empty default groups.
+            if envelope_md:
+                envelope_md["path"] = path_str
+                self.metadata[EXTRACTED_STAT_ONLY][path_str] = envelope_md
+            self.metadata[SKIPPED].add(path_str)
+        else:
+            # Real tag extraction. Envelope wins on key conflict.
+            md: dict[str, Any] = {**tags, **envelope_md, "path": path_str}
+            self.metadata[EXTRACTED][path_str] = md
         status.increment_complete()
         self.status_controller.update(status)
         return False
@@ -218,12 +248,14 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         """Extract comic metadata into memory."""
         count = 0
         # SKIPPED is per-extract; EXTRACTED is per-extract (drained by
+        # aggregate). EXTRACTED_STAT_ONLY is per-extract (drained by
         # aggregate). FIS accumulates across chunks and is consumed
         # later by the fail_imports phase, so use ``setdefault`` so
         # a second pass over a different chunk doesn't drop the first
         # chunk's failed imports.
         self.metadata[SKIPPED] = set()
         self.metadata[EXTRACTED] = {}
+        self.metadata[EXTRACTED_STAT_ONLY] = {}
         self.metadata.setdefault(FIS, {})
         all_paths = self.task.files_modified | self.task.files_created
         self.task.files_modified = frozenset()

@@ -118,6 +118,11 @@ FTS_FIELD_TARGETS = MappingProxyType(
 # IMPORTER METADATA KEYS #
 ##########################
 EXTRACTED = "extracted"
+# Per-path envelope-only updates from comicbox skip results
+# (metadata_mtime / page_count / file_type changed but tags weren't
+# re-extracted). Routed around aggregate so existing browser-group
+# FKs stay attached to their non-empty groups.
+EXTRACTED_STAT_ONLY = "extracted_stat_only"
 SKIPPED = "skipped"
 QUERY_MODELS = "query_models"
 CREATE_COMICS = "create_comics"
