@@ -50,7 +50,13 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         status: Status,
     ) -> None:
         comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        if entry := self.metadata[FTS_UPDATE].pop(comic_id):
+        # ``codex_comicfts`` is an FTS5 virtual table without a unique
+        # constraint on ``comic_id``; the queryset can yield the same
+        # comic_id more than once if the table contains duplicate rows
+        # (or when an iteration sees a row whose entry was already
+        # consumed for another reason). Treat "missing key" the same
+        # as "empty entry" — both mean "nothing to write for this row".
+        if entry := self.metadata[FTS_UPDATE].pop(comic_id, None):
             existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(comic_id)
             SearchEntryPrepare.prepare_import_fts_entry(
                 comic_id,
