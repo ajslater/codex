@@ -359,15 +359,15 @@ export default {
       );
     },
     isExpanded(job) {
+      if (job.value in this.manualExpanded) {
+        return this.manualExpanded[job.value];
+      }
       if (job.value === NIGHTLY_JOB_VALUE) {
         /*
          * Don't show nightly subtask progress unless the nightly
          * parent job itself is running.
          */
         return this.isNightlyRunning;
-      }
-      if (job.value in this.manualExpanded) {
-        return this.manualExpanded[job.value];
       }
       return this.hasActiveOrPreactiveStatuses(job);
     },
