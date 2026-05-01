@@ -8,6 +8,9 @@ border-radius: 128px;
 
 ## v1.11.0 - Age Restrictions & Snappiness
 
+- Notice
+    - This version of codex needs to re-sync the search index on first startup
+      which make take time on large collections.
 - Fixes
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
