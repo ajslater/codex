@@ -10,9 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+from collections.abc import Mapping
 from os import cpu_count, environ
 from pathlib import Path
 from types import MappingProxyType
+from typing import NamedTuple
 
 from comicbox.config import get_config
 from comicbox.config.settings import ComicboxSettings
@@ -65,6 +67,8 @@ CONFIG_PATH = (
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not_falsy_env("DEBUG")
 BUILD = not_falsy_env("BUILD")
+PERF = not_falsy_env("PERF")
+VITE_HMR = DEBUG and not BUILD
 VITE_HOST = environ.get("VITE_HOST")
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
@@ -233,6 +237,35 @@ FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 #                                             #
 ###############################################
 
+####################
+# Feature Flags    #
+####################
+
+
+class FeatureFlags(NamedTuple):
+    """Toggles for optional applications, middleware, and CSP overlays."""
+
+    nplusone: bool
+    silk: bool
+    swagger: bool
+    log_response_time: bool
+    log_request: bool
+    django_vite: bool
+    schema_graph: bool
+    vite_hmr: bool
+
+
+FEATURES = FeatureFlags(
+    nplusone=PERF,
+    silk=PERF,
+    swagger=True,
+    log_response_time=DEBUG_LOG_RESPONSE_TIME,
+    log_request=DEBUG_LOG_REQUEST,
+    django_vite=not BUILD,
+    schema_graph=DEBUG,
+    vite_hmr=VITE_HMR,
+)
+
 ############
 # Security #
 ############
@@ -242,37 +275,106 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS: bool  # DEV EXPERIMENT
-SECURE_CSP = {
-    "default-src": [CSP.SELF],
-    "script-src": [
-        CSP.SELF,
-        CSP.NONCE,
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
-    ],
-    "style-src": [
-        CSP.SELF,
-        # Titanic amount of work to make this safe with vite
-        CSP.UNSAFE_INLINE,
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
-    ],
-    "img-src": [
-        "data:",
-        CSP.SELF,
-        "https://unpkg.com/pdfjs-dist/web/images/",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
-    ],
-    "connect-src": [
-        CSP.SELF,
-        "ws:",
-        "wss:",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
-    ],
-    # These are required by the vue-pdf-embed dependency pdfs-dist.
-    # blob: being open is a little insecure and could possibly be narrowed with additional work.
-    "worker-src": [CSP.SELF, CSP.NONCE, "blob:"],
-    "script-src-elem": [CSP.SELF, CSP.NONCE, "data:"],
-}
+
+# Production base CSP. Per-feature overlays below contribute the
+# entries each optional feature needs and are merged in by
+# ``_get_secure_csp``.
+_DEFAULT_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "default-src": (CSP.SELF,),
+        "script-src": (CSP.SELF, CSP.NONCE),
+        # Titanic amount of work to make this safe with vite, so
+        # UNSAFE_INLINE stays on broadly for Vue scoped styles.
+        "style-src": (CSP.SELF, CSP.UNSAFE_INLINE),
+        "img-src": (CSP.SELF, "data:"),
+        "connect-src": (CSP.SELF, "ws:", "wss:"),
+        "font-src": (CSP.SELF,),
+    }
+)
+
+# Required by the vue-pdf-embed dependency pdfs-dist. ``blob:`` being
+# open is a little insecure and could possibly be narrowed with
+# additional work. Always merged because pdfs-dist ships in every build.
+_PDFJS_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "img-src": ("https://unpkg.com/pdfjs-dist/web/images/",),
+        "worker-src": (CSP.SELF, CSP.NONCE, "blob:"),
+        "script-src-elem": (CSP.SELF, CSP.NONCE, "data:"),
+    }
+)
+
+# drf-spectacular's Swagger UI pulls assets from jsdelivr.
+_SWAGGER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "script-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
+        ),
+        "style-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
+        ),
+        "img-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
+        ),
+        "connect-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
+        ),
+    }
+)
+
+# Vite dev server (HMR + on-the-fly module transforms).
+_VITE_HMR_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "script-src": ("http://localhost:5173",),
+        "connect-src": ("ws://localhost:5173", "http://localhost:5173"),
+    }
+)
+
+# django-schema-graph renders inline scripts and pulls Material Design
+# Icon webfonts + Google Fonts via CDN.
+_SCHEMA_GRAPH_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "script-src": (CSP.UNSAFE_INLINE, "data:"),
+        "style-src": (
+            "https://fonts.googleapis.com/css",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css",
+        ),
+        "connect-src": (
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.css.map",
+        ),
+        "font-src": (
+            "https://fonts.gstatic.com/",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/fonts/materialdesignicons-webfont.ttf",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/fonts/materialdesignicons-webfont.woff",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/fonts/materialdesignicons-webfont.woff2",
+        ),
+    }
+)
+
+
+def _get_secure_csp(features: FeatureFlags) -> dict[str, list[str]]:
+    """Merge per-feature CSP overlays into the production base."""
+    overlays: list[Mapping[str, tuple[str, ...]]] = [
+        _DEFAULT_SECURE_CSP,
+        _PDFJS_SECURE_CSP,
+    ]
+    if features.swagger:
+        overlays.append(_SWAGGER_SECURE_CSP)
+    if features.vite_hmr:
+        overlays.append(_VITE_HMR_SECURE_CSP)
+    if features.schema_graph:
+        overlays.append(_SCHEMA_GRAPH_SECURE_CSP)
+    merged: dict[str, list[str]] = {}
+    for overlay in overlays:
+        for directive, sources in overlay.items():
+            existing = merged.setdefault(directive, [])
+            for source in sources:
+                if source not in existing:
+                    existing.append(source)
+    return merged
+
+
+SECURE_CSP = _get_secure_csp(FEATURES)
 
 # Session
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
@@ -295,19 +397,19 @@ LOGGING = get_logging_settings(LOGLEVEL, debug=DEBUG)
 ######################
 
 
-def _get_installed_apps() -> tuple:
-    installed_apps = [
+def _get_installed_apps(features: FeatureFlags) -> tuple[str, ...]:
+    apps: list[str] = [
         "django.contrib.auth",
         "django.contrib.contenttypes",
         "django.contrib.sessions",
         "django.contrib.messages",
     ]
-
-    if DEBUG:
-        # comes before static apps
-        installed_apps += ["nplusone.ext.django", "schema_graph", "silk"]
-
-    installed_apps += [
+    # Perf-monitoring apps come before staticfiles.
+    if features.nplusone:
+        apps.append("nplusone.ext.django")
+    if features.silk:
+        apps.append("silk")
+    apps += [
         "servestatic.runserver_nostatic",
         "django.contrib.staticfiles",
         "rest_framework",
@@ -315,35 +417,37 @@ def _get_installed_apps() -> tuple:
         "rest_registration",
         "corsheaders",
     ]
-    if not BUILD:
-        installed_apps += [
-            "django_vite",
-        ]
-    installed_apps += [
+    if features.django_vite:
+        apps.append("django_vite")
+    apps += [
         "codex",
         "cachalot",
         "drf_spectacular",
     ]
-    return tuple(installed_apps)
+    if features.schema_graph:
+        apps.append("schema_graph")
+    return tuple(apps)
 
 
-INSTALLED_APPS = _get_installed_apps()
+INSTALLED_APPS = _get_installed_apps(FEATURES)
 
 ##############
 # Middleware #
 ##############
 
 
-def _get_middleware() -> tuple:
-    middleware = [
+def _get_middleware(features: FeatureFlags) -> tuple[str, ...]:
+    middleware: list[str] = [
         "corsheaders.middleware.CorsMiddleware",
         "django.middleware.security.SecurityMiddleware",
         "servestatic.middleware.ServeStaticMiddleware",
     ]
-    if DEBUG:
-        # Sits below ServeStaticMiddleware so silk only wraps the API
-        # stack, not static file responses.
-        middleware += ["silk.middleware.SilkyMiddleware"]
+    # Sits below ServeStaticMiddleware so silk only wraps the API
+    # stack, not static file responses.
+    if features.nplusone:
+        middleware.append("nplusone.ext.django.NPlusOneMiddleware")
+    if features.silk:
+        middleware.append("silk.middleware.SilkyMiddleware")
     middleware += [
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
@@ -352,31 +456,22 @@ def _get_middleware() -> tuple:
         "django.contrib.auth.middleware.AuthenticationMiddleware",
     ]
     if AUTH_REMOTE_USER:
-        middleware += ["codex.authentication.HttpRemoteUserMiddleware"]
+        middleware.append("codex.authentication.HttpRemoteUserMiddleware")
     middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "codex.middleware.CodexMiddleware",
     ]
-    if DEBUG:
-        middleware += [
-            "nplusone.ext.django.NPlusOneMiddleware",
-        ]
-
-    if DEBUG_LOG_RESPONSE_TIME:
-        middleware += [
-            "codex.middleware.LogResponseTimeMiddleware",
-        ]
-    if DEBUG_LOG_REQUEST:
-        middleware += [
-            "codex.middleware.LogRequestMiddleware",
-        ]
+    if features.log_response_time:
+        middleware.append("codex.middleware.LogResponseTimeMiddleware")
+    if features.log_request:
+        middleware.append("codex.middleware.LogRequestMiddleware")
     return tuple(middleware)
 
 
-MIDDLEWARE = _get_middleware()
+MIDDLEWARE = _get_middleware(FEATURES)
 
-if DEBUG:
+if FEATURES.nplusone:
     NPLUSONE_LOGGER = logger
     NPLUSONE_LOG_LEVEL = "WARNING"
 
@@ -474,7 +569,7 @@ DATABASES = {
     },
 }
 
-if DEBUG:
+if FEATURES.silk:
     # django-silk captures live in their own DB so perf traces don't
     # bloat the app DB and can be wiped with a single rm.
     SILK_DB_PATH = CONFIG_PATH / "silk.sqlite3"
@@ -681,7 +776,7 @@ CHANNEL_LAYERS = {
 # Django Vite #
 ###############
 
-if DEBUG and not BUILD:
+if FEATURES.vite_hmr:
     import socket
 
     DEV_SERVER_HOST = VITE_HOST or socket.gethostname()
@@ -691,8 +786,6 @@ if DEBUG and not BUILD:
             "dev_server_host": DEV_SERVER_HOST,
         }
     }
-    CSP_SCRIPT_SRC = ("'self'", "http://localhost:5173", "'nonce'")
-    CSP_CONNECT_SRC = ("'self'", "ws://localhost:5173", "http://localhost:5173")
 
 ############
 # Cachalot #
@@ -704,7 +797,7 @@ CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
 # Silk #
 ########
 
-if DEBUG:
+if FEATURES.silk:
     # SQL-level capture only. CPU profiling is off by default; flip on
     # when profiling cover generation or other CPU-bound paths.
     SILKY_PYTHON_PROFILER = False

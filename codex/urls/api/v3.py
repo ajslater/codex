@@ -8,6 +8,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerSplitView,
 )
 
+from codex.settings import FEATURES
 from codex.urls.const import COVER_MAX_AGE
 from codex.views.browser.cover import CustomCoverView
 from codex.views.browser.mtime import MtimeView
@@ -36,9 +37,12 @@ urlpatterns = [
     path("admin/", include("codex.urls.api.admin")),
     path("schema", SpectacularAPIView.as_view(), name="schema"),
     path("opds-urls", OPDSURLsView.as_view(), name="opds_urls"),
-    path(
-        "",
-        SpectacularSwaggerSplitView.as_view(url_name="api:v3:schema"),
-        name="base",
-    ),
 ]
+if FEATURES.swagger:
+    urlpatterns += [
+        path(
+            "",
+            SpectacularSwaggerSplitView.as_view(url_name="api:v3:schema"),
+            name="base",
+        ),
+    ]
