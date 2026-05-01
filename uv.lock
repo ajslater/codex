@@ -502,7 +502,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=3.0.0a0" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=3.0.0a1" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
     { name = "django-cachalot", specifier = "~=2.8" },
@@ -582,7 +582,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "3.0.0a0"
+version = "3.0.0a1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
@@ -611,9 +611,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/1a/6985b7301ef38e60211f422a268f0b3f5562f7c1b2383748d83386575bc0/comicbox-3.0.0a0.tar.gz", hash = "sha256:c52d40d42f2e7b41417a89f6cdbe0e3eda2ca288289ea62294f4618baef1d1c5", size = 71184007, upload-time = "2026-04-30T20:33:50.407Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/d1/4daf760b77aaf7b022a9bb69562bbecea321d5d8b497ddad9f516316172b/comicbox-3.0.0a1.tar.gz", hash = "sha256:e674957979ffa2feb0e64c5fea99aac7cad7d3694d4093966df0a6481d3a2f11", size = 71184796, upload-time = "2026-05-01T21:10:27.293Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/da/a2a9c7ebe88871c56474197d656b478f93eb712510b7b7f58dcd67c2820e/comicbox-3.0.0a0-py3-none-any.whl", hash = "sha256:1e25b85ee1aa3baf34cc9679e2a79744f2ce0f2267d54f48678bbf74a1c7ee9b", size = 189474, upload-time = "2026-04-30T20:33:46.966Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/c7/fe3c6b67bb1336965d3ac75f6f6ff5ce2802d1e2346388485eaa9c2ac7e7/comicbox-3.0.0a1-py3-none-any.whl", hash = "sha256:9d95546593141a7e791016c4da34836e43b8fb0c9f4245b7378c4f37e7ef7d39", size = 190086, upload-time = "2026-05-01T21:10:23.268Z" },
 ]
 
 [package.optional-dependencies]
@@ -2721,14 +2721,14 @@ wheels = [
 
 [[package]]
 name = "rich-argparse"
-version = "1.7.2"
+version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/f7/1c65e0245d4c7009a87ac92908294a66e7e7635eccf76a68550f40c6df80/rich_argparse-1.7.2.tar.gz", hash = "sha256:64fd2e948fc96e8a1a06e0e72c111c2ce7f3af74126d75c0f5f63926e7289cd1", size = 38500, upload-time = "2025-11-01T10:35:44.232Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/e5/1064c43203a357d668cd42435f7a15fe6af51512d85b2104fecb937aa861/rich_argparse-1.8.0.tar.gz", hash = "sha256:679df3d832fa94ad6e4bdb07ded088cd7ea2dddc58ae9b2b46346a40b06cbc0c", size = 38940, upload-time = "2026-05-01T15:18:43.604Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/04/80/97b6f357ac458d9ad9872cc3183ca09ef7439ac89e030ea43053ba1294b6/rich_argparse-1.7.2-py3-none-any.whl", hash = "sha256:0559b1f47a19bbeb82bf15f95a057f99bcbbc98385532f57937f9fc57acc501a", size = 25476, upload-time = "2025-11-01T10:35:42.681Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/35/1cceccc5fcb50fa2ed53e2aa278cd032f3902682a73e763fb1ac3be8e6fa/rich_argparse-1.8.0-py3-none-any.whl", hash = "sha256:d2a3ce7854654e2253c578763ab0a32f05016f23a55fadba7b9a91b6c0e92142", size = 25616, upload-time = "2026-05-01T15:18:42.395Z" },
 ]
 
 [[package]]
@@ -3184,15 +3184,15 @@ wheels = [
 
 [[package]]
 name = "typeshed-client"
-version = "2.10.0"
+version = "2.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "importlib-resources" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/46/de/cc79c33f6268740567ea109c11809e3c799daf5c1c5aeffb9c3f3b052dbe/typeshed_client-2.10.0.tar.gz", hash = "sha256:906bf343595aed4a120ccc0a35dde2d85cae8c15d015703a768541291e38cfc3", size = 522565, upload-time = "2026-04-18T04:27:36.234Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/7d/62fbae352d5fb7ce5ef4d9ca73bf7a9b02b790d2524ab6ef1e0e799a5d1b/typeshed_client-2.11.0.tar.gz", hash = "sha256:0b8f2ab88f611f5e97b70d2a8123942d3d7d5c74cee8ae694db83422f32f9481", size = 522774, upload-time = "2026-05-01T14:51:52.38Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/a9/c3ee9878ec14e4b6c274152767d101c690ab1c52844dc93c56e5e40925da/typeshed_client-2.10.0-py3-none-any.whl", hash = "sha256:d3dc011865f945d8124e3733d219ec6abc7cf755cf1a80cc41099915b21c036c", size = 787445, upload-time = "2026-04-18T04:27:34.585Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/22/fa16b462157bd869dfad528f5637506b9430ca63d48fb536ecf4cc78481a/typeshed_client-2.11.0-py3-none-any.whl", hash = "sha256:5745e0990b80b29a286b22d68f81779c5c7adf1cac8969eeafba44b73b486c36", size = 787609, upload-time = "2026-05-01T14:51:51.005Z" },
 ]
 
 [[package]]
