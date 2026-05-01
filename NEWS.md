@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.15
+
+- Fixes
+    - Fix OPDS navigation going to wrong browser groups. Fix contributed by
+      @beville.
+
 ## v1.10.14
 
 - Fixes
