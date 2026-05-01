@@ -331,10 +331,16 @@ _VITE_HMR_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
 )
 
 # django-schema-graph renders inline scripts and pulls Material Design
-# Icon webfonts + Google Fonts via CDN.
+# Icon webfonts + Google Fonts via CDN. ``script-src-elem`` must be
+# explicit because the pdfs-dist overlay declares one — without it,
+# pdfs-dist would mask the ``script-src`` fallback that would otherwise
+# allow schema_graph's inline <script> tags.
 _SCHEMA_GRAPH_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
-        "script-src": (CSP.UNSAFE_INLINE, "data:"),
+        # UNSAFE_EVAL: schema_graph's bundled main.js calls new Function()
+        # at module-init time (Vue CLI runtime artifact).
+        "script-src": (CSP.UNSAFE_INLINE, CSP.UNSAFE_EVAL, "data:"),
+        "script-src-elem": (CSP.UNSAFE_INLINE,),
         "style-src": (
             "https://fonts.googleapis.com/css",
             "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css",
