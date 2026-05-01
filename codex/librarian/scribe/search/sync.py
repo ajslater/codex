@@ -226,24 +226,17 @@ class SearchIndexerSync(SearchIndexerRemove):
 
     def _build_search_index_batch_obj_list(
         self,
-        base_qs: QuerySet,
-        batch_size: int,
+        batch_pks: list[int],
         *,
         create: bool,
     ) -> list[ComicFTS]:
         """
         Build one batch of ``ComicFTS`` rows for create-or-update.
 
-        Returns an empty list to signal the caller to stop iterating
-        — either the queryset is exhausted or every batch row was
-        filtered out by ``prepare_sync_fts_entry``.
+        Returns an empty list when every row was filtered out by
+        ``prepare_sync_fts_entry`` — caller decides whether iteration
+        is exhausted via its pk watermark.
         """
-        # Snapshot the batch's pk list once; every per-relation
-        # query below filters against the same set so they stitch
-        # back together cleanly in Python.
-        batch_pks = list(
-            base_qs.order_by("pk").values_list("pk", flat=True)[:batch_size]
-        )
         if not batch_pks:
             return []
 
@@ -278,19 +271,18 @@ class SearchIndexerSync(SearchIndexerRemove):
         )
         chunk_human_size = intcomma(search_index_batch_size)
 
-        # Hoist the FTS-empty check out of the loop. After the first
-        # batch lands on an initially-empty index, ComicFTS has rows
-        # for the rest of the run; checking ``ComicFTS.objects.exists()``
-        # per iteration just spends a SELECT to learn what we already
-        # know. Decide once up-front and stash on the base queryset.
-        if create and not ComicFTS.objects.exists():
-            base_qs: QuerySet = Comic.objects.all()
-        else:
-            base_qs = comics_filtered_qs
-
+        # Walk ``comics_filtered_qs`` in pk order via a watermark so
+        # each batch grabs the *next* slice of pks rather than the
+        # same first slice every iteration. The earlier "hoist the
+        # exists() check" optimization swapped in
+        # ``Comic.objects.all()`` when ComicFTS started empty, which
+        # silently dropped the caller's
+        # ``exclude(_ALL_FTS_COMIC_IDS_QUERY)`` filter — every batch
+        # then re-fetched the same first ``batch_size`` pks and
+        # ``bulk_create`` planted duplicate FTS5 rows.
         verb = "create" if create else "update"
         self.log.debug(f"Counting total search index entries to {verb}...")
-        total_comics = base_qs.count()
+        total_comics = comics_filtered_qs.count()
         status = self._update_search_index_operate_get_status(
             total_comics, chunk_human_size, create=create
         )
@@ -301,8 +293,8 @@ class SearchIndexerSync(SearchIndexerRemove):
                 return total_comics
 
             self.status_controller.start(status, notify=True)
-            start = 0
-            while start < total_comics:
+            last_pk = 0
+            while True:
                 if self.abort_event.is_set():
                     break
                 # Not using standard iterator chunking to control memory and really
@@ -310,15 +302,21 @@ class SearchIndexerSync(SearchIndexerRemove):
                 self.log.debug(
                     f"Preparing up to {chunk_human_size} comics for search indexing..."
                 )
-                obj_list = self._build_search_index_batch_obj_list(
-                    base_qs, search_index_batch_size, create=create
+                batch_pks = list(
+                    comics_filtered_qs.filter(pk__gt=last_pk)
+                    .order_by("pk")
+                    .values_list("pk", flat=True)[:search_index_batch_size]
                 )
-                if not obj_list:
+                if not batch_pks:
                     break
-                self._update_search_index_create_or_update(
-                    obj_list, status, create=create
+                obj_list = self._build_search_index_batch_obj_list(
+                    batch_pks, create=create
                 )
-                start += search_index_batch_size
+                if obj_list:
+                    self._update_search_index_create_or_update(
+                        obj_list, status, create=create
+                    )
+                last_pk = batch_pks[-1]
         finally:
             self.status_controller.finish(status)
         return total_comics
