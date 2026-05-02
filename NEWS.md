@@ -14,11 +14,14 @@ border-radius: 128px;
 - Fixes
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
+    - Fix OPDS v2 belongsTo.position attribute.
     - Database repairs itself before migrations.
 - Features
     - Age Rating Restrictions now available in the Admin Users tab.
     - The codex cache directory for covers and views may now have it's location
       configured.
+    - OPDS v2 publishers as proper contributors with links.
+    - OPDS v2 volumes in belongsTo
 - Performance
     - Performance improvements across all views.
     - Bulk importing performance improvements. Comicbox learned how to use
