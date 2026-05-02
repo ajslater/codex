@@ -10,20 +10,16 @@ from django.db.migrations.executor import MigrationExecutor
 from loguru import logger
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.scribe.janitor.integrity import (
-    fts_integrity_check,
-    fts_rebuild,
-    integrity_check,
-)
+from codex.librarian.scribe.janitor.integrity import integrity_check
 from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_foreign_keys
 from codex.librarian.scribe.janitor.janitor import Janitor
+from codex.librarian.scribe.janitor.tasks import JanitorFTSIntegrityCheckTask
 from codex.settings import (
     BACKUP_DB_PATH,
     CONFIG_PATH,
     DB_PATH,
     FIX_FOREIGN_KEYS,
     FTS_INTEGRITY_CHECK,
-    FTS_REBUILD,
     INTEGRITY_CHECK,
 )
 from codex.startup.custom_cover_libraries import cleanup_custom_cover_libraries
@@ -67,16 +63,41 @@ def _backup_db_before_migration() -> None:
 
 
 def _repair_db(log, *, will_migrate: bool) -> None:
-    """Run integrity checks on startup."""
+    """
+    Run cheap, sync repairs ahead of migrations.
+
+    FK + integrity checks gate the migration: a corrupt source
+    dataset can fail an ``AlterField`` or ``RunPython`` mid-way and
+    leave the schema half-migrated. Both are cheap relative to
+    migration cost, so the up-front spend is well-targeted.
+
+    FTS work is intentionally *not* here — a migration like 0039
+    drops + recreates ``codex_comicfts``, so any rebuild done now
+    is wasted. ``_queue_post_migration_fts_tasks`` defers FTS
+    integrity to a librarian job that runs after migrate completes.
+    """
     if FIX_FOREIGN_KEYS or will_migrate:
         fix_foreign_keys(log)
     if INTEGRITY_CHECK or will_migrate:
         integrity_check(log, long=True)
-    success = fts_integrity_check(log) if FTS_INTEGRITY_CHECK else True
-    if FTS_REBUILD or not success:
-        fts_rebuild()
-        log.success("Rebuilt FTS virtual table.")
     cleanup_custom_cover_libraries(log)
+
+
+def _queue_post_migration_fts_tasks(log) -> None:
+    """
+    Queue async FTS work that codex doesn't need to wait for.
+
+    ``JanitorFTSIntegrityCheckTask`` auto-queues a rebuild on
+    failure (see ``JanitorIntegrity.fts_integrity_check``), so the
+    corruption case is self-healing without blocking startup.
+    Codex serves browse / reader / OPDS requests immediately;
+    search results are degraded only if the FTS table is empty or
+    stale, and the regular ``SearchIndexSyncTask`` repopulates it.
+    """
+    if not FTS_INTEGRITY_CHECK:
+        return
+    LIBRARIAN_QUEUE.put(JanitorFTSIntegrityCheckTask())
+    log.info("Scheduled post-migration FTS integrity check.")
 
 
 def _rebuild_db() -> bool:
@@ -123,12 +144,18 @@ def ensure_db_schema() -> bool:
     logger.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()
     if "django_migrations" in table_names:
-        if will_migrate := _has_unapplied_migrations():
+        # Cache the unapplied-migrations result so the backup,
+        # repair, and post-migration paths all see the same answer
+        # without each running its own SELECT against
+        # ``django_migrations``.
+        will_migrate = _has_unapplied_migrations()
+        if will_migrate:
             _backup_db_before_migration()
         if _rebuild_db():
             return False
         _repair_db(logger, will_migrate=will_migrate)
     call_command("migrate")
     _migrate_silk_db()
+    _queue_post_migration_fts_tasks(logger)
     logger.success("Database ready.")
     return True
