@@ -86,7 +86,31 @@ happens inside :meth:`AgeRating.presave`, and any
 re-import. For the rare "comicbox enum got updated" case, a fresh
 library rescan walks every affected Comic through
 :meth:`Comic.presave` and heals the drift.
+
+----
+
+Drop legacy non-comic rows from :class:`Comic`.
+
+A 2022/2023-era importer bug let directories (and other non-archive
+paths) slip into ``codex_comic`` as if they were comics. Their paths
+carry no archive suffix (``.cbz``/``.cbr``/``.cb7``/``.cbt``/``.pdf``),
+their ``size`` reflects whatever ``Path.stat()`` returned for the
+entry, and their ``page_count`` is zero. The current importer rejects
+such paths up-front via :func:`codex.librarian.fs.filters.match_comic`,
+so this is a one-shot cleanup. The pass runs before the
+:attr:`Comic.age_rating_metron_index` backfill so the backfill
+doesn't waste work on rows we're about to delete.
+
+For each Comic whose path lacks a comic suffix we also stat the path:
+if it still exists on disk as a *file* the row is left alone (admins
+can sort it out manually) — directories, missing entries, and
+unstat-able paths get deleted. Cascade handles ``ComicFTS``,
+``Bookmark``, and m2m link rows. Orphan covers are picked up by the
+existing librarian janitor pass.
 """
+
+import re
+from pathlib import Path
 
 from comicbox.enums.maps.age_rating import to_metron_age_rating
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
@@ -227,6 +251,11 @@ _GLOBAL_FILTER = {
     "story_arc__isnull": True,
 }
 _NULL_VALUES = frozenset({None, ""})
+# Mirrors the runtime regex in
+# ``codex.librarian.fs.filters._build_comic_matcher``. Hardcoded so
+# the migration is stable as the runtime regex evolves (e.g. PDF/RAR
+# being toggled by comicbox capability checks).
+_COMIC_SUFFIX_RE = re.compile(r"\.(cb[zt7r]|pdf)$", re.IGNORECASE)
 
 
 def _compute_metron_name_for(name):
@@ -287,6 +316,50 @@ def _backfill_age_rating_metron_flag_fk(apps, _schema_editor) -> None:
         admin_flag_model.objects.bulk_update(
             to_update, ["age_rating_metron_id", "value"]
         )
+
+
+def _is_comic_path(path_str: str) -> bool:
+    """Return True if ``path_str`` ends in a recognised comic archive suffix."""
+    if not path_str:
+        return False
+    suffix = Path(path_str).suffix
+    return bool(suffix) and _COMIC_SUFFIX_RE.match(suffix) is not None
+
+
+def _remove_non_comic_comics(apps, _schema_editor) -> None:
+    """Delete Comic rows whose path is not a comic archive."""
+    model = apps.get_model("codex", "Comic")
+    delete_pks: list[int] = []
+    skipped: list[str] = []
+    for comic in model.objects.only("pk", "path").iterator():
+        path_str = comic.path or ""
+        if _is_comic_path(path_str):
+            continue
+        try:
+            is_file = Path(path_str).is_file()
+        except OSError:
+            is_file = False
+        if is_file:
+            # Real file on disk but with a non-comic name. Don't
+            # touch it — surface for manual review instead.
+            skipped.append(path_str)
+            continue
+        delete_pks.append(comic.pk)
+
+    if skipped:
+        print()
+        print(
+            f"Leaving {len(skipped)} comics with non-comic names "
+            "that exist on disk as files; review manually:"
+        )
+        for path_str in skipped:
+            print(f"  {path_str}")
+
+    if not delete_pks:
+        return
+    print()
+    print(f"Deleting {len(delete_pks)} non-comic rows from codex_comic.")
+    model.objects.filter(pk__in=delete_pks).delete()
 
 
 def _backfill_age_rating_metron_index(_apps, _schema_editor) -> None:
@@ -850,6 +923,9 @@ class Migration(migrations.Migration):
         # Seed AdminFlag rows after their key choices registration.
         migrations.RunPython(_seed_age_rating_default_flag, _noop),
         migrations.RunPython(_seed_anonymous_user_age_rating_flag, _noop),
+        # Run the non-comic cleanup before the metron-index backfill
+        # so the backfill doesn't touch about-to-be-deleted rows.
+        migrations.RunPython(_remove_non_comic_comics, _noop),
         migrations.RunPython(_backfill_age_rating_metron_index, _noop),
         migrations.RunPython(_backfill_age_rating_metron_flag_fk, _noop),
         migrations.RunPython(_strip_pycountry_names, _noop),
