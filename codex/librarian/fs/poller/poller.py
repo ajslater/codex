@@ -9,12 +9,11 @@ from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
 
-from codex.librarian.fs.poller.events import PollEvent, PollEventType
+from codex.librarian.fs.import_task import build_import_task
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.fs.poller.status import FSPollStatus
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
-from codex.librarian.fs.tasks import FSEventTask
 from codex.librarian.threads import NamedThread
 from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
@@ -145,7 +144,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         return SnapshotDiff(db_snap, disk_snap)
 
     def _queue_poll_events(self, library: Library, *, force: bool) -> None:
-        """Run the snapshot diff and queue resulting events."""
+        """Run the snapshot diff and emit a single ImportTask for the library."""
         diff = self._get_diff(library, force=force)
         if not diff or diff.is_empty():
             self.log.debug(f"Nothing changed for {library.path}")
@@ -162,19 +161,11 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         )
         self.log.debug(debug_log)
 
-        pk = library.pk
-        # Signal batcher: poll starting
-        start = FSEventTask(pk, PollEvent(PollEventType.start, force=force))
-        self.librarian_queue.put(start)
-
-        # Send all diff events
-        for event in diff.to_events():
-            task = FSEventTask(pk, event)
+        task = build_import_task(
+            library.pk, diff.to_events(), check_metadata_mtime=not force
+        )
+        if task is not None:
             self.librarian_queue.put(task)
-
-        # Signal batcher: poll finished — flush the batch
-        finish = FSEventTask(pk, PollEvent(PollEventType.finish, force=force))
-        self.librarian_queue.put(finish)
 
     def _poll_library(self, library: Library, *, force: bool) -> None:
         """Poll a single library with status tracking."""

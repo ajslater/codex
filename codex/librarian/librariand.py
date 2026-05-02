@@ -16,10 +16,8 @@ from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ig
 )
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
-from codex.librarian.fs.event_batcherd import FSEventBatcherThread
 from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
-from codex.librarian.fs.tasks import FSEventTask
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
@@ -42,7 +40,6 @@ _THREAD_CLASSES: Final[tuple[type[NamedThread], ...]] = (
     LibraryPollerThread,
     NotifierThread,
     ScribeThread,
-    FSEventBatcherThread,
 )
 _THREAD_CLASS_MAP: Final[MappingProxyType[str, type[NamedThread]]] = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
@@ -53,7 +50,6 @@ _THREAD_QUEUE_TASK_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         CoverTask: "cover_thread",
         BookmarkTask: "bookmark_thread",
         NotifierTask: "notifier_thread",
-        FSEventTask: "fsevent_batcher_thread",
     }
 )
 
