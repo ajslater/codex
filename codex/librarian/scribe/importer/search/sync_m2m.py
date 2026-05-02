@@ -112,7 +112,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         interrupted run leaves the original row intact rather than a
         comic with no FTS row.
         """
-        pks = [c.comic_id for c in comicftss]  # pyright: ignore[reportAttributeAccessIssue]
+        pks = [c.comic_id for c in comicftss]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         with transaction.atomic():
             for start in range(0, len(pks), _FTS_BATCH_SIZE):
                 chunk = pks[start : start + _FTS_BATCH_SIZE]

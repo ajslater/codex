@@ -719,7 +719,7 @@ def write_out(old_md, new_md):
 def diff_assert(old_md: Mapping, new_md: Mapping, phase: str):
     """Assert a deep diff."""
     if diff := DeepDiff(old_md, new_md):
-        print("Test Phase:", phase)  # noqa: T201
+        print("Test Phase:", phase)
         pprint(diff)
         pprint(new_md)
         if os.environ.get("CODEX_TEST_IMPORT_WRITE"):
@@ -732,7 +732,7 @@ def _test_comic_creation_field_protagonist(comic, field_name, test_value):
         comic.main_team and test_value == comic.main_team.name
     )
     if not diff:
-        print(  # noqa: T201
+        print(
             f"{field_name}:{test_value} == {comic.main_character=} or {comic.main_team=}"
         )
     assert diff
@@ -771,7 +771,7 @@ def _test_comic_creation_field(comic, field_name, test_value):
         value = tuple(sorted(subval.name for subval in value.all()))
     diff = test_value == value
     if not diff:
-        print(f"{field_name} {test_value=} {value=}")  # noqa: T201
+        print(f"{field_name} {test_value=} {value=}")
     assert diff
 
 
