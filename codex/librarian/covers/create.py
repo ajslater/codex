@@ -1,14 +1,16 @@
 """Create comic cover paths."""
 
+from __future__ import annotations
+
 import contextlib
 import os
 from abc import ABC
-from collections.abc import Collection
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import CancelledError, ProcessPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
+from queue import Empty
 from time import time
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from comicbox.box import Comicbox
 from humanize import naturaldelta
@@ -16,9 +18,15 @@ from PIL import Image
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CreateCoversStatus
+from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.threads import QueuedThread
 from codex.models import Comic, CustomCover
 from codex.settings import COMICBOX_CONFIG, COVER_WORKERS
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
+
+    from codex.librarian.tasks import LibrarianTask
 
 _COVER_RATIO = 1.5372233400402415  # modal cover ratio
 THUMBNAIL_WIDTH = 165
@@ -83,7 +91,7 @@ def _render_cover_thumb(args: tuple) -> tuple[int, str, str | None]:
                 image_data = f.read()
         else:
             with Comicbox(db_path, config=COMICBOX_CONFIG) as car:
-                image_data = car.get_cover_page(pdf_format="pixmap")
+                image_data = car.get_cover_page(pdf_format="pixmap", skip_metadata=True)
         if not image_data:
             _save_cover_to_cache(cover_path_str, b"")
             return pk, cover_path_str, "empty cover"
@@ -200,67 +208,189 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             work.append((pk, db_path, cover_path_str, custom))
         return work
 
-    def _bulk_create_comic_covers(self, pks, *, custom: bool) -> int:
+    def _render_covers_into_status(
+        self,
+        pks: Collection[int],
+        *,
+        custom: bool,
+        status: CreateCoversStatus,
+    ) -> int:
         """
-        Create bulk comic covers.
+        Render covers for a batch of pks, accumulating into ``status``.
 
-        Image-decode + LANCZOS resize + WEBP encode is CPU-bound and
-        embarrassingly parallel across cover targets. Submit each
-        target to a ``ProcessPoolExecutor`` and consume the
-        completion stream via ``as_completed``.
+        Pure work-driver: no ``start()`` / ``finish()`` calls. The
+        caller owns the status lifecycle so multiple batches (e.g.
+        a drained burst of ``CoverCreateTask``s) can share one
+        status row and avoid the start/finish flicker between
+        per-task lifecycles.
 
-        Workers own the full pipeline including the disk write —
-        no inline cover-bytes path exists anymore (the cover
-        endpoint serves from the on-disk cache via the 202-poll
-        retry loop landed in cover-cleanup PR #606). Skipping the
-        bytes round-trip through the executor's pickle channel
-        avoids ~50 KB of IPC per cover and parallelizes the disk
-        writes alongside the image pipeline.
+        Image-decode + LANCZOS resize + WEBP encode is CPU-bound
+        and embarrassingly parallel across cover targets. Submit
+        each target to a ``ProcessPoolExecutor`` and consume the
+        completion stream via ``as_completed``. Workers own the
+        full pipeline including the disk write — no bytes
+        round-trip through the executor's pickle channel.
 
-        Workers return only ``(pk, cover_path_str,
-        error_msg_or_None)`` — metadata for the parent's logging
-        + status loop. Failures still write the zero-byte
-        ``tried-and-failed`` sentinel from inside the worker so
-        the on-disk shape is identical regardless of outcome.
+        Returns the number of covers rendered (skipped pks aren't
+        counted).
         """
-        # Up-front filter: drop pks that already have a cover on
-        # disk. The remaining set is what we actually need to work
-        # on.
         pending_pks = self._filter_pending_pks(tuple(pks), custom=custom)
-        num_comics = len(pending_pks)
-        if not num_comics:
+        if not pending_pks:
             return 0
-        # Single batched ``pk -> path`` map covers the full set of
-        # work items; no per-cover SELECT inside the loop.
         db_paths = self._resolve_db_paths(pending_pks, custom=custom)
         work_items = self._build_cover_work_items(pending_pks, db_paths, custom=custom)
-        # Race-window adjustment: if some pks vanished between
-        # _resolve_db_paths and now, skip them silently in the status.
-        skipped = num_comics - len(work_items)
-        status = CreateCoversStatus(0, len(work_items))
+        if not work_items:
+            return 0
+        # ``status.total`` accumulates across burst batches so the UI
+        # sees a growing total as new tasks drain in alongside the
+        # already-running render.
+        status.total = (status.total or 0) + len(work_items)
+        self.status_controller.update(status)
+        desc = "custom" if custom else "comic"
+        self.log.debug(f"Creating {len(work_items)} {desc} covers...")
+        pool = self._get_cover_pool()
+        futures = [pool.submit(_render_cover_thumb, w) for w in work_items]
+        rendered = 0
+        for future in as_completed(futures):
+            try:
+                pk, _cover_path_str, err = future.result()
+            except CancelledError:
+                # ``stop()`` shuts the pool with ``cancel_futures=True``
+                # before ``SHUTDOWN_MSG`` lands — outstanding futures
+                # raise here. Drop them; the burst handler's ``finally``
+                # still finishes the status cleanly.
+                break
+            if err:
+                self.log.warning(f"Could not create cover thumbnail for pk={pk}: {err}")
+            status.increment_complete()
+            self.status_controller.update(status)
+            rendered += 1
+        return rendered
+
+    def _bulk_create_comic_covers(self, pks, *, custom: bool) -> int:
+        """
+        Create bulk comic covers under a fresh status lifecycle.
+
+        Thin wrapper around ``_render_covers_into_status`` for
+        callers that own a single isolated batch (notably
+        ``create_all_covers``). The burst handler used by the
+        ``CoverThread`` queue dispatch path manages its own status
+        and calls ``_render_covers_into_status`` directly.
+        """
+        status = CreateCoversStatus(0, 0)
         try:
             start_time = time()
-            self.log.debug(f"Creating {len(work_items)} comic covers...")
             self.status_controller.start(status)
-            pool = self._get_cover_pool()
-            futures = [pool.submit(_render_cover_thumb, w) for w in work_items]
-            for future in as_completed(futures):
-                pk, _cover_path_str, err = future.result()
-                if err:
-                    self.log.warning(
-                        f"Could not create cover thumbnail for pk={pk}: {err}"
-                    )
-                status.increment_complete()
-                self.status_controller.update(status)
+            self._render_covers_into_status(pks, custom=custom, status=status)
             desc = "custom" if custom else "comic"
-            count = status.complete
+            count = status.complete or 0
             level = "INFO" if count else "DEBUG"
             elapsed = naturaldelta(time() - start_time)
-            extra = f" ({skipped} skipped)" if skipped else ""
-            self.log.log(level, f"Created {count} {desc} covers in {elapsed}{extra}.")
+            self.log.log(level, f"Created {count} {desc} covers in {elapsed}.")
         finally:
             self.status_controller.finish(status)
         return status.complete or 0
+
+    def _drain_contiguous_creates(
+        self,
+    ) -> tuple[list[CoverCreateTask], LibrarianTask | None]:
+        """
+        Drain the queue's contiguous prefix of ``CoverCreateTask``s.
+
+        Pulls items via ``get_nowait`` until either the queue is
+        empty or a non-``CoverCreateTask`` cover task is seen.
+        That interruptor is returned so the caller can dispatch it
+        *after* the current burst's status finishes — preserving
+        FIFO ordering, which the importer relies on (it enqueues
+        ``CoverRemoveTask`` before ``CoverCreateTask`` for updated
+        comics, and ``_filter_pending_pks`` would no-op the
+        regeneration if the create ran first).
+
+        ``SHUTDOWN_MSG`` is re-armed on the queue so the outer
+        ``_check_item`` loop sees it on the next iteration.
+        """
+        creates: list[CoverCreateTask] = []
+        while True:
+            try:
+                item = self.queue.get_nowait()
+            except Empty:
+                return creates, None
+            if item == self.SHUTDOWN_MSG:
+                self.queue.put(self.SHUTDOWN_MSG)
+                return creates, None
+            if isinstance(item, CoverCreateTask):
+                creates.append(item)
+                continue
+            return creates, item
+
+    @staticmethod
+    def _split_pending_pks(
+        pending: list[CoverCreateTask],
+    ) -> tuple[set[int], set[int]]:
+        """Partition queued create tasks into (comic_pks, custom_pks)."""
+        comic_pks: set[int] = set()
+        custom_pks: set[int] = set()
+        for task in pending:
+            target = custom_pks if task.custom else comic_pks
+            target.update(task.pks)
+        return comic_pks, custom_pks
+
+    def _render_burst_batch(
+        self,
+        comic_pks: set[int],
+        custom_pks: set[int],
+        status: CreateCoversStatus,
+    ) -> None:
+        """Dispatch the comic and custom render passes for one batch."""
+        if comic_pks:
+            self._render_covers_into_status(comic_pks, custom=False, status=status)
+        if custom_pks:
+            self._render_covers_into_status(custom_pks, custom=True, status=status)
+
+    def _drain_burst_loop(
+        self,
+        pending: list[CoverCreateTask],
+        status: CreateCoversStatus,
+    ) -> LibrarianTask | None:
+        """Render ``pending`` and any drained-in tasks; return the interruptor."""
+        interruptor: LibrarianTask | None = None
+        while pending:
+            comic_pks, custom_pks = self._split_pending_pks(pending)
+            pending.clear()
+            self._render_burst_batch(comic_pks, custom_pks, status)
+            more, interruptor = self._drain_contiguous_creates()
+            pending.extend(more)
+        return interruptor
+
+    def process_cover_create_burst(self, first: CoverCreateTask) -> None:
+        """
+        Process ``first`` plus any contiguous queued ``CoverCreateTask``s.
+
+        Opens one ``CreateCoversStatus`` for the entire burst so the
+        admin UI's status row stays continuously active instead of
+        flickering off-and-on between back-to-back tasks (the
+        per-pk cover endpoint at ``views/browser/cover.py`` enqueues
+        one task per cache miss).
+
+        Drain stops at the first non-create cover task to preserve
+        enqueue order; that interruptor is dispatched via
+        ``process_item`` after ``finish()`` returns.
+        """
+        pending: list[CoverCreateTask] = [first]
+        interruptor: LibrarianTask | None = None
+        status = CreateCoversStatus(0, 0)
+        try:
+            start_time = time()
+            self.status_controller.start(status)
+            interruptor = self._drain_burst_loop(pending, status)
+            count = status.complete or 0
+            level = "INFO" if count else "DEBUG"
+            elapsed = naturaldelta(time() - start_time)
+            self.log.log(level, f"Created {count} covers in {elapsed}.")
+        finally:
+            self.status_controller.finish(status)
+        if interruptor is not None:
+            self.process_item(interruptor)
 
     def create_all_covers(self) -> None:
         """Create all covers for all libraries."""

@@ -110,14 +110,13 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         cheaply (parser cost grows in rows x cols and every UPDATE is
         an internal delete-then-insert at the segment level anyway), so
         an explicit delete-then-bulk_create cuts wall time roughly 1.5-
-        3x on production-shaped workloads. See
-        ``tests/perf/bench_fts_sync.py`` for the supporting numbers.
+        3x on production-shaped workloads.
 
         ``transaction.atomic`` makes the swap all-or-nothing — an
         interrupted run leaves the original row intact rather than a
         comic with no FTS row.
         """
-        pks = [c.comic_id for c in comicftss]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        pks = tuple(c.comic_id for c in comicftss)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
         with transaction.atomic():
             for start in range(0, len(pks), _FTS_BATCH_SIZE):
                 chunk = pks[start : start + _FTS_BATCH_SIZE]

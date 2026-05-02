@@ -2,16 +2,21 @@
 
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
 from collections import defaultdict
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.apps import apps
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.functions import Now
 
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
 
     from codex.models.comic import Comic
+
+# Comic file extensions we'll consider — phantom directory-as-comic
+# rows (older bug) are out of scope for parent-folder drift repair.
+_COMIC_SUFFIXES = (".cbz", ".cbr", ".cb7", ".cbt", ".pdf")
 
 # SQLite's parameter cap is 32766; leave headroom for the rare case
 # where Django / the driver sneaks in extra bound values. Each rowid
@@ -205,6 +210,117 @@ def _fix_fk_violations(
                 deleted += affected
 
     return nulled, deleted, fix_comic_pks
+
+
+def _build_folder_lookups(
+    folder_model,
+) -> tuple[dict[tuple[int, str], int], dict[int, str]]:
+    """Build (library_id, path)→pk and pk→path lookups from Folder rows."""
+    folder_pk_by_key: dict[tuple[int, str], int] = {
+        (lib_id, path): pk
+        for pk, lib_id, path in folder_model.objects.values_list(
+            "id", "library_id", "path"
+        )
+    }
+    folder_path_by_pk: dict[int, str] = {
+        pk: path for (_, path), pk in folder_pk_by_key.items()
+    }
+    return folder_pk_by_key, folder_path_by_pk
+
+
+def _classify_comic_drift(
+    comic_model,
+    folder_pk_by_key: dict[tuple[int, str], int],
+    folder_path_by_pk: dict[int, str],
+) -> tuple[list[tuple[int, int]], list[tuple[int, str, str]]]:
+    """Bucket each comic into (repointed, orphaned) by parent-folder drift."""
+    repointed: list[tuple[int, int]] = []
+    orphaned: list[tuple[int, str, str]] = []
+    # ``values_list`` avoids attribute access on a generic
+    # ``Model`` (which the migration-time apps registry returns)
+    # — keeps the type checker happy without per-line ignores.
+    rows = comic_model.objects.values_list(
+        "id", "path", "parent_folder_id", "library_id"
+    ).iterator(chunk_size=2000)
+    for comic_id, comic_path, parent_folder_id, library_id in rows:
+        if not comic_path.endswith(_COMIC_SUFFIXES):
+            # Phantom comic-as-folder rows are handled elsewhere.
+            continue
+        expected = str(Path(comic_path).parent)
+        actual = folder_path_by_pk.get(parent_folder_id) if parent_folder_id else None
+        if actual == expected:
+            continue
+        new_pk = folder_pk_by_key.get((library_id, expected))
+        if new_pk is None:
+            orphaned.append((comic_id, comic_path, expected))
+        else:
+            repointed.append((comic_id, new_pk))
+    return repointed, orphaned
+
+
+def _apply_parent_folder_repoints(
+    comic_model, repointed: list[tuple[int, int]], log
+) -> None:
+    """Repoint each drifted comic at its correct parent folder."""
+    if not repointed:
+        log.debug("No parent_folder_id drift detected.")
+        return
+    with transaction.atomic():
+        for comic_id, new_pk in repointed:
+            comic_model.objects.filter(id=comic_id).update(parent_folder_id=new_pk)
+    log.info(f"Re-pointed parent_folder_id for {len(repointed)} drifted comics.")
+
+
+def _log_drift_orphans(orphaned: list[tuple[int, str, str]], log) -> None:
+    """Warn about drifted comics whose true parent folder doesn't exist yet."""
+    if not orphaned:
+        return
+    log.warning(
+        f"{len(orphaned)} comics have no matching parent Folder in their library; the next import will recreate the hierarchy. First 5:"
+    )
+    for comic_id, comic_path, expected in orphaned[:5]:
+        log.warning(
+            f"  drift orphan: comic_id={comic_id} path={comic_path} expected_parent={expected}"
+        )
+
+
+def fix_parent_folder_drift(log, apps_registry=None) -> int:
+    """
+    Re-point ``Comic.parent_folder_id`` rows whose FK disagrees with the path.
+
+    A normally-functioning importer keeps ``Comic.path`` and
+    ``Comic.parent_folder.path`` consistent —
+    ``Path(comic.path).parent`` always equals
+    ``comic.parent_folder.path``. A past importer bug (most likely a
+    botched directory-rename move during a single import event) has
+    been observed to produce rare drift where the FK points at a real
+    ``Folder`` row whose path no longer matches the comic's actual
+    location on disk. This function detects such rows and re-points
+    them at the correct ``Folder``, or surfaces a warning if no such
+    folder exists in the library yet.
+
+    Returns the number of comics whose FK was corrected. Safe to
+    re-run; a no-op once the database is consistent.
+
+    ``apps_registry`` is an optional override for the Django apps
+    registry. Pass the migration-time ``apps`` argument when calling
+    from a ``RunPython`` step so the function uses schema state at
+    migration time rather than the live model classes. Defaults to
+    the live registry.
+    """
+    registry = apps_registry if apps_registry is not None else apps
+    comic_model = registry.get_model("codex", "Comic")
+    folder_model = registry.get_model("codex", "Folder")
+
+    folder_pk_by_key, folder_path_by_pk = _build_folder_lookups(folder_model)
+    repointed, orphaned = _classify_comic_drift(
+        comic_model, folder_pk_by_key, folder_path_by_pk
+    )
+
+    _apply_parent_folder_repoints(comic_model, repointed, log)
+    _log_drift_orphans(orphaned, log)
+
+    return len(repointed)
 
 
 def fix_foreign_keys(log) -> None:

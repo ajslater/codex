@@ -86,13 +86,38 @@ happens inside :meth:`AgeRating.presave`, and any
 re-import. For the rare "comicbox enum got updated" case, a fresh
 library rescan walks every affected Comic through
 :meth:`Comic.presave` and heals the drift.
+
+----
+
+Drop legacy non-comic rows from :class:`Comic`.
+
+A 2022/2023-era importer bug let directories (and other non-archive
+paths) slip into ``codex_comic`` as if they were comics. Their paths
+carry no archive suffix (``.cbz``/``.cbr``/``.cb7``/``.cbt``/``.pdf``),
+their ``size`` reflects whatever ``Path.stat()`` returned for the
+entry, and their ``page_count`` is zero. The current importer rejects
+such paths up-front via :func:`codex.librarian.fs.filters.match_comic`,
+so this is a one-shot cleanup. The pass runs before the
+:attr:`Comic.age_rating_metron_index` backfill so the backfill
+doesn't waste work on rows we're about to delete.
+
+For each Comic whose path lacks a comic suffix we also stat the path:
+if it still exists on disk as a *file* the row is left alone (admins
+can sort it out manually) — directories, missing entries, and
+unstat-able paths get deleted. Cascade handles ``ComicFTS``,
+``Bookmark``, and m2m link rows. Orphan covers are picked up by the
+existing librarian janitor pass.
 """
+
+import re
+from pathlib import Path
 
 from comicbox.enums.maps.age_rating import to_metron_age_rating
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.db import migrations, models
 from django.db.models.deletion import SET_NULL
 from django.db.models.functions import Trim
+from loguru import logger
 
 import codex.models.fields
 from codex.choices.reader import READER_DEFAULTS
@@ -189,21 +214,6 @@ _LIBRARIAN_STATUS_CHOICES = [
     ("WPO", "Poll Library"),
     ("WRS", "Restart File Watcher"),
 ]
-# ``codex_comicfts`` is an FTS5 virtual table; SQLite cannot
-# enforce a UNIQUE constraint on its user columns, so duplicate
-# rows for the same ``comic_id`` are possible. Earlier importer
-# iteration bugs and force-rebuild paths planted some on
-# v1.11.0a0 installs. The DROP + CREATE below wipes the table
-# clean for v1.10 -> v1.11 upgrades, but if a future migration
-# preserves data instead of dropping, this dedupe makes the
-# operation idempotent — keeps the lowest-rowid row per
-# ``comic_id``, no-ops on a clean table.
-_FTS_DEDUPE_SQL = (
-    "DELETE FROM codex_comicfts "
-    "WHERE rowid NOT IN ("
-    "  SELECT MIN(rowid) FROM codex_comicfts GROUP BY comic_id"
-    ")"
-)
 _NEW_FTS_SQL = (
     "CREATE VIRTUAL TABLE codex_comicfts USING fts5("
     "comic_id UNINDEXED, created_at UNINDEXED, updated_at UNINDEXED, "
@@ -227,6 +237,16 @@ _GLOBAL_FILTER = {
     "story_arc__isnull": True,
 }
 _NULL_VALUES = frozenset({None, ""})
+# Mirrors the runtime regex in
+# ``codex.librarian.fs.filters._build_comic_matcher``. Hardcoded so
+# the migration is stable as the runtime regex evolves (e.g. PDF/RAR
+# being toggled by comicbox capability checks).
+_COMIC_SUFFIX_RE = re.compile(r"\.(cb[zt7r]|pdf)$", re.IGNORECASE)
+# Cap on how many comic-suffix paths we'll stat-probe before deciding
+# the comics filesystem is unreachable. 10 is enough that a few odd
+# missing files don't fool us into bailing on a real cleanup, but
+# small enough that a fully-unmounted volume aborts cleanly.
+_SENTINEL_LIMIT = 10
 
 
 def _compute_metron_name_for(name):
@@ -287,6 +307,104 @@ def _backfill_age_rating_metron_flag_fk(apps, _schema_editor) -> None:
         admin_flag_model.objects.bulk_update(
             to_update, ["age_rating_metron_id", "value"]
         )
+
+
+def _is_comic_path(path_str: str) -> bool:
+    """Return True if ``path_str`` ends in a recognised comic archive suffix."""
+    if not path_str:
+        return False
+    suffix = Path(path_str).suffix
+    return bool(suffix) and _COMIC_SUFFIX_RE.match(suffix) is not None
+
+
+def _comics_fs_reachable(model) -> tuple[bool, int]:
+    """
+    Probe up to :data:`_SENTINEL_LIMIT` comic-suffix paths to verify the FS is mounted.
+
+    Returns ``(reachable, attempts)``. ``reachable`` is True as soon as one
+    comic-suffix path stats as a file. If we exhaust the iterator (or the
+    cap) with no successes, the FS is treated as unreachable and the caller
+    skips the cleanup.
+    """
+    attempts = 0
+    for comic in model.objects.only("path").iterator():
+        path_str = comic.path or ""
+        if not _is_comic_path(path_str):
+            continue
+        attempts += 1
+        try:
+            if Path(path_str).is_file():
+                return True, attempts
+        except OSError:
+            pass
+        if attempts >= _SENTINEL_LIMIT:
+            break
+    return False, attempts
+
+
+def _remove_non_comic_comics(apps, _schema_editor) -> None:
+    """
+    Delete phantom Comic rows whose path is not a comic archive.
+
+    Two defenses against mass-deleting legitimate comics if the comics
+    volume happens to be unmounted at migration time:
+
+    1. Restrict the predicate to ``page_count == 0`` rows — the
+       phantom-row signature from the original importer bug. A real
+       comic file always has at least one page.
+    2. Sentinel-stat real comic-suffix paths first. If none stat as
+       files, the FS is unreachable and we skip the cleanup entirely.
+    """
+    model = apps.get_model("codex", "Comic")
+
+    reachable, sentinel_attempts = _comics_fs_reachable(model)
+    if not reachable:
+        if sentinel_attempts == 0:
+            msg = (
+                "Skipping non-comic Comic-row cleanup: no comic-suffix paths "
+                "in the database to use as a stat sentinel."
+            )
+            logger.info(msg)
+        else:
+            msg = (
+                f"Skipping non-comic Comic-row cleanup: probed {sentinel_attempts} "
+                "comic-suffix paths and none stat as files. If your comics volume "
+                "is not mounted, restart with it attached so this cleanup can run."
+            )
+            logger.warning(msg)
+        return
+
+    delete_pks: list[int] = []
+    skipped: list[str] = []
+    qs = model.objects.filter(page_count=0).only("pk", "path")
+    for comic in qs.iterator():
+        path_str = comic.path or ""
+        if _is_comic_path(path_str):
+            continue
+        try:
+            is_file = Path(path_str).is_file()
+        except OSError:
+            is_file = False
+        if is_file:
+            # Real file on disk but with a non-comic name. Don't
+            # touch it — surface for manual review instead.
+            skipped.append(path_str)
+            continue
+        delete_pks.append(comic.pk)
+
+    if skipped:
+        msg = (
+            f"Leaving {len(skipped)} comics with non-comic names that exist "
+            "on disk as files; review manually:"
+        )
+        logger.info(msg)
+        for path_str in skipped:
+            logger.info(f"  {path_str}")
+
+    if not delete_pks:
+        return
+    logger.info(f"Deleting {len(delete_pks)} non-comic rows from codex_comic.")
+    model.objects.filter(pk__in=delete_pks).delete()
 
 
 def _backfill_age_rating_metron_index(_apps, _schema_editor) -> None:
@@ -351,6 +469,26 @@ def _seed_anonymous_user_age_rating_flag(apps, _schema_editor) -> None:
 
 def _noop(_apps, _schema_editor) -> None:
     """Reverse no-op (data migrations stay applied on rollback)."""
+
+
+def _fix_parent_folder_drift(apps, _schema_editor) -> None:
+    """
+    One-shot heal for drifted Comic.parent_folder_id rows.
+
+    Observed once in a v1.10-era database: 8 comics' FK pointed at a
+    real Folder row whose path no longer matched
+    ``Path(comic.path).parent``. The importer's update path used to
+    re-resolve parent_folder via path string and crashed
+    (``Folder.DoesNotExist``) for these rows. The companion code
+    change in this PR stops the re-resolution; this migration step
+    cleans up the drifted data so a future browse query lands on the
+    right folder. No-op on a consistent database.
+    """
+    from codex.librarian.scribe.janitor.integrity.foreign_keys import (
+        fix_parent_folder_drift,
+    )
+
+    fix_parent_folder_drift(logger, apps_registry=apps)
 
 
 def _strip_pycountry_names(apps, _schema_editor) -> None:
@@ -828,17 +966,6 @@ class Migration(migrations.Migration):
                 name="codex_libstat_active_idx",
             ),
         ),
-        migrations.AddIndex(
-            model_name="comic",
-            index=models.Index(
-                fields=("library", "age_rating_metron_index"),
-                name="codex_comic_lib_ari_idx",
-            ),
-        ),
-        migrations.RunSQL(
-            sql=_FTS_DEDUPE_SQL,
-            reverse_sql=migrations.RunSQL.noop,
-        ),
         migrations.RunSQL(
             sql="DROP TABLE IF EXISTS codex_comicfts;",
             reverse_sql=migrations.RunSQL.noop,
@@ -850,7 +977,20 @@ class Migration(migrations.Migration):
         # Seed AdminFlag rows after their key choices registration.
         migrations.RunPython(_seed_age_rating_default_flag, _noop),
         migrations.RunPython(_seed_anonymous_user_age_rating_flag, _noop),
+        # Run the non-comic cleanup before the metron-index backfill
+        # so the backfill doesn't touch about-to-be-deleted rows.
+        migrations.RunPython(_remove_non_comic_comics, _noop),
         migrations.RunPython(_backfill_age_rating_metron_index, _noop),
+        # Build the composite ACL index after the backfill so it's a
+        # single sorted index build, not an incremental update against
+        # every UPDATEd row.
+        migrations.AddIndex(
+            model_name="comic",
+            index=models.Index(
+                fields=("library", "age_rating_metron_index"),
+                name="codex_comic_lib_ari_idx",
+            ),
+        ),
         migrations.RunPython(_backfill_age_rating_metron_flag_fk, _noop),
         migrations.RunPython(_strip_pycountry_names, _noop),
         migrations.RunPython(
@@ -861,6 +1001,13 @@ class Migration(migrations.Migration):
             backfill_global_reader_defaults,
             reverse_code=migrations.RunPython.noop,
         ),
+        # One-shot heal for Comic.parent_folder_id rows that drifted
+        # off their on-disk path (rare, observed once on a v1.10-era
+        # database). The companion code change in this PR stops the
+        # importer from re-resolving parent_folder by string on the
+        # update path — this step backfills the data so existing
+        # affected installs come out clean.
+        migrations.RunPython(_fix_parent_folder_drift, _noop),
         # ComicFTS is unmanaged; its Django state tracks only (comic,
         # created_at, updated_at). The FTS columns are a SQL-level concern —
         # no state_operations are needed, only a raw DROP + CREATE.
