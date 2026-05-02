@@ -9,19 +9,7 @@ class JanitorUpdateFailedImports(JanitorVacuum):
     """Methods for updating failed imports."""
 
     def _force_update_failed_imports(self, library_id) -> None:
-        """
-        Force update events for failed imports in a library.
-
-        Dispatches one ``ImportTask(files_modified=...)`` covering every
-        failed-import path instead of one ``FSEventTask`` per path.
-        For libraries with thousands of failed imports (corrupt CBRs
-        users want to retry post-comicbox-upgrade) the librarian queue
-        previously received thousands of items, each routed through
-        the per-event debounce + filesystem stat + DB lookup pipeline.
-
-        ``ImportTask`` skips the FS-event debounce — that is the
-        intended behavior for an explicit "force re-import" action.
-        """
+        """Force update events for failed imports in a library."""
         failed_import_paths = frozenset(
             FailedImport.objects.filter(library=library_id).values_list(
                 "path", flat=True
