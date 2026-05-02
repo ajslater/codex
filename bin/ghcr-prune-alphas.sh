@@ -15,20 +15,20 @@ ALPHA_REGEX='^[0-9]+\.[0-9]+\.[0-9]+a[0-9]+$'
 EXECUTE=0
 for arg in "$@"; do
   case "$arg" in
-    --execute) EXECUTE=1 ;;
-    -h|--help)
-      cat <<EOF
+  --execute) EXECUTE=1 ;;
+  -h | --help)
+    cat <<EOF
 Usage: $0 [--execute]
 
 Lists alpha-tagged versions of ghcr.io/${OWNER}/${PACKAGE} and (with
 --execute) deletes them. Without --execute, prints what would be removed.
 EOF
-      exit 0
-      ;;
-    *)
-      echo "Unknown argument: $arg" >&2
-      exit 2
-      ;;
+    exit 0
+    ;;
+  *)
+    echo "Unknown argument: $arg" >&2
+    exit 2
+    ;;
   esac
 done
 
@@ -59,9 +59,9 @@ versions_json=$(
 
 # Pick versions whose tag list contains at least one alpha tag.
 matches=$(
-  echo "$versions_json" \
-    | jq -c --arg re "$ALPHA_REGEX" \
-        'select(.tags | map(test($re)) | any)'
+  echo "$versions_json" |
+    jq -c --arg re "$ALPHA_REGEX" \
+      'select(.tags | map(test($re)) | any)'
 )
 
 if [[ -z "$matches" ]]; then
@@ -87,10 +87,10 @@ while IFS= read -r row; do
   tags=$(echo "$row" | jq -r '.tags | join(",")')
   echo "  deleting id=$id tags=$tags"
   if ! gh api \
-      --method DELETE \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "/users/${OWNER}/packages/container/${PACKAGE}/versions/${id}"; then
+    --method DELETE \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "/users/${OWNER}/packages/container/${PACKAGE}/versions/${id}"; then
     echo "    FAILED" >&2
     fail=1
   fi
