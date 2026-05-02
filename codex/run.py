@@ -114,8 +114,26 @@ async def _watch_for_changes() -> None:
         break
 
 
+def _silence_disconnects(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+    """
+    Drop CancelledError from unretrieved shielded futures.
+
+    asgiref's ``SyncToAsync`` adapter shields the executor coroutine
+    running a sync Django view. On client disconnect the outer task is
+    cancelled; the inner future continues (sync work in a thread can't
+    be cancelled), completes, and is then unretrieved — and asyncio's
+    default handler logs that as "CancelledError exception in shielded
+    future". The work itself isn't lost; there's just no client to hand
+    the response to. Silencing keeps user-facing logs uncluttered.
+    """
+    if isinstance(context.get("exception"), asyncio.CancelledError):
+        return
+    loop.default_exception_handler(context)
+
+
 async def _serve(server: Server) -> None:
     """Run granian until SHUTDOWN_EVENT fires, then stop gracefully."""
+    asyncio.get_running_loop().set_exception_handler(_silence_disconnects)
     server_task = asyncio.create_task(server.serve())
     if WATCH_FOR_CHANGES:
         watch_task = asyncio.create_task(_watch_for_changes())
