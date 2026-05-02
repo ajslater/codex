@@ -68,12 +68,12 @@ class LibraryWatcherThread(NamedThread):
 
         if old_paths == new_paths:
             return
-        added = new_paths - old_paths
-        removed = old_paths - new_paths
+        added = ", ".join(sorted(new_paths - old_paths))
+        removed = ", ".join(sorted(old_paths - new_paths))
         if added:
-            self.log.info(f"FS adding paths: {added}")
+            self.log.info(f"Watcher adding paths: {added}")
         if removed:
-            self.log.info(f"FS removing paths: {removed}")
+            self.log.info(f"Watcher removing paths: {removed}")
 
     def _update_paths_from_db(self) -> None:
         """Query the database for current library paths to watch."""
@@ -173,7 +173,7 @@ class LibraryWatcherThread(NamedThread):
             except FileNotFoundError as exc:
                 self.log.warning(f"Watch path disappeared: {exc}")
             except Exception:
-                self.log.exception("FS error")
+                self.log.exception("Watcher error")
 
     @override
     def run(self) -> None:
