@@ -71,9 +71,5 @@ class JanitorFTSRebuildTask(JanitorTask):
     """Rebuild fts table in place."""
 
 
-class JanitorFTSDedupeTask(JanitorTask):
-    """Remove duplicate ComicFTS rows that share a comic_id."""
-
-
 class JanitorNightlyTask(JanitorTask):
     """Submit all janitor nightly tasks to the queue."""

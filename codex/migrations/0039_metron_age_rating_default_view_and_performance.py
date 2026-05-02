@@ -178,7 +178,6 @@ _LIBRARIAN_STATUS_CHOICES = [
     ("JRB", "Cleanup Orphan Bookmarks"),
     ("JRS", "Cleanup Old Sessions"),
     ("JRV", "Cleanup Orphan Covers"),
-    ("JSD", "Dedupe Duplicate Full Text Search Rows"),
     ("JSR", "Rebuild Full Text Search Virtual Table"),
     ("RCR", "Restart Codex Server"),
     ("RCS", "Stop Codex Server"),
@@ -190,6 +189,21 @@ _LIBRARIAN_STATUS_CHOICES = [
     ("WPO", "Poll Library"),
     ("WRS", "Restart File Watcher"),
 ]
+# ``codex_comicfts`` is an FTS5 virtual table; SQLite cannot
+# enforce a UNIQUE constraint on its user columns, so duplicate
+# rows for the same ``comic_id`` are possible. Earlier importer
+# iteration bugs and force-rebuild paths planted some on
+# v1.11.0a0 installs. The DROP + CREATE below wipes the table
+# clean for v1.10 -> v1.11 upgrades, but if a future migration
+# preserves data instead of dropping, this dedupe makes the
+# operation idempotent — keeps the lowest-rowid row per
+# ``comic_id``, no-ops on a clean table.
+_FTS_DEDUPE_SQL = (
+    "DELETE FROM codex_comicfts "
+    "WHERE rowid NOT IN ("
+    "  SELECT MIN(rowid) FROM codex_comicfts GROUP BY comic_id"
+    ")"
+)
 _NEW_FTS_SQL = (
     "CREATE VIRTUAL TABLE codex_comicfts USING fts5("
     "comic_id UNINDEXED, created_at UNINDEXED, updated_at UNINDEXED, "
@@ -820,6 +834,10 @@ class Migration(migrations.Migration):
                 fields=("library", "age_rating_metron_index"),
                 name="codex_comic_lib_ari_idx",
             ),
+        ),
+        migrations.RunSQL(
+            sql=_FTS_DEDUPE_SQL,
+            reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="DROP TABLE IF EXISTS codex_comicfts;",

@@ -144,15 +144,6 @@ class JanitorDBFTSRebuildStatus(JanitorStatus):
     log_success = True
 
 
-class JanitorDBFTSDedupeStatus(JanitorStatus):
-    """Janitor Dedupe DB FTS Status."""
-
-    CODE = "JSD"
-    VERB = "Dedupe"
-    _verbed = "Deduped"
-    ITEM_NAME = "duplicate full text search rows"
-
-
 JANITOR_STATII = (
     JanitorAdoptOrphanFoldersStatus,
     JanitorCleanupTagsStatus,
@@ -168,5 +159,4 @@ JANITOR_STATII = (
     JanitorDBIntegrityStatus,
     JanitorDBFTSIntegrityStatus,
     JanitorDBFTSRebuildStatus,
-    JanitorDBFTSDedupeStatus,
 )
