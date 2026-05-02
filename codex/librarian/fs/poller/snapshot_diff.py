@@ -101,7 +101,6 @@ class SnapshotDiff:
             unchanged=frozenset(ref.paths & snapshot.paths),
         )
 
-        self._check_unchanged_for_inode_changes(data)
         self._find_moved_paths(data)
         self._find_modified_paths(data)
 
@@ -125,21 +124,11 @@ class SnapshotDiff:
         self.files_moved = []
         self._init_moved(data, ref)
 
-    def _is_inode_equal(self, data: _DiffData, path: str) -> bool:
-        """Return whether inodes match between ref and snapshot."""
-        return data.ref.inode(path) == data.snapshot.inode(path)
-
     def _is_stats_equal(self, data: _DiffData, old_path: str, new_path: str) -> bool:
         """Return whether mtime and size match."""
         return data.ref.mtime(old_path) == data.snapshot.mtime(
             new_path
         ) and data.ref.size(old_path) == data.snapshot.size(new_path)
-
-    def _check_unchanged_for_inode_changes(self, data: _DiffData) -> None:
-        """Check unchanged paths for inode changes (file replaced in-place)."""
-        for path in data.unchanged:
-            if not self._is_inode_equal(data, path):
-                data.modified.add(path)
 
     def _find_moved_paths(self, data: _DiffData) -> None:
         """Detect moves by matching inodes between deleted and added sets."""
@@ -158,9 +147,7 @@ class SnapshotDiff:
     def _find_modified_paths(self, data: _DiffData) -> None:
         """Find paths with changed stats (mtime/size)."""
         for path in data.unchanged:
-            if self._is_inode_equal(data, path) and not self._is_stats_equal(
-                data, path, path
-            ):
+            if not self._is_stats_equal(data, path, path):
                 data.modified.add(path)
 
         for old_path, new_path in data.moved:

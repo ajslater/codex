@@ -173,7 +173,7 @@ class DatabaseSnapshot(Snapshot):
     def _create_stat(self, wp: dict, *, force: bool) -> os.stat_result:
         """Turn a database JSON stat array into an os.stat_result."""
         stat = wp["stat"]
-        if not stat or len(stat) != self._STAT_LEN or not stat[1]:
+        if not stat or len(stat) != self._STAT_LEN:
             path = Path(wp["path"])
             if path.exists():
                 self.log.debug(f"Force modify path with missing db stat: {path}")
