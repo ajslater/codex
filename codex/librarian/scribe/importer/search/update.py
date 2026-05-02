@@ -130,8 +130,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             # in rows x cols, plus an internal delete+reinsert per
             # affected row at the segment level), and a multi-row
             # INSERT cuts wall time roughly 1.5-3x on real workloads.
-            # See ``tests/perf/bench_fts_sync.py`` for the supporting
-            # numbers. Inherits ``_delete_then_create_comicfts`` from
+            # Inherits ``_delete_then_create_comicfts`` from
             # ``SearchIndexSyncManyToManyImporter`` for the atomic
             # swap and chunked DELETE.
             self._delete_then_create_comicfts(list(obj_list))

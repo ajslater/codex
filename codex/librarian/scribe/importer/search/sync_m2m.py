@@ -110,8 +110,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         cheaply (parser cost grows in rows x cols and every UPDATE is
         an internal delete-then-insert at the segment level anyway), so
         an explicit delete-then-bulk_create cuts wall time roughly 1.5-
-        3x on production-shaped workloads. See
-        ``tests/perf/bench_fts_sync.py`` for the supporting numbers.
+        3x on production-shaped workloads.
 
         ``transaction.atomic`` makes the swap all-or-nothing — an
         interrupted run leaves the original row intact rather than a
