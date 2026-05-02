@@ -360,16 +360,18 @@ def _remove_non_comic_comics(apps, _schema_editor) -> None:
     reachable, sentinel_attempts = _comics_fs_reachable(model)
     if not reachable:
         if sentinel_attempts == 0:
-            logger.info(
+            msg = (
                 "Skipping non-comic Comic-row cleanup: no comic-suffix paths "
                 "in the database to use as a stat sentinel."
             )
+            logger.info(msg)
         else:
-            logger.warning(
+            msg = (
                 f"Skipping non-comic Comic-row cleanup: probed {sentinel_attempts} "
                 "comic-suffix paths and none stat as files. If your comics volume "
                 "is not mounted, restart with it attached so this cleanup can run."
             )
+            logger.warning(msg)
         return
 
     delete_pks: list[int] = []
@@ -391,10 +393,11 @@ def _remove_non_comic_comics(apps, _schema_editor) -> None:
         delete_pks.append(comic.pk)
 
     if skipped:
-        logger.info(
+        msg = (
             f"Leaving {len(skipped)} comics with non-comic names that exist "
             "on disk as files; review manually:"
         )
+        logger.info(msg)
         for path_str in skipped:
             logger.info(f"  {path_str}")
 
