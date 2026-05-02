@@ -212,6 +212,78 @@ def _fix_fk_violations(
     return nulled, deleted, fix_comic_pks
 
 
+def _build_folder_lookups(
+    folder_model,
+) -> tuple[dict[tuple[int, str], int], dict[int, str]]:
+    """Build (library_id, path)→pk and pk→path lookups from Folder rows."""
+    folder_pk_by_key: dict[tuple[int, str], int] = {
+        (lib_id, path): pk
+        for pk, lib_id, path in folder_model.objects.values_list(
+            "id", "library_id", "path"
+        )
+    }
+    folder_path_by_pk: dict[int, str] = {
+        pk: path for (_, path), pk in folder_pk_by_key.items()
+    }
+    return folder_pk_by_key, folder_path_by_pk
+
+
+def _classify_comic_drift(
+    comic_model,
+    folder_pk_by_key: dict[tuple[int, str], int],
+    folder_path_by_pk: dict[int, str],
+) -> tuple[list[tuple[int, int]], list[tuple[int, str, str]]]:
+    """Bucket each comic into (repointed, orphaned) by parent-folder drift."""
+    repointed: list[tuple[int, int]] = []
+    orphaned: list[tuple[int, str, str]] = []
+    # ``values_list`` avoids attribute access on a generic
+    # ``Model`` (which the migration-time apps registry returns)
+    # — keeps the type checker happy without per-line ignores.
+    rows = comic_model.objects.values_list(
+        "id", "path", "parent_folder_id", "library_id"
+    ).iterator(chunk_size=2000)
+    for comic_id, comic_path, parent_folder_id, library_id in rows:
+        if not comic_path.endswith(_COMIC_SUFFIXES):
+            # Phantom comic-as-folder rows are handled elsewhere.
+            continue
+        expected = str(Path(comic_path).parent)
+        actual = folder_path_by_pk.get(parent_folder_id) if parent_folder_id else None
+        if actual == expected:
+            continue
+        new_pk = folder_pk_by_key.get((library_id, expected))
+        if new_pk is None:
+            orphaned.append((comic_id, comic_path, expected))
+        else:
+            repointed.append((comic_id, new_pk))
+    return repointed, orphaned
+
+
+def _apply_parent_folder_repoints(
+    comic_model, repointed: list[tuple[int, int]], log
+) -> None:
+    """Repoint each drifted comic at its correct parent folder."""
+    if not repointed:
+        log.debug("No parent_folder_id drift detected.")
+        return
+    with transaction.atomic():
+        for comic_id, new_pk in repointed:
+            comic_model.objects.filter(id=comic_id).update(parent_folder_id=new_pk)
+    log.info(f"Re-pointed parent_folder_id for {len(repointed)} drifted comics.")
+
+
+def _log_drift_orphans(orphaned: list[tuple[int, str, str]], log) -> None:
+    """Warn about drifted comics whose true parent folder doesn't exist yet."""
+    if not orphaned:
+        return
+    log.warning(
+        f"{len(orphaned)} comics have no matching parent Folder in their library; the next import will recreate the hierarchy. First 5:"
+    )
+    for comic_id, comic_path, expected in orphaned[:5]:
+        log.warning(
+            f"  drift orphan: comic_id={comic_id} path={comic_path} expected_parent={expected}"
+        )
+
+
 def fix_parent_folder_drift(log, apps_registry=None) -> int:
     """
     Re-point ``Comic.parent_folder_id`` rows whose FK disagrees with the path.
@@ -240,58 +312,13 @@ def fix_parent_folder_drift(log, apps_registry=None) -> int:
     comic_model = registry.get_model("codex", "Comic")
     folder_model = registry.get_model("codex", "Folder")
 
-    folder_pk_by_key: dict[tuple[int, str], int] = {
-        (lib_id, path): pk
-        for pk, lib_id, path in folder_model.objects.values_list(
-            "id", "library_id", "path"
-        )
-    }
-    folder_path_by_pk: dict[int, str] = {
-        pk: path for (_, path), pk in folder_pk_by_key.items()
-    }
+    folder_pk_by_key, folder_path_by_pk = _build_folder_lookups(folder_model)
+    repointed, orphaned = _classify_comic_drift(
+        comic_model, folder_pk_by_key, folder_path_by_pk
+    )
 
-    repointed: list[tuple[int, int]] = []
-    orphaned: list[tuple[int, str, str]] = []
-    # ``values_list`` avoids attribute access on a generic
-    # ``Model`` (which the migration-time apps registry returns)
-    # — keeps the type checker happy without per-line ignores.
-    for (
-        comic_id,
-        comic_path,
-        parent_folder_id,
-        library_id,
-    ) in comic_model.objects.values_list(
-        "id", "path", "parent_folder_id", "library_id"
-    ).iterator(chunk_size=2000):
-        if not comic_path.endswith(_COMIC_SUFFIXES):
-            # Phantom comic-as-folder rows are handled elsewhere.
-            continue
-        expected = str(Path(comic_path).parent)
-        actual = folder_path_by_pk.get(parent_folder_id) if parent_folder_id else None
-        if actual == expected:
-            continue
-        new_pk = folder_pk_by_key.get((library_id, expected))
-        if new_pk is None:
-            orphaned.append((comic_id, comic_path, expected))
-            continue
-        repointed.append((comic_id, new_pk))
-
-    if repointed:
-        with transaction.atomic():
-            for comic_id, new_pk in repointed:
-                comic_model.objects.filter(id=comic_id).update(parent_folder_id=new_pk)
-        log.info(f"Re-pointed parent_folder_id for {len(repointed)} drifted comics.")
-    else:
-        log.debug("No parent_folder_id drift detected.")
-
-    if orphaned:
-        log.warning(
-            f"{len(orphaned)} comics have no matching parent Folder in their library; the next import will recreate the hierarchy. First 5:"
-        )
-        for comic_id, comic_path, expected in orphaned[:5]:
-            log.warning(
-                f"  drift orphan: comic_id={comic_id} path={comic_path} expected_parent={expected}"
-            )
+    _apply_parent_folder_repoints(comic_model, repointed, log)
+    _log_drift_orphans(orphaned, log)
 
     return len(repointed)
 
