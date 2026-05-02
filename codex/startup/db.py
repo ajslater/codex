@@ -214,6 +214,9 @@ def _migrate_silk_db() -> None:
 def ensure_db_schema() -> bool:
     """Ensure the db is good and up to date."""
     logger.info("Ensuring database is correct and up to date...")
+    if _rebuild_db():
+        return False
+
     try:
         _warn_on_stale_wal_siblings()
         table_names = connection.introspection.table_names()
@@ -233,8 +236,6 @@ def ensure_db_schema() -> bool:
         will_migrate = _has_unapplied_migrations()
         if will_migrate:
             _backup_db_before_migration()
-        if _rebuild_db():
-            return False
         _repair_db(logger, will_migrate=will_migrate)
     call_command("migrate")
     _migrate_silk_db()
