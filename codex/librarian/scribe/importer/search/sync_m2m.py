@@ -67,7 +67,12 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         overwrote unpredictably when the same pk appeared twice.
         """
         per_comic: dict[int, dict[str, str]] = {}
-        field_names = tuple(self.metadata[FTS_UPDATED_M2MS].keys())
+        # ``FTS_UPDATED_M2MS`` is only populated when the link phase
+        # actually saw m2m row deletions/insertions; an import that
+        # only creates new comics never sets it. ``.get`` so the
+        # caller's "every post-phase runs unconditionally" model
+        # doesn't surface a KeyError here.
+        field_names = tuple(self.metadata.get(FTS_UPDATED_M2MS, {}).keys())
         for field_name in field_names:
             if self.abort_event.is_set():
                 return per_comic
