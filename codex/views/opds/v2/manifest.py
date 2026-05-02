@@ -8,6 +8,7 @@ from typing import Any, override
 from django.db.models import CharField, F, Value
 
 from codex.models.base import NamedModel
+from codex.models.groups import Volume
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
@@ -43,10 +44,11 @@ _MD_CREDIT_MAP = MappingProxyType(
 _PUBLICATION_FIELD_MAP: MappingProxyType[str, str] = MappingProxyType(
     {
         "description": "summary",
-        "publisher": "publisher_name",
-        "imprint": "imprint_name",
     }
 )
+# Readium Contributor browse-group routing for publisher/imprint —
+# matches the helper in ``codex/views/opds/v2/feed/publications.py``.
+_CONTRIBUTOR_KINDS: tuple[str, ...] = ("publisher", "imprint")
 
 _PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
     "identifier",
@@ -94,7 +96,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         link = self.link(link_data)
         belongs_to: dict[str, str | list | int] = {"name": name, "links": [link]}
         if number:
-            belongs_to["number"] = number
+            belongs_to["position"] = number
         return [belongs_to]
 
     def _publication_belongs_to_series(self, obj):
@@ -113,6 +115,18 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
+
+    def _publication_belongs_to_volume(self, obj) -> list:
+        volume_name = obj.volume_name
+        if volume_name is None:
+            return []
+        display_name = Volume.to_str(volume_name, obj.volume_number_to) or BLANK_TITLE
+        kwargs = {"group": "v", "pks": [obj.volume_id], "page": 1}
+        ts = self._obj_ts(obj)
+        query_params = {"ts": ts, "topGroup": "p"}
+        return self._publication_belongs_to_link(
+            kwargs, query_params, display_name, volume_name
+        )
 
     def _publication_belongs_to_folder(self, obj) -> list:
         if not self.is_allowed(obj):
@@ -160,10 +174,12 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         belongs_to = {}
         if series := self._publication_belongs_to_series(obj):
             belongs_to["series"] = series
+        if volume := self._publication_belongs_to_volume(obj):
+            belongs_to["volume"] = volume
         if folder := self._publication_belongs_to_folder(obj):
             belongs_to["collection"] = folder
         if story_arcs := self._publication_belongs_to_story_arcs(obj):
-            belongs_to["storyArc"] = story_arcs
+            belongs_to["story_arc"] = story_arcs
 
         return belongs_to
 
@@ -258,6 +274,14 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             credit_md[key] = tuple(bucket)
         return credit_md
 
+    def _publication_contributors(self, obj) -> dict:
+        """Return the populated publisher/imprint Contributor map for ``obj``."""
+        contributors = {}
+        for kind in _CONTRIBUTOR_KINDS:
+            if contributor := self._publication_contributor(obj, kind):
+                contributors[kind] = contributor
+        return contributors
+
     @override
     def _publication_metadata(self, obj, zero_pad) -> dict:
         md = super()._publication_metadata(obj, zero_pad)
@@ -266,6 +290,9 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         for md_key, attr in _PUBLICATION_FIELD_MAP.items():
             if value := getattr(obj, attr, None):
                 md[md_key] = value
+
+        # Publisher/imprint render as Contributor objects (name + browse link).
+        md.update(self._publication_contributors(obj))
 
         # Special cases with transforms
         if lang := obj.language:
