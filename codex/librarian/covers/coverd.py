@@ -28,6 +28,6 @@ class CoverThread(CoverPurgeThread):
             case CoverCreateAllTask():
                 self.create_all_covers()
             case CoverCreateTask():
-                self._bulk_create_comic_covers(item.pks, custom=item.custom)
+                self.process_cover_create_burst(item)
             case _:
                 self.log.error(f"Bad task sent to {self.__class__.__name__}: {item}")
