@@ -422,7 +422,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "1.11.0a3"
+version = "1.11.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "adrf" },
