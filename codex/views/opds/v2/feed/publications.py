@@ -13,6 +13,7 @@ from django.db.models import CharField, F, Value
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
 from codex.models.groups import BrowserGroupModel, Folder
+from codex.models.identifier import Identifier
 from codex.models.named import Credit
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.auth import GroupACLMixin
@@ -177,6 +178,29 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         )
         return self.link(link_data)
 
+    @staticmethod
+    def _alternate_link(url: str, source_name: str | None) -> dict:
+        """Build a single rel=alternate link dict for an off-site identifier URL."""
+        title = f"View on {source_name}" if source_name else "View externally"
+        return {
+            "href": url,
+            "rel": Rel.ALTERNATE,
+            "type": MimeType.HTML,
+            "title": title,
+        }
+
+    def _publication_alternate_links(self, obj) -> list[dict]:
+        """Per-comic rel=alternate links from off-site identifier URLs."""
+        rel = GroupACLMixin.get_rel_prefix(Identifier)
+        rows = (
+            Identifier.objects.filter(**{rel + "in": [obj.pk]})
+            .exclude(url="")
+            .annotate(source_name=F("source__name"))
+            .values("url", "source_name")
+            .order_by("source_name", "url")
+        )
+        return [self._alternate_link(row["url"], row["source_name"]) for row in rows]
+
     def _publication(self, obj, zero_pad) -> dict:
         pub = {}
         if not obj:
@@ -212,6 +236,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
             prog_link,
             manifest_link,
         ]
+        links.extend(self._publication_alternate_links(obj))
         pub["links"] = links
 
         return pub
@@ -255,6 +280,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # loop. ``_publication_metadata`` reads them per ``obj.pk``.
         self._credits_by_pk: dict[int, dict[str, list]] = {}
         self._subjects_by_pk: dict[int, list] = {}
+        self._alternate_links_by_pk: dict[int, list[dict]] = {}
 
     @staticmethod
     def _build_credits_by_pk(comic_pks: Collection[int]) -> dict[int, dict[str, list]]:
@@ -344,6 +370,42 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
             bucket_seen.add(ipk)
             by_pk[cid].append(SimpleNamespace(pk=ipk, name=row["name"], links=()))
         return by_pk
+
+    @classmethod
+    def _build_alternate_links_by_pk(
+        cls, comic_pks: Collection[int]
+    ) -> dict[int, list[dict]]:
+        """
+        Per-comic rel=alternate link list, batched across the feed page.
+
+        Single query against ``Identifier`` joined with its source — the
+        per-comic helper would fan out into N queries on a full feed page.
+        Mirrors the credits / subjects batching pattern.
+        """
+        if not comic_pks:
+            return {}
+        rel = GroupACLMixin.get_rel_prefix(Identifier)
+        rows = (
+            Identifier.objects.filter(**{rel + "in": comic_pks})
+            .exclude(url="")
+            .annotate(
+                _comic_id=F(rel + "id"),
+                source_name=F("source__name"),
+            )
+            .values("url", "source_name", "_comic_id")
+            .order_by("_comic_id", "source_name", "url")
+        )
+        by_pk: dict[int, list[dict]] = {pk: [] for pk in comic_pks}
+        for row in rows:
+            cid = row["_comic_id"]
+            if cid not in by_pk:
+                continue
+            by_pk[cid].append(cls._alternate_link(row["url"], row["source_name"]))
+        return by_pk
+
+    @override
+    def _publication_alternate_links(self, obj) -> list[dict]:
+        return self._alternate_links_by_pk.get(obj.pk, [])
 
     def _publication_contributors(self, obj) -> dict:
         """Return the populated publisher/imprint Contributor map for ``obj``."""
@@ -437,6 +499,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         pks = tuple(obj.pk for obj in book_list)
         self._credits_by_pk = self._build_credits_by_pk(pks)
         self._subjects_by_pk = self._build_subjects_by_pk(pks)
+        self._alternate_links_by_pk = self._build_alternate_links_by_pk(pks)
         publications = []
         for obj in book_list:
             pub = self._publication(obj, zero_pad)
