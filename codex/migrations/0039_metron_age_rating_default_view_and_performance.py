@@ -214,21 +214,6 @@ _LIBRARIAN_STATUS_CHOICES = [
     ("WPO", "Poll Library"),
     ("WRS", "Restart File Watcher"),
 ]
-# ``codex_comicfts`` is an FTS5 virtual table; SQLite cannot
-# enforce a UNIQUE constraint on its user columns, so duplicate
-# rows for the same ``comic_id`` are possible. Earlier importer
-# iteration bugs and force-rebuild paths planted some on
-# v1.11.0a0 installs. The DROP + CREATE below wipes the table
-# clean for v1.10 -> v1.11 upgrades, but if a future migration
-# preserves data instead of dropping, this dedupe makes the
-# operation idempotent — keeps the lowest-rowid row per
-# ``comic_id``, no-ops on a clean table.
-_FTS_DEDUPE_SQL = (
-    "DELETE FROM codex_comicfts "
-    "WHERE rowid NOT IN ("
-    "  SELECT MIN(rowid) FROM codex_comicfts GROUP BY comic_id"
-    ")"
-)
 _NEW_FTS_SQL = (
     "CREATE VIRTUAL TABLE codex_comicfts USING fts5("
     "comic_id UNINDEXED, created_at UNINDEXED, updated_at UNINDEXED, "
@@ -257,6 +242,11 @@ _NULL_VALUES = frozenset({None, ""})
 # the migration is stable as the runtime regex evolves (e.g. PDF/RAR
 # being toggled by comicbox capability checks).
 _COMIC_SUFFIX_RE = re.compile(r"\.(cb[zt7r]|pdf)$", re.IGNORECASE)
+# Cap on how many comic-suffix paths we'll stat-probe before deciding
+# the comics filesystem is unreachable. 10 is enough that a few odd
+# missing files don't fool us into bailing on a real cleanup, but
+# small enough that a fully-unmounted volume aborts cleanly.
+_SENTINEL_LIMIT = 10
 
 
 def _compute_metron_name_for(name):
@@ -327,12 +317,65 @@ def _is_comic_path(path_str: str) -> bool:
     return bool(suffix) and _COMIC_SUFFIX_RE.match(suffix) is not None
 
 
+def _comics_fs_reachable(model) -> tuple[bool, int]:
+    """
+    Probe up to :data:`_SENTINEL_LIMIT` comic-suffix paths to verify the FS is mounted.
+
+    Returns ``(reachable, attempts)``. ``reachable`` is True as soon as one
+    comic-suffix path stats as a file. If we exhaust the iterator (or the
+    cap) with no successes, the FS is treated as unreachable and the caller
+    skips the cleanup.
+    """
+    attempts = 0
+    for comic in model.objects.only("path").iterator():
+        path_str = comic.path or ""
+        if not _is_comic_path(path_str):
+            continue
+        attempts += 1
+        try:
+            if Path(path_str).is_file():
+                return True, attempts
+        except OSError:
+            pass
+        if attempts >= _SENTINEL_LIMIT:
+            break
+    return False, attempts
+
+
 def _remove_non_comic_comics(apps, _schema_editor) -> None:
-    """Delete Comic rows whose path is not a comic archive."""
+    """
+    Delete phantom Comic rows whose path is not a comic archive.
+
+    Two defenses against mass-deleting legitimate comics if the comics
+    volume happens to be unmounted at migration time:
+
+    1. Restrict the predicate to ``page_count == 0`` rows — the
+       phantom-row signature from the original importer bug. A real
+       comic file always has at least one page.
+    2. Sentinel-stat real comic-suffix paths first. If none stat as
+       files, the FS is unreachable and we skip the cleanup entirely.
+    """
     model = apps.get_model("codex", "Comic")
+
+    reachable, sentinel_attempts = _comics_fs_reachable(model)
+    if not reachable:
+        if sentinel_attempts == 0:
+            logger.info(
+                "Skipping non-comic Comic-row cleanup: no comic-suffix paths "
+                "in the database to use as a stat sentinel."
+            )
+        else:
+            logger.warning(
+                f"Skipping non-comic Comic-row cleanup: probed {sentinel_attempts} "
+                "comic-suffix paths and none stat as files. If your comics volume "
+                "is not mounted, restart with it attached so this cleanup can run."
+            )
+        return
+
     delete_pks: list[int] = []
     skipped: list[str] = []
-    for comic in model.objects.only("pk", "path").iterator():
+    qs = model.objects.filter(page_count=0).only("pk", "path")
+    for comic in qs.iterator():
         path_str = comic.path or ""
         if _is_comic_path(path_str):
             continue
@@ -348,18 +391,16 @@ def _remove_non_comic_comics(apps, _schema_editor) -> None:
         delete_pks.append(comic.pk)
 
     if skipped:
-        print()
-        print(
-            f"Leaving {len(skipped)} comics with non-comic names "
-            "that exist on disk as files; review manually:"
+        logger.info(
+            f"Leaving {len(skipped)} comics with non-comic names that exist "
+            "on disk as files; review manually:"
         )
         for path_str in skipped:
-            print(f"  {path_str}")
+            logger.info(f"  {path_str}")
 
     if not delete_pks:
         return
-    print()
-    print(f"Deleting {len(delete_pks)} non-comic rows from codex_comic.")
+    logger.info(f"Deleting {len(delete_pks)} non-comic rows from codex_comic.")
     model.objects.filter(pk__in=delete_pks).delete()
 
 
@@ -922,17 +963,6 @@ class Migration(migrations.Migration):
                 name="codex_libstat_active_idx",
             ),
         ),
-        migrations.AddIndex(
-            model_name="comic",
-            index=models.Index(
-                fields=("library", "age_rating_metron_index"),
-                name="codex_comic_lib_ari_idx",
-            ),
-        ),
-        migrations.RunSQL(
-            sql=_FTS_DEDUPE_SQL,
-            reverse_sql=migrations.RunSQL.noop,
-        ),
         migrations.RunSQL(
             sql="DROP TABLE IF EXISTS codex_comicfts;",
             reverse_sql=migrations.RunSQL.noop,
@@ -948,6 +978,16 @@ class Migration(migrations.Migration):
         # so the backfill doesn't touch about-to-be-deleted rows.
         migrations.RunPython(_remove_non_comic_comics, _noop),
         migrations.RunPython(_backfill_age_rating_metron_index, _noop),
+        # Build the composite ACL index after the backfill so it's a
+        # single sorted index build, not an incremental update against
+        # every UPDATEd row.
+        migrations.AddIndex(
+            model_name="comic",
+            index=models.Index(
+                fields=("library", "age_rating_metron_index"),
+                name="codex_comic_lib_ari_idx",
+            ),
+        ),
         migrations.RunPython(_backfill_age_rating_metron_flag_fk, _noop),
         migrations.RunPython(_strip_pycountry_names, _noop),
         migrations.RunPython(
