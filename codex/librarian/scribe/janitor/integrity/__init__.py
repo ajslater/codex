@@ -7,7 +7,6 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_foreign_keys
 from codex.librarian.scribe.janitor.status import (
     JanitorDBFKIntegrityStatus,
-    JanitorDBFTSDedupeStatus,
     JanitorDBFTSIntegrityStatus,
     JanitorDBFTSRebuildStatus,
     JanitorDBIntegrityStatus,
@@ -74,36 +73,6 @@ def fts_integrity_check(log) -> bool:
     return success
 
 
-def fts_dedupe(log) -> int:
-    """
-    Remove duplicate codex_comicfts rows that share a comic_id.
-
-    ``codex_comicfts`` is an FTS5 virtual table; SQLite cannot enforce
-    a UNIQUE constraint on its user columns, so the application has to
-    keep the table single-row-per-comic itself. Older importer
-    iteration bugs and force-rebuild paths could plant duplicates.
-    Keeps the lowest-rowid row per comic_id and deletes the rest. A
-    no-op when the table is already clean.
-    """
-    sql = (
-        "DELETE FROM codex_comicfts "
-        "WHERE rowid NOT IN ("
-        "  SELECT MIN(rowid) FROM codex_comicfts GROUP BY comic_id"
-        ")"
-    )
-    connection = connections[DEFAULT_DB_ALIAS]
-    connection.prepare_database()
-    with connection.cursor() as cursor:
-        cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        cursor.execute(sql)
-        count = cursor.rowcount
-    if count:
-        log.info(f"Removed {count} duplicate full text search rows.")
-    else:
-        log.debug("No duplicate full text search rows found.")
-    return count
-
-
 class JanitorIntegrity(WorkerStatusAbortableBase):
     """Integrity Check Mixin."""
 
@@ -147,15 +116,5 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
                 success = fts_integrity_check(self.log)
             if not success:
                 self.librarian_queue.put(JanitorFTSRebuildTask())
-        finally:
-            self.status_controller.finish(status)
-
-    def fts_dedupe(self) -> None:
-        """FTS dedupe task — remove duplicate ComicFTS rows."""
-        status = JanitorDBFTSDedupeStatus()
-        try:
-            self.status_controller.start(status)
-            with self.db_write_lock:
-                fts_dedupe(self.log)
         finally:
             self.status_controller.finish(status)
