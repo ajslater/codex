@@ -342,6 +342,28 @@ def _comics_fs_reachable(model) -> tuple[bool, int]:
     return False, attempts
 
 
+def _get_non_comic_comics(model) -> tuple[tuple[int, ...], tuple[str, ...]]:
+
+    delete_pks: list[int] = []
+    skipped: list[str] = []
+    qs = model.objects.filter(page_count=0).only("pk", "path")
+    for comic in qs.iterator():
+        path_str = comic.path or ""
+        if _is_comic_path(path_str):
+            continue
+        try:
+            is_file = Path(path_str).is_file()
+        except OSError:
+            is_file = False
+        if is_file:
+            # Real file on disk but with a non-comic name. Don't
+            # touch it — surface for manual review instead.
+            skipped.append(path_str)
+            continue
+        delete_pks.append(comic.pk)
+    return (tuple(delete_pks), tuple(skipped))
+
+
 def _remove_non_comic_comics(apps, _schema_editor) -> None:
     """
     Delete phantom Comic rows whose path is not a comic archive.
@@ -374,23 +396,7 @@ def _remove_non_comic_comics(apps, _schema_editor) -> None:
             logger.warning(msg)
         return
 
-    delete_pks: list[int] = []
-    skipped: list[str] = []
-    qs = model.objects.filter(page_count=0).only("pk", "path")
-    for comic in qs.iterator():
-        path_str = comic.path or ""
-        if _is_comic_path(path_str):
-            continue
-        try:
-            is_file = Path(path_str).is_file()
-        except OSError:
-            is_file = False
-        if is_file:
-            # Real file on disk but with a non-comic name. Don't
-            # touch it — surface for manual review instead.
-            skipped.append(path_str)
-            continue
-        delete_pks.append(comic.pk)
+    delete_pks, skipped = _get_non_comic_comics(model)
 
     if skipped:
         msg = (
