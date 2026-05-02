@@ -323,6 +323,45 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
                 continue
             return creates, item
 
+    @staticmethod
+    def _split_pending_pks(
+        pending: list[CoverCreateTask],
+    ) -> tuple[set[int], set[int]]:
+        """Partition queued create tasks into (comic_pks, custom_pks)."""
+        comic_pks: set[int] = set()
+        custom_pks: set[int] = set()
+        for task in pending:
+            target = custom_pks if task.custom else comic_pks
+            target.update(task.pks)
+        return comic_pks, custom_pks
+
+    def _render_burst_batch(
+        self,
+        comic_pks: set[int],
+        custom_pks: set[int],
+        status: CreateCoversStatus,
+    ) -> None:
+        """Dispatch the comic and custom render passes for one batch."""
+        if comic_pks:
+            self._render_covers_into_status(comic_pks, custom=False, status=status)
+        if custom_pks:
+            self._render_covers_into_status(custom_pks, custom=True, status=status)
+
+    def _drain_burst_loop(
+        self,
+        pending: list[CoverCreateTask],
+        status: CreateCoversStatus,
+    ) -> LibrarianTask | None:
+        """Render ``pending`` and any drained-in tasks; return the interruptor."""
+        interruptor: LibrarianTask | None = None
+        while pending:
+            comic_pks, custom_pks = self._split_pending_pks(pending)
+            pending.clear()
+            self._render_burst_batch(comic_pks, custom_pks, status)
+            more, interruptor = self._drain_contiguous_creates()
+            pending.extend(more)
+        return interruptor
+
     def process_cover_create_burst(self, first: CoverCreateTask) -> None:
         """
         Process ``first`` plus any contiguous queued ``CoverCreateTask``s.
@@ -343,25 +382,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         try:
             start_time = time()
             self.status_controller.start(status)
-            while pending:
-                comic_pks: set[int] = set()
-                custom_pks: set[int] = set()
-                for task in pending:
-                    if task.custom:
-                        custom_pks.update(task.pks)
-                    else:
-                        comic_pks.update(task.pks)
-                pending.clear()
-                if comic_pks:
-                    self._render_covers_into_status(
-                        comic_pks, custom=False, status=status
-                    )
-                if custom_pks:
-                    self._render_covers_into_status(
-                        custom_pks, custom=True, status=status
-                    )
-                more, interruptor = self._drain_contiguous_creates()
-                pending.extend(more)
+            interruptor = self._drain_burst_loop(pending, status)
             count = status.complete or 0
             level = "INFO" if count else "DEBUG"
             elapsed = naturaldelta(time() - start_time)
