@@ -93,6 +93,7 @@ from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.db import migrations, models
 from django.db.models.deletion import SET_NULL
 from django.db.models.functions import Trim
+from loguru import logger
 
 import codex.models.fields
 from codex.choices.reader import READER_DEFAULTS
@@ -351,6 +352,26 @@ def _seed_anonymous_user_age_rating_flag(apps, _schema_editor) -> None:
 
 def _noop(_apps, _schema_editor) -> None:
     """Reverse no-op (data migrations stay applied on rollback)."""
+
+
+def _fix_parent_folder_drift(apps, _schema_editor) -> None:
+    """
+    One-shot heal for drifted Comic.parent_folder_id rows.
+
+    Observed once in a v1.10-era database: 8 comics' FK pointed at a
+    real Folder row whose path no longer matched
+    ``Path(comic.path).parent``. The importer's update path used to
+    re-resolve parent_folder via path string and crashed
+    (``Folder.DoesNotExist``) for these rows. The companion code
+    change in this PR stops the re-resolution; this migration step
+    cleans up the drifted data so a future browse query lands on the
+    right folder. No-op on a consistent database.
+    """
+    from codex.librarian.scribe.janitor.integrity.foreign_keys import (
+        fix_parent_folder_drift,
+    )
+
+    fix_parent_folder_drift(logger, apps_registry=apps)
 
 
 def _strip_pycountry_names(apps, _schema_editor) -> None:
@@ -861,6 +882,13 @@ class Migration(migrations.Migration):
             backfill_global_reader_defaults,
             reverse_code=migrations.RunPython.noop,
         ),
+        # One-shot heal for Comic.parent_folder_id rows that drifted
+        # off their on-disk path (rare, observed once on a v1.10-era
+        # database). The companion code change in this PR stops the
+        # importer from re-resolving parent_folder by string on the
+        # update path — this step backfills the data so existing
+        # affected installs come out clean.
+        migrations.RunPython(_fix_parent_folder_drift, _noop),
         # ComicFTS is unmanaged; its Django state tracks only (comic,
         # created_at, updated_at). The FTS columns are a SQL-level concern —
         # no state_operations are needed, only a raw DROP + CREATE.

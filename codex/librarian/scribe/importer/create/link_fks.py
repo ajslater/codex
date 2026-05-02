@@ -63,10 +63,25 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
                     (values[-1],),
                 )
 
-    def get_comic_fk_links(self, subkey: str | int, path: str) -> dict:
-        """Get links for all foreign keys for creating and updating."""
+    def get_comic_fk_links(
+        self, subkey: str | int, path: str, *, for_create: bool
+    ) -> dict:
+        """
+        Get links for all foreign keys for creating and updating.
+
+        ``for_create=True`` resolves ``parent_folder`` from the
+        comic's path string. ``for_create=False`` (the update path)
+        skips that lookup entirely — the comic already carries a
+        valid ``parent_folder_id`` from a prior import (or from
+        ``MovedComicsImporter._prepare_moved_comic`` if the file
+        was renamed in this run), and re-resolving by string is
+        wasted work that's also brittle against any string-form
+        drift between ``Folder.path`` and
+        ``str(Path(comic.path).parent)``.
+        """
         md = {}
-        self._get_comic_folder_fk_link(md, subkey, path)
+        if for_create:
+            self._get_comic_folder_fk_link(md, subkey, path)
         if link_fks := self.metadata[LINK_FKS].pop(path, {}):
             self._get_comic_protagonist_fk_link(md, link_fks)
             self._get_comic_simple_fk_links(md, subkey, link_fks)

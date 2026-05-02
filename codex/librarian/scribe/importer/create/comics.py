@@ -44,7 +44,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             setattr(comic, field_name, value)
 
         self._populate_fts_attribute_values(FTS_UPDATE, comic.pk, md)
-        link_md = self.get_comic_fk_links(comic.pk, comic.path)
+        link_md = self.get_comic_fk_links(comic.pk, comic.path, for_create=False)
         for field_name, value in link_md.items():
             set_value = value
             if set_value is None:
@@ -120,7 +120,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
     def _bulk_create_comic(self, path: str, create_comics: list[Comic]) -> None:
         md = self.metadata[CREATE_COMICS].pop(path, {})
         self._populate_fts_attribute_values(FTS_CREATE, path, md)
-        link_md = self.get_comic_fk_links(path, path)
+        link_md = self.get_comic_fk_links(path, path, for_create=True)
         md.update(link_md)
         if not md:
             return
