@@ -178,6 +178,7 @@ _LIBRARIAN_STATUS_CHOICES = [
     ("JRB", "Cleanup Orphan Bookmarks"),
     ("JRS", "Cleanup Old Sessions"),
     ("JRV", "Cleanup Orphan Covers"),
+    ("JSD", "Dedupe Duplicate Full Text Search Rows"),
     ("JSR", "Rebuild Full Text Search Virtual Table"),
     ("RCR", "Restart Codex Server"),
     ("RCS", "Stop Codex Server"),
