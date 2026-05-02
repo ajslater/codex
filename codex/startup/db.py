@@ -183,8 +183,7 @@ def _warn_on_stale_wal_siblings() -> None:
     would lose the last unckpointed transaction.
     """
     siblings = [
-        DB_PATH.with_name(DB_PATH.name + suffix)
-        for suffix in _DB_SIBLING_SUFFIXES
+        DB_PATH.with_name(DB_PATH.name + suffix) for suffix in _DB_SIBLING_SUFFIXES
     ]
     present = [s for s in siblings if s.exists()]
     if not present:
@@ -215,8 +214,17 @@ def _migrate_silk_db() -> None:
 def ensure_db_schema() -> bool:
     """Ensure the db is good and up to date."""
     logger.info("Ensuring database is correct and up to date...")
-    _warn_on_stale_wal_siblings()
-    table_names = connection.introspection.table_names()
+    try:
+        _warn_on_stale_wal_siblings()
+        table_names = connection.introspection.table_names()
+    except Exception:
+        msg = (
+            "Could not open database. If the file is corrupt, create "
+            f"the sentinel file {_REPAIR_FLAG_PATH} and restart Codex."
+            "the startup path will run sqlite3 .recover and rebuild."
+        )
+        logger.exception(msg)
+        raise
     if "django_migrations" in table_names:
         # Cache the unapplied-migrations result so the backup,
         # repair, and post-migration paths all see the same answer
