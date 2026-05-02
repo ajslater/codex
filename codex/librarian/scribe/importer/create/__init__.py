@@ -40,6 +40,12 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         status, blinking the row in and out of the active list as the
         cover thread switches tasks.
 
+        ``CoverThread.process_cover_create_burst`` also drains
+        contiguous queued ``CoverCreateTask``s under one status row,
+        so per-task flicker is now smoothed at the consumer side too;
+        producer-side coalescing here still avoids extra queue churn
+        and keeps the importer's preactive ``total`` hint accurate.
+
         If no pks accumulated (no created or updated comics in this
         chunk), explicitly clear the pre-registered ``CreateCoversStatus``
         so the row doesn't sit "queued" in the UI for the rest of the
