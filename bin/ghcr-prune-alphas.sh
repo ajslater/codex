@@ -25,14 +25,14 @@ DO_ALPHAS=1
 DO_ORPHANS=0
 for arg in "$@"; do
   case "$arg" in
-  --execute) EXECUTE=1 ;;
-  --orphans) DO_ORPHANS=1 ;;
-  --orphans-only)
-    DO_ORPHANS=1
-    DO_ALPHAS=0
-    ;;
-  -h | --help)
-    cat <<EOF
+    --execute) EXECUTE=1 ;;
+    --orphans) DO_ORPHANS=1 ;;
+    --orphans-only)
+      DO_ORPHANS=1
+      DO_ALPHAS=0
+      ;;
+    -h | --help)
+      cat << EOF
 Usage: $0 [--orphans|--orphans-only] [--execute]
 
 Prunes container versions from ghcr.io/${OWNER}/${PACKAGE}.
@@ -45,17 +45,17 @@ Modes (default: alphas only):
 
 Without --execute, prints what would be removed.
 EOF
-    exit 0
-    ;;
-  *)
-    echo "Unknown argument: $arg" >&2
-    exit 2
-    ;;
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $arg" >&2
+      exit 2
+      ;;
   esac
 done
 
 for cmd in gh jq curl; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
+  if ! command -v "$cmd" > /dev/null 2>&1; then
     echo "error: $cmd is required" >&2
     exit 1
   fi
@@ -88,8 +88,8 @@ prune_alphas() {
   local versions matches count fail row id tags
   versions=$(api_versions)
   matches=$(
-    echo "$versions" |
-      jq -c --arg re "$ALPHA_REGEX" \
+    echo "$versions" \
+      | jq -c --arg re "$ALPHA_REGEX" \
         'select(.tags | map(test($re)) | any)'
   )
   if [[ -z "$matches" ]]; then
@@ -108,11 +108,11 @@ prune_alphas() {
     id=$(echo "$row" | jq -r '.id')
     tags=$(echo "$row" | jq -r '.tags | join(",")')
     echo "    deleting id=$id tags=$tags"
-    if ! delete_version "$id" >/dev/null; then
+    if ! delete_version "$id" > /dev/null; then
       echo "      FAILED" >&2
       fail=1
     fi
-  done <<<"$matches"
+  done <<< "$matches"
   if [[ "$fail" -ne 0 ]]; then
     echo "  Some alpha deletions failed." >&2
     return 1
@@ -125,8 +125,8 @@ prune_orphans() {
   # Anonymous registry pull token (the package is public).
   local token
   token=$(
-    curl -fsSL "https://ghcr.io/token?scope=repository:${OWNER}/${PACKAGE}:pull" |
-      jq -r '.token // .access_token // empty'
+    curl -fsSL "https://ghcr.io/token?scope=repository:${OWNER}/${PACKAGE}:pull" \
+      | jq -r '.token // .access_token // empty'
   )
   if [[ -z "$token" ]]; then
     echo "  error: failed to obtain ghcr.io registry token" >&2
@@ -136,8 +136,8 @@ prune_orphans() {
   local versions tagged_digests
   versions=$(api_versions)
   tagged_digests=$(
-    echo "$versions" |
-      jq -r 'select(.tags | length > 0) | .name'
+    echo "$versions" \
+      | jq -r 'select(.tags | length > 0) | .name'
   )
 
   if [[ -z "$tagged_digests" ]]; then
@@ -159,18 +159,18 @@ prune_orphans() {
       curl -fsSL \
         -H "Authorization: Bearer $token" \
         -H "Accept: $accept_hdr" \
-        "https://ghcr.io/v2/${OWNER}/${PACKAGE}/manifests/${digest}" 2>/dev/null ||
-        true
+        "https://ghcr.io/v2/${OWNER}/${PACKAGE}/manifests/${digest}" 2> /dev/null \
+        || true
     )
     [[ -z "$body" ]] && continue
     children=$(echo "$body" | jq -r '(.manifests // [])[].digest // empty')
     [[ -n "$children" ]] && referenced_digests+=$'\n'"$children"
-  done <<<"$tagged_digests"
+  done <<< "$tagged_digests"
 
   local live_set live_json
   live_set=$(
-    printf "%s\n%s\n" "$tagged_digests" "$referenced_digests" |
-      grep -E '^sha256:' | sort -u
+    printf "%s\n%s\n" "$tagged_digests" "$referenced_digests" \
+      | grep -E '^sha256:' | sort -u
   )
   if [[ -z "$live_set" ]]; then
     echo "  error: live digest set empty; aborting to avoid mass deletion" >&2
@@ -180,8 +180,8 @@ prune_orphans() {
 
   local orphans count fail row id name
   orphans=$(
-    echo "$versions" |
-      jq -c --argjson live "$live_json" \
+    echo "$versions" \
+      | jq -c --argjson live "$live_json" \
         'select((.tags | length) == 0)
          | select(.name as $n | ($live | index($n)) | not)'
   )
@@ -202,11 +202,11 @@ prune_orphans() {
     id=$(echo "$row" | jq -r '.id')
     name=$(echo "$row" | jq -r '.name')
     echo "    deleting id=$id digest=$name"
-    if ! delete_version "$id" >/dev/null; then
+    if ! delete_version "$id" > /dev/null; then
       echo "      FAILED" >&2
       fail=1
     fi
-  done <<<"$orphans"
+  done <<< "$orphans"
   if [[ "$fail" -ne 0 ]]; then
     echo "  Some orphan deletions failed." >&2
     return 1
