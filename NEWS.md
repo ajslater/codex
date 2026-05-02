@@ -20,6 +20,7 @@ border-radius: 128px;
     - Age Rating Restrictions now available in the Admin Users tab.
     - The codex cache directory for covers and views may now have it's location
       configured.
+    - OPDS v2 alternate links for publications to external url identifiers.
     - OPDS v2 publishers as proper contributors with links.
     - OPDS v2 volumes in belongsTo
 - Performance
