@@ -117,8 +117,8 @@ class FSEventBatcherThread(AggregateMessageQueuedThread):
             self.log.debug(exc)
         if self._total_items > self.max_items:
             reason = (
-                "Event batcher hit size limit."
-                f" Sending batch of {self._total_items} to importer."
+                "Event Batcher hit size limit."
+                f" Sending batch of {self._total_items} to Importer."
             )
             self.log.info(reason)
             self.timed_out()
