@@ -61,6 +61,11 @@ class OPDS2BelongsTo(Serializer):
         read_only=True,
         required=False,
     )
+    volume = ListField(
+        child=OPDS2BelongsToObjectSerializer(read_only=True),
+        read_only=True,
+        required=False,
+    )
 
 
 class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):

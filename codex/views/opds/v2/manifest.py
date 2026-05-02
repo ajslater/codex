@@ -8,6 +8,7 @@ from typing import Any, override
 from django.db.models import CharField, F, Value
 
 from codex.models.base import NamedModel
+from codex.models.groups import Volume
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
@@ -115,6 +116,18 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
+    def _publication_belongs_to_volume(self, obj) -> list:
+        volume_name = obj.volume_name
+        if volume_name is None:
+            return []
+        display_name = Volume.to_str(volume_name, obj.volume_number_to) or BLANK_TITLE
+        kwargs = {"group": "v", "pks": [obj.volume_id], "page": 1}
+        ts = self._obj_ts(obj)
+        query_params = {"ts": ts, "topGroup": "p"}
+        return self._publication_belongs_to_link(
+            kwargs, query_params, display_name, volume_name
+        )
+
     def _publication_belongs_to_folder(self, obj) -> list:
         if not self.is_allowed(obj):
             return []
@@ -161,6 +174,8 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         belongs_to = {}
         if series := self._publication_belongs_to_series(obj):
             belongs_to["series"] = series
+        if volume := self._publication_belongs_to_volume(obj):
+            belongs_to["volume"] = volume
         if folder := self._publication_belongs_to_folder(obj):
             belongs_to["collection"] = folder
         if story_arcs := self._publication_belongs_to_story_arcs(obj):
