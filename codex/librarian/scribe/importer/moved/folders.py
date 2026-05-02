@@ -134,7 +134,24 @@ class MovedFoldersImporter(MovedCoversImporter):
         return frozenset(create_folder_paths_one_layer)
 
     def _remove_move_collisions(self, dirs_moved: bidict[str, str]) -> None:
-        """Remove moves that would collide with an existing Folder."""
+        """
+        Remove moves whose destination already exists as a Folder.
+
+        The poller emits ``dirs_moved`` for inode-matched
+        delete/add pairs. A "destination already exists in the DB"
+        case means the destination path is already a known Folder
+        — moving the source on top of it would explode the
+        ``(library, path)`` unique constraint and isn't useful
+        anyway, since the destination is already correctly tracked.
+        Drop the move from ``dirs_moved`` and let any actual
+        disk-side absence of the source path fall out via the
+        regular delete pass on a subsequent cycle.
+
+        This is normal reconciliation, not a fault — log at INFO
+        with a count summary and at DEBUG with the path list. The
+        previous WARNING was loud enough to make operators think
+        something was broken when nothing was.
+        """
         dest_paths = set(dirs_moved.values())
         collision_dest_paths = Folder.objects.filter(
             library=self.library, path__in=dest_paths
@@ -144,9 +161,14 @@ class MovedFoldersImporter(MovedCoversImporter):
         collision_dest_paths = sorted(set(collision_dest_paths))
         for collision_dest_path in collision_dest_paths:
             dirs_moved.inverse.pop(collision_dest_path, None)
-        self.log.warning(
-            f"Not moving folders to destinations that would collide with existing database folders: {collision_dest_paths}"
+        count = len(collision_dest_paths)
+        plural = "s" if count != 1 else ""
+        msg = (
+            f"Resolved {count} phantom folder move{plural} by skipping the "
+            "rename and leaving the destinations in place."
         )
+        self.log.info(msg)
+        self.log.debug(f"Skipped folder move destinations: {collision_dest_paths}")
 
     def _bulk_move_folders_and_create_parents(self, status) -> int:
         """Find folders that can be moved without creating parents."""
