@@ -26,6 +26,12 @@ border-radius: 128px;
     - Cover thumbnail generation now uses multiprocessing and seeds covers on
       import.
 
+## v1.10.15
+
+- Fixes
+    - Fix OPDS navigation going to wrong browser groups. Fix contributed by
+      @beville.
+
 ## v1.10.14
 
 - Fixes

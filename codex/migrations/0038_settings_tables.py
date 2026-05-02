@@ -65,7 +65,7 @@ _FILTER_KEYS = frozenset(
         "year",
     }
 )
-_SHOW_KEYS = frozenset({"p", "i", "s", "v"})
+_SHOW_KEYS = ("p", "i", "s", "v")
 
 
 def create_default_show_row(apps, _schema_editor):
@@ -76,7 +76,7 @@ def create_default_show_row(apps, _schema_editor):
 
 def _get_or_create_show(show_model, show_dict):
     """Get or create a SettingsBrowserShow row from a show dict."""
-    show_kwargs = {k: bool(show_dict.get(k, k in ("p", "s"))) for k in _SHOW_KEYS}
+    show_kwargs = {k: bool(show_dict.get(k, k in {"p", "s"})) for k in _SHOW_KEYS}
     show, _ = show_model.objects.get_or_create(**show_kwargs)
     return show
 

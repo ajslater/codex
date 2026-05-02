@@ -40,8 +40,8 @@ SETTINGS_BROWSER_SELECT_RELATED = ("show", "filters", "last_route")
 
 BROWSER_FILTER_ARGS = MappingProxyType({"name": ""})
 BROWSER_CREATE_ARGS = MappingProxyType({"name": ""})
-SHOW_KEYS = frozenset({"p", "i", "s", "v"})
 NULL_VALUES: frozenset = frozenset({"", None})
+_SHOW_KEYS = ("p", "i", "s", "v")
 
 
 class SettingsBaseView(AuthFilterGenericAPIView, ABC):
@@ -261,7 +261,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
 
         # Show — from the related SettingsBrowserShow row.
         show_obj = instance.show
-        result["show"] = {k: getattr(show_obj, k) for k in SHOW_KEYS}
+        result["show"] = {k: getattr(show_obj, k) for k in _SHOW_KEYS}
 
         # Filters — from the related SettingsBrowserFilters row.
         filters_obj = instance.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -349,7 +349,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             result[key] = cls._get_field_default(SettingsBrowser, key)
 
         result["show"] = {
-            k: cls._get_field_default(SettingsBrowserShow, k) for k in SHOW_KEYS
+            k: cls._get_field_default(SettingsBrowserShow, k) for k in _SHOW_KEYS
         }
 
         result["filters"] = {
@@ -397,9 +397,9 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
 
         Returns True if the instance's ``show`` FK changed.
         """
-        show_kwargs = {k: bool(show_data.get(k, False)) for k in SHOW_KEYS}
+        show_kwargs = {k: bool(show_data.get(k, False)) for k in _SHOW_KEYS}
         current = instance.show
-        if current and all(getattr(current, k) == show_kwargs[k] for k in SHOW_KEYS):
+        if current and all(getattr(current, k) == show_kwargs[k] for k in _SHOW_KEYS):
             return False
         show, _ = SettingsBrowserShow.objects.get_or_create(**show_kwargs)  # pyright: ignore[reportArgumentType]
         if instance.show_id == show.pk:  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
