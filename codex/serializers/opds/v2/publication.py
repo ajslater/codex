@@ -97,8 +97,8 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     inker = OPDS2ContributorSerializer(many=True, required=False)
     narrator = OPDS2ContributorSerializer(many=True, required=False)
     contributor = OPDS2ContributorSerializer(many=True, required=False)
-    publisher = CharField(read_only=True, required=False)
-    imprint = CharField(read_only=True, required=False)
+    publisher = OPDS2ContributorSerializer(required=False)
+    imprint = OPDS2ContributorSerializer(required=False)
     subject = OPDS2SubjectSerializer(many=True, required=False)
     layout = CharField(read_only=True, required=False)
     reading_progression = CharField(read_only=True, required=False)  # choice field

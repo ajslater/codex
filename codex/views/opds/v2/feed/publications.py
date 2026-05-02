@@ -36,8 +36,16 @@ _PREVIEW_SHOW_PARAMS: Final[MappingProxyType[str, bool]] = MappingProxyType(
 _PUBLICATION_DIRECT_FIELDS: Final[MappingProxyType[str, str]] = MappingProxyType(
     {
         "description": "summary",
-        "publisher": "publisher_name",
-        "imprint": "imprint_name",
+    }
+)
+# Publisher/imprint Contributor browse-group routing. Both render as
+# Readium Contributor objects (name + links) per
+# https://readium.org/webpub-manifest/schema/contributor.schema.json
+# so OPDS2 clients can navigate to the publisher/imprint feed.
+_CONTRIBUTOR_GROUP_MAP: Final[MappingProxyType[str, str]] = MappingProxyType(
+    {
+        "publisher": "p",
+        "imprint": "i",
     }
 )
 # Role-name → metadata-key partition for OPDS2 contributor fields.
@@ -127,6 +135,27 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         if page_count := obj.page_count:
             md["number_of_pages"] = page_count
         return md
+
+    def _publication_contributor(self, obj, kind: str) -> dict | None:
+        """Build a Readium Contributor for publisher/imprint with a browse link."""
+        name = getattr(obj, f"{kind}_name", None)
+        if not name:
+            return None
+        contributor: dict[str, str | list] = {"name": name}
+        pk = getattr(obj, f"{kind}_id", None)
+        if not pk:
+            return contributor
+        group = _CONTRIBUTOR_GROUP_MAP[kind]
+        ts = self._obj_ts(obj)
+        href_data = HrefData(
+            {"group": group, "pks": (pk,), "page": 1},
+            {"ts": ts, "topGroup": "p"},
+            url_name="opds:v2:feed",
+        )
+        link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)
+        if link := self.link(link_data):
+            contributor["links"] = [link]
+        return contributor
 
     @property
     def auth_link(self):
@@ -316,6 +345,14 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
             by_pk[cid].append(SimpleNamespace(pk=ipk, name=row["name"], links=()))
         return by_pk
 
+    def _publication_contributors(self, obj) -> dict:
+        """Return the populated publisher/imprint Contributor map for ``obj``."""
+        contributors = {}
+        for kind in _CONTRIBUTOR_GROUP_MAP:
+            if contributor := self._publication_contributor(obj, kind):
+                contributors[kind] = contributor
+        return contributors
+
     @override
     def _publication_metadata(self, obj, zero_pad) -> dict:
         """Build feed-side metadata enriched with batched credits + subjects."""
@@ -325,6 +362,9 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         for md_key, attr in _PUBLICATION_DIRECT_FIELDS.items():
             if value := getattr(obj, attr, None):
                 md[md_key] = value
+
+        # Publisher/imprint render as Contributor objects (name + browse link).
+        md.update(self._publication_contributors(obj))
 
         # Special-case transforms (mirror manifest semantics).
         if lang := getattr(obj, "language", None):
