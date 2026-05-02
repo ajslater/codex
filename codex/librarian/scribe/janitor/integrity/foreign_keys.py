@@ -255,11 +255,14 @@ def fix_parent_folder_drift(log, apps_registry=None) -> int:
     # ``values_list`` avoids attribute access on a generic
     # ``Model`` (which the migration-time apps registry returns)
     # — keeps the type checker happy without per-line ignores.
-    for comic_id, comic_path, parent_folder_id, library_id in (
-        comic_model.objects.values_list(
-            "id", "path", "parent_folder_id", "library_id"
-        ).iterator(chunk_size=2000)
-    ):
+    for (
+        comic_id,
+        comic_path,
+        parent_folder_id,
+        library_id,
+    ) in comic_model.objects.values_list(
+        "id", "path", "parent_folder_id", "library_id"
+    ).iterator(chunk_size=2000):
         if not comic_path.endswith(_COMIC_SUFFIXES):
             # Phantom comic-as-folder rows are handled elsewhere.
             continue
@@ -277,9 +280,7 @@ def fix_parent_folder_drift(log, apps_registry=None) -> int:
         with transaction.atomic():
             for comic_id, new_pk in repointed:
                 comic_model.objects.filter(id=comic_id).update(parent_folder_id=new_pk)
-        log.info(
-            f"Re-pointed parent_folder_id for {len(repointed)} drifted comics."
-        )
+        log.info(f"Re-pointed parent_folder_id for {len(repointed)} drifted comics.")
     else:
         log.debug("No parent_folder_id drift detected.")
 

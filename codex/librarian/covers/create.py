@@ -83,9 +83,7 @@ def _render_cover_thumb(args: tuple) -> tuple[int, str, str | None]:
                 image_data = f.read()
         else:
             with Comicbox(db_path, config=COMICBOX_CONFIG) as car:
-                image_data = car.get_cover_page(
-                    pdf_format="pixmap", skip_metadata=True
-                )
+                image_data = car.get_cover_page(pdf_format="pixmap", skip_metadata=True)
         if not image_data:
             _save_cover_to_cache(cover_path_str, b"")
             return pk, cover_path_str, "empty cover"
