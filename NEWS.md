@@ -12,6 +12,9 @@ border-radius: 128px;
     - This version of codex needs to re-sync the search index on first startup
       which make take time on large collections.
 - Fixes
+    - Clear stale `metron.cloud/{genre,location,story,tag,role}/...` URLs from
+      existing identifiers — Metron has no public web pages for those types, so
+      the links always 404. Re-import will repopulate where applicable.
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
     - Fix OPDS v2 belongsTo.position attribute.
