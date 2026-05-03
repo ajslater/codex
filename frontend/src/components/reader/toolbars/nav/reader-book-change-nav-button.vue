@@ -30,8 +30,13 @@ export default {
     ...mapState(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       toRoute(state) {
+        /*
+         * ``vue-router`` snapshots ``params`` when the route is
+         * resolved, so a defensive clone here is unnecessary; just
+         * hand it the raw object.
+         */
         const params = state?.routes?.books[this.direction];
-        return params ? { params: structuredClone(toRaw(params)) } : "";
+        return params ? { params: toRaw(params) } : "";
       },
     }),
     title() {
