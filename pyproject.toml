@@ -70,6 +70,7 @@ dev = [
   "neovim~=0.3",
   "nplusone~=1.0",
   "picopt~=6.4.0",
+  "pypi-cleanup~=0.1.10",
   "semver~=3.0.4",
   "toml-cli~=0.7",
   "tomlkit~=0.14",
