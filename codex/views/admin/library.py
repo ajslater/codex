@@ -133,7 +133,11 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if "groupSet" in validated_keys:
             self._on_change()
         self._sync_watcher(validated_keys)
-        self._poll(pk, force=False)
+        # Only re-poll when the schedule changes; other field edits
+        # (groupSet, covers_only, …) are picked up by the next
+        # already-scheduled poll.
+        if "pollEvery" in validated_keys:
+            self._poll(pk, force=False)
 
     @override
     def perform_destroy(self, instance) -> None:

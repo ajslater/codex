@@ -403,13 +403,65 @@ exclude = [
 
 [tool.skylos.masking]
 # Mask bodies of framework-owned classes so their methods aren't reported as
-# unused (e.g. Thread.run is invoked by the threading framework).
+# unused (e.g. Thread.run is invoked by the threading framework). Keep this
+# list short — masking erases reference edges from the class body, so adding
+# more classes here can paradoxically *increase* false positives elsewhere.
 bases = ["BaseImporter", "ModelSerializer", "Serializer", "Thread"]
 
 [tool.skylos.whitelist]
-# Names skylos should never flag. Carryovers from the prior vulture_ignorelist
-# plus framework-owned attribute names.
-names = ["Meta", "ManyToManyRel", "_PermissionClass", "format_suffix", "sender"]
+# Names skylos should never flag. Skylos's static analysis can't see Django/
+# DRF dynamic dispatch (string-name dispatch tables, getattr-by-name, framework
+# class attributes read by metaclasses). Patterns are fnmatch globs.
+names = [
+  # Carryovers from the prior vulture_ignorelist + DRF Meta inner class
+  "Meta",
+  "ManyToManyRel",
+  "_PermissionClass",
+  "format_suffix",
+  "sender",
+  # Django DB-router protocol (DATABASE_ROUTERS string registration)
+  "db_for_read",
+  "db_for_write",
+  "allow_relation",
+  "allow_migrate",
+  # Django URL converter protocol (register_converter)
+  "to_python",
+  "to_url",
+  # DRF "validate_<fieldname>" methods (called by name)
+  "validate_*",
+  # DRF/Django framework class attributes read via getattr by the framework
+  "lookup_field",
+  "default_code",
+  "default_detail",
+  "view_is_async",
+  "sync_capable",
+  "async_capable",
+  "keyword",
+  "charset",
+  "render_style",
+  "content_negotiation_class",
+  "prepare_rhs",
+  # Janitor task dispatch via _JANITOR_METHOD_MAP (string -> getattr)
+  "vacuum_db",
+  "cleanup_fks",
+  "cleanup_custom_covers",
+  "cleanup_sessions",
+  "cleanup_orphan_bookmarks",
+  "cleanup_orphan_settings",
+  "force_update_all_failed_imports",
+  "foreign_key_check",
+  "fts_integrity_check",
+  "fts_rebuild",
+  "queue_nightly_tasks",
+  # Importer phase dispatch via _PRE_PHASES / _PER_COMIC_PHASES / _POST_PHASES
+  "init_apply",
+  "move_and_modify_dirs",
+  "fail_imports",
+  "full_text_search",
+  # OPDS2 _publication_* dispatch via _PUBLICATION_METHOD_KEYS
+  "_publication_identifier",
+  "_publication_belongs_to",
+]
 
 [tool.djlint]
 extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static,./comics,dist,site,test-results,typings"

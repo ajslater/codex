@@ -8,7 +8,6 @@ from django.db.models.fields import (
     CharField,
     DecimalField,
     PositiveSmallIntegerField,
-    SmallIntegerField,
     TextField,
 )
 from nh3 import clean
@@ -53,10 +52,6 @@ class CoercingSmallIntegerFieldMixin:
         if value is not None:
             value = max(min(value, self.COERCE_MAX), self.COERCE_MIN)
         return value
-
-
-class CoercingSmallIntegerField(CoercingSmallIntegerFieldMixin, SmallIntegerField):
-    """Custom SmallIntegerField."""
 
 
 class CoercingPositiveSmallIntegerField(

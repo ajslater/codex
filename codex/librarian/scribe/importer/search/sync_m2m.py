@@ -26,10 +26,6 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
     """Update fts fields for updated foreign keys with non key search values."""
 
     @staticmethod
-    def _to_fts_str(values) -> str:
-        return ",".join(sorted(values))
-
-    @staticmethod
     def _get_fts_m2m_concat(field_name: str) -> Concat | GroupConcat:
         rel = "comic__" + field_name
         name_rel = rel + "__name"

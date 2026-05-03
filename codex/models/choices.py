@@ -5,7 +5,6 @@ from enum import Enum, _EnumDict
 from typing import cast
 
 from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
-from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.db.models import Choices, TextChoices
 from django.db.models.enums import ChoicesType
 
@@ -44,14 +43,6 @@ def text_choices_from_map(choices_map: Mapping, class_name: str) -> type[TextCho
     return _create_text_choices_class(class_name, cls_dict)
 
 
-def text_choices_from_string(string: str, class_name: str) -> type[TextChoices]:
-    """Create TextChoices from an enum."""
-    cls_dict = _prepare_text_choices_class_dict(class_name)
-    for c in string:
-        cls_dict[c.upper()] = c
-    return _create_text_choices_class(class_name, cls_dict)
-
-
 def max_choices_len(choices: type[Choices]) -> int:
     """Return the maximum possible size for a Choice's key."""
     if not choices.choices:
@@ -60,5 +51,4 @@ def max_choices_len(choices: type[Choices]) -> int:
 
 
 FileTypeChoices = text_choices_from_enum(FileTypeEnum)
-MetronAgeRatingChoices = text_choices_from_enum(MetronAgeRatingEnum)
 ReadingDirectionChoices = text_choices_from_enum(ReadingDirectionEnum)
