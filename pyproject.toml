@@ -205,14 +205,7 @@ skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./c
 [tool.complexipy]
 failed = true
 paths = ["codex", "tests"]
-exclude = [
-  ".*",
-  "frontend",
-  "node_modules",
-  "site",
-  "test-results",
-  "typings",
-]
+exclude = [".*", "frontend", "node_modules", "site", "test-results", "typings"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -411,23 +404,12 @@ exclude = [
 [tool.skylos.masking]
 # Mask bodies of framework-owned classes so their methods aren't reported as
 # unused (e.g. Thread.run is invoked by the threading framework).
-bases = [
-  "BaseImporter",
-  "ModelSerializer",
-  "Serializer",
-  "Thread",
-]
+bases = ["BaseImporter", "ModelSerializer", "Serializer", "Thread"]
 
 [tool.skylos.whitelist]
 # Names skylos should never flag. Carryovers from the prior vulture_ignorelist
 # plus framework-owned attribute names.
-names = [
-  "Meta",
-  "ManyToManyRel",
-  "_PermissionClass",
-  "format_suffix",
-  "sender",
-]
+names = ["Meta", "ManyToManyRel", "_PermissionClass", "format_suffix", "sender"]
 
 [tool.djlint]
 extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static,./comics,dist,site,test-results,typings"
