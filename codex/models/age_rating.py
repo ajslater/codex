@@ -15,7 +15,6 @@ filter time it is treated the same as ``NULL`` (both inherit the
 side.
 """
 
-from types import MappingProxyType
 from typing import Final, override
 
 from comicbox.enums.maps.age_rating import to_metron_age_rating
@@ -34,13 +33,6 @@ METRON_RATING_ORDER: Final[tuple[str, ...]] = (
     MetronAgeRatingEnum.EXPLICIT.value,
     MetronAgeRatingEnum.ADULT.value,
 )
-# rating name → ordered index, materialized once. Replaces a
-# ``in METRON_RATING_ORDER`` membership check followed by an
-# ``.index()`` scan with a single dict lookup.
-_RATING_INDEX: Final[MappingProxyType[str, int]] = MappingProxyType(
-    {name: idx for idx, name in enumerate(METRON_RATING_ORDER)}
-)
-
 PUBLIC_TIER_ALLOWED: Final[frozenset[str]] = frozenset(
     {MetronAgeRatingEnum.EVERYONE.value}
 )
@@ -113,29 +105,6 @@ def get_metron_index(metron_id: int | None) -> int | None:
 def invalidate_metron_index_cache() -> None:
     """Drop the cached pk → index map; next lookup re-populates from DB."""
     _METRON_INDEX_BY_PK.clear()
-
-
-def rating_index(rating: str | None) -> int:
-    """Return the ordered index of a rating; -1 if not in ``METRON_RATING_ORDER``."""
-    return (
-        _RATING_INDEX.get(rating, UNRANKED_METRON_INDEX)
-        if rating
-        else UNRANKED_METRON_INDEX
-    )
-
-
-def allowed_ratings_for(group_rating: str | None) -> frozenset[str]:
-    """
-    Return the allowed rating set for one group rating.
-
-    An empty frozenset indicates no restriction (caller should treat as
-    unrestricted). Values outside :data:`METRON_RATING_ORDER` (``Unknown``
-    or ``None``) also produce an empty set.
-    """
-    idx = rating_index(group_rating)
-    if idx < 0:
-        return frozenset()
-    return frozenset(METRON_RATING_ORDER[: idx + 1])
 
 
 def compute_metron_for_name(name: str | None) -> str:

@@ -14,11 +14,6 @@ from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 class QueryPruneLinksFKs(QueryUpdateComics):
     """Prune M2O links that don't need updating."""
 
-    def pop_links_to_fts(self, path, field_name) -> None:
-        """Pop a link to the FTS structure."""
-        link_key = self.metadata[LINK_FKS][path].pop(field_name)
-        self.add_links_to_fts(path, field_name, (link_key,))
-
     def _query_prune_comic_fk_links_protagonist(
         self, comic: Comic, path: str, field_name: str, key_values: tuple
     ) -> None:
