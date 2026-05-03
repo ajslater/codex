@@ -88,9 +88,9 @@ lint = [
   "pathspec~=1.1.0",
   "radon~=6.0",
   "ruff~=0.15",
-  "skylos~=4.10",
   "types-python-dateutil~=2.9",
   "ty~=0.0.18",
+  "vulture~=2.3",
 ]
 test = [
   "coverage~=7.0",
@@ -144,6 +144,7 @@ source-include = [
   "strange.jpg",
   "tests/**",
   "uv.lock",
+  "vulture_ignorelist.py",
 ]
 source-exclude = [
   "**/*\\~",
@@ -176,6 +177,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
+  "vulture_ignorelist.py",
 ]
 pythonVersion = "3.12"
 failOnWarnings = false
@@ -205,7 +207,15 @@ skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./c
 [tool.complexipy]
 failed = true
 paths = ["codex", "tests"]
-exclude = [".*", "frontend", "node_modules", "site", "test-results", "typings"]
+exclude = [
+  ".*",
+  "frontend",
+  "node_modules",
+  "site",
+  "test-results",
+  "typings",
+  "vulture_ignorelist.py",
+]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -227,6 +237,7 @@ omit = [
   "site/*",
   "test-results/*",
   "typings/*",
+  "vulture_ignorelist.py",
 ]
 
 [tool.pytest]
@@ -263,6 +274,7 @@ extend-exclude = [
   "site",
   "test-results",
   "typings",
+  "vulture_ignorelist.py",
 ]
 show-fixes = true
 target-version = "py312"
@@ -377,6 +389,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
+  "vulture_ignorelist.py",
 ]
 
 [tool.typos.default.extend-words]
@@ -384,84 +397,23 @@ bookmarkd = "bookmarkd"
 coverd = "coverd"
 versio = "versio"
 
-[tool.skylos]
+[tool.vulture]
 exclude = [
   "*/.*",
   "*/__pycache__*",
   "*/node_modules*",
   "codex/_vendor",
-  "codex/migrations",
-  "codex/static",
-  "codex/static_build",
-  "comics",
-  "dist",
-  "frontend",
+  "codex/static/",
+  "codex/static_build/",
+  "comics/",
+  "dist/",
+  "frontend/",
   "site",
-  "test-results",
-  "typings",
+  "test_results/",
+  "typings/",
 ]
-
-[tool.skylos.masking]
-# Mask bodies of framework-owned classes so their methods aren't reported as
-# unused (e.g. Thread.run is invoked by the threading framework). Keep this
-# list short — masking erases reference edges from the class body, so adding
-# more classes here can paradoxically *increase* false positives elsewhere.
-bases = ["BaseImporter", "ModelSerializer", "Serializer", "Thread"]
-
-[tool.skylos.whitelist]
-# Names skylos should never flag. Skylos's static analysis can't see Django/
-# DRF dynamic dispatch (string-name dispatch tables, getattr-by-name, framework
-# class attributes read by metaclasses). Patterns are fnmatch globs.
-names = [
-  # Carryovers from the prior vulture_ignorelist + DRF Meta inner class
-  "Meta",
-  "ManyToManyRel",
-  "_PermissionClass",
-  "format_suffix",
-  "sender",
-  # Django DB-router protocol (DATABASE_ROUTERS string registration)
-  "db_for_read",
-  "db_for_write",
-  "allow_relation",
-  "allow_migrate",
-  # Django URL converter protocol (register_converter)
-  "to_python",
-  "to_url",
-  # DRF "validate_<fieldname>" methods (called by name)
-  "validate_*",
-  # DRF/Django framework class attributes read via getattr by the framework
-  "lookup_field",
-  "default_code",
-  "default_detail",
-  "view_is_async",
-  "sync_capable",
-  "async_capable",
-  "keyword",
-  "charset",
-  "render_style",
-  "content_negotiation_class",
-  "prepare_rhs",
-  # Janitor task dispatch via _JANITOR_METHOD_MAP (string -> getattr)
-  "vacuum_db",
-  "cleanup_fks",
-  "cleanup_custom_covers",
-  "cleanup_sessions",
-  "cleanup_orphan_bookmarks",
-  "cleanup_orphan_settings",
-  "force_update_all_failed_imports",
-  "foreign_key_check",
-  "fts_integrity_check",
-  "fts_rebuild",
-  "queue_nightly_tasks",
-  # Importer phase dispatch via _PRE_PHASES / _PER_COMIC_PHASES / _POST_PHASES
-  "init_apply",
-  "move_and_modify_dirs",
-  "fail_imports",
-  "full_text_search",
-  # OPDS2 _publication_* dispatch via _PUBLICATION_METHOD_KEYS
-  "_publication_identifier",
-  "_publication_belongs_to",
-]
+min_confidence = 61
+sort_by_size = true
 
 [tool.djlint]
 extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static,./comics,dist,site,test-results,typings"
