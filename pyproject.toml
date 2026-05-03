@@ -88,9 +88,9 @@ lint = [
   "pathspec~=1.1.0",
   "radon~=6.0",
   "ruff~=0.15",
+  "skylos~=4.10",
   "types-python-dateutil~=2.9",
   "ty~=0.0.18",
-  "vulture~=2.3",
 ]
 test = [
   "coverage~=7.0",
@@ -144,7 +144,6 @@ source-include = [
   "strange.jpg",
   "tests/**",
   "uv.lock",
-  "vulture_ignorelist.py",
 ]
 source-exclude = [
   "**/*\\~",
@@ -177,7 +176,6 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
 ]
 pythonVersion = "3.12"
 failOnWarnings = false
@@ -214,7 +212,6 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
 ]
 
 [tool.coverage.html]
@@ -237,7 +234,6 @@ omit = [
   "site/*",
   "test-results/*",
   "typings/*",
-  "vulture_ignorelist.py",
 ]
 
 [tool.pytest]
@@ -274,7 +270,6 @@ extend-exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
 ]
 show-fixes = true
 target-version = "py312"
@@ -389,7 +384,6 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
 ]
 
 [tool.typos.default.extend-words]
@@ -397,23 +391,43 @@ bookmarkd = "bookmarkd"
 coverd = "coverd"
 versio = "versio"
 
-[tool.vulture]
+[tool.skylos]
 exclude = [
   "*/.*",
   "*/__pycache__*",
   "*/node_modules*",
   "codex/_vendor",
-  "codex/static/",
-  "codex/static_build/",
-  "comics/",
-  "dist/",
-  "frontend/",
+  "codex/migrations",
+  "codex/static",
+  "codex/static_build",
+  "comics",
+  "dist",
+  "frontend",
   "site",
-  "test_results/",
-  "typings/",
+  "test-results",
+  "typings",
 ]
-min_confidence = 61
-sort_by_size = true
+
+[tool.skylos.masking]
+# Mask bodies of framework-owned classes so their methods aren't reported as
+# unused (e.g. Thread.run is invoked by the threading framework).
+bases = [
+  "BaseImporter",
+  "ModelSerializer",
+  "Serializer",
+  "Thread",
+]
+
+[tool.skylos.whitelist]
+# Names skylos should never flag. Carryovers from the prior vulture_ignorelist
+# plus framework-owned attribute names.
+names = [
+  "Meta",
+  "ManyToManyRel",
+  "_PermissionClass",
+  "format_suffix",
+  "sender",
+]
 
 [tool.djlint]
 extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static,./comics,dist,site,test-results,typings"
