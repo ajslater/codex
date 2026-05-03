@@ -166,7 +166,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     ("https://metron.cloud/creator/123",),
                 },
                 ("metron", "genre", "012"): {
-                    ("https://metron.cloud/genre/012",),
+                    (None,),
                 },
                 ("metron", "imprint", "123"): {
                     ("https://metron.cloud/imprint/123",),
@@ -175,7 +175,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     ("https://metron.cloud/publisher/111",),
                 },
                 ("metron", "story", "555"): {
-                    ("https://metron.cloud/story/555",),
+                    (None,),
                 },
             },
             Publisher: {
@@ -335,10 +335,10 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 ("metron", "character", "123", "https://metron.cloud/character/123"),
                 ("metron", "comic", "999", "https://metron.cloud/issue/999"),
                 ("metron", "creditperson", "123", "https://metron.cloud/creator/123"),
-                ("metron", "genre", "012", "https://metron.cloud/genre/012"),
+                ("metron", "genre", "012", None),
                 ("metron", "imprint", "123", "https://metron.cloud/imprint/123"),
                 ("metron", "publisher", "111", "https://metron.cloud/publisher/111"),
-                ("metron", "story", "555", "https://metron.cloud/story/555"),
+                ("metron", "story", "555", None),
             },
             Language: {("fr",)},
             AgeRating: {("Adult",)},
