@@ -80,4 +80,36 @@ router.afterEach((to) => {
   }
 });
 
+// Self-heal stale chunk references after a deploy: when a lazy-loaded route
+// component fails to fetch (because its hashed filename no longer exists on
+// the server), force a full page load so the browser pulls a fresh index.html.
+const CHUNK_ERROR_PATTERNS = [
+  /Failed to fetch dynamically imported module/i,
+  /error loading dynamically imported module/i,
+  /Importing a module script failed/i,
+];
+const CHUNK_RELOAD_KEY = "codex-chunk-reload-path";
+
+const isChunkLoadError = (error) => {
+  const message = error?.message ?? String(error ?? "");
+  return CHUNK_ERROR_PATTERNS.some((re) => re.test(message));
+};
+
+router.onError((error, to) => {
+  if (!isChunkLoadError(error)) {
+    return;
+  }
+  const path = to?.fullPath ?? globalThis.location.pathname;
+  // Guard against reload loops if the fresh fetch still fails.
+  if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === path) {
+    return;
+  }
+  sessionStorage.setItem(CHUNK_RELOAD_KEY, path);
+  globalThis.location.assign(path);
+});
+
+router.afterEach(() => {
+  sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+});
+
 export default router;

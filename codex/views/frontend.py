@@ -31,4 +31,9 @@ class IndexView(BrowserSettingsBaseView, UserActiveMixin):
             "last_route": self._get_last_route(),
         }
         self.mark_user_active()
-        return Response(extra_context)
+        response = Response(extra_context)
+        # Force revalidation so deploys with new hashed chunk filenames are
+        # picked up immediately. Hashed /static/assets/* files remain
+        # immutable-cached via servestatic.
+        response["Cache-Control"] = "no-cache"
+        return response
