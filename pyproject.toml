@@ -208,6 +208,7 @@ skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./c
 failed = true
 paths = ["codex", "tests"]
 exclude = [
+  "*/.*",
   ".*",
   "frontend",
   "node_modules",
