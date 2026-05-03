@@ -22,11 +22,23 @@ update-devenv:
 fix::
 	./bin/fix.sh
 
+.PHONY: fix-sh
+## Fix shell script formatting
+## @category Fix
+fix-sh:
+	./bin/fix-sh.sh
+
 .PHONY: lint
 ## Lint
 ## @category Lint
 lint::
 	./bin/lint.sh
+
+.PHONY: lint-sh
+## Lint shell scripts
+## @category Lint
+lint-sh:
+	./bin/lint-sh.sh
 
 .PHONY: news
 ## Show recent NEWS

@@ -8,7 +8,6 @@ from django.urls import reverse
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.v1.const import (
-    DEFAULT_FACETS,
     FacetGroups,
     OPDS1EntryData,
     OPDS1EntryObject,
@@ -116,13 +115,6 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             mime_type_map=self.mime_type_map,
         )
         return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
-
-    def _is_facet_active(self, facet_group, facet) -> bool:
-        compare = [facet.value]
-        default_val = DEFAULT_FACETS.get(facet_group.query_param)
-        if facet.value == default_val:
-            compare += [None]
-        return self.request.GET.get(facet_group.query_param) in compare
 
     @staticmethod
     def _did_special_group_change(group, facet_group) -> bool:

@@ -86,15 +86,6 @@ class Counts:
         """Anything changed at all."""
         return self._any(("failed",))
 
-    def search_changed(self):
-        """Is the search index be out of date."""
-        return self._any(
-            (
-                "cover",
-                "failed",
-            )
-        )
-
 
 class InitImporter(WorkerStatusBase):
     """Initial Importer."""

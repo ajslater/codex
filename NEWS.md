@@ -13,6 +13,9 @@ border-radius: 128px;
       which make take time on large collections. However, the new search sync is
       faster than before.
 - Fixes
+    - Clear stale `metron.cloud/{genre,location,story,tag,role}/...` URLs from
+      existing identifiers — Metron has no public web pages for those types, so
+      the links always 404. Re-import will repopulate where applicable.
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
     - Fix OPDS v2 belongsTo.position attribute.

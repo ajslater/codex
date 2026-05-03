@@ -47,11 +47,6 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
     # Public interface - called from librariand #
     #############################################
 
-    def wake(self) -> None:
-        """Wake up the poller after library config changes."""
-        with self._cond:
-            self._cond.notify()
-
     def poll(self, task: FSPollLibrariesTask) -> None:
         """Trigger an immediate poll for specific libraries."""
         with self._cond:

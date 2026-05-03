@@ -1,6 +1,6 @@
 import { mapActions } from "pinia";
-import { toRaw } from "vue";
 
+import { deepClone } from "@/api/v3/common";
 import { useAdminStore } from "@/stores/admin";
 
 /**
@@ -15,6 +15,10 @@ import { useAdminStore } from "@/stores/admin";
  *   watchers that sync row and oldRow and emit "change",
  *   and the nameSet action from the admin store.
  */
+// ``deepClone`` (over ``structuredClone``) because ``oldRow`` rows
+// from the admin store carry reactive nested arrays (``groups``,
+// ``userSet``, ``librarySet``) that ``structuredClone`` can refuse
+// to clone.
 export default {
   props: {
     oldRow: {
@@ -27,11 +31,8 @@ export default {
     const emptyRow = this.$options.EMPTY_ROW;
     return {
       row: this.oldRow
-        ? {
-            ...structuredClone(emptyRow),
-            ...structuredClone(toRaw(this.oldRow)),
-          }
-        : structuredClone(emptyRow),
+        ? { ...deepClone(emptyRow), ...deepClone(this.oldRow) }
+        : deepClone(emptyRow),
     };
   },
   watch: {
@@ -45,8 +46,8 @@ export default {
       handler(to) {
         const emptyRow = this.$options.EMPTY_ROW;
         this.row = to
-          ? { ...structuredClone(emptyRow), ...structuredClone(toRaw(to)) }
-          : structuredClone(emptyRow);
+          ? { ...deepClone(emptyRow), ...deepClone(to) }
+          : deepClone(emptyRow);
       },
       deep: true,
     },

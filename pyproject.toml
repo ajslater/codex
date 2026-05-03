@@ -15,7 +15,7 @@ dependencies = [
   "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=3.0.0a3",
+  "comicbox[pdf]~=3.0.0a5",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",
@@ -208,6 +208,7 @@ skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./c
 failed = true
 paths = ["codex", "tests"]
 exclude = [
+  "*/.*",
   ".*",
   "frontend",
   "node_modules",

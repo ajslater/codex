@@ -1,7 +1,8 @@
+import { toRaw } from "vue";
+
 import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
-import { toRaw } from "vue";
 
 const getBrowserHrefPath = ({ group, pks, query, ts }) => {
   const params = serializeParams(query, ts);
@@ -74,12 +75,13 @@ const getBrowserPage = ({ group, pks, page }, data, ts, options = {}) => {
 };
 
 const getMetadata = ({ group, pks }, settings) => {
+  // Pull ``mtime`` out as the timestamp; ``serializeParams`` deep-clones
+  // the rest via ``_deepClone`` (which calls ``toRaw`` at every level),
+  // so we don't need ``structuredClone`` here — and can't safely use it,
+  // since the reactive filter arrays from the Pinia store don't always
+  // survive a structured clone (DataCloneError on ``[object Array]``).
   const pkList = pks.join(",");
-  const rawSettings = toRaw(settings) || {};
-  const filters = toRaw(rawSettings?.filters) || {};
-  const mtime = rawSettings?.mtime;
-  const data = structuredClone({ ...rawSettings, filters });
-  delete data.mtime;
+  const { mtime, ...data } = toRaw(settings) || {};
   const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
