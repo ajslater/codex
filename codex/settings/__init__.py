@@ -665,7 +665,7 @@ DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "BACKEND": "codex.cache.ResilientFileBasedCache",
         "LOCATION": str(DEFAULT_CACHE_PATH),
         "OPTIONS": {"MAX_ENTRIES": 10000},
     },

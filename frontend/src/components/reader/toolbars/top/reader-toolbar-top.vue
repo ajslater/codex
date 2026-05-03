@@ -110,8 +110,13 @@ export default {
       return height;
     },
     closeRoute() {
-      const params = structuredClone(toRaw(this.closeBookRoute.params));
-      delete params.name;
+      /*
+       * Destructure rather than ``structuredClone`` — ``params`` can
+       * be a breadcrumb pulled from the reactive browser store, whose
+       * inner ``pks`` array is a Vue proxy that ``structuredClone``
+       * can refuse to clone.
+       */
+      const { name: _name, ...params } = toRaw(this.closeBookRoute.params);
       return { ...this.closeBookRoute, params };
     },
     metadataBook() {

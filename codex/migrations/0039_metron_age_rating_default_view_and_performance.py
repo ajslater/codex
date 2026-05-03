@@ -107,6 +107,18 @@ can sort it out manually) — directories, missing entries, and
 unstat-able paths get deleted. Cascade handles ``ComicFTS``,
 ``Bookmark``, and m2m link rows. Orphan covers are picked up by the
 existing librarian janitor pass.
+
+----
+
+Clear stale ``metron.cloud/{genre,location,story,tag,role}/...`` URLs
+from existing :class:`Identifier` rows.
+
+Comicbox previously emitted these URLs for identifier types that have
+no public web pages on metron.cloud (only API endpoints), so the links
+always 404. The numeric Metron ``key`` is preserved; re-import after
+the comicbox pin moves past PR #124 will repopulate ``url`` where
+applicable (roles inherit the creator URL via comicbox's existing
+computed-step fallback).
 """
 
 import re
@@ -247,6 +259,10 @@ _COMIC_SUFFIX_RE = re.compile(r"\.(cb[zt7r]|pdf)$", re.IGNORECASE)
 # missing files don't fool us into bailing on a real cleanup, but
 # small enough that a fully-unmounted volume aborts cleanly.
 _SENTINEL_LIMIT = 10
+# Metron source name and identifier types whose URLs always 404
+# (Metron has no public web page for these — only API endpoints).
+_METRON_SOURCE = "metron"
+_UNSUPPORTED_METRON_ID_TYPES = ("genre", "location", "story", "tag", "creditrole")
 
 
 def _compute_metron_name_for(name):
@@ -529,6 +545,18 @@ def _delete_browser_default_group_flag(apps, _schema_editor) -> None:
     """Reverse the seed insert."""
     admin_flag = apps.get_model("codex", "AdminFlag")
     admin_flag.objects.filter(key="BG").delete()
+
+
+def _clear_stale_metron_urls(apps, _schema_editor) -> None:
+    """Clear stale Metron URLs for identifier types that 404 on metron.cloud."""
+    identifier_model = apps.get_model("codex", "identifier")
+    qs = identifier_model.objects.filter(
+        source__name=_METRON_SOURCE,
+        id_type__in=_UNSUPPORTED_METRON_ID_TYPES,
+    ).exclude(url="")
+    count = qs.update(url="")
+    if count:
+        logger.info(f"Cleared {count} stale Metron URLs that 404.")
 
 
 def backfill_global_reader_defaults(apps, _schema_editor) -> None:
@@ -999,6 +1027,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(_backfill_age_rating_metron_flag_fk, _noop),
         migrations.RunPython(_strip_pycountry_names, _noop),
+        migrations.RunPython(_clear_stale_metron_urls, _noop),
         migrations.RunPython(
             _seed_browser_default_group_flag,
             _delete_browser_default_group_flag,
