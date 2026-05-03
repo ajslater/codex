@@ -38,6 +38,13 @@ def get_logging_settings(loglevel: str | int, *, debug: bool) -> dict[str, int |
                 "asyncio": {
                     "level": "INFO",
                 },
+                # Granian's Rust core emits DEBUG noise for routine
+                # WebSocket close frames (a client disconnecting fires
+                # "Received close frame" + "Replying to close"). Not
+                # actionable; visible only at TRACE.
+                "_granian": {
+                    "level": "INFO",
+                },
             }
         )
     if not debug:
