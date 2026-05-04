@@ -20,7 +20,7 @@ border-radius: 128px;
 - Fixes
     - Clear stale `metron.cloud/{genre,location,story,tag,role}/...` URLs from
       existing identifiers — Metron has no public web pages for those types, so
-      the links always 404. Re-import will repopulate where applicable.
+      the links always 404.
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
     - Fix OPDS v2 belongsTo.position attribute.
