@@ -1,5 +1,5 @@
 <template>
-  <v-main id="browsePane" :class="browsePaneClasses">
+  <div id="browsePane" :class="browsePaneClasses">
     <v-pull-to-refresh
       v-if="showBrowseItems"
       id="browsePaneRefreshContainer"
@@ -21,7 +21,7 @@
     >
       {{ searchLimitMessage }}
     </div>
-  </v-main>
+  </div>
 </template>
 
 <script>
@@ -141,72 +141,86 @@ export default {
 
 $top-toolbar-margin: 102px;
 $card-margin: 32px;
-$browse-pane-margin-top: calc($top-toolbar-margin + $card-margin);
-$bottom-margin: 20px;
+$browse-pane-padding-top: calc($top-toolbar-margin + $card-margin);
 $select-many-height: 40px;
+$search-toolbar-height: 32px;
+$banner-height: 20px;
 
+// Single scroller: #browsePane fills the viewport exactly so its content
+// area is a known size, and #browsePaneRefreshContainer fills that area.
+// The refresh container is the only element with overflow: auto.
+//
+// Side padding lives on the refresh container (not on #browsePane) so the
+// scrollbar sits at the viewport edge instead of inset by $card-margin.
 #browsePane {
-  margin-left: max($card-margin, env(safe-area-inset-left));
-  margin-right: max($card-margin, env(safe-area-inset-right));
-  margin-bottom: max($card-margin, env(safe-area-inset-bottom));
-  overflow: auto;
-}
-
-.browsePane {
-  margin-top: $browse-pane-margin-top;
-  overflow: hidden; // scroll is handled by the refresh container
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  box-sizing: border-box;
+  padding-top: $browse-pane-padding-top;
+  padding-bottom: max($card-margin, env(safe-area-inset-bottom));
+  overflow: hidden;
 }
 
 .browsePaneSelectMany {
-  margin-top: calc($browse-pane-margin-top + $select-many-height) !important;
+  padding-top: calc($browse-pane-padding-top + $select-many-height) !important;
 }
 
 .browsePaneSearch {
-  margin-top: calc($browse-pane-margin-top + 32px) !important;
+  padding-top: calc(
+    $browse-pane-padding-top + $search-toolbar-height
+  ) !important;
 }
 
 .browsePaneSelectManySearch {
-  margin-top: calc(
-    $browse-pane-margin-top + $select-many-height + 32px
+  padding-top: calc(
+    $browse-pane-padding-top + $select-many-height + $search-toolbar-height
   ) !important;
 }
 
 .browsePaneBanner {
-  margin-top: calc(20px + $browse-pane-margin-top) !important;
+  padding-top: calc($banner-height + $browse-pane-padding-top) !important;
 }
 
 .browsePaneSelectManyBanner {
-  margin-top: calc(
-    20px + $browse-pane-margin-top + $select-many-height
+  padding-top: calc(
+    $banner-height + $browse-pane-padding-top + $select-many-height
   ) !important;
 }
 
 .browsePaneSearchBanner {
-  margin-top: calc(20px + $browse-pane-margin-top + 32px) !important;
+  padding-top: calc(
+    $banner-height + $browse-pane-padding-top + $search-toolbar-height
+  ) !important;
 }
 
 .browsePaneSelectManySearchBanner {
-  margin-top: calc(
-    20px + $browse-pane-margin-top + $select-many-height + 32px
+  padding-top: calc(
+    $banner-height + $browse-pane-padding-top + $select-many-height +
+      $search-toolbar-height
   ) !important;
 }
 
 #browsePaneRefreshContainer {
-  height: calc(100vh - $top-toolbar-margin - $card-margin - $bottom-margin);
+  flex: 1;
+  min-height: 0;
+  padding-left: max($card-margin, env(safe-area-inset-left));
+  padding-right: max($card-margin, env(safe-area-inset-right));
   overflow: auto;
   overscroll-behavior-y: contain;
 }
 
 #browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
-  margin-top: $card-margin;
   display: grid;
   grid-template-columns: repeat(auto-fit, bookcover.$cover-width);
   grid-gap: $card-margin;
   align-content: flex-start;
 }
 
-.padFooter {
-  padding-bottom: 45px !important;
+// Reserve room at the bottom of the scroll content for the fixed
+// pagination toolbar so the last cards aren't hidden behind it.
+.padFooter > #browsePaneRefreshContainer {
+  padding-bottom: 45px;
 }
 
 .placeholder {
@@ -219,6 +233,7 @@ $select-many-height: 40px;
 }
 
 #searchLimitMessage {
+  flex-shrink: 0;
   padding-top: 20px;
   text-align: center;
   font-size: 14px;
@@ -229,13 +244,15 @@ $select-many-height: 40px;
   $small-card-margin: 16px;
 
   #browsePane {
-    margin-left: max($small-card-margin, env(safe-area-inset-left));
-    margin-right: max($small-card-margin, env(safe-area-inset-right));
-    margin-bottom: max($small-card-margin, env(safe-area-inset-bottom));
+    padding-bottom: max($small-card-margin, env(safe-area-inset-bottom));
+  }
+
+  #browsePaneRefreshContainer {
+    padding-left: max($small-card-margin, env(safe-area-inset-left));
+    padding-right: max($small-card-margin, env(safe-area-inset-right));
   }
 
   #browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
-    margin-top: $small-card-margin;
     grid-template-columns: repeat(auto-fit, bookcover.$small-cover-width);
     grid-gap: $small-card-margin;
     justify-content: space-evenly;

@@ -61,7 +61,6 @@ import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
 const SCROLL_DELAY = 100;
-const HEADER_OFFSET = -170;
 
 export default {
   name: "BrowserCard",
@@ -123,19 +122,14 @@ export default {
   },
   beforeUnmount() {
     /*
-     * Cancel any pending scroll-restore timers. Without this,
-     * a card that unmounts during the 100-200ms window (rapid
-     * filter change, live-reload, route transition) still
-     * fires ``scrollIntoView`` on a detached node and the
-     * inner ``window.scrollBy`` runs against the wrong page.
+     * Cancel any pending scroll-restore timer so a card that
+     * unmounts during the 100ms layout window (rapid filter
+     * change, live-reload, route transition) doesn't fire
+     * ``scrollIntoView`` on a detached node.
      */
-    if (this._scrollOuterTimer) {
-      globalThis.clearTimeout(this._scrollOuterTimer);
-      this._scrollOuterTimer = 0;
-    }
-    if (this._scrollInnerTimer) {
-      globalThis.clearTimeout(this._scrollInnerTimer);
-      this._scrollInnerTimer = 0;
+    if (this._scrollTimer) {
+      globalThis.clearTimeout(this._scrollTimer);
+      this._scrollTimer = 0;
     }
   },
   methods: {
@@ -153,22 +147,14 @@ export default {
         return;
       }
       /*
-       * Two stacked timers: the outer one waits for the card to
-       * lay out, then ``scrollIntoView``; the inner one waits
-       * for any toolbar reflow, then nudges the scroll up by
-       * ``HEADER_OFFSET``. The empirical 100ms delays were
-       * tuned against Vue 3's mount timing and ``nextTick``
-       * doesn't reliably substitute, so keep the timer shape.
-       * Track the IDs so ``beforeUnmount`` can cancel them.
+       * Wait one layout pass before scrolling. The empirical
+       * 100ms delay was tuned against Vue 3's mount timing and
+       * ``nextTick`` doesn't reliably substitute. Track the id
+       * so ``beforeUnmount`` can cancel it.
        */
-      this._scrollOuterTimer = globalThis.setTimeout(() => {
-        this._scrollOuterTimer = 0;
-        // This works while nextTick() does not.
+      this._scrollTimer = globalThis.setTimeout(() => {
+        this._scrollTimer = 0;
         el.scrollIntoView();
-        this._scrollInnerTimer = globalThis.setTimeout(() => {
-          this._scrollInnerTimer = 0;
-          globalThis.scrollBy(0, HEADER_OFFSET);
-        }, SCROLL_DELAY);
       }, SCROLL_DELAY);
     },
   },
