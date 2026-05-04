@@ -126,18 +126,23 @@ class AgeRatingACLTestCase(TestCase):
         self.comic_unknown = _comic_with("unknown", unknown)  # pyright: ignore[reportUninitializedInstanceVariable]
 
         # Users: ``teen_user`` has a Teen ceiling, ``open_user`` has none.
+        # ``UserAuth`` rows are auto-provisioned by the User ``post_save``
+        # signal (see codex.signals.django_signals); we just patch the
+        # ceiling on the auto-created row for ``teen_user``. ``open_user``
+        # gets the default (None ⇒ unrestricted) without any extra work.
         self.teen_user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="teen",
             password="x",  # noqa: S106
         )
         teen_metron = AgeRatingMetron.objects.get(name=MetronAgeRatingEnum.TEEN.value)
-        UserAuth.objects.create(user=self.teen_user, age_rating_metron=teen_metron)
+        UserAuth.objects.filter(user=self.teen_user).update(
+            age_rating_metron=teen_metron
+        )
 
         self.open_user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="open",
             password="x",  # noqa: S106
         )
-        UserAuth.objects.create(user=self.open_user, age_rating_metron=None)
 
         # Default flag = Everyone (matches the new seed); tests that need
         # a looser or tighter default override via ``_set_flag``.
@@ -299,12 +304,16 @@ class MigrationShapeTestCase(TestCase):
     up an executor manually.
     """
 
-    def test_user_auth_table_exists_and_is_empty(self) -> None:
-        """``UserActive`` was renamed (not dropped+created) ⇒ no fixture data."""
-        # Rename-then-add-field keeps the row set; the test DB starts
-        # clean so this is zero regardless, but we still assert the
-        # model responds to queries (table exists).
-        assert UserAuth.objects.count() == 0
+    def test_user_auth_row_exists_for_every_user(self) -> None:
+        """0039 backfills UserAuth for every existing User."""
+        # ``UserActive`` was renamed (not dropped+created), then 0039
+        # backfills a default ``UserAuth`` row for any User missing one
+        # — heals the legacy lazy-create gap so the bookmark thread's
+        # activity touch is silent for everyone (the new invariant is
+        # enforced going forward by a User ``post_save`` signal).
+        from django.contrib.auth.models import User
+
+        assert UserAuth.objects.count() == User.objects.count()
 
     def test_all_metron_ratings_seeded(self) -> None:
         """Every ``MetronAgeRatingEnum`` value gets an AgeRatingMetron row."""
@@ -348,9 +357,11 @@ class UserSerializerRoundtripTestCase(TestCase):
             username="roundtrip",
             password="x",  # noqa: S106
         )
-        # Hang onto the UserAuth directly; reverse accessor ``user.userauth``
-        # works at runtime but is invisible to basedpyright.
-        self.userauth = UserAuth.objects.create(user=self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
+        # ``UserAuth`` is auto-provisioned by the User ``post_save`` signal
+        # (see codex.signals.django_signals); fetch the auto-created row.
+        # The reverse accessor ``user.userauth`` works at runtime but is
+        # invisible to basedpyright, so go through the manager.
+        self.userauth = UserAuth.objects.get(user=self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.teen_metron = AgeRatingMetron.objects.get(  # pyright: ignore[reportUninitializedInstanceVariable]
             name=MetronAgeRatingEnum.TEEN.value
         )

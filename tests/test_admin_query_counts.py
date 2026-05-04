@@ -25,7 +25,7 @@ from django.db import connection
 from django.test import Client, TestCase
 from django.test.utils import CaptureQueriesContext
 
-from codex.models.auth import GroupAuth, UserAuth
+from codex.models.auth import GroupAuth
 
 # Test-only password — short, fixed, and never deployed. Hush
 # bandit's hardcoded-password warning at the call sites.
@@ -45,18 +45,19 @@ class AdminListQueryCountTestCase(TestCase):
     @override
     def setUp(self) -> None:
         """Create an admin + a small fixture set of users / groups."""
+        # ``UserAuth`` rows are auto-provisioned by the User ``post_save``
+        # signal (see codex.signals.django_signals), so we don't create
+        # them explicitly here.
         self.admin = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="admin_query_count_admin",
             password=_TEST_PASSWORD,
             is_staff=True,
             is_superuser=True,
         )
-        UserAuth.objects.create(user=self.admin)
         for i in range(3):
-            user = User.objects.create_user(
+            User.objects.create_user(
                 username=f"admin_query_count_user{i}", password=_TEST_PASSWORD
             )
-            UserAuth.objects.create(user=user)
         for i in range(3):
             group = Group.objects.create(name=f"group{i}")
             GroupAuth.objects.create(group=group)
