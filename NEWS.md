@@ -10,7 +10,8 @@ border-radius: 128px;
 
 - Notice
     - This version of codex needs to re-sync the search index on first startup
-      which make take time on large collections.
+      which make take time on large collections. However, the new search sync is
+      faster than before.
 - Fixes
     - Clear stale `metron.cloud/{genre,location,story,tag,role}/...` URLs from
       existing identifiers — Metron has no public web pages for those types, so
@@ -27,10 +28,9 @@ border-radius: 128px;
     - OPDS v2 publishers as proper contributors with links.
     - OPDS v2 volumes in belongsTo
 - Performance
-    - Performance improvements across all views.
-    - Bulk importing performance improvements. Comicbox learned how to use
-      multiprocessing & caching.
-    - Cover thumbnail generation now uses multiprocessing and seeds covers on
+    - Performance improvements across all views and batch jobs.
+    - Comicbox learned how to use multiprocessing & caching for importing.
+    - Cover thumbnail generation uses multiprocessing and seeds covers on
       import.
 
 ## v1.10.15
