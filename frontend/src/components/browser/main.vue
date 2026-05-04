@@ -149,14 +149,15 @@ $banner-height: 20px;
 // Single scroller: #browsePane fills the viewport exactly so its content
 // area is a known size, and #browsePaneRefreshContainer fills that area.
 // The refresh container is the only element with overflow: auto.
+//
+// Side padding lives on the refresh container (not on #browsePane) so the
+// scrollbar sits at the viewport edge instead of inset by $card-margin.
 #browsePane {
   display: flex;
   flex-direction: column;
   height: 100dvh;
   box-sizing: border-box;
   padding-top: $browse-pane-padding-top;
-  padding-left: max($card-margin, env(safe-area-inset-left));
-  padding-right: max($card-margin, env(safe-area-inset-right));
   padding-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: hidden;
 }
@@ -203,6 +204,8 @@ $banner-height: 20px;
 #browsePaneRefreshContainer {
   flex: 1;
   min-height: 0;
+  padding-left: max($card-margin, env(safe-area-inset-left));
+  padding-right: max($card-margin, env(safe-area-inset-right));
   overflow: auto;
   overscroll-behavior-y: contain;
 }
@@ -241,9 +244,12 @@ $banner-height: 20px;
   $small-card-margin: 16px;
 
   #browsePane {
+    padding-bottom: max($small-card-margin, env(safe-area-inset-bottom));
+  }
+
+  #browsePaneRefreshContainer {
     padding-left: max($small-card-margin, env(safe-area-inset-left));
     padding-right: max($small-card-margin, env(safe-area-inset-right));
-    padding-bottom: max($small-card-margin, env(safe-area-inset-bottom));
   }
 
   #browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
