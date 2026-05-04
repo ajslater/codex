@@ -32,6 +32,7 @@ border-radius: 128px;
     - Database repairs itself before migrations.
 - Features
     - Age Rating Restrictions now available in the Admin Users tab.
+    - Admin Flag for defaulting to Folder View.
     - The codex cache directory for covers and views may now have it's location
       configured.
     - OPDS v2 alternate links for publications to external url identifiers.
