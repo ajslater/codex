@@ -30,6 +30,6 @@ READER_DEFAULTS = MappingProxyType(
         "read_rtl_in_reverse": False,
         "two_pages": False,
         "page_transition": True,
-        "cache_book": True,
+        "cache_book": False,
     }
 )

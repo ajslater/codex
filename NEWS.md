@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.2
+
+- Fixes
+    - Browser had two scroll bars.
+    - Reader stopped scrolling to the top of the page on page turn.
+    - Reader setting Cache Entire Book now defaults to False.
+
 ## v1.11.1
 
 - Fixes
@@ -20,13 +27,14 @@ border-radius: 128px;
 - Fixes
     - Clear stale `metron.cloud/{genre,location,story,tag,role}/...` URLs from
       existing identifiers — Metron has no public web pages for those types, so
-      the links always 404. Re-import will repopulate where applicable.
+      the links always 404.
     - Fix full text search for credits, identifiers and story arcs.
     - Fix OPDS v2 progression syncing response.
     - Fix OPDS v2 belongsTo.position attribute.
     - Database repairs itself before migrations.
 - Features
     - Age Rating Restrictions now available in the Admin Users tab.
+    - Admin Flag for defaulting to Folder View.
     - The codex cache directory for covers and views may now have it's location
       configured.
     - OPDS v2 alternate links for publications to external url identifiers.

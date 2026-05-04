@@ -9,6 +9,3 @@ fi
 if [ -f .github/workflows/ci.yml ]; then
   actionlint .github/workflows/ci.yml
 fi
-if [ -f .circleci/config.yml ]; then
-  circleci config validate .circleci/config.yml
-fi

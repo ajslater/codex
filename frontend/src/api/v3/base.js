@@ -1,4 +1,6 @@
 import xior, { merge } from "xior";
+
+import { useCommonStore } from "@/stores/common";
 const CONFIG = {
   baseURL: globalThis.CODEX.API_V3_PATH,
   withCredentials: true,
@@ -70,16 +72,16 @@ HTTP.interceptors.response.use(
        * working; without this every subsequent API call returns
        * 401 silently and the UI appears broken.
        *
-       * Lazy-import the common store to avoid a load-time cycle:
-       * ``stores/common.js`` imports ``api/v3/common.js`` which
-       * imports this module. The handler runs at request time,
-       * by which point the store has been fully evaluated.
+       * The static ``useCommonStore`` import forms a module cycle
+       * (``stores/common`` → ``api/v3/common`` → this file), but
+       * the handler only runs at request time — long after every
+       * module has finished evaluating — so the ESM live binding
+       * resolves cleanly.
        */
       invalidateCSRFCache();
       await cookieStore.delete("sessionid");
       console.error("CSRF response error. Deleted login cookie.");
       try {
-        const { useCommonStore } = await import("@/stores/common");
         useCommonStore().setSessionError(
           "Your session expired. Please reload the page.",
         );

@@ -68,7 +68,6 @@ export default defineConfig([
   {
     name: "globalIgnores",
     ignores: [
-      "!.circleci",
       "**/*min.css",
       "**/*min.js",
       "**/__pycache__/",
