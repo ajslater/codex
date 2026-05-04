@@ -7,14 +7,22 @@
     :disabled="!items || items.length <= 1"
     @update:model-value="onUpdate"
   >
-    <template #item="{ item, props }">
+    <!--
+      Vuetify 4: ``#item`` slot scope is ``{ internalItem, props }``;
+      the custom ``prependIcon`` / ``subtitle`` / ``appendIcon`` fields
+      attached to each entry by the ``items`` computed below come off
+      ``internalItem.raw``. Pre-V4 the slot exposed the raw object
+      directly so ``item.prependIcon`` worked; after the upgrade those
+      reads silently resolved to ``undefined``.
+    -->
+    <template #item="{ internalItem, props }">
       <v-list-item
         v-bind="props"
         density="compact"
         variant="plain"
-        :prepend-icon="item.prependIcon"
-        :subtitle="item.subtitle"
-        :append-icon="item.appendIcon"
+        :prepend-icon="internalItem.raw.prependIcon"
+        :subtitle="internalItem.raw.subtitle"
+        :append-icon="internalItem.raw.appendIcon"
       />
     </template>
     <template #selection="{ props }">

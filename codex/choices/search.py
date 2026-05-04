@@ -57,7 +57,10 @@ def _get_fieldmap_values(*args) -> tuple:
 
 FIELDMAP = MappingProxyType(
     {
-        "age_rating": ("age",),
+        "age_rating_metron": _get_fieldmap_values(
+            "age", "age_rating", "age_rating_metron"
+        ),
+        "age_rating_tagged": (),
         "characters": _get_fieldmap_values("category", "categories", "characters"),
         "collection_title": ("collection",),
         "country": (),

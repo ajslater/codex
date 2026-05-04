@@ -116,11 +116,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-// settingsSubHeader defined in settings/settings-drawer.vue
-:deep(.v-expansion-panel-title--active) {
-  min-height: 48px !important;
-}
+@forward "./expansion-panel-overrides";
 
+// settingsSubHeader defined in settings/settings-drawer.vue
 :deep(.v-expansion-panel-text__wrapper) {
   padding-left: 10px;
   padding-right: 10px;

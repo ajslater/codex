@@ -10,6 +10,7 @@ from codex.models.groups import Volume
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
 from codex.views.browser.metadata.const import (
     COMIC_MAIN_FIELD_NAME_BACK_REL_MAP,
+    FK_QUERY_OPTIMIZERS,
     GROUP_MODELS,
     M2M_QUERY_OPTIMIZERS,
 )
@@ -52,6 +53,21 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         # Evaluating it now is probably faster than running the filter for every m2m anyway.
         return frozenset(comic_pks)
 
+    @staticmethod
+    def _get_optimized_fk_query(qs):
+        """
+        Apply select_related + only() hints keyed on the FK model.
+
+        Serializers read a couple of nested FKs (e.g. ``AgeRating.metron``,
+        ``Character.identifier.url``). Without select_related, accessing
+        those during serialization fires a second query per instance.
+        """
+        optimizers = FK_QUERY_OPTIMIZERS.get(qs.model, {})
+        if select := optimizers.get("select"):
+            qs = qs.select_related(*select)
+        only = optimizers.get("only", ("name",))
+        return qs.only(*only)
+
     def _get_fk_intersection_query(
         self, field_name: str, comic_pks: frozenset[int], rel: str
     ):
@@ -66,7 +82,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
             count=len(comic_pks)
         )
-        return intersection_qs.only("name")
+        return self._get_optimized_fk_query(intersection_qs)
 
     def _query_fk_intersections(self, comic_pks: frozenset[int]) -> dict:
         fk_intersections = {}
@@ -119,10 +135,17 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         for field_name, related_id in combined:
             pk_map.setdefault(field_name, []).append(related_id)
 
-        # Hydrate with ORM querysets (preserves select/prefetch optimizers)
+        # Hydrate with ORM querysets (preserves select/prefetch optimizers).
+        # Fields with no intersection get ``.none()`` rather than a filter
+        # on an empty pk list — avoids the per-field optimizer setup cost
+        # and, for the ``self.model is Comic`` path in ``_copy_m2m_intersections``,
+        # skips pointless prefetch dispatches on an already-empty result.
         m2m_intersections = {}
         for field in COMIC_M2M_FIELDS:
             pks = pk_map.get(field.name, [])
+            if not pks:
+                m2m_intersections[field.name] = field.related_model.objects.none()
+                continue
             qs = field.related_model.objects.filter(pk__in=pks)
             m2m_intersections[field.name] = self._get_optimized_m2m_query(qs)
 

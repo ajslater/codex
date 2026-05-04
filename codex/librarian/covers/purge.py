@@ -92,8 +92,22 @@ class CoverPurgeThread(CoverCreateThread, ABC):
 
         self.purge_cover_paths(orphan_cover_paths, cover_root)
 
+    def _cleanup_tmp_covers(self) -> None:
+        """Remove stale ``*.tmp`` files left behind by aborted atomic writes."""
+        for cover_root in (self.COVERS_ROOT, self.CUSTOM_COVERS_ROOT):
+            if not cover_root.exists():
+                continue
+            for tmp_path in cover_root.rglob("*.tmp"):
+                try:
+                    tmp_path.unlink()
+                except FileNotFoundError:
+                    pass
+                except OSError as exc:
+                    self.log.warning(f"Could not remove stale {tmp_path}: {exc!r}")
+
     def cleanup_orphan_covers(self) -> None:
         """Cleanup both comic and custom covers."""
+        self._cleanup_tmp_covers()
         self._cleanup_orphan_covers(Comic, self.COVERS_ROOT, "comics")
         self._cleanup_orphan_covers(
             CustomCover, self.CUSTOM_COVERS_ROOT, "custom covers"

@@ -1,6 +1,7 @@
 """Views for reading comic books."""
 
-from comicbox.box import Comicbox
+import time
+
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -12,9 +13,10 @@ from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models.choices import FileTypeChoices
 from codex.models.comic import Comic
-from codex.settings import COMICBOX_CONFIG, FALSY
+from codex.settings import FALSY
 from codex.views.auth import AuthFilterAPIView
 from codex.views.bookmark import BookmarkAuthMixin
+from codex.views.reader._archive_cache import archive_cache, page_acl_cache
 
 _PDF_MIME_TYPE = "application/pdf"
 _PDF_FORMAT_NON_PDF_TYPES = frozenset(
@@ -45,13 +47,39 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         task = BookmarkUpdateTask(auth_filter, comic_pks, updates)
         LIBRARIAN_QUEUE.put(task)
 
+    def _resolve_path_and_type(self, pk) -> tuple[str, str | None]:
+        """
+        Resolve ``(path, file_type)`` for the requested comic, ACL-filtered.
+
+        Caches the result per ``(auth_key, comic_pk)`` for a short TTL
+        so a sequential read-through doesn't fire the ACL filter SQL on
+        every page (sub-plan 03 #2 / Tier 4 #15). Cache misses fall
+        through to ``Comic.objects.filter(acl_filter).get(pk=pk)``;
+        ``.get`` collapses any duplicates an ACL JOIN might introduce,
+        making the explicit ``.distinct()`` on a single-row fetch
+        redundant (sub-plan 03 #6).
+        """
+        auth_filter = self.get_bookmark_auth_filter()
+        # ``auth_filter`` is one of ``{"user_id": pk}`` or
+        # ``{"session_id": key}``; flatten to a hashable tuple.
+        auth_key = next(iter(auth_filter.items()))
+        cache_key = (auth_key, pk)
+        now = time.monotonic()
+        cached = page_acl_cache.get(cache_key, now)
+        if cached is not None:
+            return cached
+        acl_filter = self.get_acl_filter(Comic, self.request.user)
+        qs = Comic.objects.filter(acl_filter).only("path", "file_type")
+        comic = qs.get(pk=pk)
+        path = comic.path
+        file_type = comic.file_type
+        page_acl_cache.put(cache_key, path, file_type, now)
+        return path, file_type
+
     def _get_page_image(self) -> tuple:
         """Get the image data and content type."""
-        # Get comic - Distinct is important
-        group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
-        qs = Comic.objects.filter(group_acl_filter).only("path", "file_type").distinct()
         pk = self.kwargs.get("pk")
-        comic = qs.get(pk=pk)
+        path, file_type = self._resolve_path_and_type(pk)
 
         # page_image
         page = self.kwargs.get("page")
@@ -60,14 +88,21 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             if self.request.GET.get("pixmap", "").lower() not in FALSY
             else ""
         )
-        with Comicbox(comic.path, config=COMICBOX_CONFIG, logger=logger) as cb:
+        # Process-wide LRU of open Comicbox archives — the web reader's
+        # prev/curr/next prefetch fires 3-5 page hits on the same archive
+        # within a second, and ``cacheBook`` mode bursts a whole-book
+        # prefetch (N parallel page hits). Without the cache, every hit
+        # re-opens the archive (sub-plan 03 #1). The per-archive lock
+        # held inside ``archive_cache.open(...)`` serializes extraction
+        # because ZipFile / RarFile / PDF backends aren't thread-safe.
+        with archive_cache.open(path) as cb:
             page_image = cb.get_page_by_index(page, pdf_format=pdf_format)
         if not page_image:
             page_image = b""
 
         # content type
         if (
-            comic.file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             and pdf_format not in _PDF_FORMAT_NON_PDF_TYPES
         ):
             content_type = _PDF_MIME_TYPE

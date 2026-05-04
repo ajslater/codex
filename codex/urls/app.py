@@ -1,5 +1,7 @@
 """codex:app URL Configuration."""
 
+from typing import Final
+
 from django.urls import path, re_path
 from django.views.decorators.cache import cache_control
 from django.views.generic import RedirectView
@@ -9,7 +11,7 @@ from codex.views.frontend import IndexView
 
 app_name = "app"
 
-BOOK_AGE = 60 * 60 * 24 * 7
+BOOK_AGE: Final = 60 * 60 * 24 * 7
 
 urlpatterns = [
     path("<group:group>/<int_list:pks>/<int:page>", IndexView.as_view(), name="route"),

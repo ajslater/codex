@@ -1,7 +1,7 @@
 """Browser breadcrumbs calculations."""
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.db.models import QuerySet
 
@@ -72,15 +72,13 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page")
-        if group == "r" and not pks and page == 1:
-            group_query = model.objects.none()
-        else:
+        if not (group == "r" and not pks and page == 1):
             reason = f"{group}__in={pks} does not exist!"
-            self.raise_redirect(
-                reason,
-                route_mask={"group": group},
-            )
-        return group_query  # pyright: ignore[reportPossiblyUnboundVariable]
+            # ``raise_redirect`` is ``NoReturn``; the type checker
+            # follows the early-return shape so the caller below
+            # is the only path that produces a queryset.
+            self.raise_redirect(reason, route_mask={"group": group})
+        return model.objects.none()
 
     @property
     def group_instance(self) -> BrowserGroupModel | None:
@@ -99,7 +97,10 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                     model = Publisher
                 group_query = model.objects.none()
             self._group_instance = group_query.first()
-        return self._group_instance  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
+        # ``_group_instance`` carries an ``int`` sentinel (``0``) for the
+        # unmemoized state; by this point it's been resolved to a real
+        # model row or ``None``.
+        return cast("BrowserGroupModel | None", self._group_instance)
 
     def _build_group_breadcrumbs(self) -> tuple[Route, ...]:
         """Build breadcrumbs for browse group mode by walking FK parents."""
@@ -134,15 +135,17 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Build breadcrumbs for folder mode by walking parent_folder FKs."""
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        folder: Folder | None = self.group_instance  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        # In folder mode ``group_instance`` is a Folder (or None) by
+        # construction — the caller branches on ``group == FOLDER_GROUP``.
+        folder = cast("Folder | None", self.group_instance)
         name = folder.name if folder and pks else ""
 
         crumbs: list[Route] = [Route(FOLDER_GROUP, pks, page, name)]
 
         # Walk up the parent_folder chain
-        while folder and folder.parent_folder:
-            folder = folder.parent_folder
-            crumbs.append(Route(FOLDER_GROUP, (folder.pk,), 1, folder.name))  # pyright: ignore[reportOptionalMemberAccess]
+        while folder and (parent := folder.parent_folder):
+            folder = parent
+            crumbs.append(Route(FOLDER_GROUP, (folder.pk,), 1, folder.name))
 
         # Add folder root if not already there
         if crumbs[-1].pks:

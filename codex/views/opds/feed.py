@@ -18,4 +18,4 @@ class OPDSBrowserView(OPDSBrowserSettingsMixin, UserActiveMixin, BrowserView):
     def __init__(self, *args, **kwargs) -> None:
         """Add User Agent Name."""
         super().__init__(*args, **kwargs)
-        self._user_agent_name: str | None = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        self._user_agent_name = None

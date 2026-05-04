@@ -17,7 +17,7 @@ from codex.serializers.models.named import (
     CharacterSerializer,
     CreditSerializer,
     GenreSerializer,
-    IdentifierSeralizer,
+    IdentifierSerializer,
     LocationSerializer,
     OriginalFormatSerializer,
     ScanInfoSerializer,
@@ -64,7 +64,7 @@ class ComicSerializer(BaseModelSerializer):
     characters = CharacterSerializer(many=True, allow_null=True)
     credits = CreditSerializer(many=True, allow_null=True)
     genres = GenreSerializer(many=True, allow_null=True)
-    identifiers = IdentifierSeralizer(many=True, allow_null=True)
+    identifiers = IdentifierSerializer(many=True, allow_null=True)
     locations = LocationSerializer(many=True, allow_null=True)
     series_groups = SeriesGroupSerializer(many=True, allow_null=True)
     stories = StorySerializer(many=True, allow_null=True)

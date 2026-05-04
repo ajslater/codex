@@ -39,30 +39,36 @@ export default {
       topGroup: (state) => state.settings.topGroup,
     }),
     orderValue() {
-      let ov = this.item.orderValue;
+      const ov = this.item.orderValue;
+      /*
+       * Hot path: this computed runs once per card per render
+       * (typically 100 cards on a browser page) and the
+       * overwhelmingly common case is ``orderBy`` = ``sort_name``
+       * which produces an empty caption. Bail before allocating
+       * a try/catch frame and walking the type-specific dispatch
+       * below.
+       */
+      if (HIDE_ORDER_BYS.has(this.orderBy)) return "";
+      if (HIDE_ORDER_VALUES.has(ov)) return "";
+      if (this.orderBy === "filename" && this.item.group !== "c") return "";
+      if (this.orderBy === "story_arc_number" && this.item.group === "a") {
+        return "";
+      }
       try {
-        if (
-          HIDE_ORDER_BYS.has(this.orderBy) ||
-          (this.orderBy === "filename" && this.item.group !== "c") ||
-          (this.orderBy === "story_arc_number" && this.item.group === "a") ||
-          HIDE_ORDER_VALUES.has(ov)
-        ) {
-          ov = "";
-        } else if (DATE_SORT_BY.has(this.orderBy)) {
+        if (DATE_SORT_BY.has(this.orderBy)) {
           const date = new Date(ov);
-          ov = DATE_FORMAT.format(date);
-        } else if (this.orderBy == "search_score") {
-          ov = this.format_search_score(ov);
+          return DATE_FORMAT.format(date);
+        } else if (this.orderBy === "search_score") {
+          return this.format_search_score(ov);
         } else if (TIME_SORT_BY.has(this.orderBy)) {
-          // this is what needs v-html to work with the embedded break.
-          ov = getDateTime(ov, this.twentyFourHourTime, true);
-        } else if (this.orderBy == "page_count") {
-          const human = NUMBER_FORMAT.format(ov);
-          ov = `${human} pages`;
-        } else if (this.orderBy == "size") {
-          ov = prettyBytes(Number.parseInt(ov, 10));
+          // This is what needs v-html to work with the embedded break.
+          return getDateTime(ov, this.twentyFourHourTime, true);
+        } else if (this.orderBy === "page_count") {
+          return `${NUMBER_FORMAT.format(ov)} pages`;
+        } else if (this.orderBy === "size") {
+          return prettyBytes(Number.parseInt(ov, 10));
         } else if (STAR_SORT_BY.has(this.orderBy)) {
-          ov = `★  ${ov}`;
+          return `★  ${ov}`;
         }
       } catch (error) {
         // Often orderBy gets updated before orderValue gets returned.

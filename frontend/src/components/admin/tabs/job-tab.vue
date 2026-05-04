@@ -1,6 +1,6 @@
 <template>
-  <div id="jobs">
-    <div class="jobCard">
+  <div id="jobs" class="adminContainer">
+    <div class="adminCard">
       <div id="lastTaskLabel">Last Job Queued</div>
       <div id="lastJobResult">
         <span v-if="formSuccess" id="success">{{ formSuccess }}</span>
@@ -10,8 +10,8 @@
         <span v-else id="noRecentTask">No recent job</span>
       </div>
     </div>
-    <div v-for="group in ADMIN_JOBS" :key="group.title" class="jobGroup">
-      <div class="groupHeader">
+    <div v-for="group in ADMIN_JOBS" :key="group.title" class="adminGroup">
+      <div class="adminGroupHeader">
         <h3>{{ group.title }}</h3>
         <v-btn
           v-if="group.abort && isGroupActive(group)"
@@ -22,7 +22,7 @@
         />
       </div>
       <!-- Select-style group (Notify) -->
-      <div v-if="isSelectGroup(group.title)" class="jobCard">
+      <div v-if="isSelectGroup(group.title)" class="adminCard">
         <v-select
           :items="group.jobs"
           :model-value="groupSelectValues[group.title]"
@@ -38,7 +38,7 @@
             )
           "
         />
-        <div class="jobDesc">
+        <div class="adminCardDesc">
           {{ groupSelectAttr(group.title, "desc") }}
         </div>
       </div>
@@ -47,12 +47,12 @@
         <div
           v-for="job in group.jobs"
           :key="job.value"
-          class="jobCard"
-          :class="{ jobCardActive: isJobActive(job) }"
+          class="adminCard"
+          :class="{ adminCardActive: isJobActive(job) }"
         >
-          <div class="jobHeader">
-            <div class="jobInfo">
-              <div class="jobTitle">
+          <div class="adminCardHeader">
+            <div class="adminCardInfo">
+              <div class="adminCardTitle">
                 {{ job.title }}
               </div>
               <!-- Variant selector -->
@@ -67,16 +67,16 @@
                   :model-value="selectedVariant(job)"
                   @update:model-value="variantSelections[job.value] = $event"
                 />
-                <div class="jobDesc">
+                <div class="adminCardDesc">
                   {{ activeVariant(job).desc }}
                 </div>
               </div>
               <!-- Simple desc for non-variant jobs -->
-              <div v-else class="jobDesc">
+              <div v-else class="adminCardDesc">
                 {{ job.desc }}
               </div>
             </div>
-            <div class="jobActions">
+            <div class="adminCardActions">
               <span v-if="jobLastRun(job)" class="jobLastRun">
                 {{ jobLastRun(job) }}
               </span>
@@ -139,6 +139,22 @@
                 >
                   <div class="statusHeader">
                     <span class="statusTitle">
+                      <!--
+                        Active-only spinner. Used to be implicit in
+                        the progress bar's indeterminate animation,
+                        which was confusing because the bar also
+                        served as a progress display for active
+                        tasks with numbers. Splitting "is running"
+                        (spinner) from "how far along" (progress
+                        bar) makes both axes unambiguous.
+                      -->
+                      <v-progress-circular
+                        v-if="status.active"
+                        class="statusActiveSpinner"
+                        size="10"
+                        width="2"
+                        indeterminate
+                      />
                       {{ statusTitle(status.statusType) }}
                     </span>
                     <span
@@ -167,11 +183,21 @@
                       {{ nf(status.total) }}
                     </span>
                   </div>
+                  <!--
+                    Progress bar is now active-only. Preactive tasks
+                    have nothing to show on a fill scale — the
+                    "pending" badge in ``.statusTime`` already
+                    signals the queued state, and the row's
+                    ``.statusRowPreactive`` background tint
+                    distinguishes preactive from active visually.
+                    Indeterminate fires only when active and no
+                    numeric progress can be computed.
+                  -->
                   <v-progress-linear
-                    v-if="status.active || status.preactive"
+                    v-if="status.active"
                     :indeterminate="isIndeterminate(status)"
                     :model-value="statusProgress(status)"
-                    :color="status.active ? 'primary' : 'grey'"
+                    color="primary"
                     height="3"
                   />
                 </div>
@@ -443,11 +469,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#jobs {
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-}
+@use "@/components/admin/tabs/admin-section.scss";
 
 #lastTaskLabel {
   display: inline-flex;
@@ -476,56 +498,11 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
 }
 
-.jobGroup {
-  margin-top: 1em;
-}
-
-.groupHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.jobCard {
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 5px;
-  background-color: rgb(var(--v-theme-surface-light));
-  border-left: 3px solid transparent;
-  transition: border-color 0.3s ease;
-}
-
-.jobCardActive {
-  border-left-color: rgb(var(--v-theme-primary));
-}
-
-.jobHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.jobInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.jobTitle {
-  font-weight: 500;
-}
-
 .jobLastRun {
   font-weight: normal;
   font-size: 0.8em;
   color: rgb(var(--v-theme-textDisabled));
   margin-left: 8px;
-}
-
-.jobDesc {
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: 0.85em;
-  padding-top: 2px;
 }
 
 .variantRow {
@@ -534,13 +511,6 @@ export default {
 
 .variantSelect {
   max-width: 320px;
-}
-
-.jobActions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
 }
 
 .abortBtn {
@@ -603,6 +573,12 @@ export default {
 
 .statusTitle {
   font-weight: 500;
+}
+
+.statusActiveSpinner {
+  margin-right: 6px;
+  color: rgb(var(--v-theme-primary));
+  vertical-align: middle;
 }
 
 .statusTime {

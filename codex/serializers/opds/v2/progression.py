@@ -46,6 +46,12 @@ class OPDS2ProgressionSerializer(Serializer):
     https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
     """
 
-    modified = DateTimeField(read_only=True)
+    # ``modified`` is BOTH input and output: the GET response emits the
+    # bookmark's last-update timestamp, and the spec asks PUT clients to
+    # echo it back so the server can detect concurrent-update conflicts.
+    # Was previously ``read_only=True`` which silently dropped the field
+    # from PUT validated_data, making the view's conflict check
+    # unreachable (sub-plan 06 #1).
+    modified = DateTimeField(required=False)
     device = OPDS2ProgressionDeviceSerializer()
     locator = OPDS2ProgressionLocatorSerializer()

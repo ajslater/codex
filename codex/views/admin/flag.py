@@ -14,9 +14,10 @@ from codex.views.admin.auth import AdminModelViewSet
 _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value
     for flag in (
+        AdminFlagChoices.BANNER_TEXT,
+        AdminFlagChoices.BROWSER_DEFAULT_GROUP,
         AdminFlagChoices.FOLDER_VIEW,
         AdminFlagChoices.NON_USERS,
-        AdminFlagChoices.BANNER_TEXT,
     )
 )
 

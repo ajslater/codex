@@ -39,6 +39,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@forward "./expansion-panel-overrides";
+
 #readerKeyboardShortcuts {
   background-color: rgb(var(--v-theme-background));
 }
@@ -52,10 +54,6 @@ export default {
 
 #keyboardShortcutsItem {
   padding-left: 0px;
-}
-
-:deep(.v-expansion-panel-title--active) {
-  min-height: 48px !important;
 }
 
 :deep(.v-expansion-panel-text__wrapper) {

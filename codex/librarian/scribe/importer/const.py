@@ -1,11 +1,13 @@
 """BULK_CREATE_COMIC_FIELDSConsts and maps for import."""
 
 from types import MappingProxyType, SimpleNamespace
+from typing import cast
 
 from bidict import frozenbidict
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
+from codex.models.age_rating import AgeRating, compute_metron_for_name
 from codex.models.base import BaseModel
 from codex.models.comic import Comic
 from codex.models.groups import (
@@ -18,7 +20,6 @@ from codex.models.groups import (
 )
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.models.named import (
-    AgeRating,
     Character,
     Country,
     Credit,
@@ -78,10 +79,50 @@ NON_FTS_FIELDS = frozenset(
     }
 )
 
+
+def _metron_fts_values(values: tuple) -> tuple:
+    """
+    Derive canonical Metron rating names from a raw age-rating tuple.
+
+    Called by the importer FTS plumbing to populate the ``age_rating_metron``
+    ComicFTS column from the same ``AgeRating.name`` values that feed
+    ``age_rating_tagged``. Empty/unmappable names yield an empty tuple so the
+    FTS column is written as the empty string. The sync path populates the
+    same column via the ``age_rating__metron__name`` FK chain; both paths
+    must agree on the canonical string.
+    """
+    return tuple(
+        metron
+        for value in values
+        if value and (metron := compute_metron_for_name(value))
+    )
+
+
+# Mapping from comic field name -> tuple of (ComicFTS field name, transform).
+# A source field can fan out to multiple FTS columns. ``transform`` rewrites
+# the value tuple for that target; ``None`` means identity (common case).
+#
+# The ``age_rating`` FK feeds two FTS columns:
+#   age_rating_tagged  ← AgeRating.name         (raw tagged string)
+#   age_rating_metron  ← canonical Metron name  (derived via transform)
+FTS_FIELD_TARGETS = MappingProxyType(
+    {
+        "age_rating": (
+            ("age_rating_tagged", None),
+            ("age_rating_metron", _metron_fts_values),
+        ),
+    }
+)
+
 ##########################
 # IMPORTER METADATA KEYS #
 ##########################
 EXTRACTED = "extracted"
+# Per-path envelope-only updates from comicbox skip results
+# (metadata_mtime / page_count / file_type changed but tags weren't
+# re-extracted). Routed around aggregate so existing browser-group
+# FKs stay attached to their non-empty groups.
+EXTRACTED_STAT_ONLY = "extracted_stat_only"
 SKIPPED = "skipped"
 QUERY_MODELS = "query_models"
 CREATE_COMICS = "create_comics"
@@ -116,10 +157,13 @@ GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] 
         }
     )
 )
-COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = tuple(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-    field
-    for field in Comic._meta.get_fields()
-    if (field.many_to_many and not field.auto_created)
+COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
+    "tuple[ManyToManyField, ...]",
+    tuple(
+        field
+        for field in Comic._meta.get_fields()
+        if (field.many_to_many and not field.auto_created)
+    ),
 )
 COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(field.name for field in COMIC_M2M_FIELDS)
 COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
@@ -268,7 +312,9 @@ MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
 )
 FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
     {
-        field.name: MODEL_REL_MAP[field.related_model][0]  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+        # ``related_model`` is typed ``type[Model] | Literal['self']
+        # | None`` but every field we iterate has a concrete model.
+        field.name: MODEL_REL_MAP[cast("type[BaseModel]", field.related_model)][0]
         for field in (*ALL_COMIC_FK_FIELDS, *COMIC_M2M_FIELDS)
     }
 )
@@ -311,19 +357,23 @@ def get_key_index(model: type[BaseModel]) -> int:
 #################
 # CREATE COMICS #
 #################
-_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
-    "bookmark",
-    "created_at",
-    "id",
-    "library",
-    "comicfts",
-}
+_EXCLUDEBULK_UPDATE_COMIC_FIELDS = frozenset(
+    {
+        "bookmark",
+        "created_at",
+        "id",
+        "library",
+        "comicfts",
+    }
+)
 BULK_UPDATE_COMIC_FIELDS = tuple(
     sorted(
         field.name
         for field in Comic._meta.get_fields()
         # Concrete check protects against SettingsReader reverse relations being updated
-        if field.concrete  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        # ``ForeignObjectRel`` lacks ``.concrete`` on the public stub; use
+        # ``getattr`` so the check is uniform across the union.
+        if getattr(field, "concrete", False)
         and (not field.many_to_many)
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )

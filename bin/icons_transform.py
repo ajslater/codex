@@ -17,7 +17,7 @@ ICONS = MappingProxyType(
     {
         "logo": (32, 32),
         "logo-maskable": (180, 180),
-        "missing-cover": (165, round(165 * _COVER_RATIO)),
+        "comic": (165, round(165 * _COVER_RATIO)),
         "publisher": (),
         "imprint": (),
         "series": (),
@@ -71,7 +71,7 @@ def transform_icon(name, size):
     if do_gen_svg:
         if name == "logo":
             create_maskable_icon(input_svg_path)
-            (SRC_IMG_PATH / "missing-cover.svg").touch()
+            (SRC_IMG_PATH / "comic.svg").touch()
         shutil.copy(input_svg_path, output_svg_path)
 
     if not size:
@@ -86,7 +86,7 @@ def transform_icon(name, size):
         or output_webp_path.stat().st_mtime < input_svg_mtime
     )
     if do_gen_png:
-        if name == "missing-cover":
+        if name == "comic":
             inkscape(input_svg_path, output_png_path, width, height)
         else:
             svg2png(

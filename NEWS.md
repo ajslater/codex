@@ -6,6 +6,33 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.0 - Age Restrictions & Snappiness
+
+- Notice
+    - This version of codex needs to re-sync the search index on first startup
+      which make take time on large collections. However, the new search sync is
+      faster than before.
+- Fixes
+    - Clear stale `metron.cloud/{genre,location,story,tag,role}/...` URLs from
+      existing identifiers — Metron has no public web pages for those types, so
+      the links always 404. Re-import will repopulate where applicable.
+    - Fix full text search for credits, identifiers and story arcs.
+    - Fix OPDS v2 progression syncing response.
+    - Fix OPDS v2 belongsTo.position attribute.
+    - Database repairs itself before migrations.
+- Features
+    - Age Rating Restrictions now available in the Admin Users tab.
+    - The codex cache directory for covers and views may now have it's location
+      configured.
+    - OPDS v2 alternate links for publications to external url identifiers.
+    - OPDS v2 publishers as proper contributors with links.
+    - OPDS v2 volumes in belongsTo
+- Performance
+    - Performance improvements across all views and batch jobs.
+    - Comicbox learned how to use multiprocessing & caching for importing.
+    - Cover thumbnail generation uses multiprocessing and seeds covers on
+      import.
+
 ## v1.10.15
 
 - Fixes

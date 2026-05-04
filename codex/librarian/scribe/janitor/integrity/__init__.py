@@ -14,9 +14,6 @@ from codex.librarian.scribe.janitor.status import (
 from codex.librarian.scribe.janitor.tasks import JanitorFTSRebuildTask
 from codex.librarian.worker import WorkerStatusAbortableBase
 
-_FTS_INSERT_TMPL = "INSERT INTO codex_comicfts (codex_comicfts) VALUES('%s');"
-_PRAGMA_TMPL = "PRAGMA %s;"
-
 
 def _exec_sql(sql):
     """Run sql on an potentially unready database.."""
@@ -37,7 +34,7 @@ def _is_integrity_ok(results) -> bool:
 def integrity_check(log, *, long: bool) -> None:
     """Run sqlite3 integrity check."""
     pragma = "integrity_check" if long else "quick_check"
-    sql = _PRAGMA_TMPL % pragma
+    sql = f"PRAGMA {pragma};"
     log.debug(f"Running database '{sql}'...")
     results = _exec_sql(sql)
 
@@ -54,14 +51,13 @@ def integrity_check(log, *, long: bool) -> None:
 
 def fts_rebuild() -> None:
     """FTS Rebuild."""
-    sql = _FTS_INSERT_TMPL % "rebuild"
-    _exec_sql(sql)
+    _exec_sql("INSERT INTO codex_comicfts (codex_comicfts) VALUES('rebuild');")
 
 
 def fts_integrity_check(log) -> bool:
     """Run sqlite3 fts integrity check."""
     results = []
-    sql = _FTS_INSERT_TMPL % "integrity-check"
+    sql = "INSERT INTO codex_comicfts (codex_comicfts) VALUES('integrity-check');"
     success = False
     results = []
     try:

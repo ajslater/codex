@@ -195,14 +195,13 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             bmua_agg = self.get_max_bookmark_updated_at_aggregate(
                 qs.model, agg_func=self.order_agg_func
             )
-            # This is used by annotate.bookmark to avoid a
-            # similar query.
+            # `self.bmua_is_max` is read by `annotate.bookmark` to skip a
+            # second aggregate, and by the serializer to compute mtime.
             self.bmua_is_max = self.order_agg_func is Max
             qs = qs.annotate(bookmark_updated_at=bmua_agg)
-        # This is used by the serializer to compute mtime
-        return qs.annotate(bmua_is_max=Value(self.bmua_is_max))
+        return qs
 
-    def _annotate_search_scores(self, qs):
+    def _annotate_search_scores(self, qs, *, for_cover: bool = False):
         """Annotate Search Scores."""
         if (
             self.TARGET not in self._COVER_AND_CARD_TARGETS
@@ -210,9 +209,22 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         ):
             return qs
 
-        # Rank is always the max of the relations, cannot aggregate?
-        # group by here fixes duplicates with story_arc, probably because it's a long relation
-        return qs.annotate(search_score=ComicFTSRank()).group_by("id")
+        qs = qs.annotate(search_score=ComicFTSRank())
+        # ``group_by`` dedupes rows that join long relations (e.g.
+        # story_arc) from the outer browse query. The cover subquery is
+        # already ``.distinct() ... LIMIT 1`` and the custom force-group-by
+        # emits a literal ``"codex_comic"."id"`` that does not survive the
+        # nested-subquery aliasing — skip it in the cover path.
+        if for_cover:
+            return qs
+        # Skip ``group_by("id")`` on Comic queries that don't actually fan out
+        # via an m2m join — there's nothing to dedupe and the GROUP BY just
+        # forces SQLite to materialize an unnecessary aggregate. Non-Comic
+        # queries traverse ``comic__`` (one-to-many) for ACL/group filters
+        # and always need the dedupe.
+        if qs.model is not Comic or self.comic_filter_uses_m2m:
+            qs = qs.group_by("id")
+        return qs
 
     def annotate_child_count(self, qs):
         """Annotate child count."""
@@ -258,14 +270,21 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(order_value=order_value)
         return qs
 
-    def annotate_order_aggregates(self, qs: QuerySet):
+    def annotate_order_aggregates(self, qs: QuerySet, *, for_cover: bool = False):
         """Annotate common aggregates between browser and metadata."""
-        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
-        qs = self._annotate_search_scores(qs)
+        # ``for_cover`` is a pipeline-trim. The cover path needs ORDER BY to
+        # pick the "first" comic, but it never reads ``ids`` or ``page_count``
+        # — dropping those removes a JsonGroupArray aggregate and a Sum per
+        # call. Applied inside the cover fan-out and inside the cover_pk
+        # subquery on BrowserView card annotation.
+        if not for_cover:
+            qs = qs.annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
+        qs = self._annotate_search_scores(qs, for_cover=for_cover)
         qs = self._alias_sort_names(qs)
         qs = self._alias_filename(qs)
         qs = self._alias_story_arc_number(qs)
-        qs = self._annotate_page_count(qs)
+        if not for_cover:
+            qs = self._annotate_page_count(qs)
         qs = self._annotate_bookmark_updated_at(qs)
         qs = self._annotate_order_child_count(qs)
         if qs.model is not Comic:

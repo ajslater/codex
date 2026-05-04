@@ -10,6 +10,8 @@
       id="bookCover"
       :group="group"
       :pks="md.ids"
+      :cover-pk="md.coverPk"
+      :cover-custom-pk="md.coverCustomPk"
       :child-count="md.childCount"
       :mtime="md.mtime"
     />
@@ -27,6 +29,7 @@
 <script>
 import { mapState } from "pinia";
 
+import { getPlaceholderSrc } from "@/api/v3/browser";
 import BookCover from "@/components/book-cover.vue";
 import { useMetadataStore } from "@/stores/metadata";
 
@@ -50,7 +53,7 @@ export default {
       md: (state) => state.md,
     }),
     genericCoverSrc() {
-      return globalThis.CODEX.STATIC + "img/volume.svg";
+      return getPlaceholderSrc(this.group);
     },
   },
 };

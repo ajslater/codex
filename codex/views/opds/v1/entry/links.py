@@ -34,19 +34,36 @@ class OPDS1EntryLinksMixin:
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
+        self._authors_by_pk = data.authors_by_pk
+        self._contributors_by_pk = data.contributors_by_pk
+        self._category_groups_by_pk = data.category_groups_by_pk
+
+    def _cover_href(self, ts: int) -> str:
+        """Pick the thin cover URL for the entry."""
+        query_params = {"ts": ts}
+        if custom_pk := getattr(self.obj, "cover_custom_pk", None):
+            return reverse(
+                "opds:bin:custom_cover",
+                kwargs={"pk": custom_pk},
+                query=query_params,
+            )
+        # Comic entries serve their own cover; group entries use the
+        # annotated cover_pk, falling back to obj.pk (the group's own pk)
+        # so the thin endpoint can serve the missing-cover placeholder
+        # for edge cases instead of reverting to a legacy fan-out.
+        pk = (
+            self.obj.pk
+            if self.obj.group == "c"
+            else getattr(self.obj, "cover_pk", None) or self.obj.pk
+        )
+        return reverse("opds:bin:cover", kwargs={"pk": pk}, query=query_params)
 
     def _cover_link(self, rel) -> OPDS1Link | None:
         if self.fake:
             return None
         try:
-            kwargs = {"group": self.obj.group, "pks": self.obj.ids}
             ts = floor(datetime.timestamp(self.obj.updated_at))
-            query_params = {
-                "customCovers": True,
-                "dynamicCovers": False,
-                "ts": ts,
-            }
-            href = reverse("opds:bin:cover", kwargs=kwargs, query=query_params)
+            href = self._cover_href(ts)
             return OPDS1Link(rel, href, MimeType.WEBP)
         except Exception:
             logger.exception("create thumb")

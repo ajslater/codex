@@ -24,7 +24,7 @@
 
 <script>
 import { mapActions, mapState, mapWritableState } from "pinia";
-import { useWindowSize } from "@vueuse/core";
+import { useThrottleFn, useWindowSize } from "@vueuse/core";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
 import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
@@ -32,6 +32,14 @@ import { useReaderStore } from "@/stores/reader";
 import { range } from "@/util";
 
 const TIMEOUT = 250;
+/*
+ * Scroll events fire on every pixel of movement (100+Hz on a
+ * trackpad). The handler reads ``scrollTop`` — a layout-flushing
+ * property — and dispatches book-change flags that the user
+ * perceives at frame granularity, so throttling to ~10Hz drops
+ * 90% of the work without any visible lag.
+ */
+const SCROLL_THROTTLE_MS = 100;
 
 export default {
   name: "PagerVertical",
@@ -84,6 +92,21 @@ export default {
       }
     },
   },
+  created() {
+    /*
+     * Build the throttled scroll handler once per instance.
+     * ``useThrottleFn`` returns a leading-edge-throttled wrapper
+     * — the first call within each ``SCROLL_THROTTLE_MS``
+     * window runs immediately; subsequent calls in the window
+     * are coalesced and the trailing edge runs once. This keeps
+     * the book-change boundary detection responsive while
+     * dropping the bulk of the per-pixel events.
+     */
+    this._throttledScrollImpl = useThrottleFn(
+      this._scrollImpl,
+      SCROLL_THROTTLE_MS,
+    );
+  },
   mounted() {
     setTimeout(() => {
       this.scrollToPage(this.storePage);
@@ -103,11 +126,15 @@ export default {
       }
     },
     onScroll() {
+      this._throttledScrollImpl();
+    },
+    _scrollImpl() {
       if (this.programmaticScroll) {
         return;
       }
       this.intersectorOn = true;
-      const el = this.$refs.verticalScroll.$el;
+      const el = this.$refs.verticalScroll?.$el;
+      if (!el) return;
       const scrollTop = el.scrollTop;
       if (this.storePage === 0 && scrollTop === 0) {
         this.setBookChangeFlag("prev");
@@ -127,9 +154,25 @@ export default {
       } else {
         console.debug("Can't find verticalScroll component.");
       }
-      setTimeout(() => {
+      /*
+       * Drop the ``programmaticScroll`` flag the moment the
+       * browser settles the scroll, not on a fixed 250ms timer.
+       * The previous timeout dropped any user scroll that
+       * arrived during the window, since ``onScroll`` returns
+       * early when the flag is set. ``scrollend`` fires once
+       * after the smooth-scroll completes (Safari iOS supports
+       * since 16.4), so we land more responsive on fast machines
+       * and still fall back to the timer for older browsers.
+       */
+      const reset = () => {
         this.programmaticScroll = false;
-      }, TIMEOUT);
+      };
+      const el = vs?.$el;
+      if (el && "onscrollend" in el) {
+        el.addEventListener("scrollend", reset, { once: true });
+      } else {
+        setTimeout(reset, TIMEOUT);
+      }
     },
   },
 };

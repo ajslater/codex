@@ -1,0 +1,50 @@
+{
+  "series_pk_used": 325,
+  "flows": [
+    {
+      "name": "flow_a_root_browse",
+      "description": "Root browse, no filters, no search.",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 21,
+        "time_taken_ms": 189.624
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.953
+      }
+    },
+    {
+      "name": "flow_b_filtered_search",
+      "description": "Root browse with a search term.",
+      "url": "/api/v3/r/0/1?q=man",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 21,
+        "time_taken_ms": 187.444
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.868
+      }
+    },
+    {
+      "name": "flow_c_series_metadata",
+      "description": "Metadata detail for the largest series.",
+      "url": "/api/v3/s/325/metadata",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 34,
+        "time_taken_ms": 251.071
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.9589999999999999
+      }
+    }
+  ]
+}

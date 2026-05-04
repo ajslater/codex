@@ -18,7 +18,7 @@ const codexTheme = {
     error: "#DC143C", // crimson
     // info: "#2196F3", // lightblue (similar to primary)
     success: "#14dc3c", // crimsongreen
-    // warning: "#FB8C00", // soft orange
+    warning: "#E6BD0D", // amber — version-footer "update available"
     "surface-light": "#2A2A2A",
     // --- custom ---
     linkHover: WHITE,
@@ -29,6 +29,23 @@ const codexTheme = {
     iconsInactive: DISABLED,
     includeGroup: "#151",
     excludeGroup: "#511",
+  },
+};
+
+// CSP note: this block makes Vuetify inject a runtime <style> tag
+// (id="vuetify-theme-stylesheet") with the --v-theme-* CSS variables,
+// which forces 'unsafe-inline' in the CSP style-src directive. To
+// tighten CSP, capture the generated theme CSS once into a static
+// SCSS/CSS file imported at build time and set
+// ``theme: { isDisabled: true }`` here. The ``defaults:`` block above
+// is fine — it sets component prop defaults, not CSS.
+const themeDefaults = {
+  defaultTheme: "codexTheme",
+  options: {
+    customProperties: true,
+  },
+  themes: {
+    codexTheme,
   },
 };
 
@@ -68,15 +85,7 @@ export default new createVuetify({
       color: codexTheme.colors.primary,
     },
   },
-  theme: {
-    defaultTheme: "codexTheme",
-    options: {
-      customProperties: true,
-    },
-    themes: {
-      codexTheme,
-    },
-  },
+  theme: themeDefaults,
   icons: {
     defaultSet: "mdi",
     aliases,

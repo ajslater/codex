@@ -22,6 +22,13 @@
 # log_retention = "6 months"
 # log_to_console = true
 # log_to_file = true
+# Directory for log files. Defaults to <config_dir>/logs.
+# log_dir = ""
+
+# [cache]
+# Directory for the file-based cache (covers, query results, etc).
+# Defaults to <config_dir>/cache.
+# dir = ""
 
 # [browser]
 # max_obj_per_page = 100

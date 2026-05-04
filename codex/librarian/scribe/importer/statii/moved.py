@@ -32,8 +32,17 @@ class ImporterMoveCoversStatus(ImporterMoveStatus):
     ITEM_NAME = "custom covers"
 
 
+class ImporterUpdateFoldersStatus(ImporterStatus):
+    """Importer Update Folders Status — folder mtime/stat refresh."""
+
+    CODE = "IUF"
+    VERB = "Update"
+    ITEM_NAME = "folders"
+
+
 MOVED_STATII = (
     ImporterMoveFoldersStatus,
     ImporterMoveComicsStatus,
     ImporterMoveCoversStatus,
+    ImporterUpdateFoldersStatus,
 )

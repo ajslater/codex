@@ -2,6 +2,7 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
+import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
 import BROWSER_API from "@/api/v3/browser";
 import COMMON_API from "@/api/v3/common";
 import READER_API, { getComicPageSource } from "@/api/v3/reader";
@@ -19,6 +20,43 @@ const DIRECTION_REVERSE_MAP = Object.freeze({
   next: "prev",
 });
 const PREFETCH_LINK = Object.freeze({ rel: "prefetch", as: "image" });
+/*
+ * Number of pages each side of the current page to emit
+ * ``<link rel="prefetch">`` hints for when the user has opted
+ * into "Cache Entire Book". Generous enough that typical
+ * sequential reading never outpaces the prefetch buffer; small
+ * enough that head-node count and parser overhead stay bounded
+ * even on omnibus-sized books.
+ */
+const PREFETCH_WINDOW = 50;
+/*
+ * Debounce window for bookmark writes. Vertical scrolling fires
+ * page-change events as the user passes through pages; the
+ * server only needs the final position. Coalescing wrap-up
+ * within this window means a 20-page rapid scroll fires a
+ * single PATCH instead of 20.
+ */
+const BOOKMARK_DEBOUNCE_MS = 1000;
+let _bookmarkTimer = 0;
+let _pendingBookmarkStore;
+let _pendingBookmarkPage;
+
+function _runPendingBookmark() {
+  _bookmarkTimer = 0;
+  const store = _pendingBookmarkStore;
+  const page = _pendingBookmarkPage;
+  _pendingBookmarkStore = undefined;
+  _pendingBookmarkPage = undefined;
+  if (!store || page === undefined) return;
+  store._setBookmarkPage(page).catch((error) => {
+    /*
+     * Don't revert local page state — the user is reading
+     * forward; the bookmark catches up on the next call. Log
+     * so a network blip doesn't silently lose the write.
+     */
+    console.warn("Bookmark write failed:", error);
+  });
+}
 export const VERTICAL_READING_DIRECTIONS = Object.freeze(
   new Set(["ttb", "btt"]),
 );
@@ -77,8 +115,8 @@ export const useReaderStore = defineStore("reader", {
       readingDirection: READER_DEFAULTS.readingDirection,
       readRtlInReverse: READER_DEFAULTS.readRtlInReverse,
       finishOnLastPage: READER_DEFAULTS.finishOnLastPage,
-      pageTransition: READER_DEFAULTS.page_transition,
-      cacheBook: READER_DEFAULTS.cache_book,
+      pageTransition: READER_DEFAULTS.pageTransition,
+      cacheBook: READER_DEFAULTS.cacheBook,
     },
     intermediateSettings: {},
     intermediateInfo: null,
@@ -189,8 +227,20 @@ export const useReaderStore = defineStore("reader", {
         return {};
       }
       if (!(book.pk in this.bookSettings)) {
-        // Mask the book settings over intermediate over global settings.
-        const resultSettings = structuredClone(SETTINGS_NULL_VALUES);
+        /*
+         * Mask the book settings over intermediate over global
+         * settings into a fresh accumulator. The previous code
+         * cloned ``SETTINGS_NULL_VALUES`` here, but that
+         * constant is a ``Set`` of null-ish sentinels used by
+         * the loop below to filter — not a defaults object.
+         * Cloning it produced a ``Set`` with extra string keys
+         * tacked on, which worked by accident because JS lets
+         * you add fields to any object and ``Object.entries``
+         * iterates the bag-like properties. Replace with an
+         * empty object: same behavior, no per-call clone, no
+         * shape confusion.
+         */
+        const resultSettings = {};
         let bookSettings = book?.settings || {};
         bookSettings = this.setReadRTLInReverse(bookSettings);
         const allSettings = [
@@ -368,25 +418,43 @@ export const useReaderStore = defineStore("reader", {
         next: this._getBookRoute(nextBook, false),
       };
     },
-    async setRoutesAndBookmarkPage(page) {
+    setRoutesAndBookmarkPage(page) {
       const book = this.books.current;
       this.$patch((state) => {
         state.routes.prev = this._getRouteParams(book, page, "prev");
         state.routes.next = this._getRouteParams(book, page, "next");
       });
-      try {
-        await this._setBookmarkPage(page);
-        this.bookChange = undefined;
-      } catch (error) {
-        /*
-         * Don't revert the local page — the user is reading
-         * forward; the bookmark catches up on the next call. But
-         * surface the failure to the console rather than letting
-         * it become an unhandled rejection: the previous code
-         * neither caught nor logged here, so a network blip
-         * silently lost the bookmark write.
-         */
-        console.warn("Bookmark write failed:", error);
+      this.bookChange = undefined;
+      this._scheduleBookmarkWrite(page);
+    },
+    _scheduleBookmarkWrite(page) {
+      /*
+       * Coalesce rapid page changes into a single bookmark
+       * write. Vertical scrolling fires intersect-observer
+       * events as the user passes through pages; the server
+       * only needs the final position. The debounce timer
+       * resets on every call, so the write fires
+       * ``BOOKMARK_DEBOUNCE_MS`` after the user stops
+       * advancing.
+       */
+      _pendingBookmarkStore = this;
+      _pendingBookmarkPage = page;
+      if (_bookmarkTimer) globalThis.clearTimeout(_bookmarkTimer);
+      _bookmarkTimer = globalThis.setTimeout(
+        _runPendingBookmark,
+        BOOKMARK_DEBOUNCE_MS,
+      );
+    },
+    flushBookmarkWrite() {
+      /*
+       * Force any pending bookmark write to fire immediately.
+       * Call from book-close / reader-unmount paths so the
+       * server lands the user's final position without waiting
+       * out the debounce window.
+       */
+      if (_bookmarkTimer) {
+        globalThis.clearTimeout(_bookmarkTimer);
+        _runPendingBookmark();
       }
     },
     setActivePage(page, reactWithScroll = true) {
@@ -436,52 +504,58 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      await READER_API.getReaderInfo(pk, settings, mtime)
-        .then((response) => {
-          const data = response.data;
-          const books = data.books;
-
-          // Undefined settings breaks code.
-          const allBooks = [books?.prev, books?.current, books?.next];
-          for (const book of allBooks) {
-            if (book && !book.settings) {
-              book.settings = {};
-            }
-          }
-          // Generate routes.
-          const routesBooks = this._getBookRoutes(books.prev, books.next);
-
-          this.$patch((state) => {
-            state.books = books;
-            state.arcs = data.arcs;
-            state.arc = data.arc;
-            state.routes.prev = this._getRouteParams(
-              state.books.current,
-              params.page,
-              "prev",
-            );
-            state.routes.next = this._getRouteParams(
-              state.books.current,
-              params.page,
-              "next",
-            );
-            state.routes.books = routesBooks;
-            state.routes.close = data.closeRoute;
-            state.empty = false;
-            state.mtime = data.mtime;
-            state.bookSettings = {};
-          });
-
-          // Load all three settings layers for the current comic.
-          if (books.current?.pk) {
-            this.loadAllSettings(+books.current.pk);
-          }
-          return true;
-        })
-        .catch((error) => {
-          console.debug(error);
-          this.empty = true;
+      // Single-flight: rapid Next-Book clicks abort the previous
+      // fetch so its late response can't merge stale book settings
+      // over the new book's state.
+      const signal = useAbortable("reader:loadBooks");
+      try {
+        const response = await READER_API.getReaderInfo(pk, settings, mtime, {
+          signal,
         });
+        const data = response.data;
+        const books = data.books;
+
+        // Undefined settings breaks code.
+        const allBooks = [books?.prev, books?.current, books?.next];
+        for (const book of allBooks) {
+          if (book && !book.settings) {
+            book.settings = {};
+          }
+        }
+        // Generate routes.
+        const routesBooks = this._getBookRoutes(books.prev, books.next);
+
+        this.$patch((state) => {
+          state.books = books;
+          state.arcs = data.arcs;
+          state.arc = data.arc;
+          state.routes.prev = this._getRouteParams(
+            state.books.current,
+            params.page,
+            "prev",
+          );
+          state.routes.next = this._getRouteParams(
+            state.books.current,
+            params.page,
+            "next",
+          );
+          state.routes.books = routesBooks;
+          state.routes.close = data.closeRoute;
+          state.empty = false;
+          state.mtime = data.mtime;
+          state.bookSettings = {};
+        });
+
+        // Load all three settings layers for the current comic.
+        if (books.current?.pk) {
+          this.loadAllSettings(+books.current.pk);
+        }
+        return true;
+      } catch (error) {
+        if (isAbortError(error)) return;
+        console.debug(error);
+        this.empty = true;
+      }
     },
     async loadMtimes() {
       const arcs = [];
@@ -498,15 +572,26 @@ export const useReaderStore = defineStore("reader", {
         // 500 from the API, so the fallback never actually worked.
         arcs.push({ group: "r", pks: "0" });
       }
-      return await COMMON_API.getMtime(arcs, {})
-        .then((response) => {
-          const newMtime = response.data.maxMtime;
-          if (newMtime !== this.mtime) {
-            return this.loadBooks({ mtime: newMtime });
-          }
-          return true;
-        })
-        .catch(console.error);
+      // Dedup so concurrent callers (websocket fan-out across the
+      // browser + reader stores, rapid notifications) share one
+      // request. Key on the sorted arc list so distinct arc sets
+      // don't collide; same-shape concurrent calls coalesce.
+      const dedupKey = `reader:loadMtimes:${arcs
+        .map((a) => `${a.group}/${a.pks}`)
+        .sort()
+        .join(",")}`;
+      try {
+        const response = await dedupedFetch(dedupKey, () =>
+          COMMON_API.getMtime(arcs, {}),
+        );
+        const newMtime = response.data.maxMtime;
+        if (newMtime !== this.mtime) {
+          return this.loadBooks({ mtime: newMtime });
+        }
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
     },
     async _setBookmarkPage(page) {
       const groupParams = { group: "c", ids: [+this.books.current.pk] };
@@ -796,7 +881,30 @@ export const useReaderStore = defineStore("reader", {
       }
       const pk = book.pk;
       const link = [];
-      for (let page = 0; page <= book.maxPage; page++) {
+      /*
+       * Window the prefetch around the current page instead of
+       * emitting a ``<link rel="prefetch">`` for every page in
+       * the book. On a 1000-page omnibus the unbounded loop
+       * pushed 1000 head entries — every one tracked by Unhead
+       * and Vue, every one a DOM node the browser had to parse
+       * before the rest of the document's lifecycle. The window
+       * slides as the user advances (head() re-runs because the
+       * computed reads ``state.page``), so sequential reading
+       * still keeps a generous prefetch buffer ready while the
+       * head node count stays bounded.
+       *
+       * The user's "Cache Entire Book" intent is preserved in
+       * practice: the window covers far more than typical
+       * read-ahead distance, and the browser fetches each page
+       * as the window reaches it. Random-access readers may see
+       * a brief delay on the first hit outside the window —
+       * acceptable, since the actual fetch starts immediately
+       * regardless of whether a prefetch hint was in flight.
+       */
+      const currentPage = this.page ?? 0;
+      const start = Math.max(0, currentPage - PREFETCH_WINDOW);
+      const end = Math.min(book.maxPage, currentPage + PREFETCH_WINDOW);
+      for (let page = start; page <= end; page++) {
         const params = { pk, page, mtime: book.mtime };
         const href = getComicPageSource(params);
         if (href) {

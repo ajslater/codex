@@ -69,8 +69,12 @@ export default {
   },
   methods: {
     getTo(crumb, parentPks) {
-      const params = structuredClone(toRaw(crumb));
-      delete params["name"];
+      /*
+       * Destructure rather than ``structuredClone`` — crumbs come from
+       * the reactive browser store and the inner ``pks`` array is a Vue
+       * proxy that ``structuredClone`` can refuse to clone.
+       */
+      const { name: _name, ...params } = toRaw(crumb);
       const to = { name: "browser", params };
       to.query = { ts: this.timestamp };
       if (parentPks) {

@@ -36,12 +36,12 @@ export default {
       return this.getBookSettings(this.book);
     },
     isReadInReverse() {
-      return this.bookSettings.isReadInReverse;
+      return this.bookSettings?.isReadInReverse;
     },
     showSecondPage() {
       return (
-        this.bookSettings.twoPages &&
-        this.page < this.book.maxPage &&
+        this.bookSettings?.twoPages &&
+        this.page < (this.book?.maxPage || 0) &&
         !this.isCoverPage(this.book, this.page)
       );
     },

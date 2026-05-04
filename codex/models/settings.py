@@ -213,7 +213,8 @@ class SettingsBrowserFilters(BaseModel):
     )
 
     # Dynamic filters — each stores a list of ints.
-    age_rating = JSONField(default=list)
+    age_rating_metron = JSONField(default=list)
+    age_rating_tagged = JSONField(default=list)
     characters = JSONField(default=list)
     country = JSONField(default=list)
     credits = JSONField(default=list)
@@ -239,7 +240,8 @@ class SettingsBrowserFilters(BaseModel):
     FILTER_KEYS = frozenset(
         {
             "bookmark",
-            "age_rating",
+            "age_rating_metron",
+            "age_rating_tagged",
             "characters",
             "country",
             "credits",

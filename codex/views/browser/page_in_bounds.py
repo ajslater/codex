@@ -4,10 +4,10 @@ from typing import Any
 
 from loguru import logger
 
-from codex.views.browser.annotate.card import BrowserAnnotateCardView
+from codex.views.browser.annotate.cover import BrowserAnnotateCoverView
 
 
-class BrowserPageInBoundsView(BrowserAnnotateCardView):
+class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     """Browser Page Bounds Checking."""
 
     def _get_back_one_page_route(self, num_pages) -> dict[str, Any]:
@@ -50,9 +50,15 @@ class BrowserPageInBoundsView(BrowserAnnotateCardView):
     def check_page_in_bounds(self, num_pages: int) -> None:
         """Redirect page out of bounds."""
         page = self.kwargs.get("page", 1)
-        if page == 1 or (page >= 1 and page <= num_pages):
-            # Don't redirect if on the root page for the group.
-            # Or page within valid range.
+        # ``page == 1`` is the root page and is always in bounds,
+        # even when the group is empty (``num_pages == 0`` — the
+        # state on a fresh install where the importer hasn't run
+        # yet). Without that special case, an empty database
+        # redirects ``r/0/1`` → ``_get_up_page_redirect`` →
+        # ``r/0/1`` and loops. The earlier "simplification" to
+        # ``1 <= page <= num_pages`` collapsed both clauses into
+        # one but dropped this exact corner case.
+        if page == 1 or 1 <= page <= num_pages:
             return
 
         self._handle_page_out_of_bounds(num_pages)

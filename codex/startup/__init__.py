@@ -11,7 +11,20 @@ from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.status_controller import STATUS_DEFAULTS
-from codex.models import AdminFlag, CustomCover, LibrarianStatus, Library, Timestamp
+from codex.models import (
+    AdminFlag,
+    AgeRatingMetron,
+    CustomCover,
+    LibrarianStatus,
+    Library,
+    Timestamp,
+)
+from codex.models.age_rating import (
+    ALL_METRON_RATINGS,
+    ANONYMOUS_USER_DEFAULT_AGE_RATING,
+    DEFAULT_AGE_RATING,
+    invalidate_metron_index_cache,
+)
 from codex.settings import (
     AUTH_REMOTE_USER,
     CODEX_CONFIG_TOML,
@@ -48,14 +61,81 @@ def _delete_orphans(model, field, names) -> None:
 
 
 def init_admin_flags() -> None:
-    """Init admin flag rows."""
+    """
+    Init admin flag rows.
+
+    The two age-rating flags (``AA``/``AR``) seed with an FK to an
+    :class:`AgeRatingMetron` row — the typed equivalent of the old
+    ``value`` string. The migration does this on first install; this
+    covers the edge case where an admin deletes the row entirely so
+    startup can heal it with a sensible default rather than a bare
+    row with a NULL FK.
+
+    Requires :func:`init_age_rating_metron` to have run first so the
+    FK targets exist.
+    """
     _delete_orphans(AdminFlag, "key", AdminFlagChoices.values)
 
+    age_rating_defaults = {
+        AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value: (
+            ANONYMOUS_USER_DEFAULT_AGE_RATING
+        ),
+        AdminFlagChoices.AGE_RATING_DEFAULT.value: DEFAULT_AGE_RATING,
+    }
+    # Initial ``value`` strings for flags that ship with a non-empty
+    # default. Heals the row to a sensible state if an admin deletes
+    # it; the migration that introduced the flag does the same insert.
+    value_defaults = {
+        # Mirrors the ``SettingsBrowser.top_group`` model default so
+        # ``admin_default_route_for("p")`` resolves to the historical
+        # ``DEFAULT_BROWSER_ROUTE`` (``/r/0/1``) — upgrade-day no-op.
+        AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "p",
+    }
+    # Resolve seed FK targets in one query.
+    metron_by_name = {
+        name: pk
+        for pk, name in AgeRatingMetron.objects.filter(
+            name__in=age_rating_defaults.values()
+        ).values_list("pk", "name")
+    }
     for key, title in AdminFlagChoices.choices:
-        defaults = {"key": key, "on": key not in AdminFlag.FALSE_DEFAULTS}
+        # ``defaults`` spans ``bool`` (``on``), ``str`` (``value``) and
+        # the optional FK id (``age_rating_metron_id``) — annotate so
+        # the conditional inserts don't narrow pyright's inferred type.
+        defaults: dict[str, bool | int | str | None] = {
+            "on": key not in AdminFlag.FALSE_DEFAULTS,
+        }
+        if key in age_rating_defaults:
+            defaults["age_rating_metron_id"] = metron_by_name.get(
+                age_rating_defaults[key]
+            )
+        if key in value_defaults:
+            defaults["value"] = value_defaults[key]
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
+
+
+def init_age_rating_metron() -> None:
+    """
+    Ensure every MetronAgeRatingEnum value has an AgeRatingMetron row.
+
+    Idempotent — reasserts the canonical lookup table on every codex boot.
+    Never deletes orphans; AgeRating.metron uses on_delete=SET_NULL so an
+    externally-deleted row simply nulls the FK until re-import heals it.
+
+    Clears the in-process ``pk → index`` cache consumed by
+    :func:`codex.models.age_rating.get_metron_index` so that boots
+    following a seed change (new enum value, migration rerun) pick up
+    the refreshed mapping on the next Comic ``presave``.
+    """
+    for name, index in ALL_METRON_RATINGS:
+        _, created = AgeRatingMetron.objects.update_or_create(
+            name=name, defaults={"index": index}
+        )
+        if created:
+            logger.info(f"Created AgeRatingMetron: {name} ({index})")
+    invalidate_metron_index_cache()
 
 
 def init_timestamps() -> None:
@@ -193,6 +273,8 @@ def create_missing_auth_tokens() -> None:
 def ensure_db_rows() -> None:
     """Ensure database content is good."""
     ensure_superuser()
+    # AgeRatingMetron rows must exist before AdminFlag seeds FK targets.
+    init_age_rating_metron()
     init_admin_flags()
     init_timestamps()
     init_librarian_statuses()

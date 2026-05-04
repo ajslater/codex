@@ -5,6 +5,7 @@ from types import MappingProxyType
 from rest_framework.fields import (
     BooleanField,
     CharField,
+    IntegerField,
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
@@ -28,7 +29,8 @@ from codex.serializers.models.pycountry import CountrySerializer, LanguageSerial
 class BrowserFilterChoicesSerializer(Serializer):
     """All dynamic filters."""
 
-    age_rating = BooleanField(read_only=True)
+    age_rating_metron = BooleanField(read_only=True)
+    age_rating_tagged = BooleanField(read_only=True)
     characters = BooleanField(read_only=True)
     country = BooleanField(read_only=True)
     critical_rating = BooleanField(read_only=True)
@@ -57,7 +59,8 @@ class BrowserSettingsFilterSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
     # Dynamic filters
-    age_rating = VuetifyReadOnlyListField()
+    age_rating_metron = VuetifyReadOnlyListField()
+    age_rating_tagged = VuetifyReadOnlyListField()
     characters = VuetifyReadOnlyListField()
     country = VuetifyReadOnlyListField()
     credits = VuetifyReadOnlyListField()
@@ -92,6 +95,18 @@ class BrowserChoicesIntegerPkSerializer(Serializer):
     name = CharField(read_only=True)
 
 
+class BrowserChoicesAgeRatingMetronPkSerializer(BrowserChoicesIntegerPkSerializer):
+    """Age Rating Metron Choices Serializer."""
+
+    index = IntegerField(read_only=True)
+
+
+class BrowserChoicesAgeRatingPkSerializer(BrowserChoicesAgeRatingMetronPkSerializer):
+    """Age Rating Choices Serializer."""
+
+    metron_name = CharField(read_only=True)
+
+
 class BrowserChoicesUniversePkSerializer(Serializer):
     """Universes Only."""
 
@@ -112,6 +127,8 @@ class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
 
 _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     {
+        "age_rating_metron": BrowserChoicesAgeRatingMetronPkSerializer,
+        "age_rating_tagged": BrowserChoicesAgeRatingPkSerializer,
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
         "critical_rating": BrowserChoicesDecimalPkSerializer,
@@ -121,6 +138,18 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
     }
 )
 _LIST_FIELDS = frozenset({"decade", "monochrome", "reading_direction", "year"})
+# ``BrowserSettingsFilterSerializer().get_fields()`` walks DRF's
+# metaclass and instantiates a serializer just to look up four field
+# representations. The fields are class-level definitions, so resolve
+# them once at module load and serve from a frozen dict on every
+# choices request.
+_LIST_FIELD_REPRESENTATIONS = MappingProxyType(
+    {
+        name: field
+        for name, field in BrowserSettingsFilterSerializer().get_fields().items()
+        if name in _LIST_FIELDS
+    }
+)
 
 
 class BrowserChoicesFilterSerializer(Serializer):
@@ -132,13 +161,8 @@ class BrowserChoicesFilterSerializer(Serializer):
         """Dynamic Serializer response by field type."""
         field_name = obj.get("field_name", "")
         choices = obj.get("choices", [])
-        serializer_class = _CHOICES_NAME_SERIALIZER_MAP.get(field_name)
-        value: list
-        if serializer_class:
-            value = serializer_class(choices, many=True).data
-        elif not serializer_class and field_name in _LIST_FIELDS:
-            field = BrowserSettingsFilterSerializer().get_fields().get(field_name)
-            value = field.to_representation(choices)  #  pyright: ignore[reportOptionalMemberAccess],# ty: ignore[unresolved-attribute]
-        else:
-            value = BrowserChoicesIntegerPkSerializer(choices, many=True).data
-        return value
+        if serializer_class := _CHOICES_NAME_SERIALIZER_MAP.get(field_name):
+            return serializer_class(choices, many=True).data
+        if field := _LIST_FIELD_REPRESENTATIONS.get(field_name):
+            return field.to_representation(choices)
+        return BrowserChoicesIntegerPkSerializer(choices, many=True).data

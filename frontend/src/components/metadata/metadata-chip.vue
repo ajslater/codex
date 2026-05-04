@@ -90,8 +90,17 @@ export default {
       return this.highlight ? "flat" : "tonal";
     },
     color() {
-      const colors = this.$vuetify.theme.current.colors;
-      return this.highlight ? colors["primary-darken-1"] : "";
+      /*
+       * v-chip's ``:color`` prop accepts Vuetify theme tokens
+       * directly. The previous code drilled through
+       * ``this.$vuetify.theme.current.colors`` per chip per
+       * render to resolve the hex string, which forced the
+       * theme proxy to traverse on every chip in a
+       * 50-chip-per-dialog metadata view. Returning the token
+       * lets Vuetify resolve it once at the chip level via
+       * its theme machinery instead.
+       */
+      return this.highlight ? "primary-darken-1" : "";
     },
     linkGroup() {
       let linkGroup;

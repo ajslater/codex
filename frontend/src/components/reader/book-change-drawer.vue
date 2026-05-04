@@ -89,6 +89,8 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+@use "@/components/reader/change-column" as col;
+
 .bookChangeDrawer {
   opacity: 0.75 !important;
   z-index: 15 !important;
@@ -96,7 +98,7 @@ export default {
 
 .drawerActivated {
   // Deactivated drawers with custom width don't move off the screen enough
-  width: 33vw !important;
+  width: col.$change-column-width !important;
 }
 
 .prevCursor {

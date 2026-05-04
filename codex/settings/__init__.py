@@ -10,12 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-from os import environ
+from collections.abc import Mapping
+from os import cpu_count, environ
 from pathlib import Path
 from types import MappingProxyType
+from typing import NamedTuple
 
 from comicbox.config import get_config
-from comicbox.config.frozenattrdict import FrozenAttrDict
+from comicbox.config.settings import ComicboxSettings
+from comicbox.schemas.comicbox.yaml import ComicboxYamlSubSchema
 from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
     CSP,
 )
@@ -42,7 +45,7 @@ FALSY = frozenset({None, "", "false", "0", False, "False"})
 
 def not_falsy_env(name):
     """Return a boolean environment envs mindful of falsy values."""
-    return bool(environ.get(name, "").lower() not in FALSY)
+    return environ.get(name, "").lower() not in FALSY
 
 
 ##############
@@ -51,7 +54,11 @@ def not_falsy_env(name):
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
+CONFIG_PATH = (
+    Path(environ["CODEX_CONFIG_DIR"])
+    if "CODEX_CONFIG_DIR" in environ
+    else Path.cwd() / "config"
+)
 
 #####################
 # Basic Environment #
@@ -60,6 +67,8 @@ CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not_falsy_env("DEBUG")
 BUILD = not_falsy_env("BUILD")
+PERF = not_falsy_env("PERF")
+VITE_HMR = DEBUG and not BUILD
 VITE_HOST = environ.get("VITE_HOST")
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
@@ -82,16 +91,20 @@ GRANIAN_WORKERS = get_int(CODEX_CONFIG, "server.workers", default=1)
 GRANIAN_HTTP = get_str(CODEX_CONFIG, "server.http", default="auto")
 GRANIAN_WEBSOCKETS = get_bool(CODEX_CONFIG, "server.websockets", default=True)
 GRANIAN_URL_PATH_PREFIX = get_str(CODEX_CONFIG, "server.url_path_prefix", default="")
+WATCH_FOR_CHANGES = DEBUG and get_bool(
+    CODEX_CONFIG, "server.watch_for_changes", default=False
+)
 
 ##############################
 # Codex Config: Logging      #
 ##############################
 
 LOGLEVEL = get_str(
-    CODEX_CONFIG, "logging.loglevel", default="TRACE" if DEBUG else "INFO"
+    CODEX_CONFIG, "logging.loglevel", default="DEBUG" if DEBUG else "INFO"
 )
 LOG_RETENTION = get_str(CODEX_CONFIG, "logging.log_retention", default="6 months")
-LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
+_LOG_DIR_CONFIG = get_str(CODEX_CONFIG, "logging.log_dir", default="")
+LOG_DIR = Path(_LOG_DIR_CONFIG) if _LOG_DIR_CONFIG else CONFIG_PATH / "logs"
 LOG_TO_CONSOLE = get_bool(CODEX_CONFIG, "logging.log_to_console", default=True)
 LOG_TO_FILE = get_bool(CODEX_CONFIG, "logging.log_to_file", default=True)
 LOG_PATH = LOG_DIR / "codex.log"
@@ -158,6 +171,44 @@ IMPORTER_LINK_M2M_BATCH_SIZE = get_int(
 IMPORTER_UPDATE_COMIC_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.update_comic_batch_size", default=400
 )
+# SQLite page cache size (KiB) for the importer connection during a
+# bulk import. The steady-state ``cache_size=-64000`` (64 MiB) is
+# tuned for concurrent readers + slow-drip writes; a bulk import
+# benefits from a much larger page cache so the working set fits.
+# 512 MiB default; bump higher on big-RAM hosts, drop on Pi-class
+# hosts with < 2 GiB RAM. Negative values are interpreted as KiB by
+# SQLite per its PRAGMA documentation.
+IMPORTER_SQLITE_CACHE_KB = get_int(
+    CODEX_CONFIG, "importer.sqlite_cache_kb", default=524288
+)
+# Fraction of the process memory budget the chunked per-comic
+# pipeline may use for in-flight comic state (Comic instances +
+# LINK_FKS / LINK_M2MS / FTS payloads). The default keeps roughly
+# three quarters of the budget free for SQLite cache + reference
+# data + process overhead. Drop on memory-constrained hosts (small
+# Pi, tight container limits) for finer-grained chunking; raise on
+# big-RAM hosts to amortize per-chunk overhead. Clamped to
+# [chunk floor, chunk ceiling] in the importer.
+IMPORTER_CHUNK_MEM_FRACTION = get_float(
+    CODEX_CONFIG, "importer.chunk_mem_fraction", default=0.25
+)
+
+##############################
+# Codex Config: Librarian    #
+##############################
+
+# Worker count for the cover-creation ProcessPoolExecutor. The image
+# pipeline (comicbox file read + PIL LANCZOS resize + WEBP encode) is
+# CPU-bound and trivially parallel across cover targets. Default to
+# the smaller of the box's CPU count and 8 - the cap bounds peak RAM
+# (each worker holds PIL + comicbox + the open image, ~50-100 MB
+# under load). Memory-tight installs (e.g. NAS with 1-2 GB total)
+# should set this to 2.
+COVER_WORKERS = get_int(
+    CODEX_CONFIG,
+    "librarian.cover_workers",
+    default=min(cpu_count() or 1, 8),
+)
 
 ##############################
 # Codex Config: Debug        #
@@ -186,6 +237,35 @@ FTS_REBUILD = not_falsy_env("CODEX_FTS_REBUILD")
 #                                             #
 ###############################################
 
+####################
+# Feature Flags    #
+####################
+
+
+class FeatureFlags(NamedTuple):
+    """Toggles for optional applications, middleware, and CSP overlays."""
+
+    nplusone: bool
+    silk: bool
+    swagger: bool
+    log_response_time: bool
+    log_request: bool
+    django_vite: bool
+    schema_graph: bool
+    vite_hmr: bool
+
+
+FEATURES = FeatureFlags(
+    nplusone=PERF,
+    silk=PERF,
+    swagger=True,
+    log_response_time=DEBUG_LOG_RESPONSE_TIME,
+    log_request=DEBUG_LOG_REQUEST,
+    django_vite=not BUILD,
+    schema_graph=DEBUG,
+    vite_hmr=VITE_HMR,
+)
+
 ############
 # Security #
 ############
@@ -195,37 +275,112 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS: bool  # DEV EXPERIMENT
-SECURE_CSP = {
-    "default-src": [CSP.SELF],
-    "script-src": [
-        CSP.SELF,
-        CSP.NONCE,
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
-    ],
-    "style-src": [
-        CSP.SELF,
-        # Titanic amount of work to make this safe with vite
-        CSP.UNSAFE_INLINE,
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
-    ],
-    "img-src": [
-        "data:",
-        CSP.SELF,
-        "https://unpkg.com/pdfjs-dist/web/images/",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
-    ],
-    "connect-src": [
-        CSP.SELF,
-        "ws:",
-        "wss:",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
-    ],
-    # These are required by the vue-pdf-embed dependency pdfs-dist.
-    # blob: being open is a little insecure and could possibly be narrowed with additional work.
-    "worker-src": [CSP.SELF, CSP.NONCE, "blob:"],
-    "script-src-elem": [CSP.SELF, CSP.NONCE, "data:"],
-}
+
+# Production base CSP. Per-feature overlays below contribute the
+# entries each optional feature needs and are merged in by
+# ``_get_secure_csp``.
+_DEFAULT_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "default-src": (CSP.SELF,),
+        "script-src": (CSP.SELF, CSP.NONCE),
+        # Titanic amount of work to make this safe with vite, so
+        # UNSAFE_INLINE stays on broadly for Vue scoped styles.
+        "style-src": (CSP.SELF, CSP.UNSAFE_INLINE),
+        "img-src": (CSP.SELF, "data:"),
+        "connect-src": (CSP.SELF, "ws:", "wss:"),
+        "font-src": (CSP.SELF,),
+    }
+)
+
+# Required by the vue-pdf-embed dependency pdfs-dist. ``blob:`` being
+# open is a little insecure and could possibly be narrowed with
+# additional work. Always merged because pdfs-dist ships in every build.
+_PDFJS_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "img-src": ("https://unpkg.com/pdfjs-dist/web/images/",),
+        "worker-src": (CSP.SELF, CSP.NONCE, "blob:"),
+        "script-src-elem": (CSP.SELF, CSP.NONCE, "data:"),
+    }
+)
+
+# drf-spectacular's Swagger UI pulls assets from jsdelivr.
+_SWAGGER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "script-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
+        ),
+        "style-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
+        ),
+        "img-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
+        ),
+        "connect-src": (
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
+        ),
+    }
+)
+
+# Vite dev server (HMR + on-the-fly module transforms).
+_VITE_HMR_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "script-src": ("http://localhost:5173",),
+        "connect-src": ("ws://localhost:5173", "http://localhost:5173"),
+    }
+)
+
+# django-schema-graph renders inline scripts and pulls Material Design
+# Icon webfonts + Google Fonts via CDN. ``script-src-elem`` must be
+# explicit because the pdfs-dist overlay declares one — without it,
+# pdfs-dist would mask the ``script-src`` fallback that would otherwise
+# allow schema_graph's inline <script> tags.
+_SCHEMA_GRAPH_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        # UNSAFE_EVAL: schema_graph's bundled main.js calls new Function()
+        # at module-init time (Vue CLI runtime artifact).
+        "script-src": (CSP.UNSAFE_INLINE, CSP.UNSAFE_EVAL, "data:"),
+        "script-src-elem": (CSP.UNSAFE_INLINE,),
+        "style-src": (
+            "https://fonts.googleapis.com/css",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css",
+        ),
+        "connect-src": (
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.css.map",
+        ),
+        "font-src": (
+            "https://fonts.gstatic.com/",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/fonts/materialdesignicons-webfont.ttf",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/fonts/materialdesignicons-webfont.woff",
+            "https://cdn.jsdelivr.net/npm/@mdi/font@4.x/fonts/materialdesignicons-webfont.woff2",
+        ),
+    }
+)
+
+
+def _get_secure_csp(features: FeatureFlags) -> dict[str, list[str]]:
+    """Merge per-feature CSP overlays into the production base."""
+    overlays: list[Mapping[str, tuple[str, ...]]] = [
+        _DEFAULT_SECURE_CSP,
+        _PDFJS_SECURE_CSP,
+    ]
+    if features.swagger:
+        overlays.append(_SWAGGER_SECURE_CSP)
+    if features.vite_hmr:
+        overlays.append(_VITE_HMR_SECURE_CSP)
+    if features.schema_graph:
+        overlays.append(_SCHEMA_GRAPH_SECURE_CSP)
+    merged: dict[str, list[str]] = {}
+    for overlay in overlays:
+        for directive, sources in overlay.items():
+            existing = merged.setdefault(directive, [])
+            for source in sources:
+                if source not in existing:
+                    existing.append(source)
+    return merged
+
+
+SECURE_CSP = _get_secure_csp(FEATURES)
 
 # Session
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
@@ -248,19 +403,19 @@ LOGGING = get_logging_settings(LOGLEVEL, debug=DEBUG)
 ######################
 
 
-def _get_installed_apps() -> tuple:
-    installed_apps = [
+def _get_installed_apps(features: FeatureFlags) -> tuple[str, ...]:
+    apps: list[str] = [
         "django.contrib.auth",
         "django.contrib.contenttypes",
         "django.contrib.sessions",
         "django.contrib.messages",
     ]
-
-    if DEBUG:
-        # comes before static apps
-        installed_apps += ["nplusone.ext.django", "schema_graph"]
-
-    installed_apps += [
+    # Perf-monitoring apps come before staticfiles.
+    if features.nplusone:
+        apps.append("nplusone.ext.django")
+    if features.silk:
+        apps.append("silk")
+    apps += [
         "servestatic.runserver_nostatic",
         "django.contrib.staticfiles",
         "rest_framework",
@@ -268,30 +423,38 @@ def _get_installed_apps() -> tuple:
         "rest_registration",
         "corsheaders",
     ]
-    if not BUILD:
-        installed_apps += [
-            "django_vite",
-        ]
-    installed_apps += [
+    if features.django_vite:
+        apps.append("django_vite")
+    apps += [
         "codex",
         "cachalot",
         "drf_spectacular",
     ]
-    return tuple(installed_apps)
+    if features.schema_graph:
+        apps.append("schema_graph")
+    return tuple(apps)
 
 
-INSTALLED_APPS = _get_installed_apps()
+INSTALLED_APPS = _get_installed_apps(FEATURES)
 
 ##############
 # Middleware #
 ##############
 
 
-def _get_middleware() -> tuple:
-    middleware = [
+def _get_middleware(features: FeatureFlags) -> tuple[str, ...]:
+    middleware: list[str] = [
         "corsheaders.middleware.CorsMiddleware",
         "django.middleware.security.SecurityMiddleware",
         "servestatic.middleware.ServeStaticMiddleware",
+    ]
+    # Sits below ServeStaticMiddleware so silk only wraps the API
+    # stack, not static file responses.
+    if features.nplusone:
+        middleware.append("nplusone.ext.django.NPlusOneMiddleware")
+    if features.silk:
+        middleware.append("silk.middleware.SilkyMiddleware")
+    middleware += [
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
@@ -299,31 +462,22 @@ def _get_middleware() -> tuple:
         "django.contrib.auth.middleware.AuthenticationMiddleware",
     ]
     if AUTH_REMOTE_USER:
-        middleware += ["codex.authentication.HttpRemoteUserMiddleware"]
+        middleware.append("codex.authentication.HttpRemoteUserMiddleware")
     middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "codex.middleware.CodexMiddleware",
     ]
-    if DEBUG:
-        middleware += [
-            "nplusone.ext.django.NPlusOneMiddleware",
-        ]
-
-    if DEBUG_LOG_RESPONSE_TIME:
-        middleware += [
-            "codex.middleware.LogResponseTimeMiddleware",
-        ]
-    if DEBUG_LOG_REQUEST:
-        middleware += [
-            "codex.middleware.LogRequestMiddleware",
-        ]
+    if features.log_response_time:
+        middleware.append("codex.middleware.LogResponseTimeMiddleware")
+    if features.log_request:
+        middleware.append("codex.middleware.LogRequestMiddleware")
     return tuple(middleware)
 
 
-MIDDLEWARE = _get_middleware()
+MIDDLEWARE = _get_middleware(FEATURES)
 
-if DEBUG:
+if FEATURES.nplusone:
     NPLUSONE_LOGGER = logger
     NPLUSONE_LOG_LEVEL = "WARNING"
 
@@ -381,23 +535,62 @@ if not DB_PATH.exists() and OLD_DB_PATH.exists():
 BACKUP_DB_DIR = CONFIG_PATH / "backups"
 BACKUP_DB_PATH = (BACKUP_DB_DIR / DB_PATH.stem).with_suffix(DB_PATH.suffix + ".bak")
 
+# Per-connection PRAGMAs. ``init_command`` fires on every new connection
+# (which, with ``CONN_MAX_AGE=600``, means at most once per 10-minute
+# window per worker). The pragma list below trades durability-of-a-
+# single-unfsynced-write for throughput while staying safe under WAL:
+#
+# * ``journal_mode=wal`` — already in place; enables concurrent readers
+#   alongside one writer, and lets ``synchronous=NORMAL`` be safe.
+# * ``synchronous=NORMAL`` — fsync on checkpoint only, not per commit.
+#   Under WAL the only risk is losing the last in-flight transaction on
+#   a hard power-cut; the DB itself stays intact. Writes are ~2-5x faster.
+# * ``temp_store=MEMORY`` — keep ORDER BY / GROUP BY / subquery scratch
+#   in RAM rather than on-disk temp files. Matters for the browser's
+#   heavy aggregate pages.
+# * ``mmap_size=268435456`` (256 MiB) — memory-map the DB file so read
+#   pages are served out of the page cache without ``read(2)``
+#   syscalls. Cheap on 64-bit hosts, no-op on systems that reject the
+#   mmap.
+# * ``cache_size=-64000`` (negative ⇒ KiB, so 64 MiB) — larger in-memory
+#   page cache. Most working sets in a typical codex library fit here,
+#   turning repeat queries into pure RAM hits.
+_SQLITE_PRAGMAS = (
+    "PRAGMA journal_mode=wal;"
+    "PRAGMA synchronous=NORMAL;"
+    "PRAGMA temp_store=MEMORY;"
+    "PRAGMA mmap_size=268435456;"
+    "PRAGMA cache_size=-64000;"
+)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DB_PATH,
         "CONN_MAX_AGE": 600,
         "OPTIONS": {
-            "init_command": "PRAGMA journal_mode=wal;",
+            "init_command": _SQLITE_PRAGMAS,
             "timeout": 120,
         },
     },
 }
 
-# The new DEFAULT_AUTO_FIELD in Django 3.2 is BigAutoField (64 bit),
-#   but it can't be auto migrated. Automigration has been punted to
-#   Django 4.0 at the earliest:
-#   https://code.djangoproject.com/ticket/32674
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+if FEATURES.silk:
+    # django-silk captures live in their own DB so perf traces don't
+    # bloat the app DB and can be wiped with a single rm.
+    SILK_DB_PATH = CONFIG_PATH / "silk.sqlite3"
+    DATABASES["silky"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": SILK_DB_PATH,
+        "OPTIONS": {"init_command": _SQLITE_PRAGMAS, "timeout": 120},
+    }
+    DATABASE_ROUTERS = ["codex.db_routers.SilkRouter"]
+
+# Django 6 defaults DEFAULT_AUTO_FIELD to ``BigAutoField`` (64-bit).
+# Pin it here to match — explicit ``> AutoField`` migration support
+# landed in Django 4.0 (ticket #32674) so the legacy 32-bit override
+# this codebase carried since Django 3.2 is no longer needed.
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ##################
 # Authentication #
@@ -455,13 +648,26 @@ for path in STATICFILES_DIRS:
 # Cache #
 #########
 
-ROOT_CACHE_PATH = CONFIG_PATH / "cache"
+_CACHE_DIR_CONFIG = get_str(CODEX_CONFIG, "cache.dir", default="")
+ROOT_CACHE_PATH = (
+    Path(_CACHE_DIR_CONFIG) if _CACHE_DIR_CONFIG else CONFIG_PATH / "cache"
+)
 DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
 DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+# MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
+# too small once the cache holds (a) cachalot query results — often
+# 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
+# for the browser view AND (c) one `cache_page` entry per cover pk on
+# the cover endpoint. A 100-cover page can populate 200+ entries in a
+# single pageload; the default triggers the 2/3 random cull, which
+# silently evicts just-written cover responses before the next request
+# can read them. 10k is cheap on disk (~<100 MB of tiny files) and
+# cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "BACKEND": "codex.cache.ResilientFileBasedCache",
         "LOCATION": str(DEFAULT_CACHE_PATH),
+        "OPTIONS": {"MAX_ENTRIES": 10000},
     },
 }
 
@@ -482,12 +688,10 @@ _THROTTLE_MAP = MappingProxyType(
 )
 _THROTTLE_CLASSES = set()
 _THROTTLE_RATES = {}
-for scope, value in _THROTTLE_MAP.items():
-    classname, rate_value = value
+for scope, (classname, rate_value) in _THROTTLE_MAP.items():
     if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
         _THROTTLE_CLASSES.add(classname)
-        rate = f"{rate_value}/min" if value[1] else None
-        _THROTTLE_RATES[scope] = rate
+        _THROTTLE_RATES[scope] = f"{rate_value}/min" if rate_value else None
 
 _RENDERER_CLASSES = [
     "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
@@ -578,7 +782,7 @@ CHANNEL_LAYERS = {
 # Django Vite #
 ###############
 
-if DEBUG and not BUILD:
+if FEATURES.vite_hmr:
     import socket
 
     DEV_SERVER_HOST = VITE_HOST or socket.gethostname()
@@ -588,16 +792,31 @@ if DEBUG and not BUILD:
             "dev_server_host": DEV_SERVER_HOST,
         }
     }
-    CSP_SCRIPT_SRC = ("'self'", "http://localhost:5173", "'nonce'")
-    CSP_CONNECT_SRC = ("'self'", "ws://localhost:5173", "http://localhost:5173")
 
 ############
 # Cachalot #
 ############
 
-CACHALOT_UNCACHABLE_TABLES = frozenset(
-    {"django_migrations", "django_session", "codex_useractive"}
-)
+CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
+
+########
+# Silk #
+########
+
+if FEATURES.silk:
+    # SQL-level capture only. CPU profiling is off by default; flip on
+    # when profiling cover generation or other CPU-bound paths.
+    SILKY_PYTHON_PROFILER = False
+    # Record silk's own overhead so we can subtract it from wall-time.
+    SILKY_META = True
+    # Do not cap body sizes — perf flows are small JSON payloads.
+    SILKY_MAX_REQUEST_BODY_SIZE = 0
+    SILKY_MAX_RESPONSE_BODY_SIZE = 0
+    # Require login to view the silk UI; only superusers can see it.
+    SILKY_AUTHENTICATION = True
+    SILKY_AUTHORISATION = True
+    SILKY_PERMISSIONS = lambda user: user.is_superuser  # noqa: E731
+
 
 #################
 # Custom Covers #
@@ -623,27 +842,81 @@ create_custom_cover_group_dirs()
 # Comicbox #
 ############
 
-COMICBOX_CONFIG = FrozenAttrDict(
-    get_config(
-        {
+# Top-level comicbox fields the importer actually consumes. Source of
+# truth for the codex<->comicbox contract — the importer's
+# ``aggregate_path`` code drops anything outside this set, and the
+# ``delete_keys`` config below tells comicbox to skip parse work for
+# everything else.
+#
+# Three entries (``file_type``, ``metadata_mtime``, ``path``) are
+# codex-side extras populated by ``comicbox/process.py``'s ``_read_one``
+# rather than from the parsed metadata; they are intentionally not in
+# the ``ComicboxYamlSubSchema`` field set.
+USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
+    {
+        "age_rating",
+        "arcs",
+        "characters",
+        "collection_title",
+        "country",
+        "credits",
+        "critical_rating",
+        "date",
+        "file_type",  # codex-side extra
+        "genres",
+        "identifiers",
+        "imprint",
+        "issue",
+        "language",
+        "locations",
+        "metadata_mtime",  # codex-side extra
+        "monochrome",
+        "notes",
+        "original_format",
+        "path",  # codex-side extra
+        "page_count",
+        "protagonist",
+        "publisher",
+        "reading_direction",
+        "review",
+        "scan_info",
+        "series",
+        "series_groups",
+        "stories",
+        "summary",
+        "tagger",
+        "tags",
+        "teams",
+        "title",
+        "universes",
+        "volume",
+    }
+)
+
+# Tell comicbox to skip parse work for every top-level field codex
+# does not consume. Pages and reprints are short-circuited inside
+# their respective computed actions; the rest are excluded at schema
+# parse time and dropped post-merge as a backstop. Derived from the
+# live comicbox schema rather than hand-curated so a comicbox release
+# that adds a new top-level field is auto-deleted (codex maintainer
+# adds it to ``USED_COMICBOX_FIELDS`` if it's needed). Closes the
+# pre-existing ``cover_image`` gap.
+#
+# ``_declared_fields`` is the standard marshmallow class-level field
+# registry; it has been the public-by-convention enumeration surface
+# for marshmallow schemas since 3.x.
+_COMICBOX_DELETE_KEYS: frozenset[str] = frozenset(
+    ComicboxYamlSubSchema._declared_fields.keys()  # noqa: SLF001
+    - USED_COMICBOX_FIELDS
+)
+
+# ``delete_keys`` is typed as ``Sequence(str)`` in the comicbox confuse
+# template, so feed it a sorted tuple rather than the source frozenset.
+COMICBOX_CONFIG: ComicboxSettings = get_config(
+    {
+        "comicbox": {
             "loglevel": LOGLEVEL,
-            "delete_keys": frozenset(
-                {
-                    # Only pages and reprints are optimized away for sure with comicbox 2.0.2
-                    "alternate_images",
-                    "bookmark",
-                    "credit_primaries",
-                    "ext",
-                    "identifier_primary_source",
-                    "manga",
-                    "pages",
-                    "prices",
-                    "remainders",
-                    "reprints",
-                    "rights",
-                    "updated_at",
-                }
-            ),
+            "delete_keys": tuple(sorted(_COMICBOX_DELETE_KEYS)),
         }
-    )
+    }
 )

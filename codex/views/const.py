@@ -55,7 +55,7 @@ MISSING_COVER_NAME_MAP = MappingProxyType(
         STORY_ARC_GROUP: "story-arc",
     }
 )
-MISSING_COVER_FN = "missing-cover-165.webp"
+MISSING_COVER_FN = "comic-165.webp"
 MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 
 GROUP_RELATION = MappingProxyType(
@@ -84,7 +84,7 @@ CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
     {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
 )
 GROUP_ORDER = "rpisv"
-MODEL_REL_MAP = MappingProxyType(
+MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {
         Publisher: "publisher",
         Imprint: "imprint",
