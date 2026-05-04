@@ -9,7 +9,9 @@ border-radius: 128px;
 ## v1.11.2
 
 - Fixes
+    - Browser had two scroll bars.
     - Reader stopped scrolling to the top of the page on page turn.
+    - Reader setting Cache Entire Book now defaults to False.
 
 ## v1.11.1
 
