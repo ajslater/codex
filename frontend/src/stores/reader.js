@@ -471,10 +471,26 @@ export const useReaderStore = defineStore("reader", {
       this.page = +page;
       this.setRoutesAndBookmarkPage(page);
       if (this.isPagesNotRoutes) {
+        // ``cacheBook`` mode keeps every page mounted in the same
+        // document, so a page change is a v-window slide — no real
+        // route change. Update the URL via pushState instead.
         const route = { params: { pk: this.books.current.pk, page } };
         const { href } = router.resolve(route);
         globalThis.history.pushState({}, undefined, href);
-      } else {
+      }
+      // Reset window scroll for any non-vertical mode. Previously
+      // tied to the ``else`` branch above, which assumed ``cacheBook``
+      // was always false (a snake_case typo on
+      // ``READER_DEFAULTS.cache_book`` made the default resolve to
+      // ``undefined``). Once that typo was fixed in v1.11 and
+      // ``cacheBook`` defaulted to its real ``true``, horizontal
+      // readers stopped getting a scroll-to-top on every page advance
+      // — fitTo=Width pages taller than the viewport stuck the user
+      // mid-scroll into the previous page.
+      // Vertical mode handles its own scroll via ``scrollToPage``;
+      // jumping the window to 0 there would collide with the
+      // virtual-scroll position.
+      if (!this.activeSettings.isVertical) {
         window.scrollTo(0, 0);
       }
     },
