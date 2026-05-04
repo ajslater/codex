@@ -63,12 +63,11 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
         """
         Apply nested :class:`UserAuth` fields with a single ``UPDATE``.
 
-        :class:`UserAuth` rows are created by
-        :meth:`AdminUserViewSet.perform_create` on user creation, so the
-        row is guaranteed to exist on update. ``filter().update()`` is
-        one round trip vs ``get_or_create`` + ``save`` — and a missing
-        auth row stays a no-op rather than re-creating a default one
-        (which would mask a data-integrity issue from the create path).
+        :class:`UserAuth` rows are provisioned by the User ``post_save``
+        signal in :mod:`codex.signals.django_signals` for every creation
+        path (admin UI, ``createsuperuser``, fixtures), so the row is
+        guaranteed to exist on update. ``filter().update()`` is one
+        round trip vs ``get_or_create`` + ``save``.
         """
         if not userauth_data or "age_rating_metron" not in userauth_data:
             return
