@@ -40,7 +40,8 @@ export default {
   },
   watch: {
     $route() {
-      window.scrollTo(0, 0);
+      const refresh = document.getElementById("browsePaneRefreshContainer");
+      if (refresh) refresh.scrollTop = 0;
       this.loadBrowserPage();
       this.deactivateSelectMany();
     },
