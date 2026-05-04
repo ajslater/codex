@@ -518,11 +518,11 @@ CREATED_COMICS = MappingProxyType(
         DELETE_M2MS: {},
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
                 "imprint": ("TestImprint",),
                 "language": ("en",),
+                "age_rating_metron": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -530,6 +530,7 @@ CREATED_COMICS = MappingProxyType(
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
                 "summary": ("Captain Science's many scientific adventures",),
+                "age_rating_tagged": ("Everyone",),
                 "tagger": ("comicbox dev",),
             }
         },
@@ -543,7 +544,6 @@ LINKED_COMICS = MappingProxyType(
         FIS: {},
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -552,6 +552,7 @@ LINKED_COMICS = MappingProxyType(
                 "imprint": ("TestImprint",),
                 "language": ("en",),
                 "locations": ("The Moon",),
+                "age_rating_metron": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -563,6 +564,7 @@ LINKED_COMICS = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
+                "age_rating_tagged": ("Everyone",),
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
@@ -582,7 +584,6 @@ FAILED_IMPORTS = MappingProxyType(
     {
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -591,6 +592,7 @@ FAILED_IMPORTS = MappingProxyType(
                 "imprint": ("TestImprint",),
                 "language": ("en",),
                 "locations": ("The Moon",),
+                "age_rating_metron": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -602,6 +604,7 @@ FAILED_IMPORTS = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
+                "age_rating_tagged": ("Everyone",),
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
@@ -620,7 +623,6 @@ DELETED_COMICS = MappingProxyType(
     {
         FTS_CREATE: {
             1: {
-                "age_rating": ("Everyone",),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -629,6 +631,7 @@ DELETED_COMICS = MappingProxyType(
                 "imprint": ("TestImprint",),
                 "language": ("en",),
                 "locations": ("The Moon",),
+                "age_rating_metron": ("Everyone",),
                 "name": ("The Beginning",),
                 "original_format": ("Trade Paperback",),
                 "publisher": ("Youthful Adventure Stories",),
@@ -640,6 +643,7 @@ DELETED_COMICS = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
+                "age_rating_tagged": ("Everyone",),
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
@@ -715,7 +719,7 @@ def write_out(old_md, new_md):
 def diff_assert(old_md: Mapping, new_md: Mapping, phase: str):
     """Assert a deep diff."""
     if diff := DeepDiff(old_md, new_md):
-        print("Test Phase:", phase)  # noqa: T201
+        print("Test Phase:", phase)
         pprint(diff)
         pprint(new_md)
         if os.environ.get("CODEX_TEST_IMPORT_WRITE"):
@@ -728,7 +732,7 @@ def _test_comic_creation_field_protagonist(comic, field_name, test_value):
         comic.main_team and test_value == comic.main_team.name
     )
     if not diff:
-        print(  # noqa: T201
+        print(
             f"{field_name}:{test_value} == {comic.main_character=} or {comic.main_team=}"
         )
     assert diff
@@ -767,7 +771,7 @@ def _test_comic_creation_field(comic, field_name, test_value):
         value = tuple(sorted(subval.name for subval in value.all()))
     diff = test_value == value
     if not diff:
-        print(f"{field_name} {test_value=} {value=}")  # noqa: T201
+        print(f"{field_name} {test_value=} {value=}")
     assert diff
 
 

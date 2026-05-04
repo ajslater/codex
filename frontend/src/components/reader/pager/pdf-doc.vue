@@ -57,7 +57,7 @@ export default {
       let width = ["W", "O"].includes(this.bookSettings.fitTo)
         ? this.innerWidth
         : 0;
-      if (!this.isVertical && this.bookSettings.twoPages) {
+      if (!this.isVertical && this.bookSettings?.twoPages) {
         width = width / 2;
       }
       width = width * this.scale;

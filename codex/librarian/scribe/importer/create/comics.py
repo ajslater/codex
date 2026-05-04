@@ -21,6 +21,7 @@ from codex.librarian.scribe.importer.statii.create import (
     ImporterCreateComicsStatus,
     ImporterUpdateComicsStatus,
 )
+from codex.librarian.status import Status
 from codex.models import Comic
 from codex.settings import IMPORTER_UPDATE_COMIC_BATCH_SIZE
 
@@ -43,7 +44,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             setattr(comic, field_name, value)
 
         self._populate_fts_attribute_values(FTS_UPDATE, comic.pk, md)
-        link_md = self.get_comic_fk_links(comic.pk, comic.path)
+        link_md = self.get_comic_fk_links(comic.pk, comic.path, for_create=False)
         for field_name, value in link_md.items():
             set_value = value
             if set_value is None:
@@ -72,7 +73,9 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                 f"Preparing {num_comics} comics for update in library {self.library.path}."
             )
             self.status_controller.start(status)
-            self.metadata[FTS_UPDATE] = {}
+            # FTS_UPDATE accumulates across chunks; setdefault preserves
+            # entries already populated by an earlier chunk's pass.
+            self.metadata.setdefault(FTS_UPDATE, {})
             # Get existing comics to update
             comics = Comic.objects.filter(library=self.library, pk__in=pks).only(
                 PATH_FIELD_NAME, *BULK_UPDATE_COMIC_FIELDS
@@ -103,6 +106,11 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                         f"Purging covers for {len(comic_pks)} updated comics."
                     )
                     self.remove_covers(comic_pks, custom=False)
+                    # Queue cover regeneration for the just-purged
+                    # comics. Stash here; ``create_and_update`` submits
+                    # a single coalesced ``CoverCreateTask`` after
+                    # ``create_comics`` has added its own pks.
+                    self.cover_create_pks.update(comic_pks)
         except Exception:
             self.log.exception(f"While updating comics: {pks}")
         finally:
@@ -112,13 +120,69 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
     def _bulk_create_comic(self, path: str, create_comics: list[Comic]) -> None:
         md = self.metadata[CREATE_COMICS].pop(path, {})
         self._populate_fts_attribute_values(FTS_CREATE, path, md)
-        link_md = self.get_comic_fk_links(path, path)
+        link_md = self.get_comic_fk_links(path, path, for_create=True)
         md.update(link_md)
         if not md:
             return
         comic = Comic(**md, library=self.library)
         comic.presave()
         create_comics.append(comic)
+
+    def _create_comic_bulk_prepare(
+        self, num_comics: int, paths: tuple[str, ...], status: Status
+    ) -> list[Comic]:
+
+        self.log.debug(
+            f"Preparing {num_comics} comics for creation in library {self.library.path}."
+        )
+        self.status_controller.start(status)
+
+        # FTS_CREATE accumulates across chunks (see FTS_UPDATE above).
+        self.metadata.setdefault(FTS_CREATE, {})
+        create_comics = []
+        for path in paths:
+            if self.abort_event.is_set():
+                return []
+            try:
+                self._bulk_create_comic(path, create_comics)
+            except KeyError:
+                self.log.warning(f"No comic metadata for {path}")
+                self.log.exception(f"Error preparing {path} for create.")
+            except Exception:
+                self.log.exception(f"Error preparing {path} for create.")
+        self.metadata.pop(CREATE_COMICS)
+        self.metadata.pop(LINK_FKS)
+        return create_comics
+
+    def _create_comics_bulk_create(
+        self, num_comics: int, create_comics: list[Comic]
+    ) -> int:
+        self.log.debug(f"Bulk creating {num_comics} comics...")
+        created_comics = Comic.objects.bulk_create(
+            create_comics,
+            update_conflicts=True,
+            update_fields=BULK_CREATE_COMIC_FIELDS,
+            unique_fields=Comic._meta.unique_together[0],
+        )
+        count = len(created_comics)
+
+        # Replace FTS_CREATE path keyed entries with pk keys
+        created_pks = []
+        for created_comic in created_comics:
+            self.metadata[FTS_CREATE][created_comic.pk] = self.metadata[FTS_CREATE].pop(
+                created_comic.path
+            )
+            created_pks.append(created_comic.pk)
+        created_pks = tuple(created_pks)
+
+        # Stash newly-created comic pks for pre-warming. The actual
+        # ``CoverCreateTask`` is submitted by ``create_and_update``
+        # after ``update_comics`` has stashed its pks too — coalescing
+        # the two phases into a single cover-thread task so the
+        # ``CreateCoversStatus`` row doesn't blink between them.
+        if created_pks:
+            self.cover_create_pks.update(created_pks)
+        return count
 
     def create_comics(self) -> int:
         """Bulk create comics."""
@@ -133,42 +197,10 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                 self.status_controller.finish(status)
                 return count
 
-            self.log.debug(
-                f"Preparing {num_comics} comics for creation in library {self.library.path}."
-            )
-            self.status_controller.start(status)
-
-            self.metadata[FTS_CREATE] = {}
-            create_comics = []
-            for path in paths:
-                if self.abort_event.is_set():
-                    return count
-                try:
-                    self._bulk_create_comic(path, create_comics)
-                except KeyError:
-                    self.log.warning(f"No comic metadata for {path}")
-                    self.log.exception(f"Error preparing {path} for create.")
-                except Exception:
-                    self.log.exception(f"Error preparing {path} for create.")
-            self.metadata.pop(CREATE_COMICS)
-            self.metadata.pop(LINK_FKS)
-
+            create_comics = self._create_comic_bulk_prepare(num_comics, paths, status)
             num_comics = len(create_comics)
             if num_comics:
-                self.log.debug(f"Bulk creating {num_comics} comics...")
-                created_comics = Comic.objects.bulk_create(
-                    create_comics,
-                    update_conflicts=True,
-                    update_fields=BULK_CREATE_COMIC_FIELDS,
-                    unique_fields=Comic._meta.unique_together[0],
-                )
-                count = len(created_comics)
-
-                # Replace FTS_CREATE path keyed entries with pk keys
-                for created_comic in created_comics:
-                    self.metadata[FTS_CREATE][created_comic.pk] = self.metadata[
-                        FTS_CREATE
-                    ].pop(created_comic.path)
+                count = self._create_comics_bulk_create(num_comics, create_comics)
         except Exception:
             self.log.exception(f"While creating {num_comics} comics")
         finally:

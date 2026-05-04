@@ -66,16 +66,6 @@ class QueryIsUpdateImporter(QueryForeignKeysFilterImporter):
 
         synthesized_extra_proposed_values.extend(synthesized_extra_values)
 
-    @staticmethod
-    def _query_normalize_existing_values(
-        existing_values_tuple: tuple, extra_index: int
-    ) -> tuple:
-        existing_identifier = existing_values_tuple[extra_index : extra_index + 3]
-        if not any(existing_identifier):
-            existing_identifier = None
-        existing_extra_values = existing_values_tuple[extra_index + 3 :]
-        return (existing_identifier, *existing_extra_values)
-
     @classmethod
     def _query_update_init_best_and_existing_values(
         cls,

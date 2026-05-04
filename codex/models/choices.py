@@ -43,14 +43,6 @@ def text_choices_from_map(choices_map: Mapping, class_name: str) -> type[TextCho
     return _create_text_choices_class(class_name, cls_dict)
 
 
-def text_choices_from_string(string: str, class_name: str) -> type[TextChoices]:
-    """Create TextChoices from an enum."""
-    cls_dict = _prepare_text_choices_class_dict(class_name)
-    for c in string:
-        cls_dict[c.upper()] = c
-    return _create_text_choices_class(class_name, cls_dict)
-
-
 def max_choices_len(choices: type[Choices]) -> int:
     """Return the maximum possible size for a Choice's key."""
     if not choices.choices:

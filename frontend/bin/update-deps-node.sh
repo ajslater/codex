@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Update npm dependencies
+# Update bun dependencies
 set -euo pipefail
 bun update
 bun outdated || true

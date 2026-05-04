@@ -20,18 +20,20 @@ def _log_format() -> str:
     return fmt
 
 
+CODEX_LOG_FORMAT = _log_format()
+
+
 def loguru_init() -> None:
     """Initialize loguru sinks."""
     logger.level("DEBUG", color="<light-black>")
     logger.level("INFO", color="<white>")
     logger.level("SUCCESS", color="<green>")
 
-    log_format = _log_format()
     kwargs: dict[str, Any] = {
         "backtrace": True,
         "catch": True,
         "enqueue": True,
-        "format": log_format,
+        "format": CODEX_LOG_FORMAT,
         "level": LOGLEVEL,
     }
     logger.remove()  # Default "sys.stderr" sink is not picklable

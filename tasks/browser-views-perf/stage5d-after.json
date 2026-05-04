@@ -1,0 +1,170 @@
+{
+  "series_pk_used": 325,
+  "comic_pk_used": 10785,
+  "flows": [
+    {
+      "name": "flow_a_root_browse",
+      "description": "Root browse, no filters, no search.",
+      "kind": "url",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 15,
+        "time_taken_ms": 179.282
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 2.128
+      }
+    },
+    {
+      "name": "flow_a2_series_browse",
+      "description": "Browse a Series's comic cards. Drives the Comic-queryset no-m2m-filter path that Stage 5b's distinct + group_by skip wins on \u2014 invisible from the root-browse flow because root lands on Publisher.",
+      "kind": "url",
+      "url": "/api/v3/s/325/1",
+      "cold": {
+        "status_code": 303,
+        "num_sql_queries": 6,
+        "time_taken_ms": 12.992
+      },
+      "warm": {
+        "status_code": 303,
+        "num_sql_queries": 4,
+        "time_taken_ms": 9.427
+      }
+    },
+    {
+      "name": "flow_b_filtered_search",
+      "description": "Root browse with a search term.",
+      "kind": "url",
+      "url": "/api/v3/r/0/1?q=man",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 16,
+        "time_taken_ms": 1064.9180000000001
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.986
+      }
+    },
+    {
+      "name": "flow_c_series_metadata",
+      "description": "Metadata detail for the largest series.",
+      "kind": "url",
+      "url": "/api/v3/s/325/metadata",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 28,
+        "time_taken_ms": 161.286
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 3.055
+      }
+    },
+    {
+      "name": "flow_c2_comic_metadata",
+      "description": "Metadata detail for a single rich comic (exercises FK + M2M hydration).",
+      "kind": "url",
+      "url": "/api/v3/c/10785/metadata",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 47,
+        "time_taken_ms": 136.969
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 2.005
+      }
+    },
+    {
+      "name": "flow_d_browse_plus_covers",
+      "description": "Root browse then fetch every returned cover.",
+      "kind": "browse_plus_covers",
+      "url": "/api/v3/r/0/1",
+      "cold": {
+        "status_code": 200,
+        "num_requests": 101,
+        "total_sql_queries": 815,
+        "total_time_ms": 1363.68
+      },
+      "warm": {
+        "status_code": 200,
+        "num_requests": 101,
+        "total_sql_queries": 0,
+        "total_time_ms": 253.121
+      }
+    },
+    {
+      "name": "flow_e_search_plus_covers",
+      "description": "Search browse then fetch every returned cover.",
+      "kind": "browse_plus_covers",
+      "url": "/api/v3/r/0/1?q=man",
+      "cold": {
+        "status_code": 200,
+        "num_requests": 47,
+        "total_sql_queries": 384,
+        "total_time_ms": 1536.6399999999999
+      },
+      "warm": {
+        "status_code": 200,
+        "num_requests": 47,
+        "total_sql_queries": 232,
+        "total_time_ms": 307.82
+      }
+    },
+    {
+      "name": "flow_f_choices_available",
+      "description": "Filter sidebar open: which dynamic filter fields have >1 choice.",
+      "kind": "url",
+      "url": "/api/v3/r/0/choices_available",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 11,
+        "time_taken_ms": 52.536
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 2.039
+      }
+    },
+    {
+      "name": "flow_g_choices_field_m2m",
+      "description": "Filter sidebar expand: m2m field with many choices (characters).",
+      "kind": "url",
+      "url": "/api/v3/r/0/choices/characters",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 12,
+        "time_taken_ms": 196.84799999999998
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 5.18
+      }
+    },
+    {
+      "name": "flow_h_choices_field_fk",
+      "description": "Filter sidebar expand: FK field on Comic (year).",
+      "kind": "url",
+      "url": "/api/v3/r/0/choices/year",
+      "cold": {
+        "status_code": 200,
+        "num_sql_queries": 11,
+        "time_taken_ms": 24.371
+      },
+      "warm": {
+        "status_code": 200,
+        "num_sql_queries": 0,
+        "time_taken_ms": 1.769
+      }
+    }
+  ]
+}

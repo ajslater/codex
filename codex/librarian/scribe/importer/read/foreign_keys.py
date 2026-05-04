@@ -82,7 +82,6 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         if not id_key:
             return None
 
-        identifier_tuple_keys = None
         if id_source:
             self.add_query_model(IdentifierSource, (id_source,))
         identifier_tuple_keys = (id_source, id_type, id_key)

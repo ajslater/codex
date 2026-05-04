@@ -4,10 +4,11 @@ import asyncio
 import signal
 from asyncio import Event
 from sys import platform
+from typing import Final
 
 from loguru import logger
 
-STOP_SIGNAL_NAMES = (
+STOP_SIGNAL_NAMES: Final = (
     "SIGABRT",
     "SIGBREAK",
     "SIGBUS",
@@ -18,7 +19,7 @@ STOP_SIGNAL_NAMES = (
     "SIGTERM",
     "SIGUSR2",
 )
-RESTART_SIGNAL_NAMES = ("SIGUSR1",)
+RESTART_SIGNAL_NAMES: Final = ("SIGUSR1",)
 RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()
 

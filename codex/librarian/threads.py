@@ -1,17 +1,25 @@
 """Abstract Thread worker for doing queued tasks."""
 
-import time
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from multiprocessing.queues import Queue
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import override
+from time import monotonic
+from typing import TYPE_CHECKING, override
 
-from django.db import close_old_connections
-from loguru._logger import Logger
+from django.db import close_old_connections, connections
 from setproctitle import setproctitle
 
 from codex.librarian.worker import WorkerStatusMixin
+
+if TYPE_CHECKING:
+    # Both type-hint-only — defer until type checkers run. Keeps
+    # the runtime import graph for ``threads.py`` lean across the
+    # nine librarian modules that import it.
+    from multiprocessing.queues import Queue
+
+    from loguru._logger import Logger
 
 
 class BreakLoopError(Exception):
@@ -34,9 +42,7 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
     ) -> None:
         """Initialize queues."""
         self.init_worker(logger_, librarian_queue, db_write_lock)
-        if not name:
-            name = self.__class__.__name__
-        super().__init__(name=name, **kwargs)
+        super().__init__(name=name or self.__class__.__name__, **kwargs)
 
     def run_start(self) -> None:
         """First thing to do when running a new thread."""
@@ -57,6 +63,14 @@ class NamedThread(Thread, WorkerStatusMixin, ABC):
 
 class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
+
+    # When True, close the thread-local DB connection after each task
+    # so the next ``queue.get()`` doesn't hold it through the wait.
+    # Subclasses with long idle gaps between tasks (ScribeThread,
+    # CoverCreateThread) opt in. Heavy-throughput threads where the
+    # ~5-20ms reopen cost outweighs the resource savings keep the
+    # default and rely on Django's CONN_MAX_AGE-based ``close_old_connections``.
+    CLOSE_DB_BETWEEN_TASKS: bool = False
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize with overridden name and as a daemon thread."""
@@ -86,13 +100,32 @@ class QueuedThread(NamedThread, ABC):
         except Empty:
             self.timed_out()
 
+    def _release_db_connection(self) -> None:
+        """
+        Release the thread-local DB connection between tasks.
+
+        ``close_old_connections`` only closes connections older than
+        ``CONN_MAX_AGE`` (10 min in codex), and only fires at the top
+        of a loop iteration — by which point a thread that blocked on
+        ``queue.get(timeout=None)`` for hours has already held its
+        connection for that whole period. ``CLOSE_DB_BETWEEN_TASKS``
+        subclasses elect to close eagerly so an open file handle and
+        ~50 KiB of in-process state aren't pinned through the next
+        long idle. The reopen cost on the next task (~5-20 ms incl.
+        ``init_command`` PRAGMAs) is amortized away by the wait time.
+        """
+        if self.CLOSE_DB_BETWEEN_TASKS:
+            connections.close_all()
+        else:
+            close_old_connections()
+
     @override
     def run(self) -> None:
         """Run thread loop."""
         self.run_start()
         while True:
             try:
-                close_old_connections()
+                self._release_db_connection()
                 self._check_item()
             except BreakLoopError:
                 break
@@ -116,12 +149,19 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the cache."""
         self.cache = {}
-        self._last_send = time.time()
+        # ``time.monotonic`` over ``time.time``: elapsed-time math
+        # (``monotonic() - self._last_send``) must not be affected by
+        # wall-clock jumps from NTP / daylight saving / manual
+        # adjustments. Slightly cheaper than ``time.time`` on most
+        # platforms (clock_gettime(CLOCK_MONOTONIC) vs gettimeofday)
+        # — the bigger win is correctness on the flush-timing path
+        # in subclasses like BookmarkThread / NotifierThread.
+        self._last_send = monotonic()
         super().__init__(*args, **kwargs)
 
     def set_last_send(self) -> None:
         """Set the last send time to now."""
-        self._last_send = time.time()
+        self._last_send = monotonic()
 
     @override
     def get_timeout(self):
@@ -148,7 +188,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     def process_item(self, item) -> None:
         """Aggregate items and sleep in case there are more."""
         self.aggregate_items(item)
-        since_last_timed_out = time.time() - self._last_send
+        since_last_timed_out = monotonic() - self._last_send
         waited_too_long = since_last_timed_out > self.MAX_DELAY
         if waited_too_long:
             self.timed_out()

@@ -36,13 +36,13 @@ update:: update-frontend
 
 .PHONY: fix-frontend
 ## Fix only frontend lint errors
-## @category Lint
+## @category Fix
 fix-frontend:
 	bash -c "cd frontend && make fix"
 
 .PHONY: fix
 ## Fix lint errors
-## @category Lint
+## @category Fix
 fix:: fix-frontend
 
 .PHONY: lint-frontend

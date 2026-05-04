@@ -4,29 +4,44 @@ import base64
 import uuid
 from typing import override
 
-from django.conf import settings
-from django.contrib.auth.models import Group
 from django.db.models import (
-    CASCADE,
+    SET_NULL,
     BooleanField,
     CharField,
     DateTimeField,
-    OneToOneField,
+    ForeignKey,
+    Index,
     PositiveSmallIntegerField,
+    Q,
     TextChoices,
 )
 from django.utils.translation import gettext_lazy as _
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.statii import ADMIN_STATUS_TITLES
+from codex.models.age_rating import AgeRatingMetron
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
-from codex.models.choices import max_choices_len, text_choices_from_map
+from codex.models.choices import (
+    max_choices_len,
+    text_choices_from_map,
+)
 
-__all__ = ("AdminFlag", "LibrarianStatus", "Timestamp", "UserActive")
+__all__ = ("AdminFlag", "LibrarianStatus", "Timestamp")
 
 
 class AdminFlag(BaseModel):
-    """Flags set by administrators."""
+    """
+    Flags set by administrators.
+
+    Some flag keys use the free-form :attr:`value` string (e.g. Banner Text),
+    some use only the :attr:`on` boolean. The two age-rating flags
+    (``AGE_RATING_DEFAULT``, ``ANONYMOUS_USER_AGE_RATING``) use
+    :attr:`age_rating_metron` — a typed FK to the :class:`AgeRatingMetron`
+    lookup table — so the ACL filter and the UI both operate on real rows
+    instead of name strings. ``SET_NULL`` on delete: if the target metron
+    row ever disappears, the flag falls back to its seeded default at the
+    next boot.
+    """
 
     FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
 
@@ -37,6 +52,14 @@ class AdminFlag(BaseModel):
     )
     on = BooleanField(default=True)
     value = CharField(max_length=MAX_NAME_LEN, default="", blank=True)
+    age_rating_metron = ForeignKey(
+        AgeRatingMetron,
+        db_index=True,
+        null=True,
+        blank=True,
+        default=None,
+        on_delete=SET_NULL,
+    )
 
     class Meta(BaseModel.Meta):
         """Constraints."""
@@ -67,6 +90,18 @@ class LibrarianStatus(BaseModel):
 
         unique_together = ("status_type", "subtitle")
         verbose_name_plural = "LibrarianStatuses"
+        # The /admin/librarian/status endpoint filters
+        # ``preactive IS NOT NULL OR active IS NOT NULL`` and orders by
+        # ``preactive, active, pk``. A partial index on the matching rows
+        # serves both the filter and the ORDER BY without scanning the
+        # historical (both-NULL) rows.
+        indexes = (
+            Index(
+                fields=("preactive", "active"),
+                condition=Q(preactive__isnull=False) | Q(active__isnull=False),
+                name="codex_libstat_active_idx",
+            ),
+        )
 
 
 class Timestamp(BaseModel):
@@ -108,16 +143,3 @@ class Timestamp(BaseModel):
     def __repr__(self) -> str:
         """Print name for choice."""
         return self.Choices(self.key).name
-
-
-class UserActive(BaseModel):
-    """User last active record."""
-
-    user = OneToOneField(settings.AUTH_USER_MODEL, db_index=True, on_delete=CASCADE)
-
-
-class GroupAuth(BaseModel):
-    """Extended Attributes for Groups."""
-
-    group = OneToOneField(Group, db_index=True, on_delete=CASCADE)
-    exclude = BooleanField(db_index=True, default=False)

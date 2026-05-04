@@ -1,9 +1,11 @@
 """Django middleware for codex."""
 
 from base64 import b64decode
+from inspect import iscoroutinefunction
 from time import time
-from typing import Any
+from typing import Any, Final
 
+from asgiref.sync import markcoroutinefunction
 from django.db import connection
 from django.utils import timezone
 from loguru import logger
@@ -15,27 +17,46 @@ from codex.settings import (
 )
 from codex.version import PACKAGE_NAME, VERSION
 
+_SENSITIVE_HEADERS: Final = frozenset({"user-agent", "authorization", "cookie"})
+
 
 class CodexMiddleware:
     """Set Codex Headers."""
 
+    sync_capable = True
+    async_capable = True
+
     def __init__(self, get_response):
         """Initialize response method."""
         self.get_response = get_response
+        self._async = iscoroutinefunction(get_response)
+        if self._async:
+            markcoroutinefunction(self)  # ty: ignore[invalid-argument-type]
 
-    def __call__(self, request):
-        """Set headers and timezones."""
-        # Fix timeszone from the django session."""
+    @staticmethod
+    def _activate_timezone(request) -> None:
         # https://docs.djangoproject.com/en/dev/topics/i18n/timezones/
         if tzname := request.session.get("django_timezone"):
             timezone.activate(tzname)
         else:
             timezone.deactivate()
 
-        # Set server header
-        response = self.get_response(request)
+    def _set_server_header(self, response):
         response["Server"] = f"{PACKAGE_NAME}/{VERSION}"
         return response
+
+    async def _acall(self, request):
+        self._activate_timezone(request)
+        response = await self.get_response(request)
+        return self._set_server_header(response)
+
+    def __call__(self, request):
+        """Set headers and timezones."""
+        if self._async:
+            return self._acall(request)
+        self._activate_timezone(request)
+        response = self.get_response(request)
+        return self._set_server_header(response)
 
 
 class LogResponseTimeMiddleware:
@@ -90,7 +111,7 @@ class LogRequestMiddleware:
             return
         filtered_headers = {}
         for key, value in request.headers.items():
-            if key.lower() in {"user-agent", "authorization", "cookie"}:
+            if key.lower() in _SENSITIVE_HEADERS:
                 if key.lower().startswith("auth"):
                     parts = value.split(" ")
                     if parts[0] == "Basic":

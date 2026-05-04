@@ -2,7 +2,7 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
-from typing import override
+from typing import Final, override
 
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
@@ -30,7 +30,7 @@ from codex.librarian.scribe.tasks import (
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import QueuedThread
 
-ABORT_SEARCH_UPDATE_TASKS = (
+_ABORT_SEARCH_UPDATE_TASKS: Final = (
     SearchIndexClearTask,
     SearchIndexSyncAbortTask,
     JanitorFTSRebuildTask,
@@ -41,6 +41,12 @@ class ScribeThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
     SHUTDOWN_MSG = (0, QueuedThread.SHUTDOWN_MSG)
+    # Importer / janitor / search bursts are minutes-to-hours apart on
+    # a typical install. Releasing the conn between bursts saves an
+    # open file handle + ~50 KiB pinned for the entire idle gap; the
+    # ~5-20 ms reopen cost on the next task is invisible against the
+    # work that follows.
+    CLOSE_DB_BETWEEN_TASKS = True
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize abort event."""
@@ -102,7 +108,7 @@ class ScribeThread(QueuedThread):
 
     def put(self, task) -> None:
         """Put item in queue, and signal events."""
-        if isinstance(task, ABORT_SEARCH_UPDATE_TASKS):
+        if isinstance(task, _ABORT_SEARCH_UPDATE_TASKS):
             self.abort_search_update_event.set()
             if isinstance(task, ImportTask | JanitorAdoptOrphanFoldersTask):
                 self.abort_cleanup_event.set()

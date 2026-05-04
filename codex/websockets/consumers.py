@@ -1,12 +1,21 @@
 """Notifier ChannelGroups Consumer."""
 
-from enum import Enum
+from enum import StrEnum
 from typing import override
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from loguru import logger
 
-ChannelGroups = Enum("ChannelGroups", "ALL ADMIN")
+
+class ChannelGroups(StrEnum):
+    """Websocket channel groups every consumer joins."""
+
+    # Explicit string values match the previous ``Enum.name``-based
+    # spelling so callers that built channel-name strings from
+    # ``ChannelGroups.ALL.name`` keep working when they drop the
+    # ``.name`` access.
+    ALL = "ALL"
+    ADMIN = "ADMIN"
 
 
 class NotifierConsumer(AsyncWebsocketConsumer):
@@ -14,7 +23,7 @@ class NotifierConsumer(AsyncWebsocketConsumer):
 
     def _get_groups(self) -> list[str]:
         """Dynamic groups by user type."""
-        groups = [ChannelGroups.ALL.name]
+        groups: list[str] = [ChannelGroups.ALL]
         user = self.scope.get("user") if self.scope else None
         user_channel = None
         if user:
@@ -24,9 +33,9 @@ class NotifierConsumer(AsyncWebsocketConsumer):
             if session:
                 user_channel = f"user_{session.session_key}"
         if user_channel:
-            groups += [user_channel]
+            groups.append(user_channel)
         if user and user.is_staff:
-            groups += [ChannelGroups.ADMIN.name]
+            groups.append(ChannelGroups.ADMIN)
         return groups
 
     @override

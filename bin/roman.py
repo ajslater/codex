@@ -8,6 +8,7 @@ Inspired by @defunctzombie
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
@@ -56,12 +57,12 @@ def build_ignore_spec(ignore_path: Path | None) -> PathSpec:
 def read_first_two_lines(path: Path) -> tuple[str, str]:
     """Return the first two lines of *path* as a (line1, line2) tuple."""
     try:
-        raw = path.read_bytes()[:SHEBANG_READ_BYTES]
-        text = raw.decode("utf-8", errors="replace")
+        with path.open("rb") as fh:
+            raw = fh.read(SHEBANG_READ_BYTES)
     except OSError:
         return "", ""
 
-    lines = text.splitlines()
+    lines = raw.decode("utf-8", errors="replace").splitlines()
     line1 = lines[0] if len(lines) > 0 else ""
     line2 = lines[1] if len(lines) > 1 else ""
     return line1, line2
@@ -77,9 +78,37 @@ def has_description_comment(line2: str) -> bool:
     return bool(COMMENT_PATTERN.match(line2))
 
 
+def _walk_tree(root: Path, spec: PathSpec) -> Generator[Path]:
+    """
+    Yield every file under *root* not excluded by *spec*.
+
+    Uses ``os.scandir`` and prunes ignored directories without descending into
+    them — important when trees like ``.git`` or ``node_modules`` are excluded.
+    """
+    root_str = str(root)
+    stack: list[str] = [root_str]
+    while stack:
+        current = stack.pop()
+        try:
+            scanner = os.scandir(current)
+        except OSError:
+            continue
+        with scanner:
+            for entry in scanner:
+                rel = os.path.relpath(entry.path, root_str)
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        if not spec.match_file(rel + "/"):
+                            stack.append(entry.path)
+                    elif entry.is_file() and not spec.match_file(rel):
+                        yield Path(entry.path)
+                except OSError:
+                    continue
+
+
 def iter_files(path_strs: Sequence[str], spec: PathSpec) -> Generator[Path]:
     """
-    Yield every file under *roots* that is not excluded by *spec*.
+    Yield every file under *path_strs* that is not excluded by *spec*.
 
     Each candidate path is tested relative to the root it was found under so
     that gitignore-style directory patterns (e.g. ``vendor/``) work correctly.
@@ -90,26 +119,13 @@ def iter_files(path_strs: Sequence[str], spec: PathSpec) -> Generator[Path]:
             print(f"👎  Path does not exist: {path}", file=sys.stderr)  # noqa: T201
             sys.exit(2)
 
-        root = Path(path).resolve()
+        root = path.resolve()
         if root.is_file():
-            rel = Path(root.name)
-            if not spec.match_file(str(rel)):
+            if not spec.match_file(root.name):
                 yield root
             continue
 
-        for sub_path in sorted(root.rglob("*")):
-            if not sub_path.is_file():
-                continue
-            try:
-                rel = sub_path.relative_to(root)
-            except ValueError:
-                rel = sub_path
-
-            # Match against each component so directory patterns work
-            if spec.match_file(str(rel)):
-                continue
-
-            yield sub_path
+        yield from _walk_tree(root, spec)
 
 
 # ---------------------------------------------------------------------------

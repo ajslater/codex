@@ -48,3 +48,9 @@ build-icons:
 ## Build codex dependencies
 ## @category Build
 build:: build-choices build-icons
+
+.PHONY: perf-baseline
+## Capture browser-views perf baseline via django-silk
+## @category Test
+perf-baseline:
+	DEBUG=1 uv run --group lint python -m tests.perf.run_baseline

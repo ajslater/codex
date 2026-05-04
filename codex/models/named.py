@@ -13,7 +13,6 @@ from codex.models.groups import BrowserGroupModel
 from codex.models.identifier import Identifier
 
 __all__ = (
-    "AgeRating",
     "Character",
     "Country",
     "Credit",
@@ -56,10 +55,6 @@ class IdentifiedNamedModel(NamedModel):
         """Return the name."""
         suffix = ":" + str(self.identifier) if self.identifier else ""
         return self.name + suffix
-
-
-class AgeRating(NamedModel):
-    """The Age Rating the comic was intended for."""
 
 
 class Character(IdentifiedNamedModel):

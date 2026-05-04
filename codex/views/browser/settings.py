@@ -1,6 +1,7 @@
 """Browser settings views."""
 
 from collections.abc import MutableMapping
+from typing import cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -47,11 +48,17 @@ class BrowserSettingsBaseView(SettingsBaseView):
 
     def reset_browser_settings(self) -> dict:
         """Reset browser settings to model defaults and return the params dict."""
-        instance: SettingsBrowser = self._get_or_create_settings(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-            self.MODEL,
-            self.CLIENT,
-            self.FILTER_ARGS,
-            self.CREATE_ARGS,
+        # ``_get_or_create_settings`` returns the broad ``SettingsBase``
+        # supertype; ``self.MODEL`` (``SettingsBrowser``) determines the
+        # concrete type.
+        instance = cast(
+            "SettingsBrowser",
+            self._get_or_create_settings(
+                self.MODEL,
+                self.CLIENT,
+                self.FILTER_ARGS,
+                self.CREATE_ARGS,
+            ),
         )
         defaults = self.get_browser_default_params()
 

@@ -1,10 +1,13 @@
 """Clean up the database after moves or imports."""
 
+import os
+from collections import defaultdict
 from pathlib import Path
 from types import MappingProxyType
 
 from django.contrib.sessions.models import Session
 from django.core import signing
+from django.db import transaction
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
@@ -113,6 +116,22 @@ _BOOKMARK_FILTER = dict.fromkeys(
 _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user")), True
 )
+# Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
+# depth is bounded by the hierarchy
+# Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic
+# plus the per-tag join branches; a fully-orphaned chain converges in
+# at most ~5 passes regardless of deletion order. 10 doubles that for
+# safety. If a real DB ever fails to converge in 10 passes that's a
+# data-integrity bug worth investigating, not a fix-by-bumping-the-cap
+# problem.
+_FK_CLEANUP_MAX_PASSES = 10
+# Streaming chunk size for the session-validation pass. ``iterator``
+# fetches in this many rows at a time to keep memory bounded on
+# long-running installs with years of accumulated anonymous sessions.
+_SESSION_VALIDATE_CHUNK_SIZE = 1000
+# Batch size for the corrupt-session DELETE. Stays under SQLite's
+# 32766 parameter cap per ``WHERE session_key__in (...)`` query.
+_SESSION_DELETE_BATCH_SIZE = 30000
 
 
 class JanitorCleanup(JanitorUpdateFailedImports):
@@ -135,17 +154,55 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             count += self._cleanup_fks_model(model, filter_dict, status)
         return count
 
+    def _converge_cleanup_fks(self, status) -> bool:
+        """
+        Run capped convergence passes inside the write lock + transaction.
+
+        Returns True if the loop converged (a pass with zero count) or
+        the abort event triggered. Returns False only if the cap was
+        hit without convergence — caller logs a warning.
+
+        Hold ``db_write_lock`` across all passes so a concurrent
+        importer can't re-introduce a parent FK between the check
+        that found it orphaned and the DELETE that removes it. The
+        integrity-check writers in ``integrity/`` use the same
+        pattern; cleanup was previously missing it.
+        """
+        with self.db_write_lock, transaction.atomic():
+            for _ in range(_FK_CLEANUP_MAX_PASSES):
+                if self.abort_event.is_set():
+                    return True
+                if not self._cleanup_fks_one_level(status):
+                    return True
+        return False
+
     def cleanup_fks(self) -> None:
-        """Clean up unused foreign keys."""
+        """
+        Clean up unused foreign keys.
+
+        Walks every FK model and deletes rows with no inbound references.
+        Cascading deletes can produce more orphans (a Credit's deletion
+        leaves CreditPerson / CreditRole orphan), so the loop runs until
+        the per-pass count converges to zero or the cap is hit.
+
+        Wrapped in ``transaction.atomic`` so the multi-pass convergence
+        is all-or-nothing: an exception mid-pass rolls back to pre-
+        cleanup state rather than leaving a partially-cleaned graph.
+        The 25 per-model deletes also coalesce into one fsync.
+        """
         self.abort_event.clear()
         status = JanitorCleanupTagsStatus(0)
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up orphan tags...")
-            count = 1
-            while count:
-                # Keep churning until we stop finding orphan tags.
-                count = self._cleanup_fks_one_level(status)
+            converged = self._converge_cleanup_fks(status)
+            if not converged and not self.abort_event.is_set():
+                cap = _FK_CLEANUP_MAX_PASSES
+                reason = (
+                    f"FK cleanup hit {cap}-pass cap without converging"
+                    " — investigate the reverse-relation map or the data graph."
+                )
+                self.log.warning(reason)
             level = "INFO" if status.complete else "DEBUG"
             self.log.log(level, f"Cleaned up {status.complete} unused tags.")
         finally:
@@ -154,21 +211,93 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.abort_event.clear()
             self.status_controller.finish(status)
 
+    @staticmethod
+    def _group_covers_by_parent(covers) -> dict[str, list[tuple[int, str]]]:
+        """
+        Bunch (pk, basename) entries by parent directory.
+
+        Cover layouts are typically one-cover-per-series-folder, so
+        each parent ends up with one entry. For installs that share a
+        directory across many covers, this groups them so the parent
+        gets one ``scandir`` instead of N ``stat`` calls.
+        """
+        by_dir: dict[str, list[tuple[int, str]]] = defaultdict(list)
+        for cover in covers:
+            cover_path = Path(cover.path)
+            by_dir[str(cover_path.parent)].append((cover.pk, cover_path.name))
+        return by_dir
+
+    @staticmethod
+    def _scan_parent_for_present_names(parent: str) -> frozenset[str] | None:
+        """
+        Return the set of filenames in ``parent``, or None on read failure.
+
+        ``None`` is the "fall back to per-file ``Path.exists()``" signal;
+        callers handle it by treating each cover in the group as
+        unverified rather than guessing at orphan-vs-present.
+        """
+        try:
+            with os.scandir(parent) as it:
+                return frozenset(entry.name for entry in it)
+        except FileNotFoundError:
+            # Parent directory itself is gone — every cover claiming a
+            # path under it is orphan. Empty set is correct.
+            return frozenset()
+        except OSError:
+            # Permission error, transient FS hiccup, etc. — fall back.
+            return None
+
+    def _collect_orphan_cover_pks(
+        self, by_dir: dict[str, list[tuple[int, str]]], status
+    ) -> list[int]:
+        """Walk parent directories once via scandir and flag orphans."""
+        delete_pks: list[int] = []
+        for parent, entries in by_dir.items():
+            present = self._scan_parent_for_present_names(parent)
+            for pk, basename in entries:
+                if present is None:
+                    # scandir failed for this parent; preserve
+                    # pre-fix behavior with a per-file Path.exists().
+                    if not Path(parent, basename).exists():
+                        delete_pks.append(pk)
+                elif basename not in present:
+                    delete_pks.append(pk)
+                status.increment_complete()
+            self.status_controller.update(status)
+        return delete_pks
+
     def cleanup_custom_covers(self) -> None:
-        """Clean up unused custom covers."""
-        covers = CustomCover.objects.only("path")
-        status = JanitorCleanupCoversStatus(0, covers.count())
-        delete_pks = []
+        """
+        Clean up unused custom covers.
+
+        Replaces the prior per-cover ``Path.exists()`` loop with a
+        directory-grouped ``os.scandir`` pass. For typical cover
+        layouts one parent ↔ one cover, the wall-clock is identical;
+        for any layout with multiple covers per parent (or for
+        many covers under sibling directories), the parent's
+        ``readdir`` round-trip replaces N individual ``stat``
+        round-trips. Big win on NFS / SMB / cloud-mounted media
+        where each ``stat`` is single-digit milliseconds.
+        """
+        # Materialize once so we can group by parent directory before
+        # the FS pass. ``only`` keeps the load lean.
+        covers = list(CustomCover.objects.only("pk", "path"))
+        status = JanitorCleanupCoversStatus(0, len(covers))
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up db custom covers with no source images...")
-            for cover in covers.iterator():
-                if not Path(cover.path).exists():
-                    delete_pks.append(cover.pk)
-                status.increment_complete()
-            delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
-            count, _ = delete_qs.delete()
-            status.complete = count
+            by_dir = self._group_covers_by_parent(covers)
+            # Read-only phase: lock not held — importer can keep writing
+            # while we walk slow storage.
+            delete_pks = self._collect_orphan_cover_pks(by_dir, status)
+            # Write phase under the lock so a concurrent importer can't
+            # be mid-bulk_create on the same rows. TOCTOU window is
+            # acceptable: a cover re-created between scan and delete
+            # just gets re-discovered next poll.
+            with self.db_write_lock:
+                delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
+                count, _ = delete_qs.delete()
+                status.complete = count
         finally:
             self.status_controller.finish(status)
 
@@ -177,15 +306,27 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         status = JanitorCleanupSessionsStatus()
         try:
             self.status_controller.start(status)
-            qs = Session.objects.filter(expire_date__lt=Now())
-            count, _ = qs.delete()
+            # Expired-session DELETE under the lock.
+            with self.db_write_lock:
+                qs = Session.objects.filter(expire_date__lt=Now())
+                count, _ = qs.delete()
             if count:
                 self.log.info(f"Deleted {count} expired sessions.")
-            bad_session_keys = set()
+            # Read-only signature validation phase. Holding the lock
+            # across this loop would block the importer for as long as
+            # the validation takes; release between the two phases.
+            # ``iterator(chunk_size=...)`` streams rows so a long-
+            # running install with years of accumulated anonymous
+            # sessions doesn't materialize tens of thousands of rows
+            # into RAM at once.
+            bad_session_keys: list[str] = []
             store = Session.get_session_store_class()()
             salt = store.key_salt  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             serializer = store.serializer
-            for encoded_session in Session.objects.all():
+            session_qs = Session.objects.only("session_key", "session_data").iterator(
+                chunk_size=_SESSION_VALIDATE_CHUNK_SIZE
+            )
+            for encoded_session in session_qs:
                 # Session.get_decoded() swallows decode errors and returns
                 # an empty dict, which is also the legitimate state for an
                 # anonymous session with no stored data — so we can't use
@@ -198,12 +339,26 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                         serializer=serializer,
                     )
                 except Exception:
-                    bad_session_keys.add(encoded_session.session_key)
+                    bad_session_keys.append(encoded_session.session_key)
 
             if bad_session_keys:
-                bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
-                count, _ = bad_sessions.delete()
-                self.log.info(f"Deleted {count} corrupt sessions.")
+                # Batch the DELETE under the lock. Per-batch cap keeps
+                # the ``session_key__in (...)`` parameter list under
+                # SQLite's 32766 limit on pathologically large bad-
+                # session counts.
+                deleted = 0
+                with self.db_write_lock:
+                    for start in range(
+                        0, len(bad_session_keys), _SESSION_DELETE_BATCH_SIZE
+                    ):
+                        batch = bad_session_keys[
+                            start : start + _SESSION_DELETE_BATCH_SIZE
+                        ]
+                        count, _ = Session.objects.filter(
+                            session_key__in=batch
+                        ).delete()
+                        deleted += count
+                self.log.info(f"Deleted {deleted} corrupt sessions.")
         finally:
             self.status_controller.finish(status)
 
@@ -212,8 +367,9 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         status = JanitorCleanupBookmarksStatus()
         try:
             self.status_controller.start(status)
-            orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
-            count, _ = orphan_bms.delete()
+            with self.db_write_lock:
+                orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
+                count, _ = orphan_bms.delete()
             level = "INFO" if count else "DEBUG"
             self.log.log(level, f"Deleted {count} orphan bookmarks.")
         finally:
@@ -225,10 +381,11 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         try:
             self.status_controller.start(status)
             total = 0
-            for model in (SettingsBrowser, SettingsReader):
-                orphans = model.objects.filter(**_SETTINGS_ORPHAN_FILTER)
-                count, _ = orphans.delete()
-                total += count
+            with self.db_write_lock:
+                for model in (SettingsBrowser, SettingsReader):
+                    orphans = model.objects.filter(**_SETTINGS_ORPHAN_FILTER)
+                    count, _ = orphans.delete()
+                    total += count
             level = "INFO" if total else "DEBUG"
             self.log.log(level, f"Deleted {total} orphan settings rows.")
         finally:

@@ -8,7 +8,6 @@ from django.db.models.fields import (
     CharField,
     DecimalField,
     PositiveSmallIntegerField,
-    SmallIntegerField,
     TextField,
 )
 from nh3 import clean
@@ -18,11 +17,18 @@ class CleaningStringFieldMixin:
     """Sanitizing Mixin for CharField & TextField."""
 
     def get_prep_value(self, value):
-        """Truncate, sanitize and unescape."""
+        """Truncate, sanitize, unescape, and strip outer whitespace."""
         if value := super().get_prep_value(value):  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             value = value[: self.max_length]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             value = clean(value)
             value = unescape(value)
+            # Strip outer whitespace last so trailing spaces left over
+            # from upstream parsers don't poison FK keys
+            # (Country.name / Language.name are the motivating case —
+            # the serializer-side pycountry cache lookup relies on
+            # exact alpha_2 matches; see
+            # ``codex/serializers/fields/browser.py``).
+            value = value.strip()
         return value
 
 
@@ -46,10 +52,6 @@ class CoercingSmallIntegerFieldMixin:
         if value is not None:
             value = max(min(value, self.COERCE_MAX), self.COERCE_MIN)
         return value
-
-
-class CoercingSmallIntegerField(CoercingSmallIntegerFieldMixin, SmallIntegerField):
-    """Custom SmallIntegerField."""
 
 
 class CoercingPositiveSmallIntegerField(

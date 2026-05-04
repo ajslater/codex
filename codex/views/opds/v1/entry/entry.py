@@ -133,6 +133,11 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
+        # Prefer the per-page batch when available (multi-entry
+        # acquisition feed). Falls back to the per-entry query for
+        # facet entries / single-comic feeds (sub-plan 03 #1).
+        if self._authors_by_pk is not None:
+            return list(self._authors_by_pk.get(self.obj.pk, ()))
         people = get_credit_people(self.obj.ids, AUTHOR_ROLES, exclude=False)
         return self._add_url_to_obj(people, "credits")
 
@@ -141,6 +146,8 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Credit names."""
         if not self.metadata:
             return []
+        if self._contributors_by_pk is not None:
+            return list(self._contributors_by_pk.get(self.obj.pk, ()))
         people = get_credit_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
         return self._add_url_to_obj(people, "credits")
 
@@ -149,4 +156,6 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Category labels."""
         if not self.metadata:
             return {}
+        if self._category_groups_by_pk is not None:
+            return dict(self._category_groups_by_pk.get(self.obj.pk, {}))
         return get_m2m_objects(self.obj.ids)

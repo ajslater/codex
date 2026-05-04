@@ -69,7 +69,10 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
                 comic, field_name, m2m_obj, kept_existing_values, proposed_values
             )
             status.increment_complete()
-            self.status_controller.update(status)
+        # Refresh the controller once per (comic, field) — the controller
+        # already rate-limits at _UPDATE_DELTA, so calling it inside the
+        # per-through-row loop only burns CPU on the early-return path.
+        self.status_controller.update(status)
         if kept_existing_values and (deleted or proposed_values):
             self.add_to_fts_existing(comic.pk, field_name, tuple(kept_existing_values))
         if not self.metadata[LINK_M2MS][comic.path][field_name]:
@@ -82,26 +85,47 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         if not self.metadata[LINK_M2MS][comic.path]:
             del self.metadata[LINK_M2MS][comic.path]
 
-    def _query_prune_comic_m2m_links_batch(self, paths: tuple[str], status) -> None:
+    def _query_prune_comic_m2m_links_batch(
+        self, paths: tuple[str, ...], prefetch_fields: tuple[str, ...], status
+    ) -> None:
         comics = (
             Comic.objects.filter(library=self.library, path__in=paths)
-            .prefetch_related(*COMIC_M2M_FIELD_NAMES)
-            .only(*COMIC_M2M_FIELD_NAMES)
+            .prefetch_related(*prefetch_fields)
+            .only(*prefetch_fields)
         )
         for comic in comics.iterator(chunk_size=IMPORTER_LINK_M2M_BATCH_SIZE):
             self._query_prune_comic_m2m_links_comic(comic, status)
+
+    def _collect_referenced_m2m_fields(self) -> tuple[str, ...]:
+        """
+        Return the COMIC_M2M_FIELD_NAMES subset actually referenced.
+
+        Most imports only touch a handful of M2M fields (credits, tags,
+        characters); narrowing the prefetch_related/only set drops 10+
+        wasted IN-queries per batch and the in-memory through-rows that
+        come with them.
+        """
+        referenced: set[str] = set()
+        for path_link in self.metadata[LINK_M2MS].values():
+            referenced.update(path_link.keys())
+        return tuple(name for name in COMIC_M2M_FIELD_NAMES if name in referenced)
 
     def query_prune_comic_m2m_links(self, status) -> None:
         """Prune comic m2m links that already exists or should be deleted."""
         status.subtitle = "Many to Many"
         self.status_controller.update(status)
+        prefetch_fields = self._collect_referenced_m2m_fields()
+        if not prefetch_fields:
+            return
         paths = tuple(self.metadata[LINK_M2MS].keys())
         # Batch path__in to stay under SQLite's variable limit.
         for start in range(0, len(paths), IMPORTER_LINK_FK_BATCH_SIZE):
             if self.abort_event.is_set():
                 return
             batch_paths = paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
-            self._query_prune_comic_m2m_links_batch(batch_paths, status)
+            self._query_prune_comic_m2m_links_batch(
+                batch_paths, prefetch_fields, status
+            )
         field_names = tuple(self.metadata[DELETE_M2MS].keys())
         for field_name in field_names:
             rows = self.metadata[DELETE_M2MS][field_name]

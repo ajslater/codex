@@ -8,7 +8,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, register_converter
 from django.views.generic.base import RedirectView
 
-from codex.settings import DEBUG
+from codex.settings import FEATURES
 from codex.urls.converters import GroupConverter, IntListConverter
 from codex.views.healthcheck import health_check_view
 
@@ -17,12 +17,15 @@ register_converter(IntListConverter, "int_list")
 
 
 urlpatterns = []
-if DEBUG:
-    # Pyright doesn't follow logic so will try to find these types.
+if FEATURES.schema_graph:
     from schema_graph.views import Schema
 
     urlpatterns += [
         path("schema/", Schema.as_view()),
+    ]
+if FEATURES.silk:
+    urlpatterns += [
+        path("silk/", include("silk.urls", namespace="silk")),
     ]
 
 urlpatterns += [

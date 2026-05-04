@@ -8,6 +8,7 @@ from typing import Any
 
 from django.utils.timezone import now
 
+from codex.librarian.covers.status import CreateCoversStatus
 from codex.librarian.scribe.importer.statii.create import (
     ImporterCreateComicsStatus,
     ImporterCreateCoversStatus,
@@ -29,6 +30,7 @@ from codex.librarian.scribe.importer.statii.moved import (
     ImporterMoveComicsStatus,
     ImporterMoveCoversStatus,
     ImporterMoveFoldersStatus,
+    ImporterUpdateFoldersStatus,
 )
 from codex.librarian.scribe.importer.statii.query import (
     ImporterQueryComicUpdatesStatus,
@@ -84,15 +86,6 @@ class Counts:
         """Anything changed at all."""
         return self._any(("failed",))
 
-    def search_changed(self):
-        """Is the search index be out of date."""
-        return self._any(
-            (
-                "cover",
-                "failed",
-            )
-        )
-
 
 class InitImporter(WorkerStatusBase):
     """Initial Importer."""
@@ -105,6 +98,16 @@ class InitImporter(WorkerStatusBase):
         self.task: ImportTask = task
         self.metadata: dict[str, Any] = {}
         self.counts = Counts()
+        # Per-chunk accumulator for the comic-cover-create task. Both
+        # ``create_comics`` (newly-inserted Comics) and ``update_comics``
+        # (existing Comics whose covers were just purged by
+        # ``remove_covers``) add their pks here; ``create_and_update``
+        # submits a single ``CoverCreateTask`` with the union so the
+        # cover thread runs one ``CreateCoversStatus`` start/finish per
+        # chunk instead of two. Held off ``metadata`` because it's
+        # operational state, not parsed comic data — keeps the metadata
+        # fixture-comparable in tests.
+        self.cover_create_pks: set[int] = set()
         self.library = Library.objects.only("path").get(pk=self.task.library_id)
         self.abort_event = event
         self.start_time = now()
@@ -147,7 +150,7 @@ class InitImporter(WorkerStatusBase):
             for path_str in all_modified_paths:
                 path = Path(path_str)
                 if path.exists():
-                    total_size += Path(path).stat().st_size
+                    total_size += path.stat().st_size
         return False
 
     #######
@@ -208,6 +211,10 @@ class InitImporter(WorkerStatusBase):
             search_index_updates += len(self.task.files_moved)
         if self.task.covers_moved:
             status_list += [ImporterMoveCoversStatus(None, len(self.task.covers_moved))]
+        if self.task.dirs_modified:
+            status_list += [
+                ImporterUpdateFoldersStatus(None, len(self.task.dirs_modified))
+            ]
         return search_index_updates
 
     def _init_if_modified_or_created(self, path, status_list) -> tuple:
@@ -256,7 +263,17 @@ class InitImporter(WorkerStatusBase):
                 )
             ]
         if self.task.files_modified or self.task.files_created:
-            status_list += [ImporterLinkTagsStatus(subtitle=path)]
+            # Pre-register the cover-create status (CCC, owned by the
+            # cover thread) here so it gets a ``preactive`` timestamp
+            # between the comic-create/update phases and link-tags.
+            # Otherwise the cover thread's ``start()`` is the row's
+            # first appearance — fine for position (NULL preactive
+            # sorts above non-null) but means the spinner pops in
+            # cold without the "queued" indicator.
+            status_list += [
+                CreateCoversStatus(),
+                ImporterLinkTagsStatus(subtitle=path),
+            ]
 
         num_covers_linked = (
             len(self.task.covers_moved)

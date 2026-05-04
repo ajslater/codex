@@ -1,8 +1,12 @@
 """codex:api:v3:admin URL Configuration."""
 
+from types import MappingProxyType
+from typing import Final
+
 from django.urls import path
 from django.views.decorators.cache import never_cache
 
+from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
 from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
@@ -13,17 +17,20 @@ from codex.views.admin.library import (
 )
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tasks import (
-    AdminLibrarianStatusActiveViewSet,
-    AdminLibrarianStatusAllViewSet,
+    AdminLibrarianStatusViewSet,
     AdminLibrarianTaskView,
 )
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
-READ = {"get": "list"}
-RETRIEVE = {"get": "retrieve"}
-CREATE = {"post": "create"}
-UPDATE = {"put": "partial_update"}
-DELETE = {"delete": "destroy"}
+READ: Final = MappingProxyType({"get": "list"})
+# Async list action exposed by ``adrf`` viewsets; same dispatch shape
+# as ``READ`` but routes the GET to ``alist`` instead of ``list`` so the
+# request stays on the event loop.
+AREAD: Final = MappingProxyType({"get": "alist"})
+RETRIEVE: Final = MappingProxyType({"get": "retrieve"})
+CREATE: Final = MappingProxyType({"post": "create"})
+UPDATE: Final = MappingProxyType({"put": "partial_update"})
+DELETE: Final = MappingProxyType({"delete": "destroy"})
 
 app_name = "admin"
 urlpatterns = [
@@ -72,15 +79,20 @@ urlpatterns = [
     ),
     path(
         "librarian/status",
-        never_cache(AdminLibrarianStatusActiveViewSet.as_view({**READ})),
+        never_cache(AdminLibrarianStatusViewSet.as_view({**AREAD}, active_only=True)),
         name="librarian_status",
     ),
     path(
         "librarian/status/all",
-        never_cache(AdminLibrarianStatusAllViewSet.as_view({**READ})),
+        never_cache(AdminLibrarianStatusViewSet.as_view({**AREAD})),
         name="librarian_status_all",
     ),
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),
     path("stats", AdminStatsView.as_view(), name="stats"),
     path("api_key", AdminAPIKey.as_view(), name="api_key"),
+    path(
+        "age-rating-metron",
+        AdminAgeRatingMetronViewSet.as_view({**READ}),
+        name="age_rating_metron",
+    ),
 ]

@@ -3,6 +3,6 @@
 # Requires npm ttab
 set -euo pipefail
 # The Vue dev server
-ttab -t "Codex Vue" "make dev-frontend-server"
+bunx ttab -t "Codex Vue" "make dev-frontend-server"
 # The API server
 make dev-server

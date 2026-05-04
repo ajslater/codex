@@ -5,7 +5,7 @@ export DEVENV_NODE
 ## Update and install node packages
 ## @category Install
 install-deps-node:
-	npm install
+	bun install
 
 .PHONY: install
 ## Install

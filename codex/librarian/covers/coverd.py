@@ -5,10 +5,10 @@ from typing import override
 from codex.librarian.covers.purge import CoverPurgeThread
 from codex.librarian.covers.tasks import (
     CoverCreateAllTask,
+    CoverCreateTask,
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
     CoverRemoveTask,
-    CoverSaveToCache,
 )
 
 
@@ -18,16 +18,16 @@ class CoverThread(CoverPurgeThread):
     @override
     def process_item(self, item) -> None:
         """Run the task method."""
-        task = item
-        if isinstance(task, CoverSaveToCache):
-            self.save_cover_to_cache(task.cover_path, task.data)
-        elif isinstance(task, CoverRemoveAllTask):
-            self.purge_all_comic_covers(self.librarian_queue)
-        elif isinstance(task, CoverRemoveTask):
-            self.purge_comic_covers(task.pks, custom=task.custom)
-        elif isinstance(task, CoverRemoveOrphansTask):
-            self.cleanup_orphan_covers()
-        elif isinstance(task, CoverCreateAllTask):
-            self.create_all_covers()
-        else:
-            self.log.error(f"Bad task sent to {self.__class__.__name__}: {task}")
+        match item:
+            case CoverRemoveAllTask():
+                self.purge_all_comic_covers(self.librarian_queue)
+            case CoverRemoveTask():
+                self.purge_comic_covers(item.pks, custom=item.custom)
+            case CoverRemoveOrphansTask():
+                self.cleanup_orphan_covers()
+            case CoverCreateAllTask():
+                self.create_all_covers()
+            case CoverCreateTask():
+                self.process_cover_create_burst(item)
+            case _:
+                self.log.error(f"Bad task sent to {self.__class__.__name__}: {item}")

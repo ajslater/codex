@@ -1,0 +1,12 @@
+// Shared Vuetify v-expansion-panel overrides used by the keyboard
+// shortcuts panel/table and the reader-settings scope. ``@forward``
+// from each consumer's scoped style block so the rule lands inside
+// the consumer's scope id (matching the per-component ``:deep()``
+// targets).
+
+// Vuetify renders the active panel title with a ~48px height plus a
+// taller default — pin it so the expanded state doesn't jump the
+// drawer when the user toggles a section.
+:deep(.v-expansion-panel-title--active) {
+  min-height: 48px !important;
+}

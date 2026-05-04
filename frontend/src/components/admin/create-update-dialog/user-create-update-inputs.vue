@@ -39,6 +39,21 @@
       title-key="name"
       group-type
     />
+    <!--
+      The per-user age-rating ceiling. ``null`` (cleared) means "no
+      restriction" on the backend; picking a metron restricts the user
+      to comics at or below that index.
+    -->
+    <v-select
+      v-model="row.ageRatingMetron"
+      :items="ageRatingChoices"
+      label="Age Rating"
+      item-title="name"
+      item-value="pk"
+      clearable
+      hide-details="auto"
+      :placeholder="UNRESTRICTED_LABEL"
+    />
   </div>
 </template>
 
@@ -47,13 +62,14 @@ import { mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
-import { useAdminStore } from "@/stores/admin";
+import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
   "isStaff",
   "isActive",
   "groups",
+  "ageRatingMetron",
 ]);
 const EMPTY_ROW = Object.freeze({
   username: "",
@@ -62,6 +78,7 @@ const EMPTY_ROW = Object.freeze({
   isStaff: false,
   isActive: true,
   groups: [],
+  ageRatingMetron: null,
 });
 
 export default {
@@ -82,6 +99,7 @@ export default {
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
         ],
+        UNRESTRICTED_LABEL,
       },
     };
   },
@@ -89,9 +107,17 @@ export default {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,
+      ageRatingMetrons: (state) => state.ageRatingMetrons,
     }),
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
+    },
+    ageRatingChoices() {
+      /*
+       * Dropdown items come straight from the server-seeded canonical
+       * table (:class:`codex.models.age_rating.AgeRatingMetron`).
+       */
+      return this.ageRatingMetrons || [];
     },
   },
   UPDATE_KEYS,

@@ -2,7 +2,7 @@
 import { VUETIFY_NULL_CODE } from "@/choices/browser-choices.json";
 export const NULL_PKS = new Set(["", VUETIFY_NULL_CODE, undefined, null]);
 
-const toVuetifyItem = function (item) {
+const toVuetifyItem = function (item, copyKeys = undefined) {
   /*
    * Translates an raw value or an item item into a vuetify item.
    * Removes nulls, they're detected directly from the choices source.
@@ -30,22 +30,36 @@ const toVuetifyItem = function (item) {
   if (item?.url) {
     vuetifyItem.url = item.url;
   }
+  if (copyKeys) {
+    for (const key of copyKeys) {
+      vuetifyItem[key] = item[key];
+    }
+  }
   return vuetifyItem;
 };
 
-const vuetifyItemCompare = function (itemA, itemB) {
+const vuetifyItemCompareTitle = function (itemA, itemB) {
   return itemA.title.localeCompare(itemB.title);
 };
 
 const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
 };
+const vuetifyItemCompareMetronIndex = function (itemA, itemB) {
+  return Number.parseFloat(itemA.index) - Number.parseFloat(itemB.index);
+};
+
+const SORT_BY_FUNC_MAP = Object.freeze({
+  title: vuetifyItemCompareTitle,
+  numeric: vuetifyItemCompareNumeric,
+  index: vuetifyItemCompareMetronIndex,
+});
 
 export const toVuetifyItems = function ({
   items,
   filter,
-  numeric = false,
-  sort = true,
+  sortBy = "title",
+  copyKeys = undefined,
 }) {
   /*
    * Takes a value (can be a list) and a list of items and
@@ -59,7 +73,7 @@ export const toVuetifyItems = function ({
 
   let computedItems = [];
   for (const item of sourceItems) {
-    const vuetifyItem = toVuetifyItem(item);
+    const vuetifyItem = toVuetifyItem(item, copyKeys);
     if (
       vuetifyItem != undefined &&
       (!lowerCaseFilter ||
@@ -73,8 +87,8 @@ export const toVuetifyItems = function ({
       }
     }
   }
-  if (sort) {
-    const sortFunc = numeric ? vuetifyItemCompareNumeric : vuetifyItemCompare;
+  if (sortBy) {
+    const sortFunc = SORT_BY_FUNC_MAP[sortBy];
     computedItems = computedItems.sort(sortFunc);
   }
   if (noneItem) {

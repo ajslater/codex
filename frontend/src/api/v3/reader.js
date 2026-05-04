@@ -24,10 +24,10 @@ const resetSettings = (data) => {
   return HTTP.delete("c/settings", { data });
 };
 
-const getReaderInfo = (pk, data, ts) => {
+const getReaderInfo = (pk, data, ts, options = {}) => {
   const params = serializeParams(data, ts);
   const bookPath = _getBookPath(pk);
-  return HTTP.get(bookPath, { params });
+  return HTTP.get(bookPath, { params, ...options });
 };
 
 const _getReaderAPIPath = (pk) => {

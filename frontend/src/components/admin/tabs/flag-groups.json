@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Access & Privacy",
+    "keys": ["RG", "NU", "AA", "AR", "FV"]
+  },
+  {
+    "title": "Browser Display",
+    "keys": ["BG", "BT"]
+  },
+  {
+    "title": "Tags Import",
+    "keys": ["IM", "LI"]
+  },
+  {
+    "title": "System",
+    "keys": ["AU", "ST"]
+  }
+]

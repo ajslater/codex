@@ -16,7 +16,7 @@
       :key="`c/${book.pk}/${page}`"
       class="windowItem"
       disabled
-      :eager="page >= storePage - 1 && page <= storePage + 2"
+      :eager="page >= storePage - 1 && page <= storePage + eagerForeBound"
       :model-value="page"
       :transition="transition"
       :reverse-transition="transition"
@@ -64,14 +64,28 @@ export default {
       return this.getBookSettings(this.book);
     },
     twoPages() {
-      return this.bookSettings.twoPages;
+      return this.bookSettings?.twoPages ?? false;
     },
     isReadInReverse() {
-      return this.bookSettings.isReadInReverse;
+      return this.bookSettings?.isReadInReverse;
+    },
+    eagerForeBound() {
+      /*
+       * Single-page mode: only the next page needs to be eager
+       * so the user sees no flash on advance. Two-page mode:
+       * the next spread is two pages forward, so keep ``+2``
+       * eager to preload the start of the next spread.
+       *
+       * The previous unconditional ``+2`` kept four pages
+       * mounted in single-page mode (prev, current, next,
+       * next+1) — saves ~100KB of decoded image memory per
+       * cached extra page on typical comic art.
+       */
+      return this.twoPages ? 2 : 1;
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];
-      return Math.min(Math.max(0, val), this.book.maxPage);
+      return Math.min(Math.max(0, val), this.book?.maxPage || 0);
     },
   },
   watch: {
@@ -95,7 +109,7 @@ export default {
       this.activePage = +this.$route.params.page;
     } else if (this.book.pk === this.prevBook.pk) {
       // Prev Book
-      this.activePage = this.book.maxPage;
+      this.activePage = this.book?.maxPage || 0;
     } else {
       // Must be next book
       this.activePage = 0;

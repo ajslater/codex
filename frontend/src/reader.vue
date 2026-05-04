@@ -65,8 +65,22 @@ export default {
       }
     }, wait);
   },
+  beforeUnmount() {
+    /*
+     * Force any debounced bookmark write to fire before the
+     * reader tears down. The user may have just nav'd away
+     * from the last page they read; without this flush they'd
+     * lose up to a second of position depending on where the
+     * debounce window landed.
+     */
+    this.flushBookmarkWrite();
+  },
   methods: {
-    ...mapActions(useReaderStore, ["loadGlobalSettings", "reset"]),
+    ...mapActions(useReaderStore, [
+      "flushBookmarkWrite",
+      "loadGlobalSettings",
+      "reset",
+    ]),
   },
 };
 </script>

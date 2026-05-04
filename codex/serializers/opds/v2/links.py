@@ -6,8 +6,8 @@ from rest_framework.fields import (
     BooleanField,
     CharField,
     IntegerField,
+    JSONField,
     ListField,
-    SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
 
@@ -16,25 +16,21 @@ class OPDS2LinkBaseSerializer(Serializer):
     """Minimal Link Serializer for Authenticate."""
 
     href = CharField(read_only=True)
-    rel = SerializerMethodField(read_only=True, required=False)
+    # ``rel`` is per OPDS spec a string OR an array of strings. Pass
+    # through whatever shape upstream ``LinkData.rel`` provides — DRF's
+    # ``JSONField`` returns the raw Python value without coercion.
+    # Replaces a per-link ``SerializerMethodField`` that ran an
+    # ``isinstance`` guard per dispatch (~5 links x N publications per
+    # OPDS feed).
+    rel = JSONField(read_only=True, required=False)
     type = CharField(read_only=True, required=False)
-
-    def get_rel(self, obj) -> str | list[str]:
-        """Allow for SanitizedCharField or CharListField types."""
-        rel: str | list[str] = obj.get("rel", "")
-        if rel and not isinstance(rel, list | str):
-            reason = "OPDS2LinkSerializer.rel is not a list or a string."
-            raise TypeError(reason)
-        return rel
 
     @override
     def to_representation(self, instance) -> dict:
-        """Clean complex rel field if None."""
+        """Drop the rel key if it serializes empty."""
         ret = super().to_representation(instance)
-
         if "rel" in ret and not ret["rel"]:
             del ret["rel"]
-
         return ret
 
 

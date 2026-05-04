@@ -5,12 +5,9 @@ from typing import Any
 
 from django.urls import reverse
 
-from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.v1.const import (
-    DEFAULT_FACETS,
     FacetGroups,
     OPDS1EntryData,
     OPDS1EntryObject,
@@ -119,22 +116,13 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         )
         return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
 
-    def _is_facet_active(self, facet_group, facet) -> bool:
-        compare = [facet.value]
-        default_val = DEFAULT_FACETS.get(facet_group.query_param)
-        if facet.value == default_val:
-            compare += [None]
-        return self.request.GET.get(facet_group.query_param) in compare
-
     @staticmethod
     def _did_special_group_change(group, facet_group) -> bool:
         """Test if one of the special groups changed."""
-        for test_group in ("f", "a"):
-            if (group == test_group and facet_group != test_group) or (
-                group != test_group and facet_group == test_group
-            ):
-                return True
-        return False
+        # Special groups are folders ("f") and story arcs ("a").
+        # The change is meaningful only if exactly one side is special:
+        # XOR-style across membership in the special-group set.
+        return (group in "fa") != (facet_group in "fa")
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
@@ -154,16 +142,15 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return facet
 
     def _facet_group(self, facet_group, *, entries: bool) -> list:
+        # Read the folder-view flag once per facet group via the
+        # request-cached ``self.admin_flags`` MappingProxyType — the
+        # prior code fired ``AdminFlag.objects.get`` per facet inside
+        # the loop (sub-plan 02 #6).
+        folder_view_allowed = bool(self.admin_flags.get("folder_view"))
         facets = []
         for facet in facet_group.facets:
-            if facet.value == "f":
-                efv_flag = (
-                    AdminFlag.objects.only("on")
-                    .get(key=AdminFlagChoices.FOLDER_VIEW.value)
-                    .on
-                )
-                if not efv_flag:
-                    continue
+            if facet.value == "f" and not folder_view_allowed:
+                continue
             if facet_obj := self._facet_or_facet_entry(
                 facet_group, facet, entries=entries
             ):
