@@ -12,18 +12,31 @@
       :type="error"
       @retry="onRetry"
     />
-    <LoadingPage v-else-if="showProgress && !loaded" :two-pages="twoPages" />
-    <component
-      :is="component"
-      v-else
-      ref="pageComponent"
-      :book="book"
-      :page="1"
-      :src="src"
-      @error="onError"
-      @load="onLoad"
-      @unauthorized="onUnauthorized"
-    />
+    <template v-else>
+      <!--
+        Keep the image component mounted whenever ``showProgress``
+        flips on. The previous ``v-else-if`` chain unmounted it the
+        moment the 333ms timer fired, ripping out the ``<img>`` —
+        and with it the ``@load`` listener — before the response
+        arrived. On a slow first request (production: nginx in
+        front, cold caches) the response would land on a torn-down
+        element, ``loaded`` never flipped, and the spinner stuck
+        forever. ``v-show`` keeps the element in the tree so the
+        listener fires.
+      -->
+      <component
+        :is="component"
+        v-show="!showProgress || loaded"
+        ref="pageComponent"
+        :book="book"
+        :page="1"
+        :src="src"
+        @error="onError"
+        @load="onLoad"
+        @unauthorized="onUnauthorized"
+      />
+      <LoadingPage v-if="showProgress && !loaded" :two-pages="twoPages" />
+    </template>
   </div>
 </template>
 
