@@ -85,13 +85,15 @@ class AdminUserViewSet(AdminModelViewSet):
 
     @override
     def perform_create(self, serializer) -> None:
-        """Create user with a matching :class:`UserAuth` row."""
+        """Create user; ``UserAuth`` is provisioned by post_save signal."""
         validated_data = serializer.validated_data
         password = validated_data["password"]
         validate_password(password)
         groups = validated_data.pop("groups")
-        # Pop nested userauth data before handing to create_user; pass
-        # through to the UserAuth row we create alongside.
+        # Pop nested userauth data before handing to create_user; the
+        # post_save signal in ``codex.signals.django_signals`` provisions
+        # an empty UserAuth row, which we then patch with the
+        # admin-supplied ceiling if any.
         userauth_data = validated_data.pop("userauth", {})
         validated_data["email"] = ""
         user = User.objects.create_user(**validated_data)
@@ -99,10 +101,10 @@ class AdminUserViewSet(AdminModelViewSet):
             user.groups.set(groups)
             user.save()
         Token.objects.create(user=user)
-        UserAuth.objects.create(
-            user=user,
-            age_rating_metron=userauth_data.get("age_rating_metron"),
-        )
+        if "age_rating_metron" in userauth_data:
+            UserAuth.objects.filter(user=user).update(
+                age_rating_metron=userauth_data["age_rating_metron"],
+            )
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

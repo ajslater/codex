@@ -133,7 +133,17 @@ def _silence_disconnects(loop: asyncio.AbstractEventLoop, context: dict) -> None
 
 async def _serve(server: Server) -> None:
     """Run granian until SHUTDOWN_EVENT fires, then stop gracefully."""
-    asyncio.get_running_loop().set_exception_handler(_silence_disconnects)
+    loop = asyncio.get_running_loop()
+    loop.set_exception_handler(_silence_disconnects)
+    # ``PYTHONDEVMODE=1`` (set by bin/dev-server.sh when DEBUG=1) flips
+    # asyncio into debug mode, which logs WARNINGs whenever a callback
+    # exceeds ``slow_callback_duration`` (default 100ms). Codex routes
+    # most requests through asgiref's ``AsyncToSync`` adapter — a sync
+    # Django view on a thread pool, awaited from the loop — and a DB-
+    # heavy view crossing 100ms is routine, not anomalous. Keep the
+    # warning useful (a >5s callback is a real bug worth surfacing)
+    # without spamming on every normal request.
+    loop.slow_callback_duration = 5.0
     server_task = asyncio.create_task(server.serve())
     if WATCH_FOR_CHANGES:
         watch_task = asyncio.create_task(_watch_for_changes())

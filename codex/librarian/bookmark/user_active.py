@@ -22,20 +22,22 @@ class UserActiveMixin:
         """
         Update user active timestamp on the user's :class:`UserAuth` row.
 
-        ``UserAuth`` rows are provisioned by
-        :meth:`AdminUserViewSet.perform_create` at user creation time, so
-        the row is guaranteed to exist for any logged-in pk reaching the
-        bookmark thread. ``filter().update()`` is one round trip vs the
-        prior ``User.objects.get`` + ``update_or_create`` (which fired
+        ``UserAuth`` rows are provisioned by the User ``post_save`` signal
+        in :mod:`codex.signals.django_signals` for every creation path
+        (admin UI, ``createsuperuser``, fixtures), and existing users were
+        backfilled by migration 0039, so the row is guaranteed to exist
+        for any logged-in pk reaching the bookmark thread.
+        ``filter().update()`` is one round trip vs the prior
+        ``User.objects.get`` + ``update_or_create`` (which fired
         SELECT + SELECT + UPDATE-or-INSERT). Mirrors the
         ``UserAuth`` / ``GroupAuth`` write-path pattern from
         admin-views-perf PR #610.
 
         ``auto_now=True`` on ``BaseModel.updated_at`` only fires on
         ``save()`` — ``.update()`` skips it — so pass the timestamp
-        explicitly. A missing row is a silent no-op (the create flow
-        broke its invariant; logging it surfaces the data integrity
-        issue rather than masking it with ``update_or_create``).
+        explicitly. A missing row remains a silent no-op with a warning
+        — at this point it points to a real data integrity issue worth
+        surfacing.
         """
         last_recorded = self._user_active_recorded.get(pk, EPOCH_START)
         now = django_timezone.now()

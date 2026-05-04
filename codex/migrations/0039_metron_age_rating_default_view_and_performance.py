@@ -8,7 +8,15 @@ Introduce :class:`AgeRatingMetron` and per-user age-rating ACL.
   row's ``name`` via comicbox's ``to_metron_age_rating()``.
 - Renames ``UserActive`` → ``UserAuth`` and adds ``UserAuth.age_rating_metron``
   FK (``SET_NULL``, nullable) — the per-user age-rating ceiling (null =
-  unrestricted).
+  unrestricted). Backfills a default ``UserAuth`` row for every
+  existing :class:`User` that doesn't have one — pre-0039
+  ``UserActive`` rows were created lazily on first activity, so users
+  provisioned via ``manage.py createsuperuser`` (or any path that
+  bypassed the admin web UI) had no row. The new invariant ("every
+  User has a UserAuth") is enforced going forward by a ``post_save``
+  signal in :mod:`codex.signals.django_signals`; the backfill brings
+  legacy rows into compliance so the bookmark thread's activity touch
+  is silent for all users.
 - Renames ``SettingsBrowserFilters.age_rating`` to ``age_rating_tagged``
   and adds the parallel ``age_rating_metron`` JSON column (stores PKs
   of :class:`AgeRatingMetron` rows now — prior scheme stored metron
@@ -301,6 +309,36 @@ def _backfill_age_rating_metron_fk(apps, _schema_editor) -> None:
         age_rating_model.objects.bulk_update(
             to_update, ["metron_id"], batch_size=_CHUNK
         )
+
+
+def _backfill_userauth(apps, schema_editor) -> None:
+    """
+    Provision a default :class:`UserAuth` row for every User missing one.
+
+    Pre-0039 ``UserActive`` rows were created lazily on first activity,
+    so any User that never bookmarked / never showed up to the bookmark
+    thread had no row. The most visible case is admins provisioned via
+    ``manage.py createsuperuser``, which bypassed the admin web UI's
+    explicit ``UserAuth.objects.create``. The bookmark thread emits
+    "No UserAuth row" warnings on every activity touch for those users.
+
+    The new ``post_save`` signal in :mod:`codex.signals.django_signals`
+    enforces the invariant going forward; this backfill heals the
+    legacy gap.
+    """
+    User = apps.get_model("auth", "User")
+    UserAuth = apps.get_model("codex", "UserAuth")
+    db = schema_editor.connection.alias
+
+    existing = set(
+        UserAuth.objects.using(db).values_list("user_id", flat=True),
+    )
+    missing = (
+        User.objects.using(db).exclude(pk__in=existing).values_list("pk", flat=True)
+    )
+    rows = [UserAuth(user_id=pk) for pk in missing]
+    if rows:
+        UserAuth.objects.using(db).bulk_create(rows)
 
 
 def _backfill_age_rating_metron_flag_fk(apps, _schema_editor) -> None:
@@ -943,6 +981,11 @@ class Migration(migrations.Migration):
                 to="codex.ageratingmetron",
             ),
         ),
+        # Backfill a default UserAuth row for any User missing one.
+        # Heals the legacy gap from the lazy-create UserActive era so
+        # the bookmark thread's activity touch is silent for everyone
+        # (e.g. admins provisioned via ``createsuperuser``).
+        migrations.RunPython(_backfill_userauth, _noop),
         # SettingsBrowserFilters: rename tagged filter, add metron filter
         migrations.RenameField(
             model_name="settingsbrowserfilters",
