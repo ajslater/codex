@@ -41,12 +41,30 @@ class CodexMiddleware:
         else:
             timezone.deactivate()
 
+    @staticmethod
+    async def _aactivate_timezone(request) -> None:
+        """
+        Async-safe ``_activate_timezone``.
+
+        Sync ``request.session.get("django_timezone")`` triggers a lazy
+        load from the session backend, which under cached_db ends up
+        in ``Session.objects.get(...)`` — a sync ORM call. From Granian's
+        ASGI worker (running coroutines on the loop), that trips
+        ``SynchronousOnlyOperation``. ``request.session.aget`` is the
+        async-native equivalent on ``SessionBase`` and routes through
+        ``aload`` / ``_aget_session_from_db``.
+        """
+        if tzname := await request.session.aget("django_timezone"):
+            timezone.activate(tzname)
+        else:
+            timezone.deactivate()
+
     def _set_server_header(self, response):
         response["Server"] = f"{PACKAGE_NAME}/{VERSION}"
         return response
 
     async def _acall(self, request):
-        self._activate_timezone(request)
+        await self._aactivate_timezone(request)
         response = await self.get_response(request)
         return self._set_server_header(response)
 
