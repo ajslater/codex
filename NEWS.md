@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.1
+
+- Fixes
+    - Crash on anonymous user setting timezone
+
 ## v1.11.0 - Age Restrictions & Snappiness
 
 - Notice
